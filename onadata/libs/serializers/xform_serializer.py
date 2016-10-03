@@ -1,121 +1,135 @@
-from django.forms import widgets
+import logging
+
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.core.cache import cache
+from django.db.models import Count
 from requests.exceptions import ConnectionError
 from rest_framework import serializers
 from rest_framework.reverse import reverse
-from django.core.cache import cache
-from django.db.models import Count
 
 from onadata.apps.logger.models import XForm, Instance
-from onadata.libs.permissions import get_object_users_with_permissions
-from onadata.libs.serializers.fields.boolean_field import BooleanField
+from onadata.libs.permissions import get_role
+from onadata.libs.permissions import is_organization
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
+from onadata.libs.serializers.dataview_serializer import DataViewSerializer
 from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.viewer_tools import enketo_url, EnketoError
-from onadata.libs.utils.viewer_tools import _get_form_url
+from onadata.libs.utils.viewer_tools import get_form_url
 from onadata.apps.main.views import get_enketo_preview_url
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.utils.cache_tools import (XFORM_PERMISSIONS_CACHE,
                                             ENKETO_URL_CACHE,
                                             ENKETO_PREVIEW_URL_CACHE,
                                             XFORM_METADATA_CACHE,
-                                            XFORM_DATA_VERSIONS)
+                                            XFORM_DATA_VERSIONS,
+                                            XFORM_LINKED_DATAVIEWS)
+from onadata.libs.utils.common_tags import GROUP_DELIMETER_TAG
 
 
-class XFormSerializer(serializers.HyperlinkedModelSerializer):
-    formid = serializers.Field(source='id')
-    metadata = serializers.SerializerMethodField('get_xform_metadata')
-    owner = serializers.HyperlinkedRelatedField(view_name='user-detail',
-                                                source='user',
-                                                lookup_field='username')
-    created_by = serializers.HyperlinkedRelatedField(view_name='user-detail',
-                                                     source='created_by',
-                                                     lookup_field='username')
-    public = BooleanField(source='shared', widget=widgets.CheckboxInput())
-    public_data = BooleanField(source='shared_data')
-    require_auth = BooleanField(source='require_auth',
-                                widget=widgets.CheckboxInput())
-    submission_count_for_today = serializers.Field(
-        source='submission_count_for_today')
-    tags = TagListSerializer(read_only=True)
-    title = serializers.CharField(max_length=255, source='title')
-    url = serializers.HyperlinkedIdentityField(view_name='xform-detail',
-                                               lookup_field='pk')
-    users = serializers.SerializerMethodField('get_xform_permissions')
-    enketo_url = serializers.SerializerMethodField('get_enketo_url')
-    enketo_preview_url = serializers.SerializerMethodField(
-        'get_enketo_preview_url')
-    instances_with_geopoints = serializers.SerializerMethodField(
-        'get_instances_with_geopoints')
-    num_of_submissions = serializers.SerializerMethodField(
-        'get_num_of_submissions')
-    form_versions = serializers.SerializerMethodField(
-        'get_xform_versions')
+def _create_enketo_url(request, xform):
+    """
+    Generate enketo url for a form
 
-    class Meta:
-        model = XForm
-        read_only_fields = (
-            'json', 'xml', 'date_created', 'date_modified', 'encrypted',
-            'bamboo_dataset', 'last_submission_time')
-        exclude = ('id', 'json', 'xml', 'xls', 'user', 'has_start_time',
-                   'shared', 'shared_data', 'deleted_at')
+    :param request:
+    :param xform:
+    :return: enketo url
+    """
+    form_url = get_form_url(
+        request, xform.user.username, settings.ENKETO_PROTOCOL)
+    url = ""
 
-    def get_num_of_submissions(self, obj):
-        if obj.num_of_submissions != obj.instances.filter(
-                deleted_at__isnull=True).count():
-            obj.submission_count(force_update=True)
+    try:
+        url = enketo_url(form_url, xform.id_string)
+        MetaData.enketo_url(xform, url)
+    except ConnectionError, e:
+        logging.exception("Connection Error: %s" % e.message)
+    except EnketoError, e:
+        logging.exception("Enketo Error: %s" % e.message)
 
-        return obj.num_of_submissions
+    return url
 
-    def get_instances_with_geopoints(self, obj):
-        if not obj.instances_with_geopoints and obj.instances.exclude(
-                geom=None).count() > 0:
-            obj.instances_with_geopoints = True
-            obj.save()
 
-        return obj.instances_with_geopoints
+def _set_cache(cache_key, cache_data, obj):
+    """
+    Utility function that set the specified info to the provided cache key
 
-    def get_xform_permissions(self, obj):
+    :param cache_key:
+    :param cache_data:
+    :param obj:
+    :return: Data that has been cached
+    """
+    cache.set('{}{}'.format(cache_key, obj.pk), cache_data)
+    return cache_data
+
+
+def user_to_username(item):
+    item['user'] = item['user'].username
+
+    return item
+
+
+class XFormMixin(object):
+    def _get_metadata(self, obj, key):
+        if key:
+            for m in obj.metadata_set.all():
+                if m.data_type == key:
+                    return m.data_value
+        else:
+            return obj.metadata_set.all()
+
+    def get_users(self, obj):
+        xform_perms = []
         if obj:
             xform_perms = cache.get(
                 '{}{}'.format(XFORM_PERMISSIONS_CACHE, obj.pk))
             if xform_perms:
                 return xform_perms
 
-            xform_perms = get_object_users_with_permissions(obj)
             cache.set(
                 '{}{}'.format(XFORM_PERMISSIONS_CACHE, obj.pk), xform_perms)
-            return xform_perms
+        data = {}
+        for perm in obj.xformuserobjectpermission_set.all():
+            if perm.user_id not in data:
+                user = perm.user
 
-        return []
+                data[perm.user_id] = {
+                    'permissions': [],
+                    'is_org': is_organization(user.profile),
+                    'metadata': user.profile.metadata,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'user': user.username
+                }
+            if perm.user_id in data:
+                data[perm.user_id]['permissions'].append(
+                    perm.permission.codename
+                )
+
+        for k in data.keys():
+            data[k]['permissions'].sort()
+            data[k]['role'] = get_role(data[k]['permissions'], obj)
+            del(data[k]['permissions'])
+
+        xform_perms = data.values()
+
+        cache.set(
+            '{}{}'.format(XFORM_PERMISSIONS_CACHE, obj.pk), xform_perms)
+
+        return xform_perms
 
     def get_enketo_url(self, obj):
         if obj:
-            _enketo_url = cache.get(
-                '{}{}'.format(ENKETO_URL_CACHE, obj.pk))
+            _enketo_url = cache.get('{}{}'.format(ENKETO_URL_CACHE, obj.pk))
             if _enketo_url:
                 return _enketo_url
 
-            try:
-                metadata = MetaData.objects.get(
-                    xform=obj, data_type="enketo_url")
-            except MetaData.DoesNotExist:
-                request = self.context.get('request')
-                form_url = _get_form_url(request, obj.user.username)
-                url = ""
+            url = self._get_metadata(obj, 'enketo_url')
+            if url is None:
+                url = _create_enketo_url(self.context.get('request'), obj)
 
-                try:
-                    url = enketo_url(form_url, obj.id_string)
-                    MetaData.enketo_url(obj, url)
-                except (EnketoError, ConnectionError):
-                    pass
-
-                cache.set('{}{}'.format(ENKETO_URL_CACHE, obj.pk), url)
-                return url
-
-            _enketo_url = metadata.data_value
-            cache.set('{}{}'.format(ENKETO_URL_CACHE, obj.pk), _enketo_url)
-            return _enketo_url
+            return _set_cache(ENKETO_URL_CACHE, url, obj)
 
         return None
 
@@ -126,75 +140,167 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
             if _enketo_preview_url:
                 return _enketo_preview_url
 
-            try:
-                metadata = MetaData.objects.get(
-                    xform=obj, data_type="enketo_preview_url")
-            except MetaData.DoesNotExist:
-                request = self.context.get('request')
-                preview_url = ""
-
+            url = self._get_metadata(obj, 'enketo_preview_url')
+            if url is None:
                 try:
-                    preview_url = get_enketo_preview_url(request,
-                                                         obj.user.username,
-                                                         obj.id_string)
-                    MetaData.enketo_preview_url(obj, preview_url)
-                except EnketoError:
-                    pass
+                    url = get_enketo_preview_url(
+                        self.context.get('request'),
+                        obj.user.username,
+                        obj.id_string
+                    )
+                except:
+                    return url
+                else:
+                    MetaData.enketo_preview_url(obj, url)
 
-                cache.set('{}{}'.format(ENKETO_PREVIEW_URL_CACHE, obj.pk),
-                          preview_url)
-                return preview_url
-
-            _enketo_preview_url = metadata.data_value
-            cache.set(
-                '{}{}'.format(ENKETO_URL_CACHE, obj.pk), _enketo_preview_url)
-            return _enketo_preview_url
+            return _set_cache(ENKETO_PREVIEW_URL_CACHE, url, obj)
 
         return None
 
-    def get_xform_metadata(self, obj):
+    def get_data_views(self, obj):
+        if obj:
+            key = '{}{}'.format(XFORM_LINKED_DATAVIEWS, obj.pk)
+            data_views = cache.get(key)
+            if data_views:
+                return data_views
+
+            data_views = DataViewSerializer(
+                obj.dataview_set.all(),
+                many=True,
+                context=self.context).data
+
+            cache.set(key, list(data_views))
+
+            return data_views
+        return []
+
+
+class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
+    formid = serializers.ReadOnlyField(source='id')
+    owner = serializers.HyperlinkedRelatedField(
+        view_name='user-detail', source='user', lookup_field='username',
+        queryset=User.objects.exclude(
+            username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
+        )
+    )
+    created_by = serializers.HyperlinkedRelatedField(
+        view_name='user-detail', lookup_field='username',
+        queryset=User.objects.exclude(
+            username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
+        )
+    )
+    public = serializers.BooleanField(source='shared')
+    public_data = serializers.BooleanField(source='shared_data')
+    require_auth = serializers.BooleanField()
+    tags = TagListSerializer(read_only=True)
+    title = serializers.CharField(max_length=255)
+    url = serializers.HyperlinkedIdentityField(view_name='xform-detail',
+                                               lookup_field='pk')
+    users = serializers.SerializerMethodField()
+    enketo_url = serializers.SerializerMethodField()
+    enketo_preview_url = serializers.SerializerMethodField()
+    num_of_submissions = serializers.ReadOnlyField()
+    data_views = serializers.SerializerMethodField()
+
+    class Meta:
+        model = XForm
+        read_only_fields = (
+            'json', 'xml', 'date_created', 'date_modified', 'encrypted',
+            'bamboo_dataset', 'last_submission_time')
+        exclude = ('json', 'xml', 'xls', 'user', 'has_start_time',
+                   'shared', 'shared_data', 'deleted_at')
+
+
+class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
+    formid = serializers.ReadOnlyField(source='id')
+    metadata = serializers.SerializerMethodField()
+    owner = serializers.HyperlinkedRelatedField(
+        view_name='user-detail', source='user', lookup_field='username',
+        queryset=User.objects.exclude(
+            username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
+        )
+    )
+    created_by = serializers.HyperlinkedRelatedField(
+        view_name='user-detail', lookup_field='username',
+        queryset=User.objects.exclude(
+            username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
+        )
+    )
+    public = serializers.BooleanField(source='shared')
+    public_data = serializers.BooleanField(source='shared_data')
+    require_auth = serializers.BooleanField()
+    submission_count_for_today = serializers.ReadOnlyField()
+    tags = TagListSerializer(read_only=True)
+    title = serializers.CharField(max_length=255)
+    url = serializers.HyperlinkedIdentityField(view_name='xform-detail',
+                                               lookup_field='pk')
+    users = serializers.SerializerMethodField()
+    enketo_url = serializers.SerializerMethodField()
+    enketo_preview_url = serializers.SerializerMethodField()
+    num_of_submissions = serializers.ReadOnlyField()
+    form_versions = serializers.SerializerMethodField()
+    data_views = serializers.SerializerMethodField()
+
+    class Meta:
+        model = XForm
+        read_only_fields = (
+            'json', 'xml', 'date_created', 'date_modified', 'encrypted',
+            'bamboo_dataset', 'last_submission_time')
+        exclude = ('json', 'xml', 'xls', 'user', 'has_start_time',
+                   'shared', 'shared_data', 'deleted_at')
+
+    def get_metadata(self, obj):
+        xform_metadata = []
         if obj:
             xform_metadata = cache.get(
                 '{}{}'.format(XFORM_METADATA_CACHE, obj.pk))
             if xform_metadata:
                 return xform_metadata
 
-            xform_metadata = MetaDataSerializer(
+            xform_metadata = list(MetaDataSerializer(
                 obj.metadata_set.all(),
                 many=True,
-                context=self.context).data
+                context=self.context
+            ).data)
             cache.set(
                 '{}{}'.format(XFORM_METADATA_CACHE, obj.pk), xform_metadata)
-            return xform_metadata
 
-        return []
+        return xform_metadata
 
-    def get_xform_versions(self, obj):
+    def get_form_versions(self, obj):
+        versions = []
         if obj:
             versions = cache.get('{}{}'.format(XFORM_DATA_VERSIONS, obj.pk))
 
             if versions:
                 return versions
 
-            versions = Instance.objects.filter(xform=obj)\
-                .values('version')\
-                .annotate(total=Count('version'))
+            versions = list(Instance.objects.filter(xform=obj,
+                                                    deleted_at__isnull=True)
+                            .values('version')
+                            .annotate(total=Count('version')))
 
             if versions:
                 cache.set('{}{}'.format(XFORM_DATA_VERSIONS, obj.pk),
                           list(versions))
 
-            return versions
-        return []
+        return versions
+
+
+class XFormCreateSerializer(XFormSerializer):
+    has_id_string_changed = serializers.SerializerMethodField()
+
+    def get_has_id_string_changed(self, obj):
+        return obj.has_id_string_changed
 
 
 class XFormListSerializer(serializers.Serializer):
-    formID = serializers.Field(source='id_string')
-    name = serializers.Field(source='title')
+    formID = serializers.ReadOnlyField(source='id_string')
+    name = serializers.ReadOnlyField(source='title')
     majorMinorVersion = serializers.SerializerMethodField('get_version')
-    version = serializers.SerializerMethodField('get_version')
-    hash = serializers.SerializerMethodField('get_hash')
-    descriptionText = serializers.Field(source='description')
+    version = serializers.SerializerMethodField()
+    hash = serializers.SerializerMethodField()
+    descriptionText = serializers.ReadOnlyField(source='description')
     downloadUrl = serializers.SerializerMethodField('get_url')
     manifestUrl = serializers.SerializerMethodField('get_manifest_url')
 
@@ -221,21 +327,36 @@ class XFormListSerializer(serializers.Serializer):
 
 
 class XFormManifestSerializer(serializers.Serializer):
-    filename = serializers.Field(source='data_value')
-    hash = serializers.SerializerMethodField('get_hash')
+    filename = serializers.SerializerMethodField()
+    hash = serializers.SerializerMethodField()
     downloadUrl = serializers.SerializerMethodField('get_url')
 
     @check_obj
     def get_url(self, obj):
-        kwargs = {'pk': obj.xform.pk,
-                  'username': obj.xform.user.username,
+        kwargs = {'pk': obj.content_object.pk,
+                  'username': obj.content_object.user.username,
                   'metadata': obj.pk}
         request = self.context.get('request')
-        format = obj.data_value[obj.data_value.rindex('.') + 1:]
+        try:
+            fmt = obj.data_value[obj.data_value.rindex('.') + 1:]
+        except ValueError:
+            fmt = 'csv'
 
-        return reverse('xform-media', kwargs=kwargs,
-                       request=request, format=format.lower())
+        group_delimiter = self.context.get(GROUP_DELIMETER_TAG)
+        url = reverse('xform-media', kwargs=kwargs, request=request,
+                      format=fmt.lower())
+        return (url+"?%s=%s" % (GROUP_DELIMETER_TAG, group_delimiter)) if \
+            group_delimiter and fmt == 'csv' else url
 
     @check_obj
     def get_hash(self, obj):
         return u"%s" % (obj.file_hash or 'md5:')
+
+    @check_obj
+    def get_filename(self, obj):
+        filename = obj.data_value
+        parts = filename.split(' ')
+        if len(parts) > 2:
+            filename = u'%s.csv' % parts[2]
+
+        return filename

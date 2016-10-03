@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: ai ts=4 sts=4 et sw=4 coding=utf-8
+# vim: ai ts=4 sts=4 et sw=4 file-encoding=utf-8
 
 import csv
 from optparse import make_option
@@ -7,8 +7,9 @@ from optparse import make_option
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import ugettext_lazy
 
-from onadata.apps.logger.models.xform import XForm, DuplicateUUIDError
-from onadata.libs.utils.model_tools import update_xform_uuid
+from onadata.apps.logger.models.xform import update_xform_uuid
+from onadata.apps.logger.models.xform import DuplicateUUIDError
+from onadata.apps.logger.models.xform import XForm
 
 
 class Command(BaseCommand):

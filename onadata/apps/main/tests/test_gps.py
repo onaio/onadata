@@ -33,7 +33,7 @@ class TestGPS(TestBase):
         dd = DataDictionary.objects.all()[0]
         # should have been saved to dd.instances_with_geopoints during
         # submission
-        self.assertTrue(dd.has_instances_with_geopoints())
+        self.assertTrue(dd.has_instances_with_geopoints)
 
     def _check_link_to_map_view(self):
         response = self.client.get("/%s/" % self.user.username)

@@ -1,6 +1,7 @@
 import os
 import hashlib
 
+from django.contrib.contenttypes.models import ContentType
 from django.core.files.base import File
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.urlresolvers import reverse
@@ -53,12 +54,41 @@ class TestFormMetadata(TestBase):
                 'data_id': self.doc.id})
         return name
 
+    def test_views_with_unavailable_id_string(self):
+        path = os.path.join(
+            self.this_directory, "fixtures", "transportation",
+            'transportation.xls'
+        )
+
+        with open(path) as doc_file:
+            self.post_data = {}
+            self.post_data['doc'] = doc_file
+            self.client.post(self.edit_url, self.post_data)
+
+        self.doc = MetaData.objects.all().reverse()[0]
+
+        download_metadata_url = reverse(download_metadata, kwargs={
+            'username': self.user.username,
+            'id_string': 'random_id_string',
+            'data_id': self.doc.id})
+
+        response = self.client.get(download_metadata_url)
+        self.assertEqual(response.status_code, 404)
+
+        delete_metadata_url = reverse(delete_metadata, kwargs={
+            'username': self.user.username,
+            'id_string': 'random_id_string',
+            'data_id': self.doc.id})
+
+        response = self.client.get(delete_metadata_url + '?del=true')
+        self.assertEqual(response.status_code, 404)
+
     def test_adds_supporting_doc_on_submit(self):
-        count = len(MetaData.objects.filter(xform=self.xform,
+        count = len(MetaData.objects.filter(object_id=self.xform.id,
                     data_type='supporting_doc'))
         self._add_metadata()
         self.assertEquals(count + 1, len(MetaData.objects.filter(
-            xform=self.xform, data_type='supporting_doc')))
+            object_id=self.xform.id, data_type='supporting_doc')))
 
     def test_delete_cached_xform_metadata_object_on_save(self):
         count = MetaData.objects.count()
@@ -70,21 +100,21 @@ class TestFormMetadata(TestBase):
         self.assertEquals(count + 1, MetaData.objects.count())
 
     def test_adds_supporting_media_on_submit(self):
-        count = len(MetaData.objects.filter(xform=self.xform,
+        count = len(MetaData.objects.filter(object_id=self.xform.id,
                     data_type='media'))
         self._add_metadata(data_type='media')
         self.assertEquals(count + 1, len(MetaData.objects.filter(
-            xform=self.xform, data_type='media')))
+            object_id=self.xform.id, data_type='media')))
 
     def test_adds_mapbox_layer_on_submit(self):
-        count = len(MetaData.objects.filter(
-            xform=self.xform, data_type='mapbox_layer'))
+        count = MetaData.objects.filter(
+            object_id=self.xform.id, data_type='mapbox_layer').count()
         self.post_data = {}
         self.post_data['map_name'] = 'test_mapbox_layer'
         self.post_data['link'] = 'http://0.0.0.0:8080'
         self.client.post(self.edit_url, self.post_data)
-        self.assertEquals(count + 1, len(MetaData.objects.filter(
-            xform=self.xform, data_type='mapbox_layer')))
+        self.assertEquals(count + 1, MetaData.objects.filter(
+            object_id=self.xform.id, data_type='mapbox_layer').count())
 
     def test_shows_supporting_doc_after_submit(self):
         name = self._add_metadata()
@@ -153,11 +183,12 @@ class TestFormMetadata(TestBase):
         self.assertEqual(response.status_code, 200)
 
     def test_delete_supporting_doc(self):
-        count = MetaData.objects.filter(xform=self.xform,
+        count = MetaData.objects.filter(object_id=self.xform.id,
                                         data_type='supporting_doc').count()
         self._add_metadata()
         self.assertEqual(MetaData.objects.filter(
-            xform=self.xform, data_type='supporting_doc').count(), count + 1)
+            object_id=self.xform.id,
+            data_type='supporting_doc').count(), count + 1)
         doc = MetaData.objects.filter(data_type='supporting_doc').reverse()[0]
         self.delete_doc_url = reverse(delete_metadata, kwargs={
             'username': self.user.username,
@@ -165,36 +196,38 @@ class TestFormMetadata(TestBase):
             'data_id': doc.id})
         response = self.client.get(self.delete_doc_url + '?del=true')
         self.assertEqual(MetaData.objects.filter(
-            xform=self.xform, data_type='supporting_doc').count(), count)
+            object_id=self.xform.id,
+            data_type='supporting_doc').count(), count)
         self.assertEqual(response.status_code, 302)
 
     def test_delete_supporting_media(self):
         count = MetaData.objects.filter(
-            xform=self.xform, data_type='media').count()
+            object_id=self.xform.id, data_type='media').count()
         self._add_metadata(data_type='media')
         self.assertEqual(MetaData.objects.filter(
-            xform=self.xform, data_type='media').count(), count + 1)
+            object_id=self.xform.id, data_type='media').count(), count + 1)
         response = self.client.get(self.doc_url + '?del=true')
         self.assertEqual(MetaData.objects.filter(
-            xform=self.xform, data_type='media').count(), count)
+            object_id=self.xform.id, data_type='media').count(), count)
         self.assertEqual(response.status_code, 302)
         self._add_metadata(data_type='media')
         response = self.anon.get(self.doc_url + '?del=true')
         self.assertEqual(MetaData.objects.filter(
-            xform=self.xform, data_type='media').count(), count + 1)
+            object_id=self.xform.id, data_type='media').count(), count + 1)
         self.assertEqual(response.status_code, 403)
 
     def _add_mapbox_layer(self):
         # check mapbox_layer metadata count
-        self.count = len(MetaData.objects.filter(
-            xform=self.xform, data_type='mapbox_layer'))
+        self.count = MetaData.objects.filter(
+            object_id=self.xform.id, data_type='mapbox_layer').count()
         # add mapbox_layer metadata
         post_data = {'map_name': 'test_mapbox_layer',
                      'link': 'http://0.0.0.0:8080'}
         response = self.client.post(self.edit_url, post_data)
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(len(MetaData.objects.filter(
-            xform=self.xform, data_type='mapbox_layer')), self.count + 1)
+        self.assertEqual(MetaData.objects.filter(
+            object_id=self.xform.id,
+            data_type='mapbox_layer').count(), self.count + 1)
 
     def test_delete_mapbox_layer(self):
         self._add_mapbox_layer()
@@ -205,8 +238,9 @@ class TestFormMetadata(TestBase):
             'id_string': self.xform.id_string,
             'data_id': doc.id})
         response = self.client.get(self.delete_doc_url + '?map_name_del=true')
-        self.assertEqual(len(MetaData.objects.filter(
-            xform=self.xform, data_type='mapbox_layer')), self.count)
+        self.assertEqual(MetaData.objects.filter(
+            object_id=self.xform.id,
+            data_type='mapbox_layer').count(), self.count)
         self.assertEqual(response.status_code, 302)
 
     def test_anon_delete_mapbox_layer(self):
@@ -217,8 +251,9 @@ class TestFormMetadata(TestBase):
             'id_string': self.xform.id_string,
             'data_id': doc.id})
         response = self.anon.get(self.delete_doc_url + '?map_name_del=true')
-        self.assertEqual(len(MetaData.objects.filter(
-            xform=self.xform, data_type='mapbox_layer')), self.count + 1)
+        self.assertEqual(MetaData.objects.filter(
+            object_id=self.xform.id,
+            data_type='mapbox_layer').count(), self.count + 1)
         self.assertEqual(response.status_code, 302)
 
     def test_user_source_edit_updates(self):
@@ -249,8 +284,13 @@ class TestFormMetadata(TestBase):
         name = "screenshot.png"
         media_file = os.path.join(
             self.this_directory, 'fixtures', 'transportation', name)
+        content_type = ContentType.objects.get_for_model(self.xform)
+
         m = MetaData.objects.create(
-            data_type='media', xform=self.xform, data_value=name,
+            content_type=content_type,
+            data_type='media',
+            object_id=self.xform.id,
+            data_value=name,
             data_file=File(open(media_file), name),
             data_file_type='image/png')
         f = open(media_file)

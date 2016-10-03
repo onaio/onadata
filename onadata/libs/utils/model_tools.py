@@ -1,8 +1,6 @@
 import gc
 import uuid
 
-from onadata.apps.logger.models.xform import XForm, DuplicateUUIDError
-
 
 def generate_uuid_for_form():
     return uuid.uuid4().hex
@@ -35,14 +33,17 @@ def queryset_iterator(queryset, chunksize=100):
         gc.collect()
 
 
-def update_xform_uuid(username, id_string, new_uuid):
-    xform = XForm.objects.get(user__username=username, id_string=id_string)
-    # check for duplicate uuid
-    count = XForm.objects.filter(uuid=new_uuid).count()
-
-    if count > 0:
-        raise DuplicateUUIDError(
-            "An xform with uuid: %s already exists" % new_uuid)
-
-    xform.uuid = new_uuid
-    xform.save()
+def get_columns_with_hxl(survey_elements):
+    '''
+    Returns a dictionary whose keys are xform field names and values are
+    `instance::hxl` values set on the xform
+    :param include_hxl - boolean value
+    :param survey_elements - survey elements of an xform
+    return dictionary or None
+    '''
+    return survey_elements and {
+        se.get('name'): val.get('hxl')
+        for se in survey_elements
+        for key, val in se.items()
+        if key == 'instance' and val and 'hxl' in val
+    }

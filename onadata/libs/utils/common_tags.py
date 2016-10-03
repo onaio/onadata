@@ -44,8 +44,12 @@ INDEX = u"_index"
 PARENT_INDEX = u"_parent_index"
 PARENT_TABLE_NAME = u"_parent_table_name"
 
+# instance flags
+EDITED = "_edited"
+LAST_EDITED = "_last_edited"
 # datetime format that we store in mongo
 MONGO_STRFTIME = '%Y-%m-%dT%H:%M:%S'
+DATE_FORMAT = '%Y-%m-%d'
 
 # how to represent N/A in exports
 NA_REP = 'n/a'
@@ -66,3 +70,23 @@ MODE = u"mode"
 TEXTIT = u'textit'
 OSM = u'osm'
 MULTIPLE_SELECT_TYPE = u'select all that apply'
+GROUPNAME_REMOVED_FLAG = u'group-name-removed'
+DATAVIEW_EXPORT = U'dataview'
+OWNER_TEAM_NAME = "Owners"
+
+API_TOKEN = 'api-token'
+KNOWN_MEDIA_TYPES = ['photo', 'image', 'audio', 'video']
+NUMERIC_LIST = [u'integer', u'decimal', u'calculate']
+SELECT_ONE = u'select one'
+
+# google_sheets
+GOOGLE_SHEET = u'google_sheets'
+GOOGLE_SHEET_ID = u'GOOGLE_SHEET_ID'
+GOOGLE_SHEET_TITLE = u'GOOGLE_SHEET_TITLE'
+GOOGLE_SHEET_DATA_TYPE = u'google_sheets'
+UPDATE_OR_DELETE_GOOGLE_SHEET_DATA = u'UPDATE_OR_DELETE_GOOGLE_SHEET_DATA'
+SYNC_EXISTING_DATA = u"send_existing_data"
+USER_ID = u'USER_ID'
+
+# tag group delimiter name
+GROUP_DELIMETER_TAG = 'group_delimiter'

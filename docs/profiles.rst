@@ -4,7 +4,7 @@ Profiles
 Register a new User
 -------------------
 
-``username, email, first_name, last_name, and password`` Are required fields. \ ``username`` may
+``username, email, firstname`` Are required fields. \ ``username`` may
 contain alphanumeric, \_, @, +, . and - characters
 
 .. raw:: html
@@ -21,7 +21,6 @@ Example
            "first_name": "Demo",
            "last_name": "User",
            "email": "demo@localhost.com",
-           "password": "shhhh",
            "city": "Kisumu",
            "country": "KE",
            ...
@@ -39,7 +38,7 @@ Example
 
 ::
 
-      curl -X GET https://ona.io/api/v1/profiles
+      curl -X GET https://api.ona.io/api/v1/profiles
 
 Response
 ^^^^^^^^
@@ -48,7 +47,7 @@ Response
 
     [
         {
-            "url": "https://ona.io/api/v1/profiles/demo",
+            "url": "https://api.ona.io/api/v1/profiles/demo",
             "username": "demo",
             "first_name": "Demo",
             "last_name": "User",
@@ -60,7 +59,7 @@ Response
             "twitter": "",
             "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
             "require_auth": false,
-            "user": "https://ona.io/api/v1/users/demo",
+            "user": "https://api.ona.io/api/v1/users/demo",
             "metadata": {},
             "joined_on": "2014-11-10T14:22:20.394Z"
         },
@@ -83,7 +82,7 @@ Example
 
 ::
 
-      curl -X GET https://ona.io/api/v1/profiles/demo
+      curl -X GET https://api.ona.io/api/v1/profiles/demo
 
 Response
 ^^^^^^^^
@@ -91,7 +90,7 @@ Response
 ::
 
     {
-        "url": "https://ona.io/api/v1/profiles/demo",
+        "url": "https://api.ona.io/api/v1/profiles/demo",
         "username": "demo",
         "first_name": "Demo",
         "last_name": "User",
@@ -103,7 +102,7 @@ Response
         "twitter": "",
         "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
         "require_auth": false,
-        "user": "https://ona.io/api/v1/users/demo",
+        "user": "https://api.ona.io/api/v1/users/demo",
         "metadata": {},
         "joined_on": "2014-11-10T14:22:20.394Z"
     }
@@ -125,7 +124,7 @@ Example
 
 ::
 
-    curl -X PATCH -d ‘{"country": "KE"}’ https://ona.io/api/v1/profiles/demo -H "Content-Type: application/json"
+    curl -X PATCH -d ‘{"country": "KE"}’ https://api.ona.io/api/v1/profiles/demo -H "Content-Type: application/json"
 
 Response
 ^^^^^^^^
@@ -133,7 +132,7 @@ Response
 ::
 
     {
-        "url": "https://ona.io/api/v1/profiles/demo",
+        "url": "https://api.ona.io/api/v1/profiles/demo",
         "username": "demo",
         "first_name": "Demo",
         "last_name": "User",
@@ -145,10 +144,22 @@ Response
         "twitter": "",
         "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
         "require_auth": false,
-        "user": "https://ona.io/api/v1/users/demo",
+        "user": "https://api.ona.io/api/v1/users/demo",
         "metadata": {},
         "joined_on": "2014-11-10T14:22:20.394Z"
     }
+
+
+Partial update for email requires password confirmation
+-------------------------------------------------------
+
+Example
+^^^^^^^
+
+::
+
+    curl -X PATCH -d ‘{"email": "updated@email.com", "password": "password"}’ https://api.ona.io/api/v1/profiles/demo -H "Content-Type: application/json"
+
 
 Partial update of the metadata profile property
 -----------------------------------------------
@@ -169,7 +180,7 @@ Example
 
 ::
 
-    curl -X PATCH -d ‘{"metadata": {"b": "Beeh"}, "overwrite": "false"}’ https://ona.io/api/v1/profiles/demo -H "Content-Type: application/json"
+    curl -X PATCH -d ‘{"metadata": {"b": "Beeh"}, "overwrite": "false"}’ https://api.ona.io/api/v1/profiles/demo -H "Content-Type: application/json"
 
 Response
 ^^^^^^^^
@@ -177,7 +188,7 @@ Response
 ::
 
     {
-        "url": "https://ona.io/api/v1/profiles/demo",
+        "url": "https://api.ona.io/api/v1/profiles/demo",
         "username": "demo",
         "first_name": "Demo",
         "last_name": "User",
@@ -189,7 +200,7 @@ Response
         "twitter": "",
         "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
         "require_auth": false,
-        "user": "https://ona.io/api/v1/users/demo"
+        "user": "https://api.ona.io/api/v1/users/demo"
         "metadata": {"a": "Aaah", "b": "Beeh"},
         "joined_on": "2014-11-10T14:22:20.394Z"
     }
@@ -202,7 +213,7 @@ Example
 
 ::
 
-    curl -X POST -d current_password=password1 -d new_password=password2 https://ona.io/api/v1/profile/demouser/change_password
+    curl -X POST -d current_password=password1 -d new_password=password2 https://api.ona.io/api/v1/profile/demouser/change_password
     
 Response
 ^^^^^^^^

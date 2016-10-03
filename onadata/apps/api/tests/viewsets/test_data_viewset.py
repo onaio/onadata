@@ -1,10 +1,16 @@
 import geojson
+import json
 import os
 import requests
-
+import datetime
+from mock import patch
+from datetime import timedelta
 from django.utils import timezone
 from django.test import RequestFactory
+from django.test.utils import override_settings
 from django_digest.test import DigestAuth
+from django_digest.test import Client as DigestClient
+from httmock import urlmatch, HTTMock
 
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.main import tests as main_tests
@@ -16,12 +22,14 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.logger_tools import create_instance
 from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models.instance import InstanceHistory
 from onadata.apps.logger.models import XForm
 from onadata.libs.permissions import ReadOnlyRole
 from onadata.libs import permissions as role
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
-from httmock import urlmatch, HTTMock
 from onadata.apps.logger.models.instance import get_attachment_url
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
+    enketo_preview_url_mock
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
@@ -70,7 +78,7 @@ class TestDataViewSet(TestBase):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         response = view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         formid = self.xform.pk
         data = _data_list(formid)
@@ -93,16 +101,71 @@ class TestDataViewSet(TestBase):
         view = DataViewSet.as_view({'get': 'retrieve'})
         response = view(request, pk=formid, dataid=dataid)
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertIsInstance(response.data, dict)
         self.assertDictContainsSubset(data, response.data)
+
+    @override_settings(STREAM_DATA=True)
+    def test_data_streaming(self):
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request)
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.status_code, 200)
+        formid = self.xform.pk
+        data = _data_list(formid)
+        self.assertEqual(response.data, data)
+
+        # expect streaming response
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        streaming_data = json.loads(
+            u''.join([i for i in response.streaming_content])
+        )
+        self.assertIsInstance(streaming_data, list)
+        self.assertTrue(self.xform.instances.count())
+
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+        data = _data_instance(dataid)
+        self.assertDictContainsSubset(data, sorted(streaming_data)[0])
+
+        data = {
+            u'_xform_id_string': u'transportation_2011_07_25',
+            u'transport/available_transportation_types_to_referral_facility':
+            u'none',
+            u'_submitted_by': u'bob',
+        }
+        view = DataViewSet.as_view({'get': 'retrieve'})
+        response = view(request, pk=formid, dataid=dataid)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertIsInstance(response.data, dict)
+        self.assertDictContainsSubset(data, response.data)
+
+    def test_catch_data_error(self):
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+        query_str = [(u'\'{"_submission_time":{'
+                      '"$and":[{"$gte":"2015-11-15T00:00:00"},'
+                      '{"$lt":"2015-11-16T00:00:00"}]}}')]
+
+        data = {
+            'query': query_str,
+        }
+        request = self.factory.get('/', data=data, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data.get('detail'),
+            u'invalid regular expression: invalid character range\n')
 
     def test_data_list_with_xform_in_delete_async_queue(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         response = view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         initial_count = len(response.data)
 
@@ -111,7 +174,7 @@ class TestDataViewSet(TestBase):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         response = view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(len(response.data), initial_count - 1)
 
     def test_numeric_types_are_rendered_as_required(self):
@@ -134,6 +197,18 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.data[0].get('net_worth'), 100000.00)
         self.assertEqual(response.data[0].get('imei'), u'351746052009472')
 
+    def test_data_jsonp(self):
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid, format='jsonp')
+        self.assertEqual(response.status_code, 200)
+        response.render()
+        self.assertTrue(response.content.startswith('callback('))
+        self.assertTrue(response.content.endswith(');'))
+        self.assertEqual(len(response.data), 4)
+
     def test_data_pagination(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
@@ -143,23 +218,31 @@ class TestDataViewSet(TestBase):
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.has_header('X-total'))
+        self.assertEqual(int(response.get('X-total')), 4)
         self.assertEqual(len(response.data), 4)
 
         request = self.factory.get('/', data={"page": "1", "page_size": 2},
                                    **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.has_header('X-total'))
+        self.assertEqual(int(response.get('X-total')), 4)
         self.assertEqual(len(response.data), 2)
 
         request = self.factory.get('/', data={"page_size": "3"}, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.has_header('X-total'))
+        self.assertEqual(int(response.get('X-total')), 4)
         self.assertEqual(len(response.data), 3)
 
         request = self.factory.get(
             '/', data={"page": "1", "page_size": "2"}, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.has_header('X-total'))
+        self.assertEqual(int(response.get('X-total')), 4)
         self.assertEqual(len(response.data), 2)
 
         # invalid page returns a 404
@@ -167,7 +250,7 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 404)
 
-        # invalid page size is ignores
+        # invalid page size is ignored
         request = self.factory.get('/', data={"page_size": "invalid"},
                                    **self.extra)
         response = view(request, pk=formid)
@@ -179,6 +262,45 @@ class TestDataViewSet(TestBase):
             **self.extra)
         response = view(request, pk=formid)
 
+    def test_sort_query_param_with_invalid_values(self):
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+
+        # without sort param
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        error_message = (u'Expecting property name enclosed in '
+                         'double quotes: line 1 column 2 (char 1)')
+
+        request = self.factory.get('/', data={"sort": u'{'':}'},
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data.get('detail'), error_message)
+
+        request = self.factory.get('/', data={"sort": u'{:}'},
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data.get('detail'), error_message)
+
+        request = self.factory.get('/', data={"sort": u'{'':''}'},
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data.get('detail'), error_message)
+
+        # test sort with a key that os likely in the json data
+        request = self.factory.get('/', data={"sort": u'random'},
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
     def test_data_start_limit_no_records(self):
         view = DataViewSet.as_view({'get': 'list'})
         formid = self.xform.pk
@@ -188,12 +310,14 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 0)
+        etag_data = response['Etag']
 
         request = self.factory.get('/', data={"start": "1", "limit": 2},
                                    **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 0)
+        self.assertNotEqual(etag_data, response['Etag'])
 
     def test_data_start_limit(self):
         self._make_submissions()
@@ -205,23 +329,47 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
+        self.assertTrue(response.has_header('ETag'))
+        etag_data = response['Etag']
 
         request = self.factory.get('/', data={"start": "1", "limit": 2},
                                    **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
+        self.assertNotEqual(etag_data, response['Etag'])
+        etag_data = response['Etag']
+        response.render()
+        data = json.loads(response.content)
+        self.assertEqual([i['_uuid'] for i in data],
+                         [u'f3d8dc65-91a6-4d0f-9e97-802128083390',
+                          u'9c6f3468-cfda-46e8-84c1-75458e72805d'])
+
+        request = self.factory.get('/', data={"start": "3", "limit": 1},
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertNotEqual(etag_data, response['Etag'])
+        etag_data = response['Etag']
+        response.render()
+        data = json.loads(response.content)
+        self.assertEqual([i['_uuid'] for i in data],
+                         [u'9f0a1508-c3b7-4c99-be00-9b237c26bcbf'])
 
         request = self.factory.get('/', data={"limit": "3"}, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 3)
+        self.assertNotEqual(etag_data, response['Etag'])
+        etag_data = response['Etag']
 
         request = self.factory.get(
             '/', data={"start": "1", "limit": "2"}, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
+        self.assertNotEqual(etag_data, response['Etag'])
 
         # invalid start is ignored, all data is returned
         request = self.factory.get('/', data={"start": "invalid"},
@@ -236,6 +384,62 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
+
+    def test_data_start_limit_sort(self):
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+        data = {"start": 1, "limit": 2, "sort": '{"_id":1}'}
+        request = self.factory.get('/', data=data,
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+        self.assertTrue(response.has_header('ETag'))
+        response.render()
+        data = json.loads(response.content)
+        self.assertEqual([i['_uuid'] for i in data],
+                         [u'f3d8dc65-91a6-4d0f-9e97-802128083390',
+                          u'9c6f3468-cfda-46e8-84c1-75458e72805d'])
+
+    @override_settings(STREAM_DATA=True)
+    def test_data_start_limit_sort_json_field(self):
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+        # will result in a generator due to the JSON sort
+        # hence self.total_count will be used for length in streaming response
+        data = {
+            "start": 1,
+            "limit": 2,
+            "sort": '{"transport/available_transportation_types_to_referral_facility":1}'  # noqa
+        }
+        request = self.factory.get('/', data=data,
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.has_header('ETag'))
+        data = json.loads(''.join([c for c in response.streaming_content]))
+        self.assertEqual(len(data), 2)
+        self.assertEqual([i['_uuid'] for i in data],
+                         [u'f3d8dc65-91a6-4d0f-9e97-802128083390',
+                          u'5b2cc313-fc09-437e-8149-fcd32f695d41'])
+
+        # will result in a queryset due to the page and page_size params
+        # hence paging and thus len(self.object_list) for length
+        data = {
+            "page": 1,
+            "page_size": 2,
+        }
+        request = self.factory.get('/', data=data,
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(''.join([c for c in response.streaming_content]))
+        self.assertEqual(len(data), 2)
+        self.assertEqual([i['_uuid'] for i in data],
+                         [u'5b2cc313-fc09-437e-8149-fcd32f695d41',
+                          u'9c6f3468-cfda-46e8-84c1-75458e72805d'])
 
     def test_data_anon(self):
         self._make_submissions()
@@ -282,6 +486,8 @@ class TestDataViewSet(TestBase):
         request = self.factory.get('/', **self.extra)
         response = view(request, pk='public')
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.has_header('X-total'))
+        self.assertEqual(int(response.get('X-total')), 0)
         self.assertEqual(response.data, [])
         self.xform.shared_data = True
         self.xform.save()
@@ -289,6 +495,8 @@ class TestDataViewSet(TestBase):
         data = _data_list(formid)
         response = view(request, pk='public')
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.has_header('X-total'))
+        self.assertEqual(int(response.get('X-total')), 1)
         self.assertEqual(response.data, data)
 
     def test_data_public_anon_user(self):
@@ -341,7 +549,7 @@ class TestDataViewSet(TestBase):
         formid = "INVALID"
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.get('Cache-Control'), None)
         data = {u'detail': u'Invalid form ID: INVALID'}
         self.assertEqual(response.data, data)
 
@@ -363,7 +571,53 @@ class TestDataViewSet(TestBase):
         view = DataViewSet.as_view({'get': 'retrieve'})
         response = view(request, pk=formid, dataid=dataid)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.get('Cache-Control'), None)
+
+    def test_filter_by_submission_time_and_submitted_by(self):
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        formid = self.xform.pk
+        instance = self.xform.instances.all().order_by('pk')[0]
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        submission_time = instance.date_created.strftime(MONGO_STRFTIME)
+        query_str = ('{"_submission_time": {"$gte": "%s"},'
+                     ' "_submitted_by": "%s"}' % (submission_time, 'bob'))
+        data = {
+            'query': query_str,
+            'limit': 2,
+            'sort': []
+        }
+        request = self.factory.get('/', data=data, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+    def test_filter_by_submission_time_and_submitted_by_with_data_arg(self):
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        formid = self.xform.pk
+        instance = self.xform.instances.all().order_by('pk')[0]
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        submission_time = instance.date_created.strftime(MONGO_STRFTIME)
+        query_str = ('{"_submission_time": {"$gte": "%s"},'
+                     ' "_submitted_by": "%s"}' % (submission_time, 'bob'))
+        data = {
+            'data': query_str,
+            'limit': 2,
+            'sort': []
+        }
+        request = self.factory.get('/', data=data, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
 
     def test_data_with_query_parameter(self):
         self._make_submissions()
@@ -380,6 +634,8 @@ class TestDataViewSet(TestBase):
         request = self.factory.get('/?query=%s' % query_str, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.has_header('X-total'))
+        self.assertEqual(int(response.get('X-total')), 1)
         self.assertEqual(len(response.data), 1)
 
         submission_time = instance.date_created.strftime(MONGO_STRFTIME)
@@ -389,12 +645,55 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
 
+        # reorder date submitted
+        start_time = datetime.datetime(2015, 12, 2)
+        curr_time = start_time
+        for inst in self.xform.instances.all():
+            inst.date_created = curr_time
+            inst.json = instance.get_full_dict()
+            inst.save()
+            inst.parsed_instance.save()
+            curr_time += timedelta(days=1)
+
+        first_datetime = start_time.strftime(MONGO_STRFTIME)
+        second_datetime = start_time + timedelta(days=1, hours=20)
+
+        query_str = '{"_submission_time": {"$gte": "'\
+                    + first_datetime + '", "$lte": "'\
+                    + second_datetime.strftime(MONGO_STRFTIME) + '"}}'
+
+        request = self.factory.get('/?query=%s' % query_str, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
         query_str = '{"_id: "%s"}' % dataid
         request = self.factory.get('/?query=%s' % query_str, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data.get('detail'),
                          u"Expecting ':' delimiter: line 1 column 9 (char 8)")
+
+        query_str = '{"transport/available_transportation' \
+                    '_types_to_referral_facility": {"$i": "%s"}}' % "ambula"
+        request = self.factory.get('/?query=%s' % query_str, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+        # search a text
+        query_str = 'uuid:9f0a1508-c3b7-4c99-be00-9b237c26bcbf'
+        request = self.factory.get('/?query=%s' % query_str, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+        # search an integer
+        query_str = 7545
+        request = self.factory.get('/?query=%s' % query_str, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
 
     def test_anon_data_list(self):
         self._make_submissions()
@@ -591,7 +890,7 @@ class TestDataViewSet(TestBase):
 
         response = view(request, pk=formid, dataid=dataid)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.get('Cache-Control'), None)
         # add data check
         self.assertEqual(
             response.data,
@@ -642,6 +941,74 @@ class TestDataViewSet(TestBase):
         dataid = self.xform.instances.all().order_by('id')[0].pk
         data = _data_instance(dataid)
         self.assertDictContainsSubset(data, sorted(response.data)[0])
+
+    def test_same_submission_with_different_attachments(self):
+        self._submit_transport_instance_w_attachment()
+
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        formid = self.xform.pk
+        data = _data_list(formid)
+        self.assertEqual(response.data, data)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+
+        data = {
+            u'_bamboo_dataset_id': u'',
+            u'_attachments': [{
+                'download_url': get_attachment_url(self.attachment),
+                'small_download_url':
+                get_attachment_url(self.attachment, 'small'),
+                'medium_download_url':
+                get_attachment_url(self.attachment, 'medium'),
+                u'mimetype': self.attachment.mimetype,
+                u'instance': self.attachment.instance.pk,
+                u'filename': self.attachment.media_file.name,
+                u'id': self.attachment.pk,
+                u'xform': self.xform.id}
+            ],
+            u'_geolocation': [None, None],
+            u'_xform_id_string': u'transportation_2011_07_25',
+            u'transport/available_transportation_types_to_referral_facility':
+            u'none',
+            u'_status': u'submitted_via_web',
+            u'_id': dataid
+        }
+        self.assertDictContainsSubset(data, sorted(response.data)[0])
+
+        patch_value = 'onadata.libs.utils.logger_tools.get_filtered_instances'
+        with patch(patch_value) as get_filtered_instances:
+            get_filtered_instances.return_value = Instance.objects.filter(
+                uuid='#doesnotexist')
+            s = self.surveys[0]
+            media_file = "1442323232322.jpg"
+            self._make_submission_w_attachment(os.path.join(
+                self.this_directory, 'fixtures',
+                'transportation', 'instances', s, s + '.xml'),
+                os.path.join(self.this_directory, 'fixtures',
+                             'transportation', 'instances', s, media_file))
+            self.attachment = Attachment.objects.last()
+            self.attachment_media_file = self.attachment.media_file
+
+            data['_attachments'] = [{
+                'download_url': get_attachment_url(self.attachment),
+                'small_download_url':
+                get_attachment_url(self.attachment, 'small'),
+                'medium_download_url':
+                get_attachment_url(self.attachment, 'medium'),
+                u'mimetype': self.attachment.mimetype,
+                u'instance': self.attachment.instance.pk,
+                u'filename': self.attachment.media_file.name,
+                u'id': self.attachment.pk,
+                u'xform': self.xform.id
+            }] + data.get('_attachments')
+            response = view(request, pk=formid)
+            self.assertDictContainsSubset(data, sorted(response.data)[0])
+            self.assertEqual(response.status_code, 200)
 
     def test_data_w_attachment(self):
         self._submit_transport_instance_w_attachment()
@@ -734,6 +1101,95 @@ class TestDataViewSet(TestBase):
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(len(response.data), 2)
+
+    def test_delete_submission_inactive_form(self):
+        self._make_submissions()
+        formid = self.xform.pk
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+        view = DataViewSet.as_view({
+            'delete': 'destroy',
+        })
+
+        request = self.factory.delete('/', **self.extra)
+        response = view(request, pk=formid, dataid=dataid)
+
+        self.assertEqual(response.status_code, 204)
+
+        # make form inactive
+        self.xform.downloadable = False
+        self.xform.save()
+
+        dataid = self.xform.instances.filter(deleted_at=None)\
+            .order_by('id')[0].pk
+
+        request = self.factory.delete('/', **self.extra)
+        response = view(request, pk=formid, dataid=dataid)
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_delete_submission_by_editor(self):
+        self._make_submissions()
+        formid = self.xform.pk
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+        view = DataViewSet.as_view({
+            'delete': 'destroy',
+            'get': 'list'
+        })
+
+        # 4 submissions
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(len(response.data), 4)
+
+        self._create_user_and_login(username='alice', password='alice')
+
+        # Editor can delete submission
+        role.EditorRole.add(self.user, self.xform)
+        self.extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        request = self.factory.delete('/', **self.extra)
+        dataid = self.xform.instances.filter(deleted_at=None)\
+            .order_by('id')[0].pk
+        response = view(request, pk=formid, dataid=dataid)
+
+        self.assertEqual(response.status_code, 204)
+
+        # remaining 3 submissions
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(len(response.data), 3)
+
+    def test_delete_submission_by_owner(self):
+        self._make_submissions()
+        formid = self.xform.pk
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+        view = DataViewSet.as_view({
+            'delete': 'destroy',
+            'get': 'list'
+        })
+
+        # 4 submissions
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(len(response.data), 4)
+
+        self._create_user_and_login(username='alice', password='alice')
+
+        # Owner can delete submission
+        role.OwnerRole.add(self.user, self.xform)
+        self.extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        request = self.factory.delete('/', **self.extra)
+        dataid = self.xform.instances.filter(deleted_at=None)\
+            .order_by('id')[0].pk
+        response = view(request, pk=formid, dataid=dataid)
+
+        self.assertEqual(response.status_code, 204)
+
+        # remaining 3 submissions
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(len(response.data), 3)
 
     def test_geojson_format(self):
         self._publish_submit_geojson()
@@ -856,7 +1312,7 @@ class TestDataViewSet(TestBase):
                     }
                 }
             ]
-            }
+        }
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
 
@@ -978,37 +1434,39 @@ class TestDataViewSet(TestBase):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         formid = self.xform.pk
-        response = view(request, pk=formid)
-        self.assertEquals(response.status_code, 200)
-        self.assertEqual(len(response.data), 4)
-        # get project id
-        projectid = self.xform.project.pk
+        with HTTMock(enketo_preview_url_mock, enketo_mock):
+            response = view(request, pk=formid)
+            self.assertEquals(response.status_code, 200)
+            self.assertEqual(len(response.data), 4)
+            # get project id
+            projectid = self.xform.project.pk
 
-        view = ProjectViewSet.as_view({
-            'put': 'update'
-        })
+            view = ProjectViewSet.as_view({
+                'put': 'update'
+            })
 
-        data = {'shared': True,
-                'name': 'test project',
-                'owner': 'http://testserver/api/v1/users/%s'
-                % self.user.username}
-        request = self.factory.put('/', data=data, **self.extra)
-        response = view(request, pk=projectid)
+            data = {'public': True,
+                    'name': 'test project',
+                    'owner': 'http://testserver/api/v1/users/%s'
+                    % self.user.username}
+            request = self.factory.put('/', data=data, **self.extra)
+            response = view(request, pk=projectid)
 
-        self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.status_code, 200)
+            self.xform.reload()
+            self.assertEqual(self.xform.shared, True)
 
-        # anonymous user
-        view = DataViewSet.as_view({'get': 'list'})
-        request = self.factory.get('/')
-        formid = self.xform.pk
-        response = view(request, pk=formid)
+            # anonymous user
+            view = DataViewSet.as_view({'get': 'list'})
+            request = self.factory.get('/')
+            formid = self.xform.pk
+            response = view(request, pk=formid)
 
-        self.assertEquals(response.status_code, 200)
-        self.assertEqual(len(response.data), 4)
+            self.assertEquals(response.status_code, 200)
+            self.assertEqual(len(response.data), 4)
 
     def test_data_diff_version(self):
         self._make_submissions()
-
         # update the form version
         self.xform.version = "212121211"
         self.xform.save()
@@ -1043,6 +1501,157 @@ class TestDataViewSet(TestBase):
         response = data_view(request, pk=self.xform.pk)
 
         self.assertEquals(len(response.data), 1)
+
+    def test_last_modified_on_data_list_response(self):
+        self._make_submissions()
+
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        formid = self.xform.pk
+        response = view(request, pk=formid)
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.get('Cache-Control'), 'max-age=60')
+
+        self.assertTrue(response.has_header('ETag'))
+        etag_value = response.get('ETag')
+
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        formid = self.xform.pk
+        response = view(request, pk=formid)
+
+        self.assertEquals(response.status_code, 200)
+
+        self.assertEquals(etag_value, response.get('ETag'))
+
+        # delete one submission
+        inst = Instance.objects.filter(xform=self.xform)
+        inst[0].delete()
+
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        formid = self.xform.pk
+        response = view(request, pk=formid)
+
+        self.assertEquals(response.status_code, 200)
+        self.assertNotEquals(etag_value, response.get('ETag'))
+
+    def test_submission_history(self):
+        """Test submission json includes has_history key"""
+        # create form
+        xls_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/tutorial.xls"
+        )
+        self._publish_xls_file_and_set_xform(xls_file_path)
+
+        # create submission
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "fixtures", "tutorial", "instances",
+            "tutorial_2012-06-27_11-27-53_w_uuid.xml"
+        )
+
+        self._make_submission(xml_submission_file_path)
+        instance = Instance.objects.last()
+        instance_count = Instance.objects.count()
+        instance_history_count = InstanceHistory.objects.count()
+
+        # edit submission
+        xml_edit_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "fixtures", "tutorial", "instances",
+            "tutorial_2012-06-27_11-27-53_w_uuid_edited.xml"
+        )
+        xml_edit_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "fixtures", "tutorial", "instances",
+            "tutorial_2012-06-27_11-27-53_w_uuid_edited.xml"
+        )
+        client = DigestClient()
+        client.set_authorization('bob', 'bob', 'Digest')
+        self._make_submission(xml_edit_submission_file_path, client=client)
+
+        self.assertEqual(self.response.status_code, 201)
+
+        self.assertEqual(instance_count, Instance.objects.count())
+        self.assertEqual(instance_history_count + 1,
+                         InstanceHistory.objects.count())
+
+        # retrieve submission history
+        view = DataViewSet.as_view({'get': 'history'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.xform.pk, dataid=instance.id)
+        self.assertEqual(response.status_code, 200)
+
+        history_instance = InstanceHistory.objects.last()
+        instance = Instance.objects.last()
+
+        self.assertDictEqual(response.data[0], history_instance.json)
+        self.assertNotEqual(response.data[0], instance.json)
+
+    def test_submission_history_not_digit(self):
+        """Test submission json includes has_history key"""
+        # retrieve submission history
+        view = DataViewSet.as_view({'get': 'history'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.xform.pk, dataid="boo!")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['detail'],
+                         u'Data ID should be an integer')
+
+        history_instance_count = InstanceHistory.objects.count()
+        self.assertEqual(history_instance_count, 0)
+
+    def test_data_endpoint_etag_on_submission_edit(self):
+        """Test etags get updated on submission edit"""
+        # create form
+        xls_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/tutorial.xls"
+        )
+        self._publish_xls_file_and_set_xform(xls_file_path)
+
+        def _data_response():
+            view = DataViewSet.as_view({'get': 'list'})
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=self.xform.pk)
+            self.assertEqual(response.status_code, 200)
+
+            return response
+
+        response = _data_response()
+        etag_data = response['Etag']
+
+        # create submission
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "fixtures", "tutorial", "instances",
+            "tutorial_2012-06-27_11-27-53_w_uuid.xml"
+        )
+
+        self._make_submission(xml_submission_file_path)
+        response = _data_response()
+        self.assertNotEqual(etag_data, response['Etag'])
+        etag_data = response['Etag']
+
+        # edit submission
+        xml_edit_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "fixtures", "tutorial", "instances",
+            "tutorial_2012-06-27_11-27-53_w_uuid_edited.xml"
+        )
+        client = DigestClient()
+        client.set_authorization('bob', 'bob', 'Digest')
+        self._make_submission(xml_edit_submission_file_path, client=client)
+        self.assertEqual(self.response.status_code, 201)
+
+        response = _data_response()
+        self.assertNotEqual(etag_data, response['Etag'])
+        etag_data = response['Etag']
+        response = _data_response()
+        self.assertEqual(etag_data, response['Etag'])
 
 
 class TestOSM(TestAbstractViewSet):
@@ -1079,17 +1688,40 @@ class TestOSM(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
 
         # look at the data/[pk]/[dataid].osm endpoint
+        view = DataViewSet.as_view({'get': 'list'})
+        response1 = view(request, pk=formid, format='osm')
+        self.assertEqual(response1.status_code, 200)
+
+        # look at the data/[pk]/[dataid].osm endpoint
         view = DataViewSet.as_view({'get': 'retrieve'})
         response = view(request, pk=formid, dataid=dataid, format='osm')
         self.assertEqual(response.status_code, 200)
         with open(combined_osm_path) as f:
             osm = f.read()
             response.render()
-            self.assertMultiLineEqual(response.content, osm)
+            self.assertMultiLineEqual(response.content.strip(), osm.strip())
 
             # look at the data/[pk].osm endpoint
             view = DataViewSet.as_view({'get': 'list'})
             response = view(request, pk=formid, format='osm')
             self.assertEqual(response.status_code, 200)
             response.render()
-            self.assertMultiLineEqual(response.content, osm)
+            response1.render()
+            self.assertMultiLineEqual(response1.content.strip(), osm.strip())
+            self.assertMultiLineEqual(response.content.strip(), osm.strip())
+
+        # filter using value that exists
+        request = self.factory.get(
+            '/',
+            data={"query": u'{"osm_road": "OSMWay234134797.osm"}'},
+            **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(len(response.data), 1)
+
+        # filter using value that doesn't exists
+        request = self.factory.get(
+            '/',
+            data={"query": u'{"osm_road": "OSMWay123456789.osm"}'},
+            **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(len(response.data), 0)

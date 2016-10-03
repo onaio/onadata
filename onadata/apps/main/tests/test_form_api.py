@@ -5,8 +5,9 @@ from django.core.urlresolvers import reverse
 from django.test import RequestFactory
 
 from onadata.apps.main.views import api
-from onadata.apps.viewer.models.parsed_instance import ParsedInstance, \
-    _encode_for_mongo, _decode_from_mongo
+from onadata.apps.viewer.models.parsed_instance import ParsedInstance,\
+    _encode_for_mongo
+from onadata.libs.utils.mongo import _decode_from_mongo
 from test_base import TestBase
 
 
@@ -34,10 +35,14 @@ class TestFormAPI(TestBase):
         request.user = self.user
         response = api(request, self.user.username, self.xform.id_string)
         self.assertEqual(response.status_code, 200)
-        d = dict_for_mongo_without_userform_id(
+        data = dict_for_mongo_without_userform_id(
             self.xform.instances.all()[0].parsed_instance)
         find_d = json.loads(response.content)[0]
-        self.assertEqual(find_d, d)
+
+        # ensure all strings are unicode
+        data = json.loads(json.dumps(data))
+
+        self.assertEqual(find_d, data)
 
     def test_api_with_query(self):
         # query string
@@ -67,9 +72,8 @@ class TestFormAPI(TestBase):
         self.assertEqual(response.content, '[]')
 
     def test_handle_bad_json(self):
-        response = self.client.get(self.api_url, {'query': 'bad'})
+        response = self.client.get(self.api_url, {'query': '{bad'})
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(True, 'JSON' in response.content)
 
     def test_api_jsonp(self):
         # query string

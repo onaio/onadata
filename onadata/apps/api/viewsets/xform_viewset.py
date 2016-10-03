@@ -1,38 +1,49 @@
 import os
-import json
+import random
 
+from urlparse import urlparse
 from datetime import datetime
 
-from celery.result import AsyncResult
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.contrib.auth.models import User
 from django.conf import settings
-from django.http import Http404, HttpResponseBadRequest, HttpResponseRedirect
+from django.http import (
+    HttpResponseBadRequest, HttpResponseRedirect, HttpResponseForbidden)
+from django.utils.http import urlencode
 from django.utils.translation import ugettext as _
 from django.utils import six
 from django.utils import timezone
+from django.db import IntegrityError
+from django.db.models import Prefetch
 
+from pyxform.xls2json import parse_file_to_json
+from pyxform.builder import create_survey_element_from_dict
 from rest_framework import exceptions
 from rest_framework import status
-from rest_framework.decorators import action, detail_route, list_route
+from rest_framework.decorators import detail_route, list_route
 from rest_framework.response import Response
-from rest_framework.reverse import reverse
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.exceptions import ParseError
 from rest_framework.filters import DjangoFilterBackend
 
+from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.views import get_enketo_preview_url
 from onadata.apps.api import tasks
-from onadata.apps.viewer import tasks as viewer_task
-from onadata.libs import filters
+from onadata.libs import filters, authentication
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
+from onadata.libs.mixins.authenticate_header_mixin import \
+    AuthenticateHeaderMixin
 from onadata.libs.mixins.labels_mixin import LabelsMixin
-from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
+from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
+from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.renderers import renderers
-from onadata.libs.serializers.xform_serializer import XFormSerializer
+from onadata.libs.serializers.xform_serializer import (
+    XFormBaseSerializer, XFormSerializer, XFormCreateSerializer)
 from onadata.libs.serializers.clone_xform_serializer import \
     CloneXFormSerializer
 from onadata.libs.serializers.share_xform_serializer import (
@@ -40,150 +51,43 @@ from onadata.libs.serializers.share_xform_serializer import (
 from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.models.xform import XFormUserObjectPermission
 from onadata.libs.utils.viewer_tools import (
     enketo_url,
     EnketoError,
     generate_enketo_form_defaults)
-from onadata.apps.viewer.models.export import Export
-from onadata.libs.exceptions import NoRecordsFoundError, J2XException
-from onadata.libs.utils.export_tools import generate_export
-from onadata.libs.utils.export_tools import generate_kml_export
-from onadata.libs.utils.export_tools import generate_external_export
-from onadata.libs.utils.export_tools import generate_osm_export
-from onadata.libs.utils.export_tools import should_create_new_export
-from onadata.libs.utils.common_tags import OSM
-from onadata.libs.utils.common_tags import SUBMISSION_TIME
-from onadata.libs.utils import log
-from onadata.libs.utils.export_tools import newset_export_for
-from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
+from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.string import str2bool
 
 from onadata.libs.utils.csv_import import get_async_csv_submission_status
 from onadata.libs.utils.csv_import import submit_csv
 from onadata.libs.utils.csv_import import submit_csv_async
-from onadata.libs.utils.viewer_tools import _get_form_url
-from onadata.libs.utils.export_tools import str_to_bool
+from onadata.libs.utils.viewer_tools import get_form_url
+from onadata.libs.utils.api_export_tools import custom_response_handler
+from onadata.libs.utils.api_export_tools import process_async_export
+from onadata.libs.utils.api_export_tools import get_async_response
+from onadata.libs.utils.api_export_tools import response_for_format
+from onadata.libs.utils.export_tools import parse_request_export_options
+from onadata.apps.api.tools import get_baseviewset_class
 
 
-EXPORT_EXT = {
-    'xls': Export.XLS_EXPORT,
-    'xlsx': Export.XLS_EXPORT,
-    'csv': Export.CSV_EXPORT,
-    'csvzip': Export.CSV_ZIP_EXPORT,
-    'savzip': Export.SAV_ZIP_EXPORT,
-    'uuid': Export.EXTERNAL_EXPORT,
-    'kml': Export.KML_EXPORT,
-    OSM: Export.OSM_EXPORT
-}
-
-# Supported external exports
-external_export_types = ['xls']
+BaseViewset = get_baseviewset_class()
 
 
-def _get_export_type(export_type):
-    if export_type in EXPORT_EXT.keys():
-        export_type = EXPORT_EXT[export_type]
-    else:
-        raise exceptions.ParseError(
-            _(u"'%(export_type)s' format not known or not implemented!" %
-              {'export_type': export_type})
-        )
-
-    return export_type
+def upload_to_survey_draft(filename, username):
+    return os.path.join(
+        username,
+        'survey-drafts',
+        os.path.split(filename)[1]
+    )
 
 
-def _get_extension_from_export_type(export_type):
-    extension = export_type
+def get_survey_dict(csv_name):
+    survey_file = default_storage.open(csv_name, 'r')
+    survey_dict = parse_file_to_json(
+        survey_file.name, default_name='data', file_object=survey_file)
 
-    if export_type == Export.XLS_EXPORT:
-        extension = 'xlsx'
-    elif export_type in [Export.CSV_ZIP_EXPORT, Export.SAV_ZIP_EXPORT]:
-        extension = 'zip'
-
-    return extension
-
-
-def _format_date_for_mongo(x, datetime):
-    return datetime.strptime(
-        x, '%y_%m_%d_%H_%M_%S').strftime('%Y-%m-%dT%H:%M:%S')
-
-
-def _set_start_end_params(request, query):
-    # check for start and end params
-    if 'start' in request.GET or 'end' in request.GET:
-        query = json.loads(query) \
-            if isinstance(query, six.string_types) else query
-        query[SUBMISSION_TIME] = {}
-
-        try:
-            if request.GET.get('start'):
-                query[SUBMISSION_TIME]['$gte'] = _format_date_for_mongo(
-                    request.GET['start'], datetime)
-
-            if request.GET.get('end'):
-                query[SUBMISSION_TIME]['$lte'] = _format_date_for_mongo(
-                    request.GET['end'], datetime)
-        except ValueError:
-            raise exceptions.ParseError(
-                _("Dates must be in the format YY_MM_DD_hh_mm_ss")
-            )
-        else:
-            query = json.dumps(query)
-
-        return query
-    else:
-        return query
-
-
-def _generate_new_export(request, xform, query, export_type):
-    query = _set_start_end_params(request, query)
-    extension = _get_extension_from_export_type(export_type)
-
-    try:
-        if export_type == Export.EXTERNAL_EXPORT:
-            export = generate_external_export(
-                export_type, xform.user.username,
-                xform.id_string, None, request.GET.get('token'), query,
-                request.GET.get('meta'), request.GET.get('data_id')
-            )
-        elif export_type == Export.OSM_EXPORT:
-            export = generate_osm_export(
-                export_type, extension, xform.user.username,
-                xform.id_string, export_id=None, filter_query=None)
-        elif export_type == Export.KML_EXPORT:
-            export = generate_kml_export(
-                export_type, extension, xform.user.username,
-                xform.id_string, export_id=None, filter_query=None)
-        else:
-            remove_group_name = False
-
-            if "remove_group_name" in request.QUERY_PARAMS:
-                remove_group_name = \
-                    str_to_bool(request.QUERY_PARAMS["remove_group_name"])
-
-            export = generate_export(
-                export_type, extension, xform.user.username,
-                xform.id_string, None, query,
-                remove_group_name=remove_group_name
-            )
-        audit = {
-            "xform": xform.id_string,
-            "export_type": export_type
-        }
-        log.audit_log(
-            log.Actions.EXPORT_CREATED, request.user, xform.user,
-            _("Created %(export_type)s export on '%(id_string)s'.") %
-            {
-                'id_string': xform.id_string,
-                'export_type': export_type.upper()
-            }, audit, request)
-    except NoRecordsFoundError:
-        raise Http404(_("No records found to export"))
-    except J2XException as e:
-        # j2x exception
-        return {'error': str(e)}
-    else:
-        return export
+    return survey_dict
 
 
 def _get_user(username):
@@ -193,7 +97,7 @@ def _get_user(username):
 
 
 def _get_owner(request):
-    owner = request.DATA.get('owner') or request.user
+    owner = request.data.get('owner') or request.user
 
     if isinstance(owner, six.string_types):
         owner_obj = _get_user(owner)
@@ -207,91 +111,11 @@ def _get_owner(request):
     return owner
 
 
-def response_for_format(data, format=None):
-    if format == 'xml':
-        formatted_data = data.xml
-    elif format == 'xls':
-        if not data.xls:
-            raise Http404()
-
-        formatted_data = data.xls
-    else:
-        formatted_data = json.loads(data.json)
-    return Response(formatted_data)
-
-
-def should_regenerate_export(xform, export_type, request):
-    return should_create_new_export(xform, export_type) or\
-        'start' in request.GET or 'end' in request.GET or\
-        'query' in request.GET or 'data_id' in request.GET
-
-
 def value_for_type(form, field, value):
     if form._meta.get_field(field).get_internal_type() == 'BooleanField':
         return str2bool(value)
 
     return value
-
-
-def external_export_response(export):
-    if isinstance(export, Export) \
-            and export.internal_status == Export.SUCCESSFUL:
-        return HttpResponseRedirect(export.export_url)
-    else:
-        http_status = status.HTTP_400_BAD_REQUEST
-
-    return Response(json.dumps(export), http_status,
-                    content_type="application/json")
-
-
-def log_export(request, xform, export_type):
-    # log download as well
-    audit = {
-        "xform": xform.id_string,
-        "export_type": export_type
-    }
-    log.audit_log(
-        log.Actions.EXPORT_DOWNLOADED, request.user, xform.user,
-        _("Downloaded %(export_type)s export on '%(id_string)s'.") %
-        {
-            'id_string': xform.id_string,
-            'export_type': export_type.upper()
-        }, audit, request)
-
-
-def custom_response_handler(request, xform, query, export_type,
-                            token=None, meta=None):
-    export_type = _get_export_type(export_type)
-
-    if export_type in external_export_types and \
-            (token is not None) or (meta is not None):
-        export_type = Export.EXTERNAL_EXPORT
-
-    # check if we need to re-generate,
-    # we always re-generate if a filter is specified
-    if should_regenerate_export(xform, export_type, request):
-        export = _generate_new_export(request, xform, query, export_type)
-    else:
-        export = newset_export_for(xform, export_type)
-        if not export.filename:
-            # tends to happen when using newset_export_for.
-            export = _generate_new_export(request, xform, query, export_type)
-
-    log_export(request, xform, export_type)
-
-    if export_type == Export.EXTERNAL_EXPORT:
-        return external_export_response(export)
-
-    # get extension from file_path, exporter could modify to
-    # xlsx if it exceeds limits
-    path, ext = os.path.splitext(export.filename)
-    ext = ext[1:]
-    id_string = None if request.GET.get('raw') else xform.id_string
-    response = response_with_mimetype_and_name(
-        Export.EXPORT_MIMES[ext], id_string, extension=ext,
-        file_path=export.filepath)
-
-    return response
 
 
 def _try_update_xlsform(request, xform, owner):
@@ -307,9 +131,94 @@ def _try_update_xlsform(request, xform, owner):
     return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
 
+def result_has_error(result):
+    return isinstance(result, dict) and result.get('type')
+
+
+def get_survey_xml(csv_name):
+    survey_dict = get_survey_dict(csv_name)
+    survey = create_survey_element_from_dict(survey_dict)
+    return survey.to_xml()
+
+
+def set_enketo_signed_cookies(resp, username=None, json_web_token=None):
+    if not username and not json_web_token:
+        return
+
+    max_age = 30 * 24 * 60 * 60 * 1000
+
+    __enketo_meta_uid = {'max_age': max_age, 'salt': settings.ENKETO_API_SALT}
+    __enketo = {'secure': False, 'salt': settings.ENKETO_API_SALT}
+
+    # add domain attribute if ENKETO_AUTH_COOKIE_DOMAIN is set in settings
+    # i.e. don't add in development environment because cookie automatically
+    # assigns 'localhost' as domain
+    if getattr(settings, 'ENKETO_AUTH_COOKIE_DOMAIN', None):
+        __enketo_meta_uid['domain'] = settings.ENKETO_AUTH_COOKIE_DOMAIN
+        __enketo['domain'] = settings.ENKETO_AUTH_COOKIE_DOMAIN
+
+    resp.set_signed_cookie('__enketo_meta_uid', username, **__enketo_meta_uid)
+    resp.set_signed_cookie('__enketo', json_web_token, **__enketo)
+
+    return resp
+
+
+def parse_webform_return_url(return_url, request):
+    """
+    Given a webform url and request containing authentication information
+    extract authentication data encoded in the url and validate using either
+    this data or data in the request. Construct a proper return URL, which has
+    stripped the authentication data, to return the user.
+    """
+    jwt_param = None
+    url = urlparse(return_url)
+    try:
+        # get jwt from url - probably zebra via enketo
+        jwt_param = filter(
+            lambda p: p.startswith('jwt'),
+            url.query.split('&'))
+        jwt_param = jwt_param and jwt_param[0].split('=')[1]
+
+        if not jwt_param:
+            return
+    except IndexError:
+        pass
+
+    if '/_/' in return_url:  # offline url
+        redirect_url = "%s://%s%s#%s" % (
+            url.scheme, url.netloc, url.path, url.fragment)
+    elif '/::' in return_url:  # non-offline url
+        redirect_url = "%s://%s%s" % (url.scheme, url.netloc, url.path)
+    else:
+        # unexpected format
+        return
+
+    response_redirect = HttpResponseRedirect(redirect_url)
+
+    # if the requesting user is not authenticated but the token has been
+    # retrieved from the url - probably zebra via enketo express - use the
+    # token to create signed cookies which will be used by subsequent
+    # enketo calls to authenticate the user
+    if jwt_param:
+        if request.user.is_anonymous():
+            api_token = authentication.get_api_token(jwt_param)
+            if getattr(api_token, 'user'):
+                username = api_token.user.username
+        else:
+            username = request.user.username
+
+        response_redirect = set_enketo_signed_cookies(
+            response_redirect, username=username, json_web_token=jwt_param)
+
+        return response_redirect
+
+
 class XFormViewSet(AnonymousUserPublicFormsMixin,
+                   AuthenticateHeaderMixin,
+                   CacheControlMixin,
+                   ETagsMixin,
                    LabelsMixin,
-                   LastModifiedMixin,
+                   BaseViewset,
                    ModelViewSet):
     """
     Publish XLSForms, List, Retrieve Published Forms.
@@ -322,9 +231,23 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         renderers.CSVZIPRenderer,
         renderers.SAVZIPRenderer,
         renderers.SurveyRenderer,
-        renderers.OSMExportRenderer
+        renderers.OSMExportRenderer,
+        renderers.ZipRenderer,
+        renderers.GoogleSheetsRenderer
     ]
-    queryset = XForm.objects.select_related()
+    queryset = XForm.objects.select_related('user', 'created_by')\
+        .prefetch_related(
+            Prefetch(
+                'xformuserobjectpermission_set',
+                queryset=XFormUserObjectPermission.objects.select_related(
+                    'user__profile__organizationprofile',
+                    'permission'
+                )
+            ),
+            Prefetch('metadata_set'),
+            Prefetch('tags'),
+            Prefetch('dataview_set')
+        )
     serializer_class = XFormSerializer
     lookup_field = 'pk'
     extra_lookup_fields = None
@@ -339,6 +262,12 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
     public_forms_endpoint = 'public'
 
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return XFormBaseSerializer
+
+        return super(XFormViewSet, self).get_serializer_class()
+
     def create(self, request, *args, **kwargs):
         try:
             owner = _get_owner(request)
@@ -348,9 +277,8 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         survey = utils.publish_xlsform(request, owner)
         if isinstance(survey, XForm):
-            xform = XForm.objects.get(pk=survey.pk)
-            serializer = XFormSerializer(
-                xform, context={'request': request})
+            serializer = XFormCreateSerializer(
+                survey, context={'request': request})
             headers = self.get_success_headers(serializer.data)
 
             return Response(serializer.data, status=status.HTTP_201_CREATED,
@@ -365,8 +293,9 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         resp_code = status.HTTP_400_BAD_REQUEST
 
         if request.method == 'GET':
+            self.etag_data = '{}'.format(timezone.now())
             survey = tasks.get_async_status(
-                request.QUERY_PARAMS.get('job_uuid'))
+                request.query_params.get('job_uuid'))
 
             if 'pk' in survey:
                 xform = XForm.objects.get(pk=survey.get('pk'))
@@ -401,23 +330,44 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         return Response(data=resp, status=resp_code, headers=headers)
 
-    @action(methods=['GET'])
+    @detail_route()
     def form(self, request, format='json', **kwargs):
         form = self.get_object()
         if format not in ['json', 'xml', 'xls']:
             return HttpResponseBadRequest('400 BAD REQUEST',
                                           content_type='application/json',
                                           status=400)
+        self.etag_data = '{}'.format(form.date_modified)
         filename = form.id_string + "." + format
         response = response_for_format(form, format=format)
         response['Content-Disposition'] = 'attachment; filename=' + filename
 
         return response
 
-    @action(methods=['GET'])
+    @list_route(methods=['GET'])
+    def login(self, request, **kwargs):
+        return_url = request.query_params.get('return')
+
+        if return_url:
+            redirect = parse_webform_return_url(return_url, request)
+
+            if redirect:
+                return redirect
+
+            login_vars = {"login_url": settings.ENKETO_CLIENT_LOGIN_URL,
+                          "return_url": urlencode({'return_url': return_url})}
+            client_login = '{login_url}?{return_url}'.format(**login_vars)
+
+            return HttpResponseRedirect(client_login)
+
+        return HttpResponseForbidden(
+            "Authentication failure, cannot redirect")
+
+    @detail_route()
     def enketo(self, request, **kwargs):
         self.object = self.get_object()
-        form_url = _get_form_url(request, self.object.user.username)
+        form_url = get_form_url(
+            request, self.object.user.username, settings.ENKETO_PROTOCOL)
 
         data = {'message': _(u"Enketo not properly configured.")}
         http_status = status.HTTP_400_BAD_REQUEST
@@ -429,16 +379,63 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                 self.object, **request_vars)
             url = enketo_url(form_url, self.object.id_string, **defaults)
             preview_url = get_enketo_preview_url(request,
-                                                 request.user.username,
+                                                 self.object.user.username,
                                                  self.object.id_string)
-        except EnketoError:
-            pass
+        except EnketoError as e:
+            data = {'message': _(u"Enketo error: %s" % e)}
         else:
             if url and preview_url:
                 http_status = status.HTTP_200_OK
                 data = {"enketo_url": url, "enketo_preview_url": preview_url}
 
         return Response(data, http_status)
+
+    @list_route(methods=['POST', 'GET'])
+    def survey_preview(self, request, **kwargs):
+        username = request.user.username
+        if request.method.upper() == 'POST':
+            if not username:
+                raise ParseError("User has to be authenticated")
+
+            csv_data = request.data.get('body')
+            if csv_data:
+                rand_name = "survey_draft_%s.csv" % ''.join(
+                    random.sample("abcdefghijklmnopqrstuvwxyz0123456789", 6))
+                csv_file = ContentFile(csv_data)
+                csv_name = default_storage.save(
+                    upload_to_survey_draft(rand_name, username),
+                    csv_file)
+
+                result = publish_form(lambda: get_survey_xml(csv_name))
+
+                if result_has_error(result):
+                    raise ParseError(result.get('text'))
+
+                return Response(
+                    {'unique_string': rand_name, 'username': username},
+                    status=200)
+            else:
+                raise ParseError('Missing body')
+
+        if request.method.upper() == 'GET':
+            filename = request.query_params.get('filename')
+            username = request.query_params.get('username')
+
+            if not username:
+                raise ParseError('Username not provided')
+            if not filename:
+                raise ParseError("Filename MUST be provided")
+
+            csv_name = upload_to_survey_draft(filename, username)
+
+            result = publish_form(lambda: get_survey_xml(csv_name))
+
+            if result_has_error(result):
+                raise ParseError(result.get('text'))
+
+            self.etag_data = result
+
+            return Response(result, status=200)
 
     def retrieve(self, request, *args, **kwargs):
         lookup_field = self.lookup_field
@@ -456,8 +453,9 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             return Response(serializer.data)
 
         xform = self.get_object()
-        export_type = kwargs.get('format')
-        query = request.GET.get("query", request.QUERY_PARAMS.get("query", {}))
+        export_type = kwargs.get('format') or \
+            request.query_params.get('format')
+        query = request.query_params.get("query", {})
         token = request.GET.get('token')
         meta = request.GET.get('meta')
 
@@ -472,12 +470,12 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                                        token,
                                        meta)
 
-    @action(methods=['POST'])
+    @detail_route(methods=['POST'])
     def share(self, request, *args, **kwargs):
         self.object = self.get_object()
 
         data = {}
-        for key, val in request.DATA.iteritems():
+        for key, val in request.data.iteritems():
             data[key] = val
         data.update({'xform': self.object.pk})
 
@@ -491,11 +489,14 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(methods=['POST'])
+    @detail_route(methods=['POST'])
     def clone(self, request, *args, **kwargs):
         self.object = self.get_object()
         data = {'xform': self.object.pk,
-                'username': request.DATA.get('username')}
+                'username': request.data.get('username')}
+        project = request.data.get('project_id')
+        if project:
+            data['project'] = project
         serializer = CloneXFormSerializer(data=data)
         if serializer.is_valid():
             clone_to_user = User.objects.get(username=data['username'])
@@ -506,7 +507,11 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                              "xforms to account %(account)s" %
                              {'user': request.user.username,
                               'account': data['username']}))
-            xform = serializer.save()
+            try:
+                xform = serializer.save()
+            except IntegrityError:
+                raise ParseError(
+                    'A clone with the same id_string has already been created')
             serializer = XFormSerializer(
                 xform.cloned_form, context={'request': request})
 
@@ -529,9 +534,14 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         self.object = self.get_object()
         resp = {}
         if request.method == 'GET':
-            resp.update(get_async_csv_submission_status(
-                request.QUERY_PARAMS.get('job_uuid')))
-            self.last_modified_date = timezone.now()
+            try:
+                resp.update(get_async_csv_submission_status(
+                    request.query_params.get('job_uuid')))
+                self.last_modified_date = timezone.now()
+            except ValueError:
+                raise ParseError(('The instance of the result is not a '
+                                  'basestring; the job_uuid variable might '
+                                  'be incorrect'))
         else:
             csv_file = request.FILES.get('csv_file', None)
             if csv_file is None:
@@ -542,9 +552,10 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                     resp.update(submit_csv(request.user.username,
                                            self.object, csv_file))
                 else:
+                    tmp_file_path = utils.generate_tmp_path(csv_file)
                     task = submit_csv_async.delay(request.user.username,
                                                   self.object,
-                                                  csv_file)
+                                                  tmp_file_path)
                     if task is None:
                         raise ParseError('Task not found')
                     else:
@@ -560,94 +571,79 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         owner = self.object.user
 
         # updating the file
-        if request.FILES:
+        if request.FILES or 'xls_url' in request.data \
+                or 'dropbox_xls_url' in request.data:
             return _try_update_xlsform(request, self.object, owner)
 
         return super(XFormViewSet, self).partial_update(request, *args,
                                                         **kwargs)
 
-    @action(methods=['DELETE', 'GET'])
+    @detail_route(methods=['DELETE', 'GET'])
     def delete_async(self, request, *args, **kwargs):
         if request.method == 'DELETE':
-            time_async_triggered = datetime.now()
-            self.object = self.get_object()
-            self.object.deleted_at = time_async_triggered
-            self.object.save()
-            xform = self.object
+            xform = self.get_object()
+            xform.soft_delete()
             resp = {
                 u'job_uuid': tasks.delete_xform_async.delay(xform).task_id,
-                u'time_async_triggered': time_async_triggered}
+                u'time_async_triggered': datetime.now()}
             resp_code = status.HTTP_202_ACCEPTED
 
         elif request.method == 'GET':
-            job_uuid = request.QUERY_PARAMS.get('job_uuid')
+            job_uuid = request.query_params.get('job_uuid')
             resp = tasks.get_async_status(job_uuid)
             resp_code = status.HTTP_202_ACCEPTED
+            self.etag_data = '{}'.format(timezone.now())
+
         return Response(data=resp, status=resp_code)
 
-    @action(methods=['GET'])
+    @detail_route(methods=['GET'])
     def export_async(self, request, *args, **kwargs):
-        job_uuid = request.QUERY_PARAMS.get('job_uuid')
-        export_type = request.QUERY_PARAMS.get('format')
-        query = request.QUERY_PARAMS.get("query")
+        job_uuid = request.query_params.get('job_uuid')
+        export_type = request.query_params.get('format')
+        query = request.query_params.get("query")
         xform = self.get_object()
 
-        token = request.QUERY_PARAMS.get('token')
-        meta = request.QUERY_PARAMS.get('meta')
-        data_id = request.QUERY_PARAMS.get('data_id')
-        remove_group_name = request.QUERY_PARAMS.get('remove_group_name')
+        token = request.query_params.get('token')
+        meta = request.query_params.get('meta')
+        data_id = request.query_params.get('data_id')
+        options = parse_request_export_options(request.query_params)
 
-        options = {
+        options.update({
             'meta': meta,
             'token': token,
             'data_id': data_id,
-            'remove_group_name': remove_group_name
-        }
+            'query': query,
+        })
 
         if job_uuid:
-            job = AsyncResult(job_uuid)
-            if job.state == 'SUCCESS':
-                export_id = job.result
-                export = Export.objects.get(id=export_id)
-                if export.status == Export.SUCCESSFUL:
-                    if export.export_type != Export.EXTERNAL_EXPORT:
-                        export_url = reverse(
-                            'xform-detail',
-                            kwargs={'pk': xform.pk,
-                                    'format': export.export_type},
-                            request=request
-                        )
-                    else:
-                        export_url = export.export_url
-                    resp = {
-                        u'job_status': job.state,
-                        u'export_url': export_url
-                    }
-                elif export.status == Export.PENDING:
-                    resp = {
-                        'export_status': 'Pending'
-                    }
-                else:
-                    resp = {
-                        'export_status': "Failed"
-                    }
-            else:
-                resp = {
-                    'job_status': job.state
-                }
-
+            resp = get_async_response(job_uuid, request, xform)
         else:
-            export_type = _get_export_type(export_type)
+            resp = process_async_export(request, xform, export_type, options)
 
-            if export_type in external_export_types and \
-                    (token is not None) or (meta is not None):
-                export_type = Export.EXTERNAL_EXPORT
-            export, async_result = viewer_task.create_async_export(
-                xform, export_type, query, False, options=options)
-            resp = {
-                u'job_uuid': async_result.task_id
-            }
-        resp_code = status.HTTP_202_ACCEPTED
+            if isinstance(resp, HttpResponseRedirect):
+                payload = {
+                    "details": _("Google authorization needed"),
+                    "url": resp.url
+                }
+                return Response(data=payload,
+                                status=status.HTTP_403_FORBIDDEN,
+                                content_type="application/json")
+
+        self.etag_data = '{}'.format(timezone.now())
+
         return Response(data=resp,
-                        status=resp_code,
+                        status=status.HTTP_202_ACCEPTED,
                         content_type="application/json")
+
+    def list(self, request, *args, **kwargs):
+        try:
+            queryset = self.filter_queryset(self.get_queryset())
+            last_modified = queryset.values_list('date_modified', flat=True)\
+                .order_by('-date_modified')
+            if last_modified:
+                self.etag_data = last_modified[0]
+            resp = super(XFormViewSet, self).list(request, *args, **kwargs)
+        except XLSFormError, e:
+            resp = HttpResponseBadRequest(e.message)
+
+        return resp

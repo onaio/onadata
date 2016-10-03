@@ -3,8 +3,8 @@ import six
 
 from django.db import models
 from django.db import connection
+from django.contrib.postgres.fields import JSONField
 from django.utils.translation import ugettext as _
-from jsonfield import JSONField
 
 DEFAULT_LIMIT = 1000
 

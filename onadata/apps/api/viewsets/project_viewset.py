@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404
 from django.core.mail import send_mail
 
 from rest_framework import status
-from rest_framework.decorators import action
+from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
@@ -10,14 +10,20 @@ from onadata.libs.filters import (
     AnonUserProjectFilter,
     ProjectOwnerFilter,
     TagFilter)
+from onadata.libs.mixins.authenticate_header_mixin import \
+    AuthenticateHeaderMixin
 from onadata.libs.mixins.labels_mixin import LabelsMixin
-from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
+from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
+from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.user_profile_serializer import\
     UserProfileSerializer
-from onadata.libs.serializers.project_serializer import ProjectSerializer
+from onadata.libs.serializers.project_serializer import (
+    BaseProjectSerializer,
+    ProjectSerializer)
 from onadata.libs.serializers.share_project_serializer import\
     ShareProjectSerializer, RemoveUserFromProjectSerializer
-from onadata.libs.serializers.xform_serializer import XFormSerializer
+from onadata.libs.serializers.xform_serializer import XFormCreateSerializer,\
+    XFormSerializer
 from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import ProjectPermissions
 from onadata.apps.logger.models import Project
@@ -26,13 +32,22 @@ from onadata.apps.main.models import UserProfile
 from onadata.settings.common import (
     DEFAULT_FROM_EMAIL,
     SHARE_PROJECT_SUBJECT)
+from onadata.apps.api.tools import get_baseviewset_class
+from onadata.libs.mixins.profiler_mixin import ProfilerMixin
 
 
-class ProjectViewSet(LastModifiedMixin, LabelsMixin, ModelViewSet):
+BaseViewset = get_baseviewset_class()
+
+
+class ProjectViewSet(AuthenticateHeaderMixin,
+                     CacheControlMixin,
+                     ETagsMixin, LabelsMixin, ProfilerMixin,
+                     BaseViewset, ModelViewSet):
+
     """
     List, Retrieve, Update, Create Project and Project Forms.
     """
-    queryset = Project.objects.all()
+    queryset = Project.objects.all().select_related()
     serializer_class = ProjectSerializer
     lookup_field = 'pk'
     extra_lookup_fields = None
@@ -41,7 +56,24 @@ class ProjectViewSet(LastModifiedMixin, LabelsMixin, ModelViewSet):
                        ProjectOwnerFilter,
                        TagFilter)
 
-    @action(methods=['POST', 'GET'])
+    def get_serializer_class(self):
+        action = self.action
+
+        if action == "list":
+            serializer_class = BaseProjectSerializer
+        else:
+            serializer_class = \
+                super(ProjectViewSet, self).get_serializer_class()
+
+        return serializer_class
+
+    def get_queryset(self):
+        if self.request.method.upper() in ['GET', 'OPTIONS']:
+            self.queryset = Project.prefetched.all()
+
+        return super(ProjectViewSet, self).get_queryset()
+
+    @detail_route(methods=['POST', 'GET'])
     def forms(self, request, **kwargs):
         """Add a form to a project or list forms for the project.
 
@@ -52,10 +84,13 @@ class ProjectViewSet(LastModifiedMixin, LabelsMixin, ModelViewSet):
             survey = utils.publish_project_xform(request, project)
 
             if isinstance(survey, XForm):
-                xform = XForm.objects.get(pk=survey.pk)
-                serializer = XFormSerializer(
-                    xform, context={'request': request})
+                if 'formid' in request.data:
+                    serializer_cls = XFormSerializer
+                else:
+                    serializer_cls = XFormCreateSerializer
 
+                serializer = serializer_cls(survey,
+                                            context={'request': request})
                 return Response(serializer.data,
                                 status=status.HTTP_201_CREATED)
 
@@ -67,10 +102,10 @@ class ProjectViewSet(LastModifiedMixin, LabelsMixin, ModelViewSet):
 
         return Response(serializer.data)
 
-    @action(methods=['PUT'])
+    @detail_route(methods=['PUT'])
     def share(self, request, *args, **kwargs):
         self.object = self.get_object()
-        data = dict(request.DATA.items() + [('project', self.object.pk)])
+        data = dict(request.data.items() + [('project', self.object.pk)])
         if data.get("remove"):
             serializer = RemoveUserFromProjectSerializer(data=data)
         else:
@@ -83,7 +118,7 @@ class ProjectViewSet(LastModifiedMixin, LabelsMixin, ModelViewSet):
 
             if email_msg:
                 # send out email message.
-                user = serializer.object.user
+                user = serializer.instance.user
                 send_mail(SHARE_PROJECT_SUBJECT.format(self.object.name),
                           email_msg,
                           DEFAULT_FROM_EMAIL,
@@ -95,15 +130,18 @@ class ProjectViewSet(LastModifiedMixin, LabelsMixin, ModelViewSet):
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(methods=['DELETE', 'GET', 'POST'])
+    @detail_route(methods=['DELETE', 'GET', 'POST'])
     def star(self, request, *args, **kwargs):
         user = request.user
-        project = get_object_or_404(Project, pk=kwargs.get('pk'))
+        self.object = project = get_object_or_404(Project,
+                                                  pk=kwargs.get('pk'))
 
         if request.method == 'DELETE':
             project.user_stars.remove(user)
+            project.save()
         elif request.method == 'POST':
             project.user_stars.add(user)
+            project.save()
         elif request.method == 'GET':
             users = project.user_stars.values('pk')
             user_profiles = UserProfile.objects.filter(user__in=users)
@@ -116,8 +154,7 @@ class ProjectViewSet(LastModifiedMixin, LabelsMixin, ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def list(self, request, *args, **kwargs):
-
-        owner = request.QUERY_PARAMS.get('owner')
+        owner = request.query_params.get('owner')
 
         if owner:
             kwargs = {'organization__username__iexact': owner}

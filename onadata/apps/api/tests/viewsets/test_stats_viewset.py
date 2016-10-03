@@ -159,7 +159,7 @@ class TestStatsViewSet(TestBase):
         formid = self.xform.pk
         response = view(request, pk=formid)
         data = {u'age': 28.5, u'amount': 1100.0}
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertDictContainsSubset(data, response.data)
 
     def test_mean_api(self):
@@ -169,7 +169,7 @@ class TestStatsViewSet(TestBase):
         formid = self.xform.pk
         response = view(request, pk=formid)
         data = {u'age': 28.17, u'amount': 1455.0}
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertDictContainsSubset(data, response.data)
 
     def test_mode_api(self):
@@ -179,7 +179,7 @@ class TestStatsViewSet(TestBase):
         formid = self.xform.pk
         response = view(request, pk=formid)
         data = {u'age': 24, u'amount': 430.0}
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertDictContainsSubset(data, response.data)
 
     def test_range_api(self):
@@ -190,7 +190,7 @@ class TestStatsViewSet(TestBase):
         response = view(request, pk=formid)
         data = {u'age': {u'range': 10, u'max': 34, u'min': 24},
                 u'amount': {u'range': 2770, u'max': 3200, u'min': 430}}
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertDictContainsSubset(data, response.data)
 
     def test_bad_field(self):
@@ -207,7 +207,7 @@ class TestStatsViewSet(TestBase):
         view = StatsViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         response = view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         formid = self.xform.pk
         data = [{
@@ -248,5 +248,5 @@ class TestStatsViewSet(TestBase):
         formid = self.xform.pk
         response = view(request, pk=formid)
 
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEquals(response.status_code, 200)

@@ -62,6 +62,8 @@ class AuditLogHandler(logging.Handler):
         self.model_name = model
 
     def _format(self, record):
+        created_on = datetime.utcfromtimestamp(record.created).isoformat()
+        created_on = created_on[:23] + created_on[26:]
         data = {
             'action': record.formhub_action,
             'user': record.request_username,
@@ -70,7 +72,7 @@ class AuditLogHandler(logging.Handler):
             'msg': record.msg,
             # save as python datetime object
             # to have mongo convert to ISO date and allow queries
-            'created_on': datetime.utcfromtimestamp(record.created),
+            'created_on': created_on,
             'levelno': record.levelno,
             'levelname': record.levelname,
             'args': record.args,
@@ -91,6 +93,7 @@ class AuditLogHandler(logging.Handler):
         }
         if hasattr(record, 'audit') and isinstance(record.audit, dict):
             data['audit'] = record.audit
+
         return data
 
     def emit(self, record):
@@ -107,6 +110,7 @@ class AuditLogHandler(logging.Handler):
     def get_model(self, name):
         names = name.split('.')
         mod = __import__('.'.join(names[:-1]), fromlist=names[-1:])
+
         return getattr(mod, names[-1])
 
 

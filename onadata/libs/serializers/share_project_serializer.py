@@ -1,12 +1,11 @@
-from django.core.validators import ValidationError
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext as _
 
 from rest_framework import serializers
 from onadata.libs.models.share_project import ShareProject
-from onadata.apps.logger.models import Project
-from onadata.libs.permissions import ROLES, get_object_users_with_permissions,\
-    OwnerRole
+from onadata.libs.permissions import get_object_users_with_permissions
+from onadata.libs.permissions import ROLES
+from onadata.libs.permissions import OwnerRole
 from onadata.libs.serializers.fields.project_field import ProjectField
 
 
@@ -24,57 +23,73 @@ class ShareProjectSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=255)
     role = serializers.CharField(max_length=50)
 
-    def restore_object(self, attrs, instance=None):
-        if instance:
-            return attrs_to_instance(attrs, instance)
+    def create(self, validated_data):
+        instance = ShareProject(**validated_data)
+        instance.save()
 
-        return ShareProject(**attrs)
+        return instance
 
-    def validate_username(self, attrs, source):
-        """Check that the username exists"""
-        value = attrs[source]
+    def update(self, instance, validated_data):
+        instance = attrs_to_instance(validated_data, instance)
+        instance.save()
 
-        user = None
+        return instance
+
+    def validate(self, attrs):
+        user = User.objects.get(username=attrs.get('username'))
         project = attrs.get('project')
-        try:
-            user = User.objects.get(username=value)
-        except User.DoesNotExist:
-            raise ValidationError(_(u"User '%(value)s' does not exist."
-                                    % {"value": value}))
+
         # check if the user is the owner of the project
         if user and project:
             if user == project.organization:
-                raise ValidationError(_(u"Cannot share project with"
-                                        u" the owner"))
-
-        if not user.is_active:
-            raise ValidationError(_(u"User is not active"))
+                raise serializers.ValidationError({
+                    'username': _(u"Cannot share project with the owner")
+                })
 
         return attrs
 
-    def validate_role(self, attrs, source):
+    def validate_username(self, value):
+        """Check that the username exists"""
+
+        user = None
+        try:
+            user = User.objects.get(username=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError(_(
+                u"User '%(value)s' does not exist." % {"value": value}
+            ))
+        else:
+            if not user.is_active:
+                raise serializers.ValidationError(_(u"User is not active"))
+
+        return value
+
+    def validate_role(self, value):
         """check that the role exists"""
-        value = attrs[source]
-
         if value not in ROLES:
-            raise ValidationError(_(u"Unknown role '%(role)s'."
-                                    % {"role": value}))
+            raise serializers.ValidationError(_(
+                u"Unknown role '%(role)s'." % {"role": value}
+            ))
 
-        return attrs
+        return value
 
 
 class RemoveUserFromProjectSerializer(ShareProjectSerializer):
     remove = serializers.BooleanField()
 
-    def restore_object(self, attrs, instance=None):
-        if instance:
-            return attrs_to_instance(attrs, instance)
+    def update(self, instance, validated_data):
+        instance = attrs_to_instance(validated_data, instance)
+        instance.save()
 
-        project = Project.objects.get(pk=self.init_data.get('project'))
-        self.init_data['project'] = project
-        return ShareProject(**self.init_data)
+        return instance
 
-    def validate_remove(self, attrs, source):
+    def create(self, validated_data):
+        instance = ShareProject(**validated_data)
+        instance.save()
+
+        return instance
+
+    def validate(self, attrs):
         """ Check and confirm that the project will be left with at least one
          owner. Raises a validation error if only one owner found"""
 
@@ -82,9 +97,13 @@ class RemoveUserFromProjectSerializer(ShareProjectSerializer):
             results = get_object_users_with_permissions(attrs.get('project'))
 
             # count all the owners
-            count = len([res for res in results
-                         if res.get('role') == OwnerRole.name])
+            count = len(
+                [res for res in results if res.get('role') == OwnerRole.name]
+            )
 
             if count <= 1:
-                raise ValidationError(
-                    _(u"Project requires at least one owner"))
+                raise serializers.ValidationError({
+                    'remove': _(u"Project requires at least one owner")
+                })
+
+        return attrs

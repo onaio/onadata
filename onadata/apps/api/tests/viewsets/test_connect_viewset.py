@@ -4,6 +4,7 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from django.utils.timezone import now
 from django_digest.test import DigestAuth, BasicAuth
+from django_digest.backend.db import update_partial_digests
 from mock import patch
 from datetime import timedelta
 from rest_framework import authentication
@@ -45,6 +46,18 @@ class TestConnectViewSet(TestAbstractViewSet):
             'api_token': self.user.auth_token.key,
         }
 
+    def _get_request_session_with_auth(self, view, auth):
+        request = self.factory.head('/')
+        response = view(request)
+        self.assertTrue(response.has_header('WWW-Authenticate'))
+        self.assertTrue(
+            response['WWW-Authenticate'].startswith('Digest nonce='))
+        request = self.factory.get('/')
+        request.META.update(auth(request.META, response))
+        request.session = self.client.session
+
+        return request
+
     def test_regenerate_auth_token(self):
         self.view = ConnectViewSet.as_view({
             "get": "regenerate_auth_token",
@@ -65,6 +78,12 @@ class TestConnectViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
 
+        self.extra = {'HTTP_AUTHORIZATION': 'Token invalidtoken'}
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response['www-authenticate'], "Token")
+
     def test_get_profile(self):
         request = self.factory.get('/', **self.extra)
         request.session = self.client.session
@@ -72,7 +91,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         temp_token = TempToken.objects.get(user__username='bob')
         self.data['temp_token'] = temp_token.key
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, self.data)
+        self.assertEqual(dict(response.data), self.data)
 
     def test_using_valid_temp_token(self):
         request = self.factory.get('/', **self.extra)
@@ -99,6 +118,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.data['detail'], 'Invalid token')
+        self.assertEqual(response['www-authenticate'], "TempToken")
 
     def test_using_expired_temp_token(self):
         request = self.factory.get('/', **self.extra)
@@ -147,6 +167,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.data['detail'],
                          'Invalid token')
+        self.assertEqual(response['www-authenticate'], "TempToken")
 
     def test_get_starred_projects(self):
         self._project_create()
@@ -167,11 +188,14 @@ class TestConnectViewSet(TestAbstractViewSet):
         response = view(request, user=self.user)
 
         self.assertEqual(response.status_code, 200)
-
+        self.project.reload()
         request.user = self.user
         self.project_data = ProjectSerializer(
             self.project, context={'request': request}).data
-        self.assertEqual(response.data, [self.project_data])
+        del self.project_data['date_modified']
+        del response.data[0]['date_modified']
+        self.assertEqual(len(response.data), 1)
+        self.assertDictEqual(dict(response.data[0]), dict(self.project_data))
 
     def test_user_list_with_digest(self):
         view = ConnectViewSet.as_view(
@@ -217,7 +241,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         response = view(request)
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.data['detail'],
-                         u"Invalid username/password")
+                         u"Invalid username/password.")
         auth = BasicAuth('bob', 'bobbob')
         request.META.update(auth(request.META))
         request.session = self.client.session
@@ -234,8 +258,17 @@ class TestConnectViewSet(TestAbstractViewSet):
                 'reset_url': u'http://testdomain.com/reset_form'}
         request = self.factory.post('/', data=data)
         response = self.view(request)
+        self.assertEqual(response.status_code, 204, response.data)
         self.assertTrue(mock_send_mail.called)
-        self.assertEqual(response.status_code, 204)
+
+        data['email_subject'] = 'X' * 100
+        request = self.factory.post('/', data=data)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data['email_subject'][0],
+            u'Ensure this field has no more than 78 characters.'
+        )
 
         mock_send_mail.called = False
         request = self.factory.post('/')
@@ -267,3 +300,54 @@ class TestConnectViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=data)
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
+
+    @patch('onadata.libs.serializers.password_reset_serializer.send_mail')
+    def test_request_reset_password_custom_email_subject(self, mock_send_mail):
+        data = {'email': self.user.email,
+                'reset_url': u'http://testdomain.com/reset_form',
+                'email_subject': 'You requested for a reset password'}
+        request = self.factory.post('/', data=data)
+        response = self.view(request)
+
+        self.assertTrue(mock_send_mail.called)
+        self.assertEqual(response.status_code, 204)
+
+    def test_user_updates_email_wrong_password(self):
+        view = ConnectViewSet.as_view(
+            {'get': 'list'},
+            authentication_classes=(DigestAuthentication,))
+
+        auth = DigestAuth('bob@columbia.edu', 'bob')
+        request = self._get_request_session_with_auth(view, auth)
+
+        response = view(request)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.data['detail'],
+                         u"Invalid username/password")
+
+    def test_user_updates_email(self):
+        view = ConnectViewSet.as_view(
+            {'get': 'list'},
+            authentication_classes=(DigestAuthentication,))
+
+        auth = DigestAuth('bob@columbia.edu', 'bobbob')
+        request = self._get_request_session_with_auth(view, auth)
+
+        response = view(request)
+        temp_token = TempToken.objects.get(user__username='bob')
+        self.data['temp_token'] = temp_token.key
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, self.data)
+
+        self.user.email = "bob2@columbia.edu"
+        self.user.save()
+        update_partial_digests(self.user, "bobbob")
+
+        auth = DigestAuth('bob2@columbia.edu', 'bobbob')
+        request = self._get_request_session_with_auth(view, auth)
+
+        response = view(request)
+        temp_token = TempToken.objects.get(user__username='bob')
+        self.data['temp_token'] = temp_token.key
+        self.data['email'] = 'bob2@columbia.edu'
+        self.assertEqual(response.status_code, 200)

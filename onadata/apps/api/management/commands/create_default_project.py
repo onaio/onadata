@@ -16,10 +16,12 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         print "Task started ..."
+        users = User.objects.exclude(
+            username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
+        )
 
         # Get all the users
-        for user in queryset_iterator(
-                User.objects.exclude(pk=settings.ANONYMOUS_USER_ID)):
+        for user in queryset_iterator(users):
             self.set_project_to_user_forms(user)
 
         print "Task completed ..."

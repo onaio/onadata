@@ -14,7 +14,9 @@ from django.contrib.auth.models import AnonymousUser
 
 from nose import SkipTest
 
-from onadata.apps.main.views import set_perm, show, qrcode
+from onadata.apps.main.views import set_perm
+from onadata.apps.main.views import show
+from onadata.apps.main.views import qrcode
 from onadata.apps.main.models import MetaData
 from onadata.apps.logger.views import enter_data
 from onadata.libs.utils.viewer_tools import enketo_url
@@ -26,6 +28,14 @@ def enketo_mock(url, request):
     response = requests.Response()
     response.status_code = 201
     response._content = '{"url": "https://hmh2a.enketo.ona.io"}'
+    return response
+
+
+@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
+def enketo_mock_http(url, request):
+    response = requests.Response()
+    response.status_code = 201
+    response._content = '{"url": "http://enketo.ona.io/_/#abcd"}'
     return response
 
 
@@ -65,6 +75,17 @@ class TestFormEnterData(TestBase):
             server_url = 'https://testserver.com/bob'
             form_id = "test_%s" % re.sub(re.compile("\."), "_", str(time()))
             url = enketo_url(server_url, form_id)
+            self.assertIsInstance(url, basestring)
+            self.assertIsNone(URLValidator()(url))
+
+    def test_enketo_url_with_http_protocol_on_formlist(self):
+        if not self._running_enketo():
+            raise SkipTest
+        with HTTMock(enketo_mock_http):
+            server_url = 'http://testserver.com/bob'
+            form_id = "test_%s" % re.sub(re.compile("\."), "_", str(time()))
+            url = enketo_url(server_url, form_id)
+            self.assertIn('http:', url)
             self.assertIsInstance(url, basestring)
             self.assertIsNone(URLValidator()(url))
 
@@ -142,4 +163,12 @@ class TestFormEnterData(TestBase):
             'id_string': self.xform.id_string
         })
         response = self.anon.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_enter_data_with_unavailable_id_string(self):
+        url = reverse(enter_data, kwargs={
+            'username': self.user,
+            'id_string': 'random_id_string'
+        })
+        response = self.client.get(url)
         self.assertEqual(response.status_code, 404)

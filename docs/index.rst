@@ -17,6 +17,8 @@ Data Endpoints
 
    charts
    data
+   dataviews
+   widgets
    stats
 
 Forms
@@ -28,10 +30,19 @@ Forms
    forms
    media
    metadata
+   notes
    files
    projects
    submissions
    restservices
+
+Submission Stats
+----------------
+
+.. toctree::
+   :maxdepth: 2
+
+   submission_stats
 
 Users and Organizations
 -----------------------
@@ -95,7 +106,7 @@ Example using curl:
 
 ::
 
-    curl -X GET https://ona.io/api/v1/ -u username:password
+    curl -X GET https://api.ona.io/api/v1/ -u username:password
 
 Token Authentication
 ~~~~~~~~~~~~~~~~~~~~
@@ -104,7 +115,7 @@ Example using curl:
 
 ::
 
-    curl -X GET https://ona.io/api/v1/ -H "Authorization: Token TOKEN_KEY"
+    curl -X GET https://api.ona.io/api/v1/ -H "Authorization: Token TOKEN_KEY"
 
 Temporary Token Authentication
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -113,7 +124,7 @@ Example using curl:
 
 ::
 
-    curl -X GET https://ona.io/api/v1/ -H "Authorization: TempToken TOKEN_KEY"
+    curl -X GET https://api.ona.io/api/v1/ -H "Authorization: TempToken TOKEN_KEY"
 
 Using Oauth2 with the Ona API
 -----------------------------
@@ -148,7 +159,7 @@ example:
 
 ::
 
-    http://localhost:8000/o/authorize?client_id=e8&response_type=code&state=xyz
+    http://api.ona.io/o/authorize?client_id=e8&response_type=code&state=xyz
 
 Note: Providing the url to any user will prompt for a password and
 request for read and write permission for the application whose
@@ -209,7 +220,7 @@ curl example:
     curl -X POST -d "grant_type=authorization_code&
     code=PSwrMilnJESZVFfFsyEmEukNv0sGZ8&
     client_id=e8x4zzJJIyOikDqjPcsCJrmnU22QbpfHQo4HhRnv&
-    redirect_uri=http://localhost:30000" "http://localhost:8000/o/token/"
+    redirect_uri=http://localhost:30000" "http://api.ona.io/o/token/"
     --user "e8:xo7i4LNpMj"
 
 Response:
@@ -238,7 +249,38 @@ Example using curl:
 
 ::
 
-    curl -X GET https://ona.io/api/v1 -H "Authorization: Bearer ACCESS_TOKEN"
+    curl -X GET https://api.ona.io/api/v1 -H "Authorization: Bearer ACCESS_TOKEN"
+
+Making CORS - Cross-Origin Resource Sharing - requests to the Ona API
+----------------------------------------------------------------------
+To find out more about CORS, you can read about it `here <http://www.html5rocks.com/en/tutorials/cors/>`_. The following is a javascript code snippet on how to make a CORS request.
+
+.. code-block:: javascript
+
+   var xhr = new XMLHttpRequest();
+   xhr.withCredentials = false;
+   xhr.open('GET', 'https://api.ona.io/api/v1/user', true);
+   xhr.setRequestHeader('Content-Type', 'application/json');
+   xhr.setRequestHeader('Authorization', 'Token TOKEN_KEY');
+   xhr.send();
+
+
+The following is a jquery code snippet on how to make a CORS request.
+
+.. code-block:: javascript
+
+   $.ajax({
+       method: "GET",
+       url: 'https://api.ona.io/api/v1/user',
+       dataType: 'json',
+       xhrFields: {
+           withCredentials: false
+       },
+       headers: {
+           'Authorization': 'Token TOKEN_KEY'
+       },
+   });
+
 
 Quick start
 -----------

@@ -1,0 +1,13 @@
+<?xml version='1.0' ?>
+<tutorial id="tutorial">
+    <name>Tom and Jerry</name>
+  <age>23</age>
+  <picture>1333604907194.jpg</picture>
+  <has_children>0</has_children>
+  <gps>-1.357 36.728 0.0 1044.0</gps>
+  <web_browsers>firefox chrome safari</web_browsers>
+  <meta>
+    <instanceID>uuid:6e3a2d84-9780-4549-a0de-974a257276a6</instanceID>
+    <deprecatedID>uuid:2d8c59eb-94e9-485d-a679-b28ffe2e9b98</deprecatedID>
+  </meta>
+</tutorial>

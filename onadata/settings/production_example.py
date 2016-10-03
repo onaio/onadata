@@ -1,4 +1,5 @@
-from common import *  # nopep8
+# flake8: noqa
+from common import *
 
 # this setting file will not work on "runserver" -- it needs a server for
 # static files
@@ -23,11 +24,7 @@ DATABASES = {
         # the password must be stored in an environment variable
         'PASSWORD': os.environ['FORMHUB_PROD_PW'],
         # the server name may be in env
-        'HOST': os.environ.get("FORMHUB_DB_SERVER", 'dbserver.yourdomain.org'),
-        'OPTIONS': {
-            # note: this option obsolete starting with django 1.6
-            'autocommit': True,
-        }
+        'HOST': os.environ.get("FORMHUB_DB_SERVER", 'dbserver.yourdomain.org')
     },
     'gis': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
@@ -35,10 +32,7 @@ DATABASES = {
         'USER': 'staff',
         # the password must be stored in an environment variable
         'PASSWORD': os.environ['PHIS_PW'],
-        'HOST': 'gisserver.yourdomain.org',
-        'OPTIONS': {
-            'autocommit': True,
-        }
+        'HOST': 'gisserver.yourdomain.org'
     }
 }
 
@@ -53,13 +47,6 @@ TIME_ZONE = 'Africa/Lagos'
 
 TOUCHFORMS_URL = 'http://localhost:9000/'
 
-MONGO_DATABASE = {
-    'HOST': 'localhost',
-    'PORT': 27017,
-    'NAME': 'formhub',
-    'USER': '',
-    'PASSWORD': ''
-}
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = 'mlfs33^s1l4xf6a36$0#j%dd*sisfo6HOktYXB9y'
 
@@ -77,3 +64,15 @@ MIDDLEWARE_CLASSES += ('django.middleware.cache.UpdateCacheMiddleware',
 
 CACHE_MIDDLEWARE_SECONDS = 3600  # 1 hour
 CACHE_MIDDLEWARE_KEY_PREFIX = ''
+
+REST_SERVICES_TO_MODULES = {
+    'google_sheets': 'google_export.services',
+}
+
+REST_SERVICES_TO_SERIALIZERS = {
+    'google_sheets': 'google_export.serializers.GoogleSheetsSerializer'
+}
+
+CUSTOM_MAIN_URLS = {
+    'google_export.urls'
+}

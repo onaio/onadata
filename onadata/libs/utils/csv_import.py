@@ -2,6 +2,7 @@ import cStringIO
 import json
 import unicodecsv as ucsv
 import uuid
+import codecs
 
 
 from celery import task
@@ -14,6 +15,9 @@ from django.contrib.auth.models import User
 from onadata.libs.utils.logger_tools import dict2xml, safe_create_instance
 from onadata.apps.logger.models import Instance
 from onadata.libs.utils.common_tags import MULTIPLE_SELECT_TYPE
+from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
+from onadata.libs.utils.async_status import (celery_state_to_status,
+                                             async_status, FAILED)
 
 
 def get_submission_meta_dict(xform, instance_id):
@@ -53,9 +57,9 @@ def dict2xmlsubmission(submission_dict, xform, instance_id, submission_date):
     :return: An xml submission string
     :rtype: string
     """
+
     return (u'<?xml version="1.0" ?>'
-            '<{0} id="{1}" instanceID="uuid:{2}" submissionDate="{3}" '
-            'xmlns="http://opendatakit.org/submissions">{4}'
+            '<{0} id="{1}" instanceID="uuid:{2}" submissionDate="{3}">{4}'
             '</{0}>'.format(
                 json.loads(xform.json).get('name', xform.id_string),
                 xform.id_string, instance_id, submission_date,
@@ -103,8 +107,9 @@ def dict_pathkeys_to_nested_dicts(dictionary):
 
 
 @task()
-def submit_csv_async(username, xform, csv_file):
-    return submit_csv(username, xform, csv_file)
+def submit_csv_async(username, xform, csv_file_temp_path):
+    with codecs.open(csv_file_temp_path, encoding='utf-8') as csv_file:
+        return submit_csv(username, xform, csv_file)
 
 
 def submit_csv(username, xform, csv_file):
@@ -123,23 +128,25 @@ def submit_csv(username, xform, csv_file):
     if isinstance(csv_file, unicode):
         csv_file = cStringIO.StringIO(csv_file)
     elif csv_file is None or not hasattr(csv_file, 'read'):
-        return {'error': (u'Invalid param type for `csv_file`. '
-                          'Expected utf-8 encoded file or unicode string '
-                          'got {} instead.'.format(type(csv_file).__name__))}
+        return async_status(FAILED,
+                            (u'Invalid param type for `csv_file`. '
+                             'Expected utf-8 encoded file or unicode'
+                             ' string got {} instead.'
+                             .format(type(csv_file).__name__)))
 
     num_rows = sum(1 for row in csv_file) - 1
     csv_file.seek(0)
 
-    csv_reader = ucsv.DictReader(csv_file)
+    csv_reader = ucsv.DictReader(csv_file, encoding='utf-8-sig')
     csv_header = csv_reader.fieldnames
 
     # check for spaces in headers
     if any(' ' in header for header in csv_header):
-        return {'error': u'CSV file fieldnames should not contain spaces'}
+        return async_status(FAILED,
+                            u'CSV file fieldnames should not contain spaces')
 
     # Get the data dictionary
-    dd = xform.data_dictionary()
-    xform_header = dd.get_headers()
+    xform_header = xform.get_headers()
 
     missing_col = set(xform_header).difference(csv_header)
     addition_col = set(csv_header).difference(xform_header)
@@ -150,13 +157,18 @@ def submit_csv(username, xform, csv_file):
     # remove all metadata columns
     missing = [col for col in missing_col if not col.startswith("_")]
 
+    # remove all meta/instanceid columns
+
+    while 'meta/instanceID' in missing:
+        missing.remove('meta/instanceID')
+
     # remove all metadata inside groups
     missing = [col for col in missing if not ("/_" in col)]
 
     # ignore if is multiple select question
     for col in csv_header:
         # this col is a multiple select question
-        survey_element = dd.get_survey_element(col)
+        survey_element = xform.get_survey_element(col)
         if survey_element and \
                 survey_element.get('type') == MULTIPLE_SELECT_TYPE:
             # remove from the missing and additional list
@@ -164,10 +176,17 @@ def submit_csv(username, xform, csv_file):
 
             addition_col.remove(col)
 
+    # remove headers for repeats that might be missing from csv
+    missing = [m for m in missing if m.find('[') == -1]
+
+    # Include additional repeats
+    addition_col = [a for a in addition_col if a.find('[') == -1]
+
     if missing:
-        return {'error': u"Sorry uploaded file does not match the form. "
-                         u"The file is missing the column(s): "
-                         u"{0}.".format(', '.join(missing))}
+        return async_status(FAILED,
+                            u"Sorry uploaded file does not match the form. "
+                            u"The file is missing the column(s): "
+                            u"{0}.".format(', '.join(missing)))
 
     rollback_uuids = []
     submission_time = datetime.utcnow().isoformat()
@@ -197,6 +216,9 @@ def submit_csv(username, xform, csv_file):
                     location_key, location_prop = key.rsplit(u'.', 1)
                     location_data.setdefault(location_key, {}).update(
                         {location_prop: row.get(key, '0')})
+                # remove 'n/a' values
+                if not key.startswith('_') and row[key] == 'n/a':
+                    del row[key]
 
             # collect all location K-V pairs into single geopoint field(s)
             # in location_data dict
@@ -207,8 +229,8 @@ def submit_csv(username, xform, csv_file):
                       '%(altitude)s %(precision)s') % defaultdict(
                           lambda: '', location_data.get(location_key))})
 
-            row = dict_pathkeys_to_nested_dicts(row)
-            location_data = dict_pathkeys_to_nested_dicts(location_data)
+            row = csv_dict_to_nested_dict(row)
+            location_data = csv_dict_to_nested_dict(location_data)
 
             row = dict_merge(row, location_data)
 
@@ -236,7 +258,7 @@ def submit_csv(username, xform, csv_file):
             if error:
                 Instance.objects.filter(uuid__in=rollback_uuids,
                                         xform=xform).delete()
-                return {'error': str(error)}
+                return async_status(FAILED, str(error))
             else:
                 additions += 1
                 try:
@@ -256,11 +278,11 @@ def submit_csv(username, xform, csv_file):
     except UnicodeDecodeError:
         Instance.objects.filter(uuid__in=rollback_uuids,
                                 xform=xform).delete()
-        return {'error': u'CSV file must be utf-8 encoded'}
+        return async_status(FAILED, u'CSV file must be utf-8 encoded')
     except Exception as e:
         Instance.objects.filter(uuid__in=rollback_uuids,
                                 xform=xform).delete()
-        return {'error': str(e)}
+        return async_status(FAILED, str(e))
 
     return {u"additions": additions - inserts, u"updates": inserts,
             u"info": u"Additional column(s) excluded from the upload: '{0}'."
@@ -275,11 +297,11 @@ def get_async_csv_submission_status(job_uuid):
     :rtype: Dict
     """
     if not job_uuid:
-        return {u'error': u'Empty job uuid'}
+        return async_status(FAILED, u'Empty job uuid')
 
     job = AsyncResult(job_uuid)
     result = (job.result or job.state)
     if isinstance(result, (str, unicode)):
-        return {'JOB_STATUS': result}
+        return async_status(celery_state_to_status(job.state))
 
     return result

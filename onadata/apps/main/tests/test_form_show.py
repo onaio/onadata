@@ -1,6 +1,7 @@
 import os
 import mock
 from unittest import skip
+from httmock import HTTMock
 
 from django.core.files.base import ContentFile
 from django.core.urlresolvers import reverse
@@ -11,11 +12,14 @@ from onadata.apps.main.views import show, form_photos, update_xform, profile,\
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.views import download_xlsform, download_jsonform,\
     download_xform, delete_xform
-from onadata.apps.viewer.views import export_list, map_view
+from onadata.apps.viewer.views import export_list, map_view, data_export
 from onadata.libs.utils.logger_tools import publish_xml_form
 from onadata.libs.utils.user_auth import http_auth_string
 from onadata.libs.utils.user_auth import get_user_default_project
+from onadata.apps.api.tests.viewsets.test_xform_viewset import enketo_mock,\
+    enketo_preview_url_mock
 from test_base import TestBase
+from onadata.apps.logger.xform_instance_parser import XLSFormError
 
 
 def raise_multiple_objects_returned_error(*args, **kwargs):
@@ -37,6 +41,15 @@ class TestFormShow(TestBase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.xform.id_string)
+
+    @mock.patch.object(XForm, '_set_title')
+    def test_show_form_name_with_ampersand_in_title(self, mock_set_title):
+        mock_set_title.side_effect = XLSFormError(
+            u"Title shouldn't have an ampersand")
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.content, u"Title shouldn't have an ampersand")
 
     def test_hide_from_anon(self):
         response = self.anon.get(self.url)
@@ -63,6 +76,13 @@ class TestFormShow(TestBase):
         self.assertEqual(
             response['Content-Disposition'],
             "attachment; filename=exp_one.xlsx")
+
+        # test with unavailable id_string
+        response = self.client.get(reverse(download_xlsform, kwargs={
+            'username': self.user.username,
+            'id_string': 'random_id_string'
+        }))
+        self.assertEqual(response.status_code, 404)
 
     def test_dl_xls_to_anon_if_public(self):
         self.xform.shared = True
@@ -92,6 +112,13 @@ class TestFormShow(TestBase):
             'id_string': self.xform.id_string
         }))
         self.assertEqual(response.status_code, 200)
+
+        # test with unavailable id_string
+        response = self.anon.get(reverse(download_jsonform, kwargs={
+            'username': self.user.username,
+            'id_string': 'random_id_string'
+        }))
+        self.assertEqual(response.status_code, 404)
 
     def test_dl_jsonp_to_anon_if_public(self):
         self.xform.shared = True
@@ -157,6 +184,13 @@ class TestFormShow(TestBase):
         }))
         self.assertEqual(response.status_code, 200)
 
+        # test with unavailable id_string
+        response = self.client.get(reverse(download_xform, kwargs={
+            'username': 'bob',
+            'id_string': 'random_id_string'
+        }))
+        self.assertEqual(response.status_code, 404)
+
     def test_show_private_if_shared_but_not_data(self):
         self.xform.shared = True
         self.xform.save()
@@ -176,6 +210,21 @@ class TestFormShow(TestBase):
             'id_string': self.xform.id_string,
             'export_type': 'csv'
         }))
+
+    def test_return_error_if_xform_not_found(self):
+        map_url = reverse(map_view, kwargs={
+            'username': self.user.username,
+            'id_string': 'random_string'
+        })
+        response = self.client.get(map_url)
+        self.assertEqual(response.status_code, 404)
+
+        map_url = reverse(data_export, kwargs={
+            'username': self.user.username,
+            'id_string': 'random_string'
+        })
+        response = self.client.get(map_url)
+        self.assertEqual(response.status_code, 404)
 
     def test_show_link_if_owner(self):
         self._submit_transport_instance()
@@ -279,14 +328,11 @@ class TestFormShow(TestBase):
         self.xform = XForm.objects.get(pk=self.xform.id)
         response = self.client.get(reverse(show, kwargs={
             'uuid': self.xform.uuid}))
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response['Location'],
-                         '%s%s' % (self.base_url, self.url))
+        self.assertRedirects(response, self.url)
 
     def test_xls_replace_markup(self):
         """
-        Check that update form is only shown when there are no submissions
-        and the user is the owner
+        Update form is only shown when no submissions and user = owner
         """
         # when we have 0 submissions, update markup exists
         self.xform.shared = True
@@ -337,10 +383,9 @@ class TestFormShow(TestBase):
             self.client.post(xform_update_url, post_data)
         self.assertEqual(XForm.objects.count(), count)
         self.xform = XForm.objects.order_by('id').reverse()[0]
-        data_dictionary = self.xform.data_dictionary()
         # look for the preferred_means question
         # which is only in the updated xls
-        is_updated_form = len([e.name for e in data_dictionary.survey_elements
+        is_updated_form = len([e.name for e in self.xform.survey_elements
                                if e.name == u'preferred_means']) > 0
         self.assertTrue(is_updated_form)
 
@@ -369,10 +414,9 @@ class TestFormShow(TestBase):
         # Count should stay the same
         self.assertEqual(XForm.objects.count(), count + 1)
         self.xform = XForm.objects.order_by('id').reverse()[0]
-        data_dictionary = self.xform.data_dictionary()
         # look for the preferred_means question
         # which is only in the updated xls
-        is_updated_form = len([e.name for e in data_dictionary.survey_elements
+        is_updated_form = len([e.name for e in self.xform.survey_elements
                                if e.name == u'preferred_means']) > 0
         self.assertTrue(is_updated_form)
 
@@ -390,6 +434,14 @@ class TestFormShow(TestBase):
             user=self.user, id_string=id_string).count() == 0
         self.assertTrue(form_deleted)
 
+        # test with unavailable id_string
+        xform_delete_url = reverse(delete_xform, kwargs={
+            'username': self.user.username,
+            'id_string': 'random_id_string'
+        })
+        response = self.client.post(xform_delete_url)
+        self.assertEqual(response.status_code, 404)
+
     @mock.patch('onadata.apps.logger.views.get_object_or_404',
                 side_effect=raise_multiple_objects_returned_error)
     def test_delete_xforms_with_same_id_string_in_same_account(
@@ -402,11 +454,8 @@ class TestFormShow(TestBase):
         response = self.client.post(xform_delete_url)
         form_deleted = XForm.objects.filter(
             user=self.user, id_string=id_string).count() == 0
-        self.assertFalse(form_deleted)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.content,
-            'Your account has multiple forms with same formid')
+        self.assertTrue(form_deleted)
+        self.assertEqual(response.status_code, 302)
 
     def test_non_owner_cant_delete_xform(self):
         id_string = self.xform.id_string
@@ -426,20 +475,29 @@ class TestFormShow(TestBase):
         self.assertFalse(form_deleted)
 
     def test_enketo_preview(self):
-        url = reverse(
-            enketo_preview, kwargs={'username': self.user.username,
-                                    'id_string': self.xform.id_string})
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 302)
+        with HTTMock(enketo_preview_url_mock):
+            url = reverse(
+                enketo_preview, kwargs={'username': self.user.username,
+                                        'id_string': self.xform.id_string})
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 302)
 
     def test_enketo_preview_works_on_shared_forms(self):
-        self.xform.shared = True
-        self.xform.save()
-        url = reverse(
-            enketo_preview, kwargs={'username': self.user.username,
-                                    'id_string': self.xform.id_string})
-        response = self.anon.get(url)
-        self.assertEqual(response.status_code, 302)
+        with HTTMock(enketo_mock):
+            self.xform.shared = True
+            self.xform.save()
+            url = reverse(
+                enketo_preview, kwargs={'username': self.user.username,
+                                        'id_string': self.xform.id_string})
+            response = self.anon.get(url)
+            self.assertEqual(response.status_code, 302)
+
+    def test_enketo_preview_with_unavailable_id_string(self):
+        response = self.client.get(reverse(enketo_preview, kwargs={
+            'username': self.user.username,
+            'id_string': 'random_id_string'
+        }))
+        self.assertEqual(response.status_code, 404)
 
     # TODO PLD disabling this test
     @skip('Insensitivity is not enforced upon creation of id_strings.')

@@ -75,7 +75,8 @@ class TestCSVDataFrameBuilder(TestBase):
 
     def _csv_data_for_dataframe(self):
         csv_df_builder = CSVDataFrameBuilder(self.user.username,
-                                             self.xform.id_string)
+                                             self.xform.id_string,
+                                             include_images=False)
         cursor = csv_df_builder._query_data()
         return csv_df_builder._format_for_dataframe(cursor)
 
@@ -85,8 +86,10 @@ class TestCSVDataFrameBuilder(TestBase):
             "nested_repeats", "01", submission_time=self._submission_time)
         self._submit_fixture_instance(
             "nested_repeats", "02", submission_time=self._submission_time)
+
         csv_df_builder = CSVDataFrameBuilder(self.user.username,
-                                             self.xform.id_string)
+                                             self.xform.id_string,
+                                             include_images=False)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
         csv_df_builder.export_to(temp_file.name)
         csv_fixture_path = os.path.join(
@@ -130,7 +133,6 @@ class TestCSVDataFrameBuilder(TestBase):
         self.maxDiff = None
         self._publish_single_level_repeat_form()
         self._submit_fixture_instance("new_repeats", "01")
-        self.xform.data_dictionary()
         data_0 = self._csv_data_for_dataframe()[0]
         # remove AbstractDataFrameBuilder.INTERNAL_FIELDS
         for key in AbstractDataFrameBuilder.IGNORED_COLUMNS:
@@ -161,13 +163,14 @@ class TestCSVDataFrameBuilder(TestBase):
 
     def test_split_select_multiples(self):
         self._publish_nested_repeats_form()
-        dd = self.xform.data_dictionary()
         self._submit_fixture_instance("nested_repeats", "01")
         csv_df_builder = CSVDataFrameBuilder(self.user.username,
-                                             self.xform.id_string)
+                                             self.xform.id_string,
+                                             include_images=False)
         cursor = [k for k in csv_df_builder._query_data()]
         record = cursor[0]
-        select_multiples = CSVDataFrameBuilder._collect_select_multiples(dd)
+        select_multiples = \
+            CSVDataFrameBuilder._collect_select_multiples(self.xform)
         result = CSVDataFrameBuilder._split_select_multiples(record,
                                                              select_multiples)
         expected_result = {
@@ -327,7 +330,7 @@ class TestCSVDataFrameBuilder(TestBase):
         # get submission xml str
         with open(submission_path, "r") as f:
             xml_str = f.read()
-        dict = xform_instance_to_dict(xml_str, self.xform.data_dictionary())
+        dict = xform_instance_to_dict(xml_str, self.xform)
         expected_dict = {
             u'test_item_name_matches_repeat': {
                 u'formhub': {
@@ -373,7 +376,8 @@ class TestCSVDataFrameBuilder(TestBase):
         for i in range(2):
             self._submit_fixture_instance("new_repeats", "01")
         csv_df_builder = CSVDataFrameBuilder(self.user.username,
-                                             self.xform.id_string)
+                                             self.xform.id_string,
+                                             include_images=False)
         record_count = csv_df_builder._query_data(count=True)
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
@@ -390,13 +394,51 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertEqual(rows[4][5], NA_REP)
         # close and delete file
         csv_file.close()
+
+    def test_windows_excel_compatible_csv_export(self):
+        self._publish_single_level_repeat_form()
+        # submit 7 instances
+        for i in range(4):
+            self._submit_fixture_instance("new_repeats", "01")
+        self._submit_fixture_instance("new_repeats", "02")
+        for i in range(2):
+            self._submit_fixture_instance("new_repeats", "01")
+        csv_df_builder = CSVDataFrameBuilder(self.user.username,
+                                             self.xform.id_string,
+                                             remove_group_name=True,
+                                             include_images=False,
+                                             win_excel_utf8=True)
+        record_count = csv_df_builder._query_data(count=True)
+        self.assertEqual(record_count, 7)
+        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
+        csv_df_builder.export_to(temp_file.name)
+        csv_file = open(temp_file.name)
+        csv_reader = csv.reader(csv_file)
+        header = csv_reader.next()
+        self.assertEqual(
+            len(header), 17 + len(AbstractDataFrameBuilder.ADDITIONAL_COLUMNS))
+        expected_header = [
+            '\xef\xbb\xbfname', '\xef\xbb\xbfage', '\xef\xbb\xbfhas_kids',
+            '\xef\xbb\xbfkids_name', '\xef\xbb\xbfkids_age',
+            '\xef\xbb\xbfkids_name', '\xef\xbb\xbfkids_age',
+            '\xef\xbb\xbfgps', '\xef\xbb\xbf_gps_latitude',
+            '\xef\xbb\xbf_gps_longitude', '\xef\xbb\xbf_gps_altitude',
+            '\xef\xbb\xbf_gps_precision', '\xef\xbb\xbfweb_browsers/firefox',
+            '\xef\xbb\xbfweb_browsers/chrome', '\xef\xbb\xbfweb_browsers/ie',
+            '\xef\xbb\xbfweb_browsers/safari', '\xef\xbb\xbfinstanceID',
+            '\xef\xbb\xbf_uuid', '\xef\xbb\xbf_submission_time',
+            '\xef\xbb\xbf_tags', '\xef\xbb\xbf_notes', '\xef\xbb\xbf_version',
+            '\xef\xbb\xbf_duration', '\xef\xbb\xbf_submitted_by'
+        ]
+        self.assertEqual(expected_header, header)
+        # close and delete file
+        csv_file.close()
         os.unlink(temp_file.name)
 
     def test_csv_column_indices_in_groups_within_repeats(self):
         self._publish_xls_fixture_set_xform("groups_in_repeats")
         self._submit_fixture_instance("groups_in_repeats", "01")
-        dd = self.xform.data_dictionary()
-        dd.get_keys()
+        self.xform.get_keys()
         data_0 = self._csv_data_for_dataframe()[0]
         # remove dynamic fields
         ignore_list = [
@@ -414,7 +456,6 @@ class TestCSVDataFrameBuilder(TestBase):
             u'name': u'Abe',
             u'age': 88,
             u'has_children': u'1',
-            u'_attachments': [],
             u'children[1]/childs_info/name': u'Cain',
             u'children[2]/childs_info/name': u'Abel',
             u'children[1]/childs_info/age': 56,
@@ -430,10 +471,151 @@ class TestCSVDataFrameBuilder(TestBase):
             u'gps': u'-1.2626156 36.7923571 0.0 30.0',
             u'_geolocation': [-1.2626156, 36.7923571],
             u'_duration': '',
+            u'_edited': False,
             u'_gps_latitude': u'-1.2626156',
             u'_gps_longitude': u'36.7923571',
             u'_gps_altitude': u'0.0',
             u'_gps_precision': u'30.0',
+            u'_attachments': []
         }
         self.maxDiff = None
         self.assertEqual(data_0, expected_data_0)
+
+    def test_csv_export_remove_group_name(self):
+        self._publish_single_level_repeat_form()
+        # submit 7 instances
+        for i in range(4):
+            self._submit_fixture_instance("new_repeats", "01")
+        self._submit_fixture_instance("new_repeats", "02")
+        for i in range(2):
+            self._submit_fixture_instance("new_repeats", "01")
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username,
+            self.xform.id_string,
+            remove_group_name=True,
+            include_images=False
+        )
+        record_count = csv_df_builder._query_data(count=True)
+        self.assertEqual(record_count, 7)
+        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
+        csv_df_builder.export_to(temp_file.name)
+        csv_file = open(temp_file.name)
+        csv_reader = csv.reader(csv_file)
+        header = csv_reader.next()
+        self.assertEqual(
+            len(header), 17 + len(AbstractDataFrameBuilder.ADDITIONAL_COLUMNS))
+        expected_header = [
+            'name', 'age', 'has_kids', 'kids_name', 'kids_age', 'kids_name',
+            'kids_age', 'gps', '_gps_latitude', '_gps_longitude',
+            '_gps_altitude', '_gps_precision', 'web_browsers/firefox',
+            'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
+            'instanceID', '_uuid', '_submission_time', '_tags',
+            '_notes', '_version', '_duration', '_submitted_by'
+        ]
+        self.assertEqual(expected_header, header)
+        rows = []
+        for row in csv_reader:
+            rows.append(row)
+        self.assertEqual(len(rows), 7)
+        self.assertEqual(rows[4][5], NA_REP)
+        # close and delete file
+        csv_file.close()
+        os.unlink(temp_file.name)
+
+    def test_csv_export_with_labels(self):
+        self._publish_single_level_repeat_form()
+        # submit 7 instances
+        for i in range(4):
+            self._submit_fixture_instance("new_repeats", "01")
+        self._submit_fixture_instance("new_repeats", "02")
+        for i in range(2):
+            self._submit_fixture_instance("new_repeats", "01")
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username,
+            self.xform.id_string,
+            remove_group_name=True,
+            include_labels=True
+        )
+        record_count = csv_df_builder._query_data(count=True)
+        self.assertEqual(record_count, 7)
+        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
+        csv_df_builder.export_to(temp_file.name)
+        csv_file = open(temp_file.name)
+        csv_reader = csv.reader(csv_file)
+        header = csv_reader.next()
+        self.assertEqual(
+            len(header), 17 + len(AbstractDataFrameBuilder.ADDITIONAL_COLUMNS))
+        expected_header = [
+            'name', 'age', 'has_kids', 'kids_name', 'kids_age', 'kids_name',
+            'kids_age', 'gps', '_gps_latitude', '_gps_longitude',
+            '_gps_altitude', '_gps_precision', 'web_browsers/firefox',
+            'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
+            'instanceID', '_uuid', '_submission_time', '_tags',
+            '_notes', '_version', '_duration', '_submitted_by'
+        ]
+        self.assertEqual(expected_header, header)
+        labels = csv_reader.next()
+        self.assertEqual(
+            len(labels), 17 + len(AbstractDataFrameBuilder.ADDITIONAL_COLUMNS))
+        expected_labels = [
+            'Name', 'age', 'Do you have kids?', 'Kids Name', 'Kids Age',
+            'Kids Name', 'Kids Age', '5. Record your GPS coordinates.',
+            '_gps_latitude', '_gps_longitude',
+            '_gps_altitude', '_gps_precision', 'web_browsers/Mozilla Firefox',
+            'web_browsers/Google Chrome', 'web_browsers/Internet Explorer',
+            'web_browsers/Safari',
+            'instanceID', '_uuid', '_submission_time', '_tags',
+            '_notes', '_version', '_duration', '_submitted_by'
+        ]
+        self.assertEqual(expected_labels, labels)
+        rows = []
+        for row in csv_reader:
+            rows.append(row)
+        self.assertEqual(len(rows), 7)
+        self.assertEqual(rows[4][5], NA_REP)
+        # close and delete file
+        csv_file.close()
+        os.unlink(temp_file.name)
+
+    def test_csv_export_with_labels_only(self):
+        self._publish_single_level_repeat_form()
+        # submit 7 instances
+        for i in range(4):
+            self._submit_fixture_instance("new_repeats", "01")
+        self._submit_fixture_instance("new_repeats", "02")
+        for i in range(2):
+            self._submit_fixture_instance("new_repeats", "01")
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username,
+            self.xform.id_string,
+            remove_group_name=True,
+            include_labels_only=True
+        )
+        record_count = csv_df_builder._query_data(count=True)
+        self.assertEqual(record_count, 7)
+        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
+        csv_df_builder.export_to(temp_file.name)
+        csv_file = open(temp_file.name)
+        csv_reader = csv.reader(csv_file)
+        labels = csv_reader.next()
+        self.assertEqual(
+            len(labels), 17 + len(AbstractDataFrameBuilder.ADDITIONAL_COLUMNS))
+        expected_labels = [
+            'Name', 'age', 'Do you have kids?', 'Kids Name', 'Kids Age',
+            'Kids Name', 'Kids Age', '5. Record your GPS coordinates.',
+            '_gps_latitude', '_gps_longitude',
+            '_gps_altitude', '_gps_precision', 'web_browsers/Mozilla Firefox',
+            'web_browsers/Google Chrome', 'web_browsers/Internet Explorer',
+            'web_browsers/Safari',
+            'instanceID', '_uuid', '_submission_time', '_tags',
+            '_notes', '_version', '_duration', '_submitted_by'
+        ]
+        self.assertEqual(expected_labels, labels)
+        rows = []
+        for row in csv_reader:
+            rows.append(row)
+        self.assertEqual(len(rows), 7)
+        self.assertEqual(rows[4][5], NA_REP)
+        # close and delete file
+        csv_file.close()
+        os.unlink(temp_file.name)

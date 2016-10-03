@@ -1,8 +1,6 @@
 # Ubuntu installation instructions
 ## Prepare Os
-
-    sudo apt-get update
-    sudo apt-get install  postgresql-9.3-postgis-2.1 binutils libproj-dev gdal-bin memcached libmemcached-dev build-essential python-pip python-virtualenv python-dev git libssl-dev libpq-dev gfortran libatlas-base-dev libjpeg-dev libxml2-dev libxslt-dev zlib1g-dev python-software-properties ghostscript python-celery python-sphinx openjdk-7-jdk openjdk-7-jre postgresql-9.3-postgis-2.1 postgresql-9.3-postgis-2.1-scripts
+    $ ./script/install/ubuntu
 
 ## Database setup
 Replace username and db name accordingly.
@@ -14,24 +12,19 @@ Replace username and db name accordingly.
     sudo su postgres -c "psql -d onadata -c \"CREATE EXTENSION IF NOT EXISTS postgis_topology;\""
 
 ## Get the code
-    git clone https://github.com/onaio/onadata.git onadata
-    cd onadata/
+    git clone https://github.com/onaio/onadata.git
 
-## Create python virtual environment and activate
-    mkdir ~/.virtualenvs
-    virtualenv ~/.virtualenvs/onadata
-    source ~/.virtualenvs/onadata/bin/activate
+## Set up and start your virtual environment or sandbox.
+    $ virtualenv <.venv>
+    $ source <.venv>/bin/activate
 
-## Install required python packages
-    pip install -r requirements/base.pip --allow-all-external
-    pip install numpy pandas==0.12.0
+## Create a local_settings.py, update it accordingly.
+Make sure you have a `onadata/settings/local_settings.py` file.
+*This file is usually gitignored.
 
-## Set local_settings.py, update it accordingly
-    cp script/local_settings.py local_settings.py
-
-## Initial db setup
-    python manage.py syncdb --noinput
-    python manage.py migrate
+## Run make to set up core and for initial db setup.
+    $ make
+You may at this point start core with `$ python manage.py runserver --nothreading` or go on and set up the rest.
 
 ## compile api docs
     cd docs

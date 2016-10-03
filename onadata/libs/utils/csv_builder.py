@@ -1,6 +1,4 @@
-import csv
-import codecs
-import cStringIO
+import unicodecsv as csv
 from collections import OrderedDict
 from itertools import chain
 
@@ -8,15 +6,19 @@ from django.conf import settings
 from pyxform.section import Section, RepeatingSection
 from pyxform.question import Question
 
+from onadata.apps.logger.models import OsmData
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.models.xform import question_types_to_exclude
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
-from onadata.apps.viewer.models.parsed_instance import ParsedInstance
+from onadata.apps.viewer.models.parsed_instance import (
+    ParsedInstance, query_data)
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS,\
     ATTACHMENTS, GEOLOCATION, UUID, SUBMISSION_TIME, NA_REP,\
     BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES, SUBMITTED_BY, VERSION,\
-    DURATION
-from onadata.libs.utils.export_tools import question_types_to_exclude
+    DURATION, EDITED
+from onadata.libs.utils.export_builder import get_value_or_attachment_uri
+from onadata.libs.utils.model_tools import get_columns_with_hxl
 
 
 # the bind type of select multiples that we use to compare
@@ -46,48 +48,72 @@ def get_prefix_from_xpath(xpath):
             '%s cannot be prefixed, it returns %s' % (xpath, str(parts)))
 
 
-class UnicodeWriter:
-    """
-    A CSV writer which will write rows to CSV file "f",
-    which is encoded in the given encoding.
-    """
+def get_labels_from_columns(columns, dd, group_delimiter):
+    labels = []
+    for col in columns:
+        elem = dd.get_survey_element(col)
+        label = dd.get_label(col, elem=elem) if elem else col
+        if elem is not None and elem.type == '':
+            label = group_delimiter.join([elem.parent.name, label])
+        if label == '':
+            label = elem.name
+        labels.append(label)
 
-    def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
-        # Redirect output to a queue
-        self.queue = cStringIO.StringIO()
-        self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
-        self.stream = f
-        self.encoder = codecs.getincrementalencoder(encoding)()
-
-    def writerow(self, row):
-        self.writer.writerow([unicode(s).encode("utf-8") for s in row])
-        # Fetch UTF-8 output from the queue ...
-        data = self.queue.getvalue()
-        data = data.decode("utf-8")
-        # ... and reencode it into the target encoding
-        data = self.encoder.encode(data)
-        # write to the target stream
-        self.stream.write(data)
-        # empty queue
-        self.queue.truncate(0)
-
-    def writerows(self, rows):
-        for row in rows:
-            self.writerow(row)
+    return labels
 
 
-def write_to_csv(path, rows, columns, remove_group_name=False):
+def get_column_names_only(columns, dd, group_delimiter):
+    new_columns = []
+    for col in columns:
+        new_col = None
+        elem = dd.get_survey_element(col)
+        if elem is None:
+            new_col = col
+        elif elem.type != '':
+            new_col = elem.name
+        else:
+            new_col = DEFAULT_GROUP_DELIMITER.join([
+                elem.parent.name,
+                elem.name
+            ])
+        new_columns.append(new_col)
+
+    return new_columns
+
+
+def write_to_csv(path, rows, columns, columns_with_hxl=None,
+                 remove_group_name=False, dd=None,
+                 group_delimiter=DEFAULT_GROUP_DELIMITER, include_labels=False,
+                 include_labels_only=False, include_hxl=False,
+                 win_excel_utf8=False):
     na_rep = getattr(settings, 'NA_REP', NA_REP)
+    encoding = 'utf-8-sig' if win_excel_utf8 else 'utf-8'
     with open(path, 'wb') as csvfile:
-        writer = UnicodeWriter(csvfile, lineterminator='\n')
+        writer = csv.writer(csvfile, encoding=encoding, lineterminator='\n')
 
         # Check if to truncate the group name prefix
-        if remove_group_name:
-            new_colum = [col.split('/')[-1:][0]
-                         if '/' in col else col for col in columns]
-            writer.writerow(new_colum)
-        else:
-            writer.writerow(columns)
+        if not include_labels_only:
+            if remove_group_name and dd:
+                new_cols = get_column_names_only(columns, dd, group_delimiter)
+            else:
+                new_cols = columns
+
+            # use a different group delimiter if needed
+            if group_delimiter != DEFAULT_GROUP_DELIMITER:
+                new_cols = [
+                    group_delimiter.join(col.split(DEFAULT_GROUP_DELIMITER))
+                    for col in new_cols
+                ]
+
+            writer.writerow(new_cols)
+
+        if include_labels or include_labels_only:
+            labels = get_labels_from_columns(columns, dd, group_delimiter)
+            writer.writerow(labels)
+
+        if include_hxl and columns_with_hxl:
+            hxl_row = [columns_with_hxl.get(col, '') for col in columns]
+            hxl_row and writer.writerow(hxl_row)
 
         for row in rows:
             for col in AbstractDataFrameBuilder.IGNORED_COLUMNS:
@@ -97,10 +123,11 @@ def write_to_csv(path, rows, columns, remove_group_name=False):
 
 class AbstractDataFrameBuilder(object):
     IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, ID, ATTACHMENTS, GEOLOCATION,
-                       BAMBOO_DATASET_ID, DELETEDAT]
+                       BAMBOO_DATASET_ID, DELETEDAT, EDITED]
     # fields NOT within the form def that we want to include
     ADDITIONAL_COLUMNS = [
-        UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION, DURATION, SUBMITTED_BY]
+        UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION, DURATION,
+        SUBMITTED_BY]
     BINARY_SELECT_MULTIPLES = False
     """
     Group functionality used by any DataFrameBuilder i.e. XLS, CSV and KML
@@ -109,7 +136,11 @@ class AbstractDataFrameBuilder(object):
     def __init__(self, username, id_string, filter_query=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
                  split_select_multiples=True, binary_select_multiples=False,
-                 start=None, end=None, remove_group_name=False):
+                 start=None, end=None, remove_group_name=False, xform=None,
+                 include_labels=False, include_labels_only=False,
+                 include_images=True, include_hxl=False,
+                 win_excel_utf8=False):
+
         self.username = username
         self.id_string = id_string
         self.filter_query = filter_query
@@ -119,13 +150,21 @@ class AbstractDataFrameBuilder(object):
         self.start = start
         self.end = end
         self.remove_group_name = remove_group_name
-        self.xform = XForm.objects.get(id_string=self.id_string,
-                                       user__username=self.username)
+
+        if xform:
+            self.xform = xform
+        else:
+            self.xform = XForm.objects.get(id_string=self.id_string,
+                                           user__username=self.username)
+        self.include_labels = include_labels
+        self.include_labels_only = include_labels_only
+        self.include_images = include_images
+        self.include_hxl = include_hxl
+        self.win_excel_utf8 = win_excel_utf8
         self._setup()
 
     def _setup(self):
-        self.dd = DataDictionary.objects.get(user__username=self.username,
-                                             id_string=self.id_string)
+        self.dd = self.xform
         self.select_multiples = self._collect_select_multiples(self.dd)
         self.gps_fields = self._collect_gps_fields(self.dd)
 
@@ -136,10 +175,21 @@ class AbstractDataFrameBuilder(object):
 
     @classmethod
     def _collect_select_multiples(cls, dd):
-        return dict([(e.get_abbreviated_xpath(), [c.get_abbreviated_xpath()
-                                                  for c in e.children])
-                     for e in dd.get_survey_elements()
-                     if e.bind.get("type") == "select"])
+        select_multiples = []
+        select_multiple_elements = [
+            e for e in dd.get_survey_elements_with_choices()
+            if e.bind.get('type') == 'select'
+        ]
+        for e in select_multiple_elements:
+            xpath = e.get_abbreviated_xpath()
+            choices = [c.get_abbreviated_xpath() for c in e.children]
+            if not choices and e.choice_filter and e.itemset:
+                itemset = dd.survey.to_json_dict()['choices'].get(e.itemset)
+                choices = [u'/'.join([xpath, i.get('name')])
+                           for i in itemset] if itemset else choices
+            select_multiples.append((xpath, choices))
+
+        return dict(select_multiples)
 
     @classmethod
     def _split_select_multiples(cls, record, select_multiples,
@@ -224,7 +274,7 @@ class AbstractDataFrameBuilder(object):
     def _query_data(self, query='{}', start=0,
                     limit=ParsedInstance.DEFAULT_LIMIT,
                     fields='[]', count=False):
-        # ParsedInstance.query_mongo takes params as json strings
+        # query_data takes params as json strings
         # so we dumps the fields dictionary
         count_args = {
             'xform': self.xform,
@@ -235,7 +285,7 @@ class AbstractDataFrameBuilder(object):
             'sort': '{}',
             'count': True
         }
-        count_object = list(ParsedInstance.query_data(**count_args))
+        count_object = list(query_data(**count_args))
         record_count = count_object[0]["count"]
         if record_count < 1:
             raise NoRecordsFoundError("No records found for your query")
@@ -256,8 +306,7 @@ class AbstractDataFrameBuilder(object):
                 'limit': limit,
                 'count': False
             }
-            # use ParsedInstance.query_mongo
-            cursor = ParsedInstance.query_data(**query_args)
+            cursor = query_data(**query_args)
             return cursor
 
 
@@ -266,18 +315,26 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
     def __init__(self, username, id_string, filter_query=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
                  split_select_multiples=True, binary_select_multiples=False,
-                 start=None, end=None, remove_group_name=False):
+                 start=None, end=None, remove_group_name=False, xform=None,
+                 include_labels=False, include_labels_only=False,
+                 include_images=False, include_hxl=False,
+                 win_excel_utf8=False):
         super(CSVDataFrameBuilder, self).__init__(
             username, id_string, filter_query, group_delimiter,
             split_select_multiples, binary_select_multiples, start, end,
-            remove_group_name)
+            remove_group_name, xform, include_labels, include_labels_only,
+            include_images, include_hxl, win_excel_utf8
+
+        )
         self.ordered_columns = OrderedDict()
 
     def _setup(self):
         super(CSVDataFrameBuilder, self)._setup()
 
     @classmethod
-    def _reindex(cls, key, value, ordered_columns, parent_prefix=None):
+    def _reindex(cls, key, value, ordered_columns, row, data_dictionary,
+                 parent_prefix=None,
+                 include_images=True):
         """
         Flatten list columns by appending an index, otherwise return as is
         """
@@ -309,7 +366,9 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                             # if nested_value is a list, rinse and repeat
                             d.update(cls._reindex(
                                 nested_key, nested_val,
-                                ordered_columns, new_prefix))
+                                ordered_columns, row, data_dictionary,
+                                new_prefix,
+                                include_images=include_images))
                         else:
                             # it can only be a scalar
                             # collapse xpath
@@ -320,18 +379,24 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                             if key in ordered_columns.keys():
                                 if new_xpath not in ordered_columns[key]:
                                     ordered_columns[key].append(new_xpath)
-                            d[new_xpath] = nested_val
+                            d[new_xpath] = get_value_or_attachment_uri(
+                                nested_key, nested_val, row, data_dictionary,
+                                include_images
+                            )
                 else:
-                    d[key] = value
+                    d[key] = get_value_or_attachment_uri(
+                        key, value, row, data_dictionary, include_images
+                    )
         else:
             # anything that's not a list will be in the top level dict so its
             # safe to simply assign
             if key == NOTES:
-                d[key] = u"\r\n".join(value)
-            elif key == ATTACHMENTS:
-                d[key] = []
+                # Do not include notes
+                d[key] = u""
             else:
-                d[key] = value
+                d[key] = get_value_or_attachment_uri(
+                    key, value, row, data_dictionary, include_images
+                )
         return d
 
     @classmethod
@@ -374,6 +439,9 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             gps_xpaths = self.dd.get_additional_geopoint_xpaths(key)
             self.ordered_columns[key] = [key] + gps_xpaths
         data = []
+        image_xpaths = [] if not self.include_images \
+            else self.dd.get_media_survey_xpaths()
+
         for record in cursor:
             # split select multiples
             if self.split_select_multiples:
@@ -387,35 +455,49 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             flat_dict = {}
             # re index repeats
             for key, value in record.iteritems():
-                reindexed = self._reindex(key, value, self.ordered_columns)
+                reindexed = self._reindex(key, value, self.ordered_columns,
+                                          record, self.dd,
+                                          include_images=image_xpaths)
                 flat_dict.update(reindexed)
 
-            # if delimetr is diferent, replace within record as well
-            if self.group_delimiter != DEFAULT_GROUP_DELIMITER:
-                flat_dict = dict((self.group_delimiter.join(k.split('/')), v)
-                                 for k, v in flat_dict.iteritems())
             data.append(flat_dict)
         return data
 
-    def export_to(self, path):
+    def export_to(self, path, dataview=None):
         self.ordered_columns = OrderedDict()
         self._build_ordered_columns(self.dd.survey, self.ordered_columns)
 
-        cursor = self._query_data(
-            self.filter_query)
-        data = self._format_for_dataframe(cursor)
+        if dataview:
+            cursor = dataview.query_data(dataview, all_data=True)
+            data = self._format_for_dataframe(cursor)
+            columns = list(chain.from_iterable(
+                [[xpath] if cols is None else cols
+                 for xpath, cols in self.ordered_columns.iteritems()
+                 if [c for c in dataview.columns if xpath.startswith(c)]]
+            ))
+        else:
+            cursor = self._query_data(self.filter_query)
+            data = self._format_for_dataframe(cursor)
 
-        columns = list(chain.from_iterable(
-            [[xpath] if cols is None else cols
-             for xpath, cols in self.ordered_columns.iteritems()]))
+            columns = list(chain.from_iterable(
+                [[xpath] if cols is None else cols
+                 for xpath, cols in self.ordered_columns.iteritems()]))
 
-        # use a different group delimiter if needed
-        if self.group_delimiter != DEFAULT_GROUP_DELIMITER:
-            columns = [self.group_delimiter.join(col.split("/"))
-                       for col in columns]
+            # add extra columns
+            columns += [col for col in self.ADDITIONAL_COLUMNS]
+            for field in self.dd.get_survey_elements_of_type('osm'):
+                columns += OsmData.get_tag_keys(self.xform,
+                                                field.get_abbreviated_xpath(),
+                                                include_prefix=True)
 
-        # add extra columns
-        columns += [col for col in self.ADDITIONAL_COLUMNS]
+        columns_with_hxl = self.include_hxl and get_columns_with_hxl(
+            self.dd.survey_elements)
 
         write_to_csv(path, data, columns,
-                     remove_group_name=self.remove_group_name)
+                     columns_with_hxl=columns_with_hxl,
+                     remove_group_name=self.remove_group_name,
+                     dd=self.dd, group_delimiter=self.group_delimiter,
+                     include_labels=self.include_labels,
+                     include_labels_only=self.include_labels_only,
+                     include_hxl=self.include_hxl,
+                     win_excel_utf8=self.win_excel_utf8)

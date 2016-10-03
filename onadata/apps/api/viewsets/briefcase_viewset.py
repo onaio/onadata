@@ -10,16 +10,17 @@ from rest_framework import mixins
 from rest_framework import status
 from rest_framework import viewsets
 from rest_framework import permissions
+from rest_framework.decorators import detail_route
 from rest_framework.generics import get_object_or_404
 from rest_framework.renderers import BrowsableAPIRenderer
 from rest_framework.response import Response
-from rest_framework.decorators import action
 
 from onadata.apps.api.tools import get_media_file_response
 from onadata.apps.api.permissions import ViewDjangoObjectPermissions
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs import filters
@@ -30,6 +31,7 @@ from onadata.libs.serializers.xform_serializer import XFormListSerializer
 from onadata.libs.serializers.xform_serializer import XFormManifestSerializer
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.logger_tools import PublishXForm
+from onadata.libs.utils.viewer_tools import get_form
 
 
 def _extract_uuid(text):
@@ -115,9 +117,16 @@ class BriefcaseViewset(OpenRosaHeadersMixin, mixins.CreateModelMixin,
         if formId.find('[') != -1:
             formId = _extract_id_string(formId)
 
-        xform = get_object_or_404(queryset, id_string__iexact=formId)
+        xform_kwargs = {
+            'queryset': queryset,
+            'id_string__iexact': formId
+        }
+        if username:
+            xform_kwargs['user__username__iexact'] = username
+        xform = get_form(xform_kwargs)
         self.check_object_permissions(self.request, xform)
-        instances = Instance.objects.filter(xform=xform).order_by('pk')
+        instances = Instance.objects.filter(
+            xform=xform, deleted_at__isnull=True).order_by('pk')
         num_entries = self.request.GET.get('numEntries')
         cursor = self.request.GET.get('cursor')
 
@@ -192,7 +201,8 @@ class BriefcaseViewset(OpenRosaHeadersMixin, mixins.CreateModelMixin,
     def retrieve(self, request, *args, **kwargs):
         self.object = self.get_object()
 
-        submission_xml_root_node = self.object.get_root_node()
+        xml_obj = clean_and_parse_xml(self.object.xml)
+        submission_xml_root_node = xml_obj.documentElement
         submission_xml_root_node.setAttribute(
             'instanceID', u'uuid:%s' % self.object.uuid)
         submission_xml_root_node.setAttribute(
@@ -204,16 +214,18 @@ class BriefcaseViewset(OpenRosaHeadersMixin, mixins.CreateModelMixin,
             'host': request.build_absolute_uri().replace(
                 request.get_full_path(), '')
         }
-        return Response(data,
-                        headers=self.get_openrosa_headers(request,
-                                                          location=False),
-                        template_name='downloadSubmission.xml')
 
-    @action(methods=['GET'])
+        return Response(
+            data,
+            headers=self.get_openrosa_headers(request, location=False),
+            template_name='downloadSubmission.xml'
+        )
+
+    @detail_route(methods=['GET'])
     def manifest(self, request, *args, **kwargs):
         self.object = self.get_object()
         object_list = MetaData.objects.filter(data_type='media',
-                                              xform=self.object)
+                                              object_id=self.object.id)
         context = self.get_serializer_context()
         serializer = XFormManifestSerializer(object_list, many=True,
                                              context=context)
@@ -222,7 +234,7 @@ class BriefcaseViewset(OpenRosaHeadersMixin, mixins.CreateModelMixin,
                         headers=self.get_openrosa_headers(request,
                                                           location=False))
 
-    @action(methods=['GET'])
+    @detail_route(methods=['GET'])
     def media(self, request, *args, **kwargs):
         self.object = self.get_object()
         pk = kwargs.get('metadata')

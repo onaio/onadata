@@ -3,10 +3,11 @@ import os
 
 from django.conf import settings
 from django_digest.test import DigestAuth
+from httmock import HTTMock
 from rest_framework.renderers import JSONRenderer
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
-    TestAbstractViewSet
+    TestAbstractViewSet, enketo_preview_url_mock, enketo_url_mock
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
@@ -50,16 +51,20 @@ class TestUserPermissions(TestAbstractViewSet):
             response = view(request)
             self.assertEqual(response.status_code, 403)
 
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file, 'owner': 'bob'}
+            request = self.factory.post('/', data=post_data, **self.extra)
             role.ManagerRole.add(self.user, bob.profile)
-            response = view(request)
-            self.assertEqual(response.status_code, 201)
+            with HTTMock(enketo_url_mock, enketo_preview_url_mock):
+                response = view(request)
+                self.assertEqual(response.status_code, 201)
 
-            xform = bob.xforms.all()[0]
-            data.update({
-                'url':
-                'http://testserver/api/v1/forms/%s' % xform.pk
-            })
-            self.assertDictContainsSubset(data, response.data)
+                xform = bob.xforms.all()[0]
+                data.update({
+                    'url':
+                    'http://testserver/api/v1/forms/%s' % xform.pk
+                })
+                self.assertDictContainsSubset(data, response.data)
 
     def test_manager_can_update_xform(self):
         self._publish_xls_form_to_project()
@@ -79,7 +84,7 @@ class TestUserPermissions(TestAbstractViewSet):
 
         request = self.factory.put('/', data=data, **self.extra)
         response = view(request, pk=self.xform.id)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 404)
         self.assertFalse(self.xform.shared)
 
         role.ManagerRole.add(self.user, self.xform)

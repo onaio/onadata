@@ -7,13 +7,14 @@
 #
 # local customizations should be done in several files each of which in turn
 # imports this one.
-# The local files should be used as the value for your DJANGO_SETTINGS_FILE
+# The local files should be used as the value for your DJANGO_SETTINGS_MODULE
 # environment variable as needed.
 import logging
 import os
 import subprocess  # nopep8, used by included files
 import sys  # nopep8, used by included files
 import socket
+from urlparse import urljoin
 
 from celery.signals import after_setup_logger
 from django.core.exceptions import SuspiciousOperation
@@ -21,6 +22,10 @@ from django.utils.log import AdminEmailHandler
 import djcelery
 
 djcelery.setup_loader()
+
+# setting default encoding to utf-8
+reload(sys)
+sys.setdefaultencoding('utf-8')
 
 CURRENT_FILE = os.path.abspath(__file__)
 PROJECT_ROOT = os.path.realpath(
@@ -91,12 +96,14 @@ STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
 STATIC_URL = '/static/'
 
 # Enketo URL
+ENKETO_PROTOCOL = 'https'
 ENKETO_URL = 'https://enketo.ona.io/'
 ENKETO_API_SURVEY_PATH = '/api_v1/survey'
 ENKETO_API_INSTANCE_PATH = '/api_v1/instance'
-ENKETO_PREVIEW_URL = ENKETO_URL + 'webform/preview'
+ENKETO_PREVIEW_URL = urljoin(ENKETO_URL, ENKETO_API_SURVEY_PATH + '/preview')
 ENKETO_API_TOKEN = ''
 ENKETO_API_INSTANCE_IFRAME_URL = ENKETO_URL + "api_v1/instance/iframe"
+ENKETO_API_SALT = 'secretsalt'
 
 # Login URLs
 LOGIN_URL = '/accounts/login/'
@@ -122,27 +129,34 @@ STATICFILES_FINDERS = (
     # 'django.contrib.staticfiles.finders.DefaultStorageFinder',
 )
 
-# List of callables that know how to import templates from various sources.
-TEMPLATE_LOADERS = (
-    'django.template.loaders.filesystem.Loader',
-    'django.template.loaders.app_directories.Loader',
-    # 'django.template.loaders.eggs.Loader',
-)
-TEMPLATE_CONTEXT_PROCESSORS = (
-    'django.contrib.auth.context_processors.auth',
-    'django.core.context_processors.debug',
-    'django.core.context_processors.i18n',
-    'django.core.context_processors.media',
-    'django.core.context_processors.static',
-    'django.core.context_processors.tz',
-    'django.contrib.messages.context_processors.messages',
-    'readonly.context_processors.readonly',
-    'onadata.apps.main.context_processors.google_analytics',
-    'onadata.apps.main.context_processors.site_name'
-)
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [
+            os.path.join(PROJECT_ROOT, 'libs/templates'),
+        ],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.contrib.auth.context_processors.auth',
+                'django.template.context_processors.debug',
+                'django.template.context_processors.i18n',
+                'django.template.context_processors.media',
+                'django.template.context_processors.static',
+                'django.template.context_processors.tz',
+                'django.contrib.messages.context_processors.messages',
+                'readonly.context_processors.readonly',
+                'onadata.apps.main.context_processors.google_analytics',
+                'onadata.apps.main.context_processors.site_name',
+            ],
+        },
+    },
+]
+
 
 MIDDLEWARE_CLASSES = (
     'onadata.libs.profiling.sql.SqlTimingMiddleware',
+    'django.middleware.http.ConditionalGetMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     # 'django.middleware.locale.LocaleMiddleware',
@@ -151,7 +165,6 @@ MIDDLEWARE_CLASSES = (
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.transaction.TransactionMiddleware',
     'onadata.libs.utils.middleware.HTTPResponseNotAllowedMiddleware',
     'readonly.middleware.DatabaseReadOnlyMiddleware',
 )
@@ -161,17 +174,8 @@ LOCALE_PATHS = (os.path.join(PROJECT_ROOT, 'onadata.apps.main', 'locale'), )
 ROOT_URLCONF = 'onadata.apps.main.urls'
 USE_TZ = True
 
-
-TEMPLATE_DIRS = (
-    os.path.join(PROJECT_ROOT, 'libs/templates'),
-    # Put strings here, like "/home/html/django_templates"
-    # or "C:/www/django/templates".
-    # Always use forward slashes, even on Windows.
-    # Don't forget to use absolute paths, not relative paths.
-)
-
 # needed by guardian
-ANONYMOUS_USER_ID = -1
+ANONYMOUS_DEFAULT_USERNAME = 'AnonymousUser'
 
 INSTALLED_APPS = (
     'django.contrib.auth',
@@ -185,7 +189,6 @@ INSTALLED_APPS = (
     'django.contrib.admindocs',
     'django.contrib.gis',
     'registration',
-    'south',
     'django_nose',
     'django_digest',
     'corsheaders',
@@ -203,6 +206,7 @@ INSTALLED_APPS = (
     'djcelery',
     'onadata.apps.sms_support',
     'onadata.libs',
+    'reversion',
 )
 
 OAUTH2_PROVIDER = {
@@ -227,13 +231,14 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'onadata.libs.authentication.DigestAuthentication',
         'onadata.libs.authentication.TempTokenAuthentication',
+        'onadata.libs.authentication.EnketoTokenAuthentication',
         'oauth2_provider.ext.rest_framework.OAuth2Authentication',
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
     ),
     'DEFAULT_RENDERER_CLASSES': (
-        'rest_framework.renderers.UnicodeJSONRenderer',
-        'rest_framework.renderers.JSONPRenderer',
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework_jsonp.renderers.JSONPRenderer',
         'rest_framework_csv.renderers.CSVRenderer',
     ),
 }
@@ -308,6 +313,9 @@ LOGGING = {
         },
         'simple': {
             'format': '%(levelname)s %(message)s'
+        },
+        'profiler': {
+            'format': '%(levelname)s %(asctime)s %(message)s'
         },
         'sql': {
             'format': '%(levelname)s %(process)d %(thread)d' +
@@ -388,6 +396,10 @@ LOGGING = {
     }
 }
 
+# PROFILE_API_ACTION_FUNCTION is used to toggle profiling a viewset's action
+PROFILE_API_ACTION_FUNCTION = False
+PROFILE_LOG_BASE = '/tmp/'
+
 
 def configure_logging(logger, **kwargs):
     admin_email_handler = AdminEmailHandler()
@@ -395,14 +407,6 @@ def configure_logging(logger, **kwargs):
     logger.addHandler(admin_email_handler)
 
 after_setup_logger.connect(configure_logging)
-
-MONGO_DATABASE = {
-    'HOST': 'localhost',
-    'PORT': 27017,
-    'NAME': 'formhub',
-    'USER': '',
-    'PASSWORD': ''
-}
 
 GOOGLE_STEP2_URI = 'http://ona.io/gwelcome'
 GOOGLE_CLIENT_ID = '617113120802.onadata.apps.googleusercontent.com'
@@ -424,6 +428,7 @@ CELERY_RESULT_BACKEND = "amqp"  # telling Celery to report results to RabbitMQ
 CELERY_ALWAYS_EAGER = False
 CELERY_IMPORTS = ('onadata.libs.utils.csv_import',)
 CSV_ROW_IMPORT_ASYNC_THRESHOLD = 100
+GOOGLE_SHEET_UPLOAD_BATCH = 1000
 
 # duration to keep zip exports before deletion (in seconds)
 ZIP_EXPORT_COUNTDOWN = 3600  # 1 hour
@@ -432,7 +437,7 @@ ZIP_EXPORT_COUNTDOWN = 3600  # 1 hour
 DEFAULT_CONTENT_LENGTH = 10000000
 
 TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
-NOSE_ARGS = ['--with-fixture-bundling']
+NOSE_ARGS = ['--with-fixture-bundling', '--nologcapture']
 
 # fake endpoints for testing
 TEST_HTTP_HOST = 'testserver.com'
@@ -454,14 +459,11 @@ BINARY_SELECT_MULTIPLES = False
 # Use 'n/a' for empty values by default on csv exports
 NA_REP = 'n/a'
 
-# specifically for site urls sent to enketo
-ENKETO_PROTOCOL = 'https'
-
 if isinstance(TEMPLATE_OVERRIDE_ROOT_DIR, basestring):
     # site templates overrides
-    TEMPLATE_DIRS = (
+    TEMPLATES[0]['DIRS'] = [
         os.path.join(PROJECT_ROOT, TEMPLATE_OVERRIDE_ROOT_DIR, 'templates'),
-    ) + TEMPLATE_DIRS
+    ] + TEMPLATES[0]['DIRS']
     # site static files path
     STATICFILES_DIRS += (
         os.path.join(PROJECT_ROOT, TEMPLATE_OVERRIDE_ROOT_DIR, 'static'),
@@ -489,7 +491,18 @@ CSV_ROW_IMPORT_ASYNC_THRESHOLD = 100
 SEND_EMAIL_ACTIVATION_API = False
 METADATA_SEPARATOR = "|"
 
+PARSED_INSTANCE_DEFAULT_LIMIT = 1000000
+PARSED_INSTANCE_DEFAULT_BATCHSIZE = 1000
+
+PROFILE_SERIALIZER = \
+    "onadata.libs.serializers.user_profile_serializer.UserProfileSerializer"
+ORG_PROFILE_SERIALIZER = \
+    "onadata.libs.serializers.organization_serializer.OrganizationSerializer"
+BASE_VIEWSET = "onadata.libs.baseviewset.DefaultBaseViewset"
+
 path = os.path.join(PROJECT_ROOT, "..", "extras", "reserved_accounts.txt")
+
+EXPORT_WITH_IMAGE_DEFAULT = True
 try:
     with open(path, 'r') as f:
         RESERVED_USERNAMES = [line.rstrip() for line in f]
@@ -502,6 +515,15 @@ try:
     HOSTNAME = socket.gethostname()
 except:
     HOSTNAME = 'localhost'
+
+CACHE_MIXIN_SECONDS = 60
+
+TAGGIT_CASE_INSENSITIVE = True
+
+DEFAULT_CELERY_MAX_RETIRES = 3
+DEFAULT_CELERY_INTERVAL_START = 2
+DEFAULT_CELERY_INTERVAL_MAX = 0.5
+DEFAULT_CELERY_INTERVAL_STEP = 0.5
 
 # legacy setting for old sites who still use a local_settings.py file and have
 # not updated to presets/

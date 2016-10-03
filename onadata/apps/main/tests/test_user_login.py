@@ -1,7 +1,4 @@
-from django.contrib.auth.models import User
-
 from test_base import TestBase
-from test_user_profile import TestUserProfile
 
 
 class TestUserLogin(TestBase):
@@ -21,11 +18,3 @@ class TestUserLogin(TestBase):
         self._create_user_and_login()
         response = self.client.get('')
         self.assertEqual(response.status_code, 302)
-
-
-class TestUserReservedNames(TestUserProfile):
-    def test_disallow_reserved_names(self):
-        username = 'forms'
-        count = User.objects.count()
-        self._login_user_and_profile({'username': username})
-        self.assertEqual(len(User.objects.all()), count)

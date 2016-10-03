@@ -5,23 +5,32 @@ from django.utils.translation import ugettext as _
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.exceptions import ParseError
 from rest_framework.permissions import AllowAny
-from rest_framework.renderers import UnicodeJSONRenderer
+from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 
+from onadata.apps.logger.models import OsmData
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import Instance
 from onadata.libs.renderers import renderers
-from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
+from onadata.libs.mixins.authenticate_header_mixin import \
+    AuthenticateHeaderMixin
+from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
+from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.data_serializer import OSMSerializer
 from onadata.libs.serializers.data_serializer import OSMSiteMapSerializer
+from onadata.apps.api.tools import get_baseviewset_class
+
+BaseViewset = get_baseviewset_class()
 
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 
 
-class OsmViewSet(LastModifiedMixin, ReadOnlyModelViewSet):
+class OsmViewSet(AuthenticateHeaderMixin,
+                 CacheControlMixin, ETagsMixin, BaseViewset,
+                 ReadOnlyModelViewSet):
 
     """
 This endpoint provides public access to OSM submitted data in OSM format.
@@ -74,7 +83,7 @@ The `.osm` file format concatenates all the files for a form or individual
 """
     renderer_classes = [
         renderers.OSMRenderer,
-        UnicodeJSONRenderer,
+        JSONRenderer,
     ]
 
     serializer_class = OSMSerializer
@@ -93,8 +102,15 @@ The `.osm` file format concatenates all the files for a form or individual
 
         return super(OsmViewSet, self).get_serializer_class()
 
-    def get_object(self, queryset=None):
-        obj = super(OsmViewSet, self).get_object(queryset)
+    def filter_queryset(self, queryset):
+        pk = self.kwargs.get('pk')
+        if pk:
+            queryset = queryset.filter(pk=pk)
+
+        return super(OsmViewSet, self).filter_queryset(queryset)
+
+    def get_object(self):
+        obj = super(OsmViewSet, self).get_object()
         pk_lookup, dataid_lookup = self.lookup_fields
         pk = self.kwargs.get(pk_lookup)
         dataid = self.kwargs.get(dataid_lookup)
@@ -125,7 +141,14 @@ The `.osm` file format concatenates all the files for a form or individual
             return HttpResponsePermanentRedirect(
                 reverse(viewname, kwargs=kwargs, request=request))
 
-        return super(OsmViewSet, self).retrieve(request, *args, **kwargs)
+        instance = self.get_object()
+        if isinstance(instance, XForm):
+            osm_list = OsmData.objects.filter(instance__xform=instance)
+        else:
+            osm_list = OsmData.objects.filter(instance=instance)
+        serializer = self.get_serializer(osm_list, many=True)
+
+        return Response(serializer.data)
 
     def list(self, request, *args, **kwargs):
         fmt = kwargs.get('format', request.accepted_renderer.format)
@@ -135,7 +158,15 @@ The `.osm` file format concatenates all the files for a form or individual
                 return HttpResponsePermanentRedirect(
                     reverse('osm-list', kwargs={'pk': pk, 'format': 'osm'},
                             request=request))
-            return super(OsmViewSet, self).list(request, *args, **kwargs)
+            instance = self.filter_queryset(self.get_queryset())
+            osm_list = OsmData.objects.filter(instance__xform__in=instance)
+            page = self.paginate_queryset(osm_list)
+            if page is not None:
+                serializer = self.get_pagination_serializer(page)
+            else:
+                serializer = self.get_serializer(osm_list, many=True)
+
+            return Response(serializer.data)
 
         if fmt == 'osm':
             return HttpResponsePermanentRedirect(

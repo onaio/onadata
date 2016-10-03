@@ -4,6 +4,22 @@ onadata.apps.main.management.commands package
 Submodules
 ----------
 
+onadata.apps.main.management.commands.create_enketo_express_urls module
+-----------------------------------------------------------------------
+
+.. automodule:: onadata.apps.main.management.commands.create_enketo_express_urls
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+onadata.apps.main.management.commands.export_user_emails module
+---------------------------------------------------------------
+
+.. automodule:: onadata.apps.main.management.commands.export_user_emails
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.apps.main.management.commands.get_accounts_with_duplicate_id_strings module
 -----------------------------------------------------------------------------------
 
@@ -40,6 +56,14 @@ onadata.apps.main.management.commands.set_media_file_hash module
 ----------------------------------------------------------------
 
 .. automodule:: onadata.apps.main.management.commands.set_media_file_hash
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+onadata.apps.main.management.commands.update_enketo_urls module
+---------------------------------------------------------------
+
+.. automodule:: onadata.apps.main.management.commands.update_enketo_urls
     :members:
     :undoc-members:
     :show-inheritance:

@@ -10,6 +10,7 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.instance import Instance
 from django.db.utils import DataError
 from onadata.libs.utils.timing import calculate_duration
+from onadata.libs.renderers.renderers import DecimalJSONRenderer
 
 
 def raise_data_error(a):
@@ -69,7 +70,7 @@ class TestChartsViewSet(TestBase):
             format='html'
         )
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data['field_type'], 'select one')
         self.assertEqual(response.data['field_name'], 'gender')
         self.assertEqual(response.data['data_type'], 'categorized')
@@ -84,7 +85,7 @@ class TestChartsViewSet(TestBase):
             pk=self.xform.id
         )
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.status_text, u'BAD REQUEST')
+        self.assertEqual(response.status_text.upper(), u'BAD REQUEST')
 
     def test_get_on_date_field(self):
         data = {'field_name': 'date'}
@@ -94,7 +95,7 @@ class TestChartsViewSet(TestBase):
             request,
             pk=self.xform.id)
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data['field_type'], 'date')
         self.assertEqual(response.data['field_name'], 'date')
         self.assertEqual(response.data['data_type'], 'time_based')
@@ -119,7 +120,7 @@ class TestChartsViewSet(TestBase):
             pk=self.xform.id
         )
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data['field_type'], 'integer')
         self.assertEqual(response.data['field_name'], 'age')
         self.assertEqual(response.data['data_type'], 'numeric')
@@ -133,7 +134,22 @@ class TestChartsViewSet(TestBase):
             pk=self.xform.id
         )
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.data['field_type'], 'select one')
+        self.assertEqual(response.data['field_name'], 'gender')
+        self.assertEqual(response.data['data_type'], 'categorized')
+
+    def test_get_on_select_field_xpath(self):
+        data = {'field_xpath': 'gender'}
+        request = self.factory.get('/charts', data)
+        force_authenticate(request, user=self.user)
+        response = self.view(
+            request,
+            pk=self.xform.id
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data['field_type'], 'select one')
         self.assertEqual(response.data['field_name'], 'gender')
         self.assertEqual(response.data['data_type'], 'categorized')
@@ -148,7 +164,7 @@ class TestChartsViewSet(TestBase):
             pk=self.xform.id
         )
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data['field_type'], 'select all that apply')
         self.assertEqual(response.data['field_name'], field_name)
         self.assertEqual(response.data['data_type'], 'categorized')
@@ -167,7 +183,7 @@ class TestChartsViewSet(TestBase):
             format='html'
         )
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data['field_type'], 'select all that apply')
         self.assertEqual(response.data['field_name'], field_name)
         self.assertEqual(response.data['data_type'], 'categorized')
@@ -184,7 +200,7 @@ class TestChartsViewSet(TestBase):
             pk=self.xform.id
         )
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertIn('age', response.data)
         self.assertIn('date', response.data)
         self.assertIn('gender', response.data)
@@ -201,7 +217,7 @@ class TestChartsViewSet(TestBase):
             pk=self.xform.id
         )
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
 
         self.assertNotIn('gender', response.data)
 
@@ -234,7 +250,7 @@ class TestChartsViewSet(TestBase):
         request = self.factory.get('/charts')
         force_authenticate(request, user=self.user)
         response = self.view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         data = {'id': self.xform.pk, 'id_string': self.xform.id_string,
                 'url': 'http://testserver/api/v1/charts/%s' % self.xform.pk}
@@ -252,7 +268,7 @@ class TestChartsViewSet(TestBase):
         request = self.factory.get('/charts')
         force_authenticate(request, user=self.user)
         response = self.view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         data = {'id': self.xform.pk, 'id_string': self.xform.id_string,
                 'url': 'http://testserver/api/v1/charts/%s' % self.xform.pk}
@@ -307,3 +323,55 @@ class TestChartsViewSet(TestBase):
             {'cities': [u'Cape Town'], 'count': 2}
         ]
         self.assertEqual(expected, response.data['data'])
+
+    def test_deleted_submission_not_in_chart_endpoint(self):
+        data = {'field_name': 'gender'}
+        request = self.factory.get('/charts', data)
+        force_authenticate(request, user=self.user)
+        response = self.view(
+            request,
+            pk=self.xform.id,
+            format='html'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(sum([i['count'] for i in response.data['data']]), 3)
+
+        # soft delete one instance
+
+        inst = self.xform.instances.all()[0]
+        inst.set_deleted(timezone.now())
+
+        response = self.view(
+            request,
+            pk=self.xform.id,
+            format='html'
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(sum([i['count'] for i in response.data['data']]), 2)
+
+    def test_nan_not_json_response(self):
+        self._make_submission(
+            os.path.join(
+                os.path.dirname(__file__), '..', 'fixtures', 'forms',
+                'tutorial', 'instances', 'nan_net_worth.xml'))
+
+        data = {'field_name': 'networth_calc',
+                'group_by': 'pizza_fan'}
+        request = self.factory.get('/charts', data)
+        force_authenticate(request, user=self.user)
+        response = self.view(
+            request,
+            pk=self.xform.id,
+            format='json'
+        )
+        renderer = DecimalJSONRenderer()
+        res = renderer.render(response.data)
+
+        expected = ('{"field_type":"calculate","data_type":"numeric",'
+                    '"field_xpath":"networth_calc","data":[{"sum":150000.0,'
+                    '"pizza_fan":["No"],"mean":75000.0},{"sum":null,'
+                    '"pizza_fan":["Yes"],"mean":null}],"grouped_by":'
+                    '"pizza_fan","field_label":"Networth Calc","field_name":'
+                    '"networth_calc","xform":' + str(self.xform.pk) + '}')
+        self.assertEqual(expected, res)

@@ -7,9 +7,10 @@ from onadata.libs.utils.user_auth import get_user_default_project
 
 
 class CloneXForm(object):
-    def __init__(self, xform, username):
+    def __init__(self, xform, username, project=None):
         self.xform = xform
         self.username = username
+        self.project = project
 
     @property
     def user(self):
@@ -17,7 +18,7 @@ class CloneXForm(object):
 
     def save(self, **kwargs):
         user = User.objects.get(username=self.username)
-        project = get_user_default_project(user)
+        project = self.project or get_user_default_project(user)
         xls_file_path = upload_to(None, '%s%s.xls' % (
                                   self.xform.id_string,
                                   XForm.CLONED_SUFFIX),

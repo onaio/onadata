@@ -42,7 +42,8 @@ def django_file(path, field_name, content_type):
     )
 
 
-def iterate_through_instances(dirpath, callback):
+def iterate_through_instances(dirpath, callback, user=None, status='zip',
+                              is_async=False):
     total_file_count = 0
     success_count = 0
     errors = []
@@ -52,11 +53,17 @@ def iterate_through_instances(dirpath, callback):
             filepath = os.path.join(directory, filename)
             if XFormInstanceFS.is_valid_instance(filepath):
                 xfxs = XFormInstanceFS(filepath)
-                try:
-                    success_count += callback(xfxs)
-                except Exception, e:
-                    errors.append("%s => %s" % (xfxs.filename, str(e)))
-                del(xfxs)
+                if is_async and user is not None:
+                    callback.apply_async((
+                        user.username, xfxs.path, xfxs.photos, xfxs.osm, status
+                    ), queue='instances')
+                    success_count += 1
+                else:
+                    try:
+                        success_count += callback(xfxs)
+                    except Exception, e:
+                        errors.append("%s => %s" % (xfxs.filename, str(e)))
+                    del(xfxs)
                 total_file_count += 1
 
     return (total_file_count, success_count, errors)
@@ -77,7 +84,7 @@ def import_instances_from_zip(zipfile_path, user, status="zip"):
         shutil.rmtree(temp_directory)
 
 
-def import_instances_from_path(path, user, status="zip"):
+def import_instances_from_path(path, user, status="zip", is_async=False):
     def callback(xform_fs):
         """
         This callback is passed an instance of a XFormInstanceFS.
@@ -87,6 +94,11 @@ def import_instances_from_path(path, user, status="zip"):
                          content_type="text/xml") as xml_file:
             images = [django_file(jpg, field_name="image",
                       content_type="image/jpeg") for jpg in xform_fs.photos]
+            images += [
+                django_file(osm, field_name='image',
+                            content_type='text/xml')
+                for osm in xform_fs.osm
+            ]
             # TODO: if an instance has been submitted make sure all the
             # files are in the database.
             # there shouldn't be any instances with a submitted status in the
@@ -101,7 +113,19 @@ def import_instances_from_path(path, user, status="zip"):
             else:
                 return 0
 
-    total_count, success_count, errors = iterate_through_instances(
-        path, callback)
+    if is_async:
+        from onadata.apps.logger.tasks import import_instance_async
+
+        total_count, success_count, errors = iterate_through_instances(
+            path,
+            import_instance_async,
+            user=user,
+            status=status,
+            is_async=is_async
+        )
+    else:
+        total_count, success_count, errors = iterate_through_instances(
+            path, callback
+        )
 
     return (total_count, success_count, errors)

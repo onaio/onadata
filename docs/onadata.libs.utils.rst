@@ -1,15 +1,16 @@
 onadata.libs.utils package
 ==========================
 
-Subpackages
------------
-
-.. toctree::
-
-    onadata.libs.utils.nose_plugins
-
 Submodules
 ----------
+
+onadata.libs.utils.api_export_tools module
+------------------------------------------
+
+.. automodule:: onadata.libs.utils.api_export_tools
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 onadata.libs.utils.audit module
 -------------------------------
@@ -59,6 +60,14 @@ onadata.libs.utils.common_tags module
     :undoc-members:
     :show-inheritance:
 
+onadata.libs.utils.common_tools module
+--------------------------------------
+
+.. automodule:: onadata.libs.utils.common_tools
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.libs.utils.country_field module
 ---------------------------------------
 
@@ -68,7 +77,7 @@ onadata.libs.utils.country_field module
     :show-inheritance:
 
 onadata.libs.utils.csv_builder module
-----------------------------------------------
+-------------------------------------
 
 .. automodule:: onadata.libs.utils.csv_builder
     :members:
@@ -99,6 +108,14 @@ onadata.libs.utils.decorators module
     :undoc-members:
     :show-inheritance:
 
+onadata.libs.utils.dict_tools module
+------------------------------------
+
+.. automodule:: onadata.libs.utils.dict_tools
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.libs.utils.export_tools module
 --------------------------------------
 
@@ -111,6 +128,14 @@ onadata.libs.utils.google module
 --------------------------------
 
 .. automodule:: onadata.libs.utils.google
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+onadata.libs.utils.google_sheets_tools module
+---------------------------------------------
+
+.. automodule:: onadata.libs.utils.google_sheets_tools
     :members:
     :undoc-members:
     :show-inheritance:
@@ -163,10 +188,10 @@ onadata.libs.utils.model_tools module
     :undoc-members:
     :show-inheritance:
 
-onadata.libs.utils.mongo_sync module
-------------------------------------
+onadata.libs.utils.numeric module
+---------------------------------
 
-.. automodule:: onadata.libs.utils.mongo_sync
+.. automodule:: onadata.libs.utils.numeric
     :members:
     :undoc-members:
     :show-inheritance:
@@ -175,6 +200,14 @@ onadata.libs.utils.osm module
 -----------------------------
 
 .. automodule:: onadata.libs.utils.osm
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+onadata.libs.utils.profiler module
+----------------------------------
+
+.. automodule:: onadata.libs.utils.profiler
     :members:
     :undoc-members:
     :show-inheritance:

@@ -2,9 +2,9 @@ import os
 import csv
 
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.logger.models.xform import update_xform_uuid
 from onadata.apps.logger.models.xform import XForm, DuplicateUUIDError
 from onadata.apps.logger.management.commands.update_xform_uuids import Command
-from onadata.libs.utils.model_tools import update_xform_uuid
 
 
 class TestUpdateXFormUUID(TestBase):

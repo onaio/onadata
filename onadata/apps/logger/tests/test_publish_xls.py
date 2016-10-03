@@ -43,8 +43,7 @@ class TestPublishXLS(TestBase):
         self.assertEqual(XForm.objects.count(), count)
         # check if the extra field has been added
         self.xform = XForm.objects.order_by('id').reverse()[0]
-        data_dictionary = self.xform.data_dictionary()
-        is_updated_form = len([e.name for e in data_dictionary.survey_elements
+        is_updated_form = len([e.name for e in self.xform.survey_elements
                                if e.name == u'preferred_means']) > 0
         self.assertTrue(is_updated_form)
 

@@ -1,13 +1,47 @@
-from rest_framework.permissions import DjangoObjectPermissions,\
-    DjangoModelPermissionsOrAnonReadOnly
+from django.http import Http404
+from rest_framework.permissions import DjangoObjectPermissions
+from rest_framework.permissions import DjangoModelPermissionsOrAnonReadOnly
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import exceptions
 
-from onadata.libs.permissions import CAN_ADD_XFORM_TO_PROFILE
-from onadata.libs.permissions import CAN_CHANGE_XFORM
+from onadata.libs.permissions import (
+    CAN_ADD_XFORM_TO_PROFILE,
+    CAN_CHANGE_XFORM,
+    CAN_DELETE_SUBMISSION)
+
 from onadata.apps.api.tools import get_user_profile_or_none, \
     check_inherit_permission_from_project
+
 from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models import Project
+from onadata.apps.logger.models import DataView
+
+SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
+
+
+class AlternateHasObjectPermissionMixin(object):
+
+    def _has_object_permission(self, request, model_cls, user, obj):
+        perms = self.get_required_object_permissions(request.method, model_cls)
+
+        if not user.has_perms(perms, obj):
+            # If the user does not have permissions we need to determine if
+            # they have read permissions to see 403, or not, and simply see
+            # a 404 response.
+
+            if request.method in SAFE_METHODS:
+                # Read permissions already checked and failed, no need
+                # to make another lookup.
+                raise Http404
+
+            read_perms = self.get_required_object_permissions('GET', model_cls)
+            if not user.has_perms(read_perms, obj):
+                raise Http404
+
+            # Has read permissions.
+            return False
+
+        return True
 
 
 class ViewDjangoObjectPermissions(DjangoObjectPermissions):
@@ -47,13 +81,16 @@ class XFormPermissions(DjangoObjectPermissions):
         return super(XFormPermissions, self).has_permission(request, view)
 
     def has_object_permission(self, request, view, obj):
-        if obj.shared and view.action == 'clone':
+        if hasattr(obj, 'shared') and obj.shared and view.action == 'clone':
             return obj
 
         if request.method == 'DELETE' and view.action == 'labels':
             user = request.user
 
-            return user.has_perms([CAN_CHANGE_XFORM], obj)
+            return user.has_perm(CAN_CHANGE_XFORM, obj)
+
+        if request.method == 'DELETE' and view.action == 'destroy':
+            return request.user.has_perm(CAN_DELETE_SUBMISSION, obj)
 
         return super(XFormPermissions, self).has_object_permission(
             request, view, obj)
@@ -89,29 +126,32 @@ class ProjectPermissions(DjangoObjectPermissions):
 
     def has_object_permission(self, request, view, obj):
         if view.action == 'share' and request.method == 'PUT':
-            if request.DATA.get('remove'):
-                if request.user.username == request.DATA.get('username'):
-                    return True
+            remove = request.data.get('remove')
+            username = request.data.get('username', '')
+            if remove and request.user.username.lower() == username.lower():
+                return True
 
         return super(ProjectPermissions, self).has_object_permission(
             request, view, obj)
 
 
-class HasXFormObjectPermissionMixin(object):
-
-    """Use XForm permissions for Attachment objects"""
+class AbstractHasPermissionMixin(object):
+    """
+    Checks that the requesting user has permissions to access each of the
+    models in the `model_classes` instance variable.
+    """
 
     def has_permission(self, request, view):
-        model_cls = None
-
         # Workaround to ensure DjangoModelPermissions are not applied
         # to the root view when using DefaultRouter.
-        if (model_cls is None and
-                getattr(view, '_ignore_model_permissions', False)):
+
+        if getattr(view, '_ignore_model_permissions', False):
             return True
 
-        model_cls = XForm
-        perms = self.get_required_permissions(request.method, model_cls)
+        perms = []
+        for model_class in self.model_classes:
+            perms.extend(self.get_required_permissions(
+                request.method, model_class))
 
         if (request.user and
                 (request.user.is_authenticated() or
@@ -123,24 +163,46 @@ class HasXFormObjectPermissionMixin(object):
         return False
 
 
-class MetaDataObjectPermissions(HasXFormObjectPermissionMixin,
+class HasMetadataPermissionMixin(AbstractHasPermissionMixin):
+    """
+    Use the Project, XForm, or both model classes to check permissions based
+    on the request data keys.
+    """
+
+    def has_permission(self, request, view):
+        if request.data.get("xform") or request.data.get("instance"):
+            self.model_classes = [XForm]
+        elif request.data.get("project"):
+            self.model_classes = [Project]
+        else:
+            self.model_classes = [Project, XForm]
+
+        return super(HasMetadataPermissionMixin, self).has_permission(
+            request, view)
+
+
+class MetaDataObjectPermissions(AlternateHasObjectPermissionMixin,
+                                HasMetadataPermissionMixin,
                                 DjangoObjectPermissions):
 
     def has_object_permission(self, request, view, obj):
-        view.model = XForm
+        model_cls = obj.content_object.__class__
+        user = request.user
 
-        return super(MetaDataObjectPermissions, self).has_object_permission(
-            request, view, obj.xform)
+        return self._has_object_permission(request, model_cls, user,
+                                           obj.content_object)
 
 
-class AttachmentObjectPermissions(DjangoObjectPermissions):
+class AttachmentObjectPermissions(AlternateHasObjectPermissionMixin,
+                                  DjangoObjectPermissions):
     authenticated_users_only = False
 
     def has_object_permission(self, request, view, obj):
-        view.model = XForm
+        model_cls = XForm
+        user = request.user
 
-        return super(AttachmentObjectPermissions, self).has_object_permission(
-            request, view, obj.instance.xform)
+        return self._has_object_permission(request, model_cls, user,
+                                           obj.instance.xform)
 
 
 class ConnectViewsetPermissions(IsAuthenticated):
@@ -164,4 +226,73 @@ class UserViewSetPermissions(DjangoModelPermissionsOrAnonReadOnly):
         return \
             super(UserViewSetPermissions, self).has_permission(request, view)
 
+
+class DataViewViewsetPermissions(AlternateHasObjectPermissionMixin,
+                                 ViewDjangoObjectPermissions,
+                                 AbstractHasPermissionMixin,
+                                 DjangoObjectPermissions):
+
+    model_classes = [Project]
+
+    def has_object_permission(self, request, view, obj):
+        model_cls = Project
+        user = request.user
+
+        return self._has_object_permission(request, model_cls, user,
+                                           obj.project)
+
+
+class RestServiceObjectPermissions(AlternateHasObjectPermissionMixin,
+                                   HasMetadataPermissionMixin,
+                                   DjangoObjectPermissions):
+
+    def has_object_permission(self, request, view, obj):
+        model_cls = XForm
+        user = request.user
+
+        return self._has_object_permission(request, model_cls, user, obj.xform)
+
+
+class WidgetViewSetPermissions(AlternateHasObjectPermissionMixin,
+                               ViewDjangoObjectPermissions,
+                               AbstractHasPermissionMixin,
+                               DjangoObjectPermissions):
+
+    authenticated_users_only = False
+    model_classes = [Project]
+
+    def has_permission(self, request, view):
+        # User can access the widget with key
+        if 'key' in request.query_params or view.action == 'list':
+            return True
+
+        return super(WidgetViewSetPermissions, self).has_permission(request,
+                                                                    view)
+
+    def has_object_permission(self, request, view, obj):
+        model_cls = Project
+        user = request.user
+
+        if not (isinstance(obj.content_object, XForm) or
+                isinstance(obj.content_object, DataView)):
+            return False
+
+        return self._has_object_permission(request, model_cls, user,
+                                           obj.content_object.project)
+
+
 __permissions__ = [DjangoObjectPermissions, IsAuthenticated]
+
+
+class OrganizationProfilePermissions(DjangoObjectPermissionsAllowAnon):
+
+    def has_object_permission(self, request, view, obj):
+        is_authenticated = request and request.user.is_authenticated() and \
+                           request.user.username == request.data.get(
+                               'username')
+        if is_authenticated and request.method == 'DELETE':
+            return True
+        else:
+            return super(OrganizationProfilePermissions,
+                         self).has_object_permission(
+                request=request, view=view, obj=obj)

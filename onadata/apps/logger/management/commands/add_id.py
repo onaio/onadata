@@ -19,10 +19,11 @@ class Command(BaseCommand):
         else:
             # All the accounts
             self.stdout.write("Fetching all the account {}", ending='\n')
-            users = queryset_iterator(
-                User.objects.exclude(pk=settings.ANONYMOUS_USER_ID))
+            users = User.objects.exclude(
+                username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
+            )
 
-        for user in users:
+        for user in queryset_iterator(users):
             self.add_id(user)
 
     def add_id(self, user):

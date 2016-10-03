@@ -1,7 +1,15 @@
+import os
+
 from django.test import RequestFactory
+from django.conf import settings
+from guardian.shortcuts import assign_perm
+from datetime import datetime
 
 from onadata.apps.api.viewsets.note_viewset import NoteViewSet
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
+from onadata.apps.api.tests.viewsets.test_xform_viewset import \
+    get_response_content
 
 
 class TestNoteViewSet(TestBase):
@@ -20,10 +28,14 @@ class TestNoteViewSet(TestBase):
         self.extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
 
+    @property
+    def _first_xform_instance(self):
+        return self.xform.instances.all().order_by('pk')[0]
+
     def _add_notes_to_data_point(self):
         # add a note to a specific data point
         note = {'note': u"Road Warrior"}
-        dataid = self.xform.instances.all()[0].pk
+        dataid = self._first_xform_instance.pk
         note['instance'] = dataid
         request = self.factory.post('/', data=note, **self.extra)
         self.assertTrue(self.xform.instances.count())
@@ -48,26 +60,51 @@ class TestNoteViewSet(TestBase):
         })
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['owner'], self.user.username)
+        self.assertDictContainsSubset(self.note, response.data)
+
+    def test_get_note_for_specific_instance(self):
+        self._add_notes_to_data_point()
+        view = NoteViewSet.as_view({
+            'get': 'retrieve'
+        })
+
+        instance = self.xform.instances.first()
+
+        query_params = {"instance": instance.id}
+        request = self.factory.get('/', data=query_params, **self.extra)
+        response = view(request, pk=self.pk)
         self.assertEqual(response.status_code, 200)
         self.assertDictContainsSubset(self.note, response.data)
 
+        second_instance = self.xform.instances.last()
+        query_params = {"instance": second_instance.id}
+        request = self.factory.get('/', data=query_params, **self.extra)
+        response = view(request, pk=self.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual(response.data, [])
+
     def test_add_notes_to_data_point(self):
         self._add_notes_to_data_point()
+        self.assertEquals(len(self._first_xform_instance.json["_notes"]), 1)
 
     def test_other_user_notes_access(self):
         self._create_user_and_login('lilly', '1234')
         extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
         note = {'note': u"Road Warrior"}
-        dataid = self.xform.instances.all()[0].pk
+        dataid = self.xform.instances.first().pk
         note['instance'] = dataid
 
         # Other user 'lilly' should not be able to create notes
         # to xform instance owned by 'bob'
-        request = self.factory.post('/', data=note, **extra)
+        request = self.factory.post('/', data=note)
         self.assertTrue(self.xform.instances.count())
         response = self.view(request)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
 
         # save some notes
         self._add_notes_to_data_point()
@@ -78,13 +115,46 @@ class TestNoteViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
 
         self.assertEqual(response.data, [])
-        # Other user 'lilly' should not have access to bob's instance notes
+
+        # Other user 'lilly' sees an empty list when accessing bob's notes
         view = NoteViewSet.as_view({
             'get': 'retrieve'
         })
-        request = self.factory.get('/', **extra)
+        query_params = {"instance": dataid}
+        request = self.factory.get('/', data=query_params, **extra)
         response = view(request, pk=self.pk)
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+    def test_collaborator_with_readonly_permission_can_add_comment(self):
+        self._create_user_and_login('lilly', '1234')
+        extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+
+        # save some notes
+        self._add_notes_to_data_point()
+
+        # post note to submission as lilly without permissions
+        note = {'note': u"Road Warrior"}
+        dataid = self._first_xform_instance.pk
+        note['instance'] = dataid
+        request = self.factory.post('/', data=note)
+        self.assertTrue(self.xform.instances.count())
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 401)
+
+        # post note to submission with permissions to form
+        assign_perm('view_xform', self.user, self._first_xform_instance.xform)
+
+        note = {'note': u"Road Warrior"}
+        dataid = self._first_xform_instance.pk
+        note['instance'] = dataid
+        request = self.factory.post('/', data=note, **extra)
+        self.assertTrue(self.xform.instances.count())
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 201)
 
     def test_delete_note(self):
         self._add_notes_to_data_point()
@@ -95,3 +165,60 @@ class TestNoteViewSet(TestBase):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEquals(response.data, [])
+
+    def test_question_level_notes(self):
+        field = "transport"
+        dataid = self.xform.instances.all()[0].pk
+        note = {'note': "Road Warrior",
+                'instance': dataid,
+                'instance_field': field}
+        request = self.factory.post('/', data=note, **self.extra)
+        self.assertTrue(self.xform.instances.count())
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+
+        instance = self.xform.instances.all()[0]
+        self.assertEquals(len(instance.json["_notes"]), 1)
+
+        note = instance.json["_notes"][0]
+        self.assertEquals(note['instance_field'], field)
+
+    def test_only_add_question_notes_to_existing_fields(self):
+        field = "bla"
+        dataid = self.xform.instances.all()[0].pk
+        note = {'note': "Road Warrior",
+                'instance': dataid,
+                'instance_field': field}
+        request = self.factory.post('/', data=note, **self.extra)
+        self.assertTrue(self.xform.instances.count())
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+
+        instance = self.xform.instances.all()[0]
+        self.assertEquals(len(instance.json["_notes"]), 0)
+
+    def test_csv_export_form_w_notes(self):
+        self._add_notes_to_data_point()
+        self._add_notes_to_data_point()
+
+        time = datetime(2016, 7, 1)
+        for instance in self.xform.instances.all():
+            instance.date_created = time
+            instance.save()
+            instance.parsed_instance.save()
+
+        view = XFormViewSet.as_view({
+            'get': 'retrieve'
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.xform.pk, format='csv')
+
+        content = get_response_content(response)
+
+        test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
+                                      'viewer', 'tests', 'fixtures',
+                                      'transportation_w_notes.csv')
+
+        with open(test_file_path, 'r') as test_file:
+            self.assertEqual(content, test_file.read())

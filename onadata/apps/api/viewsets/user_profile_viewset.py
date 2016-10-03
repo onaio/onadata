@@ -4,18 +4,26 @@ from django.conf import settings
 
 from rest_framework import serializers
 from rest_framework import status
-from rest_framework.decorators import action
+from rest_framework.decorators import detail_route
 from rest_framework.exceptions import ParseError
 from rest_framework.generics import get_object_or_404
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 
-from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
+from onadata.libs import filters
+from onadata.libs.mixins.authenticate_header_mixin import \
+    AuthenticateHeaderMixin
+from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
+from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
 from onadata.libs.serializers.user_profile_serializer import\
     UserProfileSerializer
 from onadata.apps.main.models import UserProfile
 from onadata.apps.api.permissions import UserProfilePermissions
+from onadata.apps.api.tools import load_class, get_baseviewset_class
+
+
+BaseViewset = get_baseviewset_class()
 
 
 def replace_key_value(k, v, expected_dict):
@@ -43,15 +51,26 @@ def check_if_key_exists(k, expected_dict):
     return False
 
 
-class UserProfileViewSet(LastModifiedMixin, ObjectLookupMixin, ModelViewSet):
+def serializer_from_settings():
+    if settings.PROFILE_SERIALIZER:
+        return load_class(settings.PROFILE_SERIALIZER)
+
+    return UserProfileSerializer
+
+
+class UserProfileViewSet(AuthenticateHeaderMixin,
+                         CacheControlMixin, ETagsMixin,
+                         ObjectLookupMixin, BaseViewset, ModelViewSet):
     """
     List, Retrieve, Update, Create/Register users.
     """
     queryset = UserProfile.objects.select_related().exclude(
-        user__pk=settings.ANONYMOUS_USER_ID)
-    serializer_class = UserProfileSerializer
+        user__username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
+    )
+    serializer_class = serializer_from_settings()
     lookup_field = 'user'
     permission_classes = [UserProfilePermissions]
+    filter_backends = (filters.UserProfileFilter,)
     ordering = ('user__username', )
 
     def get_object(self, queryset=None):
@@ -77,7 +96,7 @@ class UserProfileViewSet(LastModifiedMixin, ObjectLookupMixin, ModelViewSet):
         try:
             pk = int(lookup)
         except (TypeError, ValueError):
-            pass
+            filter_kwargs = {'%s__iexact' % lookup_field: lookup}
         else:
             filter_kwargs = {'user__pk': pk}
 
@@ -88,11 +107,11 @@ class UserProfileViewSet(LastModifiedMixin, ObjectLookupMixin, ModelViewSet):
 
         return obj
 
-    @action(methods=['POST'])
+    @detail_route(methods=['POST'])
     def change_password(self, request, *args, **kwargs):
         user_profile = self.get_object()
-        current_password = request.DATA.get('current_password', None)
-        new_password = request.DATA.get('new_password', None)
+        current_password = request.data.get('current_password', None)
+        new_password = request.data.get('new_password', None)
 
         if new_password:
             if user_profile.user.check_password(current_password):
@@ -105,13 +124,13 @@ class UserProfileViewSet(LastModifiedMixin, ObjectLookupMixin, ModelViewSet):
 
     def partial_update(self, request, *args, **kwargs):
         profile = self.get_object()
-        metadata = profile.metadata
-        if request.DATA.get('overwrite') == 'false':
-            if isinstance(request.DATA.get('metadata'), basestring):
+        metadata = profile.metadata or {}
+        if request.data.get('overwrite') == 'false':
+            if isinstance(request.data.get('metadata'), basestring):
                 metadata_items = json.loads(
-                    request.DATA.get('metadata')).items()
+                    request.data.get('metadata')).items()
             else:
-                metadata_items = request.DATA.get('metadata').items()
+                metadata_items = request.data.get('metadata').items()
 
             for a, b in metadata_items:
                 if check_if_key_exists(a, metadata):

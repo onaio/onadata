@@ -19,9 +19,13 @@ class Attachment(models.Model):
     instance = models.ForeignKey(Instance, related_name="attachments")
     media_file = models.FileField(max_length=255, upload_to=upload_to)
     mimetype = models.CharField(
-        max_length=50, null=False, blank=True, default='')
+        max_length=100, null=False, blank=True, default='')
     extension = models.CharField(max_length=10, null=False, blank=False,
                                  default=u"non", db_index=True)
+    date_created = models.DateTimeField(null=True, auto_now_add=True)
+    date_modified = models.DateTimeField(null=True, auto_now=True)
+    deleted_at = models.DateTimeField(null=True, default=None)
+    file_size = models.PositiveIntegerField(default=0)
 
     class Meta:
         app_label = 'logger'
@@ -32,9 +36,16 @@ class Attachment(models.Model):
             mimetype, encoding = mimetypes.guess_type(self.media_file.name)
             if mimetype:
                 self.mimetype = mimetype
-        if len(self.media_file.name) > 255:
+        if self.media_file and len(self.media_file.name) > 255:
             raise ValueError(
                 "Length of the media file should be less or equal to 255")
+
+        try:
+            f_size = self.media_file.size
+            if f_size:
+                self.file_size = f_size
+        except (OSError, AttributeError):
+            pass
 
         super(Attachment, self).save(*args, **kwargs)
 
@@ -46,4 +57,5 @@ class Attachment(models.Model):
 
     @property
     def filename(self):
-        return os.path.basename(self.media_file.name)
+        if self.media_file:
+            return os.path.basename(self.media_file.name)

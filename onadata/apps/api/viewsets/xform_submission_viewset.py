@@ -20,10 +20,16 @@ from onadata.apps.logger.models import Instance
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs import filters
 from onadata.libs.authentication import DigestAuthentication
+from onadata.libs.authentication import EnketoTokenAuthentication
+from onadata.libs.mixins.authenticate_header_mixin import \
+    AuthenticateHeaderMixin
 from onadata.libs.mixins.openrosa_headers_mixin import OpenRosaHeadersMixin
 from onadata.libs.renderers.renderers import TemplateXMLRenderer
 from onadata.libs.serializers.data_serializer import SubmissionSerializer
 from onadata.libs.utils.logger_tools import dict2xform, safe_create_instance
+from onadata.apps.api.tools import get_baseviewset_class
+
+BaseViewset = get_baseviewset_class()
 
 
 # 10,000,000 bytes
@@ -49,6 +55,22 @@ def dict_lists2strings(d):
     return d
 
 
+def dict_paths2dict(d):
+    result = {}
+
+    for k, v in d.items():
+        if k.find('/') > 0:
+            parts = k.split('/')
+            if len(parts) > 1:
+                k = parts[0]
+                for p in parts[1:]:
+                    v = {p: v}
+
+        result[k] = v
+
+    return result
+
+
 def create_instance_from_xml(username, request):
     xml_file_list = request.FILES.pop('xml_submission_file', [])
     xml_file = xml_file_list[0] if len(xml_file_list) else None
@@ -60,7 +82,7 @@ def create_instance_from_xml(username, request):
 def create_instance_from_json(username, request):
     request.accepted_renderer = JSONRenderer()
     request.accepted_media_type = JSONRenderer.media_type
-    dict_form = request.DATA
+    dict_form = request.data
     submission = dict_form.get('submission')
 
     if submission is None:
@@ -68,7 +90,7 @@ def create_instance_from_json(username, request):
         return [_(u"No submission key provided."), None]
 
     # convert lists in submission dict to joined strings
-    submission_joined = dict_lists2strings(submission)
+    submission_joined = dict_paths2dict(dict_lists2strings(submission))
     xml_string = dict2xform(submission_joined, dict_form.get('id'))
 
     xml_file = StringIO.StringIO(xml_string)
@@ -76,12 +98,15 @@ def create_instance_from_json(username, request):
     return safe_create_instance(username, xml_file, [], None, request)
 
 
-class XFormSubmissionViewSet(OpenRosaHeadersMixin, mixins.CreateModelMixin,
+class XFormSubmissionViewSet(AuthenticateHeaderMixin,
+                             OpenRosaHeadersMixin, mixins.CreateModelMixin,
+                             BaseViewset,
                              viewsets.GenericViewSet):
 
     authentication_classes = (DigestAuthentication,
                               BasicAuthentication,
-                              TokenAuthentication)
+                              TokenAuthentication,
+                              EnketoTokenAuthentication)
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,)
     model = Instance
     permission_classes = (permissions.AllowAny,)
@@ -118,8 +143,13 @@ class XFormSubmissionViewSet(OpenRosaHeadersMixin, mixins.CreateModelMixin,
 
         is_json_request = is_json(request)
 
-        error, instance = (create_instance_from_json if is_json_request else
-                           create_instance_from_xml)(username, request)
+        try:
+            create_fn = create_instance_from_json if is_json_request else\
+                create_instance_from_xml
+            error, instance = create_fn(username, request)
+        except AttributeError:
+            error = _(u'Incorrect format, see format details here, '
+                      u'https://api.ona.io/static/docs/submissions.html')
 
         if error or not instance:
             return self.error_response(error, is_json_request, request)

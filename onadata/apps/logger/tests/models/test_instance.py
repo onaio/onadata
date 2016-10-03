@@ -9,7 +9,8 @@ from mock import patch
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm, Instance
 from onadata.apps.logger.models.instance import get_id_string_from_xml_str
-from onadata.apps.viewer.models import ParsedInstance
+from onadata.apps.viewer.models.parsed_instance import (
+    ParsedInstance, query_data)
 from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMISSION_TIME,\
     XFORM_ID_STRING, SUBMITTED_BY
 
@@ -85,6 +86,19 @@ class TestInstance(TestBase):
 
         self.assertFalse(xform.instances_with_geopoints)
 
+    def test_instances_with_geopoints_in_repeats(self):
+        xls_path = self._fixture_path("gps", "gps_in_repeats.xlsx")
+        self._publish_xls_file_and_set_xform(xls_path)
+
+        self.assertFalse(self.xform.instances_with_geopoints)
+
+        instance_path = self._fixture_path("gps",
+                                           "gps_in_repeats_submission.xml")
+        self._make_submission(instance_path)
+        xform = XForm.objects.get(pk=self.xform.pk)
+
+        self.assertTrue(xform.instances_with_geopoints)
+
     def test_set_instances_with_geopoints_on_submission_true(self):
         xls_path = self._fixture_path("gps", "gps.xls")
         self._publish_xls_file_and_set_xform(xls_path)
@@ -95,6 +109,21 @@ class TestInstance(TestBase):
         xform = XForm.objects.get(pk=self.xform.pk)
 
         self.assertTrue(xform.instances_with_geopoints)
+
+    @patch('onadata.apps.logger.models.instance.get_values_matching_key')
+    def test_instances_with_malformed_geopoints_dont_trigger_value_error(
+            self, mock_get_values_matching_key):
+        mock_get_values_matching_key.return_value = '40.81101715564728'
+        xls_path = self._fixture_path("gps", "gps.xls")
+        self._publish_xls_file_and_set_xform(xls_path)
+
+        self.assertFalse(self.xform.instances_with_geopoints)
+
+        path = self._fixture_path(
+            'gps', 'instances', 'gps_1980-01-23_20-52-08.xml')
+        self._make_submission(path)
+        xform = XForm.objects.get(pk=self.xform.pk)
+        self.assertFalse(xform.instances_with_geopoints)
 
     def test_get_id_string_from_xml_str(self):
         submission = """<?xml version="1.0" encoding="UTF-8" ?>
@@ -116,25 +145,19 @@ class TestInstance(TestBase):
         latest = Instance.objects.filter(xform=self.xform).latest('pk').pk
         oldest = Instance.objects.filter(xform=self.xform).first().pk
 
-        data = [i.get('_id') for i in ParsedInstance.query_data(
-            self.xform, sort='-pk')]
-        self.assertEqual(data[0], latest)
-        self.assertEqual(data[len(data) - 1], oldest)
-
-        # sort with a json field
-        data = [i.get('_id') for i in ParsedInstance.query_data(
+        data = [i.get('_id') for i in query_data(
             self.xform, sort='-_id')]
         self.assertEqual(data[0], latest)
         self.assertEqual(data[len(data) - 1], oldest)
 
-        # mongo sort
-        data = [i.get('_id') for i in ParsedInstance.query_data(
-            self.xform, sort='{"pk": "-1"}')]
+        # sort with a json field
+        data = [i.get('_id') for i in query_data(
+            self.xform, sort='{"_id": "-1"}')]
         self.assertEqual(data[0], latest)
         self.assertEqual(data[len(data) - 1], oldest)
 
         # sort with a json field
-        data = [i.get('_id') for i in ParsedInstance.query_data(
+        data = [i.get('_id') for i in query_data(
             self.xform, sort='{"_id": -1}')]
         self.assertEqual(data[0], latest)
         self.assertEqual(data[len(data) - 1], oldest)
@@ -144,19 +167,19 @@ class TestInstance(TestBase):
         self._make_submissions()
         oldest = Instance.objects.filter(xform=self.xform).first().pk
 
-        data = [i.get('_id') for i in ParsedInstance.query_data(
+        data = [i.get('_id') for i in query_data(
             self.xform, query='[{"_id": %s}]' % (oldest))]
         self.assertEqual(len(data), 1)
         self.assertEqual(data, [oldest])
 
         # with fields
-        data = [i.get('_id') for i in ParsedInstance.query_data(
+        data = [i.get('_id') for i in query_data(
             self.xform, query='{"_id": %s}' % (oldest), fields='["_id"]')]
         self.assertEqual(len(data), 1)
         self.assertEqual(data, [oldest])
 
         # mongo $gt
-        data = [i.get('_id') for i in ParsedInstance.query_data(
+        data = [i.get('_id') for i in query_data(
             self.xform, query='{"_id": {"$gt": %s}}' % (oldest),
             fields='["_id"]')]
         self.assertEqual(self.xform.instances.count(), 4)
@@ -180,7 +203,7 @@ class TestInstance(TestBase):
                 atime = i.date_created.strftime(MONGO_STRFTIME)
 
         # mongo $gt
-        data = [i.get('_submission_time') for i in ParsedInstance.query_data(
+        data = [i.get('_submission_time') for i in query_data(
             self.xform, query='{"_submission_time": {"$lt": "%s"}}' % (atime),
             fields='["_submission_time"]')]
         self.assertEqual(self.xform.instances.count(), 4)

@@ -14,6 +14,7 @@ from onadata.apps.api.models import Team
 from onadata.apps.logger.models import Project
 from onadata.apps.main.models import UserProfile
 from onadata.apps.logger.models import XForm, Note
+from onadata.libs.utils.viewer_tools import get_form
 
 
 class HttpResponseNotAuthorized(HttpResponse):
@@ -77,16 +78,24 @@ def has_edit_permission(xform, owner, request, shared=False):
 
 
 def check_and_set_user_and_form(username, id_string, request):
-    xform = get_object_or_404(
-        XForm, user__username=username, id_string=id_string)
+    xform_kwargs = {
+        'id_string__iexact': id_string,
+        'user__username__iexact': username
+    }
+
+    xform = get_form(xform_kwargs)
     owner = User.objects.get(username=username)
     return [xform, owner] if has_permission(xform, owner, request)\
         else [False, False]
 
 
 def check_and_set_form_by_id_string(username, id_string, request):
-    xform = get_object_or_404(
-        XForm, user__username=username, id_string=id_string)
+    xform_kwargs = {
+        'id_string__iexact': id_string,
+        'user__username__iexact': username
+    }
+
+    xform = get_form(xform_kwargs)
     return xform if has_permission(xform, xform.user, request)\
         else False
 
@@ -98,8 +107,12 @@ def check_and_set_form_by_id(pk, request):
 
 
 def get_xform_and_perms(username, id_string, request):
-    xform = get_object_or_404(
-        XForm, user__username=username, id_string=id_string)
+    xform_kwargs = {
+        'id_string__iexact': id_string,
+        'user__username__iexact': username
+    }
+
+    xform = get_form(xform_kwargs)
     is_owner = xform.user == request.user
     can_edit = is_owner or\
         request.user.has_perm('logger.change_xform', xform)

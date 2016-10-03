@@ -6,13 +6,16 @@ from rest_framework import renderers
 from rest_framework import viewsets
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
-from rest_framework.pagination import BasePaginationSerializer
 
 from onadata.apps.api.permissions import AttachmentObjectPermissions
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs import filters
-from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
+from onadata.libs.mixins.authenticate_header_mixin import \
+    AuthenticateHeaderMixin
+from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
+from onadata.libs.mixins.etags_mixin import ETagsMixin
+from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.attachment_serializer import AttachmentSerializer
 from onadata.libs.renderers.renderers import MediaFileContentNegotiation, \
     MediaFileRenderer
@@ -33,7 +36,8 @@ def get_attachment_data(attachment, suffix):
     return data
 
 
-class AttachmentViewSet(LastModifiedMixin, viewsets.ReadOnlyModelViewSet):
+class AttachmentViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
+                        viewsets.ReadOnlyModelViewSet):
     """
     List attachments of viewsets.
     """
@@ -43,9 +47,7 @@ class AttachmentViewSet(LastModifiedMixin, viewsets.ReadOnlyModelViewSet):
     queryset = Attachment.objects.all()
     permission_classes = (AttachmentObjectPermissions,)
     serializer_class = AttachmentSerializer
-    pagination_class = BasePaginationSerializer
-    paginate_by_param = 'page_size'
-    page_kwarg = 'page'
+    pagination_class = StandardPageNumberPagination
     renderer_classes = (
         renderers.JSONRenderer,
         renderers.BrowsableAPIRenderer,
@@ -56,7 +58,7 @@ class AttachmentViewSet(LastModifiedMixin, viewsets.ReadOnlyModelViewSet):
 
         if isinstance(request.accepted_renderer, MediaFileRenderer) \
                 and self.object.media_file is not None:
-            suffix = request.QUERY_PARAMS.get('suffix')
+            suffix = request.query_params.get('suffix')
             try:
                 data = get_attachment_data(self.object, suffix)
             except IOError as e:
@@ -67,7 +69,7 @@ class AttachmentViewSet(LastModifiedMixin, viewsets.ReadOnlyModelViewSet):
             else:
                 return Response(data, content_type=self.object.mimetype)
 
-        filename = request.QUERY_PARAMS.get('filename')
+        filename = request.query_params.get('filename')
         serializer = self.get_serializer(self.object)
 
         if filename:
@@ -80,7 +82,7 @@ class AttachmentViewSet(LastModifiedMixin, viewsets.ReadOnlyModelViewSet):
 
     def list(self, request, *args, **kwargs):
         if request.user.is_anonymous():
-            xform = request.QUERY_PARAMS.get('xform')
+            xform = request.query_params.get('xform')
             if xform:
                 xform = XForm.objects.get(id=xform)
                 if not xform.shared_data:
@@ -89,7 +91,8 @@ class AttachmentViewSet(LastModifiedMixin, viewsets.ReadOnlyModelViewSet):
         self.object_list = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(self.object_list)
         if page is not None:
-            serializer = self.get_pagination_serializer(page)
-            return Response(serializer.data.get('results'))
+            serializer = self.get_serializer(page, many=True)
+
+            return Response(serializer.data)
 
         return super(AttachmentViewSet, self).list(request, *args, **kwargs)

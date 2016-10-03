@@ -1,0 +1,11 @@
+type,name,label
+text,name,1. What is your name?
+integer,age,2. How old are you?
+image,picture,3. May I take your picture?
+select one from yes_no,has_children,4. Do you have any children?
+begin repeat,children,5. Children
+text,childs_name,5.1 Childs name?
+integer,childs_age,5.2 Childs age?
+end repeat,,
+geopoint,gps,5. Record your GPS coordinates.
+select all that apply from browsers,web_browsers,6. What web browsers do you use?

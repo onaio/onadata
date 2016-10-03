@@ -84,6 +84,7 @@ class TestFormExports(TestBase):
         self.assertEqual(self._num_rows(content, export_format), 3)
         # test no time restriction
         response = self.client.get(url)
+
         self.assertEqual(response.status_code, 200)
         content = self._get_response_content(response)
         self.assertEqual(self._num_rows(content, export_format), 4)
@@ -222,8 +223,13 @@ class TestFormExports(TestBase):
                                                    self.login_password)
         }
         # create export
-        export = generate_export(Export.CSV_EXPORT, 'csv', self.user.username,
-                                 self.xform.id_string)
+        options = {"extension": "csv"}
+
+        export = generate_export(
+            Export.CSV_EXPORT,
+            self.xform,
+            None,
+            options)
         self.assertTrue(isinstance(export, Export))
         url = reverse(export_download, kwargs={
             'username': self.user.username,
