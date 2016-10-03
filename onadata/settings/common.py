@@ -7,7 +7,7 @@
 #
 # local customizations should be done in several files each of which in turn
 # imports this one.
-# The local files should be used as the value for your DJANGO_SETTINGS_FILE
+# The local files should be used as the value for your DJANGO_SETTINGS_MODULE
 # environment variable as needed.
 import logging
 import os
