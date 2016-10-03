@@ -437,7 +437,7 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         data = json.loads(''.join([c for c in response.streaming_content]))
         self.assertEqual(len(data), 2)
-        self.assertEqual([i['_uuid'] for i in data],
+        self.assertEqual(sorted([i['_uuid'] for i in data]),
                          [u'5b2cc313-fc09-437e-8149-fcd32f695d41',
                           u'9c6f3468-cfda-46e8-84c1-75458e72805d'])
 
