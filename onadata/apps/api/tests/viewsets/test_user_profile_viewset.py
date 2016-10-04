@@ -628,7 +628,13 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
     def test_partial_update_email(self):
         data = {'email': 'user@example.com',
-                'password': _profile_data().get("password")}
+                'password': "invalid_password"}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, user=self.user.username)
+        self.assertEqual(response.status_code, 400)
+
+        data = {'email': 'user@example.com',
+                'password': 'bobbob'}
         request = self.factory.patch('/', data=data, **self.extra)
         response = self.view(request, user=self.user.username)
         profile = UserProfile.objects.get(user=self.user)
@@ -637,7 +643,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
     def test_partial_update_unique_email_api(self):
         data = {'email': 'example@gmail.com',
-                'password': _profile_data().get("password")}
+                'password': 'bobbob'}
         request = self.factory.patch(
             '/api/v1/profiles', data=json.dumps(data),
             content_type="application/json", **self.extra)
