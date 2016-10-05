@@ -152,6 +152,9 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             raise serializers.ValidationError(
                 _(u'Your password is required when updating your email '
                   u'address.'))
+        password = params.get("password1")
+        if password and not instance.user.check_password(password):
+            raise serializers.ValidationError(_(u'Invalid password'))
 
         # get user
         instance.user.email = params.get('email', instance.user.email)
@@ -166,12 +169,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
         instance.user.save()
 
-        password = params.get("password1")
-        if password and not instance.user.check_password(password):
-            raise serializers.ValidationError(_(u'Invalid password'))
-        else:
-            # force django-digest to regenerate its stored partial digests
-            update_partial_digests(instance.user, password)
+        # force django-digest to regenerate its stored partial digests
+        update_partial_digests(instance.user, password)
 
         return super(UserProfileSerializer, self).update(instance, params)
 
