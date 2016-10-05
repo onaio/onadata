@@ -258,6 +258,10 @@ def profile(request, username):
     return resp
 
 
+def onadata_connector(request):
+    return render(request, "onadata_connector.html")
+
+
 def members_list(request):
     if not request.user.is_staff and not request.user.is_superuser:
         return HttpResponseForbidden(_(u'Forbidden.'))
