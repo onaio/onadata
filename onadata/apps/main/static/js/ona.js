@@ -176,7 +176,7 @@
     for (var row = 0; row < rowData.length; ++row) {
       var rowLine = rowData[row];
       Object.keys(rowLine).forEach(function(key) {
-        if(key.includes("/")){
+        if(key.indexOf("/") >= 0){
             var newkey = key.replace(/\//g , "_")
             rowLine[newkey] = rowLine[key];
             delete rowLine[key];
