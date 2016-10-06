@@ -46,18 +46,6 @@ class TestConnectViewSet(TestAbstractViewSet):
             'api_token': self.user.auth_token.key,
         }
 
-    def _get_request_session_with_auth(self, view, auth):
-        request = self.factory.head('/')
-        response = view(request)
-        self.assertTrue(response.has_header('WWW-Authenticate'))
-        self.assertTrue(
-            response['WWW-Authenticate'].startswith('Digest nonce='))
-        request = self.factory.get('/')
-        request.META.update(auth(request.META, response))
-        request.session = self.client.session
-
-        return request
-
     def test_regenerate_auth_token(self):
         self.view = ConnectViewSet.as_view({
             "get": "regenerate_auth_token",
