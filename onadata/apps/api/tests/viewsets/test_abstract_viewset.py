@@ -593,3 +593,15 @@ class TestAbstractViewSet(TestCase):
         if s[0] <= s[1]:
             return self.is_sorted_asc(s[1:])
         return False
+
+    def _get_request_session_with_auth(self, view, auth):
+        request = self.factory.head('/')
+        response = view(request)
+        self.assertTrue(response.has_header('WWW-Authenticate'))
+        self.assertTrue(
+            response['WWW-Authenticate'].startswith('Digest nonce='))
+        request = self.factory.get('/')
+        request.META.update(auth(request.META, response))
+        request.session = self.client.session
+
+        return request

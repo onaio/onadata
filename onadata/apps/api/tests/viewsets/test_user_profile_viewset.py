@@ -1,6 +1,8 @@
 import json
 
 from mock import patch
+from django_digest.test import DigestAuth
+
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
@@ -9,6 +11,8 @@ from django.contrib.auth.models import User
 from onadata.libs.serializers.user_profile_serializer import (
     _get_first_last_names
 )
+from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
+from onadata.libs.authentication import DigestAuthentication
 
 
 def _profile_data():
@@ -628,16 +632,42 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
     def test_partial_update_email(self):
         data = {'email': 'user@example.com',
-                'password': _profile_data().get("password")}
+                'password': "invalid_password"}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, user=self.user.username)
+        self.assertEqual(response.status_code, 400)
+
+        data = {'email': 'user@example.com',
+                'password': 'bobbob'}
         request = self.factory.patch('/', data=data, **self.extra)
         response = self.view(request, user=self.user.username)
         profile = UserProfile.objects.get(user=self.user)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(profile.user.email, 'user@example.com')
 
+    def test_update_first_last_name_password_not_affected(self):
+        data = {'first_name': 'update_first',
+                'last_name': 'update_last'}
+        request = self.factory.patch(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request, user=self.user.username)
+
+        self.assertEqual(response.status_code, 200)
+
+        view = ConnectViewSet.as_view(
+            {'get': 'list'},
+            authentication_classes=(DigestAuthentication,))
+
+        auth = DigestAuth('bob@columbia.edu', 'bobbob')
+        request = self._get_request_session_with_auth(view, auth)
+
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+
     def test_partial_update_unique_email_api(self):
         data = {'email': 'example@gmail.com',
-                'password': _profile_data().get("password")}
+                'password': 'bobbob'}
         request = self.factory.patch(
             '/api/v1/profiles', data=json.dumps(data),
             content_type="application/json", **self.extra)
