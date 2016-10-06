@@ -269,3 +269,21 @@ class TestRestServicesViewSet(TestAbstractViewSet):
                                                      "ksadaskjdajsda"))
         self.assertFalse(mock_http.called)
         self._make_submissions()
+
+    def test_create_rest_service_invalid_form_id(self):
+        count = RestService.objects.all().count()
+
+        post_data = {
+            "name": "textit",
+            "service_url": "https://textit.io",
+            "xform": "invalid",
+            "auth_token": "sadsdfhsdf",
+            "flow_uuid": "sdfskhfskdjhfs",
+            "contacts": "ksadaskjdajsda"
+        }
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = self.view(request)
+
+        self.assertEquals(response.status_code, 400)
+        self.assertEqual(response.data, {'xform': [u'Invalid form id']})
+        self.assertEquals(count, RestService.objects.all().count())

@@ -7,4 +7,8 @@ class XFormField(serializers.Field):
         return obj.pk
 
     def to_internal_value(self, data):
+        try:
+            int(data)
+        except ValueError:
+            raise serializers.ValidationError(u"Invalid form id")
         return XForm.objects.get(pk=data)
