@@ -131,6 +131,21 @@ Response
         "date_modified": "2013-07-24T13:37:39Z"
     }
 
+Available Permission Roles
+--------------------------
+The following are the available roles in onadata:
+
+- ``member`` Default role for user with no permission
+- ``readonly-no-download`` Role for a user able to view data but not export it
+- ``readonly`` Role for a user able to view and download data
+- ``dataentry-only`` Role for a user able to submit data only
+- ``dataentry-minor`` Role for a user able to submit and view only data he/she submitted
+- ``dataentry`` Role for a user able to submit and view all data
+- ``editor-minor`` Role for a user able to view and edit data he/she submitted
+- ``editor`` Role for a user able to view and edit all data
+- ``manager`` Role for a user with administrative privileges
+- ``owner`` Role for an owner of a data-set, organization, or project.
+
 Share a project with a specific user
 -------------------------------------
 
