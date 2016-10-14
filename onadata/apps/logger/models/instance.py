@@ -288,7 +288,8 @@ class InstanceBaseClass(object):
 
     def get_full_dict(self, load_existing=True):
         doc = self.json or {} if load_existing else {}
-        doc.update(self.get_dict())
+        # Get latest dict
+        doc = self.get_dict()
 
         if self.id:
             doc.update({

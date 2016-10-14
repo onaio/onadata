@@ -1776,6 +1776,48 @@ class TestDataViewSet(TestBase):
         response = _data_response()
         self.assertEqual(etag_data, response['Etag'])
 
+    def test_submission_edit_w_blank_field(self):
+        """Test submission json includes has_history key"""
+        # create form
+        xls_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/tutorial.xls"
+        )
+        self._publish_xls_file_and_set_xform(xls_file_path)
+
+        # create submission
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "fixtures", "tutorial", "instances",
+            "tutorial_2012-06-27_11-27-53_w_uuid.xml"
+        )
+
+        self._make_submission(xml_submission_file_path)
+        instance = Instance.objects.last()
+        instance_count = Instance.objects.count()
+
+        # edit submission
+        xml_edit_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "fixtures", "tutorial", "instances",
+            "tutorial_2012-06-27_11-27-53_w_uuid_edited_blank.xml"
+        )
+        client = DigestClient()
+        client.set_authorization('bob', 'bob', 'Digest')
+        self._make_submission(xml_edit_submission_file_path, client=client)
+
+        self.assertEqual(self.response.status_code, 201)
+
+        self.assertEqual(instance_count, Instance.objects.count())
+
+        # retrieve submission history
+        view = DataViewSet.as_view({'get': 'retrieve'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.xform.pk, dataid=instance.id)
+
+        self.assertEqual(instance_count, Instance.objects.count())
+        self.assertNotIn('name', response.data)
+
 
 class TestOSM(TestAbstractViewSet):
 
