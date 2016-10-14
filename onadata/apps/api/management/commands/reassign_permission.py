@@ -1,12 +1,16 @@
+from guardian.shortcuts import get_perms
+
 from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext as _
 from django.conf import settings
+from onadata.apps.api.models import Team
 
 
 from onadata.libs.permissions import ReadOnlyRole, DataEntryRole,\
-    EditorRole, ManagerRole, OwnerRole, ReadOnlyRoleNoDownload
+    EditorRole, ManagerRole, OwnerRole, ReadOnlyRoleNoDownload,\
+    DataEntryOnlyRole, DataEntryMinorRole, EditorMinorRole
 from onadata.libs.utils.model_tools import queryset_iterator
 
 
@@ -25,14 +29,24 @@ class Command(BaseCommand):
 
         app = args[0]
         model = args[1]
-        new_perm = args[2]
+        username = args[2]
+        new_perms = list(args[3:])
 
-        users = User.objects.exclude(
-            username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
-        )
+        if username == "all":
+            users = User.objects.exclude(
+                username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
+            )
+
+            teams = Team.objects.all()
+        else:
+            users = User.objects.filter(username=username)
+            teams = Team.objects.filter(organization__username=username)
         # Get all the users
         for user in queryset_iterator(users):
-            self.reassign_perms(user, app, model, new_perm)
+            self.reassign_perms(user, app, model, new_perms)
+
+        for team in queryset_iterator(teams):
+            self.reassign_perms(team, app, model, new_perms)
 
         self.stdout.write("Re-assigining finished", ending='\n')
 
@@ -48,16 +62,29 @@ class Command(BaseCommand):
         """
         cont_type = ContentType.objects.get(app_label=app,
                                             model=model)
+
         # Get the unique permission model objects filtered by content type
         #  for the user
-        objects = user.userobjectpermission_set.filter(content_type=cont_type)\
-            .distinct('object_pk')
+        if isinstance(user, Team):
+            if model == "project":
+                objects = user.projectgroupobjectpermission_set.filter(
+                    group_id=user.pk).distinct('content_object_id')
+            else:
+                objects = user.xformgroupobjectpermission_set.filter(
+                    group_id=user.pk).distinct('content_object_id')
+        else:
+            objects = \
+                user.userobjectpermission_set.filter(content_type=cont_type)\
+                .distinct('object_pk')
 
         for perm_obj in objects:
             obj = perm_obj.content_object
             ROLES = [ReadOnlyRoleNoDownload,
                      ReadOnlyRole,
+                     DataEntryOnlyRole,
+                     DataEntryMinorRole,
                      DataEntryRole,
+                     EditorMinorRole,
                      EditorRole,
                      ManagerRole,
                      OwnerRole]
@@ -70,7 +97,7 @@ class Command(BaseCommand):
                     role_class.add(user, obj)
                     break
 
-    def check_role(self, role_class, user, obj, new_perm):
+    def check_role(self, role_class, user, obj, new_perm=[]):
         """
         Test if the user has the role for the object provided
         :param role_class:
@@ -81,9 +108,13 @@ class Command(BaseCommand):
         """
         # remove the new permission because the old model doesnt have it
         perm_list = role_class.class_to_permissions[type(obj)]
-        if new_perm in perm_list:
-            # Make a copy so that we can modify it
-            copy_list = perm_list[:]
-            copy_list.remove(new_perm)
+        old_perm_set = set(perm_list)
+        newly_added_perm = set(new_perm)
 
-            return user.has_perms(copy_list, obj)
+        if newly_added_perm.issubset(old_perm_set):
+            diff_set = old_perm_set.difference(newly_added_perm)
+
+            if isinstance(user, Team):
+                return set(get_perms(user, obj)) == diff_set
+
+            return user.has_perms(list(diff_set), obj)

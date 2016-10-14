@@ -657,6 +657,8 @@ class XForm(XFormMixin, BaseModel):
         ordering = ("id_string",)
         permissions = (
             ("view_xform", _("Can view associated data")),
+            ("view_xform_all", _("Can view all associated data")),
+            ("view_xform_data", _("Can view submitted data")),
             ("report_xform", _("Can make submissions to the form")),
             ("move_xform", _(u"Can move form between projects")),
             ("transfer_xform", _(u"Can transfer form ownership.")),

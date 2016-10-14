@@ -9,6 +9,7 @@ from django.db import connection
 from django.db import models
 from django.db.models.signals import post_save
 from django.utils.translation import ugettext as _
+from django.db.models.query import EmptyQuerySet
 
 from onadata.apps.logger.models.note import Note
 from onadata.apps.logger.models.instance import _get_attachments_from_instance
@@ -154,17 +155,18 @@ def _query_iterator(sql, fields=None, params=[], count=False):
 def get_etag_hash_from_query(queryset, sql=None, params=None):
     """Returns md5 hash from the date_modified field or
     """
-    if sql is None:
-        sql, params = queryset.query.sql_with_params()
-    sql = (
-        "SELECT md5(string_agg(date_modified::text, ''))"
-        " FROM (SELECT date_modified " + sql[sql.find('FROM '):] + ") AS A"
-    )
-    etag_hash = [i for i in _query_iterator(sql, params=params)
-                 if i is not None]
+    if not isinstance(queryset, EmptyQuerySet):
+        if sql is None:
+            sql, params = queryset.query.sql_with_params()
+        sql = (
+            "SELECT md5(string_agg(date_modified::text, ''))"
+            " FROM (SELECT date_modified " + sql[sql.find('FROM '):] + ") AS A"
+        )
+        etag_hash = [i for i in _query_iterator(sql, params=params)
+                     if i is not None]
 
-    if etag_hash:
-        return etag_hash[0]
+        if etag_hash:
+            return etag_hash[0]
 
     return u'%s' % datetime.datetime.utcnow()
 
