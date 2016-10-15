@@ -150,7 +150,7 @@ class BaseProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = XForm
-        fields = ('name', 'formid')
+        fields = ('name', 'formid', 'id_string')
 
 
 class ProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
@@ -162,7 +162,7 @@ class ProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = XForm
         fields = (
-            'name', 'formid', 'num_of_submissions', 'downloadable',
+            'name', 'formid', 'id_string', 'num_of_submissions', 'downloadable',
             'encrypted', 'last_submission_time', 'date_created', 'url',
             'last_updated_at'
         )
