@@ -153,6 +153,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                           'downloadable',
                           'encrypted',
                           'formid',
+                          'id_string',
                           'last_submission_time',
                           'last_updated_at',
                           'name',
