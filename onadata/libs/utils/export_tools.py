@@ -741,7 +741,7 @@ def parse_request_export_options(params):
     else:
         options["remove_group_name"] = False
 
-    if params.get("group_delimiter") in ['.', DEFAULT_GROUP_DELIMITER]:
+    if params.get("group_delimiter") in ['.', DEFAULT_GROUP_DELIMITER, '_']:
         options['group_delimiter'] = params.get("group_delimiter")
     else:
         options['group_delimiter'] = DEFAULT_GROUP_DELIMITER
