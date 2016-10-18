@@ -95,6 +95,10 @@ class Command(BaseCommand):
                 if self.check_role(role_class, user, obj, new_perm):
                     # If true
                     role_class.add(user, obj)
+
+                    if isinstance(user, Team):
+                        for user in user.user_set.all():
+                            role_class.add(user, obj)
                     break
 
     def check_role(self, role_class, user, obj, new_perm=[]):
