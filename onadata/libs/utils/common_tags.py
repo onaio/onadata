@@ -90,3 +90,6 @@ USER_ID = u'USER_ID'
 
 # tag group delimiter name
 GROUP_DELIMETER_TAG = 'group_delimiter'
+GROUP_DELIMITER_SLASH_TAG = '/'
+GROUP_DELIMITER_DOT_TAG = '.'
+GROUP_DELIMITER_UNDER_SCORE_TAG = '_'
