@@ -2,7 +2,6 @@ from guardian.shortcuts import get_perms
 
 from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth.models import User
-from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext as _
 from django.conf import settings
 from onadata.apps.api.models import Team
@@ -60,8 +59,6 @@ class Command(BaseCommand):
         :param new_perm:
         :return:
         """
-        cont_type = ContentType.objects.get(app_label=app,
-                                            model=model)
 
         # Get the unique permission model objects filtered by content type
         #  for the user
@@ -73,9 +70,10 @@ class Command(BaseCommand):
                 objects = user.xformgroupobjectpermission_set.filter(
                     group_id=user.pk).distinct('content_object_id')
         else:
-            objects = \
-                user.userobjectpermission_set.filter(content_type=cont_type)\
-                .distinct('object_pk')
+            if model == 'project':
+                objects = user.projectuserobjectpermission_set.all()
+            else:
+                objects = user.xformuserobjectpermission_set.all()
 
         for perm_obj in objects:
             obj = perm_obj.content_object
