@@ -1348,7 +1348,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request)
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.get('Cache-Control'), None)
-            error_msg = u"Title shouldn't have an ampersand"
+            error_msg = u"Title shouldn't have any invalid xml characters " \
+                        u"('>' '&' '<')"
             self.assertEqual(response.data.get('text'), error_msg)
 
     @mock.patch.object(ModelViewSet, 'list')

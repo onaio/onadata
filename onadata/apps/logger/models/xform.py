@@ -66,6 +66,11 @@ def upload_to(instance, filename):
         os.path.split(filename)[1])
 
 
+def contains_xml_invalid_char(text, invalids=['&', '>', '<']):
+    """Check whether 'text' contains ANY invalid xml chars"""
+    return 1 in [c in text for c in invalids]
+
+
 class DictOrganizer(object):
 
     def set_dict_iterator(self, dict_iterator):
@@ -710,8 +715,9 @@ class XForm(XFormMixin, BaseModel):
             self.xml = title_pattern.sub(
                 u"<h:title>%s</h:title>" % title_xml, self.xml)
 
-        if '&' in title_xml:
-            raise XLSFormError(_("Title shouldn't have an ampersand"))
+        if contains_xml_invalid_char(title_xml):
+            raise XLSFormError(_("Title shouldn't have any invalid xml "
+                                 "characters ('>' '&' '<')"))
 
         self.title = title_xml
 
