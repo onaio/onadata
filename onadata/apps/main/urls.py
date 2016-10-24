@@ -5,6 +5,8 @@ from django.conf.urls import include, url, i18n
 from django.contrib.staticfiles import views as staticfiles_views
 from django.views.generic import RedirectView
 
+from connector.views import onadata_connector
+
 from onadata.apps import sms_support
 from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
 from onadata.apps.api.urls import router
@@ -49,7 +51,8 @@ urlpatterns = [
     # main website views
     url(r'^$', main_views.home),
     url(r'^tutorial/$', main_views.tutorial, name='tutorial'),
-    url(r'^connector$', main_views.onadata_connector, name='connector'),
+    url(r'^connector$', onadata_connector, name='connector'),
+    url(r'^connector/$', onadata_connector, name='connector'),
     url(r'^about-us/$', main_views.about_us, name='about-us'),
     url(r'^getting_started/$', main_views.getting_started,
         name='getting_started'),
