@@ -212,8 +212,6 @@ class TestDataViewSet(TestBase):
         self.assertEqual(len(response.data), 4)
 
     def _assign_user_role(self, user, role):
-        self.assertFalse(role.user_has_role(user, self.xform))
-
         # share bob's project with alice and give alice an editor role
         data = {'username': user.username, 'role': role.name}
         request = self.factory.put('/', data=data, **self.extra)
@@ -285,6 +283,13 @@ class TestDataViewSet(TestBase):
         self.assertEqual(len(response.data), 2)
 
         self._assign_user_role(user_alice, EditorRole)
+
+        request = self.factory.get('/', **alices_extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        self._assign_user_role(user_alice, ReadOnlyRole)
 
         request = self.factory.get('/', **alices_extra)
         response = view(request, pk=formid)

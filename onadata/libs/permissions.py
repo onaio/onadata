@@ -100,6 +100,8 @@ class ReadOnlyRoleNoDownload(Role):
         (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
         (CAN_VIEW_XFORM, XForm),
         (CAN_VIEW_PROJECT, Project),
+        (CAN_VIEW_XFORM_ALL, XForm),
+        (CAN_VIEW_PROJECT_ALL, Project),
     )
 
 
@@ -111,6 +113,8 @@ class ReadOnlyRole(Role):
         (CAN_VIEW_PROJECT, Project),
         (CAN_EXPORT_XFORM, XForm),
         (CAN_EXPORT_PROJECT, Project),
+        (CAN_VIEW_XFORM_ALL, XForm),
+        (CAN_VIEW_PROJECT_ALL, Project),
     )
 
 
