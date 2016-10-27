@@ -1310,8 +1310,11 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.get('Cache-Control'), None)
             error_msg = (
-                'There should be a choices sheet in this xlsform. Please '
-                'ensure that the choices sheet name is all in small caps.')
+                "There should be a choices sheet in this xlsform. "
+                "Please ensure that the choices sheet name is all in small "
+                "caps and has columns 'list name', 'name', and 'label' "
+                "(or aliased column names)."
+                )
             self.assertEqual(response.data.get('text'), error_msg)
 
     def test_partial_update(self):
@@ -2589,7 +2592,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         response = view(request)
         self.assertEqual(response.status_code, 400)
         error_message = u'[row : 2] Invalid question name [sdfasdfaf ' \
-            'sdf]Names must begin with a letter, colon, or underscore.' \
+            'sdf] Names must begin with a letter, colon, or underscore.' \
             'Subsequent characters can include numbers, dashes, and periods.'
         self.assertEqual(response.data.get('detail'), error_message)
 
