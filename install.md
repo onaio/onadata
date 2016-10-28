@@ -1,4 +1,4 @@
-# Ubuntu installation instructions
+# Installation instructions.
 ## Prepare Os
     $ ./script/install/ubuntu
 
@@ -10,6 +10,36 @@ Replace username and db name accordingly.
     sudo su postgres -c "psql -d onadata -c \"CREATE EXTENSION IF NOT EXISTS postgis;\""
     sudo su postgres -c "psql -d onadata -c \"CREATE EXTENSION IF NOT EXISTS postgis;\""
     sudo su postgres -c "psql -d onadata -c \"CREATE EXTENSION IF NOT EXISTS postgis_topology;\""
+
+**Alternatively** you can use docker to set up the DB.
+These are just examples and you shouldn't run them as they are in production:
+Use the Dockerfile in extras/docker for postgres 9.6.0 with postgis 2.3.0.
+```
+$ mkdir ~/docker-images/postgres-9.6/
+$ cd ~/docker-images/postgres-9.6
+$ docker build -t postgres:9.6.0 .
+```
+
+To run it.
+
+> This will be a persistent db using ~/postgresql/data
+
+```
+$ mkdir ~/postgresql/data
+$ docker run -e POSTGRES_PASSWORD=pass -p 5432:5432 --volume ~/postgresql/data:/var/lib/postgresql/data --name onadata -d postgres:9.6.0
+```
+
+Connect using psql with:
+`psql -h localhost -p 5432 -U postgres`
+
+In psql:
+```
+CREATE USER onadata WITH PASSWORD 'pass'
+CREATE DATABASE onadata OWNER onadata
+connect onadata
+CREATE EXTENSION IF NOT EXISTS postgis
+CREATE EXTENSION IF NOT EXISTS postgis_topology;\""
+```
 
 ## Get the code
     git clone https://github.com/onaio/onadata.git
@@ -65,4 +95,3 @@ You may at this point start core with `$ python manage.py runserver --nothreadin
     # remove default nginx server config
     sudo unlink /etc/nginx/sites-enabled/default
     sudo service nginx restart
-
