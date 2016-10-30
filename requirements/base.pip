@@ -9,7 +9,6 @@
 -e git+https://github.com/onaio/django-digest.git@django-1.9-fixes#egg=django-digest
 -e git+https://github.com/jbalogh/django-nose.git#egg=django-nose
 -e git+https://github.com/onaio/python-json2xlsclient.git#egg=j2xclient
--e git+https://bitbucket.org/fomcl/savreaderwriter.git@v3.4.2#egg=savreaderwriter
 alabaster==0.7.7          # via sphinx
 amqp==1.4.9               # via kombu, librabbitmq
 anyjson==0.3.3            # via kombu
@@ -81,6 +80,7 @@ pyxform==0.9.24
 recaptcha-client==1.0.6
 requests==2.9.1
 rsa==3.4.2                # via oauth2client
+savReaderWriter==3.4.2
 simplejson==3.8.2
 six==1.10.0               # via dict2xml, django-braces, django-guardian, django-oauth-toolkit, django-query-builder, djangorestframework-csv, mock, oauth2client, python-dateutil, python-memcached, sphinx
 snowballstemmer==1.2.1    # via sphinx
