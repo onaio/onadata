@@ -50,7 +50,7 @@ pymongo
 # sms support
 dict2xml
 lxml
--e git+https://github.com/onaio/pyxform.git@onaio#egg=pyxform
+pyxform==0.9.24
 
 # spss
 -e git+https://bitbucket.org/fomcl/savreaderwriter.git@v3.4.2#egg=savreaderwriter

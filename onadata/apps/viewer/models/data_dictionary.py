@@ -1,4 +1,5 @@
 import csv
+import io
 import os
 import xlrd
 from django.utils import timezone
@@ -71,9 +72,18 @@ class DataDictionary(XForm):
             default_name = None \
                 if not self.pk else self.survey.xml_instance().tagName
             try:
+                if self.xls.name.endswith('csv'):
+                    # csv file gets closed in pyxform, make a copy
+                    self.xls.seek(0)
+                    file_object = io.BytesIO()
+                    file_object.write(self.xls.read())
+                    file_object.seek(0)
+                    self.xls.seek(0)
+                else:
+                    file_object = self.xls
                 survey_dict = parse_file_to_json(
                     self.xls.name, default_name=default_name,
-                    file_object=self.xls)
+                    file_object=file_object)
             except csv.Error as e:
                 newline_error = u'new-line character seen in unquoted field '\
                     u'- do you need to open the file in universal-newline '\
