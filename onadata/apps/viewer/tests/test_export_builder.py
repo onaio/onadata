@@ -1647,3 +1647,15 @@ class TestExportBuilder(TestBase):
         }
         self.assertEqual(CSVDataFrameBuilder._collect_select_multiples(dd),
                          select_multiples)
+
+    def test_string_to_date_with_xls_validation(self):
+        # test "2016-11-02"
+        val = ExportBuilder.string_to_date_with_xls_validation("2016-11-02")
+        self.assertEqual(val, datetime.date(2016, 11, 2))
+
+        # test random string
+        val = ExportBuilder.string_to_date_with_xls_validation("random")
+        self.assertEqual(val, "random")
+
+        val = ExportBuilder.string_to_date_with_xls_validation(0.4)
+        self.assertEqual(val, 0.4)
