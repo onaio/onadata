@@ -198,8 +198,10 @@ class ExportBuilder(object):
 
     @classmethod
     def string_to_date_with_xls_validation(cls, date_str):
-        date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+        if not isinstance(date_str, six.string_types):
+            return date_str
         try:
+            date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
             to_excel(date_obj)
         except ValueError:
             return date_str
