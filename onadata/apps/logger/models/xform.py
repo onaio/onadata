@@ -282,11 +282,18 @@ class XFormMixin(object):
         return self.survey.iter_descendants()
 
     def get_survey_element(self, name_or_xpath):
+        """Searches survey element by xpath first,
+        if that fails it searches by name, the first element matching
+        the name will be returned.
+        """
+        # search by xpath first
         element = self.get_element(name_or_xpath)
-        name = (element and element['name']) or name_or_xpath
+        if element:
+            return element
 
+        # search by name if xpath fails
         fields = [field for field in self.get_survey_elements()
-                  if field.name == name]
+                  if field.name == name_or_xpath]
 
         return fields[0] if len(fields) else None
 

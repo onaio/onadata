@@ -1,10 +1,12 @@
 import os
 
+from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
+
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm, Instance
 
 
-class TestXForm(TestBase):
+class TestXForm(PyxformTestCase, TestBase):
     def test_submission_count_filters_deleted(self):
         self._publish_transportation_form_and_submit_instance()
 
@@ -71,3 +73,44 @@ class TestXForm(TestBase):
 
         self.assertIn("-deleted-at-", xform.id_string)
         self.assertIn("-deleted-at-", xform.sms_id_string)
+
+    def test_get_survey_element(self):
+        md = """
+        | survey |
+        |        | type                   | name   | label   |
+        |        | begin group            | a      | Group A |
+        |        | select one fruits      | fruita | Fruit A |
+        |        | select one fruity      | fruity | Fruit Y |
+        |        | end group              |        |         |
+        |        | begin group            | b      | Group B |
+        |        | select one fruits      | fruitz | Fruit Z |
+        |        | select_multiple fruity | fruitb | Fruit B |
+        |        | end group              |        |         |
+        | choices |
+        |         | list name | name   | label  |
+        |         | fruits    | orange | Orange |
+        |         | fruits    | mango  | Mango  |
+        |         | fruity    | orange | Orange |
+        |         | fruity    | mango  | Mango  |
+        """
+        kwargs = {'name': 'favs', 'title': 'Fruits', 'id_string': 'favs'}
+        survey = self.md_to_pyxform_survey(md, kwargs)
+        xform = XForm()
+        xform._survey = survey
+
+        # non existent field
+        self.assertIsNone(xform.get_survey_element("non_existent"))
+
+        # get fruita element by name
+        fruita = xform.get_survey_element('fruita')
+        self.assertEqual(fruita.get_abbreviated_xpath(), "a/fruita")
+
+        # get exact choices element from choice abbreviated xpath
+        fruita_o = xform.get_survey_element("a/fruita/orange")
+        self.assertEqual(fruita_o.get_abbreviated_xpath(), "a/fruita/orange")
+
+        fruity_m = xform.get_survey_element("a/fruity/mango")
+        self.assertEqual(fruity_m.get_abbreviated_xpath(), "a/fruity/mango")
+
+        fruitb_o = xform.get_survey_element("b/fruitb/orange")
+        self.assertEqual(fruitb_o.get_abbreviated_xpath(), "b/fruitb/orange")
