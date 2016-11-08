@@ -4,6 +4,7 @@ from django.conf import settings
 from django.conf.urls import include, url, i18n
 from django.contrib.staticfiles import views as staticfiles_views
 from django.views.generic import RedirectView
+from django.http import HttpResponse
 
 from onadata.apps import sms_support
 from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
@@ -267,3 +268,5 @@ custom_urls = getattr(settings, 'CUSTOM_MAIN_URLS', None)
 if custom_urls:
     for url_module in custom_urls:
         urlpatterns.append(url(r'^', include(url_module)))
+
+urlpatterns = patterns('', ... (r'^robots.txt$', lambda r: HttpResponse("User-agent: *\nDisallow: /", mimetype="text/plain")) )

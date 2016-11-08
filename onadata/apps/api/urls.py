@@ -1,6 +1,7 @@
 from django.conf.urls import url
 from django.conf import settings
 from django.contrib import admin
+from django.http import HttpResponse
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework import routers
@@ -242,3 +243,5 @@ router.register(r'files', MediaViewSet, base_name='files')
 router.register(r'dataviews', DataViewViewSet, base_name='dataviews')
 router.register(r'widgets', WidgetViewSet, base_name='widgets')
 router.register(r'export', ExportViewSet, base_name='export')
+
+urlpatterns = patterns('', ... (r'^robots.txt$', lambda r: HttpResponse("User-agent: *\nDisallow: /", mimetype="text/plain")) )
