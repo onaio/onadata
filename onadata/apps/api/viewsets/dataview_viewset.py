@@ -79,12 +79,14 @@ class DataViewViewSet(AuthenticateHeaderMixin,
         limit = request.GET.get("limit")
         count = request.GET.get("count")
         sort = request.GET.get("sort")
+        query = request.GET.get("query")
         export_type = self.kwargs.get('format', request.GET.get("format"))
         self.object = self.get_object()
 
         if export_type is None or export_type in ['json', 'debug']:
             data = DataView.query_data(self.object, start, limit,
-                                       str_to_bool(count), sort=sort)
+                                       str_to_bool(count), sort=sort,
+                                       filter_query=query)
             if 'error' in data:
                 raise ParseError(data.get('error'))
 

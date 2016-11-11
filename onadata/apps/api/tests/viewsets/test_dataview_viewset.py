@@ -1141,3 +1141,34 @@ class TestDataViewViewSet(TestAbstractViewSet):
         response = view(request)
 
         self.assertEquals(response.status_code, 201)
+
+    def test_search_dataview_data(self):
+        self._create_dataview()
+
+        view = DataViewViewSet.as_view({
+            'get': 'data',
+        })
+
+        data = {"query": "Fred"}
+        request = self.factory.get('/', data=data, **self.extra)
+        response = view(request, pk=self.data_view.pk)
+        self.assertEquals(response.status_code, 200)
+
+        self.assertEqual(1, len(response.data))
+        self.assertEqual("Fred", response.data[0].get('name'))
+
+        data = {"query": '{"age": 22}'}
+        request = self.factory.get('/', data=data, **self.extra)
+        response = view(request, pk=self.data_view.pk)
+        self.assertEquals(response.status_code, 200)
+
+        self.assertEqual(1, len(response.data))
+        self.assertEqual(22, response.data[0].get('age'))
+
+        data = {"query": '{"age": {"$gte": 30}}'}
+        request = self.factory.get('/', data=data, **self.extra)
+        response = view(request, pk=self.data_view.pk)
+        self.assertEquals(response.status_code, 200)
+
+        self.assertEqual(1, len(response.data))
+        self.assertEqual(45, response.data[0].get('age'))

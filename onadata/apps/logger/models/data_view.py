@@ -8,6 +8,7 @@ from django.db.models.signals import post_delete, post_save
 
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.project import Project
+from onadata.apps.viewer.parsed_instance_tools import get_where_clause
 from onadata.libs.models.sorting import (
     json_order_by, json_order_by_params, sort_from_mongo_sort_str)
 from onadata.libs.utils.common_tags import (
@@ -236,7 +237,8 @@ class DataView(models.Model):
 
     @classmethod
     def generate_query_string(cls, data_view, start_index, limit,
-                              last_submission_time, all_data, sort):
+                              last_submission_time, all_data, sort,
+                              filter_query=None):
         additional_columns = [GEOLOCATION] \
             if data_view.instances_with_geopoints else []
 
@@ -261,6 +263,14 @@ class DataView(models.Model):
             data_view,
             data_view.get_known_integers(),
             data_view.get_known_dates())
+
+        if filter_query:
+            add_where, add_where_params = \
+                get_where_clause(filter_query, data_view.get_known_integers())
+
+            if add_where:
+                where = where + add_where
+                where_params = where_params + add_where_params
 
         sql_where = ""
         if where:
@@ -294,11 +304,12 @@ class DataView(models.Model):
 
     @classmethod
     def query_data(cls, data_view, start_index=None, limit=None, count=None,
-                   last_submission_time=False, all_data=False, sort=None):
+                   last_submission_time=False, all_data=False, sort=None,
+                   filter_query=None):
 
         (sql, columns, params) = cls.generate_query_string(
             data_view, start_index, limit, last_submission_time,
-            all_data, sort)
+            all_data, sort, filter_query)
 
         try:
             records = [record for record in DataView.query_iterator(sql,
