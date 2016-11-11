@@ -1484,11 +1484,57 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 200)
             self.assertEqual(len(response.data), 0)
 
-    def test_form_share_endpoint(self):
+    def test_form_share_endpoint_handles_no_username(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
             alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
-            job_data =  {'username': 'job', 'email': 'job@localhost.com'}
+            alice_profile = self._create_user_profile(alice_data)
+
+            view = XFormViewSet.as_view({
+                'post': 'share'
+            })
+            formid = self.xform.pk
+
+            for role_class in ROLES:
+                self.assertFalse(role_class.user_has_role(alice_profile.user,
+                                                          self.xform))
+
+                data = {"role": role_class.name}
+                request = self.factory.post('/', data=data, **self.extra)
+                response = view(request, pk=formid)
+
+                self.assertEqual(response.status_code, 400)
+                self.assertFalse(role_class.user_has_role(alice_profile.user,
+                                                          self.xform))
+
+    def test_form_share_endpoint_takes_username(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+            alice_profile = self._create_user_profile(alice_data)
+
+            view = XFormViewSet.as_view({
+                'post': 'share'
+            })
+            formid = self.xform.pk
+
+            for role_class in ROLES:
+                self.assertFalse(role_class.user_has_role(alice_profile.user,
+                                                          self.xform))
+
+                data = {"username": "alice", "role": role_class.name}
+                request = self.factory.post('/', data=data, **self.extra)
+                response = view(request, pk=formid)
+
+                self.assertEqual(response.status_code, 204)
+                self.assertTrue(role_class.user_has_role(alice_profile.user,
+                                                         self.xform))
+
+    def test_form_share_endpoint_takes_usernames(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+            job_data = {'username': 'job', 'email': 'job@localhost.com'}
             alice_profile = self._create_user_profile(alice_data)
             job_profile = self._create_user_profile(job_data)
 
@@ -1500,8 +1546,10 @@ class TestXFormViewSet(TestAbstractViewSet):
             for role_class in ROLES:
                 self.assertFalse(role_class.user_has_role(alice_profile.user,
                                                           self.xform))
+                self.assertFalse(role_class.user_has_role(job_profile.user,
+                                                          self.xform))
 
-                data  = {"users": "alice, job", "role": role_class.name}
+                data = {"usernames": "alice,job", "role": role_class.name}
                 request = self.factory.post('/', data=data, **self.extra)
                 response = view(request, pk=formid)
 
