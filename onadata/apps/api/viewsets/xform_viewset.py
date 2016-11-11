@@ -475,12 +475,12 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         self.object = self.get_object()
 
         data_list = []
-        if type(request.data) is dict:
+        if isinstance(request.data, dict):
             data = request.data
             data['xform'] = self.object.pk
             data_list.append(data)
 
-        elif type(request.data) is list:
+        elif isinstance(request.data, list):
 
             for dd in request.data:
                 data = copy.copy(dd)
