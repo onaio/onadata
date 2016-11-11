@@ -1488,7 +1488,9 @@ class TestXFormViewSet(TestAbstractViewSet):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
             alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+            job_data =  {'username': 'job', 'email': 'job@localhost.com'}
             alice_profile = self._create_user_profile(alice_data)
+            job_profile = self._create_user_profile(job_data)
 
             view = XFormViewSet.as_view({
                 'post': 'share'
@@ -1499,7 +1501,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertFalse(role_class.user_has_role(alice_profile.user,
                                                           self.xform))
 
-                data = {'username': 'alice', 'role': role_class.name}
+                data  = {"users": "alice, job", "role": role_class.name}
                 request = self.factory.post('/', data=data, **self.extra)
                 response = view(request, pk=formid)
 
