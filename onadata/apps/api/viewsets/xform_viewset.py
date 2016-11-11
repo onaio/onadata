@@ -474,19 +474,20 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
     def share(self, request, *args, **kwargs):
         self.object = self.get_object()
 
+        data_list = []
         if type(request.data) is dict:
             data = request.data
             data['xform'] = self.object.pk
+            data_list.append(data)
 
-            serializer = ShareXFormSerializer(data=data)
         elif type(request.data) is list:
-            data_list = []
+
             for dd in request.data:
                 data = copy.copy(dd)
                 data['xform'] = self.object.pk
                 data_list.append(data)
 
-            serializer = ShareXFormSerializer(data=data_list, many=True)
+        serializer = ShareXFormSerializer(data=data_list, many=True)
 
         if serializer.is_valid():
             serializer.save()
