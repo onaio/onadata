@@ -474,15 +474,18 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
     def share(self, request, *args, **kwargs):
         self.object = self.get_object()
 
-        usernames_str = request.data.get("users", request.data.get("username"))
+        usernames_str = request.data.get("usernames",
+                                         request.data.get("username"))
+
         if not usernames_str:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        data_list = []
-        for username in usernames_str.split(","):
-            data_list.append({"xform":    self.object.pk,
-                              "username": username,
-                              "role":     request.data.get("role")})
+        role = request.data.get("role")  # the serializer validates the role
+        xform_id = self.object.pk
+        data_list = [{"xform":    xform_id,
+                      "username": username,
+                      "role":     role}
+                     for username in usernames_str.split(",")]
 
         serializer = ShareXFormSerializer(data=data_list, many=True)
 
