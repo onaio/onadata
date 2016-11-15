@@ -253,6 +253,18 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 0)
 
+        data = {"start": 1, "limit": 4}
+        request = self.factory.get('/', data=data, **alices_extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
+
+        data = {"sort": 1}
+        request = self.factory.get('/', data=data, **alices_extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
+
         self._assign_user_role(user_alice, EditorMinorRole)
         # check that by default, alice can be able to access all the data
 
@@ -278,6 +290,18 @@ class TestDataViewSet(TestBase):
 
         # check that alice will only be able to see the data she submitted
         request = self.factory.get('/', **alices_extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+        data = {"start": 1, "limit": 1}
+        request = self.factory.get('/', data=data, **alices_extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+        data = {"sort": 1}
+        request = self.factory.get('/', data=data, **alices_extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)

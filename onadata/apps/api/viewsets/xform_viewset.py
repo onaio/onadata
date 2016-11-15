@@ -1,5 +1,6 @@
 import os
 import random
+import copy
 
 from urlparse import urlparse
 from datetime import datetime

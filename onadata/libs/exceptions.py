@@ -5,6 +5,10 @@ class NoRecordsFoundError(Exception):
     pass
 
 
+class NoRecordsPermission(Exception):
+    pass
+
+
 class J2XException(Exception):
     pass
 

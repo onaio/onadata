@@ -11,6 +11,7 @@ from django.utils import six
 from django.utils.translation import ugettext as _
 from django.core.exceptions import PermissionDenied
 from django.utils import timezone
+from onadata.libs.exceptions import NoRecordsPermission
 
 from rest_framework import status
 from rest_framework.decorators import detail_route
@@ -48,7 +49,7 @@ from onadata.libs.serializers.data_serializer import OSMSerializer
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs import filters
 from onadata.libs.permissions import CAN_DELETE_SUBMISSION,\
-    filter_queryset_xform_meta_perms
+    filter_queryset_xform_meta_perms, filter_queryset_xform_meta_perms_sql
 from onadata.libs.utils.viewer_tools import EnketoError
 from onadata.libs.utils.viewer_tools import get_enketo_edit_url
 from onadata.libs.utils.api_export_tools import custom_response_handler
@@ -396,17 +397,26 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             if (start and limit or limit) and (not sort and not fields):
                 start = start if start is not None else 0
                 limit = limit if start is None or start == 0 else start + limit
+                self.object_list = filter_queryset_xform_meta_perms(
+                    self.get_object(), self.request.user, self.object_list)
                 self.object_list = \
                     self.object_list.order_by('pk')[start: limit]
                 self.total_count = self.object_list.count()
             elif (sort or limit or start or fields) and not is_public_request:
-                self.object_list = \
-                    query_data(xform, query=query, sort=sort,
-                               start_index=start, limit=limit, fields=fields)
-                self.total_count = query_data(
-                    xform, query=query, sort=sort, start_index=start,
-                    limit=limit, fields=fields, count=True
-                )[0].get('count')
+                query = filter_queryset_xform_meta_perms_sql(self.get_object(),
+                                                             self.request.user,
+                                                             query)
+                if isinstance(query, NoRecordsPermission):
+                    self.object_list = []
+                    self.total_count = 0
+                else:
+                    self.object_list = query_data(xform, query=query,
+                                                  sort=sort, start_index=start,
+                                                  limit=limit, fields=fields)
+                    self.total_count = query_data(
+                        xform, query=query, sort=sort, start_index=start,
+                        limit=limit, fields=fields, count=True
+                    )[0].get('count')
             else:
                 self.total_count = self.object_list.count()
 

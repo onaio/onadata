@@ -1,3 +1,6 @@
+import json
+import six
+
 from collections import defaultdict
 
 from guardian.shortcuts import (
@@ -6,10 +9,12 @@ from guardian.shortcuts import (
     get_perms,
     get_users_with_perms)
 
+
 from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import XForm
+from onadata.libs.exceptions import NoRecordsPermission
 
 # Userprofile Permissions
 CAN_ADD_USERPROFILE = 'add_userprofile'
@@ -365,3 +370,30 @@ def filter_queryset_xform_meta_perms(xform, user, instance_queryset):
         return instance_queryset.filter(user=user)
     else:
         return instance_queryset.none()
+
+
+def filter_queryset_xform_meta_perms_sql(xform, user, query):
+    if user.has_perm(CAN_VIEW_XFORM_ALL, xform) or xform.shared_data:
+        ret_query = query
+    elif user.has_perm(CAN_VIEW_XFORM_DATA, xform):
+        try:
+            if query and isinstance(query, six.string_types):
+                query = json.loads(query)
+                if isinstance(query, list):
+                    query = query[0]
+
+            else:
+                query = dict()
+                query.update({"_submitted_by": user.username})
+                ret_query = json.dumps(query)
+
+        except (ValueError, AttributeError):
+            query_list = list()
+            query_list.append({"_submitted_by": user.username})
+            query_list.append(query)
+
+            ret_query = json.dumps(query_list)
+    else:
+        ret_query = NoRecordsPermission()
+
+    return ret_query
