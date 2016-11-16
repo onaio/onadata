@@ -39,7 +39,8 @@ METADATA_TYPES = (
     (DOC_TYPE, _(u"Supporting Document")),
     ('external_export', _(u"External Export")),
     ('textit', _(u"External Export")),
-    ('google_sheets', _(u"Google Sheet"))
+    ('google_sheets', _(u"Google Sheet")),
+    ('xform_meta_perms', _("Xform meta permissions"))
 )
 
 DATAVIEW_TAG = 'dataview'

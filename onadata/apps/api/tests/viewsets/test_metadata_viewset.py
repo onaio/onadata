@@ -434,3 +434,19 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.data,
                              {'xform': ['XForm does not exist']})
+
+    def test_xform_meta_permission(self):
+        view = MetaDataViewSet.as_view({'post': 'create'})
+
+        data = {
+            'data_type': 'xform_meta_perms',
+            'data_value': 'editor-minor|dataentry',
+            'xform': self.xform.pk
+        }
+        request = self.factory.post('/', data, **self.extra)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 201)
+
+        meta = MetaData.xform_meta_permission(self.xform)
+        self.assertEqual(meta.data_value, response.data.get('data_value'))

@@ -399,6 +399,12 @@ class MetaData(models.Model):
              self.data_value.startswith('dataview'))
         )
 
+    @staticmethod
+    def xform_meta_permission(content_object, data_value=None):
+        data_type = 'xform_meta_perms'
+        return unique_type_for_form(
+            content_object, data_type, data_value)
+
 
 def clear_cached_metadata_instance_object(
         sender, instance=None, created=False, **kwargs):

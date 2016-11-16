@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from onadata.libs.permissions import ROLES
+from onadata.libs.permissions import EditorRole, DataEntryRole
 
 
 class ShareXForm(object):
@@ -14,6 +15,19 @@ class ShareXForm(object):
 
     def save(self, **kwargs):
         role = ROLES.get(self.role)
+
+        # check if there is xform meta perms set
+        meta_perms = self.xform.metadata_set\
+            .filter(data_type='xform_meta_perms')
+        if meta_perms:
+            meta_perm = meta_perms[0].data_value.split("|")
+
+            if len(meta_perm) > 1:
+                if role == EditorRole:
+                    role = ROLES.get(meta_perm[0])
+
+                elif role == DataEntryRole:
+                    role = ROLES.get(meta_perm[1])
 
         if role and self.user and self.xform:
             role.add(self.user, self.xform)

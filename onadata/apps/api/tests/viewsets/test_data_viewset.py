@@ -215,7 +215,7 @@ class TestDataViewSet(TestBase):
         # share bob's project with alice and give alice an editor role
         data = {'username': user.username, 'role': role.name}
         request = self.factory.put('/', data=data, **self.extra)
-        project_view = ProjectViewSet.as_view({
+        project_view = XFormViewSet.as_view({
             'put': 'share'
         })
         response = project_view(request, pk=self.project.pk)
@@ -319,6 +319,45 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
+
+    def test_xform_meta_permissions_not_affected_w_projects_perms(self):
+        # create a form and make submissions to it
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        # create user alice
+        user_alice = self._create_user('alice', 'alice')
+        # create user profile and set require_auth to false for tests
+        profile, created = UserProfile.objects.get_or_create(user=user_alice)
+        profile.require_auth = False
+        profile.save()
+
+        data = {'username': user_alice.username, 'role': EditorRole.name}
+        request = self.factory.put('/', data=data, **self.extra)
+        project_view = XFormViewSet.as_view({
+            'put': 'share'
+        })
+        response = project_view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 204)
+
+        self.assertTrue(
+            EditorRole.user_has_role(user_alice, self.xform)
+        )
+        self._assign_user_role(user_alice, EditorMinorRole)
+
+        alices_extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % user_alice.auth_token.key
+        }
+
+        request = self.factory.get('/', **alices_extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
 
     def test_data_entryonly_can_submit_but_not_view(self):
         # create user alice

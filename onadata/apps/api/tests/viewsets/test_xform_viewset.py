@@ -37,7 +37,8 @@ from onadata.apps.logger.models import XForm
 from onadata.apps.viewer.models import Export
 from onadata.apps.logger.models import Attachment
 from onadata.libs.permissions import (
-    OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole)
+    OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole,
+    EditorMinorRole)
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.serializers.xform_serializer import XFormBaseSerializer
 from onadata.apps.main.models import MetaData
@@ -4005,3 +4006,41 @@ class TestXFormViewSet(TestAbstractViewSet):
 
         self.assertIn("form_versions", response.data)
         self.assertEqual(response.data['form_versions'][0].get('total'), 3)
+
+    def test_share_auto_xform_meta_perms(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+            alice_profile = self._create_user_profile(alice_data)
+
+            view = XFormViewSet.as_view({
+                'post': 'share'
+            })
+            formid = self.xform.pk
+
+            data_value = "editor-minor|dataentry"
+
+            MetaData.xform_meta_permission(self.xform, data_value=data_value)
+
+            for role_class in [DataEntryRole, EditorRole]:
+                self.assertFalse(role_class.user_has_role(alice_profile.user,
+                                                          self.xform))
+
+                data = {"username": "alice", "role": role_class.name}
+                request = self.factory.post('/', data=data, **self.extra)
+                response = view(request, pk=formid)
+
+                self.assertEqual(response.status_code, 204)
+
+                if role_class == EditorRole:
+                    self.assertFalse(
+                        EditorRole.user_has_role(alice_profile.user,
+                                                 self.xform))
+                    self.assertTrue(
+                        EditorMinorRole.user_has_role(alice_profile.user,
+                                                      self.xform))
+
+                if role_class == DataEntryRole:
+                    self.assertTrue(
+                        DataEntryRole.user_has_role(alice_profile.user,
+                                                    self.xform))
