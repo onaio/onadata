@@ -363,7 +363,6 @@ def get_team_project_default_permissions(team, project):
 
 
 def filter_queryset_xform_meta_perms(xform, user, instance_queryset):
-
     if user.has_perm(CAN_VIEW_XFORM_ALL, xform) or xform.shared_data:
         return instance_queryset
     elif user.has_perm(CAN_VIEW_XFORM_DATA, xform):

@@ -16,7 +16,7 @@ class ShareXForm(object):
     def save(self, **kwargs):
         role = ROLES.get(self.role)
 
-        # check if there is xform meta perms set
+        # # check if there is xform meta perms set
         meta_perms = self.xform.metadata_set\
             .filter(data_type='xform_meta_perms')
         if meta_perms:
