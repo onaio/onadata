@@ -16,7 +16,8 @@ from django.conf import settings
 from hashlib import md5
 
 from onadata.libs.utils.cache_tools import safe_delete, XFORM_METADATA_CACHE
-from onadata.libs.utils.common_tags import TEXTIT, GOOGLE_SHEET_DATA_TYPE
+from onadata.libs.utils.common_tags import TEXTIT, GOOGLE_SHEET_DATA_TYPE, \
+    XFORM_META_PERMS
 
 CHUNK_SIZE = 1024
 INSTANCE_MODEL_NAME = "instance"
@@ -401,7 +402,8 @@ class MetaData(models.Model):
 
     @staticmethod
     def xform_meta_permission(content_object, data_value=None):
-        data_type = 'xform_meta_perms'
+        data_type = XFORM_META_PERMS
+
         return unique_type_for_form(
             content_object, data_type, data_value)
 

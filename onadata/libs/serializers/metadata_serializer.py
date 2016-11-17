@@ -13,7 +13,8 @@ from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
 from onadata.apps.main.models import MetaData
-
+from onadata.libs.utils.common_tags import XFORM_META_PERMS
+from onadata.libs.permissions import ROLES
 from onadata.libs.permissions import ManagerRole
 from onadata.libs.serializers.fields.xform_related_field import (
     XFormRelatedField,)
@@ -128,7 +129,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         Validate url if we are adding a media uri instead of a media file
         """
         value = attrs.get('data_value')
-        media = attrs.get('data_type')
+        data_type = attrs.get('data_type')
         data_file = attrs.get('data_file')
 
         if not ('project' in attrs or 'xform' in attrs or 'instance' in attrs):
@@ -137,7 +138,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                                    "field is required.")
             })
 
-        if media == 'media' and data_file is None:
+        if data_type == 'media' and data_file is None:
             try:
                 URLValidator()(value)
             except ValidationError:
@@ -167,6 +168,12 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                     raise serializers.ValidationError({
                         'data_value': _(u"Invalid url '%s'." % value)
                     })
+
+        if data_type == XFORM_META_PERMS:
+            perms = value.split('|')
+            if len(perms) != 2 or not set(perms).issubset(set(ROLES.keys())):
+                raise serializers.ValidationError(
+                    _(u"Format 'role'|'role' or Invalid role"))
 
         return attrs
 

@@ -12,6 +12,7 @@ from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.serializers.metadata_serializer import UNIQUE_TOGETHER_ERROR
+from onadata.libs.utils.common_tags import XFORM_META_PERMS
 
 
 class TestMetaDataViewSet(TestAbstractViewSet):
@@ -439,7 +440,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         view = MetaDataViewSet.as_view({'post': 'create'})
 
         data = {
-            'data_type': 'xform_meta_perms',
+            'data_type': XFORM_META_PERMS,
             'data_value': 'editor-minor|dataentry',
             'xform': self.xform.pk
         }
@@ -450,3 +451,15 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
         meta = MetaData.xform_meta_permission(self.xform)
         self.assertEqual(meta.data_value, response.data.get('data_value'))
+
+        data = {
+            'data_type': XFORM_META_PERMS,
+            'data_value': 'editor-minors|invalid_role',
+            'xform': self.xform.pk
+        }
+        request = self.factory.post('/', data, **self.extra)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 400)
+        error = u"Format 'role'|'role' or Invalid role"
+        self.assertEqual(response.data, {'non_field_errors': [error]})

@@ -639,9 +639,17 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         data = json.loads(''.join([c for c in response.streaming_content]))
         self.assertEqual(len(data), 2)
-        self.assertEqual(sorted([i['_uuid'] for i in data]),
-                         [u'9c6f3468-cfda-46e8-84c1-75458e72805d',
-                          u'9f0a1508-c3b7-4c99-be00-9b237c26bcbf'])
+
+        data = {
+            "page": 1,
+            "page_size": 3,
+        }
+        request = self.factory.get('/', data=data,
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(''.join([c for c in response.streaming_content]))
+        self.assertEqual(len(data), 3)
 
     def test_data_anon(self):
         self._make_submissions()
