@@ -8,7 +8,7 @@
 -e git+https://github.com/onaio/django-cors-headers.git@allow-all-for-url#egg=cors-headers
 -e git+https://github.com/onaio/django-digest.git@django-1.9-fixes#egg=django-digest
 -e git+https://github.com/jbalogh/django-nose.git#egg=django-nose
--e git+https://github.com/onaio/onadata-connector.git#egg=onadata-connector
+-e git+https://github.com/onaio/onadata-connector.git@use-api-token#egg=onadata-connector
 -e git+https://github.com/onaio/python-json2xlsclient.git#egg=j2xclient
 -e git+https://bitbucket.org/fomcl/savreaderwriter.git@v3.4.2#egg=savreaderwriter
 alabaster==0.7.7          # via sphinx

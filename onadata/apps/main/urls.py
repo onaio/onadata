@@ -51,7 +51,6 @@ urlpatterns = [
     # main website views
     url(r'^$', main_views.home),
     url(r'^tutorial/$', main_views.tutorial, name='tutorial'),
-    url(r'^connector$', onadata_connector, name='connector'),
     url(r'^connector/$', onadata_connector, name='connector'),
     url(r'^about-us/$', main_views.about_us, name='about-us'),
     url(r'^getting_started/$', main_views.getting_started,
