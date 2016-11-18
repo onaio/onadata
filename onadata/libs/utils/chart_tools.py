@@ -144,7 +144,7 @@ def _use_labels_from_field_name(field_name, field, data_type, data,
     truncated_name = field_name[0:POSTGRES_ALIAS_LENGTH]
     truncated_name = truncated_name.encode('utf-8')
 
-    if data_type == 'categorized':
+    if data_type == 'categorized' and not common_tags.SUBMITTED_BY:
         if data:
             if field.children:
                 choices = field.children
@@ -208,6 +208,10 @@ def build_chart_data_for_field(xform, field, language_index=0, choices=None,
         field_label = 'Submission Time'
         field_xpath = '_submission_time'
         field_type = 'datetime'
+    elif isinstance(field, basestring) and field == common_tags.SUBMITTED_BY:
+        field_label = 'Submission By'
+        field_xpath = '_submitted_by'
+        field_type = 'text'
     else:
         # TODO: merge choices with results and set 0's on any missing fields,
         # i.e. they didn't have responses

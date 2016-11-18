@@ -53,6 +53,12 @@ class TestChartTools(TestBase):
         self.assertEqual(data['field_type'], 'datetime')
         self.assertEqual(data['data_type'], 'time_based')
 
+    def test_build_chart_data_for_field_on_submitted_by(self):
+        data = build_chart_data_for_field(self.xform, '_submitted_by')
+        self.assertEqual(data['field_name'], '_submitted_by')
+        self.assertEqual(data['field_type'], 'text')
+        self.assertEqual(data['data_type'], 'categorized')
+
     def test_build_chart_data_for_fields_with_accents(self):
         xls_path = os.path.join(
             self.this_directory, "fixtures",
