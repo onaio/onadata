@@ -224,9 +224,9 @@ Link XForm or Dataview as a media example:
         "url": "https://api.ona.io/api/v1/metadata/7121.json"
         }
 
-Create xform meta permissions
+Create XForm meta permissions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Setting meta permissions for a specific form by passing two roles that are pipe delimited.
+Set meta permissions for a specific form by passing two roles that are pipe delimited.
 First role indicates editor default role and the other is the dataentry default role.
 
 Example
