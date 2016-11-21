@@ -13,6 +13,7 @@ from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.serializers.metadata_serializer import UNIQUE_TOGETHER_ERROR
 from onadata.libs.utils.common_tags import XFORM_META_PERMS
+from onadata.libs.permissions import (EditorRole, EditorMinorRole)
 
 
 class TestMetaDataViewSet(TestAbstractViewSet):
@@ -463,3 +464,27 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
         error = u"Format 'role'|'role' or Invalid role"
         self.assertEqual(response.data, {'non_field_errors': [error]})
+
+    def test_role_update_xform_meta_perms(self):
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+
+        EditorRole.add(alice_profile.user, self.xform)
+
+        view = MetaDataViewSet.as_view({'post': 'create'})
+
+        data = {
+            'data_type': XFORM_META_PERMS,
+            'data_value': 'editor-minor|dataentry',
+            'xform': self.xform.pk
+        }
+        request = self.factory.post('/', data, **self.extra)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 201)
+
+        self.assertFalse(
+            EditorRole.user_has_role(alice_profile.user, self.xform))
+
+        self.assertTrue(
+            EditorMinorRole.user_has_role(alice_profile.user, self.xform))

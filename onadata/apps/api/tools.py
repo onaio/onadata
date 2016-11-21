@@ -27,6 +27,8 @@ from registration.models import RegistrationProfile
 from rest_framework import exceptions
 from taggit.forms import TagField
 
+from onadata.libs.permissions import get_role
+from onadata.libs.permissions import is_organization
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.models.team import Team
 from onadata.apps.main.forms import QuickConverter
@@ -42,9 +44,12 @@ from onadata.libs.utils.project_utils import set_project_perms_to_xform
 from onadata.libs.utils.user_auth import check_and_set_form_by_id
 from onadata.libs.utils.user_auth import check_and_set_form_by_id_string
 from onadata.libs.permissions import ROLES
-from onadata.libs.permissions import ManagerRole
+from onadata.libs.permissions import ManagerRole, EditorRole, EditorMinorRole
+from onadata.libs.permissions import DataEntryRole, DataEntryMinorRole,\
+    DataEntryOnlyRole
 from onadata.libs.permissions import get_role_in_org
 from onadata.libs.baseviewset import DefaultBaseViewset
+from onadata.apps.main.models.meta_data import MetaData
 
 
 DECIMAL_PRECISION = 2
@@ -524,3 +529,64 @@ def generate_tmp_path(uploaded_csv_file):
         tmp_path = uploaded_csv_file.temporary_file_path()
 
     return tmp_path
+
+
+def get_xform_users(xform):
+    """
+    Utility function that returns users and their roles in a form.
+    :param xform:
+    :return:
+    """
+    data = {}
+    for perm in xform.xformuserobjectpermission_set.all():
+        if perm.user not in data:
+            user = perm.user
+
+            data[user] = {
+                'permissions': [],
+                'is_org': is_organization(user.profile),
+                'metadata': user.profile.metadata,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'user': user.username
+            }
+        if perm.user in data:
+            data[perm.user]['permissions'].append(
+                perm.permission.codename
+            )
+
+    for k in data.keys():
+        data[k]['permissions'].sort()
+        data[k]['role'] = get_role(data[k]['permissions'], xform)
+        del (data[k]['permissions'])
+
+    return data
+
+
+def update_role_by_meta_xform_perms(xform):
+    # load meta xform perms
+    metadata = MetaData.xform_meta_permission(xform)
+    editor_role_list = [EditorRole, EditorMinorRole]
+    editor_role = {role.name: role for role in editor_role_list}
+
+    dataentry_role_list = [DataEntryMinorRole, DataEntryOnlyRole,
+                           DataEntryRole]
+    dataentry_role = {role.name: role for role in dataentry_role_list}
+
+    if metadata:
+        meta_perms = metadata.data_value.split('|')
+
+        # update roles
+        users = get_xform_users(xform)
+
+        for user in users.keys():
+            role = users.get(user).get('role')
+            if role in editor_role:
+                role = ROLES.get(meta_perms[0])
+
+                role.add(user, xform)
+
+            if role in dataentry_role:
+                role = ROLES.get(meta_perms[1])
+
+                role.add(user, xform)

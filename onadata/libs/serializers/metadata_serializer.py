@@ -22,6 +22,7 @@ from onadata.libs.serializers.fields.project_related_field import (
     ProjectRelatedField,)
 from onadata.libs.serializers.fields.instance_related_field import (
     InstanceRelatedField,)
+from onadata.apps.api.tools import update_role_by_meta_xform_perms
 
 UNIQUE_TOGETHER_ERROR = u"Object already exists"
 
@@ -204,7 +205,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         content_type = ContentType.objects.get_for_model(content_object)
 
         try:
-            return MetaData.objects.create(
+            metadata = MetaData.objects.create(
                 content_type=content_type,
                 data_type=data_type,
                 data_value=data_value,
@@ -212,5 +213,10 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                 data_file_type=data_file_type,
                 object_id=content_object.id
             )
+
+            if metadata.data_type == XFORM_META_PERMS:
+                update_role_by_meta_xform_perms(content_object)
+
+            return metadata
         except IntegrityError:
             raise serializers.ValidationError(_(UNIQUE_TOGETHER_ERROR))
