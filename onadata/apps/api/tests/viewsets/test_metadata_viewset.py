@@ -13,7 +13,8 @@ from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.serializers.metadata_serializer import UNIQUE_TOGETHER_ERROR
 from onadata.libs.utils.common_tags import XFORM_META_PERMS
-from onadata.libs.permissions import (EditorRole, EditorMinorRole)
+from onadata.libs.permissions import (EditorRole, EditorMinorRole,
+                                      DataEntryRole,  DataEntryOnlyRole)
 
 
 class TestMetaDataViewSet(TestAbstractViewSet):
@@ -471,7 +472,10 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
         EditorRole.add(alice_profile.user, self.xform)
 
-        view = MetaDataViewSet.as_view({'post': 'create'})
+        view = MetaDataViewSet.as_view({
+            'post': 'create',
+            'put': 'update'
+        })
 
         data = {
             'data_type': XFORM_META_PERMS,
@@ -488,3 +492,23 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
         self.assertTrue(
             EditorMinorRole.user_has_role(alice_profile.user, self.xform))
+
+        meta = MetaData.xform_meta_permission(self.xform)
+
+        DataEntryRole.add(alice_profile.user, self.xform)
+
+        data = {
+            'data_type': XFORM_META_PERMS,
+            'data_value': 'editor|dataentry-only',
+            'xform': self.xform.pk
+        }
+        request = self.factory.put('/', data, **self.extra)
+        response = view(request, pk=meta.pk)
+
+        self.assertEqual(response.status_code, 200)
+
+        self.assertFalse(
+            DataEntryRole.user_has_role(alice_profile.user, self.xform))
+
+        self.assertTrue(
+            DataEntryOnlyRole.user_has_role(alice_profile.user, self.xform))

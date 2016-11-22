@@ -220,3 +220,12 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             return metadata
         except IntegrityError:
             raise serializers.ValidationError(_(UNIQUE_TOGETHER_ERROR))
+
+    def update(self, instance, validated_data):
+        instance = super(MetaDataSerializer, self).update(instance,
+                                                          validated_data)
+
+        if instance.data_type == XFORM_META_PERMS:
+            update_role_by_meta_xform_perms(instance.content_object)
+
+        return instance
