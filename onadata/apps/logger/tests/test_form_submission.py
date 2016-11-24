@@ -2,6 +2,7 @@ import os
 import re
 
 from django.http import Http404
+from django.http import UnreadablePostError
 from django_digest.test import DigestAuth
 from django_digest.test import Client as DigestClient
 from guardian.shortcuts import assign_perm
@@ -561,3 +562,21 @@ class TestFormSubmission(TestBase):
         xml_str = clean_and_parse_xml(xml_str).toxml()
         edited_name = re.match(ur"^.+?<name>(.+?)</name>", xml_str).groups()[0]
         self.assertEqual(record['name'], edited_name)
+
+    @patch('onadata.libs.utils.logger_tools.create_instance')
+    def test_fail_with_unreadable_post_error(self, mock_create_instance):
+        """Test UnreadablePostError is handled on form data submission"""
+        mock_create_instance.side_effect = UnreadablePostError(
+            'error during read(65536) on wsgi.input'
+        )
+
+        self.assertEquals(0, self.xform.instances.count())
+
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml"
+        )
+        self._make_submission(xml_submission_file_path)
+        self.assertEqual(self.response.status_code, 400)
+
+        self.assertEquals(0, self.xform.instances.count())
