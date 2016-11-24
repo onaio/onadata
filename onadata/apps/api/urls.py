@@ -214,6 +214,7 @@ class MultiLookupRouter(routers.DefaultRouter):
             ret = format_suffix_patterns(ret, allowed=['[a-z]+[0-9]*'])
         return ret
 
+
 router = MultiLookupRouter(trailing_slash=False)
 router.register(r'users', UserViewSet)
 router.register(r'user', ConnectViewSet)

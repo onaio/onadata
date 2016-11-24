@@ -11,6 +11,7 @@ class TeamAdmin(admin.ModelAdmin):
             return qs
         return qs.filter(user=request.user)
 
+
 admin.site.register(Team, TeamAdmin)
 
 
@@ -22,6 +23,7 @@ class OrganizationProfileAdmin(admin.ModelAdmin):
             return qs
         return qs.filter(user=request.user)
 
+
 admin.site.register(OrganizationProfile, OrganizationProfileAdmin)
 
 
@@ -32,5 +34,6 @@ class TempTokenProfileAdmin(admin.ModelAdmin):
         if request.user.is_superuser:
             return qs
         return qs.filter(user=request.user)
+
 
 admin.site.register(TempToken, TempTokenProfileAdmin)

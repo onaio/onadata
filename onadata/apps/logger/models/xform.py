@@ -865,6 +865,7 @@ def update_profile_num_submissions(sender, instance, **kwargs):
             profile.num_of_submissions = 0
         profile.save()
 
+
 post_delete.connect(update_profile_num_submissions, sender=XForm,
                     dispatch_uid='update_profile_num_submissions')
 
@@ -891,6 +892,7 @@ post_save.connect(set_object_permissions, sender=XForm,
 
 def save_project(sender, instance=None, created=False, **kwargs):
     instance.project.save(update_fields=['date_modified'])
+
 
 pre_save.connect(save_project, sender=XForm,
                  dispatch_uid='save_project_xform')

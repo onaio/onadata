@@ -14,4 +14,5 @@ class DataDictionaryAdmin(VersionAdmin, admin.ModelAdmin):
             return qs
         return qs.filter(user=request.user)
 
+
 admin.site.register(DataDictionary, DataDictionaryAdmin)

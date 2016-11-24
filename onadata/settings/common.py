@@ -11,8 +11,8 @@
 # environment variable as needed.
 import logging
 import os
-import subprocess  # nopep8, used by included files
-import sys  # nopep8, used by included files
+import subprocess  # noqa, used by included files
+import sys
 import socket
 from urlparse import urljoin
 
@@ -298,6 +298,7 @@ def skip_suspicious_operations(record):
             return False
     return True
 
+
 # A sample logging configuration. The only tangible logging
 # performed by this configuration is to send an email to
 # the site admins on every HTTP 500 error.
@@ -405,6 +406,7 @@ def configure_logging(logger, **kwargs):
     admin_email_handler = AdminEmailHandler()
     admin_email_handler.setLevel(logging.ERROR)
     logger.addHandler(admin_email_handler)
+
 
 after_setup_logger.connect(configure_logging)
 
@@ -528,6 +530,6 @@ DEFAULT_CELERY_INTERVAL_STEP = 0.5
 # legacy setting for old sites who still use a local_settings.py file and have
 # not updated to presets/
 try:
-    from local_settings import *  # nopep8
+    from local_settings import *  # noqa
 except ImportError:
     pass

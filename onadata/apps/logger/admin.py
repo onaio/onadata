@@ -17,6 +17,7 @@ class XFormAdmin(VersionAdmin, admin.ModelAdmin):
             return qs
         return qs.filter(user=request.user)
 
+
 admin.site.register(XForm, XFormAdmin)
 
 
@@ -32,5 +33,6 @@ class ProjectAdmin(VersionAdmin, admin.ModelAdmin):
         if request.user.is_superuser:
             return qs
         return qs.filter(organization=request.user)
+
 
 admin.site.register(Project, ProjectAdmin)

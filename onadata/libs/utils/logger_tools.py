@@ -17,8 +17,10 @@ from django.core.mail import mail_admins
 from django.contrib.auth.models import User
 from django.db import IntegrityError, transaction
 from django.db.models import Q
-from django.http import HttpResponse, HttpResponseNotFound, \
-    StreamingHttpResponse
+from django.http import HttpResponse
+from django.http import HttpResponseNotFound
+from django.http import StreamingHttpResponse
+from django.http import UnreadablePostError
 from django.shortcuts import get_object_or_404
 from django.utils.encoding import DjangoUnicodeDecodeError
 from django.utils.translation import ugettext as _
@@ -349,6 +351,10 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
         error = response
     except PermissionDenied as e:
         error = OpenRosaResponseForbidden(e)
+    except UnreadablePostError as e:
+        error = OpenRosaResponseBadRequest(_(
+            u"Unable to read submitted file: %(error)s" % {'error': str(e)}
+        ))
     except InstanceMultipleNodeError as e:
         error = OpenRosaResponseBadRequest(e)
     except DjangoUnicodeDecodeError:
