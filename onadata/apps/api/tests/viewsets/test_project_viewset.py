@@ -1909,9 +1909,9 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         # assert count
         self.assertIn('data_views', response.data)
-        self.assertTrue(len(response.data['data_views']) == 2)
-        self.assertTrue(response.data['data_views'][1]['count'] == 4)
-        self.assertTrue(response.data['data_views'][0]['count'] == 0)
+        self.assertEqual(len(response.data['data_views']),  2)
+        self.assertEqual(response.data['data_views'][1]['count'], 4)
+        self.assertEqual(response.data['data_views'][0]['count'], 0)
 
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.project.pk)
