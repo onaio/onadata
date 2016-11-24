@@ -7,7 +7,7 @@
 
 # get most settings from staging_example.py (which in turn, imports from
 # settings.py)
-from staging_example import *  # nopep8
+from staging_example import *  # noqa
 
 # # # now override the settings which came from staging # # # #
 DATABASES = {

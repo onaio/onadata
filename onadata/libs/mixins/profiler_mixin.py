@@ -67,6 +67,7 @@ def finished(sender, **kwargs):
     except NameError:
         pass
 
+
 if settings.PROFILE_API_ACTION_FUNCTION:
     request_started.connect(started)
     request_finished.connect(finished)

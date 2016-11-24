@@ -4,6 +4,7 @@ from django.core.cache import cache
 def safe_delete(key):
     cache.get(key) and cache.delete(key)
 
+
 # Cache names used in project serializer
 PROJ_PERM_CACHE = 'ps-project_permissions-'
 PROJ_NUM_DATASET_CACHE = 'ps-num_datasets-'

@@ -176,12 +176,14 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
 
         MetaData.media_upload(xform, data_file)
 
+
 post_save.connect(set_object_permissions, sender=DataDictionary,
                   dispatch_uid='xform_object_permissions')
 
 
 def save_project(sender, instance=None, created=False, **kwargs):
     instance.project.save()
+
 
 pre_save.connect(save_project, sender=DataDictionary,
                  dispatch_uid='save_project_datadictionary')

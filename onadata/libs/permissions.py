@@ -280,6 +280,7 @@ class OwnerRole(Role):
         (CAN_VIEW_PROJECT_ALL, Project),
     )
 
+
 ROLES_ORDERED = [ReadOnlyRoleNoDownload,
                  ReadOnlyRole,
                  DataEntryOnlyRole,

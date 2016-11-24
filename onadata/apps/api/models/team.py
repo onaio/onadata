@@ -61,5 +61,6 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
             if organization.created_by != instance.created_by:
                 assign_perm(perm.codename, organization.created_by, instance)
 
+
 post_save.connect(set_object_permissions, sender=Team,
                   dispatch_uid='set_team_object_permissions')

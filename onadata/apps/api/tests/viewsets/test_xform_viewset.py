@@ -185,6 +185,7 @@ def fixtures_path(filepath):
     return open(os.path.join(
         settings.PROJECT_ROOT, 'libs', 'tests', 'utils', 'fixtures', filepath))
 
+
 ROLES = [ReadOnlyRole,
          DataEntryRole,
          EditorRole,

@@ -18,6 +18,7 @@ class Enum(object):
     def __iter__(self):
         return self.enums.itervalues()
 
+
 Actions = Enum(
     PROFILE_ACCESSED="profile-accessed",
     PUBLIC_PROFILE_ACCESSED="public-profile-accessed",

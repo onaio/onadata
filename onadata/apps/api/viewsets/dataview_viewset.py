@@ -239,6 +239,7 @@ def dataview_post_delete_callback(sender, instance, **kwargs):
         safe_delete('{}{}'.format(PROJECT_LINKED_DATAVIEWS,
                                   instance.project.pk))
 
+
 post_save.connect(dataview_post_save_callback,
                   sender=DataView,
                   dispatch_uid='dataview_post_save_callback')
