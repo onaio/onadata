@@ -4048,3 +4048,58 @@ class TestXFormViewSet(TestAbstractViewSet):
                     self.assertTrue(
                         role_class.user_has_role(alice_profile.user,
                                                  self.xform))
+
+    def test_csv_export_with_meta_perms(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+
+            for survey in self.surveys:
+                _submission_time = parse_datetime('2013-02-18 15:54:01Z')
+                self._make_submission(
+                    os.path.join(
+                        settings.PROJECT_ROOT, 'apps',
+                        'main', 'tests', 'fixtures', 'transportation',
+                        'instances', survey, survey + '.xml'),
+                    forced_submission_time=_submission_time)
+
+            alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+            alice_profile = self._create_user_profile(alice_data)
+
+            DataEntryMinorRole.add(alice_profile.user, self.xform)
+
+            for i in self.xform.instances.all()[:2]:
+                i.user = alice_profile.user
+                i.save()
+
+            view = XFormViewSet.as_view({
+                'get': 'retrieve'
+            })
+
+            alices_extra = {
+                'HTTP_AUTHORIZATION': 'Token %s' %
+                                      alice_profile.user.auth_token.key
+            }
+
+            request = self.factory.get('/',  **alices_extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            headers = dict(response.items())
+            self.assertEqual(headers['Content-Type'], 'application/csv')
+            content_disposition = headers['Content-Disposition']
+            filename = filename_from_disposition(content_disposition)
+            basename, ext = os.path.splitext(filename)
+            self.assertEqual(ext, '.csv')
+
+            content = get_response_content(response)
+            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
+                                          'viewer', 'tests', 'fixtures',
+                                          'transportation_meta_perms.csv')
+            with open(test_file_path, 'r') as test_file:
+                self.assertEqual(content, test_file.read())
+
+            DataEntryOnlyRole.add(alice_profile.user, self.xform)
+
+            request = self.factory.get('/', **alices_extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 403)

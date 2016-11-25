@@ -44,7 +44,8 @@ from onadata.libs.utils.model_tools import get_columns_with_hxl
 from onadata.libs.utils.async_status import (celery_state_to_status,
                                              async_status, SUCCESSFUL,
                                              FAILED, PENDING)
-
+from onadata.libs.permissions import filter_queryset_xform_meta_perms_sql
+from onadata.libs.exceptions import NoRecordsPermission
 # Supported external exports
 external_export_types = ['xls']
 
@@ -108,6 +109,16 @@ def custom_response_handler(request, xform, query, export_type,
             options['include_hxl'] = include_hxl_row(
                 dataview.columns, columns_with_hxl.keys()
             )
+    try:
+        query = filter_queryset_xform_meta_perms_sql(xform, request.user,
+                                                     query)
+    except NoRecordsPermission:
+        payload = {
+            "details": _("You don't have permission")
+        }
+        return Response(data=json.dumps(payload),
+                        status=status.HTTP_403_FORBIDDEN,
+                        content_type="application/json")
 
     options['query'] = query
 
@@ -356,6 +367,17 @@ def process_async_export(request, xform, export_type, options=None):
     token = options.get("token")
     meta = options.get("meta")
     query = options.get("query")
+
+    try:
+        query = filter_queryset_xform_meta_perms_sql(xform, request.user,
+                                                     query)
+    except NoRecordsPermission:
+        payload = {
+            "details": _("You don't have permission")
+        }
+        return Response(data=json.dumps(payload),
+                        status=status.HTTP_403_FORBIDDEN,
+                        content_type="application/json")
 
     if export_type in external_export_types and \
             (token is not None) or (meta is not None):

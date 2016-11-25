@@ -512,3 +512,46 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
         self.assertTrue(
             DataEntryOnlyRole.user_has_role(alice_profile.user, self.xform))
+
+    def test_xform_meta_perms_duplicates(self):
+        view = MetaDataViewSet.as_view({
+            'post': 'create',
+            'put': 'update'
+        })
+
+        ct = ContentType.objects.get_for_model(self.xform)
+
+        data = {
+            'data_type': XFORM_META_PERMS,
+            'data_value': 'editor-minor|dataentry',
+            'xform': self.xform.pk
+        }
+        request = self.factory.post('/', data, **self.extra)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 201)
+
+        count = MetaData.objects.filter(data_type=XFORM_META_PERMS,
+                                        object_id=self.xform.pk,
+                                        content_type=ct.pk).count()
+
+        self.assertEqual(1, count)
+
+        data = {
+            'data_type': XFORM_META_PERMS,
+            'data_value': 'editor-minor|dataentry-only',
+            'xform': self.xform.pk
+        }
+        request = self.factory.post('/', data, **self.extra)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 201)
+
+        count = MetaData.objects.filter(data_type=XFORM_META_PERMS,
+                                        object_id=self.xform.pk,
+                                        content_type=ct.pk).count()
+
+        self.assertEqual(1, count)
+
+        metadata = MetaData.xform_meta_permission(self.xform)
+        self.assertEqual(metadata.data_value, "editor-minor|dataentry-only")

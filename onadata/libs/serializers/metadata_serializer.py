@@ -205,17 +205,22 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         content_type = ContentType.objects.get_for_model(content_object)
 
         try:
-            metadata = MetaData.objects.create(
-                content_type=content_type,
-                data_type=data_type,
-                data_value=data_value,
-                data_file=data_file,
-                data_file_type=data_file_type,
-                object_id=content_object.id
-            )
-
-            if metadata.data_type == XFORM_META_PERMS:
+            if data_type == XFORM_META_PERMS:
+                metadata = \
+                    MetaData.xform_meta_permission(content_object,
+                                                   data_value=data_value)
                 update_role_by_meta_xform_perms(content_object)
+
+            else:
+
+                metadata = MetaData.objects.create(
+                    content_type=content_type,
+                    data_type=data_type,
+                    data_value=data_value,
+                    data_file=data_file,
+                    data_file_type=data_file_type,
+                    object_id=content_object.id
+                )
 
             return metadata
         except IntegrityError:
