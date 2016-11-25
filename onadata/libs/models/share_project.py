@@ -1,7 +1,8 @@
 from django.contrib.auth.models import User
 
 from onadata.libs.permissions import ROLES
-from onadata.libs.permissions import EditorRole, DataEntryRole
+from onadata.libs.permissions import EditorRole, EditorMinorRole,\
+    DataEntryRole, DataEntryMinorRole, DataEntryOnlyRole
 from onadata.libs.utils.cache_tools import PROJ_PERM_CACHE, safe_delete
 
 
@@ -36,10 +37,11 @@ class ShareProject(object):
                         meta_perm = meta_perms[0].data_value.split("|")
 
                         if len(meta_perm) > 1:
-                            if role == EditorRole:
+                            if role in [EditorRole, EditorMinorRole]:
                                 role = ROLES.get(meta_perm[0])
 
-                            elif role == DataEntryRole:
+                            elif role in [DataEntryRole, DataEntryMinorRole,
+                                          DataEntryOnlyRole]:
                                 role = ROLES.get(meta_perm[1])
                     role.add(self.user, xform)
 

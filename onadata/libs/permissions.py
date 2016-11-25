@@ -393,6 +393,6 @@ def filter_queryset_xform_meta_perms_sql(xform, user, query):
 
             ret_query = json.dumps(query_list)
     else:
-        ret_query = NoRecordsPermission()
+        raise NoRecordsPermission()
 
     return ret_query

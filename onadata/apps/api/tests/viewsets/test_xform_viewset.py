@@ -38,7 +38,7 @@ from onadata.apps.viewer.models import Export
 from onadata.apps.logger.models import Attachment
 from onadata.libs.permissions import (
     OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole,
-    EditorMinorRole)
+    EditorMinorRole, ROLES_ORDERED, DataEntryMinorRole, DataEntryOnlyRole)
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.serializers.xform_serializer import XFormBaseSerializer
 from onadata.apps.main.models import MetaData
@@ -4022,9 +4022,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             MetaData.xform_meta_permission(self.xform, data_value=data_value)
 
-            for role_class in [DataEntryRole, EditorRole]:
-                self.assertFalse(role_class.user_has_role(alice_profile.user,
-                                                          self.xform))
+            for role_class in ROLES_ORDERED:
 
                 data = {"username": "alice", "role": role_class.name}
                 request = self.factory.post('/', data=data, **self.extra)
@@ -4032,7 +4030,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
                 self.assertEqual(response.status_code, 204)
 
-                if role_class == EditorRole:
+                if role_class in [EditorRole, EditorMinorRole]:
                     self.assertFalse(
                         EditorRole.user_has_role(alice_profile.user,
                                                  self.xform))
@@ -4040,7 +4038,13 @@ class TestXFormViewSet(TestAbstractViewSet):
                         EditorMinorRole.user_has_role(alice_profile.user,
                                                       self.xform))
 
-                if role_class == DataEntryRole:
+                elif role_class in [DataEntryRole, DataEntryMinorRole,
+                                    DataEntryOnlyRole]:
                     self.assertTrue(
                         DataEntryRole.user_has_role(alice_profile.user,
                                                     self.xform))
+
+                else:
+                    self.assertTrue(
+                        role_class.user_has_role(alice_profile.user,
+                                                 self.xform))

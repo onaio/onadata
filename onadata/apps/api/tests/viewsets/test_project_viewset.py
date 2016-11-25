@@ -15,7 +15,8 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.permissions import (
     OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorMinorRole,
-    EditorRole, ReadOnlyRoleNoDownload)
+    EditorRole, ReadOnlyRoleNoDownload,  DataEntryMinorRole, DataEntryOnlyRole,
+    ROLES_ORDERED)
 from onadata.libs.serializers.project_serializer import ProjectSerializer,\
     BaseProjectSerializer
 from onadata.libs import permissions as role
@@ -1933,7 +1934,7 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         MetaData.xform_meta_permission(self.xform, data_value=data_value)
 
-        for role_class in [DataEntryRole, EditorRole]:
+        for role_class in ROLES_ORDERED:
             self.assertFalse(role_class.user_has_role(alice_profile.user,
                                                       self.project))
 
@@ -1950,14 +1951,19 @@ class TestProjectViewSet(TestAbstractViewSet):
             self.assertTrue(role_class.user_has_role(alice_profile.user,
                                                      self.project))
 
-            if role_class == EditorRole:
+            if role_class in [EditorRole, EditorMinorRole]:
                 self.assertFalse(
                     EditorRole.user_has_role(alice_profile.user, self.xform))
                 self.assertTrue(
                     EditorMinorRole.user_has_role(alice_profile.user,
                                                   self.xform))
 
-            if role_class == DataEntryRole:
+            elif role_class in [DataEntryRole, DataEntryMinorRole,
+                                DataEntryOnlyRole]:
                 self.assertTrue(
                     DataEntryRole.user_has_role(alice_profile.user,
                                                 self.xform))
+
+            else:
+                self.assertTrue(
+                    role_class.user_has_role(alice_profile.user, self.xform))

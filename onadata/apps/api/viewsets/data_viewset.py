@@ -403,13 +403,11 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                     self.object_list.order_by('pk')[start: limit]
                 self.total_count = self.object_list.count()
             elif (sort or limit or start or fields) and not is_public_request:
-                query = filter_queryset_xform_meta_perms_sql(self.get_object(),
+                try:
+                    query = \
+                        filter_queryset_xform_meta_perms_sql(self.get_object(),
                                                              self.request.user,
                                                              query)
-                if isinstance(query, NoRecordsPermission):
-                    self.object_list = []
-                    self.total_count = 0
-                else:
                     self.object_list = query_data(xform, query=query,
                                                   sort=sort, start_index=start,
                                                   limit=limit, fields=fields)
@@ -417,6 +415,11 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                         xform, query=query, sort=sort, start_index=start,
                         limit=limit, fields=fields, count=True
                     )[0].get('count')
+
+                except NoRecordsPermission:
+                    self.object_list = []
+                    self.total_count = 0
+
             else:
                 self.total_count = self.object_list.count()
 
