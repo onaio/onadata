@@ -1911,8 +1911,9 @@ class TestProjectViewSet(TestAbstractViewSet):
         # assert count
         self.assertIn('data_views', response.data)
         self.assertEqual(len(response.data['data_views']),  2)
-        self.assertEqual(response.data['data_views'][1]['count'], 4)
-        self.assertEqual(response.data['data_views'][0]['count'], 0)
+        count_one = response.data['data_views'][1]['count']
+        count_two = response.data['data_views'][0]['count']
+        self.assertEqual([count_one, count_two].sort(), [0, 4].sort())
 
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.project.pk)
@@ -1920,8 +1921,9 @@ class TestProjectViewSet(TestAbstractViewSet):
         # assert count
         self.assertIn('data_views', response.data)
         self.assertTrue(len(response.data['data_views']) == 2)
-        self.assertTrue(response.data['data_views'][1]['count'] == 4)
-        self.assertTrue(response.data['data_views'][0]['count'] == 0)
+        count_one = response.data['data_views'][1]['count']
+        count_two = response.data['data_views'][0]['count']
+        self.assertEqual([count_one, count_two].sort(), [0, 4].sort())
 
     def test_project_share_xform_meta_perms(self):
         # create project and publish form to project
