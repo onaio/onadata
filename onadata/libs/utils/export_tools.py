@@ -26,7 +26,11 @@ from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
     image_urls
 from onadata.libs.utils.common_tags import (
-    GROUPNAME_REMOVED_FLAG, DATAVIEW_EXPORT)
+    GROUPNAME_REMOVED_FLAG,
+    DATAVIEW_EXPORT,
+    GROUP_DELIMITER_SLASH_TAG,
+    GROUP_DELIMITER_DOT_TAG,
+    GROUP_DELIMITER_UNDER_SCORE_TAG)
 from onadata.libs.utils.export_builder import ExportBuilder
 from onadata.libs.utils.osm import get_combined_osm
 from onadata.libs.utils.model_tools import (
@@ -34,7 +38,6 @@ from onadata.libs.utils.model_tools import (
 from onadata.libs.utils.common_tools import str_to_bool
 
 
-DEFAULT_GROUP_DELIMITER = '/'
 EXPORT_QUERY_KEY = 'query'
 
 
@@ -138,7 +141,7 @@ def generate_export(export_type, xform, export_id=None, options=None):
     export_builder.TRUNCATE_GROUP_TITLE = True \
         if export_type == Export.SAV_ZIP_EXPORT else remove_group_name
     export_builder.GROUP_DELIMITER = options.get(
-        "group_delimiter", DEFAULT_GROUP_DELIMITER
+        "group_delimiter", GROUP_DELIMITER_SLASH_TAG
     )
     export_builder.SPLIT_SELECT_MULTIPLES = options.get(
         "split_select_multiples", True
@@ -741,10 +744,12 @@ def parse_request_export_options(params):
     else:
         options["remove_group_name"] = False
 
-    if params.get("group_delimiter") in ['.', DEFAULT_GROUP_DELIMITER]:
+    if params.get("group_delimiter") in [GROUP_DELIMITER_DOT_TAG,
+                                         GROUP_DELIMITER_SLASH_TAG,
+                                         GROUP_DELIMITER_UNDER_SCORE_TAG]:
         options['group_delimiter'] = params.get("group_delimiter")
     else:
-        options['group_delimiter'] = DEFAULT_GROUP_DELIMITER
+        options['group_delimiter'] = GROUP_DELIMITER_SLASH_TAG
 
     options['split_select_multiples'] = \
         not str_to_bool(do_not_split_select_multiples)

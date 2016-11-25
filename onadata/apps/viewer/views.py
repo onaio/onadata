@@ -32,12 +32,12 @@ from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.tasks import create_async_export
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.export_tools import (
-    DEFAULT_GROUP_DELIMITER,
     generate_export,
     should_create_new_export,
     kml_export_data,
     newest_export_for,
     str_to_bool)
+from onadata.libs.utils.common_tags import GROUP_DELIMITER_SLASH_TAG
 from onadata.libs.utils.image_tools import image_url
 from onadata.libs.utils.google import google_flow
 from onadata.libs.utils.log import audit_log, Actions
@@ -424,7 +424,7 @@ def export_list(request, username, id_string, export_type):
     export_token = request.GET.get('token')
     export_meta = request.GET.get('meta')
     options = {
-        'group_delimiter': DEFAULT_GROUP_DELIMITER,
+        'group_delimiter': GROUP_DELIMITER_SLASH_TAG,
         'remove_group_name': False,
         'split_select_multiples': True,
         'binary_select_multiples': False,

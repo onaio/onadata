@@ -123,7 +123,8 @@ class XFormListViewSet(CacheControlMixin, ETagsMixin, BaseViewset,
         object_list = MetaData.objects.filter(data_type='media',
                                               object_id=self.object.pk)
         context = self.get_serializer_context()
-        context[GROUP_DELIMETER_TAG] = ExportBuilder.GROUP_DELIMITER_DOT
+        context[GROUP_DELIMETER_TAG] = \
+            ExportBuilder.GROUP_DELIMITER_UNDER_SCORE
         serializer = XFormManifestSerializer(object_list, many=True,
                                              context=context)
 

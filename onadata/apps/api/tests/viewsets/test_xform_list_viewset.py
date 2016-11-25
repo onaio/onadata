@@ -515,9 +515,9 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         response = self.view(request, pk=self.xform.pk, format='csv')
 
         # test
-        manifest_media_url = "%s?%s=%s" % (media.data['media_url'],
-                                           GROUP_DELIMETER_TAG,
-                                           ExportBuilder.GROUP_DELIMITER_DOT)
+        manifest_media_url = \
+            "%s?%s=%s" % (media.data['media_url'], GROUP_DELIMETER_TAG,
+                          ExportBuilder.GROUP_DELIMITER_UNDER_SCORE)
         self.assertEqual(manifest_media_url, response.data[0]['downloadUrl'])
 
     def test_xform_3gp_media_type(self):
