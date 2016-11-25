@@ -26,6 +26,7 @@ class TestApiExportTools(TestBase):
     def test_process_async_export_creates_new_export(self):
         self._publish_transportation_form_and_submit_instance()
         request = self.factory.post('/')
+        request.user = self.user
         export_type = "csv"
         options = defaultdict(dict)
 
@@ -44,6 +45,7 @@ class TestApiExportTools(TestBase):
                    "split_select_multiples": True}
 
         request = Request(self.factory.post('/'))
+        request.user = self.user
         export_type = "csv"
 
         self._create_old_export(self.xform, export_type, options,
