@@ -144,7 +144,7 @@ def _use_labels_from_field_name(field_name, field, data_type, data,
     truncated_name = field_name[0:POSTGRES_ALIAS_LENGTH]
     truncated_name = truncated_name.encode('utf-8')
 
-    if data_type == 'categorized' and not common_tags.SUBMITTED_BY:
+    if data_type == 'categorized'and field_name != common_tags.SUBMITTED_BY:
         if data:
             if field.children:
                 choices = field.children
@@ -351,6 +351,8 @@ def get_field_from_field_name(field_name, xform):
     # check if its the special _submission_time META
     if field_name == common_tags.SUBMISSION_TIME:
         field = common_tags.SUBMISSION_TIME
+    elif field_name == common_tags.SUBMITTED_BY:
+        field = common_tags.SUBMITTED_BY
     else:
         # use specified field to get summary
         fields = filter(
