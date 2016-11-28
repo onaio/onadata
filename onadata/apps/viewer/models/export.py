@@ -1,4 +1,5 @@
 import os
+import hashlib
 from tempfile import NamedTemporaryFile
 
 from django.core.files.storage import get_storage_class
@@ -11,12 +12,38 @@ from onadata.apps.logger.models import XForm
 from onadata.libs.utils.common_tags import OSM
 from onadata.libs.utils import async_status
 
+EXPORT_QUERY_KEY = 'query'
+
 
 def export_delete_callback(sender, **kwargs):
     export = kwargs['instance']
     storage = get_storage_class()()
     if export.filepath and storage.exists(export.filepath):
         storage.delete(export.filepath)
+
+
+def md5hash(string):
+    return hashlib.md5(string).hexdigest()
+
+
+def get_export_options_query_kwargs(options):
+    """
+    Get dict with options JSONField lookups for export options field
+    """
+    options_kwargs = {}
+    for field in Export.EXPORT_OPTION_FIELDS:
+        if field in options:
+            field_value = options.get(field)
+
+            if field == EXPORT_QUERY_KEY:
+                query_str = str(format(field_value))
+
+                field_value = md5hash(query_str)
+
+            key = 'options__{}'.format(field)
+            options_kwargs[key] = field_value
+
+    return options_kwargs
 
 
 class Export(models.Model):
@@ -196,13 +223,14 @@ class Export(models.Model):
         return None
 
     @classmethod
-    def exports_outdated(cls, xform, export_type):
+    def exports_outdated(cls, xform, export_type, options={}):
         # get newest export for xform
         try:
+            export_options = get_export_options_query_kwargs(options)
             latest_export = Export.objects.filter(
                 xform=xform, export_type=export_type,
-                internal_status__in=[Export.SUCCESSFUL, Export.PENDING])\
-                .latest('created_on')
+                internal_status__in=[Export.SUCCESSFUL, Export.PENDING],
+                **export_options).latest('created_on')
         except cls.DoesNotExist:
             return True
         else:
