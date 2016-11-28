@@ -13,7 +13,8 @@ from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
 from onadata.apps.main.models import MetaData
-
+from onadata.libs.utils.common_tags import XFORM_META_PERMS
+from onadata.libs.permissions import ROLES
 from onadata.libs.permissions import ManagerRole
 from onadata.libs.serializers.fields.xform_related_field import (
     XFormRelatedField,)
@@ -21,6 +22,7 @@ from onadata.libs.serializers.fields.project_related_field import (
     ProjectRelatedField,)
 from onadata.libs.serializers.fields.instance_related_field import (
     InstanceRelatedField,)
+from onadata.apps.api.tools import update_role_by_meta_xform_perms
 
 UNIQUE_TOGETHER_ERROR = u"Object already exists"
 
@@ -39,7 +41,8 @@ METADATA_TYPES = (
     (DOC_TYPE, _(u"Supporting Document")),
     ('external_export', _(u"External Export")),
     ('textit', _(u"External Export")),
-    ('google_sheets', _(u"Google Sheet"))
+    ('google_sheets', _(u"Google Sheet")),
+    ('xform_meta_perms', _("Xform meta permissions"))
 )
 
 DATAVIEW_TAG = 'dataview'
@@ -127,7 +130,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         Validate url if we are adding a media uri instead of a media file
         """
         value = attrs.get('data_value')
-        media = attrs.get('data_type')
+        data_type = attrs.get('data_type')
         data_file = attrs.get('data_file')
 
         if not ('project' in attrs or 'xform' in attrs or 'instance' in attrs):
@@ -136,7 +139,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                                    "field is required.")
             })
 
-        if media == 'media' and data_file is None:
+        if data_type == 'media' and data_file is None:
             try:
                 URLValidator()(value)
             except ValidationError:
@@ -167,6 +170,12 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                         'data_value': _(u"Invalid url '%s'." % value)
                     })
 
+        if data_type == XFORM_META_PERMS:
+            perms = value.split('|')
+            if len(perms) != 2 or not set(perms).issubset(set(ROLES.keys())):
+                raise serializers.ValidationError(
+                    _(u"Format 'role'|'role' or Invalid role"))
+
         return attrs
 
     def get_content_object(self, validated_data):
@@ -196,13 +205,32 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         content_type = ContentType.objects.get_for_model(content_object)
 
         try:
-            return MetaData.objects.create(
-                content_type=content_type,
-                data_type=data_type,
-                data_value=data_value,
-                data_file=data_file,
-                data_file_type=data_file_type,
-                object_id=content_object.id
-            )
+            if data_type == XFORM_META_PERMS:
+                metadata = \
+                    MetaData.xform_meta_permission(content_object,
+                                                   data_value=data_value)
+                update_role_by_meta_xform_perms(content_object)
+
+            else:
+
+                metadata = MetaData.objects.create(
+                    content_type=content_type,
+                    data_type=data_type,
+                    data_value=data_value,
+                    data_file=data_file,
+                    data_file_type=data_file_type,
+                    object_id=content_object.id
+                )
+
+            return metadata
         except IntegrityError:
             raise serializers.ValidationError(_(UNIQUE_TOGETHER_ERROR))
+
+    def update(self, instance, validated_data):
+        instance = super(MetaDataSerializer, self).update(instance,
+                                                          validated_data)
+
+        if instance.data_type == XFORM_META_PERMS:
+            update_role_by_meta_xform_perms(instance.content_object)
+
+        return instance

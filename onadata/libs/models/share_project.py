@@ -1,6 +1,8 @@
 from django.contrib.auth.models import User
 
 from onadata.libs.permissions import ROLES
+from onadata.libs.permissions import EditorRole, EditorMinorRole,\
+    DataEntryRole, DataEntryMinorRole, DataEntryOnlyRole
 from onadata.libs.utils.cache_tools import PROJ_PERM_CACHE, safe_delete
 
 
@@ -28,6 +30,19 @@ class ShareProject(object):
 
                 # apply same role to forms under the project
                 for xform in self.project.xform_set.all():
+                    # check if there is xform meta perms set
+                    meta_perms = xform.metadata_set \
+                        .filter(data_type='xform_meta_perms')
+                    if meta_perms:
+                        meta_perm = meta_perms[0].data_value.split("|")
+
+                        if len(meta_perm) > 1:
+                            if role in [EditorRole, EditorMinorRole]:
+                                role = ROLES.get(meta_perm[0])
+
+                            elif role in [DataEntryRole, DataEntryMinorRole,
+                                          DataEntryOnlyRole]:
+                                role = ROLES.get(meta_perm[1])
                     role.add(self.user, xform)
 
                 for dataview in self.project.dataview_set.all():

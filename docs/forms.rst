@@ -930,12 +930,12 @@ Get list of public forms
     <b>GET</b> /api/v1/forms/public
     </pre>
 
-Share a form with a specific user
-----------------------------------
+Share a form with a specific username or usernames
+--------------------------------------------------
 
-You can share a form with a  specific user by `POST` a payload with
+You can share a form with a specific username or a list of usernames using `POST` with a payload of
 
-- ``username`` of the user you want to share the form with and
+- ``username`` OR ``usernames`` of the usernames you want to share the form with, multiple usernames should be comma separated, and
 - ``role`` you want the user to have on the form. Available roles are ``readonly``, ``dataentry``, ``editor``, ``manager``.
 
 .. raw:: html
@@ -948,6 +948,12 @@ Example
 ::
 
       curl -X POST -d '{"username": "alice", "role": "readonly"}' https://api.ona.io/api/v1/forms/123.json
+
+Example
+^^^^^^^
+::
+
+      curl -X POST -d '{"usernames": "alice,bob,eve", "role": "readonly"}' https://api.ona.io/api/v1/forms/123.json
 
 Response
 ^^^^^^^^

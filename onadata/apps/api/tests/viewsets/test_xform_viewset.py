@@ -37,7 +37,8 @@ from onadata.apps.logger.models import XForm
 from onadata.apps.viewer.models import Export
 from onadata.apps.logger.models import Attachment
 from onadata.libs.permissions import (
-    OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole)
+    OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole,
+    EditorMinorRole, ROLES_ORDERED, DataEntryMinorRole, DataEntryOnlyRole)
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.serializers.xform_serializer import XFormBaseSerializer
 from onadata.apps.main.models import MetaData
@@ -1484,7 +1485,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 200)
             self.assertEqual(len(response.data), 0)
 
-    def test_form_share_endpoint(self):
+    def test_form_share_endpoint_handles_no_username(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
             alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
@@ -1499,7 +1500,57 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertFalse(role_class.user_has_role(alice_profile.user,
                                                           self.xform))
 
-                data = {'username': 'alice', 'role': role_class.name}
+                data = {"role": role_class.name}
+                request = self.factory.post('/', data=data, **self.extra)
+                response = view(request, pk=formid)
+
+                self.assertEqual(response.status_code, 400)
+                self.assertFalse(role_class.user_has_role(alice_profile.user,
+                                                          self.xform))
+
+    def test_form_share_endpoint_takes_username(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+            alice_profile = self._create_user_profile(alice_data)
+
+            view = XFormViewSet.as_view({
+                'post': 'share'
+            })
+            formid = self.xform.pk
+
+            for role_class in ROLES:
+                self.assertFalse(role_class.user_has_role(alice_profile.user,
+                                                          self.xform))
+
+                data = {"username": "alice", "role": role_class.name}
+                request = self.factory.post('/', data=data, **self.extra)
+                response = view(request, pk=formid)
+
+                self.assertEqual(response.status_code, 204)
+                self.assertTrue(role_class.user_has_role(alice_profile.user,
+                                                         self.xform))
+
+    def test_form_share_endpoint_takes_usernames(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+            job_data = {'username': 'job', 'email': 'job@localhost.com'}
+            alice_profile = self._create_user_profile(alice_data)
+            job_profile = self._create_user_profile(job_data)
+
+            view = XFormViewSet.as_view({
+                'post': 'share'
+            })
+            formid = self.xform.pk
+
+            for role_class in ROLES:
+                self.assertFalse(role_class.user_has_role(alice_profile.user,
+                                                          self.xform))
+                self.assertFalse(role_class.user_has_role(job_profile.user,
+                                                          self.xform))
+
+                data = {"usernames": "alice,job", "role": role_class.name}
                 request = self.factory.post('/', data=data, **self.extra)
                 response = view(request, pk=formid)
 
@@ -3955,3 +4006,100 @@ class TestXFormViewSet(TestAbstractViewSet):
 
         self.assertIn("form_versions", response.data)
         self.assertEqual(response.data['form_versions'][0].get('total'), 3)
+
+    def test_share_auto_xform_meta_perms(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+            alice_profile = self._create_user_profile(alice_data)
+
+            view = XFormViewSet.as_view({
+                'post': 'share'
+            })
+            formid = self.xform.pk
+
+            data_value = "editor-minor|dataentry"
+
+            MetaData.xform_meta_permission(self.xform, data_value=data_value)
+
+            for role_class in ROLES_ORDERED:
+
+                data = {"username": "alice", "role": role_class.name}
+                request = self.factory.post('/', data=data, **self.extra)
+                response = view(request, pk=formid)
+
+                self.assertEqual(response.status_code, 204)
+
+                if role_class in [EditorRole, EditorMinorRole]:
+                    self.assertFalse(
+                        EditorRole.user_has_role(alice_profile.user,
+                                                 self.xform))
+                    self.assertTrue(
+                        EditorMinorRole.user_has_role(alice_profile.user,
+                                                      self.xform))
+
+                elif role_class in [DataEntryRole, DataEntryMinorRole,
+                                    DataEntryOnlyRole]:
+                    self.assertTrue(
+                        DataEntryRole.user_has_role(alice_profile.user,
+                                                    self.xform))
+
+                else:
+                    self.assertTrue(
+                        role_class.user_has_role(alice_profile.user,
+                                                 self.xform))
+
+    def test_csv_export_with_meta_perms(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+
+            for survey in self.surveys:
+                _submission_time = parse_datetime('2013-02-18 15:54:01Z')
+                self._make_submission(
+                    os.path.join(
+                        settings.PROJECT_ROOT, 'apps',
+                        'main', 'tests', 'fixtures', 'transportation',
+                        'instances', survey, survey + '.xml'),
+                    forced_submission_time=_submission_time)
+
+            alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+            alice_profile = self._create_user_profile(alice_data)
+
+            DataEntryMinorRole.add(alice_profile.user, self.xform)
+
+            for i in self.xform.instances.all()[:2]:
+                i.user = alice_profile.user
+                i.save()
+
+            view = XFormViewSet.as_view({
+                'get': 'retrieve'
+            })
+
+            alices_extra = {
+                'HTTP_AUTHORIZATION': 'Token %s' %
+                                      alice_profile.user.auth_token.key
+            }
+
+            request = self.factory.get('/',  **alices_extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            headers = dict(response.items())
+            self.assertEqual(headers['Content-Type'], 'application/csv')
+            content_disposition = headers['Content-Disposition']
+            filename = filename_from_disposition(content_disposition)
+            basename, ext = os.path.splitext(filename)
+            self.assertEqual(ext, '.csv')
+
+            content = get_response_content(response)
+            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
+                                          'viewer', 'tests', 'fixtures',
+                                          'transportation_meta_perms.csv')
+            with open(test_file_path, 'r') as test_file:
+                self.assertEqual(content, test_file.read())
+
+            DataEntryOnlyRole.add(alice_profile.user, self.xform)
+
+            request = self.factory.get('/', **alices_extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 403)

@@ -12,6 +12,9 @@ from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.serializers.metadata_serializer import UNIQUE_TOGETHER_ERROR
+from onadata.libs.utils.common_tags import XFORM_META_PERMS
+from onadata.libs.permissions import (EditorRole, EditorMinorRole,
+                                      DataEntryRole,  DataEntryOnlyRole)
 
 
 class TestMetaDataViewSet(TestAbstractViewSet):
@@ -434,3 +437,121 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.data,
                              {'xform': ['XForm does not exist']})
+
+    def test_xform_meta_permission(self):
+        view = MetaDataViewSet.as_view({'post': 'create'})
+
+        data = {
+            'data_type': XFORM_META_PERMS,
+            'data_value': 'editor-minor|dataentry',
+            'xform': self.xform.pk
+        }
+        request = self.factory.post('/', data, **self.extra)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 201)
+
+        meta = MetaData.xform_meta_permission(self.xform)
+        self.assertEqual(meta.data_value, response.data.get('data_value'))
+
+        data = {
+            'data_type': XFORM_META_PERMS,
+            'data_value': 'editor-minors|invalid_role',
+            'xform': self.xform.pk
+        }
+        request = self.factory.post('/', data, **self.extra)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 400)
+        error = u"Format 'role'|'role' or Invalid role"
+        self.assertEqual(response.data, {'non_field_errors': [error]})
+
+    def test_role_update_xform_meta_perms(self):
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+
+        EditorRole.add(alice_profile.user, self.xform)
+
+        view = MetaDataViewSet.as_view({
+            'post': 'create',
+            'put': 'update'
+        })
+
+        data = {
+            'data_type': XFORM_META_PERMS,
+            'data_value': 'editor-minor|dataentry',
+            'xform': self.xform.pk
+        }
+        request = self.factory.post('/', data, **self.extra)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 201)
+
+        self.assertFalse(
+            EditorRole.user_has_role(alice_profile.user, self.xform))
+
+        self.assertTrue(
+            EditorMinorRole.user_has_role(alice_profile.user, self.xform))
+
+        meta = MetaData.xform_meta_permission(self.xform)
+
+        DataEntryRole.add(alice_profile.user, self.xform)
+
+        data = {
+            'data_type': XFORM_META_PERMS,
+            'data_value': 'editor|dataentry-only',
+            'xform': self.xform.pk
+        }
+        request = self.factory.put('/', data, **self.extra)
+        response = view(request, pk=meta.pk)
+
+        self.assertEqual(response.status_code, 200)
+
+        self.assertFalse(
+            DataEntryRole.user_has_role(alice_profile.user, self.xform))
+
+        self.assertTrue(
+            DataEntryOnlyRole.user_has_role(alice_profile.user, self.xform))
+
+    def test_xform_meta_perms_duplicates(self):
+        view = MetaDataViewSet.as_view({
+            'post': 'create',
+            'put': 'update'
+        })
+
+        ct = ContentType.objects.get_for_model(self.xform)
+
+        data = {
+            'data_type': XFORM_META_PERMS,
+            'data_value': 'editor-minor|dataentry',
+            'xform': self.xform.pk
+        }
+        request = self.factory.post('/', data, **self.extra)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 201)
+
+        count = MetaData.objects.filter(data_type=XFORM_META_PERMS,
+                                        object_id=self.xform.pk,
+                                        content_type=ct.pk).count()
+
+        self.assertEqual(1, count)
+
+        data = {
+            'data_type': XFORM_META_PERMS,
+            'data_value': 'editor-minor|dataentry-only',
+            'xform': self.xform.pk
+        }
+        request = self.factory.post('/', data, **self.extra)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 201)
+
+        count = MetaData.objects.filter(data_type=XFORM_META_PERMS,
+                                        object_id=self.xform.pk,
+                                        content_type=ct.pk).count()
+
+        self.assertEqual(1, count)
+
+        metadata = MetaData.xform_meta_permission(self.xform)
+        self.assertEqual(metadata.data_value, "editor-minor|dataentry-only")

@@ -90,3 +90,4 @@ USER_ID = u'USER_ID'
 
 # tag group delimiter name
 GROUP_DELIMETER_TAG = 'group_delimiter'
+XFORM_META_PERMS = u'xform_meta_perms'
