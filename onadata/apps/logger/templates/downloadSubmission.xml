@@ -4,7 +4,7 @@
         {{ submission_data|safe }}
     </data>
     {% for media in media_files %}<mediaFile>
-        <filename>{{ media.filename|safe }}</filename>
+        <filename>{{ media.name|safe }}</filename>
         <hash>md5:{{ media.file_hash }}</hash>
         <downloadUrl>{{ host }}{% url "onadata.apps.viewer.views.attachment_url" 'original' %}?media_file={{ media.media_file.name|safe }}</downloadUrl>
     </mediaFile>{% endfor %}
