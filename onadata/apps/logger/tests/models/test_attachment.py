@@ -8,6 +8,7 @@ from django.db.utils import DataError
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import Attachment, Instance
+from onadata.apps.logger.models.attachment import get_original_filename
 from onadata.libs.utils.image_tools import image_url
 
 
@@ -95,3 +96,21 @@ class TestAttachment(TestBase):
                 self.assertTrue(
                     default_storage.modified_time(thumbnail) > check_datetime)
                 default_storage.delete(thumbnail)
+
+    def test_get_original_filename(self):
+        self.assertEqual(
+            get_original_filename('submission.xml_K337n8u.enc'),
+            'submission.xml.enc'
+        )
+        self.assertEqual(
+            get_original_filename('submission.xml.enc'),
+            'submission.xml.enc'
+        )
+        self.assertEqual(
+            get_original_filename('submission_test.xml_K337n8u.enc'),
+            'submission_test.xml.enc'
+        )
+        self.assertEqual(
+            get_original_filename('submission_random.enc'),
+            'submission_random.enc'
+        )
