@@ -3298,7 +3298,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             with open(test_file_path, 'r') as test_file:
                 self.assertEqual(content, test_file.read())
 
-    def test__csv_export__no_new_generated(self):
+    def test_csv_export_no_new_generated(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
             survey = self.surveys[0]
@@ -4103,3 +4103,57 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get('/', **alices_extra)
             response = view(request, pk=self.xform.pk, format='csv')
             self.assertEqual(response.status_code, 403)
+
+    def test_csv_export_cache(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            self._make_submissions()
+
+            count = Export.objects.all().count()
+
+            view = XFormViewSet.as_view({
+                'get': 'retrieve'
+            })
+
+            data = {
+                "export_type": "csv",
+                "win_excel_utf8": False
+            }
+
+            request = self.factory.get('/', data=data, **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            # should generate new
+            self.assertEquals(count + 1, Export.objects.all().count())
+
+            survey = self.surveys[0]
+            self._make_submission(
+                os.path.join(
+                    settings.PROJECT_ROOT, 'apps',
+                    'main', 'tests', 'fixtures', 'transportation',
+                    'instances', survey, survey + '.xml'))
+
+            data = {
+                "export_type": "csv",
+                "win_excel_utf8": True
+            }
+
+            request = self.factory.get('/', data=data, **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            # changed options, should generate new
+            self.assertEquals(count + 2, Export.objects.all().count())
+
+            data = {
+                "export_type": "csv",
+                "win_excel_utf8": False
+            }
+
+            request = self.factory.get('/', data=data, **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            # reused options, should generate new with new submission
+            self.assertEquals(count + 3, Export.objects.all().count())

@@ -20,7 +20,8 @@ from onadata.apps.logger.models import OsmData
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.apps.viewer.models.export import Export
+from onadata.apps.viewer.models.export import Export,\
+    get_export_options_query_kwargs
 from onadata.apps.viewer.models.parsed_instance import query_data
 from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
@@ -57,26 +58,6 @@ def get_export_options(options):
         export_options[EXPORT_QUERY_KEY] = md5hash(query_str)
 
     return export_options
-
-
-def get_export_options_query_kwargs(options):
-    """
-    Get dict with options JSONField lookups for export options field
-    """
-    options_kwargs = {}
-    for field in Export.EXPORT_OPTION_FIELDS:
-        if field in options:
-            field_value = options.get(field)
-
-            if field == EXPORT_QUERY_KEY:
-                query_str = str(format(field_value))
-
-                field_value = md5hash(query_str)
-
-            key = 'options__{}'.format(field)
-            options_kwargs[key] = field_value
-
-    return options_kwargs
 
 
 def get_or_create_export(export_id, xform, export_type, options):
@@ -271,7 +252,7 @@ def should_create_new_export(xform,
     )
 
     if export_query.count() == 0 or\
-       Export.exports_outdated(xform, export_type):
+       Export.exports_outdated(xform, export_type, options=options):
         return True
 
     return False
