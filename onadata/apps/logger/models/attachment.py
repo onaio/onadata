@@ -7,6 +7,25 @@ from django.db import models
 from instance import Instance
 
 
+def get_original_filename(filename):
+    # https://docs.djangoproject.com/en/1.8/ref/files/storage/
+    # #django.core.files.storage.Storage.get_available_name
+    # If a file with name already exists, an underscore plus a random
+    # 7 character alphanumeric string is appended to the filename
+    # before the extension.
+    # this code trys to reverse this effect to derive the original name
+    if filename:
+        parts = filename.split('_')
+        if len(parts) > 1:
+            ext_parts = parts[-1].split('.')
+            if len(ext_parts[0]) == 7 and len(ext_parts) == 2:
+                ext = ext_parts[1]
+
+                return u'.'.join([u'_'.join(parts[:-1]), ext])
+
+    return filename
+
+
 def upload_to(instance, filename):
     return os.path.join(
         instance.instance.xform.user.username,
@@ -59,3 +78,7 @@ class Attachment(models.Model):
     def filename(self):
         if self.media_file:
             return os.path.basename(self.media_file.name)
+
+    @property
+    def name(self):
+        return get_original_filename(self.filename)

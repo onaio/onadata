@@ -744,12 +744,23 @@ def data_view(request, username, id_string):
 
 def attachment_url(request, size='medium'):
     media_file = request.GET.get('media_file')
+    no_redirect = request.GET.get('no_redirect')
     # TODO: how to make sure we have the right media file,
     # this assumes duplicates are the same file
     result = Attachment.objects.filter(media_file=media_file)[0:1]
     if result.count() == 0:
         return HttpResponseNotFound(_(u'Attachment not found'))
     attachment = result[0]
+
+    if size == 'original' and no_redirect == 'true':
+        response = response_with_mimetype_and_name(
+            attachment.mimetype,
+            attachment.name,
+            extension=attachment.extension,
+            file_path=attachment.media_file.name
+        )
+
+        return response
     if not attachment.mimetype.startswith('image'):
         return redirect(attachment.media_file.url)
     try:

@@ -26,6 +26,14 @@ class TestAttachmentUrl(TestBase):
             self.url, {"media_file": self.attachment_media_file})
         self.assertEqual(response.status_code, 302)  # redirects to amazon
 
+    def test_attachment_url_no_redirect(self):
+        self.assertEqual(
+            Attachment.objects.count(), self.attachment_count + 1)
+        response = self.client.get(
+            self.url, {"media_file": self.attachment_media_file,
+                       'no_redirect': 'true'})
+        self.assertEqual(response.status_code, 200)  # no redirects to amazon
+
     def test_attachment_not_found(self):
         response = self.client.get(
             self.url, {"media_file": "non_existent_attachment.jpg"})
