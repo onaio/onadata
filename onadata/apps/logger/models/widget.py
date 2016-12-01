@@ -37,7 +37,7 @@ class Widget(OrderedModel):
     group_by = models.CharField(null=True, default=None, max_length=255,
                                 blank=True)
 
-    title = models.CharField(null=True, default=None, max_length=50,
+    title = models.CharField(null=True, default=None, max_length=255,
                              blank=True)
     description = models.CharField(null=True, default=None, max_length=255,
                                    blank=True)
