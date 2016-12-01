@@ -710,3 +710,17 @@ class TestWidgetViewSet(TestAbstractViewSet):
             'metadata': {}
         }
         self.assertEqual(expected, response.data)
+
+    def test_create_long_title(self):
+
+        data = {
+            'title': 'When editing grouped charts titles, much as the title '
+                     'can be edited, it cant be saved as the title exceeds 50',
+            'content_object': 'http://testserver/api/v1/dataviews/%s' %
+                              self.data_view.pk,
+            'widget_type': "charts",
+            'view_type': "horizontal-bar",
+            'column': "_submission_time",
+        }
+
+        self._create_widget(data)
