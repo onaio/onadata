@@ -31,6 +31,7 @@ from onadata.apps.logger.models import Project
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet, get_response_content, filename_from_disposition
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
+from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
@@ -252,6 +253,53 @@ class TestXFormViewSet(TestAbstractViewSet):
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
                 self.assertEqual(response.status_code, 200)
+
+    def test_form_publishing_using_text_xls_form_type(self):
+        view = ProjectViewSet.as_view({
+            'post': 'forms'
+        })
+        self._project_create()
+        project_id = self.project.pk
+        pre_count = XForm.objects.count()
+        post_data = {
+            u'downloadable': [u'True'],
+            u'text_xls_form': [
+                (u"survey\r\n,"
+                 "required,type,name,label,calculation\r\n,"
+                 "true,text,What_is_your_name,What is your name\r\n,"
+                 ",calculate,__version__,,'vbP67kPMwnY8aTFcFHgWMN'\r\n"
+                 "settings\r\n,"
+                 "form_title,version,id_string\r\n,"
+                 "Demo to Jonathan,vbP67kPMwnY8aTFcFHgWMN,"
+                 "afPkTij9pVg8T8c35h3SvS\r\n")]
+        }
+
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request, pk=project_id)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(XForm.objects.count(), pre_count + 1)
+
+        updated_post_data = {
+            u'downloadable': [u'True'],
+            u'text_xls_form': [
+                (u"survey\r\n,"
+                 "required,type,name,label,calculation\r\n,"
+                 "true,text,What_is_your_name,What is your name\r\n,"
+                 "true,integer,What_is_your_age,What is your age\r\n,"
+                 ",calculate,__version__,,'vB9EtM9inCMPC4qpPcuX3h'\r\n"
+                 "settings\r\n,"
+                 "form_title,version,id_string\r\n,"
+                 "Demo to Jonathan,vB9EtM9inCMPC4qpPcuX3h,"
+                 "afPkTij9pVg8T8c35h3SvS\r\n")]
+        }
+
+        xform = XForm.objects.last()
+        view = XFormViewSet.as_view({
+            'patch': 'partial_update',
+        })
+        request = self.factory.patch('/', data=updated_post_data, **self.extra)
+        response = view(request, pk=xform.id)
+        self.assertEqual(response.status_code, 200)
 
     def test_instances_with_geopoints_true_for_instances_with_geopoints(self):
         with HTTMock(enketo_mock):
