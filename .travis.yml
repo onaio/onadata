@@ -34,7 +34,7 @@ env:
 before_install:
   - export DEBIAN_FRONTEND=noninteractive;
   - sudo -E apt-get -yq update &>> ~/apt-get-update.log;
-  - sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install postgresql-9.4-postgis-2.2
+  - sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install postgresql-9.4-postgis-2.3
   - ./script/database/install_postgis onadata_test postgres 127.0.0.1
 
 install:
