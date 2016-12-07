@@ -277,6 +277,9 @@ class WidgetViewSetPermissions(AlternateHasObjectPermissionMixin,
                 isinstance(obj.content_object, DataView)):
             return False
 
+        if 'key' in request.query_params or view.action == 'partial_update':
+            return True
+
         return self._has_object_permission(request, model_cls, user,
                                            obj.content_object.project)
 

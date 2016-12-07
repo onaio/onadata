@@ -9,6 +9,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.widget_viewset import WidgetViewSet
 from onadata.libs.permissions import ReadOnlyRole
+from onadata.libs.permissions import DataEntryOnlyRole
 from onadata.libs.permissions import OwnerRole
 from onadata.apps.api.tools import get_organization_owners_team
 from onadata.apps.api.viewsets.organization_profile_viewset import\
@@ -210,6 +211,83 @@ class TestWidgetViewSet(TestAbstractViewSet):
         self.assertEquals(len(response.data), 2)
 
     def test_widget_permission_create(self):
+
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        self._login_user_and_profile(alice_data)
+
+        view = WidgetViewSet.as_view({
+            'post': 'create'
+        })
+
+        data = {
+            'title': "Widget that",
+            'content_object': 'http://testserver/api/v1/forms/%s' %
+                              self.xform.pk,
+            'description': "Test widget",
+            'aggregation': "Sum",
+            'widget_type': "charts",
+            'view_type': "horizontal-bar",
+            'column': "age",
+            'group_by': ''
+        }
+
+        # to do: test random user with auth
+
+        # owner
+        OwnerRole.add(self.user, self.project)
+        request = self.factory.post('/', data=json.dumps(data),
+                                    content_type="application/json",
+                                    **self.extra)
+        response = view(request)
+        self.assertEquals(response.status_code, 201)
+
+        # readonly
+        OwnerRole._remove_obj_permissions(self.user, self.project)
+        ReadOnlyRole.add(self.user, self.project)
+        request = self.factory.post('/', data=json.dumps(data),
+                                    content_type="application/json",
+                                    **self.extra)
+        response = view(request)
+        self.assertEquals(response.status_code, 201)
+
+        # dataentryonlyrole
+        ReadOnlyRole._remove_obj_permissions(self.user, self.project)
+        DataEntryOnlyRole.add(self.user, self.project)
+        request = self.factory.post('/', data=json.dumps(data),
+                                    content_type="application/json",
+                                    **self.extra)
+
+        response = view(request)
+        self.assertEquals(response.status_code, 201)
+
+    def test_widget_permission_change(self):
+        self._create_widget()
+
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        self._login_user_and_profile(alice_data)
+
+        data = {
+            'title': "Widget those",
+        }
+
+        OwnerRole.add(self.user, self.project)
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, pk=self.widget.pk)
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.data['title'], 'Widget those')
+
+        OwnerRole._remove_obj_permissions(self.user, self.project)
+        ReadOnlyRole.add(self.user, self.project)
+
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, pk=self.widget.pk)
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.data['title'], 'Widget those')
+
+
+    def test_widget_permission_list(self):
         self._create_widget()
 
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
