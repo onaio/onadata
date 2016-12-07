@@ -286,7 +286,6 @@ class TestWidgetViewSet(TestAbstractViewSet):
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.data['title'], 'Widget those')
 
-
     def test_widget_permission_list(self):
         self._create_widget()
 
