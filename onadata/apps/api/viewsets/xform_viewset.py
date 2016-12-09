@@ -580,7 +580,8 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         # updating the file
         if request.FILES or 'xls_url' in request.data \
-                or 'dropbox_xls_url' in request.data:
+                or 'dropbox_xls_url' in request.data \
+                or 'text_xls_form' in request.data:
             return _try_update_xlsform(request, self.object, owner)
 
         return super(XFormViewSet, self).partial_update(request, *args,
