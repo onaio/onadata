@@ -260,8 +260,17 @@ class TestXFormViewSet(TestAbstractViewSet):
         })
         self._project_create()
         project_id = self.project.pk
+
+        invalid_post_data = {
+            u'downloadable': [u'True'],
+            u'text_xls_form': ['invalid data']
+        }
+        request = self.factory.post('/', data=invalid_post_data, **self.extra)
+        response = view(request, pk=project_id)
+        self.assertEqual(response.status_code, 400)
+
         pre_count = XForm.objects.count()
-        post_data = {
+        valid_post_data = {
             u'downloadable': [u'True'],
             u'text_xls_form': [
                 (u"survey\r\n,"
@@ -274,7 +283,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                  "afPkTij9pVg8T8c35h3SvS\r\n")]
         }
 
-        request = self.factory.post('/', data=post_data, **self.extra)
+        request = self.factory.post('/', data=valid_post_data, **self.extra)
         response = view(request, pk=project_id)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(XForm.objects.count(), pre_count + 1)
