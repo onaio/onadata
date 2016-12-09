@@ -254,7 +254,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response = view(request, pk=form_id)
                 self.assertEqual(response.status_code, 200)
 
-    def test_form_publishing_using_text_xls_form_type(self):
+    def test_form_publishing_using_invalid_text_xls_form(self):
         view = ProjectViewSet.as_view({
             'post': 'forms'
         })
@@ -268,6 +268,13 @@ class TestXFormViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=invalid_post_data, **self.extra)
         response = view(request, pk=project_id)
         self.assertEqual(response.status_code, 400)
+
+    def test_form_publishing_using_text_xls_form(self):
+        view = ProjectViewSet.as_view({
+            'post': 'forms'
+        })
+        self._project_create()
+        project_id = self.project.pk
 
         pre_count = XForm.objects.count()
         valid_post_data = {
