@@ -19,6 +19,8 @@ class Command(BaseCommand):
                     help=_("Password")),
         make_option('--to',
                     help=_("username in this server")),
+        make_option('--formid',
+                    help=_("form id to download")),
     )
 
     def handle(self, *args, **kwargs):
@@ -26,6 +28,7 @@ class Command(BaseCommand):
         username = kwargs.get('username')
         password = kwargs.get('password')
         to = kwargs.get('to')
+        form_id = kwargs.get('formid')
         if username is None or password is None or to is None or url is None:
             self.stderr.write(
                 'pull_form_aggregate -u username -p password --to=username'
@@ -35,4 +38,4 @@ class Command(BaseCommand):
             user = User.objects.get(username=to)
             bc = BriefcaseClient(username=username, password=password,
                                  user=user, url=url)
-            bc.download_xforms(include_instances=True)
+            bc.download_xforms(include_instances=True, form_id=form_id)

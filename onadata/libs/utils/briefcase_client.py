@@ -124,7 +124,7 @@ class BriefcaseClient(object):
 
             self.download_media_files(manifest_doc, manifest_path)
 
-    def download_xforms(self, include_instances=False):
+    def download_xforms(self, include_instances=False, form_id=None):
         # fetch formList
         if not self._get_response(self.form_list_url):
             response = self._current_response.content \
@@ -139,6 +139,8 @@ class BriefcaseClient(object):
         self.logger.debug('Successfull fetched %s.' % self.form_list_url)
 
         for id_string, download_url, manifest_url in forms:
+            if form_id and form_id != id_string:
+                continue
             form_path = os.path.join(
                 self.forms_path, id_string, '%s.xml' % id_string)
 
