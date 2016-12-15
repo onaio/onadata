@@ -1,3 +1,4 @@
+import httplib2
 import os
 import json
 from datetime import datetime
@@ -528,7 +529,7 @@ def _get_google_credential(request):
         try:
             credential.get_access_token()
         except HttpAccessTokenRefreshError:
-            credential.revoke()
+            credential.revoke(httplib2.Http())
 
     if not credential or credential.invalid:
         google_flow = generate_google_web_flow(request)
