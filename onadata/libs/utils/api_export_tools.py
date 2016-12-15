@@ -20,6 +20,7 @@ from celery.result import AsyncResult
 
 from oauth2client.contrib.django_orm import Storage
 from oauth2client.client import OAuth2WebServerFlow
+from oauth2client.client import HttpAccessTokenRefreshError
 from oauth2client import client as google_client
 
 from onadata.apps.viewer.models.export import Export
@@ -522,7 +523,14 @@ def _get_google_credential(request):
         credential = storage.get()
     elif request.session.get('access_token'):
         credential = google_client.OAuth2Credentials.from_json(token)
-    if not credential:
+
+    if credential:
+        try:
+            credential.get_access_token()
+        except HttpAccessTokenRefreshError:
+            credential.revoke()
+
+    if not credential or credential.invalid:
         google_flow = generate_google_web_flow(request)
         return HttpResponseRedirect(google_flow.step1_get_authorize_url())
     return credential
