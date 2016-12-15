@@ -3,6 +3,7 @@ import os
 import json
 import requests
 from mock import patch
+from mock import MagicMock
 from operator import itemgetter
 from httmock import urlmatch, HTTMock
 
@@ -849,9 +850,6 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertTrue(role_class.user_has_role(alice_profile.user,
                                                  self.project))
 
-        view = ProjectViewSet.as_view({
-            'post': 'share'
-        })
         data['remove'] = True
         request = self.factory.post('/', data=data, **self.extra)
         response = view(request, pk=projectid)
@@ -1969,3 +1967,51 @@ class TestProjectViewSet(TestAbstractViewSet):
             else:
                 self.assertTrue(
                     role_class.user_has_role(alice_profile.user, self.xform))
+
+    @patch('onadata.apps.api.viewsets.project_viewset.send_mail')
+    def test_project_share_atomicity(self, mock_send_mail):
+        # create project and publish form to project
+        self._publish_xls_form_to_project()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+        alice = alice_profile.user
+        projectid = self.project.pk
+
+        role_class = DataEntryOnlyRole
+        self.assertFalse(role_class.user_has_role(alice_profile.user,
+                                                  self.project))
+
+        data = {'username': 'alice', 'role': role_class.name,
+                'email_msg': 'I have shared the project with you'}
+        request = self.factory.post('/', data=data, **self.extra)
+
+        view = ProjectViewSet.as_view({
+            'post': 'share'
+        })
+        response = view(request, pk=projectid)
+
+        self.assertEqual(response.status_code, 204)
+        self.assertTrue(mock_send_mail.called)
+
+        self.assertTrue(role_class.user_has_role(alice, self.project))
+        self.assertTrue(role_class.user_has_role(alice, self.xform))
+
+        data['remove'] = True
+        request = self.factory.post('/', data=data, **self.extra)
+
+        mock_rm_xform_perms = MagicMock()
+        with patch('onadata.libs.models.share_project.remove_xform_permissions', mock_rm_xform_perms):  # noqa
+            mock_rm_xform_perms.side_effect = Exception()
+            with self.assertRaises(Exception):
+                response = view(request, pk=projectid)
+            # permissions have not changed for both xform and project
+            self.assertTrue(role_class.user_has_role(alice, self.xform))
+            self.assertTrue(role_class.user_has_role(alice, self.project))
+            self.assertTrue(mock_rm_xform_perms.called)
+
+        request = self.factory.post('/', data=data, **self.extra)
+        response = view(request, pk=projectid)
+        self.assertEqual(response.status_code, 204)
+        # permissions have changed for both project and xform
+        self.assertFalse(role_class.user_has_role(alice, self.project))
+        self.assertFalse(role_class.user_has_role(alice, self.xform))
