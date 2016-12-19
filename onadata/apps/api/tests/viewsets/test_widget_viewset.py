@@ -242,7 +242,6 @@ class TestWidgetViewSet(TestAbstractViewSet):
         self.assertEquals(response.status_code, 201)
 
         # readonly
-        OwnerRole._remove_obj_permissions(self.user, self.project)
         ReadOnlyRole.add(self.user, self.project)
         request = self.factory.post('/', data=json.dumps(data),
                                     content_type="application/json",
@@ -251,7 +250,6 @@ class TestWidgetViewSet(TestAbstractViewSet):
         self.assertEquals(response.status_code, 201)
 
         # dataentryonlyrole
-        ReadOnlyRole._remove_obj_permissions(self.user, self.project)
         DataEntryOnlyRole.add(self.user, self.project)
         request = self.factory.post('/', data=json.dumps(data),
                                     content_type="application/json",
@@ -271,14 +269,15 @@ class TestWidgetViewSet(TestAbstractViewSet):
         }
 
         OwnerRole.add(self.user, self.project)
+        OwnerRole.add(self.user, self.xform)
         request = self.factory.patch('/', data=data, **self.extra)
         response = self.view(request, pk=self.widget.pk)
 
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.data['title'], 'Widget those')
 
-        OwnerRole._remove_obj_permissions(self.user, self.project)
         ReadOnlyRole.add(self.user, self.project)
+        ReadOnlyRole.add(self.user, self.xform)
 
         request = self.factory.patch('/', data=data, **self.extra)
         response = self.view(request, pk=self.widget.pk)

@@ -8,6 +8,7 @@ from onadata.libs.permissions import (
     CAN_ADD_XFORM_TO_PROFILE,
     CAN_CHANGE_XFORM,
     CAN_DELETE_SUBMISSION)
+from onadata.libs.permissions import ReadOnlyRoleNoDownload
 
 from onadata.apps.api.tools import get_user_profile_or_none, \
     check_inherit_permission_from_project
@@ -277,7 +278,12 @@ class WidgetViewSetPermissions(AlternateHasObjectPermissionMixin,
                 isinstance(obj.content_object, DataView)):
             return False
 
-        if 'key' in request.query_params or view.action == 'partial_update':
+        xform = obj.content_object if isinstance(obj.content_object, XForm) \
+            else obj.content_object.xform
+
+        if view.action == 'partial_update' and \
+                ReadOnlyRoleNoDownload.user_has_role(user, xform):
+            # allow readonlynodownload and above roles to edit widget
             return True
 
         return self._has_object_permission(request, model_cls, user,
