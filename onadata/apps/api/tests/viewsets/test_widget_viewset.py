@@ -231,7 +231,12 @@ class TestWidgetViewSet(TestAbstractViewSet):
             'group_by': ''
         }
 
-        # to do: test random user with auth
+        # to do: test random user with auth but no perms
+        request = self.factory.post('/', data=json.dumps(data),
+                                    content_type="application/json",
+                                    **self.extra)
+        response = view(request)
+        self.assertEquals(response.status_code, 400)
 
         # owner
         OwnerRole.add(self.user, self.project)
