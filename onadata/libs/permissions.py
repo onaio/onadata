@@ -56,6 +56,7 @@ CAN_ADD_PROJECT_XFORM = 'add_project_xform'
 CAN_ADD_SUBMISSIONS_PROJECT = 'report_project_xform'
 CAN_EXPORT_PROJECT = 'can_export_project_data'
 
+# Data dictionary permissions
 CAN_ADD_DATADICTIONARY = 'add_datadictionary'
 CAN_CHANGE_DATADICTIONARY = 'change_datadictionary'
 CAN_DELETE_DATADICTIONARY = 'delete_datadictionary'
