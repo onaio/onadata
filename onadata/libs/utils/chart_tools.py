@@ -204,11 +204,11 @@ def _use_labels_from_group_by_name(field_name, field, data_type, data,
 def build_chart_data_for_field(xform, field, language_index=0, choices=None,
                                group_by=None, data_view=None):
     # check if its the special _submission_time META
-    if isinstance(field, basestring) and field == common_tags.SUBMISSION_TIME:
+    if field == common_tags.SUBMISSION_TIME:
         field_label = 'Submission Time'
         field_xpath = '_submission_time'
         field_type = 'datetime'
-    elif isinstance(field, basestring) and field == common_tags.SUBMITTED_BY:
+    elif field == common_tags.SUBMITTED_BY:
         field_label = 'Submission By'
         field_xpath = '_submitted_by'
         field_type = 'text'
