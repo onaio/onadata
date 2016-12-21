@@ -29,6 +29,15 @@ DATA_TYPE_MAP = {
     'calculate': 'numeric',
 }
 
+FIELD_DATA_MAP = {
+    common_tags.SUBMISSION_TIME:
+        ('Submission Time', '_submission_time', 'datetime'),
+    common_tags.SUBMITTED_BY:
+        ('Submission By', '_submitted_by', 'text'),
+    common_tags.DURATION:
+        ('Duration', '_duration', 'integer')
+}
+
 CHARTS_PER_PAGE = 20
 
 POSTGRES_ALIAS_LENGTH = 63
@@ -204,14 +213,8 @@ def _use_labels_from_group_by_name(field_name, field, data_type, data,
 def build_chart_data_for_field(xform, field, language_index=0, choices=None,
                                group_by=None, data_view=None):
     # check if its the special _submission_time META
-    if field == common_tags.SUBMISSION_TIME:
-        field_label = 'Submission Time'
-        field_xpath = '_submission_time'
-        field_type = 'datetime'
-    elif field == common_tags.SUBMITTED_BY:
-        field_label = 'Submission By'
-        field_xpath = '_submitted_by'
-        field_type = 'text'
+    if isinstance(field, basestring):
+        field_label, field_xpath, field_type = FIELD_DATA_MAP.get(field)
     else:
         # TODO: merge choices with results and set 0's on any missing fields,
         # i.e. they didn't have responses
@@ -353,6 +356,8 @@ def get_field_from_field_name(field_name, xform):
         field = common_tags.SUBMISSION_TIME
     elif field_name == common_tags.SUBMITTED_BY:
         field = common_tags.SUBMITTED_BY
+    elif field_name == common_tags.DURATION:
+        field = common_tags.DURATION
     else:
         # use specified field to get summary
         fields = filter(
@@ -374,6 +379,8 @@ def get_field_from_field_xpath(field_xpath, xform):
         field = common_tags.SUBMISSION_TIME
     elif field_xpath == common_tags.SUBMITTED_BY:
         field = common_tags.SUBMITTED_BY
+    elif field_xpath == common_tags.DURATION:
+        field = common_tags.DURATION
     else:
         # use specified field to get summary
         fields = filter(

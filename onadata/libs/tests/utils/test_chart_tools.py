@@ -59,6 +59,14 @@ class TestChartTools(TestBase):
         self.assertEqual(data['field_type'], 'text')
         self.assertEqual(data['data_type'], 'categorized')
 
+    def test_build_chart_data_for_field_on_duration(self):
+        group_by_field = find_field_by_name(self.xform, 'pizza_fan')
+        data = build_chart_data_for_field(self.xform, '_duration',
+                                          group_by=group_by_field)
+        self.assertEqual(data['field_name'], '_duration')
+        self.assertEqual(data['field_type'], 'integer')
+        self.assertEqual(data['data_type'], 'numeric')
+
     def test_build_chart_data_for_fields_with_accents(self):
         xls_path = os.path.join(
             self.this_directory, "fixtures",
