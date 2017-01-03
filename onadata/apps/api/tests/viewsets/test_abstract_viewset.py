@@ -165,7 +165,7 @@ class TestAbstractViewSet(TestCase):
         self.extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
 
-    def _org_create(self):
+    def _org_create(self, org_data={}):
         view = OrganizationProfileViewSet.as_view({
             'get': 'list',
             'post': 'create'
@@ -185,13 +185,17 @@ class TestAbstractViewSet(TestCase):
             'phonenumber': u'',
             'require_auth': False,
         }
+
+        if org_data:
+            data.update(org_data)
+
         request = self.factory.post(
             '/', data=json.dumps(data),
             content_type="application/json", **self.extra)
         response = view(request)
         self.assertEqual(response.status_code, 201)
-        data['url'] = 'http://testserver/api/v1/orgs/denoinc'
-        data['user'] = 'http://testserver/api/v1/users/denoinc'
+        data['url'] = 'http://testserver/api/v1/orgs/%s' % data['org']
+        data['user'] = 'http://testserver/api/v1/users/%s' % data['org']
         data['creator'] = 'http://testserver/api/v1/users/bob'
         self.assertDictContainsSubset(data, response.data)
         self.company_data = response.data

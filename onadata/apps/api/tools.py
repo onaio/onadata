@@ -193,6 +193,12 @@ def remove_user_from_team(team, user):
 
 def add_user_to_organization(organization, user):
     """Add a user to an organization"""
+
+    # check user if org account
+    if is_organization(user.profile):
+        raise ValidationError(u"Cannot add org account `{}` as member."
+                              .format(user.username))
+
     team = get_organization_members_team(organization)
     add_user_to_team(team, user)
 

@@ -269,6 +269,28 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(set(response.data), set([u'denoinc', u'aboy']))
 
+    def test_add_members_to_org_user_org_account(self):
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({
+            'post': 'members'
+        })
+
+        username = 'second_inc'
+
+        # Create second org
+        org_data = {'org': username}
+        self._org_create(org_data=org_data)
+
+        data = {'username': username}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data,
+                         u"Cannot add org account `second_inc` as member.")
+
     def test_member_sees_orgs_added_to(self):
         self._org_create()
         view = OrganizationProfileViewSet.as_view({
