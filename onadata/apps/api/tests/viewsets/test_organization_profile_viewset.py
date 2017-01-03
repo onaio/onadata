@@ -259,7 +259,9 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             'post': 'members'
         })
 
-        User.objects.create(username='aboy')
+        self.profile_data['username'] = 'aboy'
+        self.profile_data['email'] = 'aboy@org.com'
+        self._create_user_profile()
         data = {'username': 'aboy'}
         request = self.factory.post(
             '/', data=json.dumps(data),
@@ -366,7 +368,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             'post': 'members'
         })
 
-        User.objects.create(username='aboy')
+        self._create_user_profile(extra_post_data={'username': 'aboy'})
         data = {'username': 'aboy'}
         request = self.factory.post(
             '/', data=json.dumps(data),
@@ -382,7 +384,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             'post': 'members'
         })
 
-        User.objects.create(username='aboy', )
+        self._create_user_profile(extra_post_data={'username': 'aboy'})
         data = {'username': 'aboy'}
         previous_user = self.user
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
@@ -405,7 +407,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             'delete': 'members'
         })
 
-        User.objects.create(username=newname)
+        self._create_user_profile(extra_post_data={'username': newname})
+
         data = {'username': newname}
         request = self.factory.post(
             '/', data=json.dumps(data),
@@ -511,7 +514,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             'put': 'members'
         })
 
-        User.objects.create(username=newname)
+        self.profile_data['username'] = newname
+        self._create_user_profile()
         data = {'username': newname}
         request = self.factory.post(
             '/', data=json.dumps(data),
@@ -538,7 +542,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             'put': 'members'
         })
 
-        User.objects.create(username=newname)
+        self.profile_data['username'] = newname
+        self._create_user_profile()
         data = {'username': newname}
         request = self.factory.post(
             '/', data=json.dumps(data),
@@ -563,7 +568,9 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             'post': 'members'
         })
 
-        User.objects.create(username='aboy', email='aboy@org.com')
+        self.profile_data['username'] = 'aboy'
+        self.profile_data['email'] = 'aboy@org.com'
+        self._create_user_profile()
         data = {'username': 'aboy',
                 'email_msg': 'You have been add to denoinc'}
         request = self.factory.post(
@@ -587,7 +594,9 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             'post': 'members'
         })
 
-        User.objects.create(username='aboy', email='aboy@org.com')
+        self.profile_data['username'] = 'aboy'
+        self.profile_data['email'] = 'aboy@org.com'
+        self._create_user_profile()
         data = {'username': 'aboy',
                 'email_msg': 'You have been add to denoinc',
                 'email_subject': 'Your are made'}
