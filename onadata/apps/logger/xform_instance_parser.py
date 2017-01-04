@@ -136,7 +136,7 @@ def clean_and_parse_xml(xml_string):
     return xml_obj
 
 
-def _xml_node_to_dict(node, repeats=[]):
+def _xml_node_to_dict(node, repeats=[], encrypted=False):
     assert isinstance(node, minidom.Node)
     if len(node.childNodes) == 0:
         # there's no data for this leaf node
@@ -162,7 +162,8 @@ def _xml_node_to_dict(node, repeats=[]):
             assert d.keys() == [child_name]
             node_type = dict
             # check if name is in list of repeats and make it a list if so
-            if child_xpath in repeats:
+            # All the photo attachments in an encrypted form use name media
+            if child_xpath in repeats or (encrypted and child_name == 'media'):
                 node_type = list
 
             if node_type == dict:
@@ -283,7 +284,9 @@ class XFormInstanceParser(object):
         self._root_node = self._xml_obj.documentElement
         repeats = [e.get_abbreviated_xpath()
                    for e in self.dd.get_survey_elements_of_type(u"repeat")]
-        self._dict = _xml_node_to_dict(self._root_node, repeats)
+
+        self._dict = _xml_node_to_dict(self._root_node, repeats,
+                                       self.dd.encrypted)
         self._flat_dict = {}
         if self._dict is None:
             raise InstanceEmptyError

@@ -172,3 +172,41 @@ class TestXFormInstanceParser(TestBase):
         self.assertContains(self.response,
                             "Multiple nodes with the same name",
                             status_code=400)
+
+    def test_multiple_media_files_on_encrypted_form(self):
+        self._create_user_and_login()
+        # publish our form which contains some some repeats
+        xls_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial_encrypted/tutorial_encrypted.xls"
+        )
+        count = XForm.objects.count()
+        self._publish_xls_file_and_set_xform(xls_file_path)
+        self.assertEqual(count + 1, XForm.objects.count())
+
+        # submit an instance
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial_encrypted/instances/tutorial_encrypted.xml"
+        )
+        self._make_submission(xml_submission_file_path)
+        self.assertNotContains(self.response,
+                               "Multiple nodes with the same name",
+                               status_code=201)
+
+        # load xml file to parse and compare
+        xml_file = open(xml_submission_file_path)
+        self.xml = xml_file.read()
+        xml_file.close()
+
+        parser = XFormInstanceParser(self.xml, self.xform)
+        dict = parser.to_dict()
+
+        expected_list = [{u'file': u'1483528430996.jpg.enc'},
+                         {u'file': u'1483528445767.jpg.enc'}]
+        self.assertEqual(dict.get('data').get('media'), expected_list)
+
+        flat_dict = parser.to_flat_dict()
+        expected_flat_list = [{u'media/file': u'1483528430996.jpg.enc'},
+                              {u'media/file': u'1483528445767.jpg.enc'}]
+        self.assertEqual(flat_dict.get('media'), expected_flat_list)
