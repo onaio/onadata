@@ -53,6 +53,9 @@ class OrganizationMemberSerializer(serializers.Serializer):
 
         add_user_to_organization(organization, user)
 
+        if role:
+            role.add(user, organization)
+
     def update(self, instance, validated_data):
         organization = validated_data.get('organization')
         username = validated_data.get('username')
