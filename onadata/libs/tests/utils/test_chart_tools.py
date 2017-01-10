@@ -59,6 +59,18 @@ class TestChartTools(TestBase):
         self.assertEqual(data['field_type'], 'text')
         self.assertEqual(data['data_type'], 'categorized')
 
+    def test_build_chart_data_for_field_on_submitted_by_group_by(self):
+        group_by_field = find_field_by_name(self.xform, 'pizza_fan')
+        data = build_chart_data_for_field(self.xform, '_submitted_by',
+                                          group_by=group_by_field)
+        self.assertEqual(data['field_name'], '_submitted_by')
+        self.assertEqual(data['field_type'], 'text')
+        self.assertEqual(data['data_type'], 'categorized')
+        self.assertEqual(data['grouped_by'], u'pizza_fan')
+        self.assertEqual(data['data'],
+                         [{'_submitted_by': u'bob',
+                           'items': [{'count': 2L, u'pizza_fan': [u'No']}]}])
+
     def test_build_chart_data_for_field_on_duration(self):
         group_by_field = find_field_by_name(self.xform, 'pizza_fan')
         data = build_chart_data_for_field(self.xform, '_duration',

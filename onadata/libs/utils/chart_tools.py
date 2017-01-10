@@ -230,8 +230,9 @@ def build_chart_data_for_field(xform, field, language_index=0, choices=None,
         group_by_name = group_by.get_abbreviated_xpath() \
             if not isinstance(group_by, basestring) else group_by
 
-        if field_type == common_tags.SELECT_ONE \
-                and group_by.type == common_tags.SELECT_ONE:
+        if (field_type == common_tags.SELECT_ONE or
+            field_name == common_tags.SUBMITTED_BY) and \
+                group_by.type == common_tags.SELECT_ONE:
             result = get_form_submissions_grouped_by_select_one(
                 xform, field_xpath, group_by_name, field_name, data_view)
 
