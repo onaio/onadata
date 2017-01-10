@@ -167,9 +167,6 @@ def get_organization_owners_team(org):
 
 def remove_user_from_organization(organization, user):
     """Remove a user from an organization"""
-    owners = _get_owners(organization)
-    if user in owners and len(owners) <= 1:
-        raise ValidationError(_("Organization cannot be without an owner"))
     team = get_organization_members_team(organization)
     remove_user_from_team(team, user)
     owners_team = get_organization_owners_team(organization)
@@ -193,11 +190,6 @@ def remove_user_from_team(team, user):
 
 def add_user_to_organization(organization, user):
     """Add a user to an organization"""
-
-    # check user if org account
-    if is_organization(user.profile):
-        raise ValidationError(u"Cannot add org account `{}` as member."
-                              .format(user.username))
 
     team = get_organization_members_team(organization)
     add_user_to_team(team, user)
