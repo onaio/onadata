@@ -90,7 +90,8 @@ class OrganizationMemberSerializer(serializers.Serializer):
         organization = attrs.get('organization')
         username = attrs.get('username')
 
-        if username and (remove or role):
+        # check if roles are downgrading and the user is the last admin
+        if username and (remove or role != OwnerRole.name):
             user = User.objects.get(username=username)
 
             owners = _get_owners(organization)
