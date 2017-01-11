@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from django.http import Http404
 from django.utils import six
 from rest_framework import filters
+from rest_framework.exceptions import ParseError
 
 
 from onadata.apps.api.models import Team, OrganizationProfile
@@ -391,7 +392,9 @@ class UserProfileFilter(filters.BaseFilterBackend):
                 users = users.split(',')
                 return queryset.filter(user__username__in=users)
 
-        return queryset
+        raise ParseError(
+            'Provide users query param with a comma separated list of names'
+        )
 
 
 class NoteFilter(filters.BaseFilterBackend):
