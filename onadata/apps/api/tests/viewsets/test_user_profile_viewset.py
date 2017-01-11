@@ -79,6 +79,24 @@ class TestUserProfileViewSet(TestAbstractViewSet):
                          [self.user_profile_data(), deno_profile_data])
         self.assertEqual(len(response.data), 2)
 
+    def test_user_profile_list_without_users_param_or_empty_users_param(self):
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(_profile_data()),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 400)
+
+        data = {"users": ""}
+        request = self.factory.get('/', data=data, **self.extra)
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 400)
+
     def test_profiles_get(self):
         """Test get user profile"""
         view = UserProfileViewSet.as_view({
