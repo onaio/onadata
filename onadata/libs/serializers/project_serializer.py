@@ -209,7 +209,13 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
         return get_starred(obj, self.context['request'])
 
     def get_users(self, obj):
-        return get_users(obj, self.context, False)
+        if 'request' in self.context:
+            all_perms = "owner" in self.context['request'].GET
+            return get_users(obj,
+                             self.context,
+                             all_perms=all_perms)
+        else:
+            return get_users(obj, self.context, False)
 
     @profile("get_project_forms.prof")
     @check_obj
