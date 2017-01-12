@@ -79,23 +79,58 @@ class TestUserProfileViewSet(TestAbstractViewSet):
                          [self.user_profile_data(), deno_profile_data])
         self.assertEqual(len(response.data), 2)
 
-    def test_user_profile_list_without_users_param_or_empty_users_param(self):
+    def test_user_profile_list_with_and_without_users_param(self):
         request = self.factory.post(
             '/api/v1/profiles', data=json.dumps(_profile_data()),
             content_type="application/json", **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
 
+        # anonymous user gets empty response
+        request = self.factory.get('/')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
+
+        # authenicated user without users query param only gets his/her profile
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertDictEqual(self.user_profile_data(), response.data[0])
 
-        self.assertEqual(response.status_code, 400)
-
+        # authenicated user with blank users query param only gets his/her
+        # profile
         data = {"users": ""}
         request = self.factory.get('/', data=data, **self.extra)
         response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertDictEqual(self.user_profile_data(), response.data[0])
 
-        self.assertEqual(response.status_code, 400)
+        # authenicated user with comma separated usernames as users query param
+        # value gets profiles of the usernames provided
+        data = {"users": "bob,deno"}
+        request = self.factory.get('/', data=data, **self.extra)
+        response = self.view(request)
+        deno_profile_data = _profile_data()
+        deno_profile_data.pop('password', None)
+        user_deno = User.objects.get(username='deno')
+        deno_profile_data.update({
+            'id': user_deno.pk,
+            'url': 'http://testserver/api/v1/profiles/%s' % user_deno.username,
+            'user': 'http://testserver/api/v1/users/%s' % user_deno.username,
+            'gravatar': user_deno.profile.gravatar,
+            'metadata': {},
+            'joined_on': user_deno.date_joined
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+        self.assertEqual(
+            response.data,
+            [self.user_profile_data(), deno_profile_data]
+        )
 
     def test_profiles_get(self):
         """Test get user profile"""
