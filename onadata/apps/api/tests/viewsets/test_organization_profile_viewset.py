@@ -236,7 +236,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data,
-                         {u'username': [u"This field is required."]})
+                         {u'username': [u"This field may not be null."]})
 
     def test_add_members_to_org_user_does_not_exist(self):
         self._org_create()
@@ -251,7 +251,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data,
-                         {u'username': [u"User `aboy` does not exist."]})
+                         {u'username': [u"User 'aboy' does not exist."]})
 
     def test_add_members_to_org(self):
         self._org_create()
@@ -259,7 +259,9 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             'post': 'members'
         })
 
-        User.objects.create(username='aboy')
+        self.profile_data['username'] = 'aboy'
+        self.profile_data['email'] = 'aboy@org.com'
+        self._create_user_profile()
         data = {'username': 'aboy'}
         request = self.factory.post(
             '/', data=json.dumps(data),
@@ -268,6 +270,29 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 201)
         self.assertEqual(set(response.data), set([u'denoinc', u'aboy']))
+
+    def test_add_members_to_org_user_org_account(self):
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({
+            'post': 'members'
+        })
+
+        username = 'second_inc'
+
+        # Create second org
+        org_data = {'org': username}
+        self._org_create(org_data=org_data)
+
+        data = {'username': username}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data,
+                         {'username': [u'Cannot add org account `second_inc` '
+                                       u'as member.']})
 
     def test_member_sees_orgs_added_to(self):
         self._org_create()
@@ -344,7 +369,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             'post': 'members'
         })
 
-        User.objects.create(username='aboy')
+        self._create_user_profile(extra_post_data={'username': 'aboy'})
         data = {'username': 'aboy'}
         request = self.factory.post(
             '/', data=json.dumps(data),
@@ -360,7 +385,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             'post': 'members'
         })
 
-        User.objects.create(username='aboy', )
+        self._create_user_profile(extra_post_data={'username': 'aboy'})
         data = {'username': 'aboy'}
         previous_user = self.user
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
@@ -383,7 +408,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             'delete': 'members'
         })
 
-        User.objects.create(username=newname)
+        self._create_user_profile(extra_post_data={'username': newname})
+
         data = {'username': newname}
         request = self.factory.post(
             '/', data=json.dumps(data),
@@ -398,7 +424,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             content_type="application/json", **self.extra)
 
         response = view(request, user='denoinc')
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [u'denoinc'])
 
     def test_orgs_create_with_mixed_case(self):
@@ -489,7 +515,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             'put': 'members'
         })
 
-        User.objects.create(username=newname)
+        self.profile_data['username'] = newname
+        self._create_user_profile()
         data = {'username': newname}
         request = self.factory.post(
             '/', data=json.dumps(data),
@@ -516,7 +543,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             'put': 'members'
         })
 
-        User.objects.create(username=newname)
+        self.profile_data['username'] = newname
+        self._create_user_profile()
         data = {'username': newname}
         request = self.factory.post(
             '/', data=json.dumps(data),
@@ -534,14 +562,16 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 400)
 
-    @patch('onadata.apps.api.viewsets.organization_profile_viewset.send_mail')
+    @patch('onadata.libs.serializers.organization_member_serializer.send_mail')
     def test_add_members_to_org_email(self, mock_email):
         self._org_create()
         view = OrganizationProfileViewSet.as_view({
             'post': 'members'
         })
 
-        User.objects.create(username='aboy', email='aboy@org.com')
+        self.profile_data['username'] = 'aboy'
+        self.profile_data['email'] = 'aboy@org.com'
+        self._create_user_profile()
         data = {'username': 'aboy',
                 'email_msg': 'You have been add to denoinc'}
         request = self.factory.post(
@@ -558,14 +588,16 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
                                       (u'aboy@org.com',))
         self.assertEqual(set(response.data), set([u'denoinc', u'aboy']))
 
-    @patch('onadata.apps.api.viewsets.organization_profile_viewset.send_mail')
+    @patch('onadata.libs.serializers.organization_member_serializer.send_mail')
     def test_add_members_to_org_email_custom_subj(self, mock_email):
         self._org_create()
         view = OrganizationProfileViewSet.as_view({
             'post': 'members'
         })
 
-        User.objects.create(username='aboy', email='aboy@org.com')
+        self.profile_data['username'] = 'aboy'
+        self.profile_data['email'] = 'aboy@org.com'
+        self._create_user_profile()
         data = {'username': 'aboy',
                 'email_msg': 'You have been add to denoinc',
                 'email_subject': 'Your are made'}
@@ -705,8 +737,11 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 400)
-        self.assertEquals(response.data, u"Organization cannot be without"
-                                         u" an owner")
+        self.assertEquals(response.data,
+                          {
+                              u'non_field_errors':
+                                  [u'Organization cannot be without an owner']
+                          })
 
     def test_owner_not_allowed_to_be_removed(self):
         self._org_create()
@@ -751,7 +786,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             content_type="application/json", **self.extra)
 
         response = view(request, user='denoinc')
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 200)
         for user in [u'denoinc', aboy.username]:
             self.assertIn(user, response.data)
 
@@ -762,7 +797,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             content_type="application/json", **self.extra)
 
         response = view(request, user='denoinc')
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 200)
 
         # at this point we only have bob as the owner
         data = {'username': self.user.username}
@@ -772,8 +807,11 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 400)
-        self.assertEquals(response.data, u"Organization cannot be without"
-                                         u" an owner")
+        self.assertEquals(response.data,
+                          {
+                              u'non_field_errors':
+                                  [u'Organization cannot be without an owner']
+                          })
 
     def test_orgs_delete(self):
         self._org_create()

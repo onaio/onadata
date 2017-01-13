@@ -1721,7 +1721,7 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         request = self.factory.delete('/', data=data, **self.extra)
         response = view(request, user='denoinc')
-        self.assertEquals(201, response.status_code)
+        self.assertEquals(200, response.status_code)
 
         view = ProjectViewSet.as_view({
             'get': 'retrieve'
