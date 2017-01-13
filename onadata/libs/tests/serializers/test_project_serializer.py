@@ -10,6 +10,7 @@ from onadata.libs.permissions import (
     EditorRole, ReadOnlyRoleNoDownload,  DataEntryMinorRole, DataEntryOnlyRole)
 from onadata.libs.models.share_project import ShareProject
 
+
 class TestBaseProjectSerializer(TestAbstractViewSet):
     def setUp(self):
         self.factory = APIRequestFactory()
@@ -29,17 +30,20 @@ class TestBaseProjectSerializer(TestAbstractViewSet):
         #create the project
         self._project_create(data)
 
-        # create users
-        # returns a user profile object
-        alice = self._create_user_profile({'username': 'alice'})
-
-        ShareProject(self.project, 'alice', 'readonly').save()
-
     def test_get_users(self):
         ""
         # Is none when request lacks a project
         users = self.serializer.get_users(None)
         self.assertEqual(users, None)
+
+        # create users
+        # returns a user profile object
+        alice = self._create_user_profile({'username': 'alice'})
+
+        import ipdb
+        ipdb.set_trace()
+
+        ShareProject(self.project, 'alice', 'manager').save()
 
         # Assert list has members and collaborators when passed 'owner'
         request = self.factory.get('/',

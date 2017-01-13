@@ -209,11 +209,9 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
         return get_starred(obj, self.context['request'])
 
     def get_users(self, obj):
-        if 'request' in self.context:
-            all_perms = "owner" in self.context['request'].GET
-            return get_users(obj,
-                             self.context,
-                             all_perms=all_perms)
+        if 'request' in self.context \
+                and "owner" in self.context['request'].GET:
+            return get_users(obj, self.context)
         else:
             return get_users(obj, self.context, False)
 

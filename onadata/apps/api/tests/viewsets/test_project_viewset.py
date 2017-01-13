@@ -2015,3 +2015,50 @@ class TestProjectViewSet(TestAbstractViewSet):
         # permissions have changed for both project and xform
         self.assertFalse(role_class.user_has_role(alice, self.project))
         self.assertFalse(role_class.user_has_role(alice, self.xform))
+
+    def test_project_list_by_owner(self):
+        # create project and publish form to project
+        self._publish_xls_form_to_project()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+        projectid = self.project.pk
+
+        self.assertFalse(ReadOnlyRole.user_has_role(alice_profile.user,
+                                                    self.project))
+
+        data = {'username': 'alice', 'role': ReadOnlyRole.name}
+        request = self.factory.put('/', data=data, **self.extra)
+
+        view = ProjectViewSet.as_view({
+            'put': 'share',
+            'get': 'list'
+        })
+        response = view(request, pk=projectid)
+
+        self.assertEqual(response.status_code, 204)
+
+        self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user,
+                                                   self.project))
+        self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user,
+                                                   self.xform))
+
+        # Should list collaborators
+        data = {"owner": "bob"}
+        request = self.factory.get('/', data=data, **self.extra)
+        response = view(request)
+
+        users = response.data[0]['users']
+        self.assertEqual(response.status_code, 200)
+        self.assertIn({'first_name': u'Bob', 'last_name': u'erama',
+                       'is_org': False, 'role': 'readonly', 'user': u'alice',
+                       'metadata': {}}, users)
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=projectid)
+
+        # Should not list collaborators
+        users = response.data[0]['users']
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn({'first_name': u'Bob', 'last_name': u'erama',
+                          'is_org': False, 'role': 'readonly',
+                          'user': u'alice','metadata': {}}, users)
