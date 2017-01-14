@@ -299,12 +299,15 @@ class XFormMixin(object):
 
     def get_child_elements(self, name_or_xpath):
         """Returns a list of survey elements children in a flat list.
-        If the element is a group, repeat or multiple select the children are
-        appended to the list.
+        If the element is a group or multiple select the child elements are
+        appended to the list. If the name_or_xpath is a repeat we iterate
+        through the child elements as well.
         """
         def flatten(elem, items=[]):
             results = []
-            if elem.type in ['group', 'repeat', 'select all that apply']:
+            xpath = elem.get_abbreviated_xpath()
+            if elem.type in ['group', 'select all that apply'] or \
+                    (xpath == name_or_xpath and elem.type == 'repeat'):
                 for child in elem.children:
                     results += flatten(child)
             else:

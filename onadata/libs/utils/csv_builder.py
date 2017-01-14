@@ -348,8 +348,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 if xp in repeat_value:
                     item[xp] = repeat_value[xp]
 
-                count_ordered = len(item.keys())
-
+            count_ordered = len(item.keys())
             assert count_keys == count_ordered, \
                 "Only %s of %s were found" % (count_ordered, count_keys)
 
