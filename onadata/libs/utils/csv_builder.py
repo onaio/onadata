@@ -339,12 +339,19 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         Flatten list columns by appending an index, otherwise return as is
         """
         def get_ordered_repeat_value(xpath, repeat_value):
+            children = data_dictionary.get_child_elements(xpath)
+            count_keys = len(repeat_value.keys())
             item = OrderedDict()
-            repeat_group = data_dictionary.get_survey_element(xpath)
-            for elem in repeat_group.children:
+
+            for elem in children:
                 xp = elem.get_abbreviated_xpath()
                 if xp in repeat_value:
                     item[xp] = repeat_value[xp]
+
+                count_ordered = len(item.keys())
+
+            assert count_keys == count_ordered, \
+                "Only %s of %s were found" % (count_ordered, count_keys)
 
             return item
 
