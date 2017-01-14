@@ -338,6 +338,16 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         """
         Flatten list columns by appending an index, otherwise return as is
         """
+        def get_ordered_repeat_value(xpath, repeat_value):
+            item = OrderedDict()
+            repeat_group = data_dictionary.get_survey_element(xpath)
+            for elem in repeat_group.children:
+                xp = elem.get_abbreviated_xpath()
+                if xp in repeat_value:
+                    item[xp] = repeat_value[xp]
+
+            return item
+
         d = {}
 
         # check for lists
@@ -349,6 +359,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 # for each list check for dict, we want to transform the key of
                 # this dict
                 if type(item) is dict:
+                    # order repeat according to xform order
+                    item = get_ordered_repeat_value(key, item)
                     for nested_key, nested_val in item.iteritems():
                         # given the key "children/details" and nested_key/
                         # abbreviated xpath
