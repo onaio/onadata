@@ -297,6 +297,28 @@ class XFormMixin(object):
 
         return fields[0] if len(fields) else None
 
+    def get_child_elements(self, name_or_xpath):
+        """Returns a list of survey elements children in a flat list.
+        If the element is a group or multiple select the child elements are
+        appended to the list. If the name_or_xpath is a repeat we iterate
+        through the child elements as well.
+        """
+        def flatten(elem, items=[]):
+            results = []
+            xpath = elem.get_abbreviated_xpath()
+            if elem.type in ['group', 'select all that apply'] or \
+                    (xpath == name_or_xpath and elem.type == 'repeat'):
+                for child in elem.children:
+                    results += flatten(child)
+            else:
+                results = [elem]
+
+            return items + results
+
+        element = self.get_survey_element(name_or_xpath)
+
+        return flatten(element)
+
     def get_choice_label(self, field, choice_value, lang='English'):
         choices = [choice for choice in field.children
                    if choice.name == choice_value]
