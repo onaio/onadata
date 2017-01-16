@@ -40,6 +40,19 @@ Example
 
       curl -X GET https://api.ona.io/api/v1/profiles
 
+To retrieve a specific list of user profiles, an authenicated user should use ``users`` query param whose value
+should be a comma-separated list of usernames as seen in the example below. A couple of things to note:
+
+- Anonymous users will get an empty result.
+- Authenticated users without the ``users`` query param will get their own profiles.
+
+Example
+^^^^^^^
+
+::
+
+      curl -X GET https://api.ona.io/api/v1/profiles?users=alice,bob,charlene
+
 Response
 ^^^^^^^^
 
