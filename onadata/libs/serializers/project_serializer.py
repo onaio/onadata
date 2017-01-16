@@ -158,6 +158,7 @@ class ProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
                                                lookup_field='pk')
     formid = serializers.ReadOnlyField(source='id')
     name = serializers.ReadOnlyField(source='title')
+    published_by_formbuilder = serializers.SerializerMethodField()
 
     class Meta:
         model = XForm
@@ -168,11 +169,21 @@ class ProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
             'num_of_submissions',
             'downloadable',
             'encrypted',
+            'published_by_formbuilder',
             'last_submission_time',
             'date_created',
             'url',
             'last_updated_at'
         )
+
+    def get_published_by_formbuilder(self, obj):
+        md = obj.metadata_set.filter(
+            data_type='published_by_formbuilder'
+        ).first()
+        if md and hasattr(md, 'data_value') and md.data_value:
+            return True
+
+        return False
 
 
 class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
