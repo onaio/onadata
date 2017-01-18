@@ -13,6 +13,8 @@ DATABASES = {
     }
 }
 
+SLAVE_DATABASES = []
+
 SECRET_KEY = 'mlfs33^s1l4xf6a36$0#j%dd*sisfoi&)&4s-v=91#^l01v)*j'
 
 JWT_SECRET_KEY = 'thesecretkey'
