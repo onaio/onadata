@@ -1,8 +1,9 @@
 import os
 import random
 
-from urlparse import urlparse
 from datetime import datetime
+from multidb.pinning import use_master
+from urlparse import urlparse
 
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
@@ -606,6 +607,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         return Response(data=resp, status=resp_code)
 
     @detail_route(methods=['GET'])
+    @use_master
     def export_async(self, request, *args, **kwargs):
         job_uuid = request.query_params.get('job_uuid')
         export_type = request.query_params.get('format')
