@@ -254,9 +254,14 @@ class QuickConverterTextXlsForm(forms.Form):
         label=ugettext_lazy('XLSForm Representation'), required=False)
 
 
+class QuickConverterXMLFile(forms.Form):
+    xml_file = forms.FileField(
+        label=ugettext_lazy(u'XML File'), required=False)
+
+
 class QuickConverter(QuickConverterFile, QuickConverterURL,
                      QuickConverterDropboxURL, QuickConverterTextXlsForm,
-                     QuickConverterCsvFile):
+                     QuickConverterCsvFile, QuickConverterXMLFile):
     project = forms.IntegerField(required=False)
     validate = URLValidator()
 
