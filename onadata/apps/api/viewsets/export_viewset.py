@@ -1,5 +1,6 @@
 import os
 
+from multidb.pinning import use_master
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ReadOnlyModelViewSet
@@ -34,6 +35,7 @@ class ExportViewSet(ReadOnlyModelViewSet):
     serializer_class = ExportSerializer
     filter_backends = (filters.ExportFilter,)
 
+    @use_master
     def retrieve(self, request, *args, **kwargs):
         export = self.get_object()
         filename, extension = os.path.splitext(export.filename)
