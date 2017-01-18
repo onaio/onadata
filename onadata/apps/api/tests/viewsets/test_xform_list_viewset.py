@@ -8,7 +8,9 @@ from django.core.urlresolvers import reverse
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
-from onadata.apps.api.viewsets.xform_list_viewset import XFormListViewSet
+from onadata.apps.api.viewsets.xform_list_viewset import (
+    XFormListViewSet, PreviewXFormListViewSet
+)
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.permissions import DataEntryRole
 from onadata.libs.permissions import ReadOnlyRole
@@ -108,6 +110,60 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(
             response.data.get('detail'),
             u'JWT DecodeError: Not enough segments')
+
+    @patch('onadata.apps.api.viewsets.project_viewset.send_mail')
+    def test_read_only_users_get_non_empty_formlist_using_preview_formlist(
+            self, mock_send_mail):
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com',
+                      'password1': 'alice', 'password2': 'alice'}
+        alice_profile = self._create_user_profile(alice_data)
+
+        self.assertFalse(
+            ReadOnlyRole.user_has_role(alice_profile.user, self.project))
+
+        # share bob's project with alice
+        data = {'username': 'alice',
+                'role': ReadOnlyRole.name,
+                'email_msg': 'I have shared the project with you'}
+        request = self.factory.post('/', data=data, **self.extra)
+        share_view = ProjectViewSet.as_view({
+            'post': 'share'
+        })
+        projectid = self.project.pk
+        response = share_view(request, pk=projectid)
+        self.assertEqual(response.status_code, 204)
+        self.assertTrue(mock_send_mail.called)
+        self.assertTrue(
+            ReadOnlyRole.user_has_role(alice_profile.user, self.project))
+
+        # check that she can authenticate successfully
+        request = self.factory.get('/')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth('alice', 'alice')
+        request.META.update(auth(request.META, response))
+        response = self.view(request, username='bob')
+        self.assertEqual(response.status_code, 200)
+        # check that alice gets an empty response when requesting bob's
+        # formlist
+        self.assertEqual(response.data, [])
+
+        # set endpoint to preview formList
+        self.view = PreviewXFormListViewSet.as_view({
+            "get": "list"
+        })
+
+        request = self.factory.get('/')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+        self.assertNotEqual(response.data, [])
+        auth = DigestAuth('alice', 'alice')
+        request.META.update(auth(request.META, response))
+        response = self.view(request, username='bob')
+        self.assertEqual(response.status_code, 200)
+        # check that alice does NOT get an empty response when requesting bob's
+        # formlist when using the preview formlist endpoint
+        self.assertNotEqual(response.data, [])
 
     @patch('onadata.apps.api.viewsets.project_viewset.send_mail')
     def test_get_xform_list_with_shared_forms(self, mock_send_mail):
