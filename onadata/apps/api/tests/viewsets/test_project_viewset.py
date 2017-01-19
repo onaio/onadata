@@ -2017,9 +2017,14 @@ class TestProjectViewSet(TestAbstractViewSet):
 
     def test_project_list_by_owner(self):
         # create project and publish form to project
+        sluggie_data = {'username': 'sluggie',
+                        'email': 'sluggie@localhost.com'}
+        self._login_user_and_profile(sluggie_data)
         self._publish_xls_form_to_project()
+
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
         alice_profile = self._create_user_profile(alice_data)
+
         projectid = self.project.pk
 
         self.assertFalse(ReadOnlyRole.user_has_role(alice_profile.user,
@@ -2042,7 +2047,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                                                    self.xform))
 
         # Should list collaborators
-        data = {"owner": "bob"}
+        data = {"owner": "sluggie"}
         request = self.factory.get('/', data=data, **self.extra)
         response = view(request)
 
