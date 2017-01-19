@@ -385,11 +385,15 @@ class WidgetFilter(XFormPermissionFilterMixin,
 class UserProfileFilter(filters.BaseFilterBackend):
 
     def filter_queryset(self, request, queryset, view):
-        if view.action == 'list' and request.GET.get('users'):
+        if view.action == 'list':
             users = request.GET.get('users')
             if users:
                 users = users.split(',')
                 return queryset.filter(user__username__in=users)
+            elif not request.user.is_anonymous():
+                return queryset.filter(user__username=request.user.username)
+
+            return queryset.none()
 
         return queryset
 
