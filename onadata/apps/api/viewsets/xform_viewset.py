@@ -31,9 +31,10 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.exceptions import ParseError
 from rest_framework.filters import DjangoFilterBackend
 
+from onadata.apps.api import tasks
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.views import get_enketo_preview_url
-from onadata.apps.api import tasks
+from onadata.apps.viewer.models.export import Export
 from onadata.libs import filters, authentication
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
@@ -607,7 +608,6 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         return Response(data=resp, status=resp_code)
 
     @detail_route(methods=['GET'])
-    @use_master
     def export_async(self, request, *args, **kwargs):
         job_uuid = request.query_params.get('job_uuid')
         export_type = request.query_params.get('format')
@@ -627,7 +627,12 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         })
 
         if job_uuid:
-            resp = get_async_response(job_uuid, request, xform)
+            try:
+                resp = get_async_response(job_uuid, request, xform)
+            except Export.DoesNotExist:
+                # if this does not exist retry it against the primary
+                with use_master:
+                    resp = get_async_response(job_uuid, request, xform)
         else:
             resp = process_async_export(request, xform, export_type, options)
 
