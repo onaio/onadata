@@ -11,7 +11,7 @@ from django.core.files.storage import get_storage_class
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
-from django.db import IntegrityError
+from django.db import IntegrityError, OperationalError
 from rest_framework.authtoken.models import Token
 from django.http import HttpResponse
 from django.http import HttpResponseBadRequest
@@ -452,6 +452,7 @@ def api(request, username=None, id_string=None):
         add_cors_headers(response)
 
         return response
+
     helper_auth_helper(request)
     helper_auth_helper(request)
     xform, owner = check_and_set_user_and_form(username, id_string, request)
@@ -473,6 +474,7 @@ def api(request, username=None, id_string=None):
         if 'page' in request.GET:
             page = int(request.GET.get('page'))
             page_size = request.GET.get('page_size', request.GET.get('limit'))
+
             if page_size:
                 page_size = int(page_size)
             else:
@@ -480,19 +482,23 @@ def api(request, username=None, id_string=None):
 
             start_index = (page - 1) * page_size
             args["start_index"] = start_index
+
             args["limit"] = page_size
+
         if query:
             count_args = args.copy()
             count_args['count'] = True
-            count_results = [
-                i for i in query_data(**count_args)
-            ]
-            total_records = count_results[0].get('count', total_records)\
-                if len(count_results) else total_records
+            count_results = [i for i in query_data(**count_args)]
+
+            if len(count_results):
+                total_records = count_results[0].get('count', total_records)
+
         if 'start' in request.GET:
             args["start_index"] = int(request.GET.get('start'))
+
         if 'limit' in request.GET:
             args["limit"] = int(request.GET.get('limit'))
+
         if 'count' in request.GET:
             args["count"] = True if int(request.GET.get('count')) > 0\
                 else False
@@ -501,8 +507,10 @@ def api(request, username=None, id_string=None):
     except (ValueError, TypeError) as e:
         return HttpResponseBadRequest(e.__str__())
 
-    records = list(record for record in cursor)
-    response_text = json_util.dumps(records)
+    try:
+        response_text = json_util.dumps([i for i in cursor])
+    except OperationalError:
+        return HttpResponseServerError()
 
     if 'callback' in request.GET and request.GET.get('callback') != '':
         callback = request.GET.get('callback')
