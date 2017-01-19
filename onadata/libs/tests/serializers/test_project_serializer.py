@@ -5,7 +5,6 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.libs.serializers.project_serializer import\
     ProjectSerializer, BaseProjectSerializer
-from onadata.libs.models.share_project import ShareProject
 
 
 class TestBaseProjectSerializer(TestAbstractViewSet):
@@ -18,13 +17,14 @@ class TestBaseProjectSerializer(TestAbstractViewSet):
         data = {
                 'name': u'demo',
                 'owner':
-                'http://testserver/api/v1/users/%s' % self.organization.user.username,
+                'http://testserver/api/v1/users/%s'
+                % self.organization.user.username,
                 'metadata': {'description': 'Some description',
                              'location': 'Naivasha, Kenya',
                              'category': 'governance'},
                 'public': False
             }
-        #create the project
+        # Create the project
         self._project_create(data)
 
     def test_get_users(self):
@@ -32,11 +32,6 @@ class TestBaseProjectSerializer(TestAbstractViewSet):
         # Is none when request to get users lacks a project
         users = self.serializer.get_users(None)
         self.assertEqual(users, None)
-
-        # create users. Returns a user-profile object.
-        alice = self._create_user_profile({'username': 'alice'})
-
-        ShareProject(self.project, 'alice', 'manager').save()
 
         # Has members and NOT collaborators when NOT passed 'owner'
         request = self.factory.get('/', **self.extra)
@@ -55,6 +50,7 @@ class TestBaseProjectSerializer(TestAbstractViewSet):
                                   'role': 'owner',
                                   'user': u'denoinc',
                                   'metadata': {}}])
+
 
 class TestProjectSerializer(TestAbstractViewSet):
 

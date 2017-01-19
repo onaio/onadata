@@ -2060,4 +2060,4 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertNotIn({'first_name': u'Bob', 'last_name': u'erama',
                           'is_org': False, 'role': 'readonly',
-                          'user': u'alice','metadata': {}}, users)
+                          'user': u'alice', 'metadata': {}}, users)
