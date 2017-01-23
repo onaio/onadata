@@ -9,6 +9,9 @@ from onadata.apps import sms_support
 from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
 from onadata.apps.api.urls import router
 from onadata.apps.api.urls import XFormListViewSet
+from onadata.apps.api.viewsets.xform_list_viewset import (
+    PreviewXFormListViewSet
+)
 from onadata.apps.api.urls import XFormSubmissionViewSet
 from onadata.apps.api.urls import BriefcaseViewset
 from onadata.apps.logger import views as logger_views
@@ -190,6 +193,8 @@ urlpatterns = [
         XFormListViewSet.as_view({'get': 'list'}), name='form-list'),
     url(r'^(?P<username>\w+)/formList$',
         XFormListViewSet.as_view({'get': 'list'}), name='form-list'),
+    url(r'^preview/(?P<username>\w+)/formList$',
+        PreviewXFormListViewSet.as_view({'get': 'list'}), name='form-list'),
     url(r'^(?P<username>\w+)/xformsManifest/(?P<pk>[\d+^/]+)$',
         XFormListViewSet.as_view({'get': 'manifest'}), name='manifest-url'),
     url(r'^xformsManifest/(?P<pk>[\d+^/]+)$',

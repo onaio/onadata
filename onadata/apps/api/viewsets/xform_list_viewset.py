@@ -141,3 +141,8 @@ class XFormListViewSet(CacheControlMixin, ETagsMixin, BaseViewset,
             MetaData, data_type='media', object_id=self.object.pk, pk=pk)
 
         return get_media_file_response(meta_obj, request)
+
+
+class PreviewXFormListViewSet(XFormListViewSet):
+    filter_backends = (filters.AnonDjangoObjectPermissionFilter,)
+    permission_classes = (permissions.AllowAny,)

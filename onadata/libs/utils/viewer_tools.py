@@ -252,7 +252,7 @@ def get_form(kwargs):
     from onadata.apps.logger.models import XForm
     from django.http import Http404
 
-    queryset = kwargs.pop('queryset',  XForm.objects.filter())
+    queryset = kwargs.pop('queryset', XForm.objects.filter())
     xform = queryset.filter(**kwargs).first()
     if xform:
         return xform
@@ -260,7 +260,7 @@ def get_form(kwargs):
     raise Http404("XForm does not exist.")
 
 
-def get_form_url(request, username=None, protocol='https'):
+def get_form_url(request, username=None, protocol='https', preview=False):
     if settings.TESTING_MODE:
         http_host = settings.TEST_HTTP_HOST
         username = settings.TEST_USERNAME
@@ -268,6 +268,9 @@ def get_form_url(request, username=None, protocol='https'):
         http_host = request.META.get('HTTP_HOST', 'ona.io')
 
     url = '%s://%s' % (protocol, http_host)
+
+    if preview:
+        url = '%s/preview' % url
 
     if username:
         url = "{}/{}".format(url, username)
