@@ -13,7 +13,7 @@ Replace username and db name accordingly.
 
 **Alternatively** you can use docker to set up the DB.
 These are just examples and you shouldn't run them as they are in production:
-Use the Dockerfile in extras/docker for postgres 9.6.0 with postgis 2.3.0.
+Use the Dockerfile in [onaio/docker-builds](https://github.com/onaio/docker-builds/tree/master/postgres) for postgres 9.6.0 with postgis 2.3.0.
 ```
 $ mkdir ~/docker-images/postgres-9.6/
 $ cd ~/docker-images/postgres-9.6
@@ -22,7 +22,7 @@ $ docker build -t postgres:9.6.0 .
 
 To run it.
 
-> This will be a persistent db using ~/postgresql/data
+> This will be a persistent using ~/postgresql/data
 
 ```
 $ mkdir ~/postgresql/data
