@@ -281,6 +281,14 @@ The following is a jquery code snippet on how to make a CORS request.
        },
    });
 
+Formlist for preview urls
+--------------------------
+To generate a preview url for enketo, use the following formlist url format
+::
+
+    https://api.ona.io/<username>/formList
+
+
 
 Quick start
 -----------
