@@ -38,12 +38,12 @@ In psql:
 ```
 CREATE USER onadata WITH PASSWORD 'pass'
 CREATE DATABASE onadata OWNER onadata
-connect onadata
+CONNECT onadata
 CREATE EXTENSION IF NOT EXISTS postgis
 CREATE EXTENSION IF NOT EXISTS postgis_topology;\""
 ```
 
-From now onwards start your DB with `docker start postgres` provided you passed the name "postgres" to Docker's `-d` option.
+From now onwards start your DB with `docker start onadata` provided you passed the name "onadata" to Docker's `--name` option.
 
 ## Get the code
     git clone https://github.com/onaio/onadata.git
