@@ -17,17 +17,9 @@ class Command(BaseCommand):
             'SELECT uid FROM kpi_asset WHERE asset_type=%s', ['survey'])
         rs = cursor.cursor.fetchall()
         uids = [a[0] for a in rs]
-        metadata = [
-            a
-            for a in MetaData.objects.filter(
-                data_type='published_by_formbuilder'
-            )
-            if isinstance(a.content_object, XForm)
-        ]
-
-        for obj in metadata:
-            if obj.data_value == '' and obj.content_object.id_string in uids:
-                MetaData.published_by_formbuilder(obj.content_object, 'True')
+        xforms = XForm.objects.filter(id_string__in=uids)
+        for x in xforms:
+            MetaData.published_by_formbuilder(x, 'True')
 
         self.stdout.write(
             "Done creating published_by_formbuilder metadata!!!"
