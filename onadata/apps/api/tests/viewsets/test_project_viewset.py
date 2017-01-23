@@ -884,8 +884,14 @@ class TestProjectViewSet(TestAbstractViewSet):
         request.user = self.user
         self.project_data = BaseProjectSerializer(
             self.project, context={'request': request}).data
-        self.assertIn(updated_project_data, response.data)
-        self.assertIn(self.project_data, response.data)
+        result = [{'owner': p.get('owner'),
+                  'projectid': p.get('projectid')} for p in response.data]
+        bob_data = {'owner': 'http://testserver/api/v1/users/bob',
+                    'projectid': updated_project_data.get('projectid')}
+        alice_data = {'owner': 'http://testserver/api/v1/users/alice',
+                      'projectid': self.project_data.get('projectid')}
+        self.assertIn(bob_data, result)
+        self.assertIn(alice_data, result)
 
         # only bob's project
         request = self.factory.get('/', {'owner': 'bob'}, **self.extra)
