@@ -1,8 +1,10 @@
-# Installation instructions.
-## Prepare Os
+# Ubuntu installation instructions.
+## Prepare OS
     $ ./script/install/ubuntu
 
 ## Database setup
+
+### In the base OS
 Replace username and db name accordingly.
 
     sudo su postgres -c "psql -c \"CREATE USER onadata WITH PASSWORD 'onadata';\""
@@ -11,7 +13,7 @@ Replace username and db name accordingly.
     sudo su postgres -c "psql -d onadata -c \"CREATE EXTENSION IF NOT EXISTS postgis;\""
     sudo su postgres -c "psql -d onadata -c \"CREATE EXTENSION IF NOT EXISTS postgis_topology;\""
 
-**Alternatively** you can use docker to set up the DB.
+### In Docker
 These are just examples and you shouldn't run them as they are in production:
 Use the Dockerfile in [onaio/docker-builds](https://github.com/onaio/docker-builds/tree/master/postgres) for postgres 9.6.0 with postgis 2.3.0.
 ```
@@ -40,6 +42,8 @@ connect onadata
 CREATE EXTENSION IF NOT EXISTS postgis
 CREATE EXTENSION IF NOT EXISTS postgis_topology;\""
 ```
+
+From now onwards start your DB with `docker start postgres` provided you passed the name "postgres" to Docker's `-d` option.
 
 ## Get the code
     git clone https://github.com/onaio/onadata.git
