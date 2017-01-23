@@ -880,6 +880,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
+        request = self.factory.get('/', {'owner': 'alice'}, **self.extra)
         request.user = self.user
         self.project_data = BaseProjectSerializer(
             self.project, context={'request': request}).data
