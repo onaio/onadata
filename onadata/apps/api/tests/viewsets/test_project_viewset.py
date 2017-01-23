@@ -866,7 +866,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         view = ProjectViewSet.as_view({
             'get': 'retrieve'
         })
-        request = self.factory.get('/', **self.extra)
+        request = self.factory.get('/', {'owner': 'bob'}, **self.extra)
         response = view(request, pk=self.project.pk)
         request.user = self.user
         self.project.reload()
