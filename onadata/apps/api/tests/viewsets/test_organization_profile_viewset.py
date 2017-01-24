@@ -427,6 +427,25 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [u'denoinc'])
 
+        newname = 'aboy2'
+        self._create_user_profile(extra_post_data={'username': newname})
+
+        data = {'username': newname}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(set(response.data), set([u'denoinc', newname]))
+
+        request = self.factory.delete(
+            '/?username={}'.format(newname), **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [u'denoinc'])
+
     def test_orgs_create_with_mixed_case(self):
         data = {
             'name': u'denoinc',
