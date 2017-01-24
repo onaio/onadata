@@ -1,4 +1,3 @@
-
 import os
 import json
 import requests
@@ -867,7 +866,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         view = ProjectViewSet.as_view({
             'get': 'retrieve'
         })
-        request = self.factory.get('/', **self.extra)
+        request = self.factory.get('/', {'owner': 'bob'}, **self.extra)
         response = view(request, pk=self.project.pk)
         request.user = self.user
         self.project.reload()
@@ -881,11 +880,18 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
+        request = self.factory.get('/', {'owner': 'alice'}, **self.extra)
         request.user = self.user
         self.project_data = BaseProjectSerializer(
             self.project, context={'request': request}).data
-        self.assertIn(updated_project_data, response.data)
-        self.assertIn(self.project_data, response.data)
+        result = [{'owner': p.get('owner'),
+                  'projectid': p.get('projectid')} for p in response.data]
+        bob_data = {'owner': 'http://testserver/api/v1/users/bob',
+                    'projectid': updated_project_data.get('projectid')}
+        alice_data = {'owner': 'http://testserver/api/v1/users/alice',
+                      'projectid': self.project_data.get('projectid')}
+        self.assertIn(bob_data, result)
+        self.assertIn(alice_data, result)
 
         # only bob's project
         request = self.factory.get('/', {'owner': 'bob'}, **self.extra)
@@ -2015,3 +2021,55 @@ class TestProjectViewSet(TestAbstractViewSet):
         # permissions have changed for both project and xform
         self.assertFalse(role_class.user_has_role(alice, self.project))
         self.assertFalse(role_class.user_has_role(alice, self.xform))
+
+    def test_project_list_by_owner(self):
+        # create project and publish form to project
+        sluggie_data = {'username': 'sluggie',
+                        'email': 'sluggie@localhost.com'}
+        self._login_user_and_profile(sluggie_data)
+        self._publish_xls_form_to_project()
+
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+
+        projectid = self.project.pk
+
+        self.assertFalse(ReadOnlyRole.user_has_role(alice_profile.user,
+                                                    self.project))
+
+        data = {'username': 'alice', 'role': ReadOnlyRole.name}
+        request = self.factory.put('/', data=data, **self.extra)
+
+        view = ProjectViewSet.as_view({
+            'put': 'share',
+            'get': 'list'
+        })
+        response = view(request, pk=projectid)
+
+        self.assertEqual(response.status_code, 204)
+
+        self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user,
+                                                   self.project))
+        self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user,
+                                                   self.xform))
+
+        # Should list collaborators
+        data = {"owner": "sluggie"}
+        request = self.factory.get('/', data=data, **self.extra)
+        response = view(request)
+
+        users = response.data[0]['users']
+        self.assertEqual(response.status_code, 200)
+        self.assertIn({'first_name': u'Bob', 'last_name': u'erama',
+                       'is_org': False, 'role': 'readonly', 'user': u'alice',
+                       'metadata': {}}, users)
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=projectid)
+
+        # Should not list collaborators
+        users = response.data[0]['users']
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn({'first_name': u'Bob', 'last_name': u'erama',
+                          'is_org': False, 'role': 'readonly',
+                          'user': u'alice', 'metadata': {}}, users)
