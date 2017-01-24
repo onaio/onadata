@@ -366,7 +366,11 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 # this dict
                 if type(item) is dict:
                     # order repeat according to xform order
-                    item = get_ordered_repeat_value(key, item)
+                    try:
+                        item = get_ordered_repeat_value(key, item)
+                    except AssertionError:
+                        pass
+
                     for nested_key, nested_val in item.iteritems():
                         # given the key "children/details" and nested_key/
                         # abbreviated xpath
