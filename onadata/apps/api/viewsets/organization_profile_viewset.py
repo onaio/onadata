@@ -53,7 +53,9 @@ class OrganizationProfileViewSet(AuthenticateHeaderMixin,
     @detail_route(methods=['DELETE', 'GET', 'POST', 'PUT'])
     def members(self, request, *args, **kwargs):
         organization = self.get_object()
-        data = dict(request.data.items() + [('organization', organization.pk)])
+        data = dict(request.data.items() +
+                    request.query_params.items() +
+                    [('organization', organization.pk)])
 
         if request.method == 'POST' and 'username' not in data:
             data['username'] = None
