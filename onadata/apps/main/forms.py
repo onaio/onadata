@@ -331,10 +331,8 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
             else:
                 project = self._project
 
-            if 'xml_file' in self.cleaned_data and\
-                    self.cleaned_data['xml_file']:
-                cleaned_xml_file = self.cleaned_data['xml_file']
-
+            cleaned_xml_file = self.cleaned_data['xml_file']
+            if cleaned_xml_file:
                 return publish_xml_form(cleaned_xml_file, user, project,
                                         id_string, created_by or user)
 
