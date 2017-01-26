@@ -159,6 +159,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                           'last_updated_at',
                           'name',
                           'num_of_submissions',
+                          'published_by_formbuilder',
                           'url'],
                          sorted(form_obj_keys))
         self.assertEqual(['columns',

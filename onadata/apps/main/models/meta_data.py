@@ -244,6 +244,11 @@ class MetaData(models.Model):
                     [tuple(a.strip().split(' ', 1)) for a in data_list])
 
     @staticmethod
+    def published_by_formbuilder(content_object, data_value=None):
+        data_type = 'published_by_formbuilder'
+        return unique_type_for_form(content_object, data_type, data_value)
+
+    @staticmethod
     def enketo_url(content_object, data_value=None):
         data_type = 'enketo_url'
         return unique_type_for_form(content_object, data_type, data_value)
