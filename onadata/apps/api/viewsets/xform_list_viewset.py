@@ -5,6 +5,7 @@ from datetime import datetime
 from django.conf import settings
 from django.http import Http404
 from django.shortcuts import get_object_or_404
+from django.views.decorators.cache import never_cache
 
 from rest_framework import viewsets
 from rest_framework import permissions
@@ -105,6 +106,7 @@ class XFormListViewSet(CacheControlMixin, ETagsMixin, BaseViewset,
 
         return queryset
 
+    @never_cache
     def list(self, request, *args, **kwargs):
         self.object_list = self.filter_queryset(self.get_queryset())
 
