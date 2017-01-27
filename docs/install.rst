@@ -4,7 +4,8 @@ Ubuntu installation instructions
 Prepare OS
 ----------
 
-::
+.. code-block:: sh
+
     ./script/install/ubuntu
 
 Database setup
@@ -15,7 +16,8 @@ In the base OS
 
 Replace username and db name accordingly.
 
-::
+.. code-block:: sh
+
     sudo su postgres -c "psql -c \"CREATE USER onadata WITH PASSWORD 'onadata';\""
     sudo su postgres -c "psql -c \"CREATE DATABASE onadata OWNER onadata;\""
     sudo su postgres -c "psql -d onadata -c \"CREATE EXTENSION IF NOT EXISTS postgis;\""
@@ -30,7 +32,8 @@ To run this use the Dockerfile in
 `onaio/docker-builds <https://github.com/onaio/docker-builds/tree/master/postgres>`_
 for postgres 9.6.0 with postgis 2.3.0 and run:
 
-::
+.. code-block:: sh
+
     mkdir ~/docker-images/postgres-9.6/
     cd ~/docker-images/postgres-9.6
     docker build -t postgres:9.6.0 .
@@ -39,20 +42,20 @@ for postgres 9.6.0 with postgis 2.3.0 and run:
 
   This will be a persisted using ~/postgresql/data
 
-::
+.. code-block:: sh
 
     mkdir ~/postgresql/data
     docker run -e POSTGRES_PASSWORD=pass -p 5432:5432 --volume ~/postgresql/data:/var/lib/postgresql/data --name onadata -d postgres:9.6.0
 
 Connect using psql with:
 
-::
+.. code-block:: sh
 
     psql -h localhost -p 5432 -U postgres
 
 In psql:
 
-::
+.. code-block:: sql
 
     CREATE USER onadata WITH PASSWORD 'pass'
     CREATE DATABASE onadata OWNER onadata
@@ -66,14 +69,14 @@ the name "onadata" to Docker's ``--name`` option.
 Get the code
 ------------
 
-::
+.. code-block:: sh
 
     git clone https://github.com/onaio/onadata.git
 
 Set up and start your virtual environment or sandbox
 ----------------------------------------------------
 
-::
+.. code-block:: sh
 
     virtualenv <.venv>
     source <.venv>/bin/activate
@@ -90,13 +93,14 @@ Make sure you have a ``onadata/settings/local_settings.py`` file.
 Run make to set up core and for initial db setup
 ------------------------------------------------
 
-::
+.. code-block:: sh
 
     make
 
 You may at this point start core with
 
-::
+.. code-block:: sh
+
     python manage.py runserver --nothreading
 
 or go on and set up the rest.
@@ -104,7 +108,7 @@ or go on and set up the rest.
 Compile api docs
 ----------------
 
-::
+.. code-block:: sh
 
     cd docs
     make html
@@ -113,7 +117,7 @@ Compile api docs
 Copy static files to static dir
 -------------------------------
 
-::
+.. code-block:: sh
 
     python manage.py collectstatic --noinput
     python manage.py createsuperuser
@@ -121,7 +125,7 @@ Copy static files to static dir
 Setup uwsgi init script
 -----------------------
 
-::
+.. code-block:: sh
 
     pip install uwsgi
     # edit uwsgi.ini accrodingly, change paths, user among other parmas
@@ -134,7 +138,7 @@ Setup uwsgi init script
 Setup celery service
 --------------------
 
-::
+.. code-block:: sh
 
     sudo apt-get install rabbitmq-server
     # edit script/etc/default/celeryd-ona with correct paths and user, group
@@ -150,7 +154,7 @@ Setup celery service
 Setup nginx
 -----------
 
-::
+.. code-block:: sh
 
     sudo apt-get install nginx
     sudo cp script/etc/nginx/sites-available/onadata /etc/nginx/sites-available/onadata
@@ -169,7 +173,8 @@ Step 1: Install dependencies using brew
 
 `Install homebrew <http://brew.sh/>`_ and run the following commands:
 
-::
+.. code-block:: sh
+
     brew install mongo
     brew install postgis
     brew install gdal
@@ -180,6 +185,7 @@ Step 1: Install dependencies using brew
 Add the following to your ``~/.bash_profile`` or ``~/.zprofile``
 
 ::
+
     export LIBMEMCACHED=/usr/local
     export LC_ALL=en_US.UTF-8
     export LANG=en_US.UTF-8
@@ -204,7 +210,8 @@ Step 4: Install app requirements
 
 Before you install dependencies from the requirements directory files, ensure you have activated your virtual environment and if not, use the ``workon <your-virtual-env>`` to activate it. Then, run the following command:
 
-::
+.. code-block:: sh
+
     pip install numpy  --use-mirrors
     pip install -r requirements/base.pip --allow-all-external
     pip install -r requirements/dev.pip
@@ -218,7 +225,8 @@ Step 5: Install postgres and create your database
 terminal using the command ``psql`` and use the following commands to create
 your user and database:
 
-::
+.. code-block:: sql
+
     CREATE USER <username> WITH PASSWORD '<password>' SUPERUSER CREATEDB LOGIN;
     CREATE DATABASE <database-name> WITH ENCODING='UTF8' LC_CTYPE='en_US.UTF-8' LC_COLLATE='en_US.UTF-8' OWNER=<username> TEMPLATE=template0;
 
@@ -226,7 +234,8 @@ You will also need to create some extensions in your newly created database.
 Enter the command ``\c <database-name>`` to connect to your database then run
 the following commands to install the extensions:
 
-::
+.. code-block:: sql
+
     CREATE EXTENSION IF NOT EXISTS postgis;
     CREATE EXTENSION IF NOT EXISTS postgis_topology;
 
@@ -237,7 +246,8 @@ Step 6: Test installation using development server
 
 Run
 
-::
+.. code-block:: sh
+
     python manage.py runserver
 
 Step 7: Using celery
