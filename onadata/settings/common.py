@@ -95,9 +95,6 @@ STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
 # Example: "http://media.lawrence.com/static/"
 STATIC_URL = '/static/'
 
-# Kpi formbuilder url
-KPI_FORMBUILDER_URL = 'https://forms.ona.io'
-
 # Enketo URL
 ENKETO_PROTOCOL = 'https'
 ENKETO_URL = 'https://enketo.ona.io/'
