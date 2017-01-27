@@ -1,3 +1,5 @@
+import requests
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
 from django.db import models
@@ -73,6 +75,23 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
                 assign_perm(perm.codename, instance.created_by, instance)
 
 
+def set_kpi_formbuilder_permissions(
+        sender, instance=None, created=False, **kwargs):
+    if created:
+        kpi_formbuilder_url = hasattr(settings, 'KPI_FORMBUILDER_URL') and\
+            settings.KPI_FORMBUILDER_URL
+        if kpi_formbuilder_url:
+            requests.post(
+                "%s/%s" % (
+                    kpi_formbuilder_url,
+                    'grant-default-model-level-perms'
+                ),
+                headers={
+                    'Authorization': 'Token %s' % instance.user.auth_token
+                }
+            )
+
+
 post_save.connect(create_auth_token, sender=User, dispatch_uid='auth_token')
 
 post_save.connect(set_api_permissions, sender=User,
@@ -80,6 +99,9 @@ post_save.connect(set_api_permissions, sender=User,
 
 post_save.connect(set_object_permissions, sender=UserProfile,
                   dispatch_uid='set_object_permissions')
+
+post_save.connect(set_kpi_formbuilder_permissions, sender=UserProfile,
+                  dispatch_uid='set_kpi_formbuilder_permission')
 
 
 class UserProfileUserObjectPermission(UserObjectPermissionBase):
