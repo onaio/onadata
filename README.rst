@@ -14,7 +14,7 @@ Ona is derived from the excellent `formhub <http://github.com/SEL-Columbia/formh
 Installation
 ------------
 
-See `install.md <install.md>`_.
+See the `installation documentation <https://api.ona.io/static/docs/install.html>`_.
 
 Contributing
 ------------
