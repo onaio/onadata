@@ -665,6 +665,26 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(response.data['field_name'], '_submission_time')
         self.assertEqual(response.data['data_type'], 'time_based')
 
+        data = {'field_name': '_submitted_by'}
+        request = self.factory.get('/charts', data, **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 200)
+
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.data['field_type'], 'text')
+        self.assertEqual(response.data['field_name'], '_submitted_by')
+        self.assertEqual(response.data['data_type'], 'categorized')
+
+        data = {'field_name': '_duration'}
+        request = self.factory.get('/charts', data, **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 200)
+
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.data['field_type'], 'integer')
+        self.assertEqual(response.data['field_name'], '_duration')
+        self.assertEqual(response.data['data_type'], 'numeric')
+
     def test_get_charts_data_for_grouped_field(self):
         data = {
             'name': "My DataView",
