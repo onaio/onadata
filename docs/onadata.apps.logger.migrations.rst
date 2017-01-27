@@ -196,6 +196,30 @@ onadata.apps.logger.migrations.0024_xform_has_hxl_support module
     :undoc-members:
     :show-inheritance:
 
+onadata.apps.logger.migrations.0025_xform_last_updated_at module
+----------------------------------------------------------------
+
+.. automodule:: onadata.apps.logger.migrations.0025_xform_last_updated_at
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+onadata.apps.logger.migrations.0026_auto_20160913_0239 module
+-------------------------------------------------------------
+
+.. automodule:: onadata.apps.logger.migrations.0026_auto_20160913_0239
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+onadata.apps.logger.migrations.0027_auto_20161201_0730 module
+-------------------------------------------------------------
+
+.. automodule:: onadata.apps.logger.migrations.0027_auto_20161201_0730
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------
