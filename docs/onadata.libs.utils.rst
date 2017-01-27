@@ -12,6 +12,14 @@ onadata.libs.utils.api_export_tools module
     :undoc-members:
     :show-inheritance:
 
+onadata.libs.utils.async_status module
+--------------------------------------
+
+.. automodule:: onadata.libs.utils.async_status
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.libs.utils.audit module
 -------------------------------
 
@@ -116,6 +124,14 @@ onadata.libs.utils.dict_tools module
     :undoc-members:
     :show-inheritance:
 
+onadata.libs.utils.export_builder module
+----------------------------------------
+
+.. automodule:: onadata.libs.utils.export_builder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.libs.utils.export_tools module
 --------------------------------------
 
@@ -128,14 +144,6 @@ onadata.libs.utils.google module
 --------------------------------
 
 .. automodule:: onadata.libs.utils.google
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-onadata.libs.utils.google_sheets_tools module
----------------------------------------------
-
-.. automodule:: onadata.libs.utils.google_sheets_tools
     :members:
     :undoc-members:
     :show-inheritance:
@@ -184,6 +192,14 @@ onadata.libs.utils.model_tools module
 -------------------------------------
 
 .. automodule:: onadata.libs.utils.model_tools
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+onadata.libs.utils.mongo module
+-------------------------------
+
+.. automodule:: onadata.libs.utils.mongo
     :members:
     :undoc-members:
     :show-inheritance:

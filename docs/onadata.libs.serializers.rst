@@ -67,14 +67,6 @@ onadata.libs.serializers.geojson_serializer module
     :undoc-members:
     :show-inheritance:
 
-onadata.libs.serializers.google_serializer module
--------------------------------------------------
-
-.. automodule:: onadata.libs.serializers.google_serializer
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 onadata.libs.serializers.metadata_serializer module
 ---------------------------------------------------
 
@@ -87,6 +79,14 @@ onadata.libs.serializers.note_serializer module
 -----------------------------------------------
 
 .. automodule:: onadata.libs.serializers.note_serializer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+onadata.libs.serializers.organization_member_serializer module
+--------------------------------------------------------------
+
+.. automodule:: onadata.libs.serializers.organization_member_serializer
     :members:
     :undoc-members:
     :show-inheritance:
