@@ -5,6 +5,7 @@ from datetime import datetime
 from django.conf import settings
 from django.http import Http404
 from django.shortcuts import get_object_or_404
+from django.views.decorators.cache import never_cache
 
 from rest_framework import viewsets
 from rest_framework import permissions
@@ -18,7 +19,6 @@ from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs import filters
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.authentication import EnketoTokenAuthentication
-from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.renderers.renderers import MediaFileContentNegotiation
 from onadata.libs.renderers.renderers import XFormListRenderer
@@ -37,7 +37,7 @@ BaseViewset = get_baseviewset_class()
 DEFAULT_CONTENT_LENGTH = getattr(settings, 'DEFAULT_CONTENT_LENGTH', 10000000)
 
 
-class XFormListViewSet(CacheControlMixin, ETagsMixin, BaseViewset,
+class XFormListViewSet(ETagsMixin, BaseViewset,
                        viewsets.ReadOnlyModelViewSet):
     authentication_classes = (DigestAuthentication,
                               EnketoTokenAuthentication,)
@@ -105,6 +105,7 @@ class XFormListViewSet(CacheControlMixin, ETagsMixin, BaseViewset,
 
         return queryset
 
+    @never_cache
     def list(self, request, *args, **kwargs):
         self.object_list = self.filter_queryset(self.get_queryset())
 
