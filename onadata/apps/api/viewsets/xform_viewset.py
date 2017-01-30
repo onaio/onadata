@@ -19,6 +19,7 @@ from django.utils import six
 from django.utils import timezone
 from django.db import IntegrityError
 from django.db.models import Prefetch
+from django.views.decorators.cache import never_cache
 
 from pyxform.xls2json import parse_file_to_json
 from pyxform.builder import create_survey_element_from_dict
@@ -217,7 +218,6 @@ def parse_webform_return_url(return_url, request):
 
 class XFormViewSet(AnonymousUserPublicFormsMixin,
                    AuthenticateHeaderMixin,
-                   CacheControlMixin,
                    ETagsMixin,
                    LabelsMixin,
                    BaseViewset,
@@ -333,6 +333,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         return Response(data=resp, status=resp_code, headers=headers)
 
     @detail_route()
+    @never_cache
     def form(self, request, format='json', **kwargs):
         form = self.get_object()
         if format not in ['json', 'xml', 'xls']:
