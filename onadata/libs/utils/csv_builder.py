@@ -340,17 +340,12 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         """
         def get_ordered_repeat_value(xpath, repeat_value):
             children = data_dictionary.get_child_elements(xpath)
-            count_keys = len(repeat_value.keys())
             item = OrderedDict()
 
             for elem in children:
                 xp = elem.get_abbreviated_xpath()
                 if xp in repeat_value:
                     item[xp] = repeat_value[xp]
-
-            count_ordered = len(item.keys())
-            assert count_keys == count_ordered, \
-                "Only %s of %s were found" % (count_ordered, count_keys)
 
             return item
 
@@ -367,6 +362,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 if type(item) is dict:
                     # order repeat according to xform order
                     item = get_ordered_repeat_value(key, item)
+
                     for nested_key, nested_val in item.iteritems():
                         # given the key "children/details" and nested_key/
                         # abbreviated xpath
