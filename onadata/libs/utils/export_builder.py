@@ -711,8 +711,8 @@ class ExportBuilder(object):
 
         return language
 
-    def _get_sav_value_labels(self):
-        """GET/SET SPSS `VALUE LABELS`. It takes the dictionay of the form
+    def _get_sav_value_labels(self, xpath_var_names):
+        """GET/SET SPSS `VALUE LABELS`. It takes the dictionary of the form
         `{varName: {value: valueLabel}}`:
 
         .. code-block: python
@@ -727,6 +727,7 @@ class ExportBuilder(object):
             self._sav_value_labels = {}
 
             for q in choice_questions:
+                var_name = xpath_var_names[q.get_abbreviated_xpath()]
                 choices = q.to_json_dict().get('children')
                 if choices is None:
                     choices = self.survey.get('choices')
@@ -737,9 +738,24 @@ class ExportBuilder(object):
                     name = choice['name'].strip()
                     label = self.get_choice_label_from_dict(choice['label'])
                     _value_labels[name] = label.strip()
-                self._sav_value_labels[q['name']] = _value_labels
+                self._sav_value_labels[var_name] = _value_labels
 
         return self._sav_value_labels
+
+    def _get_var_name(self, title, var_names):
+        """GET valid SPSS varName.
+                @param title - survey element title/name
+                @param var_names - list of existing var_names
+
+                @return valid varName and list of var_names with new var name
+                 appended
+
+                """
+        var_name = title.replace('/', '.')
+        var_name = self._check_sav_column(var_name, var_names)
+        var_name = '@' + var_name if var_name.startswith('_') else var_name
+        var_names.append(var_name)
+        return var_name, var_names
 
     def _get_sav_options(self, elements):
         """GET/SET SPSS options.
@@ -757,27 +773,31 @@ class ExportBuilder(object):
                 'ioUtf8': True
             }
         """
-        all_value_labels = self._get_sav_value_labels()
         _var_types = {}
         value_labels = {}
         var_labels = {}
         var_names = []
+        fields_and_labels = []
+        elements += [{'title': f, "label": f, "xpath": f, 'type': f}
+                     for f in self.EXTRA_FIELDS]
 
-        fields_and_labels = [
-            (element['title'], element['label'], element['xpath'])
-            for element in elements
-        ] + zip(self.EXTRA_FIELDS, self.EXTRA_FIELDS, self.EXTRA_FIELDS)
+        for element in elements:
+            title = element['title']
+            _var_name, _var_names = self._get_var_name(title, var_names)
+            var_names = _var_names
+            fields_and_labels.append((element['title'], element['label'],
+                                      element['xpath'], _var_name))
 
-        for field, label, xpath in fields_and_labels:
-            var_name = field.replace('/', '.')
-            var_name = self._check_sav_column(var_name, var_names)
-            var_name = '@' + var_name \
-                if var_name.startswith('_') else var_name
+        xpath_var_names = dict([(xpath, var_name)
+                                for field, label, xpath, var_name
+                                in fields_and_labels])
+        all_value_labels = self._get_sav_value_labels(xpath_var_names)
+
+        for field, label, xpath, var_name in fields_and_labels:
             var_labels[var_name] = label
-            var_names.append(var_name)
             _var_types[xpath] = var_name
-            if field in all_value_labels:
-                value_labels[field] = all_value_labels.get(field)
+            if var_name in all_value_labels:
+                value_labels[var_name] = all_value_labels.get(var_name)
 
         var_types = dict(
             [(_var_types[element['xpath']],
