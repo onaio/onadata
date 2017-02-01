@@ -3,7 +3,7 @@ import requests
 
 from mock import patch
 from django_digest.test import DigestAuth
-
+from django.db.models import signals
 
 from httmock import all_requests, HTTMock
 
@@ -17,6 +17,8 @@ from onadata.libs.serializers.user_profile_serializer import (
 )
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
 from onadata.libs.authentication import DigestAuthentication
+from onadata.apps.main.models.user_profile import\
+        set_kpi_formbuilder_permissions
 
 
 def _profile_data():
@@ -785,6 +787,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         return response
 
     def test_create_user_with_given_name(self):
+        registered_functions = [r[1]() for r in signals.post_save.receivers]
+        self.assertIn(set_kpi_formbuilder_permissions, registered_functions)
         with HTTMock(self.grant_perms_form_builder):
             with self.settings(KPI_FORMBUILDER_URL='http://test_formbuilder$'):
                 extra_data = {"username": "rust"}
