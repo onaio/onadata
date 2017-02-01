@@ -1,7 +1,11 @@
 import json
+import requests
 
 from mock import patch
 from django_digest.test import DigestAuth
+
+
+from httmock import all_requests, HTTMock
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
@@ -764,3 +768,24 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.data['last_name'][0],
                          u'Ensure this field has no more than 30 characters.')
         self.assertEqual(response.status_code, 400)
+
+    @all_requests
+    def grant_perms_form_builder(self, url, request):
+
+        assert 'Authorization' in request.headers
+        assert request.headers.get('Authorization').startswith('Token')
+
+        response = requests.Response()
+        response.status_code = 201
+        response._content = \
+            {
+                "detail": "Successfully granted default model level perms to"
+                          " user."
+            }
+        return response
+
+    def test_create_user_with_given_name(self):
+        with HTTMock(self.grant_perms_form_builder):
+            with self.settings(KPI_FORMBUILDER_URL='http://test_formbuilder$'):
+                extra_data = {"username": "rust"}
+                self._login_user_and_profile(extra_post_data=extra_data)
