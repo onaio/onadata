@@ -217,6 +217,7 @@ def parse_webform_return_url(return_url, request):
 
 
 class XFormViewSet(AnonymousUserPublicFormsMixin,
+                   CacheControlMixin,
                    AuthenticateHeaderMixin,
                    ETagsMixin,
                    LabelsMixin,

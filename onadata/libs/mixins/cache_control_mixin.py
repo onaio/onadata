@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.utils.cache import patch_cache_control
 
 
 CACHE_MIXIN_SECONDS = 60
@@ -14,9 +15,7 @@ class CacheControlMixin(object):
             if hasattr(settings, 'CACHE_MIXIN_SECONDS'):
                 max_age = settings.CACHE_MIXIN_SECONDS
 
-            self.headers.update({
-                'Cache-Control': 'max-age={}'.format(max_age)
-            })
+            patch_cache_control(response, max_age=max_age)
 
         return super(CacheControlMixin, self).finalize_response(
             request, response, *args, **kwargs)

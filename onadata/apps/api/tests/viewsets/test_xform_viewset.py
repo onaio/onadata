@@ -663,7 +663,6 @@ class TestXFormViewSet(TestAbstractViewSet):
             # test for unsupported format
             response = view(request, pk=formid, format='csvzip')
             self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.get('Cache-Control'), None)
 
             # test for supported formats
 
