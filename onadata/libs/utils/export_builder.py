@@ -711,7 +711,7 @@ class ExportBuilder(object):
 
         return language
 
-    def _get_sav_value_labels(self, xpath_var_names):
+    def _get_sav_value_labels(self, xpath_var_names=None):
         """GET/SET SPSS `VALUE LABELS`. It takes the dictionary of the form
         `{varName: {value: valueLabel}}`:
 
@@ -727,7 +727,8 @@ class ExportBuilder(object):
             self._sav_value_labels = {}
 
             for q in choice_questions:
-                var_name = xpath_var_names[q.get_abbreviated_xpath()]
+                var_name = xpath_var_names[q.get_abbreviated_xpath()] if \
+                    xpath_var_names else q['name']
                 choices = q.to_json_dict().get('children')
                 if choices is None:
                     choices = self.survey.get('choices')
