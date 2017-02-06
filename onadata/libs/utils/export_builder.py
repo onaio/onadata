@@ -876,7 +876,7 @@ class ExportBuilder(object):
                 sav_def = sav_defs[section_name]
                 fields = [
                     element['xpath'] for element in
-                    section['elements']] + self.EXTRA_FIELDS
+                    section['elements']]
                 sav_writer = sav_def['sav_writer']
                 row = output.get(section_name, None)
                 if type(row) == dict:
