@@ -90,7 +90,7 @@ Make sure you have a ``onadata/settings/local_settings.py`` file.
 
   This file is usually gitignored.
 
-Run make to set up core and for initial db setup
+Run make to set up onadata and for initial db setup
 ------------------------------------------------
 
 .. code-block:: sh
