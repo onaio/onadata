@@ -36,16 +36,16 @@ for postgres 9.6.0 with postgis 2.3.0 and run:
 
     mkdir ~/docker-images/postgres-9.6/
     cd ~/docker-images/postgres-9.6
-    docker build -t postgres:9.6.0 .
+    docker build -t postgres:9.6.1 .
 
 .. note::
 
-  This will be a persisted using ~/postgresql/data
+  This will be a persisted using ~/.postgresql/data
 
 .. code-block:: sh
 
-    mkdir ~/postgresql/data
-    docker run -e POSTGRES_PASSWORD=pass -p 5432:5432 --volume ~/postgresql/data:/var/lib/postgresql/data --name onadata -d postgres:9.6.0
+    mkdir ~/.postgresql/data
+    docker run -e POSTGRES_PASSWORD=pass -p 5432:5432 --volume ~/.postgresql/data:/var/lib/postgresql/data --name onadata -d postgres:9.6.1
 
 Connect using psql with:
 
@@ -61,7 +61,7 @@ In psql:
     CREATE DATABASE onadata OWNER onadata
     CONNECT onadata
     CREATE EXTENSION IF NOT EXISTS postgis
-    CREATE EXTENSION IF NOT EXISTS postgis_topology;\""
+    CREATE EXTENSION IF NOT EXISTS postgis_topology
 
 From now onwards start your DB with ``docker start onadata`` provided you passed
 the name "onadata" to Docker's ``--name`` option.
