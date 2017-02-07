@@ -727,7 +727,7 @@ class ExportBuilder(object):
             self._sav_value_labels = {}
 
             for q in choice_questions:
-                var_name = xpath_var_names[q.get_abbreviated_xpath()] if \
+                var_name = xpath_var_names.get(q.get_abbreviated_xpath()) if \
                     xpath_var_names else q['name']
                 choices = q.to_json_dict().get('children')
                 if choices is None:
@@ -739,7 +739,7 @@ class ExportBuilder(object):
                     name = choice['name'].strip()
                     label = self.get_choice_label_from_dict(choice['label'])
                     _value_labels[name] = label.strip()
-                self._sav_value_labels[var_name] = _value_labels
+                self._sav_value_labels[var_name or q['name']] = _value_labels
 
         return self._sav_value_labels
 
