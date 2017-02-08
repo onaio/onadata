@@ -752,7 +752,7 @@ class ExportBuilder(object):
                  appended
 
                 """
-        var_name = title.replace('/', '.')
+        var_name = title.replace('/', '.').replace('-', '_')
         var_name = self._check_sav_column(var_name, var_names)
         var_name = '@' + var_name if var_name.startswith('_') else var_name
         var_names.append(var_name)
