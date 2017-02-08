@@ -535,6 +535,11 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.view = XFormListViewSet.as_view({
             "get": "media"
         })
+        request = self.factory.get('/')
+        response = self.view(request, pk=self.xform.pk,
+                             metadata=self.metadata.pk, format='csv')
+        self.assertEqual(response.status_code, 401)
+
         request = self.factory.head('/')
         response = self.view(request, pk=self.xform.pk,
                              metadata=self.metadata.pk, format='csv')
