@@ -140,8 +140,13 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
 
         meta_obj = get_object_or_404(
             MetaData, data_type='media', object_id=self.object.pk, pk=pk)
+        response = get_media_file_response(meta_obj, request)
 
-        return get_media_file_response(meta_obj, request)
+        if response.status_code == 403 and request.user.is_anonymous():
+            # raises a permission denied exception, forces authentication
+            self.permission_denied(request)
+        else:
+            return response
 
 
 class PreviewXFormListViewSet(XFormListViewSet):
