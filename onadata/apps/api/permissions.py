@@ -235,10 +235,18 @@ class DataViewViewsetPermissions(AlternateHasObjectPermissionMixin,
 
     model_classes = [Project]
 
+    def has_permission(self, request, view):
+        if request.user.is_anonymous() and view.action == 'list':
+            return False
+        else:
+            return True
+
     def has_object_permission(self, request, view, obj):
         model_cls = Project
         user = request.user
 
+        if obj.project.shared:
+            return True
         return self._has_object_permission(request, model_cls, user,
                                            obj.project)
 
