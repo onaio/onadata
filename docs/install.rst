@@ -56,12 +56,11 @@ Connect using psql with:
 In psql:
 
 .. code-block:: sql
-
-    CREATE USER onadata WITH PASSWORD 'pass'
-    CREATE DATABASE onadata OWNER onadata
-    CONNECT onadata
-    CREATE EXTENSION IF NOT EXISTS postgis
-    CREATE EXTENSION IF NOT EXISTS postgis_topology
+    CREATE USER <username> WITH PASSWORD '<password>' SUPERUSER CREATEDB LOGIN;
+    CREATE DATABASE <database-name> WITH ENCODING='UTF8' LC_CTYPE='en_US.UTF-8' LC_COLLATE='en_US.UTF-8' OWNER=<username> TEMPLATE=template0;
+    CONNECT <database-name>;
+    CREATE EXTENSION IF NOT EXISTS postgis;
+    CREATE EXTENSION IF NOT EXISTS postgis_topology;
 
 From now onwards start your DB with ``docker start onadata`` provided you passed
 the name "onadata" to Docker's ``--name`` option.
