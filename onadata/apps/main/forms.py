@@ -20,6 +20,7 @@ from onadata.apps.logger.models import Project
 from onadata.apps.viewer.models.data_dictionary import upload_to
 from onadata.libs.utils.country_field import COUNTRIES
 from onadata.libs.utils.logger_tools import publish_xls_form
+from onadata.libs.utils.logger_tools import publish_xml_form
 from onadata.libs.utils.user_auth import get_user_default_project
 
 FORM_LICENSES_CHOICES = (
@@ -254,9 +255,14 @@ class QuickConverterTextXlsForm(forms.Form):
         label=ugettext_lazy('XLSForm Representation'), required=False)
 
 
+class QuickConverterXmlFile(forms.Form):
+    xml_file = forms.FileField(
+        label=ugettext_lazy(u'XML File'), required=False)
+
+
 class QuickConverter(QuickConverterFile, QuickConverterURL,
                      QuickConverterDropboxURL, QuickConverterTextXlsForm,
-                     QuickConverterCsvFile):
+                     QuickConverterCsvFile, QuickConverterXmlFile):
     project = forms.IntegerField(required=False)
     validate = URLValidator()
 
@@ -289,15 +295,16 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
                     default_storage.save(
                         upload_to(None, rand_name, user.username),
                         ContentFile(csv_data))
-            else:
+            if 'xls_file' in self.cleaned_data and\
+                    self.cleaned_data['xls_file']:
                 cleaned_xls_file = self.cleaned_data['xls_file']
 
-            if not cleaned_xls_file:
-                cleaned_url = (
-                    self.cleaned_data['xls_url'].strip() or
-                    self.cleaned_data['dropbox_xls_url'] or
-                    self.cleaned_data['csv_url'])
+            cleaned_url = (
+                self.cleaned_data['xls_url'].strip() or
+                self.cleaned_data['dropbox_xls_url'] or
+                self.cleaned_data['csv_url'])
 
+            if cleaned_url:
                 cleaned_xls_file = urlparse(cleaned_url)
                 cleaned_xls_file = \
                     '_'.join(cleaned_xls_file.path.split('/')[-2:])
@@ -323,6 +330,11 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
                 project = get_user_default_project(user)
             else:
                 project = self._project
+
+            cleaned_xml_file = self.cleaned_data['xml_file']
+            if cleaned_xml_file:
+                return publish_xml_form(cleaned_xml_file, user, project,
+                                        id_string, created_by or user)
 
             # publish the xls
             return publish_xls_form(cleaned_xls_file, user, project,
