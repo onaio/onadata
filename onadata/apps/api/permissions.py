@@ -236,10 +236,10 @@ class DataViewViewsetPermissions(AlternateHasObjectPermissionMixin,
     model_classes = [Project]
 
     def has_permission(self, request, view):
-        if request.user.is_anonymous() and view.action == 'list':
-            return False
-        else:
-            return True
+        # To allow individual public dataviews to be visible on
+        # `api/v1/dataviews/<pk>` but stop retreival of all dataviews when
+        # the dataviews endpoint is queried `api/v1/dataviews`
+        return not (request.user.is_anonymous() and view.action == 'list')
 
     def has_object_permission(self, request, view, obj):
         model_cls = Project
