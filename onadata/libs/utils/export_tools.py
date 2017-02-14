@@ -114,7 +114,7 @@ def generate_export(export_type, xform, export_id=None, options=None):
         records = dataview.query_data(dataview, all_data=True)
     else:
         records = query_data(xform, query=filter_query, start=start, end=end)
-    
+
     if isinstance(records, QuerySet):
         records = records.iterator()
 
