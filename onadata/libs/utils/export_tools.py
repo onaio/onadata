@@ -10,6 +10,7 @@ from django.core.files.base import File
 from django.core.files.temp import NamedTemporaryFile
 from django.core.files.storage import get_storage_class
 from django.contrib.auth.models import User
+from django.db.models.query import QuerySet
 from django.shortcuts import render_to_response
 from savReaderWriter import SPSSIOError
 from json2xlsclient.client import Client
@@ -113,6 +114,9 @@ def generate_export(export_type, xform, export_id=None, options=None):
         records = dataview.query_data(dataview, all_data=True)
     else:
         records = query_data(xform, query=filter_query, start=start, end=end)
+    
+    if isinstance(records, QuerySet):
+        records = records.iterator()
 
     export_builder = ExportBuilder()
 
