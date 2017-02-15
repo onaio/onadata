@@ -156,6 +156,22 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEquals(response.data['last_submission_time'],
                           '2015-03-09T13:34:05')
 
+        # Public
+        self.project.shared = True
+        self.project.save()
+
+        anon_request = self.factory.get('/')
+        anon_response = self.view(anon_request, pk=self.data_view.pk)
+        self.assertEquals(anon_response.status_code, 200)
+
+        # Private
+        self.project.shared = False
+        self.project.save()
+
+        anon_request = self.factory.get('/')
+        anon_response = self.view(anon_request, pk=self.data_view.pk)
+        self.assertEquals(anon_response.status_code, 404)
+
     def test_update_dataview(self):
         self._create_dataview()
 
@@ -251,6 +267,10 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         self.assertEquals(response.status_code, 200)
         self.assertEquals(len(response.data), 2)
+
+        anon_request = request = self.factory.get('/')
+        anon_response = view(anon_request)
+        self.assertEquals(anon_response.status_code, 401)
 
     def test_get_dataview_no_perms(self):
         self._create_dataview()

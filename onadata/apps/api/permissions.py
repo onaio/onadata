@@ -235,10 +235,18 @@ class DataViewViewsetPermissions(AlternateHasObjectPermissionMixin,
 
     model_classes = [Project]
 
+    def has_permission(self, request, view):
+        # To allow individual public dataviews to be visible on
+        # `api/v1/dataviews/<pk>` but stop retreival of all dataviews when
+        # the dataviews endpoint is queried `api/v1/dataviews`
+        return not (request.user.is_anonymous() and view.action == 'list')
+
     def has_object_permission(self, request, view, obj):
         model_cls = Project
         user = request.user
 
+        if obj.project.shared:
+            return True
         return self._has_object_permission(request, model_cls, user,
                                            obj.project)
 
