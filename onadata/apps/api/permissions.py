@@ -115,7 +115,7 @@ class ProjectPermissions(DjangoObjectPermissions):
     authenticated_users_only = False
 
     def has_permission(self, request, view):
-        # allow anonymous to view public projects
+        # allow anonymous users to view public projects
         if request.user.is_anonymous() and view.action == 'list':
             return True
 
