@@ -13,7 +13,8 @@ from onadata.libs.permissions import get_role
 from onadata.libs.permissions import is_organization
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
-from onadata.libs.serializers.dataview_serializer import DataViewSerializer
+from onadata.libs.serializers.dataview_serializer import \
+    DataViewMinimalSerializer
 from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.viewer_tools import enketo_url, EnketoError
 from onadata.libs.utils.viewer_tools import get_form_url
@@ -164,7 +165,7 @@ class XFormMixin(object):
             if data_views:
                 return data_views
 
-            data_views = DataViewSerializer(
+            data_views = DataViewMinimalSerializer(
                 obj.dataview_set.all(),
                 many=True,
                 context=self.context).data
