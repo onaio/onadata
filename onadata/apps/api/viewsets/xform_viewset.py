@@ -463,7 +463,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         token = request.GET.get('token')
         meta = request.GET.get('meta')
 
-        if export_type is None or export_type in ['json']:
+        if export_type is None or export_type in ['json', 'debug']:
             # perform default viewset retrieve, no data export
             return super(XFormViewSet, self).retrieve(request, *args, **kwargs)
 
