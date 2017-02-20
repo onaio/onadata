@@ -12,7 +12,9 @@ from onadata.libs.permissions import is_organization
 from onadata.libs.permissions import get_role
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
-from onadata.libs.serializers.dataview_serializer import DataViewSerializer
+from onadata.libs.serializers.dataview_serializer import (
+    DataViewMinimalSerializer
+)
 from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.cache_tools import (
     PROJ_FORMS_CACHE, PROJ_NUM_DATASET_CACHE, PROJ_PERM_CACHE,
@@ -377,7 +379,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         data_views_obj = obj.dataview_prefetch if \
             hasattr(obj, 'dataview_prefetch') else obj.dataview_set.all()
 
-        serializer = DataViewSerializer(
+        serializer = DataViewMinimalSerializer(
             data_views_obj,
             many=True,
             context=self.context)
