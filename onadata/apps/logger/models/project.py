@@ -102,8 +102,8 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
             owners = instance.organization.team_set\
                 .filter(name="{}#{}".format(instance.organization.username,
                         OWNER_TEAM_NAME), organization=instance.organization)
-            if owners:
-                assign_perm(perm.codename, owners[0], instance)
+            for owner in owners:
+                assign_perm(perm.codename, owner, instance)
 
             if instance.created_by:
                 assign_perm(perm.codename, instance.created_by, instance)

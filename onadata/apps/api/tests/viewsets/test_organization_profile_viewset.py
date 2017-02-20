@@ -706,6 +706,49 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         self.assertNotIn(aboy, owner_team.user_set.all())
 
+    def test_org_members_added_to_projects(self):
+        # create org
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({
+            'post': 'members',
+            'get': 'retrieve',
+            'put': 'members'
+        })
+
+        # create aboy
+        self.profile_data['username'] = "aboy"
+        aboy = self._create_user_profile().user
+
+        data = {'username': 'aboy',
+                'role': 'owner'}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 201)
+
+        # create a proj
+        project_data = {
+            'owner': self.company_data['user']
+        }
+        self._project_create(project_data)
+        self._publish_xls_form_to_project()
+
+        # create alice
+        self.profile_data['username'] = "alice"
+        alice = self._create_user_profile().user
+        alice_data = {'username': 'alice',
+                      'role': 'owner'}
+        request = self.factory.post(
+            '/', data=json.dumps(alice_data),
+            content_type="application/json", **self.extra)
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 201)
+
+        # Assert that user added in org is added to proj
+        self.assertTrue(OwnerRole.user_has_role(aboy, self.xform))
+        self.assertTrue(OwnerRole.user_has_role(alice, self.xform))
+
     def test_put_role_user_none_existent(self):
         self._org_create()
         newname = 'i-do-no-exist'
