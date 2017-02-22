@@ -75,7 +75,14 @@ def export_retry(tries, delay=3, backoff=2):
                     mdelay *= backoff
                 else:
                     return result
-            return False
+            # Last ditch effort run against master database
+            if len(getattr(settings, 'SLAVE_DATABASES', [])):
+                from multidb.pinning import use_master
+                with use_master:
+                    return func(self, *args, **kwargs)
+
+            # last attempt, exception raised from function is propagated
+            return func(self, *args, **kwargs)
 
         return function_retry
     return decorator_retry
