@@ -468,7 +468,7 @@ def get_async_response(job_uuid, request, xform, count=0):
         job = AsyncResult(job_uuid)
         if job.state == 'SUCCESS':
             export_id = job.result
-            export = Export.objects.get(id=export_id)
+            export = get_object_or_404(Export, id=export_id)
 
             resp = _export_async_export_response(
                 request, xform, export)
