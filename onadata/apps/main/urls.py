@@ -272,3 +272,13 @@ custom_urls = getattr(settings, 'CUSTOM_MAIN_URLS', None)
 if custom_urls:
     for url_module in custom_urls:
         urlpatterns.append(url(r'^', include(url_module)))
+
+if settings.DEBUG:
+    try:
+        import debug_toolbar
+    except ImportError:
+        pass
+    else:
+        urlpatterns += [
+            url(r'^__debug__/', include(debug_toolbar.urls)),
+        ]
