@@ -1,4 +1,5 @@
 import six
+import uuid
 
 
 def str_to_bool(s):
@@ -19,3 +20,10 @@ def get_boolean_value(str_var, default=None):
         return str_to_bool(str_var)
 
     return str_var if default else False
+
+
+def getUUID():
+    '''
+    Return a 32-character-long UUID
+    '''
+    return str(uuid.uuid1()).replace('-', '')
