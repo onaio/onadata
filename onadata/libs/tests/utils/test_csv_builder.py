@@ -78,7 +78,7 @@ class TestCSVDataFrameBuilder(TestBase):
                                              self.xform.id_string,
                                              include_images=False)
         cursor = csv_df_builder._query_data()
-        return csv_df_builder._format_for_dataframe(cursor)
+        return [d for d in csv_df_builder._format_for_dataframe(cursor)]
 
     def test_csv_dataframe_export_to(self):
         self._publish_nested_repeats_form()
