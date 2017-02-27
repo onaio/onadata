@@ -8,3 +8,4 @@ from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.widget import Widget
 from onadata.apps.logger.models.osmdata import OsmData
+from onadata.apps.logger.models.open_data import OpenData
