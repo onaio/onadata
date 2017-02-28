@@ -238,4 +238,3 @@ class TestOpenDataViewSet(TestBase):
             u'transportation_2011_07_25',
             response.data.get('table_alias')
         )
-
