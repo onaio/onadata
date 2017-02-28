@@ -1,4 +1,5 @@
 import re
+import six
 
 from django.db.utils import DataError
 from django.http import Http404
@@ -231,7 +232,12 @@ def build_chart_data_for_field(xform, field, language_index=0, choices=None,
             if not isinstance(group_by, basestring) else group_by
 
         if (field_type == common_tags.SELECT_ONE or
-            field_name == common_tags.SUBMITTED_BY) and \
+                field_name == common_tags.SUBMITTED_BY) and \
+                isinstance(group_by, six.string_types):
+            result = get_form_submissions_grouped_by_select_one(
+                xform, field_xpath, group_by_name, field_name, data_view)
+        elif (field_type == common_tags.SELECT_ONE or
+              field_name == common_tags.SUBMITTED_BY) and \
                 group_by.type == common_tags.SELECT_ONE:
             result = get_form_submissions_grouped_by_select_one(
                 xform, field_xpath, group_by_name, field_name, data_view)
@@ -253,7 +259,7 @@ def build_chart_data_for_field(xform, field, language_index=0, choices=None,
     result = _use_labels_from_field_name(field_name, field, data_type, result,
                                          choices=choices)
 
-    if group_by:
+    if group_by and not isinstance(group_by, six.string_types):
         group_by_data_type = DATA_TYPE_MAP.get(group_by.type, 'categorized')
         grp_choices = get_field_choices(group_by, xform)
         result = _use_labels_from_group_by_name(group_by_name, group_by,
