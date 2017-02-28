@@ -167,6 +167,9 @@ class OpenDataViewSet(
 
         data = []
         if isinstance(self.object.content_object, XForm):
+            if not self.object.active:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+
             xform = self.object.content_object
             qs_kwargs = {'xform': xform}
             if gt:
