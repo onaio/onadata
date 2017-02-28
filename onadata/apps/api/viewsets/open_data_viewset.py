@@ -105,28 +105,30 @@ class OpenDataViewSet(
                 self.flatten_xform_columns(a.get('children'))
 
     def get_tableau_column_headers(self):
-        # TODO: may be this is not the best implementation. Suggestions
-        # welcomed.
+        '''
+        Retrieve columns headers that are valid in tableau.
+        '''
         tableau_colulmn_headers = []
+
+        def append_to_tableau_colulmn_headers(header, question_type=None):
+            quest_type = 'string'
+            if question_type:
+                quest_type = question_type
+
+            # alias can be updated in the future to question labels
+            tableau_colulmn_headers.append({
+                'id': header,
+                'dataType': quest_type,
+                'alias': header
+            })
+
         for header in self.xform_headers:
-            found = False
             for quest_name, quest_type in self.flattened_dict.items():
                 if header == quest_name or header.endswith('_%s' % quest_name):
-                    # alias can be updated in the future to question labels
-                    tableau_colulmn_headers.append({
-                        'id': header,
-                        'dataType': quest_type,
-                        'alias': header
-                    })
-                    found = True
+                    append_to_tableau_colulmn_headers(header, quest_type)
                     break
-
-            if not found:
-                tableau_colulmn_headers.append({
-                    'id': header,
-                    'dataType': 'string',
-                    'alias': header
-                })
+            else:
+                append_to_tableau_colulmn_headers(header)
 
         return tableau_colulmn_headers
 
