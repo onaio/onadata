@@ -230,10 +230,11 @@ class TestOpenDataViewSet(TestBase):
             ['table_alias', 'column_headers', 'connection_name'],
             response.data.keys()
         )
-        self.assertEqual(
-            u'1_transportation_2011_07_25',
-            response.data.get('connection_name')
+        connection_name = u"%s_%s" % (
+            self.xform.project_id,
+            self.xform.id_string
         )
+        self.assertEqual(connection_name, response.data.get('connection_name'))
         self.assertEqual(
             u'transportation_2011_07_25',
             response.data.get('table_alias')
