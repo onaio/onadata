@@ -101,6 +101,7 @@ class OpenDataViewSet(
             self.flattened_dict[a.get('name')] = self.get_tableau_type(
                 a.get('type')
             )
+            # using IGNORED_FIELD_TYPES so that choice values are not included.
             if a.get('children') and a.get('type') not in IGNORED_FIELD_TYPES:
                 self.flatten_xform_columns(a.get('children'))
 
