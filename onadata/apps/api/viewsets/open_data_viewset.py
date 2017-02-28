@@ -19,6 +19,7 @@ from onadata.libs.data import parse_int
 from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
 
 BaseViewset = get_baseviewset_class()
+IGNORED_FIELD_TYPES = ['select one', 'select multiple']
 
 
 def replace_slashes_with_underscores(data, list_of_dicts=True):
@@ -93,16 +94,11 @@ class OpenDataViewSet(
         variable.
         '''
         for a in json_of_columns_fields:
-            if a.get('children'):
-                self.flattened_dict[a.get('name')] = self.get_tableau_type(
-                    a.get('type')
-                )
-                if a.get('type') not in ['select one', 'select multiple']:
-                    self.flatten_xform_columns(a.get('children'))
-            else:
-                self.flattened_dict[a.get('name')] = self.get_tableau_type(
-                    a.get('type')
-                )
+            self.flattened_dict[a.get('name')] = self.get_tableau_type(
+                a.get('type')
+            )
+            if a.get('children') and a.get('type') not in IGNORED_FIELD_TYPES:
+                self.flatten_xform_columns(a.get('children'))
 
     def get_tableau_column_headers(self):
         # TODO: may be this is not the best implementation. Suggestions
