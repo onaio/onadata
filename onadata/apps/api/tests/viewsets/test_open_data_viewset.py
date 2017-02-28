@@ -4,7 +4,9 @@ from django.test import RequestFactory
 from django.contrib.contenttypes.models import ContentType
 
 from onadata.apps.logger.models import OpenData, Instance
-from onadata.apps.api.viewsets.open_data_viewset import OpenDataViewSet
+from onadata.apps.api.viewsets.open_data_viewset import (
+    OpenDataViewSet, replace_special_characters_with_underscores
+)
 from onadata.apps.main.tests.test_base import TestBase
 
 
@@ -24,6 +26,34 @@ class TestOpenDataViewSet(TestBase):
             'delete': 'destroy',
             'get': 'retrieve'
         })
+
+    def test_replace_special_characters_with_underscores(self):
+        data = ['john_doe[3]/_visual-studio-code']
+        self.assertEqual(
+            replace_special_characters_with_underscores(
+                data, list_of_dicts=False
+            ),
+            ['john_doe_3___visual_studio_code']
+        )
+
+        data = [{'john_doe[3]/_visual-studio-code': 'yes'}]
+        self.assertEqual(
+            replace_special_characters_with_underscores(data),
+            [{'john_doe_3___visual_studio_code': 'yes'}]
+        )
+
+    def get_open_data_object(self):
+        ct = ContentType.objects.get_for_model(self.xform)
+        _open_data, created = OpenData.objects.get_or_create(
+            object_id=self.xform.id,
+            defaults={
+                'name': self.xform.id_string,
+                'content_type': ct,
+                'content_object': self.xform,
+            }
+        )
+
+        return _open_data
 
     def test_create_open_data_object_with_valid_fields(self):
         request = self.factory.post('/', data={})
@@ -86,18 +116,7 @@ class TestOpenDataViewSet(TestBase):
 
     def test_get_data_using_uuid(self):
         self._make_submissions()
-        data = {
-            'object_id': self.xform.id,
-            'clazz': 'xform',
-            'name': self.xform.id_string
-        }
-
-        request = self.factory.post('/', data=data, **self.extra)
-        response = self.view(request)
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data, 'Record was successfully created.')
-
-        _open_data = OpenData.objects.last()
+        _open_data = self.get_open_data_object()
         uuid = _open_data.uuid
         request = self.factory.get('/', **self.extra)
         response = self.view(request, uuid=uuid)
@@ -106,19 +125,8 @@ class TestOpenDataViewSet(TestBase):
 
     def test_get_data_using_uuid_and_greater_than_query_param(self):
         self._make_submissions()
-        data = {
-            'object_id': self.xform.id,
-            'clazz': 'xform',
-            'name': self.xform.id_string
-        }
-
-        request = self.factory.post('/', data=data, **self.extra)
-        response = self.view(request)
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data, 'Record was successfully created.')
-
         first_instance = Instance.objects.first()
-        _open_data = OpenData.objects.last()
+        _open_data = self.get_open_data_object()
         uuid = _open_data.uuid
 
         request = self.factory.get(
@@ -127,19 +135,6 @@ class TestOpenDataViewSet(TestBase):
         response = self.view(request, uuid=uuid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 3)
-
-    def get_open_data_object(self):
-        ct = ContentType.objects.get_for_model(self.xform)
-        _open_data, created = OpenData.objects.get_or_create(
-            object_id=self.xform.id,
-            defaults={
-                'name': self.xform.id_string,
-                'content_type': ct,
-                'content_object': self.xform,
-            }
-        )
-
-        return _open_data
 
     def test_update_open_data_with_valid_fields_and_data(self):
         _open_data = self.get_open_data_object()
