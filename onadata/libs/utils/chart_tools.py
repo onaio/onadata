@@ -249,6 +249,10 @@ def build_chart_data_for_field(xform,
                 isinstance(group_by, six.string_types):
             result = get_form_submissions_grouped_by_select_one(
                 xform, field_xpath, group_by_name, field_name, data_view)
+        elif field_type in common_tags.NUMERIC_LIST and \
+                isinstance(group_by, six.string_types):
+            result = get_form_submissions_aggregated_by_select_one(
+                xform, field_xpath, field_name, group_by_name, data_view)
         elif (field_type == common_tags.SELECT_ONE or
               field_name == common_tags.SUBMITTED_BY) and \
                 group_by.type == common_tags.SELECT_ONE:
@@ -257,7 +261,6 @@ def build_chart_data_for_field(xform,
 
             result = _flatten_multiple_dict_into_one(field_name, group_by_name,
                                                      result)
-
         elif field_type in common_tags.NUMERIC_LIST \
                 and group_by.type == common_tags.SELECT_ONE:
             result = get_form_submissions_aggregated_by_select_one(
