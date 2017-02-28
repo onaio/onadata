@@ -1,25 +1,26 @@
-import unicodecsv as csv
 from collections import OrderedDict
 from itertools import chain
 
+import unicodecsv as csv
 from django.conf import settings
-from pyxform.section import Section, RepeatingSection
+from django.db.models.query import QuerySet
 from pyxform.question import Question
+from pyxform.section import RepeatingSection, Section
 
 from onadata.apps.logger.models import OsmData
-from onadata.apps.logger.models.xform import XForm
-from onadata.apps.logger.models.xform import question_types_to_exclude
+from onadata.apps.logger.models.xform import XForm, question_types_to_exclude
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
-from onadata.apps.viewer.models.parsed_instance import (
-    ParsedInstance, query_data)
+from onadata.apps.viewer.models.parsed_instance import (ParsedInstance,
+                                                        query_data)
 from onadata.libs.exceptions import NoRecordsFoundError
-from onadata.libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS,\
-    ATTACHMENTS, GEOLOCATION, UUID, SUBMISSION_TIME, NA_REP,\
-    BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES, SUBMITTED_BY, VERSION,\
-    DURATION, EDITED
+from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID,
+                                            DELETEDAT, DURATION, EDITED,
+                                            GEOLOCATION, ID, NA_REP, NOTES,
+                                            STATUS, SUBMISSION_TIME,
+                                            SUBMITTED_BY, TAGS, UUID, VERSION,
+                                            XFORM_ID_STRING)
 from onadata.libs.utils.export_builder import get_value_or_attachment_uri
 from onadata.libs.utils.model_tools import get_columns_with_hxl
-
 
 # the bind type of select multiples that we use to compare
 MULTIPLE_SELECT_BIND_TYPE = u"select"
@@ -440,6 +441,36 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                     # generated when we reindex
                 ordered_columns[child.get_abbreviated_xpath()] = None
 
+    def _update_columns_from_data(self, cursor):
+        # TODO: check for and handle empty results
+        # add ordered columns for select multiples
+        if self.split_select_multiples:
+            for key, choices in self.select_multiples.items():
+                # HACK to ensure choices are NOT duplicated
+                self.ordered_columns[key] = \
+                    remove_dups_from_list_maintain_order(choices)
+        # add ordered columns for gps fields
+        for key in self.gps_fields:
+            gps_xpaths = self.dd.get_additional_geopoint_xpaths(key)
+            self.ordered_columns[key] = [key] + gps_xpaths
+        image_xpaths = [] if not self.include_images \
+            else self.dd.get_media_survey_xpaths()
+
+        for record in cursor:
+            # split select multiples
+            if self.split_select_multiples:
+                record = self._split_select_multiples(
+                    record, self.select_multiples,
+                    self.BINARY_SELECT_MULTIPLES)
+            # check for gps and split into components i.e. latitude, longitude,
+            # altitude, precision
+            self._split_gps_fields(record, self.gps_fields)
+            self._tag_edit_string(record)
+            # re index repeats
+            for key, value in record.iteritems():
+                self._reindex(key, value, self.ordered_columns,
+                              record, self.dd, include_images=image_xpaths)
+
     def _format_for_dataframe(self, cursor):
         # TODO: check for and handle empty results
         # add ordered columns for select multiples
@@ -452,7 +483,6 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         for key in self.gps_fields:
             gps_xpaths = self.dd.get_additional_geopoint_xpaths(key)
             self.ordered_columns[key] = [key] + gps_xpaths
-        data = []
         image_xpaths = [] if not self.include_images \
             else self.dd.get_media_survey_xpaths()
 
@@ -474,8 +504,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                                           include_images=image_xpaths)
                 flat_dict.update(reindexed)
 
-            data.append(flat_dict)
-        return data
+            yield flat_dict
 
     def export_to(self, path, dataview=None):
         self.ordered_columns = OrderedDict()
@@ -483,15 +512,24 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
         if dataview:
             cursor = dataview.query_data(dataview, all_data=True)
-            data = self._format_for_dataframe(cursor)
+            if isinstance(cursor, QuerySet):
+                cursor = cursor.iterator()
+            self._update_columns_from_data(cursor)
+
             columns = list(chain.from_iterable(
                 [[xpath] if cols is None else cols
                  for xpath, cols in self.ordered_columns.iteritems()
                  if [c for c in dataview.columns if xpath.startswith(c)]]
             ))
+            cursor = dataview.query_data(dataview, all_data=True)
+            if isinstance(cursor, QuerySet):
+                cursor = cursor.iterator()
+            data = self._format_for_dataframe(cursor)
         else:
             cursor = self._query_data(self.filter_query)
-            data = self._format_for_dataframe(cursor)
+            if isinstance(cursor, QuerySet):
+                cursor = cursor.iterator()
+            self._update_columns_from_data(cursor)
 
             columns = list(chain.from_iterable(
                 [[xpath] if cols is None else cols
@@ -503,6 +541,10 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 columns += OsmData.get_tag_keys(self.xform,
                                                 field.get_abbreviated_xpath(),
                                                 include_prefix=True)
+            cursor = self._query_data(self.filter_query)
+            if isinstance(cursor, QuerySet):
+                cursor = cursor.iterator()
+            data = self._format_for_dataframe(cursor)
 
         columns_with_hxl = self.include_hxl and get_columns_with_hxl(
             self.dd.survey_elements)
