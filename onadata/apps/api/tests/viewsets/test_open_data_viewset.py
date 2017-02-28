@@ -220,3 +220,27 @@ class TestOpenDataViewSet(TestBase):
         response = self.view(request, uuid=_open_data.uuid)
         self.assertEqual(response.status_code, 204)
         self.assertEqual(OpenData.objects.count(), inital_count)
+
+    def test_column_headers_endpoint(self):
+        self.view = OpenDataViewSet.as_view({
+            'get': 'column_headers'
+        })
+
+        _open_data = self.get_open_data_object()
+        uuid = _open_data.uuid
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request, uuid=uuid)
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual(
+            ['table_alias', 'column_headers', 'connection_name'],
+            response.data.keys()
+        )
+        self.assertEqual(
+            u'1_transportation_2011_07_25',
+            response.data.get('connection_name')
+        )
+        self.assertEqual(
+            u'transportation_2011_07_25',
+            response.data.get('table_alias')
+        )
+
