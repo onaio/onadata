@@ -178,7 +178,7 @@ class OpenDataViewSet(
             data = csv_df_builder._format_for_dataframe(
                 DataInstanceSerializer(instances, many=True).data
             )
-            data = replace_slashes_with_underscores(data)
+            data = replace_special_characters_with_underscores(data)
 
         return Response(data)
 
@@ -226,7 +226,7 @@ class OpenDataViewSet(
         self.object = self.get_object()
         if isinstance(self.object.content_object, XForm):
             xform = self.object.content_object
-            self.xform_headers = replace_slashes_with_underscores(
+            self.xform_headers = replace_special_characters_with_underscores(
                 xform.get_headers(), list_of_dicts=False
             )
 
@@ -239,7 +239,7 @@ class OpenDataViewSet(
 
             data = {
                 'column_headers': tableau_column_headers,
-                'connection_name': "%s-%s" % (
+                'connection_name': "%s_%s" % (
                     xform.project_id, xform.id_string
                 ),
                 'table_alias': xform.title
@@ -248,4 +248,3 @@ class OpenDataViewSet(
             return Response(data=data, status=status.HTTP_200_OK)
 
         return Response(status=status.HTTP_200_OK)
-
