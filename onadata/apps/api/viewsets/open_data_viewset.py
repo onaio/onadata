@@ -1,3 +1,4 @@
+import re
 import collections
 import json
 
@@ -22,14 +23,17 @@ BaseViewset = get_baseviewset_class()
 IGNORED_FIELD_TYPES = ['select one', 'select multiple']
 
 
-def replace_slashes_with_underscores(data, list_of_dicts=True):
+def replace_special_characters_with_underscores(data, list_of_dicts=True):
     '''
     Replaces slashes with underscores in strings inside a dict or list.
     '''
-    if not list_of_dicts:
-        return [a.replace('(/', '_') for a in data]
+    def replacer(val):
+        return re.sub(r"(/|-|\[|\])", r"_", val)
 
-    return [{k.replace('/', '_'): v
+    if not list_of_dicts:
+        return [replacer(a) for a in data]
+
+    return [{replacer(k): v
              for k, v in dict_obj.items()}
             for dict_obj in data]
 
