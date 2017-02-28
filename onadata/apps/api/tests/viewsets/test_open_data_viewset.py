@@ -239,3 +239,13 @@ class TestOpenDataViewSet(TestBase):
             u'transportation_2011_07_25',
             response.data.get('table_alias')
         )
+
+    def test_response_if_open_data_object_is_inactive(self):
+        _open_data = self.get_open_data_object()
+        uuid = _open_data.uuid
+        _open_data.active = False
+        _open_data.save()
+
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request, uuid=uuid)
+        self.assertEqual(response.status_code, 404)
