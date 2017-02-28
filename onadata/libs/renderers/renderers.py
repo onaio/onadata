@@ -50,6 +50,9 @@ class CSVZIPRenderer(BaseRenderer):
     format = 'csvzip'
     charset = None
 
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        return json.dumps(data) if isinstance(data, dict) else data
+
 
 class SAVZIPRenderer(BaseRenderer):
     media_type = 'application/octet-stream'

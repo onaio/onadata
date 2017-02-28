@@ -512,6 +512,24 @@ class TestDataViewViewSet(TestAbstractViewSet):
         with open(test_file_path, 'r') as test_file:
             self.assertEqual(content, test_file.read())
 
+    def test_csvzip_export_dataview(self):
+        self._create_dataview()
+        count = Export.objects.all().count()
+
+        view = DataViewViewSet.as_view({
+            'get': 'data',
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.data_view.pk, format='csvzip')
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEquals(count + 1, Export.objects.all().count())
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk='[invalid pk]', format='csvzip')
+        self.assertEqual(response.status_code, 404)
+
     def test_zip_export_dataview(self):
         media_file = "test-image.png"
         attachment_file_path = os.path.join(
