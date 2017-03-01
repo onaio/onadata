@@ -8,6 +8,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
+from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.permissions import OwnerRole
 from onadata.apps.api.tools import (get_organization_owners_team,
                                     add_user_to_organization)
@@ -745,9 +746,23 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 201)
 
-        # Assert that user added in org is added to proj
-        self.assertTrue(OwnerRole.user_has_role(aboy, self.xform))
-        self.assertTrue(OwnerRole.user_has_role(alice, self.xform))
+        # Assert that user added in org is added to teams in proj
+        self.assertTrue(OwnerRole.user_has_role(aboy, self.project))
+        self.assertTrue(OwnerRole.user_has_role(alice, self.project))
+
+        # Org admins are added to owners in project
+        projectView = ProjectViewSet.as_view({
+            'get': 'retrieve'
+        })
+        request = self.factory.get('/', **self.extra)
+        response = projectView(request, pk=self.project.pk)
+        project_users = response.data.get('users')
+        users_in_users = [user['user'] for user in project_users]
+
+        self.assertIn('bob', users_in_users)
+        self.assertIn('denoinc', users_in_users)
+        self.assertIn('aboy', users_in_users)
+        self.assertIn('alice', users_in_users)
 
     def test_put_role_user_none_existent(self):
         self._org_create()

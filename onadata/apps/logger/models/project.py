@@ -105,6 +105,9 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
             for owner in owners:
                 assign_perm(perm.codename, owner, instance)
 
+            if owners:
+                for user in owners[0].user_set.all():
+                    assign_perm(perm.codename, user, instance)
             if instance.created_by:
                 assign_perm(perm.codename, instance.created_by, instance)
 
