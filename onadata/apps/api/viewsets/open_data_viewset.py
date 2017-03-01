@@ -151,8 +151,11 @@ class OpenDataViewSet(
                 _open_data = serializer.save()
                 if _open_data:
                     return Response(
-                        'Record was successfully created.',
-                        status.HTTP_201_CREATED
+                        data={
+                            'message': 'Record was successfully created.',
+                            'uuid': _open_data.uuid
+                        },
+                        status=status.HTTP_201_CREATED
                     )
             else:
                 return Response(
