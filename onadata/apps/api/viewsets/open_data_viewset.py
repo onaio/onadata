@@ -2,10 +2,12 @@ import re
 import collections
 import json
 
+from django.shortcuts import get_object_or_404
+from django.contrib.contenttypes.models import ContentType
 from rest_framework import permissions
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
-from rest_framework.decorators import detail_route
+from rest_framework.decorators import detail_route, list_route
 from rest_framework import status
 
 from onadata.apps.logger.models import XForm, Instance
@@ -123,6 +125,8 @@ class OpenDataViewSet(
                 'alias': header
             })
 
+        # using nested loops to determine what valid data types to set for
+        # tableau.
         for header in self.xform_headers:
             for quest_name, quest_type in self.flattened_dict.items():
                 if header == quest_name or header.endswith('_%s' % quest_name):
@@ -254,4 +258,29 @@ class OpenDataViewSet(
 
             return Response(data=data, status=status.HTTP_200_OK)
 
-        return Response(status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    @list_route(methods=['GET'])
+    def uuid(self, request, *args, **kwargs):
+        clazz = request.query_params.get('clazz')
+        object_id = request.query_params.get('object_id')
+
+        if not clazz or not object_id:
+            return Response(
+                data="Query params clazz and object_id are required",
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if clazz == 'xform':
+            xform = get_object_or_404(XForm, id=object_id)
+            ct = ContentType.objects.get_for_model(xform)
+            _open_data = OpenData.objects.filter(
+                object_id=object_id, content_type=ct
+            ).first()
+            if _open_data:
+                return Response(
+                    data={'uuid': _open_data.uuid},
+                    status=status.HTTP_200_OK
+                )
+
+        return Response(status=status.HTTP_404_NOT_FOUND)
