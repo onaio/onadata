@@ -72,8 +72,15 @@ class TestOpenDataViewSet(TestBase):
 
         request = self.factory.post('/', data=data, **self.extra)
         response = self.view(request)
+        _open_data = OpenData.objects.last()
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data, 'Record was successfully created.')
+        self.assertDictEqual(
+            response.data,
+            {
+                'message': 'Record was successfully created.',
+                'uuid': _open_data.uuid
+            }
+        )
 
     def test_create_open_data_object_with_invalid_fields(self):
         data = {
@@ -239,6 +246,36 @@ class TestOpenDataViewSet(TestBase):
             u'transportation_2011_07_25',
             response.data.get('table_alias')
         )
+
+    def test_uuid_endpoint(self):
+        self.view = OpenDataViewSet.as_view({
+            'get': 'uuid'
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data, "Query params clazz and object_id are required"
+        )
+
+        data = {
+            'object_id': self.xform.id,
+            'clazz': 'non_clazz',
+        }
+        request = self.factory.get('/', data=data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 404)
+
+        _open_data = self.get_open_data_object()
+        data = {
+            'object_id': self.xform.id,
+            'clazz': 'xform',
+        }
+        request = self.factory.get('/', data=data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {'uuid': _open_data.uuid})
 
     def test_response_if_open_data_object_is_inactive(self):
         _open_data = self.get_open_data_object()
