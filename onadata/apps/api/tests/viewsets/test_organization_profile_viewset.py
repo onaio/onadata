@@ -455,8 +455,9 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self._project_create(project_data)
 
         # Create alice
-        self.profile_data['username'] = "alice"
-        alice_data = {'username': 'alice',
+        alice = 'alice'
+        self._create_user_profile(extra_post_data={'username': alice})
+        alice_data = {'username': alice,
                       'role': 'owner'}
         request = self.factory.post(
             '/', data=json.dumps(alice_data),
@@ -473,11 +474,11 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         project_users = response.data.get('users')
         users_in_users = [user['user'] for user in project_users]
 
-        self.assertIn('alice', users_in_users)
+        self.assertIn(alice, users_in_users)
 
         # remove alice from org
         request = self.factory.delete(
-            '/?username={}'.format('alice'), **self.extra)
+            '/?username={}'.format(alice), **self.extra)
 
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 200)
@@ -492,7 +493,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         project_users = response.data.get('users')
         users_in_users = [user['user'] for user in project_users]
 
-        self.assertNotIn('alice', users_in_users)
+        self.assertNotIn(alice, users_in_users)
 
     def test_orgs_create_with_mixed_case(self):
         data = {
