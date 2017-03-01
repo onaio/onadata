@@ -27,6 +27,7 @@ from registration.models import RegistrationProfile
 from rest_framework import exceptions
 from taggit.forms import TagField
 
+from onadata.libs.models.share_project import ShareProject
 from onadata.libs.permissions import get_role
 from onadata.libs.permissions import is_organization
 from onadata.apps.api.models.organization_profile import OrganizationProfile
@@ -171,6 +172,11 @@ def remove_user_from_organization(organization, user):
     remove_user_from_team(team, user)
     owners_team = get_organization_owners_team(organization)
     remove_user_from_team(owners_team, user)
+
+    role = get_role_in_org(user, organization)
+    # Remove user from all org projects
+    for project in organization.user.project_org.all():
+        ShareProject(project, user.username, role, remove=True).remove_user()
 
 
 def remove_user_from_team(team, user):

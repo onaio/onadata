@@ -447,6 +447,53 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [u'denoinc'])
 
+        # Removes users from org projects.
+        # Create a project
+        project_data = {
+            'owner': self.company_data['user']
+        }
+        self._project_create(project_data)
+
+        # Create alice
+        self.profile_data['username'] = "alice"
+        alice_data = {'username': 'alice',
+                      'role': 'owner'}
+        request = self.factory.post(
+            '/', data=json.dumps(alice_data),
+            content_type="application/json", **self.extra)
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 201)
+
+        # alice is in project
+        projectView = ProjectViewSet.as_view({
+            'get': 'retrieve'
+        })
+        request = self.factory.get('/', **self.extra)
+        response = projectView(request, pk=self.project.pk)
+        project_users = response.data.get('users')
+        users_in_users = [user['user'] for user in project_users]
+
+        self.assertIn('alice', users_in_users)
+
+        # remove alice from org
+        request = self.factory.delete(
+            '/?username={}'.format('alice'), **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(response.data, [u'alice'])
+
+        # alice is also removed from project
+        projectView = ProjectViewSet.as_view({
+            'get': 'retrieve'
+        })
+        request = self.factory.get('/', **self.extra)
+        response = projectView(request, pk=self.project.pk)
+        project_users = response.data.get('users')
+        users_in_users = [user['user'] for user in project_users]
+
+        self.assertNotIn('alice', users_in_users)
+
     def test_orgs_create_with_mixed_case(self):
         data = {
             'name': u'denoinc',
@@ -749,6 +796,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         # Assert that user added in org is added to teams in proj
         self.assertTrue(OwnerRole.user_has_role(aboy, self.project))
         self.assertTrue(OwnerRole.user_has_role(alice, self.project))
+        self.assertTrue(OwnerRole.user_has_role(aboy, self.xform))
+        self.assertTrue(OwnerRole.user_has_role(alice, self.xform))
 
         # Org admins are added to owners in project
         projectView = ProjectViewSet.as_view({
