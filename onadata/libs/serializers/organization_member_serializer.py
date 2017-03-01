@@ -17,6 +17,7 @@ from onadata.apps.api.tools import _get_owners
 from onadata.apps.api.tools import get_organization_members
 from onadata.apps.api.tools import remove_user_from_organization
 from onadata.settings.common import (DEFAULT_FROM_EMAIL, SHARE_ORG_SUBJECT)
+from onadata.libs.models.share_project import ShareProject
 
 
 def _compose_send_email(organization, user, email_msg, email_subject=None):
@@ -43,7 +44,7 @@ def _set_organization_role_to_user(organization, user, role):
         add_user_to_team(owners_team, user)
         # add user to org projects
         for project in organization.user.project_org.all():
-            OwnerRole.add(user, project)
+            ShareProject(project, user.username, role).save()
 
     if role != OwnerRole.name:
         remove_user_from_team(owners_team, user)
