@@ -176,7 +176,7 @@ def remove_user_from_organization(organization, user):
     role = get_role_in_org(user, organization)
     # Remove user from all org projects
     for project in organization.user.project_org.all():
-        ShareProject(project, user.username, role, remove=True).remove_user()
+        ShareProject(project, user.username, role, remove=True).save()
 
 
 def remove_user_from_team(team, user):
