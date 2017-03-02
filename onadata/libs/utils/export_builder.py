@@ -90,19 +90,11 @@ def encode_if_str(row, key, encode_dates=False):
     if isinstance(val, six.string_types):
         return val.encode('utf-8')
 
-    if encode_dates and isinstance(val, datetime):
-        try:
-            return val.strftime('%Y-%m-%dT%H:%M:%S%z').encode('utf-8')
-        except ValueError:
-            raise Exception(u"%s has an invalid datetime format" % (val))
-
-    if encode_dates and isinstance(val, date):
-        try:
-            return val.strftime('%Y-%m-%d').encode('utf-8')
-        except ValueError:
-            raise Exception(u"%s has an invalid date format" % (val))
+    if encode_dates and (isinstance(val, datetime) or isinstance(val, date)):
+        return val.isoformat()
 
     return val
+
 
 
 def dict_to_joined_export(data, index, indices, name, survey, row,
