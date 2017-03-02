@@ -639,7 +639,7 @@ def kml_export(request, username, id_string):
     helper_auth_helper(request)
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
-    data = {'data': kml_export_data(id_string, user=owner)}
+    data = {'data': kml_export_data(id_string, user=owner, xform=xform)}
     response = \
         render(request, "survey.kml", data,
                content_type="application/vnd.google-earth.kml+xml")
