@@ -273,7 +273,7 @@ if custom_urls:
     for url_module in custom_urls:
         urlpatterns.append(url(r'^', include(url_module)))
 
-if settings.DEBUG:
+if settings.DEBUG and 'debug_toolbar' in settings.INSTALLED_APPS:
     try:
         import debug_toolbar
     except ImportError:
