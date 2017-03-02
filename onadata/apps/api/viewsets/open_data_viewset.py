@@ -166,7 +166,8 @@ class OpenDataViewSet(
                     str(serializer.errors), status.HTTP_400_BAD_REQUEST
                 )
 
-    def retrieve(self, request, *args, **kwargs):
+    @detail_route(methods=['GET'])
+    def data(self, request, **kwargs):
         self.object = self.get_object()
         # get greater than value and cast it to an int
         gt = request.query_params.get('gt_id')
@@ -233,7 +234,7 @@ class OpenDataViewSet(
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @detail_route(methods=['GET'])
-    def column_headers(self, request, **kwargs):
+    def schema(self, request, **kwargs):
         self.object = self.get_object()
         if isinstance(self.object.content_object, XForm):
             xform = self.object.content_object
