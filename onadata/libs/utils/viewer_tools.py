@@ -1,12 +1,11 @@
 import os
 import traceback
-import requests
 import zipfile
-
 from tempfile import NamedTemporaryFile
 from urlparse import urljoin
 from xml.dom import minidom
 
+import requests
 from django.conf import settings
 from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -14,7 +13,6 @@ from django.core.mail import mail_admins
 from django.utils.translation import ugettext as _
 
 from onadata.libs.utils import common_tags
-
 
 SLASH = u"/"
 
@@ -28,9 +26,7 @@ class EnketoError(Exception):
 
 
 def image_urls_for_form(xform):
-    return sum([
-        image_urls(s) for s in xform.instances.all()
-    ], [])
+    return sum([image_urls(s) for s in xform.instances.all()], [])
 
 
 def get_path(path, suffix):
@@ -44,8 +40,7 @@ def image_urls(instance):
     suffix = settings.THUMB_CONF['medium']['suffix']
     for a in instance.attachments.all():
         if default_storage.exists(get_path(a.media_file.name, suffix)):
-            url = default_storage.url(
-                get_path(a.media_file.name, suffix))
+            url = default_storage.url(get_path(a.media_file.name, suffix))
         else:
             url = a.media_file.url
         urls.append(url)
@@ -66,8 +61,10 @@ def parse_xform_instance(xml_str):
     assert len(list(_all_attributes(root_node))) == 1, \
         _(u"There should be exactly one attribute in this document.")
     survey_data.update({
-        common_tags.XFORM_ID_STRING: root_node.getAttribute(u"id"),
-        common_tags.INSTANCE_DOC_NAME: root_node.nodeName,
+        common_tags.XFORM_ID_STRING:
+        root_node.getAttribute(u"id"),
+        common_tags.INSTANCE_DOC_NAME:
+        root_node.nodeName,
     })
     return survey_data
 
@@ -139,8 +136,7 @@ def django_file(path, field_name, content_type):
         name=f.name,
         content_type=content_type,
         size=os.path.getsize(path),
-        charset=None
-    )
+        charset=None)
 
 
 def export_def_from_filename(filename):
@@ -162,8 +158,12 @@ def get_client_ip(request):
     return ip
 
 
-def enketo_url(form_url, id_string, instance_xml=None,
-               instance_id=None, return_url=None, **kwargs):
+def enketo_url(form_url,
+               id_string,
+               instance_xml=None,
+               instance_id=None,
+               return_url=None,
+               **kwargs):
     if not hasattr(settings, 'ENKETO_URL')\
             and not hasattr(settings, 'ENKETO_API_SURVEY_PATH')\
             and (not hasattr(settings, 'ENKETO_API_TOKEN') or
@@ -172,10 +172,7 @@ def enketo_url(form_url, id_string, instance_xml=None,
 
     url = urljoin(settings.ENKETO_URL, settings.ENKETO_API_SURVEY_PATH)
 
-    values = {
-        'form_id': id_string,
-        'server_url': form_url
-    }
+    values = {'form_id': id_string, 'server_url': form_url}
     if instance_id is not None and instance_xml is not None:
         url = urljoin(settings.ENKETO_URL, settings.ENKETO_API_INSTANCE_PATH)
         values.update({
@@ -189,8 +186,8 @@ def enketo_url(form_url, id_string, instance_xml=None,
         # kwargs = {'defaults[/widgets/text_widgets/my_string]': "Hey Mark"}
         values.update(kwargs)
 
-    req = requests.post(url, data=values,
-                        auth=(settings.ENKETO_API_TOKEN, ''), verify=False)
+    req = requests.post(
+        url, data=values, auth=(settings.ENKETO_API_TOKEN, ''), verify=False)
     if req.status_code in [200, 201]:
         try:
             response = req.json()
@@ -279,10 +276,35 @@ def get_form_url(request, username=None, protocol='https', preview=False):
 
 
 def get_enketo_edit_url(request, instance, return_url):
-    form_url = get_form_url(request,
-                            instance.xform.user.username,
+    form_url = get_form_url(request, instance.xform.user.username,
                             settings.ENKETO_PROTOCOL)
     url = enketo_url(
-        form_url, instance.xform.id_string, instance_xml=instance.xml,
-        instance_id=instance.uuid, return_url=return_url)
+        form_url,
+        instance.xform.id_string,
+        instance_xml=instance.xml,
+        instance_id=instance.uuid,
+        return_url=return_url)
     return url
+
+
+def get_enketo_preview_url(request, username, id_string):
+    form_url = get_form_url(request, username, settings.ENKETO_PROTOCOL, True)
+    values = {'form_id': id_string, 'server_url': form_url}
+
+    res = requests.post(
+        settings.ENKETO_PREVIEW_URL,
+        data=values,
+        auth=(settings.ENKETO_API_TOKEN, ''),
+        verify=False)
+
+    try:
+        response = res.json()
+    except ValueError:
+        pass
+    else:
+        if 'preview_url' in response:
+            return response['preview_url']
+        elif 'message' in response:
+            raise EnketoError(response['message'])
+
+    return False

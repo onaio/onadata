@@ -1,67 +1,60 @@
-import requests
-from datetime import datetime
-import os
 import json
-from bson import json_util
+import os
+from datetime import datetime
 
+from bson import json_util
 from django.conf import settings
-from django.core.urlresolvers import reverse
-from django.core.files.storage import default_storage
-from django.core.files.storage import get_storage_class
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.contrib import messages
+from django.core.files.storage import default_storage, get_storage_class
+from django.core.urlresolvers import reverse
 from django.db import IntegrityError, OperationalError
-from rest_framework.authtoken.models import Token
-from django.http import HttpResponse
-from django.http import HttpResponseBadRequest
-from django.http import HttpResponseForbidden
-from django.http import HttpResponseNotFound
-from django.http import HttpResponseRedirect
-from django.http import HttpResponseServerError
-from django.shortcuts import get_object_or_404
-from django.shortcuts import render
-from django.template import loader, RequestContext
+from django.http import (HttpResponse, HttpResponseBadRequest,
+                         HttpResponseForbidden, HttpResponseNotFound,
+                         HttpResponseRedirect, HttpResponseServerError)
+from django.shortcuts import get_object_or_404, render
+from django.template import RequestContext, loader
 from django.utils.translation import ugettext as _
-from django.views.decorators.http import require_GET
-from django.views.decorators.http import require_POST
-from django.views.decorators.http import require_http_methods
-from guardian.shortcuts import assign_perm, remove_perm, get_users_with_perms
+from django.views.decorators.http import (require_GET, require_http_methods,
+                                          require_POST)
+from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
+from rest_framework.authtoken.models import Token
 
-from onadata.libs.utils.viewer_tools import get_form_url, EnketoError
-from onadata.apps.main.forms import UserProfileForm, FormLicenseForm,\
-    DataLicenseForm, SupportDocForm, QuickConverterFile, QuickConverterURL,\
-    QuickConverter, SourceForm, PermissionForm, MediaForm, MapboxLayerForm,\
-    ActivateSMSSupportFom, ExternalExportForm
-from onadata.apps.main.models import AuditLog, UserProfile, MetaData
 from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.logger.models.xform import get_forms_shared_with_user
 from onadata.apps.logger.views import enter_data
-from onadata.apps.viewer.models.data_dictionary import DataDictionary,\
-    upload_to
-from onadata.apps.viewer.models.parsed_instance import\
-    DATETIME_FORMAT, query_data
-from onadata.apps.viewer.views import attachment_url
-from onadata.apps.sms_support.tools import check_form_sms_compatibility,\
-    is_sms_related
+from onadata.apps.logger.xform_instance_parser import XLSFormError
+from onadata.apps.main.forms import (ActivateSMSSupportFom, DataLicenseForm,
+                                     ExternalExportForm, FormLicenseForm,
+                                     MapboxLayerForm, MediaForm,
+                                     PermissionForm, QuickConverter,
+                                     QuickConverterFile, QuickConverterURL,
+                                     SourceForm, SupportDocForm,
+                                     UserProfileForm)
+from onadata.apps.main.models import AuditLog, MetaData, UserProfile
 from onadata.apps.sms_support.autodoc import get_autodoc_for
 from onadata.apps.sms_support.providers import providers_doc
-from onadata.apps.logger.xform_instance_parser import XLSFormError
+from onadata.apps.sms_support.tools import (check_form_sms_compatibility,
+                                            is_sms_related)
+from onadata.apps.viewer.models.data_dictionary import (DataDictionary,
+                                                        upload_to)
+from onadata.apps.viewer.models.parsed_instance import (DATETIME_FORMAT,
+                                                        query_data)
+from onadata.apps.viewer.views import attachment_url
 from onadata.libs.utils.decorators import is_owner
-from onadata.libs.utils.logger_tools import response_with_mimetype_and_name,\
-    publish_form
-from onadata.libs.utils.user_auth import add_cors_headers
-from onadata.libs.utils.user_auth import check_and_set_user_and_form
-from onadata.libs.utils.user_auth import check_and_set_user
-from onadata.libs.utils.user_auth import get_xform_and_perms
-from onadata.libs.utils.user_auth import has_permission
-from onadata.libs.utils.user_auth import helper_auth_helper
-from onadata.libs.utils.user_auth import set_profile_data
-from onadata.libs.utils.log import audit_log, Actions
-from onadata.libs.utils.qrcode import generate_qrcode
-from onadata.libs.utils.viewer_tools import enketo_url, get_form
 from onadata.libs.utils.export_tools import upload_template_for_external_export
-from onadata.libs.utils.user_auth import get_user_default_project
+from onadata.libs.utils.log import Actions, audit_log
+from onadata.libs.utils.logger_tools import (publish_form,
+                                             response_with_mimetype_and_name)
+from onadata.libs.utils.qrcode import generate_qrcode
+from onadata.libs.utils.user_auth import (add_cors_headers, check_and_set_user,
+                                          check_and_set_user_and_form,
+                                          get_user_default_project,
+                                          get_xform_and_perms, has_permission,
+                                          helper_auth_helper, set_profile_data)
+from onadata.libs.utils.viewer_tools import (EnketoError, enketo_url,
+                                             get_enketo_preview_url, get_form)
 
 
 def home(request):
@@ -1373,28 +1366,6 @@ def qrcode(request, username, id_string):
             status = 400
 
     return HttpResponse(results, content_type='text/html', status=status)
-
-
-def get_enketo_preview_url(request, username, id_string):
-    form_url = get_form_url(request, username, settings.ENKETO_PROTOCOL, True)
-    values = {'form_id': id_string, 'server_url': form_url}
-
-    res = requests.post(settings.ENKETO_PREVIEW_URL,
-                        data=values,
-                        auth=(settings.ENKETO_API_TOKEN, ''),
-                        verify=False)
-
-    try:
-        response = res.json()
-    except ValueError:
-        pass
-    else:
-        if 'preview_url' in response:
-            return response['preview_url']
-        elif 'message' in response:
-            raise EnketoError(response['message'])
-
-    return False
 
 
 def enketo_preview(request, username, id_string):
