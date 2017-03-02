@@ -8,23 +8,24 @@ from requests.exceptions import ConnectionError
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
-from onadata.apps.logger.models import XForm, Instance
-from onadata.libs.permissions import get_role
-from onadata.libs.permissions import is_organization
-from onadata.libs.serializers.tag_list_serializer import TagListSerializer
-from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
-from onadata.libs.serializers.dataview_serializer import (
-    DataViewMinimalSerializer)
-
-from onadata.libs.utils.decorators import check_obj
-from onadata.libs.utils.viewer_tools import enketo_url, EnketoError
-from onadata.libs.utils.viewer_tools import get_form_url
-from onadata.apps.main.views import get_enketo_preview_url
+from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.libs.utils.cache_tools import (
-    XFORM_PERMISSIONS_CACHE, ENKETO_URL_CACHE, ENKETO_PREVIEW_URL_CACHE,
-    XFORM_METADATA_CACHE, XFORM_DATA_VERSIONS, XFORM_LINKED_DATAVIEWS)
+from onadata.libs.permissions import get_role, is_organization
+from onadata.libs.serializers.dataview_serializer import \
+    DataViewMinimalSerializer
+from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
+from onadata.libs.serializers.tag_list_serializer import TagListSerializer
+from onadata.libs.utils.cache_tools import (ENKETO_PREVIEW_URL_CACHE,
+                                            ENKETO_URL_CACHE,
+                                            XFORM_DATA_VERSIONS,
+                                            XFORM_LINKED_DATAVIEWS,
+                                            XFORM_METADATA_CACHE,
+                                            XFORM_PERMISSIONS_CACHE)
 from onadata.libs.utils.common_tags import GROUP_DELIMETER_TAG
+from onadata.libs.utils.decorators import check_obj
+from onadata.libs.utils.viewer_tools import (EnketoError, enketo_url,
+                                             get_enketo_preview_url,
+                                             get_form_url)
 
 
 def _create_enketo_url(request, xform):
