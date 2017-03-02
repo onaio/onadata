@@ -24,7 +24,7 @@ class TestOpenDataViewSet(TestBase):
             'post': 'create',
             'patch': 'partial_update',
             'delete': 'destroy',
-            'get': 'retrieve'
+            'get': 'data'
         })
 
     def test_replace_special_characters_with_underscores(self):
@@ -123,6 +123,9 @@ class TestOpenDataViewSet(TestBase):
 
     def test_get_data_using_uuid(self):
         self._make_submissions()
+        self.view = OpenDataViewSet.as_view({
+            'get': 'data'
+        })
         _open_data = self.get_open_data_object()
         uuid = _open_data.uuid
         request = self.factory.get('/', **self.extra)
@@ -132,6 +135,9 @@ class TestOpenDataViewSet(TestBase):
 
     def test_get_data_using_uuid_and_greater_than_query_param(self):
         self._make_submissions()
+        self.view = OpenDataViewSet.as_view({
+            'get': 'data'
+        })
         first_instance = Instance.objects.first()
         _open_data = self.get_open_data_object()
         uuid = _open_data.uuid
@@ -225,7 +231,7 @@ class TestOpenDataViewSet(TestBase):
 
     def test_column_headers_endpoint(self):
         self.view = OpenDataViewSet.as_view({
-            'get': 'column_headers'
+            'get': 'schema'
         })
 
         _open_data = self.get_open_data_object()
