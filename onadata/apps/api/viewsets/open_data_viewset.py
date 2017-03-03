@@ -168,16 +168,16 @@ class OpenDataViewSet(
 
     @list_route(methods=['GET'])
     def uuid(self, request, *args, **kwargs):
-        clazz = request.query_params.get('clazz')
+        data_type = request.query_params.get('data_type')
         object_id = request.query_params.get('object_id')
 
-        if not clazz or not object_id:
+        if not data_type or not object_id:
             return Response(
-                data="Query params clazz and object_id are required",
+                data="Query params data_type and object_id are required",
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if clazz == 'xform':
+        if data_type == 'xform':
             xform = get_object_or_404(XForm, id=object_id)
             ct = ContentType.objects.get_for_model(xform)
             _open_data = OpenData.objects.filter(
