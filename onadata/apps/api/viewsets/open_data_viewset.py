@@ -128,12 +128,6 @@ class OpenDataViewSet(
         return Response(data)
 
     def destroy(self, request, *args, **kwargs):
-        if request.user.is_anonymous():
-            return Response(
-                'Authentication credentials required.',
-                status.HTTP_400_BAD_REQUEST
-            )
-
         self.get_object().delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -143,7 +137,7 @@ class OpenDataViewSet(
         if isinstance(self.object.content_object, XForm):
             xform = self.object.content_object
             self.xform_headers = replace_special_characters_with_underscores(
-                xform.get_headers(), list_of_dicts=False
+                xform.get_headers()
             )
 
             xform_json = json.loads(xform.json)
