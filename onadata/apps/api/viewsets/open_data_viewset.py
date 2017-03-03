@@ -94,35 +94,6 @@ class OpenDataViewSet(
 
         return tableau_colulmn_headers
 
-    def create(self, request, *args, **kwargs):
-        if request.user.is_anonymous():
-            return Response(
-                'Authentication credentials required.',
-                status.HTTP_400_BAD_REQUEST
-            )
-
-        results = self.get_data()
-        if results.error:
-            return Response(results.message, status.HTTP_400_BAD_REQUEST)
-
-        if results.data:
-            serializer = OpenDataSerializer(data=results.data)
-
-            if serializer.is_valid():
-                _open_data = serializer.save()
-                if _open_data:
-                    return Response(
-                        data={
-                            'message': 'Record was successfully created.',
-                            'uuid': _open_data.uuid
-                        },
-                        status=status.HTTP_201_CREATED
-                    )
-            else:
-                return Response(
-                    str(serializer.errors), status.HTTP_400_BAD_REQUEST
-                )
-
     @detail_route(methods=['GET'])
     def data(self, request, **kwargs):
         self.object = self.get_object()
@@ -150,35 +121,6 @@ class OpenDataViewSet(
             data = replace_special_characters_with_underscores(data)
 
         return Response(data)
-
-    def partial_update(self, request, *args, **kwargs):
-        if request.user.is_anonymous():
-            return Response(
-                'Authentication credentials required.',
-                status.HTTP_400_BAD_REQUEST
-            )
-
-        self.object = self.get_object()
-        results = self.get_data(update=True)
-        if results.error:
-            return Response(results.message, status.HTTP_400_BAD_REQUEST)
-
-        if results.data:
-            serializer = OpenDataSerializer(self.object, data=results.data)
-
-            if serializer.is_valid():
-                _open_data = serializer.save()
-                if _open_data:
-                    return Response(
-                        "Record was successfully updated.",
-                        status.HTTP_200_OK
-                    )
-            else:
-                return Response(
-                    str(serializer.errors), status.HTTP_400_BAD_REQUEST
-                )
-
-        return Response(status=status.HTTP_200_OK)
 
     def destroy(self, request, *args, **kwargs):
         if request.user.is_anonymous():
