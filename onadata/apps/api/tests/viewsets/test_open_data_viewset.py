@@ -31,15 +31,9 @@ class TestOpenDataViewSet(TestBase):
         data = ['john_doe[3]/_visual-studio-code']
         self.assertEqual(
             replace_special_characters_with_underscores(
-                data, list_of_dicts=False
+                data,
             ),
             ['john_doe_3___visual_studio_code']
-        )
-
-        data = [{'john_doe[3]/_visual-studio-code': 'yes'}]
-        self.assertEqual(
-            replace_special_characters_with_underscores(data),
-            [{'john_doe_3___visual_studio_code': 'yes'}]
         )
 
     def get_open_data_object(self):
@@ -56,35 +50,25 @@ class TestOpenDataViewSet(TestBase):
         return _open_data
 
     def test_create_open_data_object_with_valid_fields(self):
+        initial_count = OpenData.objects.count()
         request = self.factory.post('/', data={})
         response = self.view(request)
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            response.data,
-            'Authentication credentials required.'
-        )
+        self.assertEqual(response.status_code, 401)
 
         data = {
             'object_id': self.xform.id,
-            'clazz': 'xform',
+            'data_type': 'xform',
             'name': self.xform.id_string
         }
 
         request = self.factory.post('/', data=data, **self.extra)
         response = self.view(request)
-        _open_data = OpenData.objects.last()
         self.assertEqual(response.status_code, 201)
-        self.assertDictEqual(
-            response.data,
-            {
-                'message': 'Record was successfully created.',
-                'uuid': _open_data.uuid
-            }
-        )
+        self.assertEqual(initial_count + 1, OpenData.objects.count())
 
     def test_create_open_data_object_with_invalid_fields(self):
         data = {
-            'clazz': 'xform',
+            'data_type': 'xform',
             'name': self.xform.id_string
         }
 
@@ -94,7 +78,7 @@ class TestOpenDataViewSet(TestBase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
             response.data,
-            "{'object_id': [u'A valid integer is required.']}"
+            {'object_id': [u'A valid integer is required.']}
         )
 
         # check for xform with non-existent xform id (object_id)
@@ -103,22 +87,13 @@ class TestOpenDataViewSet(TestBase):
         response = self.view(request)
         self.assertEqual(response.status_code, 404)
 
-        data.update({'invalid_key': 'invalid_value'})
-        request = self.factory.post('/', data=data, **self.extra)
-        response = self.view(request)
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            response.data,
-            'Valid fields are object_id, clazz and name.'
-        )
-
         data.pop('object_id')
         request = self.factory.post('/', data=data, **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
             response.data,
-            'Fields object_id, clazz and name are required.'
+            ['Fields object_id, data_type and name are required.']
         )
 
     def test_get_data_using_uuid(self):
@@ -131,7 +106,8 @@ class TestOpenDataViewSet(TestBase):
         request = self.factory.get('/', **self.extra)
         response = self.view(request, uuid=uuid)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 4)
+        # cast generator response to list so that we can get the response count
+        self.assertEqual(len(list(response.data)), 4)
 
     def test_get_data_using_uuid_and_greater_than_query_param(self):
         self._make_submissions()
@@ -147,7 +123,8 @@ class TestOpenDataViewSet(TestBase):
         )
         response = self.view(request, uuid=uuid)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 3)
+        # cast generator response to list so that we can get the response count
+        self.assertEqual(len(list(response.data)), 3)
 
     def test_update_open_data_with_valid_fields_and_data(self):
         _open_data = self.get_open_data_object()
@@ -157,73 +134,32 @@ class TestOpenDataViewSet(TestBase):
         request = self.factory.patch(
             '/',
             data=json.dumps(data),
+            content_type="application/json"
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+
+        request = self.factory.patch(
+            '/',
+            data=json.dumps(data),
             content_type="application/json",
             **self.extra
         )
         response = self.view(request, uuid=uuid)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, 'Record was successfully updated.')
 
         _open_data = OpenData.objects.last()
         self.assertEqual(_open_data.name, 'updated_name')
-
-    def test_update_open_data_with_invalid_fields_and_data(self):
-        _open_data = self.get_open_data_object()
-        uuid = _open_data.uuid
-        data = {'invalid_key': 'invalid_value'}
-
-        request = self.factory.patch(
-            '/',
-            data=json.dumps(data),
-            content_type="application/json",
-            **self.extra
-        )
-        response = self.view(request, uuid=uuid)
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            response.data,
-            'Valid fields are object_id, clazz and name.'
-        )
-
-        data = {
-            'object_id': None,
-            'clazz': None,
-            'name': None
-        }
-
-        request = self.factory.patch(
-            '/',
-            data=json.dumps(data),
-            content_type="application/json",
-            **self.extra
-        )
-        response = self.view(request, uuid=uuid)
-        self.assertEqual(response.status_code, 200)
-
-        data = {
-            'object_id': 'invalid_object_id',
-            'clazz': None,
-            'name': None
-        }
-
-        request = self.factory.patch(
-            '/',
-            data=json.dumps(data),
-            content_type="application/json",
-            **self.extra
-        )
-        response = self.view(request, uuid=uuid)
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            response.data,
-            ("{'name': [u'This field is required.'], "
-             "'object_id': [u'A valid integer is required.']}")
-        )
 
     def test_delete_open_data_object(self):
         inital_count = OpenData.objects.count()
         _open_data = self.get_open_data_object()
         self.assertEqual(OpenData.objects.count(), inital_count + 1)
+
+        request = self.factory.delete('/')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+
         request = self.factory.delete('/', **self.extra)
         response = self.view(request, uuid=_open_data.uuid)
         self.assertEqual(response.status_code, 204)
@@ -258,16 +194,20 @@ class TestOpenDataViewSet(TestBase):
             'get': 'uuid'
         })
 
+        request = self.factory.get('/')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
-            response.data, "Query params clazz and object_id are required"
+            response.data, "Query params data_type and object_id are required"
         )
 
         data = {
             'object_id': self.xform.id,
-            'clazz': 'non_clazz',
+            'data_type': 'non_clazz',
         }
         request = self.factory.get('/', data=data, **self.extra)
         response = self.view(request)
@@ -276,7 +216,7 @@ class TestOpenDataViewSet(TestBase):
         _open_data = self.get_open_data_object()
         data = {
             'object_id': self.xform.id,
-            'clazz': 'xform',
+            'data_type': 'xform',
         }
         request = self.factory.get('/', data=data, **self.extra)
         response = self.view(request)
