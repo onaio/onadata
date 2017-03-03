@@ -50,12 +50,16 @@ class OpenDataSerializer(serializers.ModelSerializer):
         exclude = ('date_created', 'date_modified', 'content_type', 'id')
 
     def create(self, validated_data):
+        results = get_data(validated_data)
+        if results.error:
+            raise serializers.ValidationError(results.message)
+
         name = validated_data.get('name')
-        clazz = validated_data.get('clazz')
+        data_type = validated_data.get('data_type')
         object_id = validated_data.get('object_id')
         op = None
 
-        if clazz == 'xform':
+        if data_type == 'xform':
             xform = get_object_or_404(XForm, id=object_id)
             ct = ContentType.objects.get_for_model(xform)
 
@@ -71,6 +75,10 @@ class OpenDataSerializer(serializers.ModelSerializer):
         return op
 
     def update(self, instance, validated_data):
+        results = get_data(validated_data, update=True)
+        if results.error:
+            raise serializers.ValidationError(results.message)
+
         instance.name = validated_data.get('name', instance.name)
         instance.object_id = validated_data.get(
             'object_id', instance.object_id
