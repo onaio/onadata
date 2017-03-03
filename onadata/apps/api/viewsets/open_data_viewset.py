@@ -124,7 +124,6 @@ class OpenDataViewSet(
                     "replacer": r"_"
                 }
             )
-            data = replace_special_characters_with_underscores(data)
 
         return Response(data)
 
