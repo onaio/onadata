@@ -321,3 +321,14 @@ class OrganizationProfilePermissions(DjangoObjectPermissionsAllowAnon):
             return super(OrganizationProfilePermissions,
                          self).has_object_permission(
                 request=request, view=view, obj=obj)
+
+
+class OpenDataViewSetPermissions(IsAuthenticated):
+
+    def has_permission(self, request, view):
+        if request.user.is_anonymous() and view.action in ['schema', 'data']:
+            return True
+
+        return super(OpenDataViewSetPermissions, self).has_permission(
+            request, view
+        )
