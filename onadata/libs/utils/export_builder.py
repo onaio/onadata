@@ -96,7 +96,6 @@ def encode_if_str(row, key, encode_dates=False):
     return val
 
 
-
 def dict_to_joined_export(data, index, indices, name, survey, row,
                           media_xpaths=[]):
     """
