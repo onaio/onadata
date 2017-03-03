@@ -24,6 +24,6 @@ def get_boolean_value(str_var, default=None):
 
 def getUUID():
     '''
-    Return a 32-character-long UUID
+    Return UUID
     '''
-    return str(uuid.uuid1()).replace('-', '')
+    return uuid.uuid4().hex
