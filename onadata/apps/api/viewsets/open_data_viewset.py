@@ -1,15 +1,14 @@
 import re
-import collections
 import json
 
 from django.shortcuts import get_object_or_404
 from django.contrib.contenttypes.models import ContentType
-from rest_framework import permissions
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from rest_framework.decorators import detail_route, list_route
 from rest_framework import status
 
+from onadata.apps.api.permissions import OpenDataViewSetPermissions
 from onadata.apps.logger.models import XForm, Instance
 from onadata.apps.logger.models.open_data import OpenData
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
@@ -25,61 +24,19 @@ BaseViewset = get_baseviewset_class()
 IGNORED_FIELD_TYPES = ['select one', 'select multiple']
 
 
-def replace_special_characters_with_underscores(data, list_of_dicts=True):
-    '''
-    Replaces slashes with underscores in strings inside a dict or list.
-    '''
-    def replacer(val):
-        return re.sub(r"(/|-|\[|\])", r"_", val)
-
-    if not list_of_dicts:
-        return [replacer(a) for a in data]
-
-    return [{replacer(k): v
-             for k, v in dict_obj.items()}
-            for dict_obj in data]
+def replace_special_characters_with_underscores(data):
+    return [re.sub(r"(/|-|\[|\])", r"_", a) for a in data]
 
 
 class OpenDataViewSet(
         ETagsMixin, CacheControlMixin, TotalHeaderMixin, BaseViewset,
         ModelViewSet):
-    permission_classes = (permissions.AllowAny,)
+    permission_classes = (OpenDataViewSetPermissions,)
     queryset = OpenData.objects.filter()
     lookup_field = 'uuid'
     serializer_class = OpenDataSerializer
     flattened_dict = {}
-
-    def get_data(self, update=False):
-        '''
-        return a namedtuple with error, message and data values.
-        '''
-        request_data = self.request.data
-        fields = ['object_id', 'clazz', 'name']
-        results = collections.namedtuple('results', 'error message data')
-        if not update:
-            if not set(fields).issubset(request_data.keys()):
-                return results(
-                    error=True,
-                    message="Fields object_id, clazz and name are required.",
-                    data=None
-                )
-
-        fields.append('active')
-
-        # check if invalid fields are provided
-        if any(a not in fields for a in request_data.keys()):
-            return results(
-                error=True,
-                message="Valid fields are object_id, clazz and name.",
-                data=None
-            )
-
-        data = {}
-        for key in fields:
-            available = request_data.get(key) is not None
-            available and data.update({key: request_data.get(key)})
-
-        return results(error=False, message=None, data=data)
+    MAX_INSTANCES_PER_REQUEST = 1000
 
     def get_tableau_type(self, xform_type):
         '''
