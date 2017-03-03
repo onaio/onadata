@@ -111,7 +111,9 @@ class OpenDataViewSet(
             if gt:
                 qs_kwargs.update({'id__gt': gt})
 
-            instances = Instance.objects.filter(**qs_kwargs)
+            instances = Instance.objects.filter(
+                **qs_kwargs
+            )[:self.MAX_INSTANCES_PER_REQUEST]
             csv_df_builder = CSVDataFrameBuilder(
                 xform.user.username, xform.id_string, include_images=False
             )
