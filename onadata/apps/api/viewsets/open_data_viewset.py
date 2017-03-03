@@ -118,7 +118,11 @@ class OpenDataViewSet(
                 xform.user.username, xform.id_string, include_images=False
             )
             data = csv_df_builder._format_for_dataframe(
-                DataInstanceSerializer(instances, many=True).data
+                DataInstanceSerializer(instances, many=True).data,
+                key_replacement_obj={
+                    'pattern': r"(/|-|\[|\])",
+                    "replacer": r"_"
+                }
             )
             data = replace_special_characters_with_underscores(data)
 
