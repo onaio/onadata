@@ -473,6 +473,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                               record, self.dd, include_images=image_xpaths)
 
     def _format_for_dataframe(self, cursor, key_replacement_obj=None):
+        pattern, replacer = None, None
         if key_replacement_obj:
             pattern = key_replacement_obj.get('pattern')
             replacer = key_replacement_obj.get('replacer')
