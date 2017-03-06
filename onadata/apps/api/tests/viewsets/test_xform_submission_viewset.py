@@ -373,3 +373,25 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
             'tutorial', 'instances', 'uuid_NaN', 'submission.xml')
         self._make_submission(path)
+
+    def test_submission_malicious_text_input(self):
+        xlsform_path = os.path.join(
+            settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
+            "tutorial.xls")
+
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+
+        path = os.path.join(
+            settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
+            'tutorial', 'instances', 'malicious_instance', 'submission.xml')
+        self._make_submission(path)
+
+        expected_response = \
+            ("<?xml version=\'1.0\' encoding=\'UTF-8\' ?>\n"
+             "<OpenRosaResponse xmlns=\"http://openrosa.org/http/response\">\n"
+             "        <message nature=\"\">Invalid input"
+             " <script>alert(document.cookie);."
+             "</message>\n</OpenRosaResponse>")
+
+        self.assertEqual(400, self.response.status_code)
+        self.assertEqual(self.response.content, expected_response)

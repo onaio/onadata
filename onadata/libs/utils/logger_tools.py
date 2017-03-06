@@ -41,6 +41,7 @@ from onadata.apps.logger.models.xform import XLSFormError
 from onadata.apps.logger.xform_instance_parser import (
     InstanceEmptyError,
     InstanceInvalidUserError,
+    InstanceInvalidInput,
     InstanceMultipleNodeError,
     NonUniqueFormIdError,
     DuplicateInstance,
@@ -62,6 +63,7 @@ DEFAULT_CONTENT_LENGTH = settings.DEFAULT_CONTENT_LENGTH
 
 uuid_regex = re.compile(r'<formhub>\s*<uuid>\s*([^<]+)\s*</uuid>\s*</formhub>',
                         re.DOTALL)
+script_tag_regex = re.compile(r'<script[^>]*>(?:[^<]+|<(?!/script>))+')
 
 
 def _get_instance(xml, new_uuid, submitted_by, status, xform):
@@ -109,6 +111,15 @@ def get_uuid_from_submission(xml):
 
     # check that xml has UUID
     return len(split_xml) > 1 and split_xml[1] or None
+
+
+def parse_xml_malicious_input(xml):
+    """
+    Parses xml for javascript <script> tag
+    """
+    matches = script_tag_regex.findall(xml)
+    if matches:
+        raise InstanceInvalidInput(message=matches[0])
 
 
 def get_xform_from_submission(xml, username, uuid=None):
@@ -256,6 +267,7 @@ def create_instance(username, xml_file, media_files,
         username = username.lower()
 
     xml = xml_file.read()
+    parse_xml_malicious_input(xml)
     xform = get_xform_from_submission(xml, username, uuid)
     check_submission_permissions(request, xform)
 
@@ -332,6 +344,8 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
             username, xml_file, media_files, uuid=uuid, request=request)
     except InstanceInvalidUserError:
         error = OpenRosaResponseBadRequest(_(u"Username or ID required."))
+    except InstanceInvalidInput as e:
+        error = OpenRosaResponseBadRequest(e)
     except InstanceEmptyError:
         error = OpenRosaResponseBadRequest(
             _(u"Received empty submission. No instance was created")
