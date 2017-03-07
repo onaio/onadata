@@ -2,6 +2,7 @@ import json
 
 from django.test import RequestFactory
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.auth.models import User
 
 from onadata.apps.logger.models import OpenData, Instance
 from onadata.apps.api.viewsets.open_data_viewset import (
@@ -218,6 +219,17 @@ class TestOpenDataViewSet(TestBase):
             'object_id': self.xform.id,
             'data_type': 'xform',
         }
+
+        # check authenticated user without permission to the object gets
+        # 403 response.
+        anonymous_user = User.objects.get(username='AnonymousUser')
+        anonymous_user_auth = {
+            'HTTP_AUTHORIZATION': 'Token %s' % anonymous_user.auth_token
+        }
+        request = self.factory.get('/', data=data, **anonymous_user_auth)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 403)
+
         request = self.factory.get('/', data=data, **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
