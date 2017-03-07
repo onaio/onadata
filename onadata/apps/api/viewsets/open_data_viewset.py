@@ -3,6 +3,8 @@ import json
 
 from django.shortcuts import get_object_or_404
 from django.contrib.contenttypes.models import ContentType
+from django.utils.translation import ugettext as _
+from django.core.exceptions import PermissionDenied
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from rest_framework.decorators import detail_route, list_route
@@ -172,14 +174,19 @@ class OpenDataViewSet(
 
         if data_type == 'xform':
             xform = get_object_or_404(XForm, id=object_id)
-            ct = ContentType.objects.get_for_model(xform)
-            _open_data = OpenData.objects.filter(
-                object_id=object_id, content_type=ct
-            ).first()
-            if _open_data:
-                return Response(
-                    data={'uuid': _open_data.uuid},
-                    status=status.HTTP_200_OK
+            if request.user.has_perm("change_xform", xform):
+                ct = ContentType.objects.get_for_model(xform)
+                _open_data = get_object_or_404(
+                    OpenData, object_id=object_id, content_type=ct
                 )
+                if _open_data:
+                    return Response(
+                        data={'uuid': _open_data.uuid},
+                        status=status.HTTP_200_OK
+                    )
+            else:
+                raise PermissionDenied(_(
+                    (u"You do not haveYou do not have permission "
+                     "to perform this action.")))
 
         return Response(status=status.HTTP_404_NOT_FOUND)
