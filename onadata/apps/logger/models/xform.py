@@ -820,8 +820,9 @@ class XForm(XFormMixin, BaseModel):
     def submission_count(self, force_update=False):
         if self.num_of_submissions == 0 or force_update:
             count = self.instances.filter(deleted_at__isnull=True).count()
-            self.num_of_submissions = count
-            self.save(update_fields=['num_of_submissions'])
+            if count:
+                self.num_of_submissions = count
+                self.save(update_fields=['num_of_submissions'])
         return self.num_of_submissions
     submission_count.short_description = ugettext_lazy("Submission Count")
 

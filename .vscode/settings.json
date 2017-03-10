@@ -1,0 +1,13 @@
+// Place your settings in this file to overwrite default and user settings.
+{
+    "python.pythonPath": "/home/workstation/.virtualenvs/onadata/bin/python",
+    "python.autoComplete.extraPaths": [
+        "/home/workstation/.virtualenvs/onadata/lib/python2.7",
+        "/home/workstation/.virtualenvs/onadata/lib/python2.7/site-packages"
+    ],
+    "python.linting.flake8Enabled": true,
+    "python.linting.pep8Enabled": true,
+    "python.linting.pep8Path": "/home/workstation/.virtualenvs/onadata/bin/pep8",
+    "python.linting.flake8Path": "/home/workstation/.virtualenvs/onadata/bin/flake8",
+    "python.linting.pylintPath": "/home/workstation/.virtualenvs/onadata/bin/pylint"
+}
