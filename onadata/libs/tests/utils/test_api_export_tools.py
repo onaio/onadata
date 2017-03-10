@@ -1,10 +1,14 @@
+import mock
+
 from celery import current_app
 from collections import defaultdict, OrderedDict
 
 from django.conf import settings
+from django.http import Http404
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
+from onadata.libs.utils.api_export_tools import get_async_response
 from onadata.libs.utils.api_export_tools import process_async_export
 from onadata.libs.utils.async_status import status_msg, SUCCESSFUL
 
@@ -56,3 +60,20 @@ class TestApiExportTools(TestBase):
 
         self.assertEquals(resp['job_status'], status_msg[SUCCESSFUL])
         self.assertIn("export_url", resp)
+
+    @mock.patch('onadata.libs.utils.api_export_tools.AsyncResult')
+    def test_get_async_response_export_does_not_exist(self, AsyncResult):
+        class MockAsyncResult(object):
+            def __init__(self):
+                self.state = 'SUCCESS'
+                self.result = 1
+
+        AsyncResult.return_value = MockAsyncResult()
+        settings.CELERY_ALWAYS_EAGER = True
+        current_app.conf.CELERY_ALWAYS_EAGER = True
+        self._publish_transportation_form_and_submit_instance()
+        request = self.factory.post('/')
+        request.user = self.user
+
+        with self.assertRaises(Http404):
+            get_async_response('job_uuid', request, self.xform)

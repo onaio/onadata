@@ -12,6 +12,14 @@ onadata.libs.tests.utils.test_api_export_tools module
     :undoc-members:
     :show-inheritance:
 
+onadata.libs.tests.utils.test_async_status module
+-------------------------------------------------
+
+.. automodule:: onadata.libs.tests.utils.test_async_status
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.libs.tests.utils.test_backup_tools module
 -------------------------------------------------
 
@@ -56,14 +64,6 @@ onadata.libs.tests.utils.test_export_tools module
 -------------------------------------------------
 
 .. automodule:: onadata.libs.tests.utils.test_export_tools
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-onadata.libs.tests.utils.test_google_sheets_tools module
---------------------------------------------------------
-
-.. automodule:: onadata.libs.tests.utils.test_google_sheets_tools
     :members:
     :undoc-members:
     :show-inheritance:

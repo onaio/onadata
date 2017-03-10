@@ -1,7 +1,6 @@
 from django.utils.translation import ugettext as _
 from guardian.shortcuts import assign_perm
-from rest_framework import exceptions
-from rest_framework import serializers
+from rest_framework import exceptions, serializers
 
 from onadata.apps.logger.models import Note
 
@@ -13,7 +12,7 @@ class NoteSerializer(serializers.ModelSerializer):
         model = Note
 
     def get_owner(self, obj):
-        if obj:
+        if obj and obj.created_by_id:
             return obj.created_by.username
 
         return None
@@ -38,9 +37,8 @@ class NoteSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
 
         if request and request.user.is_anonymous():
-            raise exceptions.ParseError(_(
-                u"You are not authorized to add/change notes on this form."
-            ))
+            raise exceptions.ParseError(
+                _(u"You are not authorized to add/change notes on this form."))
 
         attrs['created_by'] = request.user
 

@@ -1,77 +1,69 @@
 import os
 import random
-
 from datetime import datetime
-from multidb.pinning import use_master
 from urlparse import urlparse
 
+from django.conf import settings
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.contrib.auth.models import User
-from django.conf import settings
-from django.http import (
-    HttpResponseBadRequest, HttpResponseRedirect, HttpResponseForbidden)
-from django.utils.http import urlencode
-from django.utils.translation import ugettext as _
-from django.utils import six
-from django.utils import timezone
 from django.db import IntegrityError
 from django.db.models import Prefetch
-
-from pyxform.xls2json import parse_file_to_json
+from django.http import (HttpResponseBadRequest, HttpResponseForbidden,
+                         HttpResponseRedirect)
+from django.utils import six, timezone
+from django.utils.http import urlencode
+from django.utils.translation import ugettext as _
+from django.views.decorators.cache import never_cache
+from multidb.pinning import use_master
 from pyxform.builder import create_survey_element_from_dict
-from rest_framework import exceptions
-from rest_framework import status
+from pyxform.xls2json import parse_file_to_json
+from rest_framework import exceptions, status
 from rest_framework.decorators import detail_route, list_route
+from rest_framework.exceptions import ParseError
+from rest_framework.filters import DjangoFilterBackend
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.exceptions import ParseError
-from rest_framework.filters import DjangoFilterBackend
 
+from onadata.apps.api import tools as utils
 from onadata.apps.api import tasks
+from onadata.apps.api.permissions import XFormPermissions
+from onadata.apps.api.tools import get_baseviewset_class
+from onadata.apps.logger.models.xform import XForm, XFormUserObjectPermission
 from onadata.apps.logger.xform_instance_parser import XLSFormError
-from onadata.apps.main.views import get_enketo_preview_url
 from onadata.apps.viewer.models.export import Export
-from onadata.libs import filters, authentication
-from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
-    AnonymousUserPublicFormsMixin)
+from onadata.libs import authentication, filters
+from onadata.libs.mixins.anonymous_user_public_forms_mixin import \
+    AnonymousUserPublicFormsMixin
 from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
-from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
+from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.renderers import renderers
-from onadata.libs.serializers.xform_serializer import (
-    XFormBaseSerializer, XFormSerializer, XFormCreateSerializer)
 from onadata.libs.serializers.clone_xform_serializer import \
     CloneXFormSerializer
-from onadata.libs.serializers.share_xform_serializer import (
-    ShareXFormSerializer)
-from onadata.apps.api import tools as utils
-from onadata.apps.api.permissions import XFormPermissions
-from onadata.apps.logger.models.xform import XForm
-from onadata.apps.logger.models.xform import XFormUserObjectPermission
-from onadata.libs.utils.viewer_tools import (
-    enketo_url,
-    EnketoError,
-    generate_enketo_form_defaults)
+from onadata.libs.serializers.share_xform_serializer import \
+    ShareXFormSerializer
+from onadata.libs.serializers.xform_serializer import (XFormBaseSerializer,
+                                                       XFormCreateSerializer,
+                                                       XFormSerializer)
+from onadata.libs.utils.api_export_tools import (custom_response_handler,
+                                                 get_async_response,
+                                                 process_async_export,
+                                                 response_for_format)
+from onadata.libs.utils.csv_import import (get_async_csv_submission_status,
+                                           submit_csv, submit_csv_async)
+from onadata.libs.utils.export_tools import parse_request_export_options
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.string import str2bool
-
-from onadata.libs.utils.csv_import import get_async_csv_submission_status
-from onadata.libs.utils.csv_import import submit_csv
-from onadata.libs.utils.csv_import import submit_csv_async
-from onadata.libs.utils.viewer_tools import get_form_url
-from onadata.libs.utils.api_export_tools import custom_response_handler
-from onadata.libs.utils.api_export_tools import process_async_export
-from onadata.libs.utils.api_export_tools import get_async_response
-from onadata.libs.utils.api_export_tools import response_for_format
-from onadata.libs.utils.export_tools import parse_request_export_options
-from onadata.apps.api.tools import get_baseviewset_class
-
+from onadata.libs.utils.viewer_tools import (EnketoError, enketo_url,
+                                             generate_enketo_form_defaults,
+                                             get_enketo_preview_url,
+                                             get_form_url)
 
 BaseViewset = get_baseviewset_class()
 
@@ -216,8 +208,8 @@ def parse_webform_return_url(return_url, request):
 
 
 class XFormViewSet(AnonymousUserPublicFormsMixin,
-                   AuthenticateHeaderMixin,
                    CacheControlMixin,
+                   AuthenticateHeaderMixin,
                    ETagsMixin,
                    LabelsMixin,
                    BaseViewset,
@@ -333,6 +325,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         return Response(data=resp, status=resp_code, headers=headers)
 
     @detail_route()
+    @never_cache
     def form(self, request, format='json', **kwargs):
         form = self.get_object()
         if format not in ['json', 'xml', 'xls']:
@@ -461,7 +454,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         token = request.GET.get('token')
         meta = request.GET.get('meta')
 
-        if export_type is None or export_type in ['json']:
+        if export_type is None or export_type in ['json', 'debug']:
             # perform default viewset retrieve, no data export
             return super(XFormViewSet, self).retrieve(request, *args, **kwargs)
 

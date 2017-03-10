@@ -1,13 +1,14 @@
 from optparse import make_option
 
 from django.core.management.base import BaseCommand, CommandError
-from django.utils.translation import ugettext_lazy
 from django.http import HttpRequest
+from django.utils.translation import ugettext_lazy
 
-from onadata.libs.utils.viewer_tools import get_form_url, enketo_url
-from onadata.apps.main.views import get_enketo_preview_url
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.model_tools import queryset_iterator
+from onadata.libs.utils.viewer_tools import (enketo_url,
+                                             get_enketo_preview_url,
+                                             get_form_url)
 
 
 class Command(BaseCommand):

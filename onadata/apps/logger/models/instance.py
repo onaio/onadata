@@ -390,7 +390,7 @@ class Instance(models.Model, InstanceBaseClass):
     json = JSONField(default=dict, null=False)
     xml = models.TextField()
     user = models.ForeignKey(User, related_name='instances', null=True)
-    xform = models.ForeignKey(XForm, null=True, related_name='instances')
+    xform = models.ForeignKey(XForm, null=False, related_name='instances')
     survey_type = models.ForeignKey(SurveyType)
 
     # shows when we first received this instance

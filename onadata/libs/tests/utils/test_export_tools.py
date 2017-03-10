@@ -1,7 +1,9 @@
 import os
 from datetime import date, datetime
+from django.conf import settings
 from django.core.files.storage import default_storage
 from django.contrib.sites.models import Site
+from pyxform.builder import create_survey_from_xls
 from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
 from django.core.files.temp import NamedTemporaryFile
 
@@ -22,6 +24,11 @@ from onadata.apps.logger.models import Attachment
 from onadata.apps.api import tests as api_tests
 
 
+def _logger_fixture_path(*args):
+    return os.path.join(settings.PROJECT_ROOT, 'libs', 'tests', 'fixtures',
+                        *args)
+
+
 class TestExportTools(PyxformTestCase, TestBase):
 
     def _create_old_export(self, xform, export_type, options):
@@ -29,25 +36,18 @@ class TestExportTools(PyxformTestCase, TestBase):
         self.export = Export.objects.filter(
             xform=xform, export_type=export_type)
 
-    def test_invalid_date_format_is_caught(self):
-        row = {"date": date(0201, 9, 9)}
-        with self.assertRaises(Exception) as error:
-            encode_if_str(row, "date", True)
-
-        self.assertEqual(error.exception.message,
-                         u'0129-09-09 has an invalid date format')
+    def test_encode_if_str(self):
+        row = {"date": date(1899, 9, 9)}
+        date_str = encode_if_str(row, "date", True)
+        self.assertEqual(date_str, '1899-09-09')
 
         row = {"date": date(2001, 9, 9)}
         date_str = encode_if_str(row, "date", True)
         self.assertEqual(date_str, '2001-09-09')
 
-    def test_invalid_datetime_format_is_caught(self):
-        row = {"datetime": datetime(0201, 9, 9)}
-        with self.assertRaises(Exception) as error:
-            encode_if_str(row, "datetime", True)
-
-        self.assertEqual(error.exception.message,
-                         u'0129-09-09 00:00:00 has an invalid datetime format')
+        row = {"datetime": datetime(1899, 9, 9)}
+        date_str = encode_if_str(row, "datetime", True)
+        self.assertEqual(date_str, '1899-09-09T00:00:00')
 
         row = {"datetime": datetime(2001, 9, 9)}
         date_str = encode_if_str(row, "datetime", True)
@@ -367,6 +367,21 @@ class TestExportTools(PyxformTestCase, TestBase):
         md = md.format(more_than_64_char, more_than_64_char, more_than_64_char,
                        more_than_64_char)
         survey = self.md_to_pyxform_survey(md)
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.set_survey(survey)
+        export_builder.INCLUDE_LABELS = True
+        export_builder.set_survey(survey)
+
+        for sec in export_builder.sections:
+            sav_options = export_builder._get_sav_options(sec['elements'])
+            sav_file = NamedTemporaryFile(suffix=".sav")
+            # No exception is raised
+            SavWriter(sav_file.name, **sav_options)
+
+    def test_sav_special_char_columns(self):
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'grains/grains.xls'))
         export_builder = ExportBuilder()
         export_builder.TRUNCATE_GROUP_TITLE = True
         export_builder.set_survey(survey)

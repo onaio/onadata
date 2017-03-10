@@ -432,6 +432,27 @@ class TestChartTools(TestBase):
 
         self.assertEqual(data, expected_data)
 
+    def test_build_chart_data_for_group_by_submitted_by(self):
+        field = find_field_by_name(self.xform, 'gender')
+        group_by_field = '_submitted_by'
+        data = build_chart_data_for_field(self.xform, field,
+                                          group_by=group_by_field)
+        self.assertEqual(data['field_name'], 'gender')
+        self.assertEqual(data['field_type'], 'select one')
+        self.assertEqual(data['data_type'], 'categorized')
+        self.assertEqual(data['grouped_by'], u'_submitted_by')
+        self.assertEqual(data['data'],
+                         [{
+                             '_submitted_by': u'bob',
+                             'count': 1L,
+                             u'gender': [u'Male']
+                         }, {
+                             '_submitted_by': u'bob',
+                             'count': 1L,
+                             u'gender': [u'Female']
+                         }
+                         ])
+
 
 class TestChartUtilFunctions(unittest.TestCase):
 

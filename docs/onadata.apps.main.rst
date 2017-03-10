@@ -39,14 +39,6 @@ onadata.apps.main.forms module
     :undoc-members:
     :show-inheritance:
 
-onadata.apps.main.google_export module
---------------------------------------
-
-.. automodule:: onadata.apps.main.google_export
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 onadata.apps.main.registration_urls module
 ------------------------------------------
 

@@ -34,6 +34,8 @@ from onadata.settings.common import (
     SHARE_PROJECT_SUBJECT)
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.libs.mixins.profiler_mixin import ProfilerMixin
+from onadata.apps.main.models.meta_data import MetaData
+from onadata.libs.utils.export_tools import str_to_bool
 
 
 BaseViewset = get_baseviewset_class()
@@ -91,6 +93,13 @@ class ProjectViewSet(AuthenticateHeaderMixin,
 
                 serializer = serializer_cls(survey,
                                             context={'request': request})
+
+                published_by_formbuilder = request.data.get(
+                    'published_by_formbuilder'
+                )
+                if str_to_bool(published_by_formbuilder):
+                    MetaData.published_by_formbuilder(survey, 'True')
+
                 return Response(serializer.data,
                                 status=status.HTTP_201_CREATED)
 

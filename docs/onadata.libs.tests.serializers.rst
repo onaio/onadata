@@ -20,14 +20,6 @@ onadata.libs.tests.serializers.test_dataview_serializer module
     :undoc-members:
     :show-inheritance:
 
-onadata.libs.tests.serializers.test_google_sheet_serializer module
-------------------------------------------------------------------
-
-.. automodule:: onadata.libs.tests.serializers.test_google_sheet_serializer
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 onadata.libs.tests.serializers.test_organization_serializer module
 ------------------------------------------------------------------
 

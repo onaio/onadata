@@ -34,7 +34,7 @@ class ShareProject(object):
     def save(self, **kwargs):
 
         if self.remove:
-            self.remove_user()
+            self.__remove_user()
         else:
             role = ROLES.get(self.role)
 
@@ -66,7 +66,7 @@ class ShareProject(object):
         safe_delete('{}{}'.format(PROJ_PERM_CACHE, self.project.pk))
 
     @transaction.atomic()
-    def remove_user(self):
+    def __remove_user(self):
         role = ROLES.get(self.role)
 
         if role and self.user and self.project:

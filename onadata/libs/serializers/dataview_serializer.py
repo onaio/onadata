@@ -51,6 +51,27 @@ def match_columns(data, instance=None):
     return data
 
 
+class DataViewMinimalSerializer(serializers.HyperlinkedModelSerializer):
+    dataviewid = serializers.ReadOnlyField(source='id')
+    name = serializers.CharField(max_length=255)
+    url = serializers.HyperlinkedIdentityField(view_name='dataviews-detail',
+                                               lookup_field='pk')
+    xform = serializers.HyperlinkedRelatedField(
+        view_name='xform-detail', lookup_field='pk',
+        queryset=XForm.objects.all()
+    )
+    project = serializers.HyperlinkedRelatedField(
+        view_name='project-detail', lookup_field='pk',
+        queryset=Project.objects.all()
+    )
+    columns = JsonField()
+    query = JsonField(required=False)
+    matches_parent = serializers.BooleanField(default=True)
+
+    class Meta:
+        model = DataView
+
+
 class DataViewSerializer(serializers.HyperlinkedModelSerializer):
     dataviewid = serializers.ReadOnlyField(source='id')
     name = serializers.CharField(max_length=255)

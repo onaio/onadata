@@ -12,8 +12,10 @@ from rest_framework.renderers import BaseRenderer
 from rest_framework.renderers import JSONRenderer
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.renderers import StaticHTMLRenderer
-from rest_framework_xml.renderers import XMLRenderer
 from rest_framework.utils.encoders import JSONEncoder
+
+from rest_framework_xml.renderers import XMLRenderer
+
 
 from onadata.libs.utils.osm import get_combined_osm
 
@@ -50,11 +52,17 @@ class CSVZIPRenderer(BaseRenderer):
     format = 'csvzip'
     charset = None
 
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        return json.dumps(data) if isinstance(data, dict) else data
+
 
 class SAVZIPRenderer(BaseRenderer):
     media_type = 'application/octet-stream'
     format = 'savzip'
     charset = None
+
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        return json.dumps(data) if isinstance(data, dict) else data
 
 
 class SurveyRenderer(BaseRenderer):

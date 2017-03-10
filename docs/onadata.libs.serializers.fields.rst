@@ -36,6 +36,14 @@ onadata.libs.serializers.fields.json_field module
     :undoc-members:
     :show-inheritance:
 
+onadata.libs.serializers.fields.organization_field module
+---------------------------------------------------------
+
+.. automodule:: onadata.libs.serializers.fields.organization_field
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.libs.serializers.fields.project_field module
 ----------------------------------------------------
 

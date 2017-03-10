@@ -156,6 +156,22 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEquals(response.data['last_submission_time'],
                           '2015-03-09T13:34:05')
 
+        # Public
+        self.project.shared = True
+        self.project.save()
+
+        anon_request = self.factory.get('/')
+        anon_response = self.view(anon_request, pk=self.data_view.pk)
+        self.assertEquals(anon_response.status_code, 200)
+
+        # Private
+        self.project.shared = False
+        self.project.save()
+
+        anon_request = self.factory.get('/')
+        anon_response = self.view(anon_request, pk=self.data_view.pk)
+        self.assertEquals(anon_response.status_code, 404)
+
     def test_update_dataview(self):
         self._create_dataview()
 
@@ -251,6 +267,10 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         self.assertEquals(response.status_code, 200)
         self.assertEquals(len(response.data), 2)
+
+        anon_request = request = self.factory.get('/')
+        anon_response = view(anon_request)
+        self.assertEquals(anon_response.status_code, 401)
 
     def test_get_dataview_no_perms(self):
         self._create_dataview()
@@ -492,6 +512,24 @@ class TestDataViewViewSet(TestAbstractViewSet):
         with open(test_file_path, 'r') as test_file:
             self.assertEqual(content, test_file.read())
 
+    def test_csvzip_export_dataview(self):
+        self._create_dataview()
+        count = Export.objects.all().count()
+
+        view = DataViewViewSet.as_view({
+            'get': 'data',
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.data_view.pk, format='csvzip')
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEquals(count + 1, Export.objects.all().count())
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk='[invalid pk]', format='csvzip')
+        self.assertEqual(response.status_code, 404)
+
     def test_zip_export_dataview(self):
         media_file = "test-image.png"
         attachment_file_path = os.path.join(
@@ -664,6 +702,26 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(response.data['field_type'], 'datetime')
         self.assertEqual(response.data['field_name'], '_submission_time')
         self.assertEqual(response.data['data_type'], 'time_based')
+
+        data = {'field_name': '_submitted_by'}
+        request = self.factory.get('/charts', data, **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 200)
+
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.data['field_type'], 'text')
+        self.assertEqual(response.data['field_name'], '_submitted_by')
+        self.assertEqual(response.data['data_type'], 'categorized')
+
+        data = {'field_name': '_duration'}
+        request = self.factory.get('/charts', data, **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 200)
+
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.data['field_type'], 'integer')
+        self.assertEqual(response.data['field_name'], '_duration')
+        self.assertEqual(response.data['data_type'], 'numeric')
 
     def test_get_charts_data_for_grouped_field(self):
         data = {

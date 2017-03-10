@@ -23,6 +23,14 @@ onadata.apps.viewer.admin module
     :undoc-members:
     :show-inheritance:
 
+onadata.apps.viewer.parsed_instance_tools module
+------------------------------------------------
+
+.. automodule:: onadata.apps.viewer.parsed_instance_tools
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.apps.viewer.tasks module
 --------------------------------
 
