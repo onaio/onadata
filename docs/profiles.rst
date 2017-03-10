@@ -4,7 +4,7 @@ Profiles
 Register a new User
 -------------------
 
-``username, email, firstname`` Are required fields. \ ``username`` may
+``username, email, first_name`` Are required fields. \ ``username`` may
 contain alphanumeric, \_, @, +, . and - characters
 
 .. raw:: html
@@ -227,7 +227,7 @@ Example
 ::
 
     curl -X POST -d current_password=password1 -d new_password=password2 https://api.ona.io/api/v1/profile/demouser/change_password
-    
+
 Response
 ^^^^^^^^
 

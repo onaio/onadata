@@ -36,6 +36,14 @@ onadata.settings.drone_test module
     :undoc-members:
     :show-inheritance:
 
+onadata.settings.local_settings module
+--------------------------------------
+
+.. automodule:: onadata.settings.local_settings
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.settings.production_example module
 ------------------------------------------
 

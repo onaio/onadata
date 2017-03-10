@@ -55,7 +55,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Ona API'
-copyright = u'2016, Ona'
+copyright = u'2017, Ona'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -251,8 +251,8 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     ('index', 'OnaAPI', u'Ona API Documentation',
-        u'Ona', 'OnaAPI', 'One line description of project.',
-        'Miscellaneous'),
+     u'Ona', 'OnaAPI', 'Ona API Documentation.',
+     'Miscellaneous'),
 ]
 
 # Documents to append as an appendix to all manuals.

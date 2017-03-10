@@ -1,0 +1,4 @@
+exec 1>&2
+
+# flake8
+git diff --staged --name-only | grep -E '\.py$' | xargs flake8 --exclude=migrations -

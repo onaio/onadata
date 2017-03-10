@@ -28,6 +28,14 @@ onadata.apps.api.management.commands.create_default_project module
     :undoc-members:
     :show-inheritance:
 
+onadata.apps.api.management.commands.fix_readonly_role_perms module
+-------------------------------------------------------------------
+
+.. automodule:: onadata.apps.api.management.commands.fix_readonly_role_perms
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.apps.api.management.commands.migrate_group_permissions module
 ---------------------------------------------------------------------
 

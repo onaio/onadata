@@ -70,6 +70,10 @@ List of Projects filter by owner/organization
 	<b>GET</b> /api/v1/projects?<code>owner</code>=<code>owner_username</code>
 	</pre>
 
+You can use this to get both members and collaborators of an organization.
+In the case of organizations, this gives you both members and collaborators under "users".
+Under "teams" key we list only the members of the organization.
+
 Example
 ^^^^^^^^
 ::
@@ -460,4 +464,3 @@ Get user profiles that have starred a project
 
 	<pre class="prettyprint">
 	<b>GET</b> /api/v1/projects/<code>{pk}</code>/star</pre>
-    

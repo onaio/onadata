@@ -12,7 +12,9 @@ from onadata.libs.permissions import is_organization
 from onadata.libs.permissions import get_role
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
-from onadata.libs.serializers.dataview_serializer import DataViewSerializer
+from onadata.libs.serializers.dataview_serializer import (
+    DataViewMinimalSerializer
+)
 from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.cache_tools import (
     PROJ_FORMS_CACHE, PROJ_NUM_DATASET_CACHE, PROJ_PERM_CACHE,
@@ -158,6 +160,7 @@ class ProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
                                                lookup_field='pk')
     formid = serializers.ReadOnlyField(source='id')
     name = serializers.ReadOnlyField(source='title')
+    published_by_formbuilder = serializers.SerializerMethodField()
 
     class Meta:
         model = XForm
@@ -168,11 +171,21 @@ class ProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
             'num_of_submissions',
             'downloadable',
             'encrypted',
+            'published_by_formbuilder',
             'last_submission_time',
             'date_created',
             'url',
             'last_updated_at'
         )
+
+    def get_published_by_formbuilder(self, obj):
+        md = obj.metadata_set.filter(
+            data_type='published_by_formbuilder'
+        ).first()
+        if md and hasattr(md, 'data_value') and md.data_value:
+            return True
+
+        return False
 
 
 class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
@@ -209,7 +222,11 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
         return get_starred(obj, self.context['request'])
 
     def get_users(self, obj):
-        return get_users(obj, self.context, False)
+        owner_query_param_in_request = \
+          'request' in self.context and "owner" in self.context['request'].GET
+        return get_users(obj,
+                         self.context,
+                         owner_query_param_in_request)
 
     @profile("get_project_forms.prof")
     @check_obj
@@ -362,7 +379,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         data_views_obj = obj.dataview_prefetch if \
             hasattr(obj, 'dataview_prefetch') else obj.dataview_set.all()
 
-        serializer = DataViewSerializer(
+        serializer = DataViewMinimalSerializer(
             data_views_obj,
             many=True,
             context=self.context)

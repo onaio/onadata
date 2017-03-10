@@ -12,6 +12,14 @@ onadata.apps.main.management.commands.create_enketo_express_urls module
     :undoc-members:
     :show-inheritance:
 
+onadata.apps.main.management.commands.create_metadata_for_kpi_deployed_forms module
+-----------------------------------------------------------------------------------
+
+.. automodule:: onadata.apps.main.management.commands.create_metadata_for_kpi_deployed_forms
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.apps.main.management.commands.export_user_emails module
 ---------------------------------------------------------------
 

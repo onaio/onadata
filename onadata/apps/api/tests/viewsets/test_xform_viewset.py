@@ -663,7 +663,6 @@ class TestXFormViewSet(TestAbstractViewSet):
             # test for unsupported format
             response = view(request, pk=formid, format='csvzip')
             self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.get('Cache-Control'), None)
 
             # test for supported formats
 
@@ -4222,3 +4221,28 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             # reused options, should generate new with new submission
             self.assertEquals(count + 3, Export.objects.all().count())
+
+    def test_upload_xml_form_file(self):
+        with HTTMock(enketo_mock):
+            path = os.path.join(os.path.dirname(__file__),
+                                '..', 'fixtures', 'forms', 'contributions')
+            form_path = os.path.join(path, 'contributions.xml')
+
+            xforms = XForm.objects.count()
+            view = XFormViewSet.as_view({
+                'post': 'create'
+            })
+
+            with open(form_path) as xml_file:
+                post_data = {'xml_file': xml_file}
+                request = self.factory.post('/', data=post_data, **self.extra)
+                response = view(request)
+                self.assertEqual(xforms + 1, XForm.objects.count())
+                self.assertEqual(response.status_code, 201)
+
+            instances_path = os.path.join(path, 'instances')
+            for uuid in os.listdir(instances_path):
+                s_path = os.path.join(instances_path, uuid, 'submission.xml')
+                self._make_submission(s_path)
+            xform = XForm.objects.last()
+            self.assertEqual(xform.instances.count(), 6)

@@ -1,42 +1,91 @@
-from datetime import datetime
-import json
 import hashlib
+import json
+import math
 import os
 import re
+import time
+from datetime import datetime
 from urlparse import urlparse
 
 from django.conf import settings
-from django.core.files.base import File
-from django.core.files.temp import NamedTemporaryFile
-from django.core.files.storage import get_storage_class
 from django.contrib.auth.models import User
+from django.core.files.base import File
+from django.core.files.storage import get_storage_class
+from django.core.files.temp import NamedTemporaryFile
+from django.db import OperationalError
+from django.db.models.query import QuerySet
 from django.shortcuts import render_to_response
-from savReaderWriter import SPSSIOError
 from json2xlsclient.client import Client
+from savReaderWriter import SPSSIOError
 
-from onadata.apps.logger.models import Attachment
-from onadata.apps.logger.models import Instance
-from onadata.apps.logger.models import OsmData
-from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models import Attachment, Instance, OsmData, XForm
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.apps.viewer.models.export import Export,\
-    get_export_options_query_kwargs
+from onadata.apps.viewer.models.export import (Export,
+                                               get_export_options_query_kwargs)
 from onadata.apps.viewer.models.parsed_instance import query_data
 from onadata.libs.exceptions import J2XException, NoRecordsFoundError
-from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
-    image_urls
-from onadata.libs.utils.common_tags import (
-    GROUPNAME_REMOVED_FLAG, DATAVIEW_EXPORT)
-from onadata.libs.utils.export_builder import ExportBuilder
-from onadata.libs.utils.osm import get_combined_osm
-from onadata.libs.utils.model_tools import (
-    queryset_iterator, get_columns_with_hxl)
+from onadata.libs.utils.common_tags import (DATAVIEW_EXPORT,
+                                            GROUPNAME_REMOVED_FLAG)
 from onadata.libs.utils.common_tools import str_to_bool
-
+from onadata.libs.utils.export_builder import ExportBuilder
+from onadata.libs.utils.model_tools import (get_columns_with_hxl,
+                                            queryset_iterator)
+from onadata.libs.utils.osm import get_combined_osm
+from onadata.libs.utils.viewer_tools import (create_attachments_zipfile,
+                                             image_urls)
 
 DEFAULT_GROUP_DELIMITER = '/'
 EXPORT_QUERY_KEY = 'query'
+MAX_RETRIES = 3
+
+
+def export_retry(tries, delay=3, backoff=2):
+    '''
+    Adapted from code found here:
+        http://wiki.python.org/moin/PythonDecoratorLibrary#Retry
+
+    Retries a function or method until it returns True.
+
+    *delay* sets the initial delay in seconds, and *backoff* sets the
+    factor by which the delay should lengthen after each failure.
+    *backoff* must be greater than 1, or else it isn't really a backoff.
+    *tries* must be at least 0, and *delay* greater than 0.
+    '''
+
+    if backoff <= 1:  # pragma: no cover
+        raise ValueError("backoff must be greater than 1")
+
+    tries = math.floor(tries)
+    if tries < 0:  # pragma: no cover
+        raise ValueError("tries must be 0 or greater")
+
+    if delay <= 0:  # pragma: no cover
+        raise ValueError("delay must be greater than 0")
+
+    def decorator_retry(func):
+        def function_retry(self, *args, **kwargs):
+            mtries, mdelay = tries, delay
+            while mtries > 0:
+                try:
+                    result = func(self, *args, **kwargs)
+                except OperationalError:
+                    mtries -= 1
+                    time.sleep(mdelay)
+                    mdelay *= backoff
+                else:
+                    return result
+            # Last ditch effort run against master database
+            if len(getattr(settings, 'SLAVE_DATABASES', [])):
+                from multidb.pinning import use_master
+                with use_master:
+                    return func(self, *args, **kwargs)
+
+            # last attempt, exception raised from function is propagated
+            return func(self, *args, **kwargs)
+
+        return function_retry
+    return decorator_retry
 
 
 def dict_to_flat_export(d, parent_index=0):
@@ -70,7 +119,9 @@ def get_or_create_export(export_id, xform, export_type, options):
     return create_export_object(xform, export_type, options)
 
 
-def generate_export(export_type, xform, export_id=None, options=None):
+@export_retry(MAX_RETRIES)
+def generate_export(export_type, xform, export_id=None, options=None,
+                    retries=0):
     """
     Create appropriate export object given the export type.
 
@@ -113,6 +164,9 @@ def generate_export(export_type, xform, export_id=None, options=None):
         records = dataview.query_data(dataview, all_data=True)
     else:
         records = query_data(xform, query=filter_query, start=start, end=end)
+
+    if isinstance(records, QuerySet):
+        records = records.iterator()
 
     export_builder = ExportBuilder()
 
