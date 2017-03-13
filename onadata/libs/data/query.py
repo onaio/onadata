@@ -101,12 +101,25 @@ def _postgres_aggregate_group_by(field, name, xform, group_by, data_view=None):
     if data_view:
         additional_filters = _additional_data_view_filters(data_view)
 
-    query = "SELECT %(group_by)s AS \"%(group_name)s\","\
+    group_by_select = ""
+    group_by_group_by = ""
+    if isinstance(group_by, list):
+        group_by_group_by = []
+        for i, v in enumerate(group_by):
+            group_by_select += "%(group_by" + str(i) + \
+                    ")s AS \"%(group_name" + str(i) + ")s\", "
+            group_by_group_by.append("%(group_by" + str(i) + ")s")
+        group_by_group_by = ",".join(group_by_group_by)
+    else:
+        group_by_select = "%(group_by)s AS \"%(group_name)s\","
+        group_by_group_by = "%(group_by)s"
+
+    query = "SELECT " + group_by_select + \
             "SUM((%(json)s)::numeric) AS sum, " \
             "AVG((%(json)s)::numeric) AS mean  " \
             "FROM %(table)s WHERE %(restrict_field)s=%(restrict_value)s " \
             "AND deleted_at IS NULL " + additional_filters + \
-            " GROUP BY %(group_by)s"
+            " GROUP BY " + group_by_group_by
 
     query = query % string_args
 
@@ -122,14 +135,22 @@ def _postgres_select_key(field, name, xform):
 
 
 def _query_args(field, name, xform, group_by=None):
-    return {
+    qargs = {
         'table': 'logger_instance',
         'json': _json_query(field),
         'name': name,
-        'group_name': group_by,
-        'group_by': _json_query(group_by),
         'restrict_field': 'xform_id',
         'restrict_value': xform.pk}
+
+    if isinstance(group_by, list):
+        for i, v in enumerate(group_by):
+            qargs['group_name%d' % i] = v
+            qargs['group_by%d' % i] = _json_query(v)
+    else:
+        qargs['group_name'] = group_by
+        qargs['group_by'] = _json_query(group_by)
+
+    return qargs
 
 
 def _select_key(field, name, xform):
