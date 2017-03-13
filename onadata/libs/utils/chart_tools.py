@@ -240,7 +240,13 @@ def build_chart_data_for_field(xform,
     data_type = DATA_TYPE_MAP.get(field_type, 'categorized')
     field_name = field.name if not isinstance(field, basestring) else field
 
-    if group_by:
+    if group_by and isinstance(group_by, list):
+        group_by_name = [
+            g.get_abbreviated_xpath() if not isinstance(g, basestring) else g
+            for g in group_by]
+        result = get_form_submissions_aggregated_by_select_one(
+            xform, field_xpath, field_name, group_by_name, data_view)
+    elif group_by:
         group_by_name = group_by.get_abbreviated_xpath() \
             if not isinstance(group_by, basestring) else group_by
 
@@ -274,7 +280,7 @@ def build_chart_data_for_field(xform,
     result = _use_labels_from_field_name(
         field_name, field, data_type, result, choices=choices)
 
-    if group_by and not isinstance(group_by, six.string_types):
+    if group_by and not isinstance(group_by, six.string_types + (list, )):
         group_by_data_type = DATA_TYPE_MAP.get(group_by.type, 'categorized')
         grp_choices = get_field_choices(group_by, xform)
         result = _use_labels_from_group_by_name(
@@ -283,6 +289,19 @@ def build_chart_data_for_field(xform,
             group_by_data_type,
             result,
             choices=grp_choices)
+    elif group_by and isinstance(group_by, list):
+        for g in group_by:
+            if isinstance(g, six.string_types):
+                continue
+
+            group_by_data_type = DATA_TYPE_MAP.get(g.type, 'categorized')
+            grp_choices = get_field_choices(g, xform)
+            result = _use_labels_from_group_by_name(
+                g.get_abbreviated_xpath(),
+                g,
+                group_by_data_type,
+                result,
+                choices=grp_choices)
 
     if not group_by:
         result = sorted(result, key=lambda d: d['count'])
@@ -447,7 +466,11 @@ def get_chart_data_for_field(field_name,
         field = get_field_from_field_name(field_name, xform)
 
     if group_by:
-        group_by = get_field_from_field_xpath(group_by, xform)
+        if len(group_by.split(',')) > 1:
+            group_by = [get_field_from_field_xpath(g, xform)
+                        for g in group_by.split(',')]
+        else:
+            group_by = get_field_from_field_xpath(group_by, xform)
 
     if field_xpath:
         field = get_field_from_field_xpath(field_xpath, xform)
