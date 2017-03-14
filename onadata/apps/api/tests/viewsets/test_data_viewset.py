@@ -243,6 +243,10 @@ class TestDataViewSet(TestBase):
         profile.require_auth = False
         profile.save()
 
+        # Enable meta perms
+        data_value = "editor-minor|dataentry-minor"
+        MetaData.xform_meta_permission(self.xform, data_value=data_value)
+
         self._assign_user_role(user_alice, DataEntryOnlyRole)
 
         alices_extra = {
@@ -306,6 +310,10 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
+
+        # change meta perms
+        data_value = "editor|dataentry-minor"
+        MetaData.xform_meta_permission(self.xform, data_value=data_value)
 
         self._assign_user_role(user_alice, EditorRole)
 
@@ -377,6 +385,10 @@ class TestDataViewSet(TestBase):
         profile, created = UserProfile.objects.get_or_create(user=user_alice)
         profile.require_auth = False
         profile.save()
+
+        # Enable meta perms
+        data_value = "editor-minor|dataentry-minor"
+        MetaData.xform_meta_permission(self.xform, data_value=data_value)
 
         DataEntryOnlyRole.add(user_alice, self.xform)
         DataEntryOnlyRole.add(user_alice, self.project)

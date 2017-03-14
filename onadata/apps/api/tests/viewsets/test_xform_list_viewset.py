@@ -584,7 +584,8 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         download_url = response.data[0]['downloadUrl']
         self.assertEqual(manifest_media_url, download_url)
 
-        url = '/bob/xformsMedia/1/3.csv?group_delimiter=.'
+        url = '/bob/xformsMedia/{}/{}.csv?group_delimiter=.'\
+            .format(self.xform.pk, self.metadata.pk)
         username = 'bob'
         password = 'bob'
 
