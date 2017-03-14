@@ -1,6 +1,7 @@
 import os
 from mock import patch
 
+from django_digest.test import Client as DigestClient
 from django.conf import settings
 from django.test import TransactionTestCase
 from django_digest.test import DigestAuth
@@ -16,6 +17,7 @@ from onadata.libs.permissions import DataEntryRole
 from onadata.libs.permissions import ReadOnlyRole
 from onadata.libs.utils.export_tools import ExportBuilder
 from onadata.libs.utils.common_tags import GROUP_DELIMETER_TAG
+from onadata.apps.main.models import MetaData
 
 
 class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
@@ -579,7 +581,25 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         manifest_media_url = "%s?%s=%s" % (media.data['media_url'],
                                            GROUP_DELIMETER_TAG,
                                            ExportBuilder.GROUP_DELIMITER_DOT)
-        self.assertEqual(manifest_media_url, response.data[0]['downloadUrl'])
+        download_url = response.data[0]['downloadUrl']
+        self.assertEqual(manifest_media_url, download_url)
+
+        url = '/bob/xformsMedia/1/3.csv?group_delimiter=.'
+        username = 'bob'
+        password = 'bob'
+
+        client = DigestClient()
+        client.set_authorization(username, password, 'Digest')
+
+        req = client.get(url)
+        self.assertEqual(req.status_code, 200)
+
+        # enable meta perms
+        data_value = "editor-minor|dataentry"
+        MetaData.xform_meta_permission(self.xform, data_value=data_value)
+
+        req = client.get(url)
+        self.assertEqual(req.status_code, 401)
 
     def test_xform_3gp_media_type(self):
 

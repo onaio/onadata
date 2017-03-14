@@ -15,6 +15,7 @@ from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import XForm
 from onadata.libs.exceptions import NoRecordsPermission
+from onadata.libs.utils.common_tags import XFORM_META_PERMS
 
 # Userprofile Permissions
 CAN_ADD_USERPROFILE = 'add_userprofile'
@@ -365,8 +366,28 @@ def get_team_project_default_permissions(team, project):
     return get_role(perms, project) or ""
 
 
+def _check_meta_perms_enabled(xform):
+    """
+        Check for meta-perms settings in the xform metadata model.
+        :param xform:
+        :return: bool
+    """
+    return xform.metadata_set.filter(data_type=XFORM_META_PERMS).count() > 0
+
+
 def filter_queryset_xform_meta_perms(xform, user, instance_queryset):
-    if user.has_perm(CAN_VIEW_XFORM_ALL, xform) or xform.shared_data:
+    """
+        Check for the specific perms if meta-perms have been enabled
+        CAN_VIEW_XFORM_ALL ==> User should be able to view all the data
+        CAN_VIEW_XFORM_DATA ===> User should be able to view his/her submitted
+        data.  Otherwise should raise forbidden error.
+        :param xform:
+        :param user:
+        :param instance_queryset:
+        :return: data
+    """
+    if user.has_perm(CAN_VIEW_XFORM_ALL, xform) or xform.shared_data  \
+            or not _check_meta_perms_enabled(xform):
         return instance_queryset
     elif user.has_perm(CAN_VIEW_XFORM_DATA, xform):
         return instance_queryset.filter(user=user)
@@ -375,7 +396,18 @@ def filter_queryset_xform_meta_perms(xform, user, instance_queryset):
 
 
 def filter_queryset_xform_meta_perms_sql(xform, user, query):
-    if user.has_perm(CAN_VIEW_XFORM_ALL, xform) or xform.shared_data:
+    """
+        Check for the specific perms if meta-perms have been enabled
+        CAN_VIEW_XFORM_ALL ==> User should be able to view all the data
+        CAN_VIEW_XFORM_DATA ===> User should be able to view his/her submitted
+         data. Otherwise should raise forbidden error.
+        :param xform:
+        :param user:
+        :param instance_queryset:
+        :return: data
+        """
+    if user.has_perm(CAN_VIEW_XFORM_ALL, xform) or xform.shared_data\
+            or not _check_meta_perms_enabled(xform):
         ret_query = query
     elif user.has_perm(CAN_VIEW_XFORM_DATA, xform):
         try:
