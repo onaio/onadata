@@ -453,6 +453,31 @@ class TestChartTools(TestBase):
                          }
                          ])
 
+    def test_build_chart_data_for_numeric_field_group_by_two_fields(self):
+        field = find_field_by_name(self.xform, 'net_worth')
+        group_by_field = ['pizza_fan', 'date']
+        data = build_chart_data_for_field(self.xform, field,
+                                          group_by=group_by_field)
+
+        self.assertEqual(data['field_name'], 'net_worth')
+        self.assertEqual(data['field_xpath'], 'net_worth')
+        self.assertEqual(data['field_type'], 'decimal')
+        self.assertEqual(data['grouped_by'], group_by_field)
+        self.assertEqual(data['data_type'], 'numeric')
+        self.assertEqual(data['data'], [
+            {
+                'date': u'2014-01-09',
+                'mean': 100000.0,
+                'pizza_fan': u'no',
+                'sum': 100000.0
+            }, {
+                'date': u'2014-01-10',
+                'mean': 50000.0,
+                'pizza_fan': u'no',
+                'sum': 50000.0
+            }
+        ])
+
 
 class TestChartUtilFunctions(unittest.TestCase):
 
