@@ -5,6 +5,7 @@ import os
 import re
 import time
 from datetime import datetime
+from datetime import timedelta
 from urlparse import urlparse
 
 from django.conf import settings
@@ -271,6 +272,30 @@ def generate_export(export_type, xform, export_id=None, options=None,
 def create_export_object(xform, export_type, options):
     export_options = get_export_options(options)
     return Export(xform=xform, export_type=export_type, options=export_options)
+
+
+def check_pending_export(xform, export_type, options,
+                         minutes=getattr(settings, 'PENDING_EXPORT_TIME', 5)):
+    """
+        Check for pending export done within a specific period of time and
+        returns the export
+        :param xform:
+        :param export_type:
+        :param options:
+        :param minutes
+        :return:
+    """
+    created_time = datetime.now() - timedelta(minutes=minutes)
+    export_options_kwargs = get_export_options_query_kwargs(options)
+    export = Export.objects.filter(
+        xform=xform,
+        export_type=export_type,
+        internal_status=Export.PENDING,
+        created_on__gt=created_time,
+        **export_options_kwargs
+    ).last()
+
+    return export
 
 
 def should_create_new_export(xform,
