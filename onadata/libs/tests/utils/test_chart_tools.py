@@ -478,6 +478,14 @@ class TestChartTools(TestBase):
             }
         ])
 
+    def test_build_chart_data_for_non_numeric_field_group_by_two_fields(self):
+        field = find_field_by_name(self.xform, 'name')
+        group_by_field = ['pizza_fan', 'date']
+        self.assertRaises(ParseError, build_chart_data_for_field(
+            self.xform, field,
+            group_by=group_by_field
+        ))
+
 
 class TestChartUtilFunctions(unittest.TestCase):
 

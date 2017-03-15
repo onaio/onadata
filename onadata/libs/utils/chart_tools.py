@@ -241,9 +241,14 @@ def build_chart_data_for_field(xform,
     field_name = field.name if not isinstance(field, basestring) else field
 
     if group_by and isinstance(group_by, list):
+        if field.type not in common_tags.NUMERIC_LIST:
+            raise ParseError(u'field_name %s should be a numeric field' %
+                             field_name)
+
         group_by_name = [
             g.get_abbreviated_xpath() if not isinstance(g, basestring) else g
-            for g in group_by]
+            for g in group_by
+        ]
         result = get_form_submissions_aggregated_by_select_one(
             xform, field_xpath, field_name, group_by_name, data_view)
     elif group_by:
@@ -467,8 +472,10 @@ def get_chart_data_for_field(field_name,
 
     if group_by:
         if len(group_by.split(',')) > 1:
-            group_by = [get_field_from_field_xpath(g, xform)
-                        for g in group_by.split(',')]
+            group_by = [
+                get_field_from_field_xpath(g, xform)
+                for g in group_by.split(',')
+            ]
         else:
             group_by = get_field_from_field_xpath(group_by, xform)
 
