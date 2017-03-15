@@ -4129,6 +4129,9 @@ class TestXFormViewSet(TestAbstractViewSet):
             alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
             alice_profile = self._create_user_profile(alice_data)
 
+            data_value = "editor|dataentry-minor"
+            MetaData.xform_meta_permission(self.xform, data_value=data_value)
+
             DataEntryMinorRole.add(alice_profile.user, self.xform)
 
             for i in self.xform.instances.all()[:2]:
