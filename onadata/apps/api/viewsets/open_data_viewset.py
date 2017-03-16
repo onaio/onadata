@@ -28,7 +28,7 @@ IGNORED_FIELD_TYPES = ['select one', 'select multiple']
 
 
 def replace_special_characters_with_underscores(data):
-    return [re.sub(r"(/|-|\[|\])", r"_", a) for a in data]
+    return [re.sub(r"\W", r"_", a) for a in data]
 
 
 class OpenDataViewSet(
