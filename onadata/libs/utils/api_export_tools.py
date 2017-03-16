@@ -27,6 +27,7 @@ from oauth2client import client as google_client
 
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.utils.export_tools import should_create_new_export
+from onadata.libs.utils.export_tools import check_pending_export
 from onadata.libs.utils.common_tags import OSM
 from onadata.libs.utils import log
 from onadata.apps.main.models import TokenStorageModel
@@ -430,6 +431,11 @@ def _create_export_async(xform, export_type, query=None, force_xlsx=False,
         :return:
             job_uuid generated
         """
+        export = check_pending_export(xform, export_type, options)
+
+        if export:
+            return export.task_id
+
         export, async_result \
             = viewer_task.create_async_export(xform, export_type, query,
                                               force_xlsx, options=options)

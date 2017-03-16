@@ -1,8 +1,9 @@
 import os
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from django.conf import settings
 from django.core.files.storage import default_storage
 from django.contrib.sites.models import Site
+from django.test.utils import override_settings
 from pyxform.builder import create_survey_from_xls
 from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
 from django.core.files.temp import NamedTemporaryFile
@@ -12,6 +13,7 @@ from savReaderWriter import SavWriter
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.utils.export_builder import encode_if_str
+from onadata.libs.utils.export_tools import check_pending_export
 from onadata.libs.utils.export_tools import generate_export
 from onadata.libs.utils.export_tools import generate_osm_export
 from onadata.libs.utils.export_builder import get_value_or_attachment_uri
@@ -393,3 +395,28 @@ class TestExportTools(PyxformTestCase, TestBase):
             sav_file = NamedTemporaryFile(suffix=".sav")
             # No exception is raised
             SavWriter(sav_file.name, **sav_options)
+
+    @override_settings(PENDING_EXPORT_TIME=1)
+    def test_retrieving_pending_export(self):
+        self._create_user_and_login()
+        self._publish_transportation_form()
+
+        export = Export(xform=self.xform, export_type=Export.CSV_EXPORT,
+                        options={}, task_id="abcsde")
+
+        export.save()
+
+        test_export = check_pending_export(self.xform, Export.CSV_EXPORT, {})
+
+        self.assertEqual(export, test_export)
+
+        test_export = check_pending_export(self.xform, Export.XLS_EXPORT, {})
+
+        self.assertIsNone(test_export)
+
+        export.created_on = export.created_on - timedelta(minutes=6)
+        export.save()
+
+        test_export = check_pending_export(self.xform, Export.CSV_EXPORT, {})
+
+        self.assertIsNone(test_export)
