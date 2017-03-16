@@ -481,6 +481,7 @@ def get_async_response(job_uuid, request, xform, count=0):
         else:
             resp = async_status(celery_state_to_status(job.state))
 
+            # append task 
             if job.result:
                 resp.update(job.result) if isinstance(job.result, dict) else \
                     resp.update({'progress': str(job.result)})

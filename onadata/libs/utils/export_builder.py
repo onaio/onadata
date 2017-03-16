@@ -159,6 +159,12 @@ def dict_to_joined_export(data, index, indices, name, survey, row,
 
 
 def track_task_progress(additions, total=None):
+    """
+    Updates the current export task with number of submission processed
+    :param additions:
+    :param total:
+    :return:
+    """
     try:
         meta = {'progress': additions}
         if total:
