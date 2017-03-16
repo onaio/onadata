@@ -110,6 +110,28 @@ class TestOpenDataViewSet(TestBase):
         # cast generator response to list so that we can get the response count
         self.assertEqual(len(list(response.data)), 4)
 
+    def test_get_data_with_pagination(self):
+        self._make_submissions()
+        self.view = OpenDataViewSet.as_view({
+            'get': 'data'
+        })
+        _open_data = self.get_open_data_object()
+        uuid = _open_data.uuid
+
+        # no pagination
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request, uuid=uuid)
+        self.assertEqual(response.status_code, 200)
+        # cast generator response to list so that we can get the response count
+        self.assertEqual(len(list(response.data)), 4)
+
+        # with pagination
+        request = self.factory.get('/', {'page_size': 3}, **self.extra)
+        response = self.view(request, uuid=uuid)
+        self.assertEqual(response.status_code, 200)
+        # cast generator response to list so that we can get the response count
+        self.assertEqual(len(list(response.data)), 3)
+
     def test_get_data_using_uuid_and_greater_than_query_param(self):
         self._make_submissions()
         self.view = OpenDataViewSet.as_view({
