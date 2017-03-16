@@ -132,6 +132,12 @@ class TestOpenDataViewSet(TestBase):
         # cast generator response to list so that we can get the response count
         self.assertEqual(len(list(response.data)), 3)
 
+        # with count
+        request = self.factory.get('/', {'count': 1}, **self.extra)
+        response = self.view(request, uuid=uuid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {'count': 4})
+
     def test_get_data_using_uuid_and_greater_than_query_param(self):
         self._make_submissions()
         self.view = OpenDataViewSet.as_view({
