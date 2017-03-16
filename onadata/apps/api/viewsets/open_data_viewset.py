@@ -139,8 +139,7 @@ class OpenDataViewSet(
         self.object = self.get_object()
         if isinstance(self.object.content_object, XForm):
             xform = self.object.content_object
-            headers = xform.get_headers()
-            headers.append('_id')
+            headers = xform.get_headers() + ['_id']
             self.xform_headers = replace_special_characters_with_underscores(
                 headers
             )
