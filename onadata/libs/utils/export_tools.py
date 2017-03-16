@@ -163,8 +163,10 @@ def generate_export(export_type, xform, export_id=None, options=None,
     if options.get("dataview_pk"):
         dataview = DataView.objects.get(pk=options.get("dataview_pk"))
         records = dataview.query_data(dataview, all_data=True)
+        total_records = dataview.query_data(dataview, count=True)
     else:
         records = query_data(xform, query=filter_query, start=start, end=end)
+        total_records = xform.num_of_submissions
 
     if isinstance(records, QuerySet):
         records = records.iterator()
@@ -208,7 +210,8 @@ def generate_export(export_type, xform, export_id=None, options=None,
         func.__call__(
             temp_file.name, records, username, id_string, filter_query,
             start=start, end=end, dataview=dataview, xform=xform,
-            options=options, columns_with_hxl=columns_with_hxl
+            options=options, columns_with_hxl=columns_with_hxl,
+            total_records=total_records
         )
     except NoRecordsFoundError:
         pass

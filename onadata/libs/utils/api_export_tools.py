@@ -480,6 +480,10 @@ def get_async_response(job_uuid, request, xform, count=0):
                 request, xform, export)
         else:
             resp = async_status(celery_state_to_status(job.state))
+
+            if job.result:
+                resp.update(job.result) if isinstance(job.result, dict) else \
+                    resp.update({'progress': str(job.result)})
     except ConnectionError, e:
         if count > 0:
             raise ServiceUnavailable(unicode(e))
