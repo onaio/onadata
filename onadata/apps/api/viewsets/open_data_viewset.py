@@ -102,6 +102,7 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, TotalHeaderMixin,
         # get greater than value and cast it to an int
         gt = request.query_params.get('gt_id')
         gt = gt and parse_int(gt)
+        count = request.query_params.get('count')
 
         data = []
         if isinstance(self.object.content_object, XForm):
@@ -114,6 +115,10 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, TotalHeaderMixin,
                 qs_kwargs.update({'id__gt': gt})
 
             instances = Instance.objects.filter(**qs_kwargs).order_by('pk')
+
+            if count:
+                return Response({'count': instances.count()})
+
             instances = self.paginate_queryset(instances)
             csv_df_builder = CSVDataFrameBuilder(
                 xform.user.username, xform.id_string, include_images=False)
