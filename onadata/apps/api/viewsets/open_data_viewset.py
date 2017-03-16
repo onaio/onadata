@@ -16,6 +16,7 @@ from onadata.apps.logger.models.open_data import OpenData
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.total_header_mixin import TotalHeaderMixin
+from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.data_serializer import DataInstanceSerializer
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.libs.serializers.open_data_serializer import OpenDataSerializer
@@ -39,6 +40,7 @@ class OpenDataViewSet(
     serializer_class = OpenDataSerializer
     flattened_dict = {}
     MAX_INSTANCES_PER_REQUEST = 1000
+    pagination_class = StandardPageNumberPagination
 
     def get_tableau_type(self, xform_type):
         '''
@@ -109,13 +111,12 @@ class OpenDataViewSet(
                 return Response(status=status.HTTP_404_NOT_FOUND)
 
             xform = self.object.content_object
-            qs_kwargs = {'xform': xform}
+            qs_kwargs = {'xform_id': xform.pk}
             if gt:
                 qs_kwargs.update({'id__gt': gt})
 
-            instances = Instance.objects.filter(
-                **qs_kwargs
-            )[:self.MAX_INSTANCES_PER_REQUEST]
+            instances = Instance.objects.filter(**qs_kwargs).order_by('pk')
+            instances = self.paginate_queryset(instances)
             csv_df_builder = CSVDataFrameBuilder(
                 xform.user.username, xform.id_string, include_images=False
             )
