@@ -31,10 +31,9 @@ def replace_special_characters_with_underscores(data):
     return [re.sub(r"\W", r"_", a) for a in data]
 
 
-class OpenDataViewSet(
-        ETagsMixin, CacheControlMixin, TotalHeaderMixin, BaseViewset,
-        ModelViewSet):
-    permission_classes = (OpenDataViewSetPermissions,)
+class OpenDataViewSet(ETagsMixin, CacheControlMixin, TotalHeaderMixin,
+                      BaseViewset, ModelViewSet):
+    permission_classes = (OpenDataViewSetPermissions, )
     queryset = OpenData.objects.filter()
     lookup_field = 'uuid'
     serializer_class = OpenDataSerializer
@@ -62,8 +61,7 @@ class OpenDataViewSet(
         '''
         for a in json_of_columns_fields:
             self.flattened_dict[a.get('name')] = self.get_tableau_type(
-                a.get('type')
-            )
+                a.get('type'))
             # using IGNORED_FIELD_TYPES so that choice values are not included.
             if a.get('children') and a.get('type') not in IGNORED_FIELD_TYPES:
                 self.flatten_xform_columns(a.get('children'))
@@ -118,15 +116,13 @@ class OpenDataViewSet(
             instances = Instance.objects.filter(**qs_kwargs).order_by('pk')
             instances = self.paginate_queryset(instances)
             csv_df_builder = CSVDataFrameBuilder(
-                xform.user.username, xform.id_string, include_images=False
-            )
+                xform.user.username, xform.id_string, include_images=False)
             data = csv_df_builder._format_for_dataframe(
                 DataInstanceSerializer(instances, many=True).data,
                 key_replacement_obj={
                     'pattern': r"(/|-|\[|\])",
                     "replacer": r"_"
-                }
-            )
+                })
 
         return Response(data)
 
@@ -141,21 +137,18 @@ class OpenDataViewSet(
             xform = self.object.content_object
             headers = xform.get_headers() + ['_id']
             self.xform_headers = replace_special_characters_with_underscores(
-                headers
-            )
+                headers)
 
             xform_json = json.loads(xform.json)
             self.flatten_xform_columns(
-                json_of_columns_fields=xform_json.get('children')
-            )
+                json_of_columns_fields=xform_json.get('children'))
 
             tableau_column_headers = self.get_tableau_column_headers()
 
             data = {
                 'column_headers': tableau_column_headers,
-                'connection_name': "%s_%s" % (
-                    xform.project_id, xform.id_string
-                ),
+                'connection_name': "%s_%s" % (xform.project_id,
+                                              xform.id_string),
                 'table_alias': xform.title
             }
 
@@ -171,24 +164,21 @@ class OpenDataViewSet(
         if not data_type or not object_id:
             return Response(
                 data="Query params data_type and object_id are required",
-                status=status.HTTP_400_BAD_REQUEST
-            )
+                status=status.HTTP_400_BAD_REQUEST)
 
         if data_type == 'xform':
             xform = get_object_or_404(XForm, id=object_id)
             if request.user.has_perm("change_xform", xform):
                 ct = ContentType.objects.get_for_model(xform)
                 _open_data = get_object_or_404(
-                    OpenData, object_id=object_id, content_type=ct
-                )
+                    OpenData, object_id=object_id, content_type=ct)
                 if _open_data:
                     return Response(
                         data={'uuid': _open_data.uuid},
-                        status=status.HTTP_200_OK
-                    )
+                        status=status.HTTP_200_OK)
             else:
-                raise PermissionDenied(_(
-                    (u"You do not haveYou do not have permission "
-                     "to perform this action.")))
+                raise PermissionDenied(
+                    _((u"You do not haveYou do not have permission "
+                       "to perform this action.")))
 
         return Response(status=status.HTTP_404_NOT_FOUND)
