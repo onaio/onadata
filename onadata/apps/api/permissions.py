@@ -13,7 +13,7 @@ from onadata.libs.permissions import ReadOnlyRoleNoDownload
 from onadata.apps.api.tools import get_user_profile_or_none, \
     check_inherit_permission_from_project
 
-from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models import XForm, Instance
 from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import DataView
 
@@ -189,6 +189,14 @@ class MetaDataObjectPermissions(AlternateHasObjectPermissionMixin,
     def has_object_permission(self, request, view, obj):
         model_cls = obj.content_object.__class__
         user = request.user
+
+        # xform instance object perms are not added explicitly to user perms
+        if model_cls == Instance:
+            model_cls = XForm
+            xform_obj = obj.content_object.xform
+
+            return self._has_object_permission(request, model_cls, user,
+                                               xform_obj)
 
         return self._has_object_permission(request, model_cls, user,
                                            obj.content_object)
