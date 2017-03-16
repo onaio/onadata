@@ -115,9 +115,10 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, TotalHeaderMixin,
                 qs_kwargs.update({'id__gt': gt})
 
             instances = Instance.objects.filter(**qs_kwargs).order_by('pk')
+            self.total_count = instances.count()
 
             if count:
-                return Response({'count': instances.count()})
+                return Response({'count': self.total_count})
 
             instances = self.paginate_queryset(instances)
             csv_df_builder = CSVDataFrameBuilder(
