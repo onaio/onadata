@@ -1,26 +1,27 @@
-import re
 import json
+import re
 
-from django.shortcuts import get_object_or_404
 from django.contrib.contenttypes.models import ContentType
-from django.utils.translation import ugettext as _
 from django.core.exceptions import PermissionDenied
-from rest_framework.viewsets import ModelViewSet
-from rest_framework.response import Response
-from rest_framework.decorators import detail_route, list_route
+from django.http import StreamingHttpResponse
+from django.shortcuts import get_object_or_404
+from django.utils.translation import ugettext as _
 from rest_framework import status
+from rest_framework.decorators import detail_route, list_route
+from rest_framework.response import Response
+from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.api.permissions import OpenDataViewSetPermissions
-from onadata.apps.logger.models import XForm, Instance
+from onadata.apps.api.tools import get_baseviewset_class
+from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.logger.models.open_data import OpenData
+from onadata.libs.data import parse_int
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.total_header_mixin import TotalHeaderMixin
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.data_serializer import DataInstanceSerializer
-from onadata.apps.api.tools import get_baseviewset_class
 from onadata.libs.serializers.open_data_serializer import OpenDataSerializer
-from onadata.libs.data import parse_int
 from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
 
 BaseViewset = get_baseviewset_class()
@@ -129,8 +130,34 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, TotalHeaderMixin,
                     'pattern': r"(/|-|\[|\])",
                     "replacer": r"_"
                 })
+            length = 1 + self.paginator.page.end_index(
+            ) - self.paginator.page.start_index()
+
+            return self._get_streaming_response(data, length)
 
         return Response(data)
+
+    def _get_streaming_response(self, data, length):
+        """Get a StreamingHttpResponse response object"""
+
+        def stream_json(streaming_data, length):
+            """Generator function to stream JSON data"""
+            yield u"["
+
+            for i, d in enumerate(streaming_data, start=1):
+                yield json.dumps(d)
+                yield "" if i == length else ","
+
+            yield u"]"
+
+        response = StreamingHttpResponse(
+            stream_json(data, length), content_type="application/json")
+
+        # set headers on streaming response
+        for k, v in self.headers.items():
+            response[k] = v
+
+        return response
 
     def destroy(self, request, *args, **kwargs):
         self.get_object().delete()

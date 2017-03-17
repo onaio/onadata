@@ -11,6 +11,10 @@ from onadata.apps.api.viewsets.open_data_viewset import (
 from onadata.apps.main.tests.test_base import TestBase
 
 
+def streaming_data(response):
+    return json.loads(u''.join([i for i in response.streaming_content]))
+
+
 class TestOpenDataViewSet(TestBase):
 
     def setUp(self):
@@ -108,7 +112,7 @@ class TestOpenDataViewSet(TestBase):
         response = self.view(request, uuid=uuid)
         self.assertEqual(response.status_code, 200)
         # cast generator response to list so that we can get the response count
-        self.assertEqual(len(list(response.data)), 4)
+        self.assertEqual(len(streaming_data(response)), 4)
 
     def test_get_data_with_pagination(self):
         self._make_submissions()
@@ -123,14 +127,14 @@ class TestOpenDataViewSet(TestBase):
         response = self.view(request, uuid=uuid)
         self.assertEqual(response.status_code, 200)
         # cast generator response to list so that we can get the response count
-        self.assertEqual(len(list(response.data)), 4)
+        self.assertEqual(len(streaming_data(response)), 4)
 
         # with pagination
         request = self.factory.get('/', {'page_size': 3}, **self.extra)
         response = self.view(request, uuid=uuid)
         self.assertEqual(response.status_code, 200)
         # cast generator response to list so that we can get the response count
-        self.assertEqual(len(list(response.data)), 3)
+        self.assertEqual(len(streaming_data(response)), 3)
 
         # with count
         request = self.factory.get('/', {'count': 1}, **self.extra)
@@ -153,7 +157,7 @@ class TestOpenDataViewSet(TestBase):
         response = self.view(request, uuid=uuid)
         self.assertEqual(response.status_code, 200)
         # cast generator response to list so that we can get the response count
-        self.assertEqual(len(list(response.data)), 3)
+        self.assertEqual(len(streaming_data(response)), 3)
 
     def test_update_open_data_with_valid_fields_and_data(self):
         _open_data = self.get_open_data_object()
