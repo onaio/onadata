@@ -104,6 +104,12 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, TotalHeaderMixin,
         gt = request.query_params.get('gt_id')
         gt = gt and parse_int(gt)
         count = request.query_params.get('count')
+        pagination_keys = [
+            self.paginator.page_query_param,
+            self.paginator.page_size_query_param
+        ]
+        query_param_keys = request.query_params
+        should_paginate = any([k in query_param_keys for k in pagination_keys])
 
         data = []
         if isinstance(self.object.content_object, XForm):
@@ -116,12 +122,16 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, TotalHeaderMixin,
                 qs_kwargs.update({'id__gt': gt})
 
             instances = Instance.objects.filter(**qs_kwargs).order_by('pk')
-            self.total_count = instances.count()
+            length = self.total_count = instances.count()
 
             if count:
                 return Response({'count': self.total_count})
 
-            instances = self.paginate_queryset(instances)
+            if should_paginate:
+                instances = self.paginate_queryset(instances)
+                length = 1 + self.paginator.page.end_index(
+                ) - self.paginator.page.start_index()
+
             csv_df_builder = CSVDataFrameBuilder(
                 xform.user.username, xform.id_string, include_images=False)
             data = csv_df_builder._format_for_dataframe(
@@ -130,8 +140,6 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, TotalHeaderMixin,
                     'pattern': r"(/|-|\[|\])",
                     "replacer": r"_"
                 })
-            length = 1 + self.paginator.page.end_index(
-            ) - self.paginator.page.start_index()
 
             return self._get_streaming_response(data, length)
 
