@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.db.models import Count
+from hashlib import md5
 from requests.exceptions import ConnectionError
 from rest_framework import serializers
 from rest_framework.reverse import reverse
@@ -353,12 +354,28 @@ class XFormManifestSerializer(serializers.Serializer):
 
     @check_obj
     def get_hash(self, obj):
-        return u"%s" % (obj.file_hash or 'md5:')
+        filename = obj.data_value
+        hsh = obj.file_hash
+        parts = filename.split(' ')
+        # filtered dataset is of the form "xform PK name", xform pk is the
+        # second item
+        if len(parts) > 2:
+            pk = parts[1]
+            xform = XForm.objects.filter(pk=pk)\
+                .only('last_submission_time').first()
+            if xform and xform.last_submission_time:
+                hsh = u'md5:%s' % (
+                    md5(xform.last_submission_time.isoformat()).hexdigest()
+                )
+
+        return u"%s" % (hsh or 'md5:')
 
     @check_obj
     def get_filename(self, obj):
         filename = obj.data_value
         parts = filename.split(' ')
+        # filtered dataset is of the form "xform PK name", filename is the
+        # third item
         if len(parts) > 2:
             filename = u'%s.csv' % parts[2]
 
