@@ -9,7 +9,7 @@ from requests.exceptions import ConnectionError
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
-from onadata.apps.logger.models import Instance, XForm
+from onadata.apps.logger.models import DataView, Instance, XForm
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.permissions import get_role, is_organization
 from onadata.libs.serializers.dataview_serializer import \
@@ -360,9 +360,17 @@ class XFormManifestSerializer(serializers.Serializer):
         # filtered dataset is of the form "xform PK name", xform pk is the
         # second item
         if len(parts) > 2:
+            dataset_type = parts[0]
             pk = parts[1]
-            xform = XForm.objects.filter(pk=pk)\
-                .only('last_submission_time').first()
+            if dataset_type == 'xform':
+                xform = XForm.objects.filter(pk=pk)\
+                    .only('last_submission_time').first()
+            else:
+                data_view = DataView.objects.filter(pk=pk)\
+                    .only('xform__last_submission_time').first()
+                if data_view:
+                    xform = data_view.xform
+
             if xform and xform.last_submission_time:
                 hsh = u'md5:%s' % (
                     md5(xform.last_submission_time.isoformat()).hexdigest()
