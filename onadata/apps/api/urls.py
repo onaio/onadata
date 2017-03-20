@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
+from onadata.apps.api.viewsets.open_data_viewset import OpenDataViewSet
 from onadata.apps.api.viewsets.data_viewset import AuthenticatedDataViewSet
 from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
 from onadata.apps.api.viewsets.export_viewset import ExportViewSet
@@ -225,6 +226,7 @@ router.register(r'projects', ProjectViewSet)
 router.register(r'teams', TeamViewSet)
 router.register(r'notes', NoteViewSet)
 router.register(r'data', DataViewSet, base_name='data')
+router.register(r'open-data', OpenDataViewSet, base_name='open-data')
 router.register(r'private-data', AuthenticatedDataViewSet,
                 base_name='private-data')
 router.register(r'stats', StatsViewSet, base_name='stats')

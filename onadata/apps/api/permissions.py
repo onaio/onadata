@@ -321,3 +321,23 @@ class OrganizationProfilePermissions(DjangoObjectPermissionsAllowAnon):
             return super(OrganizationProfilePermissions,
                          self).has_object_permission(
                 request=request, view=view, obj=obj)
+
+
+class OpenDataViewSetPermissions(IsAuthenticated,
+                                 AlternateHasObjectPermissionMixin,
+                                 DjangoObjectPermissionsAllowAnon):
+
+    def has_permission(self, request, view):
+        if request.user.is_anonymous() and view.action in ['schema', 'data']:
+            return True
+
+        return super(OpenDataViewSetPermissions, self).has_permission(
+            request, view
+        )
+
+    def has_object_permission(self, request, view, obj):
+        model_cls = XForm
+        user = request.user
+
+        return self._has_object_permission(request, model_cls, user,
+                                           obj.content_object)

@@ -69,3 +69,7 @@ profile
 bob
 *.db
 *.egg-info
+
+# visual studio code
+.vscode/
+tags
