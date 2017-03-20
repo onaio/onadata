@@ -1,3 +1,4 @@
+from hashlib import md5
 import os
 from mock import patch
 
@@ -521,6 +522,8 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         data_type = 'media'
         data_value = 'xform {} transportation'.format(self.xform.pk)
         self._add_form_metadata(self.xform, data_type, data_value)
+        self._make_submissions()
+        self.xform.reload()
 
         self.view = XFormListViewSet.as_view({
             "get": "manifest"
@@ -533,6 +536,9 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         response = self.view(request, pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data[0]['filename'], 'transportation.csv')
+        self.assertEqual(
+            response.data[0]['hash'], 'md5:%s' %
+            md5(self.xform.last_submission_time.isoformat()).hexdigest())
 
         self.view = XFormListViewSet.as_view({
             "get": "media"
