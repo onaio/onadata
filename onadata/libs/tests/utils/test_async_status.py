@@ -8,9 +8,9 @@ class TestAsyncStatus(TestBase):
     def test_celery_state_to_status(self):
         self.assertEqual(async_status.PENDING,
                          async_status.celery_state_to_status(states.PENDING))
-        self.assertEqual(async_status.PENDING,
+        self.assertEqual(async_status.STARTED,
                          async_status.celery_state_to_status(states.STARTED))
-        self.assertEqual(async_status.PENDING,
+        self.assertEqual(async_status.RETRY,
                          async_status.celery_state_to_status(states.RETRY))
         self.assertEqual(async_status.FAILED,
                          async_status.celery_state_to_status(states.FAILURE))

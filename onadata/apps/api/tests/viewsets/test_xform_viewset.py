@@ -4287,6 +4287,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertTrue(export.is_pending)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(EXPORT_TASK_PROGRESS_UPDATE_BATCH=1)
     def test_export_async_progress_tracking(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()

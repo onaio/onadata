@@ -160,17 +160,20 @@ def dict_to_joined_export(data, index, indices, name, survey, row,
 
 def track_task_progress(additions, total=None):
     """
-    Updates the current export task with number of submission processed
+    Updates the current export task with number of submission processed.
+    Updates in batches of settings EXPORT_TASK_PROGRESS_UPDATE_BATCH defaults
+    to 100.
     :param additions:
     :param total:
     :return:
     """
     try:
-        meta = {'progress': additions}
-        if total:
-            meta.update({'total': total})
-        current_task.update_state(state='PENDING',
-                                  meta=meta)
+        if additions % getattr(settings, 'EXPORT_TASK_PROGRESS_UPDATE_BATCH',
+                               100) == 0:
+            meta = {'progress': additions}
+            if total:
+                meta.update({'total': total})
+            current_task.update_state(state='PROGRESS', meta=meta)
     except:
         pass
 
