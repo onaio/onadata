@@ -2014,3 +2014,44 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertNotIn({'first_name': u'Bob', 'last_name': u'erama',
                           'is_org': False, 'role': 'readonly',
                           'user': u'alice', 'metadata': {}}, users)
+
+    def test_projects_soft_delete(self):
+        self._project_create()
+
+        view = ProjectViewSet.as_view({
+            'get': 'list',
+            'delete': 'destroy'
+        })
+
+        request = self.factory.get('/', **self.extra)
+        request.user = self.user
+        response = view(request)
+
+        project_id = self.project.pk
+
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.status_code, 200)
+        serializer = BaseProjectSerializer(self.project,
+                                           context={'request': request})
+
+        self.assertEqual(response.data, [serializer.data])
+        self.assertIn('created_by', response.data[0].keys())
+
+        request = self.factory.delete('/', **self.extra)
+        request.user = self.user
+        response = view(request, pk=project_id)
+        self.assertEqual(response.status_code, 204)
+
+        self.project = Project.objects.get(pk=project_id)
+
+        self.assertIsNotNone(self.project.deleted_at)
+        self.assertTrue('deleted-at' in self.project.name)
+
+        request = self.factory.get('/', **self.extra)
+        request.user = self.user
+        response = view(request)
+
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.status_code, 200)
+
+        self.assertFalse(serializer.data in response.data)

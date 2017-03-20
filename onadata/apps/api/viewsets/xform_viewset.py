@@ -599,6 +599,12 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         return Response(data=resp, status=resp_code)
 
+    def destroy(self, request, *args, **kwargs):
+        xform = self.get_object()
+        xform.soft_delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     @detail_route(methods=['GET'])
     def export_async(self, request, *args, **kwargs):
         job_uuid = request.query_params.get('job_uuid')

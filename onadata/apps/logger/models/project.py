@@ -107,7 +107,7 @@ class Project(BaseModel):
         soft_deletion_time = datetime.now()
         deletion_suffix = soft_deletion_time.strftime('-deleted-at-%s')
         self.deleted_at = soft_deletion_time
-        self.id_string = self.name + deletion_suffix
+        self.name += deletion_suffix
         self.save()
 
         for form in self.xform_set.all():
