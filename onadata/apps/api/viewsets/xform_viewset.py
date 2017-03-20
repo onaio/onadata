@@ -586,7 +586,6 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
     def delete_async(self, request, *args, **kwargs):
         if request.method == 'DELETE':
             xform = self.get_object()
-            xform.soft_delete()
             resp = {
                 u'job_uuid': tasks.delete_xform_async.delay(xform).task_id,
                 u'time_async_triggered': datetime.now()}
