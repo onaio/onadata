@@ -1,10 +1,10 @@
 import logging
+from hashlib import md5
 
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.db.models import Count
-from hashlib import md5
 from requests.exceptions import ConnectionError
 from rest_framework import serializers
 from rest_framework.reverse import reverse
@@ -16,18 +16,14 @@ from onadata.libs.serializers.dataview_serializer import \
     DataViewMinimalSerializer
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
-from onadata.libs.utils.cache_tools import (ENKETO_PREVIEW_URL_CACHE,
-                                            ENKETO_URL_CACHE,
-                                            XFORM_DATA_VERSIONS,
-                                            XFORM_LINKED_DATAVIEWS,
-                                            XFORM_METADATA_CACHE,
-                                            XFORM_PERMISSIONS_CACHE,
-                                            DATAVIEW_COUNT)
+from onadata.libs.utils.cache_tools import (
+    ENKETO_PREVIEW_URL_CACHE, ENKETO_URL_CACHE, XFORM_DATA_VERSIONS,
+    XFORM_LINKED_DATAVIEWS, XFORM_METADATA_CACHE, XFORM_PERMISSIONS_CACHE,
+    DATAVIEW_COUNT)
 from onadata.libs.utils.common_tags import GROUP_DELIMETER_TAG
 from onadata.libs.utils.decorators import check_obj
-from onadata.libs.utils.viewer_tools import (EnketoError, enketo_url,
-                                             get_enketo_preview_url,
-                                             get_form_url)
+from onadata.libs.utils.viewer_tools import (
+    EnketoError, enketo_url, get_enketo_preview_url, get_form_url)
 
 
 def _create_enketo_url(request, xform):
@@ -373,8 +369,7 @@ class XFormManifestSerializer(serializers.Serializer):
 
             if xform and xform.last_submission_time:
                 hsh = u'md5:%s' % (
-                    md5(xform.last_submission_time.isoformat()).hexdigest()
-                )
+                    md5(xform.last_submission_time.isoformat()).hexdigest())
 
         return u"%s" % (hsh or 'md5:')
 
