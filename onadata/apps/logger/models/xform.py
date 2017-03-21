@@ -813,15 +813,17 @@ class XForm(XFormMixin, BaseModel):
         soft_deletion_time = datetime.now()
         deletion_suffix = soft_deletion_time.strftime('-deleted-at-%s')
         self.deleted_at = soft_deletion_time
-        self.id_string = self.id_string + deletion_suffix
-        self.sms_id_string = self.sms_id_string + deletion_suffix
+        self.id_string += deletion_suffix
+        self.sms_id_string += deletion_suffix
         self.save()
 
     def submission_count(self, force_update=False):
         if self.num_of_submissions == 0 or force_update:
             count = self.instances.filter(deleted_at__isnull=True).count()
-            self.num_of_submissions = count
-            self.save(update_fields=['num_of_submissions'])
+
+            if count != self.num_of_submissions:
+                self.num_of_submissions = count
+                self.save(update_fields=['num_of_submissions'])
         return self.num_of_submissions
     submission_count.short_description = ugettext_lazy("Submission Count")
 

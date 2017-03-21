@@ -20,7 +20,8 @@ from onadata.libs.utils.cache_tools import (ENKETO_PREVIEW_URL_CACHE,
                                             XFORM_DATA_VERSIONS,
                                             XFORM_LINKED_DATAVIEWS,
                                             XFORM_METADATA_CACHE,
-                                            XFORM_PERMISSIONS_CACHE)
+                                            XFORM_PERMISSIONS_CACHE,
+                                            DATAVIEW_COUNT)
 from onadata.libs.utils.common_tags import GROUP_DELIMETER_TAG
 from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.viewer_tools import (EnketoError, enketo_url,
@@ -168,6 +169,16 @@ class XFormMixin(object):
             return data_views
         return []
 
+    def get_num_of_submissions(self, obj):
+        if obj:
+            key = '{}{}'.format(DATAVIEW_COUNT, obj.pk)
+            count = cache.get(key)
+            if count:
+                return count
+            count = obj.submission_count()
+            cache.set(key, count)
+            return count
+
 
 class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     formid = serializers.ReadOnlyField(source='id')
@@ -192,7 +203,7 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     users = serializers.SerializerMethodField()
     enketo_url = serializers.SerializerMethodField()
     enketo_preview_url = serializers.SerializerMethodField()
-    num_of_submissions = serializers.ReadOnlyField()
+    num_of_submissions = serializers.SerializerMethodField()
     data_views = serializers.SerializerMethodField()
 
     class Meta:
@@ -229,7 +240,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     users = serializers.SerializerMethodField()
     enketo_url = serializers.SerializerMethodField()
     enketo_preview_url = serializers.SerializerMethodField()
-    num_of_submissions = serializers.ReadOnlyField()
+    num_of_submissions = serializers.SerializerMethodField()
     form_versions = serializers.SerializerMethodField()
     data_views = serializers.SerializerMethodField()
 
