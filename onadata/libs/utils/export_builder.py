@@ -31,6 +31,7 @@ from onadata.libs.utils.mongo import _is_invalid_for_mongo,\
 # the bind type of select multiples that we use to compare
 MULTIPLE_SELECT_BIND_TYPE = u"select"
 GEOPOINT_BIND_TYPE = u"geopoint"
+DEFAULT_UPDATE_BATCH = 100
 
 
 def current_site_url(path):
@@ -169,7 +170,7 @@ def track_task_progress(additions, total=None):
     """
     try:
         if additions % getattr(settings, 'EXPORT_TASK_PROGRESS_UPDATE_BATCH',
-                               100) == 0:
+                               DEFAULT_UPDATE_BATCH) == 0:
             meta = {'progress': additions}
             if total:
                 meta.update({'total': total})
