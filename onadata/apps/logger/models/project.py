@@ -1,10 +1,9 @@
-from datetime import datetime
-
 from django.db import models
 from django.db.models import Prefetch
 from django.db.models.signals import post_save
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
+from django.utils import timezone
 from django.core.exceptions import ValidationError
 from guardian.models import UserObjectPermissionBase
 from guardian.models import GroupObjectPermissionBase
@@ -104,7 +103,7 @@ class Project(BaseModel):
         :return:
         """
 
-        soft_deletion_time = datetime.now()
+        soft_deletion_time = timezone.now()
         deletion_suffix = soft_deletion_time.strftime('-deleted-at-%s')
         self.deleted_at = soft_deletion_time
         self.name += deletion_suffix

@@ -810,7 +810,7 @@ class XForm(XFormMixin, BaseModel):
         without violating the uniqueness constraint.
         """
 
-        soft_deletion_time = datetime.now()
+        soft_deletion_time = timezone.now()
         deletion_suffix = soft_deletion_time.strftime('-deleted-at-%s')
         self.deleted_at = soft_deletion_time
         self.id_string += deletion_suffix
