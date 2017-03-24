@@ -222,6 +222,12 @@ class TestOpenDataViewSet(TestBase):
             response.data.get('table_alias')
         )
 
+        _id_datatype = [
+            a.get('dataType')
+            for a in response.data['column_headers']
+            if a.get('id') == '_id'][0]
+        self.assertEqual(_id_datatype, 'int')
+
     def test_uuid_endpoint(self):
         self.view = OpenDataViewSet.as_view({
             'get': 'uuid'
