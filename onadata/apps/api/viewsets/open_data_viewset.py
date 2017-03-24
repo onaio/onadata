@@ -93,7 +93,10 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, TotalHeaderMixin,
                     append_to_tableau_colulmn_headers(header, quest_type)
                     break
             else:
-                append_to_tableau_colulmn_headers(header)
+                if header == '_id':
+                    append_to_tableau_colulmn_headers(header, "int")
+                else:
+                    append_to_tableau_colulmn_headers(header)
 
         return tableau_colulmn_headers
 
