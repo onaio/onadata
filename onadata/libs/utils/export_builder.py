@@ -1,15 +1,20 @@
 import csv
-from datetime import datetime, date
 import six
 import uuid
+
+from celery import current_task
+from datetime import datetime, date
 from zipfile import ZipFile
 
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
+
 from openpyxl.utils.datetime import to_excel
 from openpyxl.workbook import Workbook
+
 from pyxform.question import Question
 from pyxform.section import Section, RepeatingSection
+
 from savReaderWriter import SavWriter
 
 from onadata.apps.logger.models.xform import _encode_for_mongo,\
@@ -26,6 +31,7 @@ from onadata.libs.utils.mongo import _is_invalid_for_mongo,\
 # the bind type of select multiples that we use to compare
 MULTIPLE_SELECT_BIND_TYPE = u"select"
 GEOPOINT_BIND_TYPE = u"geopoint"
+DEFAULT_UPDATE_BATCH = 100
 
 
 def current_site_url(path):
@@ -151,6 +157,26 @@ def dict_to_joined_export(data, index, indices, name, survey, row,
                     )
 
     return output
+
+
+def track_task_progress(additions, total=None):
+    """
+    Updates the current export task with number of submission processed.
+    Updates in batches of settings EXPORT_TASK_PROGRESS_UPDATE_BATCH defaults
+    to 100.
+    :param additions:
+    :param total:
+    :return:
+    """
+    try:
+        if additions % getattr(settings, 'EXPORT_TASK_PROGRESS_UPDATE_BATCH',
+                               DEFAULT_UPDATE_BATCH) == 0:
+            meta = {'progress': additions}
+            if total:
+                meta.update({'total': total})
+            current_task.update_state(state='PROGRESS', meta=meta)
+    except:
+        pass
 
 
 class ExportBuilder(object):
@@ -471,6 +497,7 @@ class ExportBuilder(object):
 
         csv_defs = {}
         dataview = kwargs.get('dataview')
+        total_records = kwargs.get('total_records')
 
         for section in self.sections:
             csv_file = NamedTemporaryFile(suffix=".csv")
@@ -509,7 +536,7 @@ class ExportBuilder(object):
         index = 1
         indices = {}
         survey_name = self.survey.name
-        for d in data:
+        for i, d in enumerate(data, start=1):
             # decode mongo section names
             joined_export = dict_to_joined_export(d, index, indices,
                                                   survey_name,
@@ -542,6 +569,7 @@ class ExportBuilder(object):
                             self.pre_process_row(child_row, section),
                             csv_writer, fields)
             index += 1
+            track_task_progress(i, total_records)
 
         # write zipfile
         with ZipFile(path, 'w') as zip_file:
@@ -585,6 +613,8 @@ class ExportBuilder(object):
             work_sheet.append([data.get(f) for f in fields])
 
         dataview = kwargs.get('dataview')
+        total_records = kwargs.get('total_records')
+
         wb = Workbook(optimized_write=True)
         work_sheets = {}
         # map of section_names to generated_names
@@ -637,7 +667,7 @@ class ExportBuilder(object):
         index = 1
         indices = {}
         survey_name = self.survey.name
-        for d in data:
+        for i, d in enumerate(data, start=1):
             joined_export = dict_to_joined_export(d, index, indices,
                                                   survey_name,
                                                   self.survey, d,
@@ -669,6 +699,7 @@ class ExportBuilder(object):
                             self.pre_process_row(child_row, section),
                             ws, fields, work_sheet_titles)
             index += 1
+            track_task_progress(i, total_records)
 
         wb.save(filename=path)
 
@@ -681,6 +712,7 @@ class ExportBuilder(object):
         dataview = kwargs.get('dataview')
         xform = kwargs.get('xform')
         options = kwargs.get('options')
+        total_records = kwargs.get('total_records')
         win_excel_utf8 = options.get('win_excel_utf8') if options else False
 
         csv_builder = CSVDataFrameBuilder(
@@ -688,7 +720,8 @@ class ExportBuilder(object):
             self.SPLIT_SELECT_MULTIPLES, self.BINARY_SELECT_MULTIPLES,
             start, end, self.TRUNCATE_GROUP_TITLE, xform,
             self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY, self.INCLUDE_IMAGES,
-            self.INCLUDE_HXL, win_excel_utf8=win_excel_utf8
+            self.INCLUDE_HXL, win_excel_utf8=win_excel_utf8,
+            total_records=total_records
         )
 
         csv_builder.export_to(path, dataview=dataview)
@@ -828,6 +861,8 @@ class ExportBuilder(object):
         return column
 
     def to_zipped_sav(self, path, data, *args, **kwargs):
+        total_records = kwargs.get('total_records')
+
         def write_row(row, csv_writer, fields):
             sav_writer.writerow(
                 [encode_if_str(row, field, True) for field in fields])
@@ -849,7 +884,7 @@ class ExportBuilder(object):
         index = 1
         indices = {}
         survey_name = self.survey.name
-        for d in data:
+        for i, d in enumerate(data, start=1):
             # decode mongo section names
             joined_export = dict_to_joined_export(d, index, indices,
                                                   survey_name,
@@ -882,6 +917,7 @@ class ExportBuilder(object):
                             self.pre_process_row(child_row, section),
                             sav_writer, fields)
             index += 1
+            track_task_progress(i, total_records)
 
         for section_name, sav_def in sav_defs.iteritems():
             sav_def['sav_writer'].closeSavFile(
