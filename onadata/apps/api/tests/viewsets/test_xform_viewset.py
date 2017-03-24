@@ -1527,7 +1527,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                 None)
 
             view = XFormViewSet.as_view({
-                'delete': 'destroy'
+                'delete': 'destroy',
+                'get': 'retrieve'
             })
             formid = self.xform.pk
             request = self.factory.delete('/', **self.extra)
@@ -1541,8 +1542,15 @@ class TestXFormViewSet(TestAbstractViewSet):
                                         self.project.pk)),
                 None)
 
-            with self.assertRaises(XForm.DoesNotExist):
-                self.xform.reload()
+            self.xform.reload()
+
+            self.assertIsNotNone(self.xform.deleted_at)
+            self.assertTrue('deleted-at' in self.xform.id_string)
+
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=formid)
+
+            self.assertEqual(response.status_code, 404)
 
             request = self.factory.get('/', **self.extra)
             response = self.view(request)
@@ -2729,7 +2737,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 202)
             self.assertTrue('job_uuid' in response.data)
             self.assertTrue('time_async_triggered' in response.data)
-            self.assertEquals(count - 1, XForm.objects.count())
+            self.assertEquals(count, XForm.objects.count())
 
             view = XFormViewSet.as_view({
                 'get': 'delete_async'
@@ -2742,6 +2750,20 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertTrue(mock_get_status.called)
             self.assertEqual(response.status_code, 202)
             self.assertEquals(response.data, {'job_status': 'PENDING'})
+
+            xform = XForm.objects.get(pk=formid)
+
+            self.assertIsNotNone(xform.deleted_at)
+            self.assertTrue('deleted-at' in xform.id_string)
+
+            view = XFormViewSet.as_view({
+                'get': 'retrieve'
+            })
+
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=formid)
+
+            self.assertEqual(response.status_code, 404)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch('onadata.libs.utils.api_export_tools.AsyncResult')

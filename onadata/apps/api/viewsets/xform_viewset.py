@@ -586,7 +586,6 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
     def delete_async(self, request, *args, **kwargs):
         if request.method == 'DELETE':
             xform = self.get_object()
-            xform.soft_delete()
             resp = {
                 u'job_uuid': tasks.delete_xform_async.delay(xform).task_id,
                 u'time_async_triggered': datetime.now()}
@@ -599,6 +598,12 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             self.etag_data = '{}'.format(timezone.now())
 
         return Response(data=resp, status=resp_code)
+
+    def destroy(self, request, *args, **kwargs):
+        xform = self.get_object()
+        xform.soft_delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @detail_route(methods=['GET'])
     def export_async(self, request, *args, **kwargs):

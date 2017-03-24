@@ -49,7 +49,7 @@ class ProjectViewSet(AuthenticateHeaderMixin,
     """
     List, Retrieve, Update, Create Project and Project Forms.
     """
-    queryset = Project.objects.all().select_related()
+    queryset = Project.objects.filter(deleted_at__isnull=True).select_related()
     serializer_class = ProjectSerializer
     lookup_field = 'pk'
     extra_lookup_fields = None
@@ -71,7 +71,7 @@ class ProjectViewSet(AuthenticateHeaderMixin,
 
     def get_queryset(self):
         if self.request.method.upper() in ['GET', 'OPTIONS']:
-            self.queryset = Project.prefetched.all()
+            self.queryset = Project.prefetched.filter(deleted_at__isnull=True)
 
         return super(ProjectViewSet, self).get_queryset()
 
@@ -175,3 +175,9 @@ class ProjectViewSet(AuthenticateHeaderMixin,
         serializer = self.get_serializer(self.object_list, many=True)
 
         return Response(serializer.data)
+
+    def destroy(self, request, *args, **kwargs):
+        project = self.get_object()
+        project.soft_delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
