@@ -18,7 +18,8 @@ def set_project_perms_to_xform(xform, project):
         user = perm['user']
         role_name = perm['role']
         role = ROLES.get(role_name)
-        if role:
+        if role and (user != xform.user and project.user != user and
+                     project.created_by != user):
             role._remove_obj_permissions(user, xform)
 
     owners = project.organization.team_set.filter(
