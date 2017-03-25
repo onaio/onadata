@@ -44,10 +44,16 @@ class TestBase(TransactionTestCase):
     def _fixture_path(self, *args):
         return os.path.join(os.path.dirname(__file__), 'fixtures', *args)
 
-    def _create_user(self, username, password):
+    def _create_user(self, username, password, create_profile=False):
         user, created = User.objects.get_or_create(username=username)
         user.set_password(password)
         user.save()
+
+        # create user profile and set require_auth to false for tests
+        if create_profile:
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            profile.require_auth = False
+            profile.save()
 
         return user
 
@@ -65,12 +71,7 @@ class TestBase(TransactionTestCase):
                                factory=None):
         self.login_username = username
         self.login_password = password
-        self.user = self._create_user(username, password)
-
-        # create user profile and set require_auth to false for tests
-        profile, created = UserProfile.objects.get_or_create(user=self.user)
-        profile.require_auth = False
-        profile.save()
+        self.user = self._create_user(username, password, create_profile=True)
 
         if factory is None:
             self.client = self._login(username, password)
