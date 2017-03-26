@@ -81,10 +81,11 @@ def node_value(node, tag_name):
 
 
 class BriefcaseClient(object):
-    def __init__(self, url, username, password, user):
+    def __init__(self, url, username, password, user, forms=None):
         self.url = url
         self.user = user
         self.auth = HTTPDigestAuth(username, password)
+        self.forms = forms
         self.form_list_url = urljoin(self.url, 'formList')
         self.submission_list_url = urljoin(self.url, 'view/submissionList')
         self.download_submission_url = urljoin(self.url,
@@ -103,6 +104,8 @@ class BriefcaseClient(object):
                 for xformNode in childNode.childNodes:
                     if xformNode.nodeName == 'xform':
                         id_string = node_value(xformNode, 'formID')
+                        if self.forms and id_string not in self.forms:
+                            continue
                         download_url = node_value(xformNode, 'downloadUrl')
                         manifest_url = node_value(xformNode, 'manifestUrl')
                         forms.append((id_string, download_url, manifest_url))
@@ -168,6 +171,8 @@ class BriefcaseClient(object):
     def _get_response(self, url, params=None):
         self._current_response = None
         response = requests.get(url, auth=self.auth, params=params)
+        if response.status_code == 401:
+            raise Exception("Invalid username or password!")
         success = response.status_code == 200
         self._current_response = response
 
