@@ -3,6 +3,7 @@ import os
 import json
 from datetime import datetime
 from requests import ConnectionError
+from celery.backends.amqp import BacklogLimitExceeded
 
 from django.conf import settings
 from django.http import Http404, HttpResponseRedirect
@@ -490,6 +491,9 @@ def get_async_response(job_uuid, request, xform, count=0):
             raise ServiceUnavailable(unicode(e))
 
         return get_async_response(job_uuid, request, xform, count + 1)
+    except BacklogLimitExceeded:
+        # most likely still processing
+        resp = async_status(celery_state_to_status('PENDING'))
 
     return resp
 
