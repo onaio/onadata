@@ -1,24 +1,23 @@
+import codecs
 import cStringIO
 import json
-import unicodecsv as ucsv
 import uuid
-import codecs
-
-
-from celery import task
-from celery import current_task
-from celery.result import AsyncResult
-from celery.backends.amqp import BacklogLimitExceeded
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
+
+import unicodecsv as ucsv
+from celery import current_task, task
+from celery.backends.amqp import BacklogLimitExceeded
+from celery.result import AsyncResult
 from django.contrib.auth.models import User
-from onadata.libs.utils.logger_tools import dict2xml, safe_create_instance
+
 from onadata.apps.logger.models import Instance
+from onadata.libs.utils.async_status import (FAILED, async_status,
+                                             celery_state_to_status)
 from onadata.libs.utils.common_tags import MULTIPLE_SELECT_TYPE
 from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
-from onadata.libs.utils.async_status import (celery_state_to_status,
-                                             async_status, FAILED)
+from onadata.libs.utils.logger_tools import dict2xml, safe_create_instance
 
 
 def get_submission_meta_dict(xform, instance_id):
@@ -41,8 +40,10 @@ def get_submission_meta_dict(xform, instance_id):
 
     if xform.instances.filter(uuid=instance_id).count() > 0:
         uuid_arg = 'uuid:{}'.format(uuid.uuid4())
-        meta.update({'instanceID': uuid_arg,
-                     'deprecatedID': 'uuid:{}'.format(instance_id)})
+        meta.update({
+            'instanceID': uuid_arg,
+            'deprecatedID': 'uuid:{}'.format(instance_id)
+        })
         update += 1
     return [meta, update]
 
@@ -82,7 +83,7 @@ def dict_merge(a, b):
     result = deepcopy(a)
     for k, v in b.iteritems():
         if k in result and isinstance(result[k], dict):
-                result[k] = dict_merge(result[k], v)
+            result[k] = dict_merge(result[k], v)
         else:
             result[k] = deepcopy(v)
     return result
@@ -102,8 +103,9 @@ def dict_pathkeys_to_nested_dicts(dictionary):
     d = dictionary.copy()
     for key in d.keys():
         if r'/' in key:
-            d = dict_merge(reduce(lambda v, k: {k: v},
-                           (key.split('/')+[d.pop(key)])[::-1]), d)
+            d = dict_merge(
+                reduce(lambda v, k: {k: v},
+                       (key.split('/') + [d.pop(key)])[::-1]), d)
     return d
 
 
@@ -129,11 +131,10 @@ def submit_csv(username, xform, csv_file):
     if isinstance(csv_file, unicode):
         csv_file = cStringIO.StringIO(csv_file)
     elif csv_file is None or not hasattr(csv_file, 'read'):
-        return async_status(FAILED,
-                            (u'Invalid param type for `csv_file`. '
-                             'Expected utf-8 encoded file or unicode'
-                             ' string got {} instead.'
-                             .format(type(csv_file).__name__)))
+        return async_status(FAILED, (u'Invalid param type for `csv_file`. '
+                                     'Expected utf-8 encoded file or unicode'
+                                     ' string got {} instead.'
+                                     .format(type(csv_file).__name__)))
 
     num_rows = sum(1 for row in csv_file) - 1
     csv_file.seek(0)
@@ -212,11 +213,13 @@ def submit_csv(username, xform, csv_file):
                     del row[key]
 
                 # Collect row location data into separate location_data dict
-                if key.endswith(('.latitude', '.longitude',
-                                '.altitude', '.precision')):
+                if key.endswith(('.latitude', '.longitude', '.altitude',
+                                 '.precision')):
                     location_key, location_prop = key.rsplit(u'.', 1)
-                    location_data.setdefault(location_key, {}).update(
-                        {location_prop: row.get(key, '0')})
+                    location_data.setdefault(location_key, {}).update({
+                        location_prop:
+                        row.get(key, '0')
+                    })
                 # remove 'n/a' values
                 if not key.startswith('_') and row[key] == 'n/a':
                     del row[key]
@@ -224,11 +227,12 @@ def submit_csv(username, xform, csv_file):
             # collect all location K-V pairs into single geopoint field(s)
             # in location_data dict
             for location_key in location_data.keys():
-                location_data.update(
-                    {location_key:
-                     (u'%(latitude)s %(longitude)s '
-                      '%(altitude)s %(precision)s') % defaultdict(
-                          lambda: '', location_data.get(location_key))})
+                location_data.update({
+                    location_key:
+                    (u'%(latitude)s %(longitude)s '
+                     '%(altitude)s %(precision)s') % defaultdict(
+                         lambda: '', location_data.get(location_key))
+                })
 
             row = csv_dict_to_nested_dict(row)
             location_data = csv_dict_to_nested_dict(location_data)
@@ -257,16 +261,19 @@ def submit_csv(username, xform, csv_file):
                 error = e
 
             if error:
-                Instance.objects.filter(uuid__in=rollback_uuids,
-                                        xform=xform).delete()
+                Instance.objects.filter(
+                    uuid__in=rollback_uuids, xform=xform).delete()
                 return async_status(FAILED, str(error))
             else:
                 additions += 1
                 try:
-                    current_task.update_state(state='PROGRESS',
-                                              meta={'progress': additions,
-                                                    'total': num_rows,
-                                                    'info': addition_col})
+                    current_task.update_state(
+                        state='PROGRESS',
+                        meta={
+                            'progress': additions,
+                            'total': num_rows,
+                            'info': addition_col
+                        })
                 except:
                     pass
 
@@ -277,17 +284,19 @@ def submit_csv(username, xform, csv_file):
                     instance.save()
 
     except UnicodeDecodeError:
-        Instance.objects.filter(uuid__in=rollback_uuids,
-                                xform=xform).delete()
+        Instance.objects.filter(uuid__in=rollback_uuids, xform=xform).delete()
         return async_status(FAILED, u'CSV file must be utf-8 encoded')
     except Exception as e:
-        Instance.objects.filter(uuid__in=rollback_uuids,
-                                xform=xform).delete()
+        Instance.objects.filter(uuid__in=rollback_uuids, xform=xform).delete()
         return async_status(FAILED, str(e))
 
-    return {u"additions": additions - inserts, u"updates": inserts,
-            u"info": u"Additional column(s) excluded from the upload: '{0}'."
-            .format(', '.join(list(addition_col)))}
+    return {
+        u"additions": additions - inserts,
+        u"updates": inserts,
+        u"info":
+        u"Additional column(s) excluded from the upload: '{0}'."
+        .format(', '.join(list(addition_col)))
+    }
 
 
 def get_async_csv_submission_status(job_uuid):
