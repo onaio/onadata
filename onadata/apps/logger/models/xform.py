@@ -815,7 +815,11 @@ class XForm(XFormMixin, BaseModel):
         self.deleted_at = soft_deletion_time
         self.id_string += deletion_suffix
         self.sms_id_string += deletion_suffix
-        self.save()
+        self.save(update_fields=[
+            'date_modified',
+            'deleted_at',
+            'id_string',
+            'sms_id_string'])
 
     def submission_count(self, force_update=False):
         if self.num_of_submissions == 0 or force_update:
