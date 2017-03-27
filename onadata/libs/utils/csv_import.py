@@ -8,6 +8,7 @@ import codecs
 from celery import task
 from celery import current_task
 from celery.result import AsyncResult
+from celery.backends.amqp import BacklogLimitExceeded
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
@@ -300,8 +301,11 @@ def get_async_csv_submission_status(job_uuid):
         return async_status(FAILED, u'Empty job uuid')
 
     job = AsyncResult(job_uuid)
-    result = (job.result or job.state)
-    if isinstance(result, (str, unicode)):
-        return async_status(celery_state_to_status(job.state))
+    try:
+        result = (job.result or job.state)
+        if isinstance(result, (str, unicode)):
+            return async_status(celery_state_to_status(job.state))
+    except BacklogLimitExceeded:
+        return async_status(celery_state_to_status('PENDING'))
 
     return result
