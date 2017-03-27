@@ -1,6 +1,7 @@
 import mock
 
 from celery import current_app
+from celery.backends.amqp import BacklogLimitExceeded
 from collections import defaultdict, OrderedDict
 
 from django.conf import settings
@@ -77,3 +78,23 @@ class TestApiExportTools(TestBase):
 
         with self.assertRaises(Http404):
             get_async_response('job_uuid', request, self.xform)
+
+    @mock.patch('onadata.libs.utils.api_export_tools.AsyncResult')
+    def test_get_async_response_export_blacklog_limit(self, AsyncResult):
+        class MockAsyncResult(object):
+            def __init__(self):
+                pass
+
+            @property
+            def state(self):
+                raise BacklogLimitExceeded()
+
+        AsyncResult.return_value = MockAsyncResult()
+        settings.CELERY_ALWAYS_EAGER = True
+        current_app.conf.CELERY_ALWAYS_EAGER = True
+        self._publish_transportation_form_and_submit_instance()
+        request = self.factory.post('/')
+        request.user = self.user
+
+        result = get_async_response('job_uuid', request, self.xform)
+        self.assertEqual(result, {'job_status': 'PENDING'})
