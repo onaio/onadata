@@ -373,11 +373,15 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                         # abbreviated xpath
                         # "children/details/immunization/polio_1",
                         # generate ["children", index, "immunization/polio_1"]
-                        xpaths = [
-                            "%s[%s]" % (
-                                nested_key[:nested_key.index(key) + len(key)],
-                                index),
-                            nested_key[nested_key.index(key) + len(key) + 1:]]
+                        if parent_prefix is not None:
+                            _key = '/'.join(
+                                parent_prefix +
+                                key.split('/')[len(parent_prefix):])
+                            xpaths = ['%s[%d]' % (_key, index)] + \
+                                nested_key.split('/')[len(_key.split('/')):]
+                        else:
+                            xpaths = ['%s[%d]' % (key, index)] + \
+                                nested_key.split('/')[len(key.split('/')):]
                         # re-create xpath the split on /
                         xpaths = "/".join(xpaths).split("/")
                         new_prefix = xpaths[:-1]
@@ -391,8 +395,6 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                         else:
                             # it can only be a scalar
                             # collapse xpath
-                            if parent_prefix:
-                                xpaths[0:len(parent_prefix)] = parent_prefix
                             new_xpath = u"/".join(xpaths)
                             # check if this key exists in our ordered columns
                             if key in ordered_columns.keys():
