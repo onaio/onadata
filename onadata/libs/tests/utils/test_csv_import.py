@@ -2,6 +2,7 @@ import mock
 import os
 import re
 from cStringIO import StringIO
+from celery.backends.amqp import BacklogLimitExceeded
 from django.conf import settings
 from onadata.libs.utils import csv_import
 from onadata.apps.logger.models import XForm
@@ -194,3 +195,39 @@ class CSVImportTestCase(TestBase):
         instance = self.xform.instances.last()
         # repeats should be 6
         self.assertEqual(6, len(instance.json.get('children')))
+
+    @mock.patch('onadata.libs.utils.csv_import.AsyncResult')
+    def test_get_async_csv_submission_status(self, AsyncResult):
+        result = csv_import.get_async_csv_submission_status(None)
+        self.assertEqual(result, {
+            'error': u'Empty job uuid',
+            'job_status': 'FAILURE'
+        })
+
+        class BacklogLimitExceededMockAsyncResult(object):
+            def __init__(self):
+                self.result = 0
+
+            @property
+            def state(self):
+                raise BacklogLimitExceeded()
+
+        AsyncResult.return_value = BacklogLimitExceededMockAsyncResult()
+        result = csv_import.get_async_csv_submission_status('x-y-z')
+        self.assertEqual(result, {'job_status': 'PENDING'})
+
+        class MockAsyncResult(object):
+            def __init__(self):
+                self.result = self.state = 'SUCCESS'
+
+        AsyncResult.return_value = MockAsyncResult()
+        result = csv_import.get_async_csv_submission_status('x-y-z')
+        self.assertEqual(result, {'job_status': 'SUCCESS'})
+
+        class MockAsyncResult2(object):
+            def __init__(self):
+                self.result = self.state = 1
+
+        AsyncResult.return_value = MockAsyncResult2()
+        result = csv_import.get_async_csv_submission_status('x-y-z')
+        self.assertEqual(result, 1)
