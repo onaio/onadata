@@ -10,6 +10,9 @@ from onadata.apps.logger.xform_instance_parser import get_uuid_from_xml,\
     get_meta_from_xml, get_deprecated_uuid_from_xml
 from onadata.libs.utils.common_tags import XFORM_ID_STRING
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.xform_instance_parser import _xml_node_to_dict,\
+    clean_and_parse_xml
+
 
 XML = u"xml"
 DICT = u"dict"
@@ -169,9 +172,7 @@ class TestXFormInstanceParser(TestBase):
             "multiple_nodes_error.xml"
         )
         self._make_submission(xml_submission_file_path)
-        self.assertContains(self.response,
-                            "Multiple nodes with the same name",
-                            status_code=400)
+        self.assertEquals(201, self.response.status_code)
 
     def test_multiple_media_files_on_encrypted_form(self):
         self._create_user_and_login()
@@ -210,3 +211,20 @@ class TestXFormInstanceParser(TestBase):
         expected_flat_list = [{u'media/file': u'1483528430996.jpg.enc'},
                               {u'media/file': u'1483528445767.jpg.enc'}]
         self.assertEqual(flat_dict.get('media'), expected_flat_list)
+
+    def test_xml_repeated_nodes_to_dict(self):
+        xml_file = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/repeated_nodes.xml"
+        )
+        json_file = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/repeated_nodes_expected_results.json"
+        )
+        with open(xml_file) as file:
+            dict = _xml_node_to_dict(clean_and_parse_xml(file.read()))
+            self.assertTrue(dict['#document']['RW_OUNIS_2016']['S2A'])
+            self.assertEqual(3, len(dict['#document']['RW_OUNIS_2016']['S2A']))
+            with open(json_file) as file:
+                import json
+                self.assertEqual(file.read(), json.dumps(dict))
