@@ -47,7 +47,7 @@ QUESTION_TYPES_TO_EXCLUDE = [
     u'note',
 ]
 XFORM_TITLE_LENGTH = 255
-title_pattern = re.compile(r"<h:title>([^<]+)</h:title>")
+title_pattern = re.compile(r"<h:title>(.*?)</h:title>")
 
 
 def _encode_for_mongo(key):
