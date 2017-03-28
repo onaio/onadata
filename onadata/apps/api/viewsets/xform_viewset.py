@@ -579,8 +579,11 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                                  'text_xls_form']) & set(request.data.keys()):
             return _try_update_xlsform(request, self.object, owner)
 
-        return super(XFormViewSet, self).partial_update(request, *args,
-                                                        **kwargs)
+        try:
+            return super(XFormViewSet, self).partial_update(request, *args,
+                                                            **kwargs)
+        except XLSFormError as e:
+            raise ParseError(str(e))
 
     @detail_route(methods=['DELETE', 'GET'])
     def delete_async(self, request, *args, **kwargs):

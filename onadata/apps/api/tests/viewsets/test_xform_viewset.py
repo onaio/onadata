@@ -1389,7 +1389,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             view = XFormViewSet.as_view({
                 'patch': 'partial_update'
             })
-            title = u'مرحب'
+            title = u'Hello & World!'
             description = 'DESCRIPTION'
             data = {'public': True, 'description': description, 'title': title,
                     'downloadable': True}
@@ -1398,6 +1398,13 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             request = self.factory.patch('/', data=data, **self.extra)
             response = view(request, pk=self.xform.id)
+            self.assertEqual(response.status_code, 400)
+
+            title = u'Hello and World!'
+            data['title'] = title
+            request = self.factory.patch('/', data=data, **self.extra)
+            response = view(request, pk=self.xform.id)
+            self.assertEqual(response.status_code, 200)
 
             self.xform.reload()
             self.assertTrue(self.xform.downloadable)
