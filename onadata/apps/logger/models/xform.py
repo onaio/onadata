@@ -725,10 +725,14 @@ class XForm(XFormMixin, BaseModel):
     def _set_title(self):
         text = re.sub(r"\s+", " ", self.xml)
         matches = title_pattern.findall(text)
-        title_xml = matches[0][:XFORM_TITLE_LENGTH]
 
         if len(matches) != 1:
             raise XLSFormError(_("There should be a single title."), matches)
+
+        if matches:
+            title_xml = matches[0][:XFORM_TITLE_LENGTH]
+        else:
+            title_xml = self.title[:XFORM_TITLE_LENGTH] if self.title else ''
 
         if self.title and title_xml != self.title:
             title_xml = self.title[:XFORM_TITLE_LENGTH]
