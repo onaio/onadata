@@ -1,55 +1,43 @@
-import httplib2
-import os
 import json
+import os
 from datetime import datetime
-from requests import ConnectionError
 
+import httplib2
+from celery.backends.amqp import BacklogLimitExceeded
+from celery.result import AsyncResult
 from django.conf import settings
 from django.http import Http404, HttpResponseRedirect
-from django.utils.translation import ugettext as _
-from django.utils import six
 from django.shortcuts import get_object_or_404
-
-from rest_framework import exceptions
+from django.utils import six
+from django.utils.translation import ugettext as _
+from oauth2client import client as google_client
+from oauth2client.client import (HttpAccessTokenRefreshError,
+                                 OAuth2WebServerFlow, TokenRevokeError)
+from oauth2client.contrib.django_orm import Storage
+from requests import ConnectionError
+from rest_framework import exceptions, status
 from rest_framework.response import Response
-from rest_framework import status
 from rest_framework.reverse import reverse
-
 from savReaderWriter import SPSSIOError
 
-from celery.result import AsyncResult
-
-from oauth2client.contrib.django_orm import Storage
-from oauth2client.client import OAuth2WebServerFlow
-from oauth2client.client import HttpAccessTokenRefreshError
-from oauth2client.client import TokenRevokeError
-from oauth2client import client as google_client
-
-from onadata.apps.viewer.models.export import Export
-from onadata.libs.utils.export_tools import should_create_new_export
-from onadata.libs.utils.export_tools import check_pending_export
-from onadata.libs.utils.common_tags import OSM
-from onadata.libs.utils import log
 from onadata.apps.main.models import TokenStorageModel
 from onadata.apps.viewer import tasks as viewer_task
-from onadata.libs.exceptions import NoRecordsFoundError, J2XException
-from onadata.libs.utils.export_tools import newest_export_for
-from onadata.libs.utils.export_tools import generate_attachments_zip_export
-from onadata.libs.utils.export_tools import generate_export
-from onadata.libs.utils.export_tools import generate_kml_export
-from onadata.libs.utils.export_tools import generate_external_export
-from onadata.libs.utils.export_tools import generate_osm_export
-from onadata.libs.utils.export_tools import parse_request_export_options
-from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
-from onadata.libs.exceptions import ServiceUnavailable
-from onadata.libs.utils.common_tags import SUBMISSION_TIME,\
-    GROUPNAME_REMOVED_FLAG, DATAVIEW_EXPORT
-from onadata.libs.utils.model_tools import get_columns_with_hxl
-from onadata.libs.utils.async_status import (celery_state_to_status,
-                                             async_status, SUCCESSFUL,
-                                             FAILED, PENDING)
+from onadata.apps.viewer.models.export import Export
+from onadata.libs.exceptions import (J2XException, NoRecordsFoundError,
+                                     NoRecordsPermission, ServiceUnavailable)
 from onadata.libs.permissions import filter_queryset_xform_meta_perms_sql
-from onadata.libs.exceptions import NoRecordsPermission
+from onadata.libs.utils import log
+from onadata.libs.utils.async_status import (
+    FAILED, PENDING, SUCCESSFUL, async_status, celery_state_to_status)
+from onadata.libs.utils.common_tags import (
+    DATAVIEW_EXPORT, GROUPNAME_REMOVED_FLAG, OSM, SUBMISSION_TIME)
+from onadata.libs.utils.export_tools import (
+    check_pending_export, generate_attachments_zip_export, generate_export,
+    generate_external_export, generate_kml_export, generate_osm_export,
+    newest_export_for, parse_request_export_options, should_create_new_export)
+from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
+from onadata.libs.utils.model_tools import get_columns_with_hxl
+
 # Supported external exports
 external_export_types = ['xls']
 
@@ -87,14 +75,18 @@ def _get_export_type(export_type):
     else:
         raise exceptions.ParseError(
             _(u"'%(export_type)s' format not known or not implemented!" %
-              {'export_type': export_type})
-        )
+              {'export_type': export_type}))
 
     return export_type
 
 
-def custom_response_handler(request, xform, query, export_type,
-                            token=None, meta=None, dataview=False,
+def custom_response_handler(request,
+                            xform,
+                            query,
+                            export_type,
+                            token=None,
+                            meta=None,
+                            dataview=False,
                             filename=None):
     export_type = _get_export_type(export_type)
     if export_type in external_export_types and \
@@ -110,19 +102,17 @@ def custom_response_handler(request, xform, query, export_type,
         columns_with_hxl = get_columns_with_hxl(xform.survey.get('children'))
 
         if columns_with_hxl:
-            options['include_hxl'] = include_hxl_row(
-                dataview.columns, columns_with_hxl.keys()
-            )
+            options['include_hxl'] = include_hxl_row(dataview.columns,
+                                                     columns_with_hxl.keys())
     try:
         query = filter_queryset_xform_meta_perms_sql(xform, request.user,
                                                      query)
     except NoRecordsPermission:
-        payload = {
-            "details": _("You don't have permission")
-        }
-        return Response(data=json.dumps(payload),
-                        status=status.HTTP_403_FORBIDDEN,
-                        content_type="application/json")
+        payload = {"details": _("You don't have permission")}
+        return Response(
+            data=json.dumps(payload),
+            status=status.HTTP_403_FORBIDDEN,
+            content_type="application/json")
 
     options['query'] = query
 
@@ -135,21 +125,22 @@ def custom_response_handler(request, xform, query, export_type,
     else:
         if export_type == Export.GOOGLE_SHEETS_EXPORT:
 
-                payload = {
-                    "details": _("Sheets export only supported in async mode")
-                }
-                return Response(data=json.dumps(payload),
-                                status=status.HTTP_403_FORBIDDEN,
-                                content_type="application/json")
+            payload = {
+                "details": _("Sheets export only supported in async mode")
+            }
+            return Response(
+                data=json.dumps(payload),
+                status=status.HTTP_403_FORBIDDEN,
+                content_type="application/json")
 
         # check if we need to re-generate,
         # we always re-generate if a filter is specified
         def new_export():
-            return _generate_new_export(request, xform, query, export_type,
-                                        dataview_pk=dataview_pk)
+            return _generate_new_export(
+                request, xform, query, export_type, dataview_pk=dataview_pk)
 
-        if should_create_new_export(xform, export_type, options,
-                                    request=request):
+        if should_create_new_export(
+                xform, export_type, options, request=request):
             export = new_export()
         else:
             export = newest_export_for(xform, export_type, options)
@@ -172,12 +163,15 @@ def custom_response_handler(request, xform, query, export_type,
 
     show_date = True
     if filename is None and export.status == Export.SUCCESSFUL:
-        filename = _generate_filename(request, xform, remove_group_name,
-                                      dataview_pk=dataview_pk)
+        filename = _generate_filename(
+            request, xform, remove_group_name, dataview_pk=dataview_pk)
     else:
         show_date = False
     response = response_with_mimetype_and_name(
-        Export.EXPORT_MIMES[ext], filename, extension=ext, show_date=show_date,
+        Export.EXPORT_MIMES[ext],
+        filename,
+        extension=ext,
+        show_date=show_date,
         file_path=export.filepath)
 
     return response
@@ -188,10 +182,12 @@ def _generate_new_export(request, xform, query, export_type,
     query = _set_start_end_params(request, query)
     extension = _get_extension_from_export_type(export_type)
 
-    options = {"extension": extension,
-               "username": xform.user.username,
-               "id_string": xform.id_string,
-               "query": query}
+    options = {
+        "extension": extension,
+        "username": xform.user.username,
+        "id_string": xform.id_string,
+        "query": query
+    }
 
     options["dataview_pk"] = dataview_pk
     if export_type == Export.GOOGLE_SHEETS_EXPORT:
@@ -208,48 +204,43 @@ def _generate_new_export(request, xform, query, export_type,
                 xform.user.username,
                 xform.id_string,
                 None,
-                options, xform=xform)
+                options,
+                xform=xform)
         elif export_type == Export.OSM_EXPORT:
             export = generate_osm_export(
                 export_type,
                 xform.user.username,
                 xform.id_string,
                 None,
-                options, xform=xform)
+                options,
+                xform=xform)
         elif export_type == Export.ZIP_EXPORT:
             export = generate_attachments_zip_export(
                 export_type,
                 xform.user.username,
                 xform.id_string,
                 None,
-                options, xform=xform)
+                options,
+                xform=xform)
         elif export_type == Export.KML_EXPORT:
             export = generate_kml_export(
                 export_type,
                 xform.user.username,
                 xform.id_string,
                 None,
-                options, xform=xform)
+                options,
+                xform=xform)
         else:
             options.update(parse_request_export_options(request.query_params))
 
-            export = generate_export(
-                export_type,
-                xform,
-                None,
-                options)
+            export = generate_export(export_type, xform, None, options)
 
-        audit = {
-            "xform": xform.id_string,
-            "export_type": export_type
-        }
+        audit = {"xform": xform.id_string, "export_type": export_type}
         log.audit_log(
             log.Actions.EXPORT_CREATED, request.user, xform.user,
             _("Created %(export_type)s export on '%(id_string)s'.") %
-            {
-                'id_string': xform.id_string,
-                'export_type': export_type.upper()
-            }, audit, request)
+            {'id_string': xform.id_string,
+             'export_type': export_type.upper()}, audit, request)
     except NoRecordsFoundError:
         raise Http404(_("No records found to export"))
     except J2XException as e:
@@ -263,17 +254,12 @@ def _generate_new_export(request, xform, query, export_type,
 
 def log_export(request, xform, export_type):
     # log download as well
-    audit = {
-        "xform": xform.id_string,
-        "export_type": export_type
-    }
+    audit = {"xform": xform.id_string, "export_type": export_type}
     log.audit_log(
         log.Actions.EXPORT_DOWNLOADED, request.user, xform.user,
         _("Downloaded %(export_type)s export on '%(id_string)s'.") %
-        {
-            'id_string': xform.id_string,
-            'export_type': export_type.upper()
-        }, audit, request)
+        {'id_string': xform.id_string,
+         'export_type': export_type.upper()}, audit, request)
 
 
 def external_export_response(export):
@@ -283,11 +269,13 @@ def external_export_response(export):
     else:
         http_status = status.HTTP_400_BAD_REQUEST
 
-    return Response(json.dumps(export), http_status,
-                    content_type="application/json")
+    return Response(
+        json.dumps(export), http_status, content_type="application/json")
 
 
-def _generate_filename(request, xform, remove_group_name=False,
+def _generate_filename(request,
+                       xform,
+                       remove_group_name=False,
                        dataview_pk=False):
     if request.GET.get('raw'):
         filename = None
@@ -320,8 +308,7 @@ def _set_start_end_params(request, query):
                     request.GET['end'], datetime)
         except ValueError:
             raise exceptions.ParseError(
-                _("Dates must be in the format YY_MM_DD_hh_mm_ss")
-            )
+                _("Dates must be in the format YY_MM_DD_hh_mm_ss"))
         else:
             query = json.dumps(query)
 
@@ -342,8 +329,8 @@ def _get_extension_from_export_type(export_type):
 
 
 def _format_date_for_mongo(x, datetime):
-    return datetime.strptime(
-        x, '%y_%m_%d_%H_%M_%S').strftime('%Y-%m-%dT%H:%M:%S')
+    return datetime.strptime(x,
+                             '%y_%m_%d_%H_%M_%S').strftime('%Y-%m-%dT%H:%M:%S')
 
 
 def process_async_export(request, xform, export_type, options=None):
@@ -376,16 +363,15 @@ def process_async_export(request, xform, export_type, options=None):
         query = filter_queryset_xform_meta_perms_sql(xform, request.user,
                                                      query)
     except NoRecordsPermission:
-        payload = {
-            "details": _("You don't have permission")
-        }
-        return Response(data=json.dumps(payload),
-                        status=status.HTTP_403_FORBIDDEN,
-                        content_type="application/json")
+        payload = {"details": _("You don't have permission")}
+        return Response(
+            data=json.dumps(payload),
+            status=status.HTTP_403_FORBIDDEN,
+            content_type="application/json")
 
     if export_type in external_export_types and \
             (token is not None) or (meta is not None):
-                export_type = Export.EXTERNAL_EXPORT
+        export_type = Export.EXTERNAL_EXPORT
 
     dataview_pk = options.get('dataview_pk')
     if export_type == Export.GOOGLE_SHEETS_EXPORT:
@@ -398,9 +384,9 @@ def process_async_export(request, xform, export_type, options=None):
     if should_create_new_export(xform, export_type, options, request=request)\
             or export_type == Export.EXTERNAL_EXPORT:
         resp = {
-            u'job_uuid': _create_export_async(xform, export_type,
-                                              query, False,
-                                              options=options)
+            u'job_uuid':
+            _create_export_async(
+                xform, export_type, query, False, options=options)
         }
     else:
         export = newest_export_for(xform, export_type, options)
@@ -408,20 +394,23 @@ def process_async_export(request, xform, export_type, options=None):
         if not export.filename:
             # tends to happen when using newest_export_for.
             resp = {
-                u'job_uuid': _create_export_async(xform, export_type,
-                                                  query, False,
-                                                  options=options)
+                u'job_uuid':
+                _create_export_async(
+                    xform, export_type, query, False, options=options)
             }
         else:
-            resp = _export_async_export_response(request, xform, export,
-                                                 dataview_pk=dataview_pk)
+            resp = _export_async_export_response(
+                request, xform, export, dataview_pk=dataview_pk)
 
     return resp
 
 
-def _create_export_async(xform, export_type, query=None, force_xlsx=False,
+def _create_export_async(xform,
+                         export_type,
+                         query=None,
+                         force_xlsx=False,
                          options=None):
-        """
+    """
         Creates async exports
         :param xform:
         :param export_type:
@@ -431,15 +420,15 @@ def _create_export_async(xform, export_type, query=None, force_xlsx=False,
         :return:
             job_uuid generated
         """
-        export = check_pending_export(xform, export_type, options)
+    export = check_pending_export(xform, export_type, options)
 
-        if export:
-            return export.task_id
+    if export:
+        return export.task_id
 
-        export, async_result \
-            = viewer_task.create_async_export(xform, export_type, query,
-                                              force_xlsx, options=options)
-        return async_result.task_id
+    export, async_result \
+        = viewer_task.create_async_export(xform, export_type, query,
+                                          force_xlsx, options=options)
+    return async_result.task_id
 
 
 def _export_async_export_response(request, xform, export, dataview_pk=None):
@@ -451,12 +440,11 @@ def _export_async_export_response(request, xform, export, dataview_pk=None):
     :return: response dict example {"job_status": "Success", "export_url": ...}
     """
     if export.status == Export.SUCCESSFUL:
-        if export.export_type not in [Export.EXTERNAL_EXPORT,
-                                      Export.GOOGLE_SHEETS_EXPORT]:
+        if export.export_type not in [
+                Export.EXTERNAL_EXPORT, Export.GOOGLE_SHEETS_EXPORT
+        ]:
             export_url = reverse(
-                'export-detail',
-                kwargs={'pk': export.pk},
-                request=request)
+                'export-detail', kwargs={'pk': export.pk}, request=request)
         else:
             export_url = export.export_url
         resp = async_status(SUCCESSFUL)
@@ -476,8 +464,7 @@ def get_async_response(job_uuid, request, xform, count=0):
             export_id = job.result
             export = get_object_or_404(Export, id=export_id)
 
-            resp = _export_async_export_response(
-                request, xform, export)
+            resp = _export_async_export_response(request, xform, export)
         else:
             resp = async_status(celery_state_to_status(job.state))
 
@@ -490,6 +477,9 @@ def get_async_response(job_uuid, request, xform, count=0):
             raise ServiceUnavailable(unicode(e))
 
         return get_async_response(job_uuid, request, xform, count + 1)
+    except BacklogLimitExceeded:
+        # most likely still processing
+        resp = async_status(celery_state_to_status('PENDING'))
 
     return resp
 
@@ -521,11 +511,13 @@ def generate_google_web_flow(request):
     return OAuth2WebServerFlow(
         client_id=settings.GOOGLE_CLIENT_ID,
         client_secret=settings.GOOGLE_CLIENT_SECRET,
-        scope=' '.join(
-            ['https://docs.google.com/feeds/',
-             'https://spreadsheets.google.com/feeds/',
-             'https://www.googleapis.com/auth/drive.file']),
-        redirect_uri=redirect_uri, prompt="consent")
+        scope=' '.join([
+            'https://docs.google.com/feeds/',
+            'https://spreadsheets.google.com/feeds/',
+            'https://www.googleapis.com/auth/drive.file'
+        ]),
+        redirect_uri=redirect_uri,
+        prompt="consent")
 
 
 def _get_google_credential(request):
