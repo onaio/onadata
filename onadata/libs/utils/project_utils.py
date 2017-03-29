@@ -35,7 +35,8 @@ def set_project_perms_to_xform(xform, project):
         role_name = perm['role']
         role = ROLES.get(role_name)
 
-        if user != xform.created_by:
-            role.add(user, xform)
-        else:
+        if user == xform.created_by:
             OwnerRole.add(user, xform)
+        else:
+            if role:
+                role.add(user, xform)

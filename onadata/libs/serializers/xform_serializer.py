@@ -358,6 +358,7 @@ class XFormManifestSerializer(serializers.Serializer):
         if len(parts) > 2:
             dataset_type = parts[0]
             pk = parts[1]
+            xform = None
             if dataset_type == 'xform':
                 xform = XForm.objects.filter(pk=pk)\
                     .only('last_submission_time').first()
