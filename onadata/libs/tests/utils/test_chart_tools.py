@@ -310,6 +310,20 @@ class TestChartTools(TestBase):
 
         self.assertEqual(get_choice_label(choices, string), [string])
 
+    def test_get_choice_label_with_list_label(self):
+        choices = [{
+            'control': {},
+            'name': 'Western Rural',
+            'label': 'Western Rural'
+        }, {
+            'control': {},
+            'name': 'Western Urban',
+            'label': 'Western Urban'
+        }]
+        string = ['Western Rural']
+
+        self.assertEqual(get_choice_label(choices, [string]), [string])
+
     def test_get_choice_label_for_multi_select(self):
         pam = "PAM"
         croix_rouge = "Croix Rouge"
