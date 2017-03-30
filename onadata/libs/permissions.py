@@ -415,11 +415,11 @@ def filter_queryset_xform_meta_perms_sql(xform, user, query):
                 query = json.loads(query)
                 if isinstance(query, list):
                     query = query[0]
-
             else:
                 query = dict()
-                query.update({"_submitted_by": user.username})
-                ret_query = json.dumps(query)
+
+            query.update({"_submitted_by": user.username})
+            ret_query = json.dumps(query)
 
         except (ValueError, AttributeError):
             query_list = list()
