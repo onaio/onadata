@@ -537,6 +537,14 @@ class TestProjectViewSet(TestAbstractViewSet):
             self, mock_send_mail):
         # create bob's project and publish a form to it
         self._publish_xls_form_to_project()
+        bobs_project = self.project
+
+        view = ProjectViewSet.as_view({
+            'get': 'retrieve'
+        })
+        # access bob's project initially to cache the forms list
+        request = self.factory.get('/', **self.extra)
+        view(request, pk=bobs_project.pk)
 
         # create an organization with a project
         self._org_create()
@@ -545,15 +553,27 @@ class TestProjectViewSet(TestAbstractViewSet):
             'owner': 'http://testserver/api/v1/users/denoinc',
             'public': False
         })
+        org_project = self.project
+
+        self.assertNotEqual(bobs_project.id, org_project.id)
 
         # try transfering bob's form to an organization project he created
         view = ProjectViewSet.as_view({
             'post': 'forms',
+            'get': 'retrieve'
         })
         post_data = {'formid': self.xform.id}
         request = self.factory.post('/', data=post_data, **self.extra)
         response = view(request, pk=self.project.id)
+
         self.assertEqual(response.status_code, 201)
+
+        # test that cached forms of a source project are cleared. Bob had one
+        # forms initially and now it's been moved to the org project.
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=bobs_project.pk)
+        bobs_results = response.data
+        self.assertListEqual(bobs_results.get('forms'), [])
 
     @patch('onadata.apps.api.viewsets.project_viewset.send_mail')
     def test_handle_integrity_error_on_form_transfer(self, mock_send_mail):
