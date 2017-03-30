@@ -107,7 +107,7 @@ def get_choice_label(choices, string):
     """
     labels = []
 
-    if string and choices:
+    if string and isinstance(string, six.string_types) and choices:
         label = find_choice_label(choices, string)
 
         if label:
@@ -122,6 +122,9 @@ def get_choice_label(choices, string):
             # but a missing label, use string
             if None in labels:
                 labels = [string]
+    elif isinstance(string, list) and string:
+        # most likely already translated
+        labels = string
     elif not choices:
         labels = [string]
 
