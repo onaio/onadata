@@ -1,4 +1,3 @@
-import re
 from collections import OrderedDict
 from itertools import chain
 
@@ -477,12 +476,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 self._reindex(key, value, self.ordered_columns,
                               record, self.dd, include_images=image_xpaths)
 
-    def _format_for_dataframe(self, cursor, key_replacement_obj=None):
-        pattern, replacer = None, None
-        if key_replacement_obj:
-            pattern = key_replacement_obj.get('pattern')
-            replacer = key_replacement_obj.get('replacer')
-
+    def _format_for_dataframe(self, cursor):
         # TODO: check for and handle empty results
         # add ordered columns for select multiples
         if self.split_select_multiples:
@@ -510,10 +504,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             flat_dict = {}
             # re index repeats
             for key, value in record.iteritems():
-                _key = key
-                if pattern and replacer:
-                    _key = re.sub(pattern, replacer, _key)
-                reindexed = self._reindex(_key, value, self.ordered_columns,
+                reindexed = self._reindex(key, value, self.ordered_columns,
                                           record, self.dd,
                                           include_images=image_xpaths)
                 flat_dict.update(reindexed)
