@@ -138,11 +138,7 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, TotalHeaderMixin,
             csv_df_builder = CSVDataFrameBuilder(
                 xform.user.username, xform.id_string, include_images=False)
             data = csv_df_builder._format_for_dataframe(
-                DataInstanceSerializer(instances, many=True).data,
-                key_replacement_obj={
-                    'pattern': r"(/|-|\[|\])",
-                    "replacer": r"_"
-                })
+                DataInstanceSerializer(instances, many=True).data)
 
             return self._get_streaming_response(data, length)
 
@@ -156,7 +152,9 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, TotalHeaderMixin,
             yield u"["
 
             for i, d in enumerate(streaming_data, start=1):
-                yield json.dumps(d)
+                yield json.dumps({
+                    re.sub(r"\W", r"_", a): b for a, b in d.items()
+                })
                 yield "" if i == length else ","
 
             yield u"]"
