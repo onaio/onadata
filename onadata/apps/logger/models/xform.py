@@ -127,6 +127,16 @@ class DuplicateUUIDError(Exception):
     pass
 
 
+def create_xform_version(release=1):
+    date_part = datetime.utcnow().strftime("%Y%m%d")
+
+    if release is None:
+        release = 1
+    release_part = str(release).zfill(2)[:2]
+
+    return '%s%s' % (date_part, release_part)
+
+
 def get_forms_shared_with_user(user):
     """
     Return forms shared with a user
@@ -621,15 +631,33 @@ class XFormMixin(object):
         the default version in this datetime (yyyymmddhhmm) format.
         """
 
+        change_version = False
         # get the json and check for the version key
         survey_json = json.loads(survey.to_json())
-        if not survey_json.get("version"):
+        version = survey_json.get("version")
+        if version is None:
             # set utc time as the default version
-            survey_json['version'] = \
-                datetime.utcnow().strftime("%Y%m%d%H%M")
+            change_version = True
+            version = create_xform_version()
+        else:
+            try:
+                int(version)
+            except ValueError:
+                raise XLSFormError(
+                    _(u"version should be a string of upto 10 numbers that "
+                      "describe this revision. You could use a string of the "
+                      "form 'yyyymmddrr'. For example, 2017021501 is the 1st "
+                      "revision from Feb 15th, 2017."))
+            else:
+                if len(version) > 10:
+                    change_version = True
+
+        if change_version:
+            survey_json['version'] = version[:10]
             builder = SurveyElementBuilder()
             survey = builder.create_survey_element_from_json(
                 json.dumps(survey_json))
+
         return survey
 
 
