@@ -57,15 +57,6 @@ class TestXForm(TestBase):
         self.xform._set_title()  # pylint: disable=W0212
         self.assertIn(self.xform.title, self.xform.xml)
 
-    def test_version_length(self):
-        """Test Xform.version can store more than 12 chars"""
-        self._publish_transportation_form_and_submit_instance()
-        xform = XForm.objects.get(pk=self.xform.id)
-        xform.version = u'12345678901234567890'
-        xform.save()
-
-        self.assertTrue(len(xform.version) > 12)
-
     def test_soft_delete(self):
         """
         Test XForm soft delete.
