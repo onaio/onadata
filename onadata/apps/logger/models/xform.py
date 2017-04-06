@@ -635,34 +635,28 @@ class XFormMixin(object):
         Checks if the version has been set in the xls file and if not adds
         the default version in this datetime (yyyymmddhhmm) format.
         """
-
-        change_version = False
         # get the json and check for the version key
         survey_json = json.loads(survey.to_json())
         version = survey_json.get("version")
         if version is None:
-            change_version = True
-            version = create_xform_version()
-        else:
-            try:
-                int(version)
-            except ValueError:
-                raise XLSFormError(
-                    _(u"'version' is string of up to 10 numbers that "
-                      " describes this revision. Revised form definitions "
-                      "must have alphabetically greater versions than previous"
-                      " ones. A common convention is to use strings of the "
-                      "form 'yyyymmddrr'. For example, 2017021501 is the 1st"
-                      " revision from Feb 15th, 2017<Paste>"))
-            else:
-                if len(version) > 10:
-                    change_version = True
-
-        if change_version:
-            survey_json['version'] = version[:10]
+            survey_json['version'] = create_xform_version()
             builder = SurveyElementBuilder()
             survey = builder.create_survey_element_from_json(
                 json.dumps(survey_json))
+        else:
+            msg = _(u"'version' is string of up to 10 numbers that "
+                    " describes this revision. Revised form definitions "
+                    "must have alphabetically greater versions than previous"
+                    " ones. A common convention is to use strings of the "
+                    "form 'yyyymmddrr'. For example, 2017021501 is the 1st"
+                    " revision from Feb 15th, 2017")
+            if len(version) > 10:
+                raise XLSFormError(msg)
+
+            try:
+                int(version)
+            except ValueError:
+                raise XLSFormError(msg)
 
         return survey
 
