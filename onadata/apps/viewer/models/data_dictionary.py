@@ -101,7 +101,7 @@ class DataDictionary(XForm):
                 self.survey_dict = survey_dict
                 self.has_external_choices = True
             survey = create_survey_element_from_dict(survey_dict)
-            survey = self._check_version_set(survey)
+            survey = self._check_version_set(survey, self.version)
             if get_columns_with_hxl(survey.get('children')):
                 self.has_hxl_support = True
             # if form is being replaced, don't check for id_string uniqueness

@@ -317,6 +317,26 @@ class TestXFormViewSet(TestAbstractViewSet):
         })
         request = self.factory.patch('/', data=updated_post_data, **self.extra)
         response = view(request, pk=xform.id)
+        self.assertEqual(response.status_code, 400)
+        msg = u'Revised form definitions must have alphabetically greater'
+        self.assertTrue(response.data['text'].find(msg) != -1)
+
+        updated_post_data = {
+            u'downloadable': [u'True'],
+            u'text_xls_form': [
+                (u"survey\r\n,"
+                 "required,type,name,label,calculation\r\n,"
+                 "true,text,What_is_your_name,What is your name\r\n,"
+                 "true,integer,What_is_your_age,What is your age\r\n,"
+                 ",calculate,__version__,,'vB9EtM9inCMPC4qpPcuX3h'\r\n"
+                 "settings\r\n,"
+                 "form_title,version,id_string\r\n,"
+                 "Demo to Jonathan,2017040602,"
+                 "afPkTij9pVg8T8c35h3SvS\r\n")]
+        }
+
+        request = self.factory.patch('/', data=updated_post_data, **self.extra)
+        response = view(request, pk=xform.id)
         self.assertEqual(response.status_code, 200)
 
     def test_instances_with_geopoints_true_for_instances_with_geopoints(self):

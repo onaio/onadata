@@ -630,26 +630,29 @@ class XFormMixin(object):
             ], [])
         ]
 
-    def _check_version_set(self, survey):
+    def _check_version_set(self, survey, current_version=None):
         """
         Checks if the version has been set in the xls file and if not adds
         the default version in this datetime (yyyymmddhhmm) format.
         """
+        msg = _(u"'version' is string of up to 10 numbers that "
+                " describes this revision. Revised form definitions "
+                "must have alphabetically greater versions than previous"
+                " ones. A common convention is to use strings of the "
+                "form 'yyyymmddrr'. For example, 2017021501 is the 1st"
+                " revision from Feb 15th, 2017")
         # get the json and check for the version key
         survey_json = json.loads(survey.to_json())
         version = survey_json.get("version")
+        if version and current_version and version <= current_version:
+            raise XLSFormError(msg)
+
         if version is None:
             survey_json['version'] = create_xform_version()
             builder = SurveyElementBuilder()
             survey = builder.create_survey_element_from_json(
                 json.dumps(survey_json))
         else:
-            msg = _(u"'version' is string of up to 10 numbers that "
-                    " describes this revision. Revised form definitions "
-                    "must have alphabetically greater versions than previous"
-                    " ones. A common convention is to use strings of the "
-                    "form 'yyyymmddrr'. For example, 2017021501 is the 1st"
-                    " revision from Feb 15th, 2017")
             if len(version) > 10:
                 raise XLSFormError(msg)
 
