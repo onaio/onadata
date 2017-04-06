@@ -2,6 +2,7 @@ import base64
 import json
 import os
 import re
+import six
 from datetime import datetime
 from hashlib import md5
 from xml.dom import Node
@@ -127,7 +128,7 @@ class DuplicateUUIDError(Exception):
     pass
 
 
-def create_xform_version(release=1):
+def create_xform_version(previous_version=None):
     """Generate XForm version.
 
     XForm version is a string of up to 10 numbers that describes this
@@ -137,6 +138,16 @@ def create_xform_version(release=1):
     For example, 2017021501 is the 1st revision from Feb 15th, 2017
     """
     date_part = datetime.utcnow().strftime("%Y%m%d")
+    release = 1
+    if previous_version is not None and isinstance(previous_version,
+                                                   six.string_types):
+        try:
+            int(previous_version)
+        except ValueError:
+            pass
+        else:
+            if len(previous_version) == 10 and (previous_version[:8] == date_part):  # noqa
+                release = int(previous_version[8:]) + 1
     release_part = str(release or 1).zfill(2)[:2]
 
     return '%s%s' % (date_part, release_part)
@@ -648,7 +659,7 @@ class XFormMixin(object):
             raise XLSFormError(msg)
 
         if version is None:
-            survey_json['version'] = create_xform_version()
+            survey_json['version'] = create_xform_version(current_version)
             builder = SurveyElementBuilder()
             survey = builder.create_survey_element_from_json(
                 json.dumps(survey_json))

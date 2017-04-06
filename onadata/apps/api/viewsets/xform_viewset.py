@@ -125,8 +125,7 @@ def _try_update_xlsform(request, xform, owner):
         utils.publish_xlsform(request, owner, xform.id_string, xform.project)
 
     if isinstance(survey, XForm):
-        serializer = XFormSerializer(
-            xform, context={'request': request})
+        serializer = XFormSerializer(survey, context={'request': request})
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 

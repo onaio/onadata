@@ -278,6 +278,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self._project_create()
         project_id = self.project.pk
 
+        date_part = datetime.utcnow().strftime('%Y%m%d')
         pre_count = XForm.objects.count()
         valid_post_data = {
             u'downloadable': [u'True'],
@@ -288,7 +289,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                  ",calculate,__version__,,'vbP67kPMwnY8aTFcFHgWMN'\r\n"
                  "settings\r\n,"
                  "form_title,version,id_string\r\n,"
-                 "Demo to Jonathan,2017040601,"
+                 "Demo to Jonathan," + date_part + "01,"
                  "afPkTij9pVg8T8c35h3SvS\r\n")]
         }
 
@@ -297,6 +298,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(XForm.objects.count(), pre_count + 1)
 
+        # alphabetically greater version not provided
         updated_post_data = {
             u'downloadable': [u'True'],
             u'text_xls_form': [
@@ -307,7 +309,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                  ",calculate,__version__,,'vB9EtM9inCMPC4qpPcuX3h'\r\n"
                  "settings\r\n,"
                  "form_title,version,id_string\r\n,"
-                 "Demo to Jonathan,2017040601,"
+                 "Demo to Jonathan," + date_part + "01,"
                  "afPkTij9pVg8T8c35h3SvS\r\n")]
         }
 
@@ -321,6 +323,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         msg = u'Revised form definitions must have alphabetically greater'
         self.assertTrue(response.data['text'].find(msg) != -1)
 
+        # alphabetically greater version provided
         updated_post_data = {
             u'downloadable': [u'True'],
             u'text_xls_form': [
@@ -331,13 +334,33 @@ class TestXFormViewSet(TestAbstractViewSet):
                  ",calculate,__version__,,'vB9EtM9inCMPC4qpPcuX3h'\r\n"
                  "settings\r\n,"
                  "form_title,version,id_string\r\n,"
-                 "Demo to Jonathan,2017040602,"
+                 "Demo to Jonathan," + date_part + "02,"
                  "afPkTij9pVg8T8c35h3SvS\r\n")]
         }
 
         request = self.factory.patch('/', data=updated_post_data, **self.extra)
         response = view(request, pk=xform.id)
         self.assertEqual(response.status_code, 200)
+
+        # no version, should auto increment to date_part + 03
+        updated_post_data = {
+            u'downloadable': [u'True'],
+            u'text_xls_form': [
+                (u"survey\r\n,"
+                 "required,type,name,label,calculation\r\n,"
+                 "true,text,What_is_your_name,What is your name\r\n,"
+                 "true,integer,What_is_your_age,What is your age\r\n,"
+                 ",calculate,__version__,,'vB9EtM9inCMPC4qpPcuX3h'\r\n"
+                 "settings\r\n,"
+                 "form_title,version,id_string\r\n,"
+                 "Demo to Jonathan,,"
+                 "afPkTij9pVg8T8c35h3SvS\r\n")]
+        }
+
+        request = self.factory.patch('/', data=updated_post_data, **self.extra)
+        response = view(request, pk=xform.id)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get('version'), '2017040603')
 
     def test_instances_with_geopoints_true_for_instances_with_geopoints(self):
         with HTTMock(enketo_mock):
