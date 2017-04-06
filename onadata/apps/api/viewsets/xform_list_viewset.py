@@ -42,7 +42,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
     authentication_classes = (DigestAuthentication,
                               EnketoTokenAuthentication,)
     content_negotiation_class = MediaFileContentNegotiation
-    filter_backends = (filters.XFormListObjectPermissionFilter,)
+    filter_backends = (filters.AnonDjangoObjectPermissionFilter,)
     queryset = XForm.objects.filter(downloadable=True, deleted_at=None)
     permission_classes = (permissions.AllowAny,)
     renderer_classes = (XFormListRenderer,)
