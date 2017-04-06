@@ -288,7 +288,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                  ",calculate,__version__,,'vbP67kPMwnY8aTFcFHgWMN'\r\n"
                  "settings\r\n,"
                  "form_title,version,id_string\r\n,"
-                 "Demo to Jonathan,vbP67kPMwnY8aTFcFHgWMN,"
+                 "Demo to Jonathan,2017040601,"
                  "afPkTij9pVg8T8c35h3SvS\r\n")]
         }
 
@@ -307,7 +307,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                  ",calculate,__version__,,'vB9EtM9inCMPC4qpPcuX3h'\r\n"
                  "settings\r\n,"
                  "form_title,version,id_string\r\n,"
-                 "Demo to Jonathan,vB9EtM9inCMPC4qpPcuX3h,"
+                 "Demo to Jonathan,2017040601,"
                  "afPkTij9pVg8T8c35h3SvS\r\n")]
         }
 
@@ -3147,7 +3147,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 '%s,'
                 '\xef\xbb\xbf74ee8b73-48aa-4ced-9072-862f93d49c16,\xef\xbb\xbf'
                 '2013-02-18T15:54:01,\xef\xbb\xbf,\xef\xbb\xbf,'
-                '\xef\xbb\xbf201604121155,\xef\xbb\xbf,\xef\xbb\xbfbob\n' %
+                '\xef\xbb\xbf2016041211,\xef\xbb\xbf,\xef\xbb\xbfbob\n' %
                 data_id
             )
             self.assertEqual(expected_content, content)
@@ -3170,7 +3170,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 '#age,,,,,,,,,,\n'
                 '29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,%s,'
                 '74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01,'
-                ',,201604121155,,bob\n' % data_id)
+                ',,2016041211,,bob\n' % data_id)
             self.assertEqual(expected_content, content)
 
             headers = dict(response.items())
@@ -3218,7 +3218,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 '_notes,_version,_duration,_submitted_by\n'
                 '29,Lionel Messi,''uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,'
                 '%s,74ee8b73-48aa-4ced-9072-862f93d49c16,'
-                '2013-02-18T15:54:01,,,201604121155,,bob\n' % data_id)
+                '2013-02-18T15:54:01,,,2016041211,,bob\n' % data_id)
             self.assertEqual(expected_content, content)
             headers = dict(response.items())
             self.assertEqual(headers['Content-Type'], 'application/csv')
@@ -3238,7 +3238,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 '#age,,,,,,,,,,\n'
                 '29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,'
                 '%s,74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01,'
-                ',,201604121155,,bob\n' % data_id)
+                ',,2016041211,,bob\n' % data_id)
             self.assertEqual(expected_content, content)
 
             headers = dict(response.items())
