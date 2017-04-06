@@ -128,11 +128,16 @@ class DuplicateUUIDError(Exception):
 
 
 def create_xform_version(release=1):
-    date_part = datetime.utcnow().strftime("%Y%m%d")
+    """Generate XForm version.
 
-    if release is None:
-        release = 1
-    release_part = str(release).zfill(2)[:2]
+    XForm version is a string of up to 10 numbers that describes this
+     revision. Revised form definitions must have alphabetically greater
+     versions than previous ones. A common convention is to use strings of the
+     form 'yyyymmddrr'.
+    For example, 2017021501 is the 1st revision from Feb 15th, 2017
+    """
+    date_part = datetime.utcnow().strftime("%Y%m%d")
+    release_part = str(release or 1).zfill(2)[:2]
 
     return '%s%s' % (date_part, release_part)
 
@@ -636,7 +641,6 @@ class XFormMixin(object):
         survey_json = json.loads(survey.to_json())
         version = survey_json.get("version")
         if version is None:
-            # set utc time as the default version
             change_version = True
             version = create_xform_version()
         else:
@@ -644,10 +648,12 @@ class XFormMixin(object):
                 int(version)
             except ValueError:
                 raise XLSFormError(
-                    _(u"version should be a string of upto 10 numbers that "
-                      "describe this revision. You could use a string of the "
-                      "form 'yyyymmddrr'. For example, 2017021501 is the 1st "
-                      "revision from Feb 15th, 2017."))
+                    _(u"'version' is string of up to 10 numbers that "
+                      " describes this revision. Revised form definitions "
+                      "must have alphabetically greater versions than previous"
+                      " ones. A common convention is to use strings of the "
+                      "form 'yyyymmddrr'. For example, 2017021501 is the 1st"
+                      " revision from Feb 15th, 2017<Paste>"))
             else:
                 if len(version) > 10:
                     change_version = True
