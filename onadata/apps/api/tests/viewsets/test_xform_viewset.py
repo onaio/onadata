@@ -360,7 +360,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         request = self.factory.patch('/', data=updated_post_data, **self.extra)
         response = view(request, pk=xform.id)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data.get('version'), '2017040603')
+        self.assertEqual(response.data.get('version'), date_part + '03')
 
     def test_instances_with_geopoints_true_for_instances_with_geopoints(self):
         with HTTMock(enketo_mock):
