@@ -40,6 +40,10 @@ class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
             .filter_queryset(request, queryset, view)
 
 
+class XFormListObjectPermissionFilter(AnonDjangoObjectPermissionFilter):
+    perm_format = '%(app_label)s.report_%(model_name)s'
+
+
 class OrganizationPermissionFilter(filters.DjangoObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):
