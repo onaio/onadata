@@ -72,7 +72,7 @@ Returns a list of rest services across all forms requesting user has access to.
             id: 236,
             xform: 9929,
             name: "textit",
-            service_url: "https://textit.in/api/v1/runs.json"
+            service_url: "https://textit.in/api/v2/flow_starts.json"
         },
         ...
     ]
@@ -96,7 +96,7 @@ Get a specific Rest Service
             id: 236,
             xform: 9929,
             name: "textit",
-            service_url: "https://textit.in/api/v1/runs.json"
+            service_url: "https://textit.in/api/v2/flow_starts.json"
      }
 
 Add a Rest Service to a form
@@ -130,7 +130,7 @@ Example:
 ^^^^^^^^
 ::
 
-        curl -X POST -d "{"service_url": "https://textit.io/api/v1/runs.json", "name":"textit", "xform": 9929}" https://api.ona.io/api/v1/restservices -H "Content-Type: appliction/json"
+        curl -X POST -d "{"service_url": "https://textit.io/api/v2/flow_starts.json", "name":"textit", "xform": 9929}" https://api.ona.io/api/v1/restservices -H "Content-Type: appliction/json"
 
 ::
 
@@ -140,7 +140,7 @@ Example:
             id: 236,
             xform: 9929,
             name: "textit",
-            service_url: "https://textit.in/api/v1/runs.json"
+            service_url: "https://textit.in/api/v2/flow_starts.json"
         }
 
 Delete a Rest Service
@@ -174,7 +174,7 @@ Where:
 
 ::
 
-        curl -X POST -d "{"auth_token": "abffbbb8f16f7a1bc75f141b5aa538sasdsd", "flow_uuid":"cf7d7891-a01b-4ca9-99d2-weqqrwqd", "contacts": "52d4ff71-4d4e-464c-bksadfsdiwew", "name": "textit", "service_url":"https://textit.in/api/v1/runs.json"}" https://api.ona.io/api/v1/restservices -H "Content-Type: appliction/json"
+        curl -X POST -d "{"auth_token": "abffbbb8f16f7a1bc75f141b5aa538sasdsd", "flow_uuid":"cf7d7891-a01b-4ca9-99d2-weqqrwqd", "contacts": "52d4ff71-4d4e-464c-bksadfsdiwew", "name": "textit", "service_url":"https://textit.in/api/v2/flow_starts.json"}" https://api.ona.io/api/v1/restservices -H "Content-Type: appliction/json"
 
 ::
 
@@ -187,7 +187,7 @@ Where:
             contacts: "52d4ff71-4d4e-464c-asda-f0c04cc9e66d"
             id: 236,
             name: "textit",
-            service_url: "https://textit.in/api/v1/runs.json"
+            service_url: "https://textit.in/api/v2/flow_starts.json"
         }
 
 Adding Google Sheet Sync
