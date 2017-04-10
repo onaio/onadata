@@ -19,7 +19,7 @@ from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.utils.cache_tools import (
     ENKETO_PREVIEW_URL_CACHE, ENKETO_URL_CACHE, XFORM_DATA_VERSIONS,
     XFORM_LINKED_DATAVIEWS, XFORM_METADATA_CACHE, XFORM_PERMISSIONS_CACHE,
-    DATAVIEW_COUNT)
+    XFORM_COUNT)
 from onadata.libs.utils.common_tags import GROUP_DELIMETER_TAG
 from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.viewer_tools import (
@@ -168,7 +168,7 @@ class XFormMixin(object):
 
     def get_num_of_submissions(self, obj):
         if obj:
-            key = '{}{}'.format(DATAVIEW_COUNT, obj.pk)
+            key = '{}{}'.format(XFORM_COUNT, obj.pk)
             count = cache.get(key)
             if count:
                 return count
