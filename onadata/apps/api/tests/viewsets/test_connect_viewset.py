@@ -339,3 +339,17 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.data['temp_token'] = temp_token.key
         self.data['email'] = 'bob2@columbia.edu'
         self.assertEqual(response.status_code, 200)
+
+    def test_user_has_no_profile_bug(self):
+        alice = User.objects.create(username='alice')
+        alice.set_password('alice')
+        update_partial_digests(alice, "alice")
+        view = ConnectViewSet.as_view(
+            {'get': 'list'},
+            authentication_classes=(DigestAuthentication,))
+
+        auth = DigestAuth('alice', 'alice')
+        request = self._get_request_session_with_auth(view, auth)
+
+        response = view(request)
+        self.assertEqual(response.status_code, 200)

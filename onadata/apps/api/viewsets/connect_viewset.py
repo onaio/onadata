@@ -49,8 +49,14 @@ class ConnectViewSet(AuthenticateHeaderMixin,
                 # login(request, request.user)
                 session.set_expiry(DEFAULT_SESSION_EXPIRY_TIME)
 
+        try:
+            user_profile = request.user.profile
+        except UserProfile.DoesNotExist:
+            user_profile, _ = UserProfile.objects.get_or_create(
+                user=request.user)
+
         serializer = UserProfileWithTokenSerializer(
-            instance=request.user.profile,
+            instance=user_profile,
             context={"request": request})
 
         return Response(serializer.data)
