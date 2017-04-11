@@ -235,3 +235,14 @@ class CSVImportTestCase(TestBase):
         AsyncResult.return_value = MockAsyncResult2()
         result = csv_import.get_async_csv_submission_status('x-y-z')
         self.assertEqual(result, 1)
+
+        class MockAsyncResultIOError(object):
+            def __init__(self):
+                self.result = IOError("File not found!")
+                self.state = 2
+
+        AsyncResult.return_value = MockAsyncResultIOError()
+        result = csv_import.get_async_csv_submission_status('x-y-z')
+        self.assertEqual(result,
+                         {'error': u'File not found!',
+                          'job_status': 'FAILURE'})

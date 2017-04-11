@@ -312,8 +312,14 @@ def get_async_csv_submission_status(job_uuid):
     job = AsyncResult(job_uuid)
     try:
         result = (job.result or job.state)
+
+        if isinstance(result, (Exception)):
+            return async_status(celery_state_to_status(job.state),
+                                job.result.message)
+
         if isinstance(result, (str, unicode)):
             return async_status(celery_state_to_status(job.state))
+
     except BacklogLimitExceeded:
         return async_status(celery_state_to_status('PENDING'))
 
