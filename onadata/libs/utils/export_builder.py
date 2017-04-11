@@ -4,7 +4,7 @@ import uuid
 
 from celery import current_task
 from datetime import datetime, date
-from zipfile import ZipFile
+from zipfile import ZipFile, ZIP_DEFLATED
 
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
@@ -572,7 +572,7 @@ class ExportBuilder(object):
             track_task_progress(i, total_records)
 
         # write zipfile
-        with ZipFile(path, 'w') as zip_file:
+        with ZipFile(path, 'w', ZIP_DEFLATED, allowZip64=True) as zip_file:
             for section_name, csv_def in csv_defs.iteritems():
                 csv_file = csv_def['csv_file']
                 csv_file.seek(0)
@@ -924,7 +924,7 @@ class ExportBuilder(object):
                 sav_def['sav_writer'].fh, mode='wb')
 
         # write zipfile
-        with ZipFile(path, 'w') as zip_file:
+        with ZipFile(path, 'w', ZIP_DEFLATED, allowZip64=True) as zip_file:
             for section_name, sav_def in sav_defs.iteritems():
                 sav_file = sav_def['sav_file']
                 sav_file.seek(0)

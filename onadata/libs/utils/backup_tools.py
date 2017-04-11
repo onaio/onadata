@@ -82,7 +82,8 @@ def create_zip_backup(zip_output_file, user, xform=None):
 
     # write zip file
     sys.stdout.write("\nWriting to ZIP arhive.\n")
-    zf = zipfile.ZipFile(zip_output_file, "w")
+    zf = zipfile.ZipFile(zip_output_file, "w", zipfile.ZIP_DEFLATED,
+                         allowZip64=True)
     done = 0
     for dir_path, dir_names, file_names in os.walk(tmp_dir_path):
         for file_name in file_names:
