@@ -23,11 +23,11 @@ class ServiceDefinition(RestServiceInterface):
 
         meta = MetaData.textit(submission_instance.xform)
 
-        token, flow_uuid, contacts = meta.data_value.split(METADATA_SEPARATOR)
+        token, flow, contacts = meta.data_value.split(METADATA_SEPARATOR)
         post_data = {
             "extra": extra_data,
-            "flow_uuid": flow_uuid,
-            "contacts": contacts
+            "flow": flow,
+            "contacts": contacts.split(',')
         }
         headers = {"Content-Type": "application/json",
                    "Authorization": "Token {}".format(token)}
