@@ -70,7 +70,7 @@ class DigestAuthentication(BaseAuthentication):
             else:
                 raise AuthenticationFailed(
                     _(u"Invalid username/password"))
-        except (ValueError, DataError) as e:
+        except (AttributeError, ValueError, DataError) as e:
             raise AuthenticationFailed(e.message)
 
     def authenticate_header(self, request):
