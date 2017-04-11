@@ -555,10 +555,13 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                     resp.update(submit_csv(request.user.username,
                                            self.object, csv_file))
                 else:
-                    tmp_file_path = utils.generate_tmp_path(csv_file)
+                    csv_file.seek(0)
+                    upload_to = os.path.join(request.user.username,
+                                             'csv_imports', csv_file.name)
+                    file_name = default_storage.save(upload_to, csv_file)
                     task = submit_csv_async.delay(request.user.username,
                                                   self.object,
-                                                  tmp_file_path)
+                                                  file_name)
                     if task is None:
                         raise ParseError('Task not found')
                     else:
