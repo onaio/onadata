@@ -1,4 +1,3 @@
-import codecs
 import cStringIO
 import json
 import uuid
@@ -11,6 +10,7 @@ from celery import current_task, task
 from celery.backends.amqp import BacklogLimitExceeded
 from celery.result import AsyncResult
 from django.contrib.auth.models import User
+from django.core.files.storage import default_storage
 
 from onadata.apps.logger.models import Instance
 from onadata.libs.utils.async_status import (FAILED, async_status,
@@ -110,8 +110,8 @@ def dict_pathkeys_to_nested_dicts(dictionary):
 
 
 @task()
-def submit_csv_async(username, xform, csv_file_temp_path):
-    with codecs.open(csv_file_temp_path, encoding='utf-8') as csv_file:
+def submit_csv_async(username, xform, file_path):
+    with default_storage.open(file_path) as csv_file:
         return submit_csv(username, xform, csv_file)
 
 
