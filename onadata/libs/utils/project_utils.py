@@ -1,3 +1,6 @@
+from celery import task
+
+from onadata.apps.logger.models import Project, XForm
 from onadata.libs.permissions import (ROLES, OwnerRole,
                                       get_object_users_with_permissions)
 from onadata.libs.utils.common_tags import OWNER_TEAM_NAME
@@ -40,3 +43,14 @@ def set_project_perms_to_xform(xform, project):
         else:
             if role:
                 role.add(user, xform)
+
+
+@task
+def set_project_perms_to_xform_async(xform_id, project_id):
+    try:
+        xform = XForm.objects.get(id=xform_id)
+        project = Project.objects.get(id=project_id)
+    except (Project.DoesNotExist, XForm.DoesNotExist):
+        pass
+    else:
+        set_project_perms_to_xform(xform, project)
