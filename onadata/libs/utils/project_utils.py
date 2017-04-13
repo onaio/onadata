@@ -1,4 +1,5 @@
 from celery import task
+from django.conf import settings
 
 from onadata.apps.logger.models import Project, XForm
 from onadata.libs.permissions import (ROLES, OwnerRole,
@@ -53,4 +54,9 @@ def set_project_perms_to_xform_async(xform_id, project_id):
     except (Project.DoesNotExist, XForm.DoesNotExist):
         pass
     else:
-        set_project_perms_to_xform(xform, project)
+        if len(getattr(settings, 'SLAVE_DATABASES', [])):
+            from multidb.pinning import use_master
+            with use_master:
+                set_project_perms_to_xform(xform, project)
+        else:
+            set_project_perms_to_xform(xform, project)
