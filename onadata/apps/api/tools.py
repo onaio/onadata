@@ -42,7 +42,7 @@ from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.utils.cache_tools import safe_delete, PROJ_FORMS_CACHE
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
-from onadata.libs.utils.project_utils import set_project_perms_to_xform
+from onadata.libs.utils.project_utils import set_project_perms_to_xform_async
 from onadata.libs.utils.user_auth import check_and_set_form_by_id
 from onadata.libs.utils.user_auth import check_and_set_form_by_id_string
 from onadata.libs.permissions import ROLES
@@ -358,7 +358,7 @@ def publish_project_xform(request, project):
                 xform.save()
         except IntegrityError:
             raise exceptions.ParseError(_(msg))
-        set_project_perms_to_xform(xform, project)
+        set_project_perms_to_xform_async.delay(xform.pk, project.pk)
     else:
         xform = publish_form(set_form)
 
