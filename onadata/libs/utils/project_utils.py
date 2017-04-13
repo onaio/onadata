@@ -1,3 +1,5 @@
+import sys
+
 from celery import task
 from django.conf import settings
 
@@ -5,6 +7,7 @@ from onadata.apps.logger.models import Project, XForm
 from onadata.libs.permissions import (ROLES, OwnerRole,
                                       get_object_users_with_permissions)
 from onadata.libs.utils.common_tags import OWNER_TEAM_NAME
+from onadata.libs.utils.logger_tools import report_exception
 
 
 def set_project_perms_to_xform(xform, project):
@@ -54,9 +57,14 @@ def set_project_perms_to_xform_async(xform_id, project_id):
     except (Project.DoesNotExist, XForm.DoesNotExist):
         pass
     else:
-        if len(getattr(settings, 'SLAVE_DATABASES', [])):
-            from multidb.pinning import use_master
-            with use_master:
+        try:
+            if len(getattr(settings, 'SLAVE_DATABASES', [])):
+                from multidb.pinning import use_master
+                with use_master:
+                    set_project_perms_to_xform(xform, project)
+            else:
                 set_project_perms_to_xform(xform, project)
-        else:
-            set_project_perms_to_xform(xform, project)
+        except Exception as e:
+            msg = '%s: Setting project %d permissions to form %d failed.' % (
+                type(e), project_id, xform_id)
+            report_exception(msg, e, sys.exc_info())
