@@ -1,40 +1,34 @@
-from rest_framework import status
-from rest_framework import viewsets
-from rest_framework.decorators import detail_route
-from rest_framework.decorators import list_route
-from rest_framework.response import Response
-from rest_framework.exceptions import ParseError
-from rest_framework.authtoken.models import Token
 from django.utils.translation import ugettext as _
+from rest_framework import status, viewsets
+from rest_framework.authtoken.models import Token
+from rest_framework.decorators import detail_route, list_route
+from rest_framework.exceptions import ParseError
+from rest_framework.response import Response
 
+from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.permissions import ConnectViewsetPermissions
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
-from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
-from onadata.libs.serializers.password_reset_serializer import \
-    PasswordResetSerializer, PasswordResetChangeSerializer
+from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
+from onadata.libs.serializers.password_reset_serializer import (
+    PasswordResetChangeSerializer, PasswordResetSerializer)
 from onadata.libs.serializers.project_serializer import ProjectSerializer
-from onadata.libs.serializers.user_profile_serializer import (
-    UserProfileWithTokenSerializer)
-
+from onadata.libs.serializers.user_profile_serializer import \
+    UserProfileWithTokenSerializer
 from onadata.settings.common import DEFAULT_SESSION_EXPIRY_TIME
-from onadata.apps.api.models.temp_token import TempToken
 
 
-class ConnectViewSet(AuthenticateHeaderMixin,
-                     CacheControlMixin,
-                     ETagsMixin,
-                     ObjectLookupMixin,
-                     viewsets.GenericViewSet):
+class ConnectViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
+                     ObjectLookupMixin, viewsets.GenericViewSet):
     """
     This endpoint allows you retrieve the authenticated user's profile info.
     """
     lookup_field = 'user'
     queryset = UserProfile.objects.all()
-    permission_classes = (ConnectViewsetPermissions,)
+    permission_classes = (ConnectViewsetPermissions, )
     serializer_class = UserProfileWithTokenSerializer
 
     def list(self, request, *args, **kwargs):
@@ -56,8 +50,7 @@ class ConnectViewSet(AuthenticateHeaderMixin,
                 user=request.user)
 
         serializer = UserProfileWithTokenSerializer(
-            instance=user_profile,
-            context={"request": request})
+            instance=user_profile, context={"request": request})
 
         return Response(serializer.data)
 
@@ -67,9 +60,8 @@ class ConnectViewSet(AuthenticateHeaderMixin,
         user_profile = self.get_object()
         user = user_profile.user
         projects = user.project_stars.all()
-        serializer = ProjectSerializer(projects,
-                                       context={'request': request},
-                                       many=True)
+        serializer = ProjectSerializer(
+            projects, context={'request': request}, many=True)
 
         return Response(data=serializer.data)
 
@@ -78,8 +70,8 @@ class ConnectViewSet(AuthenticateHeaderMixin,
         context = {'request': request}
         data = request.data if request.data is not None else {}
         if 'token' in request.data:
-            serializer = PasswordResetChangeSerializer(data=data,
-                                                       context=context)
+            serializer = PasswordResetChangeSerializer(
+                data=data, context=context)
         else:
             serializer = PasswordResetSerializer(data=data, context=context)
 
@@ -100,7 +92,7 @@ class ConnectViewSet(AuthenticateHeaderMixin,
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @list_route(methods=['GET'])
-    def regenerate_auth_token(self, request,  *args, **kwargs):
+    def regenerate_auth_token(self, request, *args, **kwargs):
         try:
             Token.objects.get(user=request.user).delete()
         except Token.DoesNotExist:
