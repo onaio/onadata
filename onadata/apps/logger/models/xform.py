@@ -692,7 +692,7 @@ class XForm(XFormMixin, BaseModel):
                            ("user", "sms_id_string", "project"))
         verbose_name = ugettext_lazy("XForm")
         verbose_name_plural = ugettext_lazy("XForms")
-        ordering = ("id_string", )
+        ordering = ("pk", )
         permissions = (
             ("view_xform", _("Can view associated data")),
             ("view_xform_all", _("Can view all associated data")),
