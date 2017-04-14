@@ -1,4 +1,6 @@
+from django.utils.decorators import classonlymethod
 from django.utils.translation import ugettext as _
+from django.views.decorators.cache import never_cache
 from rest_framework import status, viewsets
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import detail_route, list_route
@@ -101,3 +103,9 @@ class ConnectViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
         new_token = Token.objects.create(user=request.user)
 
         return Response(data=new_token.key, status=status.HTTP_201_CREATED)
+
+    @classonlymethod
+    def as_view(cls, actions=None, **initkwargs):
+        view = super(ConnectViewSet, cls).as_view(actions, **initkwargs)
+
+        return never_cache(view)
