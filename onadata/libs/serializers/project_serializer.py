@@ -22,7 +22,6 @@ from onadata.libs.utils.cache_tools import (
     PROJECT_LINKED_DATAVIEWS)
 from onadata.apps.api.tools import (
     get_organization_members_team, get_organization_owners_team)
-from onadata.libs.utils.profiler import profile
 
 
 def get_obj_xforms(obj):
@@ -228,15 +227,21 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
                          self.context,
                          owner_query_param_in_request)
 
-    @profile("get_project_forms.prof")
     @check_obj
     def get_forms(self, obj):
+        forms = cache.get('{}{}'.format(PROJ_FORMS_CACHE, obj.pk))
+        if forms:
+            return forms
+
         xforms = get_obj_xforms(obj)
         request = self.context.get('request')
         serializer = BaseProjectXFormSerializer(
             xforms, context={'request': request}, many=True
         )
-        return list(serializer.data)
+        forms = list(serializer.data)
+        cache.set('{}{}'.format(PROJ_FORMS_CACHE, obj.pk), forms)
+
+        return forms
 
     def get_num_datasets(self, obj):
         return get_num_datasets(obj)
@@ -341,7 +346,6 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     def get_users(self, obj):
         return get_users(obj, self.context)
 
-    @profile("get_project_forms.prof")
     @check_obj
     def get_forms(self, obj):
         forms = cache.get('{}{}'.format(PROJ_FORMS_CACHE, obj.pk))
