@@ -82,9 +82,14 @@ def unique_type_for_form(content_object,
     defaults = {'data_value': data_value} if data_value else {}
     content_type = ContentType.objects.get_for_model(content_object)
 
-    result, created = MetaData.objects.update_or_create(
-        object_id=content_object.id, content_type=content_type,
-        data_type=data_type, defaults=defaults)
+    if data_value is None and data_file is None:
+        result = MetaData.objects.filter(
+            object_id=content_object.id, content_type=content_type,
+            data_type=data_type).first()
+    else:
+        result, created = MetaData.objects.update_or_create(
+            object_id=content_object.id, content_type=content_type,
+            data_type=data_type, defaults=defaults)
 
     if data_file:
         if result.data_value is None or result.data_value == '':
@@ -92,6 +97,7 @@ def unique_type_for_form(content_object,
         result.data_file = data_file
         result.data_file_type = data_file.content_type
         result = save_metadata(result)
+
     return result
 
 
