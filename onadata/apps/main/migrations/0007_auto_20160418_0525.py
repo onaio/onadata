@@ -3,7 +3,7 @@
 from __future__ import unicode_literals
 
 from django.db import migrations
-import oauth2client.contrib.django_orm
+import oauth2client.contrib.django_util.models
 
 
 class Migration(migrations.Migration):
@@ -20,6 +20,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='tokenstoragemodel',
             name='credential',
-            field=oauth2client.contrib.django_orm.CredentialsField(null=True),
+            field=oauth2client.contrib.django_util.models.CredentialsField(
+                null=True),
         ),
     ]

@@ -49,7 +49,8 @@ from onadata.libs.utils.user_auth import has_permission, get_xform_and_perms,\
     helper_auth_helper
 from xls_writer import XlsWriter
 from onadata.libs.utils.chart_tools import build_chart_data
-from oauth2client.contrib.django_orm import Storage
+from oauth2client.contrib.django_util.storage import (
+    DjangoORMStorage as Storage)
 from oauth2client import client as google_client
 
 

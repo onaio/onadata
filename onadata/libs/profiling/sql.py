@@ -16,7 +16,11 @@ class SqlTimingMiddleware(object):
     Logs the total time taken to run sql queries and the number of sql queries
     per request.
     """
-    def process_response(self, request, response):
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
         sqltime = 0  # Variable to store execution time
         for query in connection.queries:
             # Add the time that the query took to the total

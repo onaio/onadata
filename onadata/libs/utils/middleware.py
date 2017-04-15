@@ -9,14 +9,19 @@ from django.utils.translation.trans_real import parse_accept_lang_header
 
 
 class ExceptionLoggingMiddleware(object):
+    def __init__(self, get_response):
+        self.get_response = get_response
 
     def process_exception(self, request, exception):
         print(traceback.format_exc())
 
 
 class HTTPResponseNotAllowedMiddleware(object):
+    def __init__(self, get_response):
+        self.get_response = get_response
 
-    def process_response(self, request, response):
+    def __call__(self, request):
+        response = self.get_response(request)
         if isinstance(response, HttpResponseNotAllowed):
             context = RequestContext(request)
             response.content = loader.render_to_string(
@@ -45,8 +50,12 @@ class LocaleMiddlewareWithTweaks(LocaleMiddleware):
         super(LocaleMiddlewareWithTweaks, self).process_request(request)
 
 
-class SqlLogging:
-    def process_response(self, request, response):
+class SqlLogging(object):
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
         from sys import stdout
         if stdout.isatty():
             for query in connection.queries:

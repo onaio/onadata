@@ -1,6 +1,6 @@
 Django
 django-guardian
-django-ordered-model
+-e git+https://github.com/bfirsh/django-ordered-model.git@master#egg=django-ordered-model
 django-registration-redux
 django-templated-email
 django-reversion
@@ -16,7 +16,8 @@ django-celery
 librabbitmq
 
 # cors
--e git+https://github.com/onaio/django-cors-headers.git@allow-all-for-url#egg=cors-headers
+django-cors-headers
+django-debug-toolbar
 
 python-digest
 -e git+https://github.com/onaio/django-digest.git@django-1.9-fixes#egg=django-digest
@@ -50,7 +51,7 @@ pymongo
 # sms support
 dict2xml
 lxml
-pyxform==0.9.24
+-e git+https://github.com/XLSForm/pyxform.git@master#egg=pyxform
 
 # spss
 -e git+https://bitbucket.org/fomcl/savreaderwriter.git@v3.4.2#egg=savreaderwriter
@@ -88,3 +89,6 @@ pytz
 requests
 simplejson
 google-api-python-client
+django-multidb-router
+uwsgi
+flake8
