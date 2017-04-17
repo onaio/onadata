@@ -402,7 +402,9 @@ class MetaData(models.Model):
     def textit(content_object, data_value=None):
         """Add a textit auth token flow uuid and default contact uuid"""
         data_type = TEXTIT
-        return unique_type_for_form(content_object, data_type, data_value)
+        obj = unique_type_for_form(content_object, data_type, data_value)
+
+        return obj and obj.data_value
 
     @property
     def is_linked_dataset(self):

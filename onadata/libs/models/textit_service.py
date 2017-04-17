@@ -52,11 +52,11 @@ class TextItService(object):
         self.pk = rs.pk
 
     def retrieve(self):
-        meta = MetaData.textit(self.xform)
+        data_value = MetaData.textit(self.xform)
 
         try:
             self.auth_token, self.flow_uuid, self.contacts = \
-                meta.data_value.split(METADATA_SEPARATOR)
+                data_value.split(METADATA_SEPARATOR)
         except ValueError:
             raise serializers.ValidationError(
                 _("Error occurred when loading textit service."

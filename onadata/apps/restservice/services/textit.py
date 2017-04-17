@@ -21,21 +21,22 @@ class ServiceDefinition(RestServiceInterface):
         """
         extra_data = self.clean_keys_of_slashes(submission_instance.json)
 
-        meta = MetaData.textit(submission_instance.xform)
+        data_value = MetaData.textit(submission_instance.xform)
 
-        token, flow, contacts = meta.data_value.split(METADATA_SEPARATOR)
-        post_data = {
-            "extra": extra_data,
-            "flow": flow,
-            "contacts": contacts.split(',')
-        }
-        headers = {"Content-Type": "application/json",
-                   "Authorization": "Token {}".format(token)}
-        http = httplib2.Http()
+        if data_value:
+            token, flow, contacts = data_value.split(METADATA_SEPARATOR)
+            post_data = {
+                "extra": extra_data,
+                "flow": flow,
+                "contacts": contacts.split(',')
+            }
+            headers = {"Content-Type": "application/json",
+                       "Authorization": "Token {}".format(token)}
+            http = httplib2.Http()
 
-        resp, content = http.request(uri=url, method='POST',
-                                     headers=headers,
-                                     body=json.dumps(post_data))
+            resp, content = http.request(uri=url, method='POST',
+                                         headers=headers,
+                                         body=json.dumps(post_data))
 
     def clean_keys_of_slashes(self, record):
         """
