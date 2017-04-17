@@ -21,9 +21,9 @@ def dict_for_mongo_without_userform_id(parsed_instance):
 class TestFormAPI(TestBase):
 
     def setUp(self):
-        TestBase.setUp(self)
+        super(TestBase, self).setUp()
         self.factory = RequestFactory()
-        self._create_user_and_login(factory=self.factory)
+        self._create_user_and_login()
         self._publish_transportation_form_and_submit_instance()
         self.api_url = reverse(api, kwargs={
             'username': self.user.username,
