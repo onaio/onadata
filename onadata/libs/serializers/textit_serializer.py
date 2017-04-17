@@ -27,8 +27,8 @@ class TextItSerializer(serializers.Serializer):
         return super(TextItSerializer, self).to_representation(text_it)
 
     def update(self, instance, validated_data):
-        meta = MetaData.textit(instance.xform)
-        values = meta.data_value.split(settings.METADATA_SEPARATOR)
+        data_value = MetaData.textit(instance.xform) or ''
+        values = data_value.split(settings.METADATA_SEPARATOR)
         if len(values) < 3:
             values = ['', '', '']
         xform = validated_data.get('xform', instance.xform)
