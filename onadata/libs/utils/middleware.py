@@ -2,7 +2,6 @@ import traceback
 
 from django.db import connection
 from django.http import HttpResponseNotAllowed
-from django.template import RequestContext
 from django.template import loader
 from django.middleware.locale import LocaleMiddleware
 from django.utils.translation.trans_real import parse_accept_lang_header
@@ -23,9 +22,8 @@ class HTTPResponseNotAllowedMiddleware(object):
     def __call__(self, request):
         response = self.get_response(request)
         if isinstance(response, HttpResponseNotAllowed):
-            context = RequestContext(request)
             response.content = loader.render_to_string(
-                "405.html", context_instance=context)
+                "405.html", request=request)
 
         return response
 

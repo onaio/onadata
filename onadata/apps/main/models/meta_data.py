@@ -213,10 +213,7 @@ class MetaData(models.Model):
             data_value = 'False'
         metadata = unique_type_for_form(content_object, data_type, data_value)
         # make text field a boolean
-        if metadata.data_value == 'True':
-            return True
-        else:
-            return False
+        return metadata and metadata.data_value == 'True'
 
     @staticmethod
     def set_google_sheet_details(content_object, data_value=None):
@@ -267,12 +264,16 @@ class MetaData(models.Model):
     @staticmethod
     def form_license(content_object, data_value=None):
         data_type = 'form_license'
-        return unique_type_for_form(content_object, data_type, data_value)
+        obj = unique_type_for_form(content_object, data_type, data_value)
+
+        return (obj and obj.data_value) or None
 
     @staticmethod
     def data_license(content_object, data_value=None):
         data_type = 'data_license'
-        return unique_type_for_form(content_object, data_type, data_value)
+        obj = unique_type_for_form(content_object, data_type, data_value)
+
+        return (obj and obj.data_value) or None
 
     @staticmethod
     def source(content_object, data_value=None, data_file=None):

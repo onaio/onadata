@@ -394,8 +394,8 @@ def show(request, username=None, id_string=None, uuid=None):
         data['content_user'] = xform.user
         data['base_url'] = "https://%s" % request.get_host()
         data['source'] = MetaData.source(xform)
-        data['form_license'] = MetaData.form_license(xform).data_value
-        data['data_license'] = MetaData.data_license(xform).data_value
+        data['form_license'] = MetaData.form_license(xform)
+        data['data_license'] = MetaData.data_license(xform)
         data['supporting_docs'] = MetaData.supporting_docs(xform)
         data['media_upload'] = MetaData.media_upload(xform)
         data['mapbox_layer'] = MetaData.mapbox_layer_upload(xform)
