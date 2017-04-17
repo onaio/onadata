@@ -14,3 +14,5 @@ class RestServiceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RestService
+        fields = ('id', 'xform', 'name', 'service_url', 'date_created',
+                  'date_modified')
