@@ -16,6 +16,7 @@ from django.core.files.temp import NamedTemporaryFile
 from django.db import OperationalError
 from django.db.models.query import QuerySet
 from django.shortcuts import render_to_response
+from django.utils import timezone
 from json2xlsclient.client import Client
 from savReaderWriter import SPSSIOError
 
@@ -280,7 +281,8 @@ def generate_export(export_type, xform, export_id=None, options=None,
 
 def create_export_object(xform, export_type, options):
     export_options = get_export_options(options)
-    return Export(xform=xform, export_type=export_type, options=export_options)
+    return Export(xform=xform, export_type=export_type, options=export_options,
+                  created_on=timezone.now())
 
 
 def check_pending_export(xform, export_type, options,
@@ -294,7 +296,7 @@ def check_pending_export(xform, export_type, options,
         :param minutes
         :return:
     """
-    created_time = datetime.now() - timedelta(minutes=minutes)
+    created_time = timezone.now() - timedelta(minutes=minutes)
     export_options_kwargs = get_export_options_query_kwargs(options)
     export = Export.objects.filter(
         xform=xform,
