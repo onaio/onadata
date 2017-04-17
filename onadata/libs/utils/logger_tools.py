@@ -229,7 +229,7 @@ def get_filtered_instances(*args, **kwargs):
     """Get filtered instances - mainly to allow mocking in tests"""
 
     return Instance.objects.filter(*args, **kwargs)\
-        .select_related(
+        .select_related('user', 'xform__user').only(
             'user__username',
             'xform__user__username',
             'xform__has_start_time'
