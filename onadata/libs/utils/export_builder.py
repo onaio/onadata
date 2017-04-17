@@ -615,7 +615,7 @@ class ExportBuilder(object):
         dataview = kwargs.get('dataview')
         total_records = kwargs.get('total_records')
 
-        wb = Workbook(optimized_write=True)
+        wb = Workbook(write_only=True)
         work_sheets = {}
         # map of section_names to generated_names
         work_sheet_titles = {}
