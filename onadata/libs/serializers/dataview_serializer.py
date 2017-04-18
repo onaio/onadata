@@ -71,7 +71,8 @@ class DataViewMinimalSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = DataView
         fields = ('dataviewid', 'name', 'url', 'xform', 'project', 'columns',
-                  'query', 'matches_parent')
+                  'query', 'matches_parent', 'date_created',
+                  'instances_with_geopoints', 'date_modified')
 
 
 class DataViewSerializer(serializers.HyperlinkedModelSerializer):
@@ -99,7 +100,8 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
         model = DataView
         fields = ('dataviewid', 'name', 'xform', 'project', 'columns', 'query',
                   'matches_parent', 'count', 'instances_with_geopoints',
-                  'last_submission_time', 'has_hxl_support', 'url')
+                  'last_submission_time', 'has_hxl_support', 'url',
+                  'date_created')
 
     def create(self, validated_data):
         validated_data = match_columns(validated_data)
