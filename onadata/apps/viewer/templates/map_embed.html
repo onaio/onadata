@@ -38,7 +38,7 @@ var mongoAPIUrl = "{{ mongo_api_url }}";
 var deleteAPIUrl = "{{ delete_data_url }}";
 var enketoAddWithUrl = "{{ enketo_add_with_url }}";
 var language_code = "{{LANGUAGE_CODE}}";
-var attachmentsBaseUrl = "{% url "onadata.apps.viewer.views.attachment_url" %}";
+var attachmentsBaseUrl = "{% url 'attachment_url' %}";
 var modalVisible = null;
 var idToDelete = null;
 

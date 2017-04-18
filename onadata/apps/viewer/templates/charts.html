@@ -28,7 +28,7 @@
 {% block javascript %}
 {{ block.super }}
     <script type="text/javascript">
-      var chart_url = "{% url "onadata.apps.viewer.views.charts" xform.user.username xform.id_string %}";
+      var chart_url = "{% url 'form-stats' xform.user.username xform.id_string %}";
       var page = {{ page }};
       $(document).ready(function () {
         moreCharts(chart_url, page);

@@ -80,7 +80,8 @@ urlpatterns = [
         name='public_profile'),
     url(r'^(?P<username>[^/]+)/settings', main_views.profile_settings,
         name='profile-settings'),
-    url(r'^(?P<username>[^/]+)/cloneform$', main_views.clone_xlsform),
+    url(r'^(?P<username>[^/]+)/cloneform$', main_views.clone_xlsform,
+        name='clone-xlsform'),
     url(r'^(?P<username>[^/]+)/activity$', main_views.activity,
         name='activity'),
     url(r'^(?P<username>[^/]+)/activity/api$', main_views.activity_api,
@@ -108,11 +109,12 @@ urlpatterns = [
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/photos',
         main_views.form_photos, name='form-photos'),
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/doc/(?P<data_id>\d+)'
-        '', main_views.download_metadata),
+        '', main_views.download_metadata, name='download-metadata'),
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/delete-doc/(?P<data_'
-        'id>\d+)', main_views.delete_metadata),
+        'id>\d+)', main_views.delete_metadata, name='delete-metadata'),
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/formid-media/(?P<dat'
-        'a_id>\d+)', main_views.download_media_data),
+        'a_id>\d+)', main_views.download_media_data,
+        name='download-media-data'),
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/addservice$',
         restservice_views.add_service, name='add_restservice'),
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/delservice$',
@@ -232,7 +234,7 @@ urlpatterns = [
     url(r'^(?P<username>\w+)/delete/(?P<id_string>[^/]+)/$',
         logger_views.delete_xform, name='delete-xform'),
     url(r'^(?P<username>\w+)/(?P<id_string>[^/]+)/toggle_downloadable/$',
-        logger_views.toggle_downloadable),
+        logger_views.toggle_downloadable, name='toggle-downloadable'),
 
     # SMS support
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/sms_submission/(?P<s'
