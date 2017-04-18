@@ -1,16 +1,16 @@
 import os
-from optparse import make_option
 
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
-from django.utils.translation import ugettext_lazy, ugettext as _
+from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy
 from pyxform.builder import create_survey_from_xls
 
-from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.project import Project
+from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.logger_tools import publish_xls_form
-from onadata.libs.utils.viewer_tools import django_file
 from onadata.libs.utils.user_auth import get_user_default_project
+from onadata.libs.utils.viewer_tools import django_file
 
 
 class Command(BaseCommand):
@@ -18,28 +18,33 @@ class Command(BaseCommand):
     help = ugettext_lazy("Publish an XLS file with the option of replacing an"
                          "existing one")
 
-    option_list = BaseCommand.option_list + (
-        make_option('-r', '--replace',
-                    action='store_true',
-                    dest='replace',
-                    help=ugettext_lazy("Replace existing form if any")),)
+    def add_arguments(self, parser):
+        parser.add_argument('xls_filepath')
+        parser.add_argument('username')
+        parser.add_argument(
+            '-p', '--project-name', action='store_true', dest='project_name')
+        parser.add_argument(
+            '-r',
+            '--replace',
+            action='store_true',
+            dest='replace',
+            help=ugettext_lazy("Replace existing form if any"))
 
     def handle(self, *args, **options):
         try:
-            xls_filepath = args[0]
-        except IndexError:
+            xls_filepath = options['xls_filepath']
+        except KeyError:
             raise CommandError(_("You must provide the path to the xls file."))
         # make sure path exists
         if not os.path.exists(xls_filepath):
             raise CommandError(
-                _("The xls file '%s' does not exist.") %
-                xls_filepath)
+                _("The xls file '%s' does not exist.") % xls_filepath)
 
         try:
-            username = args[1]
-        except IndexError:
-            raise CommandError(_(
-                "You must provide the username to publish the form to."))
+            username = options['username']
+        except KeyError:
+            raise CommandError(
+                _("You must provide the username to publish the form to."))
         # make sure user exists
         try:
             user = User.objects.get(username=username)
@@ -60,20 +65,20 @@ class Command(BaseCommand):
                 id_string = survey.id_string
                 self.stdout.write(_("Form already exist, replacing ..\n"))
             else:
-                raise CommandError(_(
-                    "The form with id_string '%s' already exists, use the -r "
-                    "option to replace it.") % survey.id_string)
+                raise CommandError(
+                    _("The form with id_string '%s' already exists, use the -r"
+                      " option to replace it.") % survey.id_string)
         else:
             self.stdout.write(_("Form does NOT exist, publishing ..\n"))
 
         try:
-            project_name = args[2]
+            project_name = options['project_name']
             project = Project.objects.get(name=project_name)
-        except (IndexError, Project.DoesNotExist):
+        except (KeyError, Project.DoesNotExist):
             project = get_user_default_project(user)
 
         # publish
-        xls_file = django_file(
-            xls_filepath, 'xls_file', 'application/vnd.ms-excel')
+        xls_file = django_file(xls_filepath, 'xls_file',
+                               'application/vnd.ms-excel')
         publish_xls_form(xls_file, user, project, id_string)
         self.stdout.write(_("Done..\n"))
