@@ -1,5 +1,3 @@
-from optparse import make_option
-
 from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth.models import User
 from django.template.loader import get_template
@@ -11,15 +9,15 @@ from templated_email import send_templated_mail
 class Command(BaseCommand):
     help = ugettext_lazy("Send an email to all formhub users")
 
-    option_list = BaseCommand.option_list + (
-        make_option("-m", "--message", dest="message", default=False))
+    def add_arguments(self, parser):
+        parser.add_argument("-m", "--message", dest="message", default=False)
 
-    def handle(self, *args, **kwargs):
-        message = kwargs.get('message')
-        verbosity = kwargs.get('verbosity')
+    def handle(self, *args, **options):
+        message = options.get('message')
+        verbosity = options.get('verbosity')
         get_template('templated_email/notice.email')
         if not message:
-            raise CommandError(_('message must be included in kwargs'))
+            raise CommandError(_('message must be included in options'))
         # get all users
         users = User.objects.all()
         for user in users:
@@ -38,5 +36,4 @@ class Command(BaseCommand):
                     'username': user.username,
                     'full_name': name,
                     'message': message
-                },
-            )
+                }, )

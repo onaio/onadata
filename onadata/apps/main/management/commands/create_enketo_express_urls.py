@@ -1,36 +1,34 @@
-from optparse import make_option
-
 from django.core.management.base import BaseCommand, CommandError
 from django.http import HttpRequest
 from django.utils.translation import ugettext_lazy
 
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.model_tools import queryset_iterator
-from onadata.libs.utils.viewer_tools import (enketo_url,
-                                             get_enketo_preview_url,
-                                             get_form_url)
+from onadata.libs.utils.viewer_tools import (
+    enketo_url, get_enketo_preview_url, get_form_url)
 
 
 class Command(BaseCommand):
     help = ugettext_lazy("Create enketo url including preview")
 
-    option_list = BaseCommand.option_list + (
-        make_option(
-            "-n", "--server_name", dest="server_name",
-            default="api.ona.io"),
-        make_option("-p", "--server_port", dest="server_port", default="80"),
-        make_option("-r", "--protocol", dest="protocol", default="https"),
-        make_option("-u", "--username", dest="username", default=None),
-        make_option("-x", "--id_string", dest="id_string", default=None),
-    )
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "-n", "--server_name", dest="server_name", default="api.ona.io")
+        parser.add_argument(
+            "-p", "--server_port", dest="server_port", default="80")
+        parser.add_argument(
+            "-r", "--protocol", dest="protocol", default="https")
+        parser.add_argument("-u", "--username", dest="username", default=None)
+        parser.add_argument(
+            "-x", "--id_string", dest="id_string", default=None)
 
-    def handle(self, *args, **kwargs):
+    def handle(self, *args, **options):
         request = HttpRequest()
-        server_name = kwargs.get('server_name')
-        server_port = kwargs.get('server_port')
-        protocol = kwargs.get('protocol')
-        username = kwargs.get('username')
-        id_string = kwargs.get('id_string')
+        server_name = options.get('server_name')
+        server_port = options.get('server_port')
+        protocol = options.get('protocol')
+        username = options.get('username')
+        id_string = options.get('id_string')
 
         if not server_name or not server_port or not protocol:
             raise CommandError(
@@ -57,11 +55,10 @@ class Command(BaseCommand):
                     user__username=username, id_string=id_string)
                 id_string = xform.id_string
                 _url = enketo_url(form_url, id_string)
-                _preview_url = get_enketo_preview_url(
-                    request, username, id_string)
-                self.stdout.write(
-                    'enketo url: %s | preview url: %s' %
-                    (_url, _preview_url))
+                _preview_url = get_enketo_preview_url(request, username,
+                                                      id_string)
+                self.stdout.write('enketo url: %s | preview url: %s' %
+                                  (_url, _preview_url))
                 self.stdout.write("enketo urls generation completed!!")
             except XForm.DoesNotExist:
                 self.stdout.write(
@@ -91,8 +88,8 @@ class Command(BaseCommand):
                 id_string = xform.id_string
                 form_url = get_form_url(request, username, protocol=protocol)
                 _url = enketo_url(form_url, id_string)
-                _preview_url = get_enketo_preview_url(
-                    request, username, id_string)
+                _preview_url = get_enketo_preview_url(request, username,
+                                                      id_string)
                 num_of_xforms -= 1
                 self.stdout.write(
                     'enketo url: %s | preview url: %s | remaining: %s' %
