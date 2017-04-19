@@ -4,7 +4,7 @@
     <mediaFile>
         <filename>{{ media.data_value }}</filename>
         <hash>md5:{{ media.hash }}</hash>
-        <downloadUrl>{{ host }}{% url "onadata.apps.main.views.download_media_data" media.content_object.user.username media.content_object.id_string media.id %}</downloadUrl>
+        <downloadUrl>{{ host }}{% url "download-media-data" media.content_object.user.username media.content_object.id_string media.id %}</downloadUrl>
     </mediaFile>
     {% endfor %}
 </manifest>
