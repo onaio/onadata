@@ -17,7 +17,12 @@ from django.utils import six, timezone
 from django.utils.http import urlencode
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache
-from multidb.pinning import use_master
+
+try:
+    from multidb.pinning import use_master
+except ImportError:
+    pass
+
 from pyxform.builder import create_survey_element_from_dict
 from pyxform.xls2json import parse_file_to_json
 from rest_framework import exceptions, status
@@ -635,7 +640,10 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                 resp = get_async_response(job_uuid, request, xform)
             except Export.DoesNotExist:
                 # if this does not exist retry it against the primary
-                with use_master:
+                try:
+                    with use_master:
+                        resp = get_async_response(job_uuid, request, xform)
+                except NameError:
                     resp = get_async_response(job_uuid, request, xform)
         else:
             resp = process_async_export(request, xform, export_type, options)
