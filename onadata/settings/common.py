@@ -408,8 +408,8 @@ def configure_logging(logger, **kwargs):
 after_setup_logger.connect(configure_logging)
 
 GOOGLE_STEP2_URI = 'http://ona.io/gwelcome'
-GOOGLE_OAUTH2_CLIENT_ID = '617113120802.onadata.apps.googleusercontent.com'
-GOOGLE_OAUTH2_CLIENT_SECRET = '9reM29qpGFPyI8TBuB54Z4fk'
+GOOGLE_OAUTH2_CLIENT_ID = 'REPLACE ME'
+GOOGLE_OAUTH2_CLIENT_SECRET = 'REPLACE ME'
 
 THUMB_CONF = {
     'large': {'size': 1280, 'suffix': '-large'},
