@@ -10,6 +10,7 @@
 -e git+https://github.com/onaio/python-json2xlsclient.git#egg=j2xclient
 -e git+https://github.com/XLSForm/pyxform.git@master#egg=pyxform
 -e git+https://bitbucket.org/fomcl/savreaderwriter.git@v3.4.2#egg=savreaderwriter
+-e git+https://github.com/onaio/django-multidb-router.git@django-1.11#egg=djang-multidb-router
 alabaster==0.7.10         # via sphinx
 amqp==1.4.9               # via kombu, librabbitmq
 anyjson==0.3.3            # via kombu

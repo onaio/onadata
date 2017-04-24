@@ -1,6 +1,7 @@
 Django
 django-guardian
 -e git+https://github.com/bfirsh/django-ordered-model.git@master#egg=django-ordered-model
+-e git+https://github.com/onaio/django-multidb-router.git@django-1.11#egg=djang-multidb-router
 django-registration-redux
 django-templated-email
 django-reversion
@@ -89,6 +90,5 @@ pytz
 requests
 simplejson
 google-api-python-client
-django-multidb-router
 uwsgi
 flake8
