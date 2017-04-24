@@ -16,6 +16,11 @@ from rest_framework.authentication import (
 from rest_framework.response import Response
 from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer
 
+try:
+    from multidb.pinning import use_master
+except ImportError:
+    pass
+
 from onadata.apps.logger.models import Instance
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs import filters
@@ -146,7 +151,11 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,
         try:
             create_fn = create_instance_from_json if is_json_request else\
                 create_instance_from_xml
-            error, instance = create_fn(username, request)
+            try:
+                with use_master:
+                    error, instance = create_fn(username, request)
+            except NameError:
+                error, instance = create_fn(username, request)
         except AttributeError:
             error = _(u'Incorrect format, see format details here, '
                       u'https://api.ona.io/static/docs/submissions.html')
