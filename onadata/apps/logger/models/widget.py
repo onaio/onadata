@@ -86,8 +86,10 @@ class Widget(OrderedModel):
         columns = [
             SimpleField(
                 field="json->>'%s'" % unicode(column),
-                alias='{}'.format(column)), CountField(
-                    field="json->>'%s'" % unicode(column), alias='count')
+                alias='{}'.format(column)),
+            CountField(
+                field="json->>'%s'" % unicode(column),
+                alias='count')
         ]
 
         if group_by:
