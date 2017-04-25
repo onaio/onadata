@@ -10,8 +10,6 @@ django-filter
 # generic relation
 django-query-builder
 
-django-db-readonly
-
 celery
 django-celery
 librabbitmq
