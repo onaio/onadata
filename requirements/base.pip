@@ -27,7 +27,6 @@ django-cors-headers==2.0.2
 django-debug-toolbar==1.7
 django-filter==1.0.2
 django-guardian==1.4.8
-django-multidb-router==0.6
 django-oauth-toolkit==0.12.0
 django-query-builder==0.14.1
 django-registration-redux==1.5
