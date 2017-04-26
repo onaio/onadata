@@ -134,7 +134,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
         self.assertEqual(
-            response.data,
+            [dict(i) for i in response.data],
             [self.user_profile_data(), deno_profile_data]
         )
 

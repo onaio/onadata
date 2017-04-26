@@ -58,14 +58,14 @@ class TestFormEdit(TestBase):
         response = self.client.post(self.edit_url, {'form-license': desc},
                                     HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(MetaData.form_license(self.xform).data_value, desc)
+        self.assertEqual(MetaData.form_license(self.xform), desc)
 
     def test_user_data_license_edit_updates(self):
         desc = 'Snooky'
         response = self.client.post(self.edit_url, {'data-license': desc},
                                     HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(MetaData.data_license(self.xform).data_value, desc)
+        self.assertEqual(MetaData.data_license(self.xform), desc)
 
     def test_user_toggle_data_privacy(self):
         self.assertEqual(self.xform.shared, False)

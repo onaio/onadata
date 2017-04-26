@@ -118,7 +118,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
 
         return Response(self.object.xml, headers=self.get_openrosa_headers())
 
-    @detail_route(methods=['GET'])
+    @detail_route(methods=['GET', 'HEAD'])
     def manifest(self, request, *args, **kwargs):
         self.object = self.get_object()
         object_list = MetaData.objects.filter(data_type='media',
@@ -130,7 +130,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
 
         return Response(serializer.data, headers=self.get_openrosa_headers())
 
-    @detail_route(methods=['GET'])
+    @detail_route(methods=['GET', 'HEAD'])
     def media(self, request, *args, **kwargs):
         self.object = self.get_object()
         pk = kwargs.get('metadata')

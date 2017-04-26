@@ -1,32 +1,29 @@
-from optparse import make_option
-
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Q
 from django.http import HttpRequest
 from django.utils.translation import ugettext_lazy
 
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.libs.utils.viewer_tools import (enketo_url,
-                                             get_enketo_preview_url,
-                                             get_form_url)
+from onadata.libs.utils.viewer_tools import (
+    enketo_url, get_enketo_preview_url, get_form_url)
 
 
 class Command(BaseCommand):
     help = ugettext_lazy("Updates enketo preview urls in MetaData model")
 
-    option_list = BaseCommand.option_list + (
-        make_option(
-            "-n", "--server_name", dest="server_name",
-            default="enketo.ona.io"),
-        make_option("-p", "--server_port", dest="server_port", default="443"),
-        make_option("-r", "--protocol", dest="protocol", default="https"),
-    )
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "-n", "--server_name", dest="server_name", default="enketo.ona.io")
+        parser.add_argument(
+            "-p", "--server_port", dest="server_port", default="443")
+        parser.add_argument(
+            "-r", "--protocol", dest="protocol", default="https")
 
-    def handle(self, *args, **kwargs):
+    def handle(self, *args, **options):
         request = HttpRequest()
-        server_name = kwargs.get('server_name')
-        server_port = kwargs.get('server_port')
-        protocol = kwargs.get('protocol')
+        server_name = options.get('server_name')
+        server_port = options.get('server_port')
+        protocol = options.get('protocol')
 
         if not server_name or not server_port or not protocol:
             raise CommandError(

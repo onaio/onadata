@@ -1,19 +1,20 @@
-from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
+from django.core.management.base import BaseCommand
 from django.utils.translation import gettext as _
-from optparse import make_option
 from rest_framework.authtoken.models import Token
 
 
 class Command(BaseCommand):
     help = _(u"Regenerate Authentication Tokens")
-    option_list = BaseCommand.option_list + (
-        make_option('--users', '-u',
-                    action='store_true',
-                    dest='users',
-                    default=False,
-                    help='Users to Regenerate Tokens'),
-        )
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--users',
+            '-u',
+            action='store_true',
+            dest='users',
+            default=False,
+            help='Users to Regenerate Tokens')
 
     def handle(self, *args, **options):
         ALL = "all"

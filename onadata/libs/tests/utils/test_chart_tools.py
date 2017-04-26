@@ -85,7 +85,7 @@ class TestChartTools(TestBase):
 
         self.assertEquals(XForm.objects.count(), count + 1)
 
-        xform = XForm.objects.all()[0]
+        xform = XForm.objects.get(id_string='sample_accent')
         self.assertEqual(xform.title, "sample_accent")
 
         field = find_field_by_name(xform, u'tête')

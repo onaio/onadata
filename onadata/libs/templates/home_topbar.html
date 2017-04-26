@@ -15,7 +15,7 @@
                     {% if user.is_superuser or user.is_staff %}
 					<li> <a href="{% url "members-list" %}">{% trans "People" %}</a></li>
                     {% endif %}
-					<li> <a href="{% url "onadata.apps.main.views.faq" %}"> {% trans "FAQ" %} </a> </li>
+					<li> <a href="{% url "faq" %}"> {% trans "FAQ" %} </a> </li>
 					<li> <a href="{% url "support" %}">{% trans "Support" %}</a></li>
 				</ul>
 			</div>

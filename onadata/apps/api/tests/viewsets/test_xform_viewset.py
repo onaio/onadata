@@ -18,6 +18,7 @@ from django.core.cache import cache
 from django.core.files.storage import default_storage
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
+from django.utils.timezone import utc
 from django_digest.test import DigestAuth
 from httmock import urlmatch, HTTMock
 from mock import patch, Mock
@@ -3599,7 +3600,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
     def test_csv_export_filtered_by_date(self):
         with HTTMock(enketo_mock):
-            start_date = datetime(2015, 12, 2)
+            start_date = datetime(2015, 12, 2, tzinfo=utc)
             self._make_submission_over_date_range(start_date)
 
             first_datetime = start_date.strftime(MONGO_STRFTIME)
@@ -3628,7 +3629,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
     def test_previous_export_with_date_filter_is_returned(self):
         with HTTMock(enketo_mock):
-            start_date = datetime(2015, 12, 2)
+            start_date = datetime(2015, 12, 2, tzinfo=utc)
             self._make_submission_over_date_range(start_date)
 
             first_datetime = start_date.strftime(MONGO_STRFTIME)
@@ -3701,7 +3702,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
     def test_normal_export_after_export_with_date_filter(self):
         with HTTMock(enketo_mock):
-            start_date = datetime(2015, 12, 2)
+            start_date = datetime(2015, 12, 2, tzinfo=utc)
             self._make_submission_over_date_range(start_date)
 
             first_datetime = start_date.strftime(MONGO_STRFTIME)
@@ -3854,7 +3855,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                     "fixtures", "tutorial", "instances",
                     "uuid1", 'submission.xml'),
                     media_file=f,
-                    forced_submission_time=datetime(2015, 12, 2))
+                    forced_submission_time=datetime(2015, 12, 2, tzinfo=utc))
 
             attachment_id = Attachment.objects.all().last().pk
 

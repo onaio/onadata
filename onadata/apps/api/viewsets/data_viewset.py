@@ -163,11 +163,11 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
     def _filtered_or_shared_qs(self, qs, pk):
         filter_kwargs = {self.lookup_field: pk}
-        qs = qs.filter(**filter_kwargs)
+        qs = qs.filter(**filter_kwargs).only('id', 'shared')
 
         if not qs:
             filter_kwargs['shared_data'] = True
-            qs = XForm.objects.filter(**filter_kwargs)
+            qs = XForm.objects.filter(**filter_kwargs).only('id', 'shared')
 
             if not qs:
                 raise Http404(_(u"No data matches with given query."))
@@ -175,7 +175,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         return qs
 
     def filter_queryset(self, queryset, view=None):
-        qs = super(DataViewSet, self).filter_queryset(queryset)
+        qs = super(DataViewSet, self).filter_queryset(
+            queryset.only('id', 'shared'))
         pk = self.kwargs.get(self.lookup_field)
 
         if pk:
@@ -333,11 +334,12 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         if is_public_request:
             self.object_list = self._get_public_forms_queryset()
         elif lookup:
-            qs = self.filter_queryset(self.get_queryset())\
-                .values_list('pk', flat=True)
+            qs = self.filter_queryset(
+                self.get_queryset()
+            ).values_list('pk', flat=True)
             xform_id = qs[0] if qs else lookup
-            self.object_list = Instance.objects.filter(xform_id=xform_id,
-                                                       deleted_at=None)
+            self.object_list = Instance.objects.filter(
+                xform_id=xform_id, deleted_at=None).only('json')
             xform = self.get_object()
             self.object_list = \
                 filter_queryset_xform_meta_perms(xform, request.user,

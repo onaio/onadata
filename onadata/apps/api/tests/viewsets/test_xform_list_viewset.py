@@ -366,7 +366,12 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
                              'text/xml; charset=utf-8')
 
     def test_retrieve_xform_xml(self):
-        self.view = XFormListViewSet.as_view({"get": "retrieve"})
+        self.view = XFormListViewSet.as_view(
+            {
+                "get": "retrieve",
+                "head": "retrieve"
+            }
+        )
         request = self.factory.head('/')
         response = self.view(request, pk=self.xform.pk)
         auth = DigestAuth('bob', 'bobbob')
@@ -404,8 +409,14 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
 
     def test_retrieve_xform_manifest(self):
         self._load_metadata(self.xform)
-        self.view = XFormListViewSet.as_view({"get": "manifest"})
+        self.view = XFormListViewSet.as_view(
+            {
+                "get": "manifest",
+                "head": "manifest"
+            }
+        )
         request = self.factory.head('/')
+
         response = self.view(request, pk=self.xform.pk)
         auth = DigestAuth('bob', 'bobbob')
         request = self.factory.get('/')
@@ -467,7 +478,12 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
 
     def test_retrieve_xform_media(self):
         self._load_metadata(self.xform)
-        self.view = XFormListViewSet.as_view({"get": "media"})
+        self.view = XFormListViewSet.as_view(
+            {
+                "get": "media",
+                "head": "media"
+            }
+        )
         request = self.factory.head('/')
         response = self.view(
             request, pk=self.xform.pk, metadata=self.metadata.pk, format='png')
@@ -511,7 +527,12 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self._make_submissions()
         self.xform.reload()
 
-        self.view = XFormListViewSet.as_view({"get": "manifest"})
+        self.view = XFormListViewSet.as_view(
+            {
+                "get": "manifest",
+                "head": "manifest"
+            }
+        )
         request = self.factory.head('/')
         response = self.view(request, pk=self.xform.pk)
         auth = DigestAuth('bob', 'bobbob')
@@ -524,7 +545,12 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             response.data[0]['hash'], 'md5:%s' %
             md5(self.xform.last_submission_time.isoformat()).hexdigest())
 
-        self.view = XFormListViewSet.as_view({"get": "media"})
+        self.view = XFormListViewSet.as_view(
+            {
+                "get": "media",
+                "head": "media"
+            }
+        )
         request = self.factory.get('/')
         response = self.view(
             request, pk=self.xform.pk, metadata=self.metadata.pk, format='csv')
@@ -549,7 +575,12 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         data_value = 'xform {} transportation'.format(self.xform.pk)
         media = self._add_form_metadata(self.xform, data_type, data_value)
 
-        self.view = XFormListViewSet.as_view({"get": "manifest"})
+        self.view = XFormListViewSet.as_view(
+            {
+                "get": "manifest",
+                "head": "manifest"
+            }
+        )
 
         # sign in bob
         request = self.factory.head('/')

@@ -91,16 +91,23 @@ class TestMetaData(TestBase):
                                             filename))
 
     def test_upload_to_with_project_and_xform_instance(self):
-        models = [Project, XForm]
+        model_instance = Project(created_by=self.user)
+        metadata = MetaData(data_type="media")
+        metadata.content_object = model_instance
 
-        for model in models:
-            model_instance = model(user=self.user, created_by=self.user)
-            metadata = MetaData(data_type="media")
-            metadata.content_object = model_instance
+        filename = "filename"
 
-            filename = "filename"
+        self.assertEquals(upload_to(metadata, filename),
+                          "{}/{}/{}".format(self.user.username,
+                                            'formid-media',
+                                            filename))
+        model_instance = XForm(user=self.user, created_by=self.user)
+        metadata = MetaData(data_type="media")
+        metadata.content_object = model_instance
 
-            self.assertEquals(upload_to(metadata, filename),
-                              "{}/{}/{}".format(self.user.username,
-                                                'formid-media',
-                                                filename))
+        filename = "filename"
+
+        self.assertEquals(upload_to(metadata, filename),
+                          "{}/{}/{}".format(self.user.username,
+                                            'formid-media',
+                                            filename))

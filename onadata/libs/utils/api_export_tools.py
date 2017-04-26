@@ -13,7 +13,8 @@ from django.utils.translation import ugettext as _
 from oauth2client import client as google_client
 from oauth2client.client import (HttpAccessTokenRefreshError,
                                  OAuth2WebServerFlow, TokenRevokeError)
-from oauth2client.contrib.django_orm import Storage
+from oauth2client.contrib.django_util.storage import (
+    DjangoORMStorage as Storage)
 from requests import ConnectionError
 from rest_framework import exceptions, status
 from rest_framework.response import Response
@@ -472,7 +473,7 @@ def get_async_response(job_uuid, request, xform, count=0):
             if job.result:
                 resp.update(job.result) if isinstance(job.result, dict) else \
                     resp.update({'progress': str(job.result)})
-    except ConnectionError, e:
+    except ConnectionError as e:
         if count > 0:
             raise ServiceUnavailable(unicode(e))
 
@@ -509,8 +510,8 @@ def generate_google_web_flow(request):
     else:
         redirect_uri = settings.GOOGLE_STEP2_URI
     return OAuth2WebServerFlow(
-        client_id=settings.GOOGLE_CLIENT_ID,
-        client_secret=settings.GOOGLE_CLIENT_SECRET,
+        client_id=settings.GOOGLE_OAUTH2_CLIENT_ID,
+        client_secret=settings.GOOGLE_OAUTH2_CLIENT_SECRET,
         scope=' '.join([
             'https://docs.google.com/feeds/',
             'https://spreadsheets.google.com/feeds/',

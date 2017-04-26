@@ -10,6 +10,8 @@ class NoteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Note
+        fields = ('id', 'note', 'instance', 'instance_field', 'created_by',
+                  'date_created', 'date_modified', 'owner')
 
     def get_owner(self, obj):
         if obj and obj.created_by_id:

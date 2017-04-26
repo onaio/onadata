@@ -1,10 +1,9 @@
-from django.core.management.base import BaseCommand
 from django.contrib.contenttypes.models import ContentType
+from django.core.management.base import BaseCommand
 from django.db.models import Count
+from django.db.models.loading import get_model
 from django.db.utils import IntegrityError
 from django.utils.translation import gettext as _
-from optparse import make_option
-from django.db.models.loading import get_model
 from guardian.models import GroupObjectPermissionBase
 
 from onadata.apps.api.models import Team
@@ -13,20 +12,24 @@ from onadata.libs.utils.model_tools import queryset_iterator
 
 class Command(BaseCommand):
     help = _(u"Migrate group permissions")
-    option_list = BaseCommand.option_list + (
-        make_option('--model', '-m',
-                    action='store_true',
-                    dest='app_model',
-                    default=False,
-                    help='The model the permission belong too.'
-                         ' (app.model format)'),
-        make_option('--perm-table', '-p',
-                    action='store_true',
-                    dest='perms_tbl',
-                    default=False,
-                    help='The new model permission are stored in'
-                         ' (app.model format)'),
-        )
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--model',
+            '-m',
+            action='store_true',
+            dest='app_model',
+            default=False,
+            help='The model the permission belong too.'
+            ' (app.model format)')
+        parser.add_argument(
+            '--perm-table',
+            '-p',
+            action='store_true',
+            dest='perms_tbl',
+            default=False,
+            help='The new model permission are stored in'
+            ' (app.model format)')
 
     def handle(self, *args, **options):
         self.stdout.write("Migrate group permissions started", ending='\n')
@@ -58,15 +61,12 @@ class Command(BaseCommand):
                               "a subclass of GroupObjectPermissionBase")
             exit()
 
-        ct = ContentType.objects.get(model=model.__name__.lower(),
-                                     app_label=model._meta.app_label)
+        ct = ContentType.objects.get(
+            model=model.__name__.lower(), app_label=model._meta.app_label)
         teams = Team.objects.filter().annotate(
-            c=Count('groupobjectpermission')
-        ).filter(c__gt=0)
+            c=Count('groupobjectpermission')).filter(c__gt=0)
         for team in queryset_iterator(teams):
-            self.stdout.write(
-                "Processing: {} - {}".format(team.pk, team.name)
-            )
+            self.stdout.write("Processing: {} - {}".format(team.pk, team.name))
             for gop in team.groupobjectpermission_set.filter(content_type=ct)\
                     .select_related('permission', 'content_type')\
                     .prefetch_related('permission', 'content_type'):
@@ -74,8 +74,7 @@ class Command(BaseCommand):
                     perms_model(
                         content_object=gop.content_object,
                         group=team,
-                        permission=gop.permission
-                    ).save()
+                        permission=gop.permission).save()
                 except IntegrityError:
                     continue
                 except ValueError:

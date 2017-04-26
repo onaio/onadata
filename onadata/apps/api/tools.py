@@ -470,22 +470,24 @@ def check_inherit_permission_from_project(xform_id, user):
         return
 
     # get the project_xform
-    xforms = XForm.objects.filter(pk=xform_id).select_related('project')
+    xform = XForm.objects.filter(pk=xform_id).select_related('project').only(
+        'project_id', 'id'
+    ).first()
 
-    if not xforms:
+    if not xform:
         return
 
     # ignore if forms has meta perms set
-    if xforms[0].metadata_set.filter(data_type='xform_meta_perms'):
+    if xform.metadata_set.filter(data_type='xform_meta_perms'):
         return
 
     # get and compare the project role to the xform role
-    project_role = get_role_in_org(user, xforms[0].project)
-    xform_role = get_role_in_org(user, xforms[0])
+    project_role = get_role_in_org(user, xform.project)
+    xform_role = get_role_in_org(user, xform)
 
     # if diff set the project role to the xform
     if xform_role != project_role:
-        _set_xform_permission(project_role, user, xforms[0])
+        _set_xform_permission(project_role, user, xform)
 
 
 def _set_xform_permission(role, user, xform):

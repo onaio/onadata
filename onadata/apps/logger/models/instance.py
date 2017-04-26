@@ -132,9 +132,8 @@ def submission_time():
 def update_xform_submission_count(instance_id, created):
     if created:
         try:
-            instance = Instance.objects.select_related(
-                'xform__user__id'
-            ).get(pk=instance_id)
+            instance = Instance.objects.select_related('xform').only(
+                'xform__user_id', 'date_created').get(pk=instance_id)
         except Instance.DoesNotExist:
             pass
         else:
@@ -215,9 +214,8 @@ def update_project_date_modified(instance_id, created):
     # update the date modified field of the project which will change
     # the etag value of the projects endpoint
     try:
-        instance = Instance.objects.select_related(
-            'xform__project__date_modified'
-        ).get(pk=instance_id)
+        instance = Instance.objects.select_related('xform__project').only(
+            'xform__project__date_modified').get(pk=instance_id)
     except Instance.DoesNotExist:
         pass
     else:

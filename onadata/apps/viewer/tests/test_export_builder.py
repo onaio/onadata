@@ -455,8 +455,10 @@ class TestExportBuilder(TestBase):
         wb = load_workbook(temp_xls_file.name)
         children_sheet = wb.get_sheet_by_name("hxl_example")
         self.assertTrue(children_sheet)
+
         # we pick the second row because the first row has xform fieldnames
-        hxl_row = [a.value for a in children_sheet.rows[1]]
+        rows = [row for row in children_sheet.rows]
+        hxl_row = [a.value for a in rows[1]]
         self.assertIn(u'#age', hxl_row)
 
     def test_generation_of_multi_selects_works(self):

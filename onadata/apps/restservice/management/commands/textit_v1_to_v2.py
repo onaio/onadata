@@ -31,11 +31,12 @@ class Command(BaseCommand):
             if v1.findall(service.service_url):
                 original = service.service_url
                 new_uri = re.sub(v1, v2, service.service_url)
+                params = {'v1_url': original, 'v2_url': new_uri}
                 if force.lower() == 'true':
                     service.service_url = new_uri
                     service.save()
                     self.stdout.write(
-                        _("Changed %s to %s" % (original, new_uri)))
+                        _("Changed %(v1_url)s to %(v2_url)s" % params))
                 else:
                     self.stdout.write(
-                        _("Will change %s to %s" % (original, new_uri)))
+                        _("Will change %(v1_url)s to %(v2_url)s" % params))

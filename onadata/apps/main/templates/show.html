@@ -107,7 +107,7 @@
         {% if user.is_authenticated and content_user.username != user.username and xform.xls|length > 0 and not cloned %}
             <br/><br/>
             <li>
-                <a href="" data-url="{% url "onadata.apps.main.views.clone_xlsform" xform.user.username %}" data-username="{{ xform.user.username }}" data-id="{{ xform.id_string }}" class="clonexls btn small">{% trans "Clone" %}</a>
+                <a href="" data-url="{% url "clone-xlsform" xform.user.username %}" data-username="{{ xform.user.username }}" data-id="{{ xform.id_string }}" class="clonexls btn small">{% trans "Clone" %}</a>
             </li>
         {% endif %}
         </ul>
@@ -312,7 +312,7 @@
                 <form action="{% url "xform-edit" content_user.username xform.id_string %}" method="post" enctype="multipart/form-data">
 
                 {% if source.data_file %}
-                    <p><a href="{% url "onadata.apps.main.views.download_metadata" content_user.username xform.id_string source.id %}">{{ source.data_file.name }}</p></a>
+                    <p><a href="{% url "download-metadata" content_user.username xform.id_string source.id %}">{{ source.data_file.name }}</p></a>
                 {% endif %}
                 {% csrf_token %}
                 <input type="text" id="source" class="input-xxlarge present" disabled="" rows="3" value="{{ source.data_value|default:"None provided" }}" />
@@ -337,9 +337,9 @@
                 <h3 data-toggle="collapse" class="toggler" data-target="#docs_tab">{% trans "Methodology" %}</h3>
                 <div id='docs_tab' class="collapse">
                 {% for doc in supporting_docs %}
-                    <p><a href="{% url "onadata.apps.main.views.download_metadata" content_user.username xform.id_string doc.id %}">{{ doc.data_value }}</a>
+                    <p><a href="{% url "download-metadata" content_user.username xform.id_string doc.id %}">{{ doc.data_value }}</a>
                     {% if can_edit %}
-                    || <a href="{% url "onadata.apps.main.views.delete_metadata" content_user.username xform.id_string doc.id %}?del=true"> {% trans "remove" %} </a>
+                    || <a href="{% url "delete-metadata" content_user.username xform.id_string doc.id %}?del=true"> {% trans "remove" %} </a>
                     {% endif %}
                     </p>
                 {% endfor %}
@@ -367,9 +367,9 @@
             <h3 data-toggle="collapse" class="toggler" data-target="#media_tab">{% blocktrans %}Media &nbsp;<small>jpeg/png/mp3/mp4/wav/3gp/csv/zip allowed</small>{% endblocktrans %}</h3>
             <div id='media_tab' class="collapse">
             {% for media in media_upload %}
-              <p><a href="{% url "onadata.apps.main.views.download_media_data" content_user.username xform.id_string media.id %}">{{ media.data_value }}</a>
+              <p><a href="{% url "download-media-data" content_user.username xform.id_string media.id %}">{{ media.data_value }}</a>
               {% if can_edit %}
-              &ndash;<a href="{% url "onadata.apps.main.views.download_media_data" content_user.username xform.id_string media.id %}?del=true"> {% trans "remove" %} </a>
+              &ndash;<a href="{% url "download-media-data" content_user.username xform.id_string media.id %}?del=true"> {% trans "remove" %} </a>
               {% endif %}
               </p>
             {% endfor %}
@@ -416,7 +416,7 @@
             <p><a href="{{ mapbox_layer.link }}" target="_blank">{{ mapbox_layer.map_name }}</a> &ndash;
             {% trans "Attribution:" %} {{ mapbox_layer.attribution }}
             {% if can_edit %}
-            &ndash;<a href="{% url "onadata.apps.main.views.delete_metadata" content_user.username xform.id_string mapbox_layer.id %}?map_name_del=true"> {% trans "remove" %} </a></p>
+            &ndash;<a href="{% url "delete-metadata" content_user.username xform.id_string mapbox_layer.id %}?map_name_del=true"> {% trans "remove" %} </a></p>
             {% endif %}
             {% endif %}
             {% if can_edit %}
@@ -474,7 +474,7 @@
                                         <tr>
                                         <td><a href="{{ meta.external_export_template }}">{{ meta.external_export_name }}</a></td>
                                         {% if can_edit %}
-                                            <td><a href="{% url "onadata.apps.main.views.delete_metadata" content_user.username xform.id_string meta.id %}?external_del=false" class="btn btn-mini btn-danger"> {% trans "Delete" %} </a></td>
+                                            <td><a href="{% url "delete-metadata" content_user.username xform.id_string meta.id %}?external_del=false" class="btn btn-mini btn-danger"> {% trans "Delete" %} </a></td>
                                         {% endif %}
                                         </tr>
                                 {% endfor %}
