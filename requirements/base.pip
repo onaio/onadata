@@ -71,7 +71,7 @@ numpy==1.12.1
 oauth2client==4.0.0
 oauthlib==2.0.1           # via django-oauth-toolkit
 olefile==0.44             # via pillow
-openpyxl==2.4.6
+openpyxl==2.4.7
 pbr==2.1.0                # via mock
 pillow==4.1.0             # via elaphe
 psycopg2==2.7.1
