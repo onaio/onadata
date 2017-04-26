@@ -6,6 +6,7 @@ from rest_framework import serializers
 from rest_framework import status
 from rest_framework.decorators import detail_route
 from rest_framework.exceptions import ParseError
+from rest_framework.filters import OrderingFilter
 from rest_framework.generics import get_object_or_404
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
@@ -70,7 +71,7 @@ class UserProfileViewSet(AuthenticateHeaderMixin,
     serializer_class = serializer_from_settings()
     lookup_field = 'user'
     permission_classes = [UserProfilePermissions]
-    filter_backends = (filters.UserProfileFilter,)
+    filter_backends = (filters.UserProfileFilter, OrderingFilter)
     ordering = ('user__username', )
 
     def get_object(self, queryset=None):
