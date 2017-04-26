@@ -69,7 +69,8 @@ def get_linked_object(parts):
             except ValueError:
                 raise serializers.ValidationError({
                     'data_value':
-                    _(u"Invalid %s id %s." % (obj_type, pk))
+                    _(u"Invalid %(type)s id %(id)s." %
+                      {'type': obj_type, 'id': pk})
                 })
             else:
                 model = DataView if obj_type == DATAVIEW_TAG else XForm
