@@ -464,19 +464,6 @@ def publish_form(callback):
             'type': 'alert-error',
             'text': _(u'Form with this id or SMS-keyword already exists.'),
         }
-    except ValidationError as e:
-        # on clone invalid URL
-        return {
-            'type': 'alert-error',
-            'text': _(u'Invalid URL format.'),
-        }
-    except AttributeError as e:
-        # form.publish returned None, not sure why...
-
-        return {
-            'type': 'alert-error',
-            'text': unicode(e)
-        }
     except ProcessTimedOut as e:
         # catch timeout errors
         return {
@@ -491,9 +478,7 @@ def publish_form(callback):
                 'Please try again.'
             )),
         }
-    except Exception as e:
-        # error in the XLS file; show an error to the user
-
+    except (AttributeError, Exception, ValidationError) as e:
         return {
             'type': 'alert-error',
             'text': unicode(e)

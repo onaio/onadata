@@ -282,6 +282,7 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
             # If a text (csv) representation of the xlsform is present,
             # this will save the file and pass it instead of the 'xls_file'
             # field.
+            cleaned_xls_file = None
             if 'text_xls_form' in self.cleaned_data\
                and self.cleaned_data['text_xls_form'].strip():
                 csv_data = self.cleaned_data['text_xls_form']
@@ -336,13 +337,17 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
                 return publish_xml_form(cleaned_xml_file, user, project,
                                         id_string, created_by or user)
 
+            if cleaned_xls_file is None:
+                raise forms.ValidationError(
+                    _(u"XLSForm not provided, expecting either of these"
+                      " params: 'xml_file', 'xls_file', 'xls_url', 'csv_url',"
+                      " 'dropbox_xls_url', 'text_xls_form'"))
             # publish the xls
             return publish_xls_form(cleaned_xls_file, user, project,
                                     id_string, created_by or user)
 
 
 class ActivateSMSSupportFom(forms.Form):
-
     enable_sms_support = forms.TypedChoiceField(coerce=lambda x: x == 'True',
                                                 choices=((False, 'No'),
                                                          (True, 'Yes')),
