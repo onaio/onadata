@@ -881,11 +881,7 @@ class XForm(XFormMixin, BaseModel):
 
     @property
     def can_be_replaced(self):
-        if hasattr(self.submission_count, '__call__'):
-            num_submissions = self.submission_count()
-        else:
-            num_submissions = self.submission_count
-        return num_submissions == 0
+        return self.num_of_submissions == 0
 
     @classmethod
     def public_forms(cls):
