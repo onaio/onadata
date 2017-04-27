@@ -29,6 +29,7 @@ from onadata.apps.logger.xform_instance_parser import (XLSFormError,
 from onadata.apps.main.models import MetaData
 from onadata.libs.models.base_model import BaseModel
 from onadata.libs.utils.cache_tools import (IS_ORG, PROJ_FORMS_CACHE,
+                                            PROJ_BASE_FORMS_CACHE,
                                             PROJ_NUM_DATASET_CACHE,
                                             PROJ_SUB_DATE_CACHE, safe_delete)
 from onadata.libs.utils.common_tags import (DURATION, KNOWN_MEDIA_TYPES, NOTES,
@@ -914,6 +915,7 @@ post_delete.connect(
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
     # clear cache
     safe_delete('{}{}'.format(PROJ_FORMS_CACHE, instance.project.pk))
+    safe_delete('{}{}'.format(PROJ_BASE_FORMS_CACHE, instance.project.pk))
     safe_delete('{}{}'.format(IS_ORG, instance.pk))
 
     if created:
@@ -943,6 +945,7 @@ pre_save.connect(save_project, sender=XForm, dispatch_uid='save_project_xform')
 def xform_post_delete_callback(sender, instance, **kwargs):
     if instance.project_id:
         safe_delete('{}{}'.format(PROJ_FORMS_CACHE, instance.project_id))
+        safe_delete('{}{}'.format(PROJ_BASE_FORMS_CACHE, instance.project.pk))
         safe_delete('{}{}'.format(PROJ_SUB_DATE_CACHE, instance.project_id))
         safe_delete('{}{}'.format(PROJ_NUM_DATASET_CACHE, instance.project_id))
 

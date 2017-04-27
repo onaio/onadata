@@ -39,7 +39,8 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import datetime_from_str
 from onadata.libs.utils.api_export_tools import custom_response_handler
-from onadata.libs.utils.cache_tools import safe_delete, PROJ_FORMS_CACHE
+from onadata.libs.utils.cache_tools import (
+    safe_delete, PROJ_FORMS_CACHE, PROJ_BASE_FORMS_CACHE)
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.project_utils import set_project_perms_to_xform_async
@@ -338,6 +339,7 @@ def publish_project_xform(request, project):
     if 'formid' in request.data:
         xform = get_object_or_404(XForm, pk=request.data.get('formid'))
         safe_delete('{}{}'.format(PROJ_FORMS_CACHE, xform.project.pk))
+        safe_delete('{}{}'.format(PROJ_BASE_FORMS_CACHE, xform.project.pk))
         if not ManagerRole.user_has_role(request.user, xform):
             raise exceptions.PermissionDenied(_(
                 "{} has no manager/owner role to the form {}". format(
