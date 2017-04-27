@@ -214,10 +214,18 @@ def profile(request, username):
             "/%s" % request.user.username)
         url = request_url.replace('http://', 'https://')
         xforms = XForm.objects.filter(user=content_user)\
-            .select_related('user')
+            .select_related('user').only(
+                'id', 'id_string', 'downloadable', 'shared', 'shared_data',
+                'user__username', 'num_of_submissions', 'title',
+                'last_submission_time', 'instances_with_geopoints',
+                'encrypted', 'date_created')
         user_xforms = xforms
         # forms shared with user
-        forms_shared_with = get_forms_shared_with_user(content_user)
+        forms_shared_with = get_forms_shared_with_user(content_user).only(
+            'id', 'id_string', 'downloadable', 'shared', 'shared_data',
+            'user__username', 'num_of_submissions', 'title',
+            'last_submission_time', 'instances_with_geopoints', 'encrypted',
+            'date_created')
         xforms_list = [
             {
                 'id': 'published',
