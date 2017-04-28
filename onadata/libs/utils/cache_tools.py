@@ -10,6 +10,7 @@ PROJ_PERM_CACHE = 'ps-project_permissions-'
 PROJ_NUM_DATASET_CACHE = 'ps-num_datasets-'
 PROJ_SUB_DATE_CACHE = 'ps-last_submission_date-'
 PROJ_FORMS_CACHE = 'ps-project_forms-'
+PROJ_BASE_FORMS_CACHE = 'ps-project_base_forms-'
 
 # Cache names used in user_profile_serializer
 IS_ORG = 'ups-is_org-'

@@ -121,6 +121,23 @@ def get_xform_and_perms(username, id_string, request):
     return [xform, is_owner, can_edit, can_view]
 
 
+def get_xform_users_with_perms(xform):
+    """Similar to django-guadian's get_users_with_perms here the query makes
+    use of the xformuserobjectpermission_set to return a dictionary of users
+    with a list of permissions to the XForm object. The query in use is not as
+    expensive as the one in use with get_users_with_perms
+    """
+    user_perms = {}
+    for p in xform.xformuserobjectpermission_set.all().select_related(
+        'user', 'permission').only(
+            'user', 'permission__codename', 'content_object_id'):
+        if p.user.username not in user_perms:
+            user_perms[p.user] = []
+        user_perms[p.user].append(p.permission.codename)
+
+    return user_perms
+
+
 def helper_auth_helper(request):
     if request.user and request.user.is_authenticated():
         return None
