@@ -954,6 +954,13 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertIn(self.project_data, response.data)
 
+        # should show deleted project public project when filtered by owner
+        self.project.soft_delete()
+        request = self.factory.get('/', {'owner': 'alice'}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([], response.data)
+
     def test_project_partial_updates(self):
         self._project_create()
         view = ProjectViewSet.as_view({

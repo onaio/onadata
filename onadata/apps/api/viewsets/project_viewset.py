@@ -162,20 +162,6 @@ class ProjectViewSet(AuthenticateHeaderMixin,
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    def list(self, request, *args, **kwargs):
-        owner = request.query_params.get('owner')
-
-        if owner:
-            kwargs = {'organization__username__iexact': owner}
-            self.object_list = self.filter_queryset(self.get_queryset()) | \
-                Project.objects.filter(shared=True, **kwargs)
-        else:
-            self.object_list = self.filter_queryset(self.get_queryset())
-
-        serializer = self.get_serializer(self.object_list, many=True)
-
-        return Response(serializer.data)
-
     def destroy(self, request, *args, **kwargs):
         project = self.get_object()
         project.soft_delete()
