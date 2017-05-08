@@ -86,8 +86,21 @@ class DataFilter(filters.DjangoObjectPermissionsFilter):
         return queryset
 
 
-class ProjectOwnerFilter(XFormOwnerFilter):
+class ProjectOwnerFilter(filters.BaseFilterBackend):
     owner_prefix = 'organization'
+
+    def filter_queryset(self, request, queryset, view):
+        owner = request.query_params.get('owner')
+
+        if owner:
+            kwargs = {
+                self.owner_prefix + '__username__iexact': owner
+            }
+
+            return queryset.filter(**kwargs) | Project.objects.filter(
+                shared=True, deleted_at__isnull=True, **kwargs)
+
+        return queryset
 
 
 class AnonUserProjectFilter(filters.DjangoObjectPermissionsFilter):
