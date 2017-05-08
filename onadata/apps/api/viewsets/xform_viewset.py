@@ -1,3 +1,4 @@
+import json
 import os
 import random
 from datetime import datetime
@@ -12,7 +13,7 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import IntegrityError
 from django.db.models import Prefetch
 from django.http import (HttpResponseBadRequest, HttpResponseForbidden,
-                         HttpResponseRedirect)
+                         HttpResponseRedirect, StreamingHttpResponse)
 from django.utils import six, timezone
 from django.utils.http import urlencode
 from django.utils.translation import ugettext as _
@@ -246,6 +247,14 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             Prefetch('metadata_set'),
             Prefetch('tags'),
             Prefetch('dataview_set')
+        ).only(
+            'id', 'id_string', 'title', 'shared', 'shared_data',
+            'require_auth', 'created_by', 'num_of_submissions',
+            'downloadable', 'encrypted', 'sms_id_string',
+            'date_created', 'date_modified', 'last_submission_time',
+            'uuid', 'bamboo_dataset', 'instances_with_osm',
+            'instances_with_geopoints', 'version', 'has_hxl_support',
+            'project', 'last_updated_at', 'user', 'allows_sms', 'description'
         )
     serializer_class = XFormSerializer
     lookup_field = 'pk'
@@ -663,14 +672,56 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                         status=status.HTTP_202_ACCEPTED,
                         content_type="application/json")
 
+    def _get_streaming_response(self, length):
+        """Get a StreamingHttpResponse response object
+
+        @param length ensures a valid JSON is generated, avoid a trailing comma
+        """
+        def stream_json(data, length):
+            """Generator function to stream JSON data"""
+            yield u"["
+            start = 1
+
+            for xform in self.object_list.iterator():
+                yield json.dumps(XFormBaseSerializer(
+                    instance=xform,
+                    context={'request': self.request}
+                ).data)
+                yield "" if start == length else ","
+                start += 1
+
+            yield u"]"
+
+        response = StreamingHttpResponse(
+            stream_json(self.object_list, length),
+            content_type="application/json"
+        )
+
+        # calculate etag value and add it to response headers
+        if hasattr(self, 'etag_data'):
+            self.set_etag_header(None, self.etag_data)
+
+        self.set_cache_control(response)
+
+        # set headers on streaming response
+        for k, v in self.headers.items():
+            response[k] = v
+
+        return response
+
     def list(self, request, *args, **kwargs):
+        STREAM_DATA = getattr(settings, 'STREAM_DATA', False)
         try:
             queryset = self.filter_queryset(self.get_queryset())
             last_modified = queryset.values_list('date_modified', flat=True)\
                 .order_by('-date_modified')
             if last_modified:
-                self.etag_data = last_modified[0]
-            resp = super(XFormViewSet, self).list(request, *args, **kwargs)
+                self.etag_data = last_modified[0].isoformat()
+            if STREAM_DATA:
+                self.object_list = queryset
+                resp = self._get_streaming_response(length=queryset.count())
+            else:
+                resp = super(XFormViewSet, self).list(request, *args, **kwargs)
         except XLSFormError, e:
             resp = HttpResponseBadRequest(e.message)
 

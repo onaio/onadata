@@ -354,6 +354,22 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get('/', **self.extra)
             response = self.view(request)
             self.assertNotEqual(response.get('Cache-Control'), None)
+
+    @override_settings(STREAM_DATA=True)
+    def test_form_list_stream(self):
+        view = XFormViewSet.as_view({
+            'get': 'list',
+        })
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            request = self.factory.get('/', **self.extra)
+            response = view(request)
+            self.assertTrue(response.streaming)
+            streaming_data = json.loads(
+                u''.join([i for i in response.streaming_content])
+            )
+            self.assertIsInstance(streaming_data, list)
+            self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
 
     def test_form_list_without_enketo_connection(self):
