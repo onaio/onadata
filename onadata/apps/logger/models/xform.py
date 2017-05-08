@@ -305,13 +305,14 @@ class XFormMixin(object):
 
         def flatten(elem, items=[]):
             results = []
-            xpath = elem.get_abbreviated_xpath()
-            if elem.type in ['group', 'select all that apply'] or \
-                    (xpath == name_or_xpath and elem.type == 'repeat'):
-                for child in elem.children:
-                    results += flatten(child)
-            else:
-                results = [elem]
+            if elem:
+                xpath = elem.get_abbreviated_xpath()
+                if elem.type in ['group', 'select all that apply'] or \
+                        (xpath == name_or_xpath and elem.type == 'repeat'):
+                    for child in elem.children:
+                        results += flatten(child)
+                else:
+                    results = [elem]
 
             return items + results
 

@@ -119,3 +119,5 @@ class TestXForm(PyxformTestCase, TestBase):
 
         fruitb_o = xform.get_survey_element("b/fruitb/orange")
         self.assertEqual(fruitb_o.get_abbreviated_xpath(), "b/fruitb/orange")
+
+        self.assertEqual(xform.get_child_elements('NoneExistent'), [])
