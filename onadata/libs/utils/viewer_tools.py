@@ -270,7 +270,7 @@ def get_form_url(request, username=None, protocol='https', preview=False,
     if preview:
         url = '%s/preview' % url
 
-    if username:
+    if username and xform_pk is None:
         url = "{}/{}".format(url, username)
     if username and xform_pk:
         url = "{}/{}/{}".format(url, username, xform_pk)

@@ -1,5 +1,6 @@
 from django.http import Http404
 from django.test.client import RequestFactory
+from django.test.utils import override_settings
 
 from onadata.apps.logger.models import XForm
 from onadata.apps.main.tests.test_base import TestBase
@@ -7,7 +8,8 @@ from onadata.libs.utils.viewer_tools import (
     export_def_from_filename,
     generate_enketo_form_defaults,
     get_client_ip,
-    get_form
+    get_form,
+    get_form_url
 )
 
 
@@ -99,3 +101,28 @@ class TestViewerTools(TestBase):
         kwarg['queryset'] = XForm.objects.all()
         xform = get_form(kwarg)
         self.assertIsInstance(xform, XForm)
+
+    @override_settings(TESTING_MODE=False)
+    def test_get_form_url(self):
+        request = RequestFactory().get('/')
+
+        # default https://ona.io
+        url = get_form_url(request)
+        self.assertEqual(url, 'https://ona.io')
+
+        # with username https://ona.io/bob
+        url = get_form_url(request, username='bob')
+        self.assertEqual(url, 'https://ona.io/bob')
+
+        # with http protocol http://ona.io/bob
+        url = get_form_url(request, username='bob', protocol='http')
+        self.assertEqual(url, 'http://ona.io/bob')
+
+        # preview url http://ona.io/preview/bob
+        url = get_form_url(request, username='bob', protocol='http',
+                           preview=True)
+        self.assertEqual(url, 'http://ona.io/preview/bob')
+
+        # with form pk url http://ona.io/bob/1
+        url = get_form_url(request, username='bob', xform_pk=1)
+        self.assertEqual(url, 'https://ona.io/bob/1')
