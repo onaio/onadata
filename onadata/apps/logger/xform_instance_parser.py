@@ -27,6 +27,17 @@ class InstanceInvalidUserError(Exception):
         return unicode(self).encode('utf-8')
 
 
+class InstanceInvalidInput(Exception):
+    def __init__(self, message):
+        self.message = message
+
+    def __unicode__(self):
+        return _("Invalid input {}.".format(self.message))
+
+    def __str__(self):
+        return unicode(self).encode('utf-8')
+
+
 class InstanceParseError(Exception):
     def __unicode__(self):
         return _("The instance could not be parsed.")
