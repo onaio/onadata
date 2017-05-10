@@ -35,7 +35,7 @@ def _create_enketo_url(request, xform):
     :return: enketo url
     """
     form_url = get_form_url(request, xform.user.username,
-                            settings.ENKETO_PROTOCOL)
+                            settings.ENKETO_PROTOCOL, xform_pk=xform.pk)
     url = ""
 
     try:
@@ -141,7 +141,7 @@ class XFormMixin(object):
                 try:
                     url = get_enketo_preview_url(
                         self.context.get('request'), obj.user.username,
-                        obj.id_string)
+                        obj.id_string, xform_pk=obj.pk)
                 except:
                     return url
                 else:

@@ -49,14 +49,16 @@ class Command(BaseCommand):
         request.META['SERVER_PORT'] = server_port
 
         if username and id_string:
-            form_url = get_form_url(request, username, protocol=protocol)
             try:
                 xform = XForm.objects.get(
                     user__username=username, id_string=id_string)
+                form_url = get_form_url(request, username, protocol=protocol,
+                                        xform_pk=xform.pk)
                 id_string = xform.id_string
                 _url = enketo_url(form_url, id_string)
                 _preview_url = get_enketo_preview_url(request, username,
-                                                      id_string)
+                                                      id_string,
+                                                      xform_pk=xform.pk)
                 self.stdout.write('enketo url: %s | preview url: %s' %
                                   (_url, _preview_url))
                 self.stdout.write("enketo urls generation completed!!")
@@ -64,15 +66,17 @@ class Command(BaseCommand):
                 self.stdout.write(
                     "No xform matching the provided username and id_string")
         elif username and id_string is None:
-            form_url = get_form_url(request, username, protocol=protocol)
             xforms = XForm.objects.filter(user__username=username)
             num_of_xforms = xforms.count()
             if xforms:
                 for xform in queryset_iterator(xforms):
+                    form_url = get_form_url(request, username,
+                                            protocol=protocol,
+                                            xform_pk=xform.pk)
                     id_string = xform.id_string
                     _url = enketo_url(form_url, id_string)
                     _preview_url = get_enketo_preview_url(
-                        request, username, id_string)
+                        request, username, id_string, xform_pk=xform.pk)
                     num_of_xforms -= 1
                     self.stdout.write(
                         'enketo url: %s | preview url: %s | remaining: %s' %
@@ -86,10 +90,12 @@ class Command(BaseCommand):
             for xform in queryset_iterator(xforms):
                 username = xform.user.username
                 id_string = xform.id_string
-                form_url = get_form_url(request, username, protocol=protocol)
+                form_url = get_form_url(request, username, protocol=protocol,
+                                        xform_pk=xform.pk)
                 _url = enketo_url(form_url, id_string)
                 _preview_url = get_enketo_preview_url(request, username,
-                                                      id_string)
+                                                      id_string,
+                                                      xform_pk=xform.pk)
                 num_of_xforms -= 1
                 self.stdout.write(
                     'enketo url: %s | preview url: %s | remaining: %s' %
