@@ -257,7 +257,8 @@ def get_form(kwargs):
     raise Http404("XForm does not exist.")
 
 
-def get_form_url(request, username=None, protocol='https', preview=False):
+def get_form_url(request, username=None, protocol='https', preview=False,
+                 xform_pk=None):
     if settings.TESTING_MODE:
         http_host = settings.TEST_HTTP_HOST
         username = settings.TEST_USERNAME
@@ -269,15 +270,18 @@ def get_form_url(request, username=None, protocol='https', preview=False):
     if preview:
         url = '%s/preview' % url
 
-    if username:
+    if username and xform_pk is None:
         url = "{}/{}".format(url, username)
+    if username and xform_pk:
+        url = "{}/{}/{}".format(url, username, xform_pk)
 
     return url
 
 
 def get_enketo_edit_url(request, instance, return_url):
     form_url = get_form_url(request, instance.xform.user.username,
-                            settings.ENKETO_PROTOCOL)
+                            settings.ENKETO_PROTOCOL,
+                            xform_pk=instance.xform_id)
     url = enketo_url(
         form_url,
         instance.xform.id_string,
@@ -287,8 +291,9 @@ def get_enketo_edit_url(request, instance, return_url):
     return url
 
 
-def get_enketo_preview_url(request, username, id_string):
-    form_url = get_form_url(request, username, settings.ENKETO_PROTOCOL, True)
+def get_enketo_preview_url(request, username, id_string, xform_pk=None):
+    form_url = get_form_url(request, username, settings.ENKETO_PROTOCOL, True,
+                            xform_pk=xform_pk)
     values = {'form_id': id_string, 'server_url': form_url}
 
     res = requests.post(

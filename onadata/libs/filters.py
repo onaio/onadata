@@ -44,6 +44,21 @@ class XFormListObjectPermissionFilter(AnonDjangoObjectPermissionFilter):
     perm_format = '%(app_label)s.report_%(model_name)s'
 
 
+class XFormListXFormPKFilter(object):
+
+    def filter_queryset(self, request, queryset, view):
+        xform_pk = view.kwargs.get('xform_pk')
+        if xform_pk:
+            try:
+                xform_pk = int(xform_pk)
+            except ValueError:
+                pass
+            else:
+                return queryset.filter(pk=xform_pk)
+
+        return queryset
+
+
 class OrganizationPermissionFilter(filters.DjangoObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):

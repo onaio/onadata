@@ -1348,11 +1348,17 @@ def activity_api(request, username):
 
 
 def qrcode(request, username, id_string):
+    xform_kwargs = {
+        'id_string__iexact': id_string,
+        'user__username__iexact': username
+    }
+
+    xform = get_form(xform_kwargs)
     try:
         formhub_url = "http://%s/" % request.META['HTTP_HOST']
     except:
         formhub_url = "http://formhub.org/"
-    formhub_url = formhub_url + username
+    formhub_url = formhub_url + username + '/%s' % xform.pk
 
     if settings.TESTING_MODE:
         formhub_url = "https://{}/{}".format(settings.TEST_HTTP_HOST,
@@ -1391,7 +1397,8 @@ def enketo_preview(request, username, id_string):
     try:
         enketo_preview_url = get_enketo_preview_url(request,
                                                     owner.username,
-                                                    xform.id_string)
+                                                    xform.id_string,
+                                                    xform_pk=xform.pk)
     except EnketoError as e:
         return HttpResponse(e)
 

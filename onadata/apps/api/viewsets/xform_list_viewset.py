@@ -42,7 +42,8 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
     authentication_classes = (DigestAuthentication,
                               EnketoTokenAuthentication,)
     content_negotiation_class = MediaFileContentNegotiation
-    filter_backends = (filters.XFormListObjectPermissionFilter,)
+    filter_backends = (filters.XFormListObjectPermissionFilter,
+                       filters.XFormListXFormPKFilter)
     queryset = XForm.objects.filter(downloadable=True, deleted_at=None)
     permission_classes = (permissions.AllowAny,)
     renderer_classes = (XFormListRenderer,)
@@ -93,8 +94,8 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
 
         if not self.request.user.is_anonymous():
             queryset = super(XFormListViewSet, self).filter_queryset(queryset)
-
-            if self.action == 'list' and profile:
+            xform_pk = self.kwargs.get('xform_pk')
+            if self.action == 'list' and profile and xform_pk is None:
                 forms_shared_with_user = get_forms_shared_with_user(
                     profile.user)
                 queryset = queryset | forms_shared_with_user

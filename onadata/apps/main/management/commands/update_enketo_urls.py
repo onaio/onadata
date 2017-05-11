@@ -55,12 +55,13 @@ class Command(BaseCommand):
 
                 if data_type == 'enketo_url':
                     form_url = get_form_url(
-                        request, username, protocol=protocol)
+                        request, username, protocol=protocol,
+                        xform_pk=xform.pk)
                     _enketo_url = enketo_url(form_url, id_string)
                     MetaData.enketo_url(xform, _enketo_url)
                 elif data_type == 'enketo_preview_url':
                     _enketo_preview_url = get_enketo_preview_url(
-                        request, username, id_string)
+                        request, username, id_string, xform_pk=xform.pk)
                     MetaData.enketo_preview_url(xform, _enketo_preview_url)
                 f.write('%s : %s \n' % (id_string, data_value))
 
