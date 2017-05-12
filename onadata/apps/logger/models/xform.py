@@ -826,6 +826,7 @@ class XForm(XFormMixin, BaseModel):
         self.deleted_at = soft_deletion_time
         self.id_string += deletion_suffix
         self.sms_id_string += deletion_suffix
+        self.downloadable = False
         self.save(update_fields=[
             'date_modified', 'deleted_at', 'id_string', 'sms_id_string'
         ])
