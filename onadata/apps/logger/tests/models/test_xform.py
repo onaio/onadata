@@ -62,7 +62,7 @@ class TestXForm(PyxformTestCase, TestBase):
         self.assertIsNone(xform.deleted_at)
 
         # is active
-        self.assertFalse(xform.downloadable)
+        self.assertTrue(xform.downloadable)
 
         # deleted-at suffix not present
         self.assertNotIn("-deleted-at-", xform.id_string)
