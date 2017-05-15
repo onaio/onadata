@@ -157,7 +157,8 @@ def _get_instances(xform, start, end, query=None):
         if version:
             kwargs.update({'version': version})
             query.pop('_version')
-            query = json.dumps(query)
+
+        query = json.dumps(query)
 
     if isinstance(start, datetime.datetime):
         kwargs.update({'date_created__gte': start})
