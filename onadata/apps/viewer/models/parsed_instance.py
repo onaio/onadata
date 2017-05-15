@@ -152,7 +152,7 @@ def _get_instances(xform, start, end, query=None):
     kwargs = {'deleted_at': None}
     if query and isinstance(query, six.string_types):
         query = json.loads(query)
-        version = query.get('_version')
+        version = isinstance(query, dict) and query.get('_version')
 
         if version:
             kwargs.update({'version': version})
