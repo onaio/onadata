@@ -120,7 +120,8 @@ def get_xform_from_submission(xml, username, uuid=None):
 
     if uuid:
         # try find the form by its uuid which is the ideal condition
-        if XForm.objects.filter(uuid=uuid).count() > 0:
+        if XForm.objects.filter(uuid=uuid,
+                                deleted_at__isnull=True).count() > 0:
             xform = XForm.objects.get(uuid=uuid)
 
             return xform
@@ -129,7 +130,8 @@ def get_xform_from_submission(xml, username, uuid=None):
 
     try:
         return get_object_or_404(XForm, id_string__iexact=id_string,
-                                 user__username=username)
+                                 user__username=username,
+                                 deleted_at__isnull=True)
     except MultipleObjectsReturned:
         raise NonUniqueFormIdError()
 
