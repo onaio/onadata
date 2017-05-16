@@ -451,7 +451,8 @@ class Instance(models.Model, InstanceBaseClass):
         self._set_json()
         self._set_survey_type()
         self._set_uuid()
-        self.version = self.xform.version
+        self.version = self.json.get(VERSION, self.xform.version)
+
         super(Instance, self).save(*args, **kwargs)
 
     def set_deleted(self, deleted_at=timezone.now()):

@@ -3068,7 +3068,6 @@ class TestXFormViewSet(TestAbstractViewSet):
     def test_different_form_versions(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
-            self._make_submissions()
 
             view = XFormViewSet.as_view({
                 'patch': 'partial_update',
@@ -3084,6 +3083,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response = view(request, pk=self.xform.pk)
                 self.assertEqual(response.status_code, 200)
 
+            self._make_submissions()
             # make more submission after form update
             surveys = ['transport_2011-07-25_19-05-36-edited']
             paths = [os.path.join(

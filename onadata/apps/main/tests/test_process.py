@@ -305,11 +305,12 @@ class TestProcess(TestBase):
         ]
         for d_from_db in self.data_dictionary.get_data_for_excel():
             for k, v in d_from_db.items():
-                if (k != u'_xform_id_string' and k != 'meta/instanceID') and v:
+                if (k not in [u'_xform_id_string',  u'meta/instanceID',
+                              '_version']) and v:
                     new_key = k[len('transport/'):]
                     d_from_db[new_key] = d_from_db[k]
                 del d_from_db[k]
-            self.assertTrue(d_from_db in data)
+            self.assertTrue(d_from_db in data, (d_from_db, data))
             data.remove(d_from_db)
         self.assertEquals(data, [])
 
@@ -347,6 +348,7 @@ class TestProcess(TestBase):
             self.transport_ambulance_key: u"daily",
             self.transport_bicycle_key: u"weekly",
             u"_xform_id_string": u"transportation_2011_07_25",
+            u"_version": u"2014111",
             u"meta/instanceID": uuid
         }
         self.assertEqual(instance.get_dict(), expected_dict)
