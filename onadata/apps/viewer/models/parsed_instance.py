@@ -147,18 +147,8 @@ def _start_index_limit(records, sql, fields, params, sort, start_index, limit):
     return records, sql, params
 
 
-def _get_instances(xform, start, end, query=None):
-    version = None
+def _get_instances(xform, start, end):
     kwargs = {'deleted_at': None}
-    if query and isinstance(query, six.string_types):
-        query = json.loads(query)
-        version = isinstance(query, dict) and query.get('_version')
-
-        if version:
-            kwargs.update({'version': version})
-            query.pop('_version')
-
-        query = json.dumps(query)
 
     if isinstance(start, datetime.datetime):
         kwargs.update({'date_created__gte': start})
@@ -167,7 +157,7 @@ def _get_instances(xform, start, end, query=None):
 
     instances = xform.instances.filter(**kwargs)
 
-    return (instances, query)
+    return instances
 
 
 def _get_sort_fields(sort):
@@ -178,7 +168,7 @@ def _get_sort_fields(sort):
 
 def get_sql_with_params(xform, query=None, fields=None, sort=None, start=None,
                         end=None, start_index=None, limit=None, count=None):
-    records, query = _get_instances(xform, start, end, query)
+    records = _get_instances(xform, start, end)
     params = []
     sort = _get_sort_fields(sort)
     sql = ""
