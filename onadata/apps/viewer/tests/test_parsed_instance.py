@@ -40,17 +40,9 @@ class TestParsedInstance(TestBase):
         instances_count = instances.count()
         self.assertEqual(instances_count, 4)
 
-        # update form version
-        self.xform.version = u'20170515'
-        self.xform.save()
-
-        # update instnces version
-        for a in range(2):
-            instances[a].save()
-
         # retrieve based on updated form version
         sql, params, records = get_sql_with_params(
-            xform=self.xform, query='{"_version": "20170515"}'
+            xform=self.xform, query='{"_version": "20170517"}'
         )
 
         self.assertEqual(2, records.count())
