@@ -1,3 +1,4 @@
+import os
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.viewer.models.parsed_instance import (
     get_where_clause, get_sql_with_params
@@ -31,8 +32,21 @@ class TestParsedInstance(TestBase):
         self._publish_transportation_form()
         initial_version = self.xform.version
 
-        for a in range(4):
+        # 0 and 1 are indexes in a list representing transport instances with
+        # the same form version - same as the transport form
+        for a in [0, 1]:
             self._submit_transport_instance(survey_at=a)
+
+        # the instances below have a different form vresion
+        transport_instances_with_different_version = [
+            'transport_2011-07-25_19-05-51',
+            'transport_2011-07-25_19-05-52'
+        ]
+
+        for a in transport_instances_with_different_version:
+            self._make_submission(os.path.join(
+                self.this_directory, 'fixtures',
+                'transportation', 'instances', a, a + '.xml'))
 
         instances = Instance.objects.filter(
             xform__id_string=self.xform.id_string
