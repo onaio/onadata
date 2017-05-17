@@ -148,11 +148,14 @@ def _start_index_limit(records, sql, fields, params, sort, start_index, limit):
 
 
 def _get_instances(xform, start, end):
-    instances = xform.instances.filter(deleted_at=None)
+    kwargs = {'deleted_at': None}
+
     if isinstance(start, datetime.datetime):
-        instances = instances.filter(date_created__gte=start)
+        kwargs.update({'date_created__gte': start})
     if isinstance(end, datetime.datetime):
-        instances = instances.filter(date_created__lte=end)
+        kwargs.update({'date_created__lte': end})
+
+    instances = xform.instances.filter(**kwargs)
 
     return instances
 

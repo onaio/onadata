@@ -3101,8 +3101,9 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             self.assertIn('form_versions', response.data)
 
-            expected = [{'total': 1, 'version': u'212121211'},
-                        {'total': 4, 'version': u'2014111'}]
+            expected = [{'total': 3, 'version': u'212121211'},
+                        {'total': 2, 'version': u'2014111'}]
+
             for v in expected:
                 self.assertIn(v, response.data.get('form_versions'))
 

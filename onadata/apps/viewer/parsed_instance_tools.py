@@ -7,7 +7,8 @@ from onadata.libs.utils.common_tags import MONGO_STRFTIME
 KNOWN_DATES = ['_submission_time']
 NONE_JSON_FIELDS = {
     '_submission_time': 'date_created',
-    '_id': 'id'
+    '_id': 'id',
+    '_version': 'version'
 }
 
 
@@ -55,8 +56,12 @@ def _parse_where(query, known_integers, or_where, or_params):
                 else:
                     where_params.extend((field_key, unicode(_v)))
         else:
-            where.append(u"json->>%s = %s")
-            where_params.extend((field_key, unicode(field_value)))
+            if field_key in NONE_JSON_FIELDS:
+                where.append("{} = %s".format(NONE_JSON_FIELDS[field_key]))
+                where_params.extend([unicode(field_value)])
+            else:
+                where.append(u"json->>%s = %s")
+                where_params.extend((field_key, unicode(field_value)))
 
     return where + or_where, where_params + or_params
 
