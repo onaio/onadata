@@ -66,6 +66,9 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
         obj = get_object_or_404(queryset or XForm, **filter_kwargs)
         self.check_object_permissions(self.request, obj)
 
+        if self.request.user.is_anonymous() and obj.require_auth:
+            self.permission_denied(self.request)
+
         return obj
 
     def get_renderers(self):

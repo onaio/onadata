@@ -660,3 +660,33 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
                 })
 
             self.assertEqual(url, '/bob/xformsMedia/1/1234.{}'.format(fmt))
+
+    def test_get_xform_anonymous_user_xform_require_auth(self):
+        self.view = XFormListViewSet.as_view(
+            {
+                "get": "retrieve",
+                "head": "retrieve"
+            }
+        )
+        request = self.factory.head('/')
+        response = self.view(request, username='bob', pk=self.xform.pk)
+        # no authentication prompted
+        self.assertEqual(response.status_code, 200)
+
+        self.assertFalse(self.xform.require_auth)
+        self.assertFalse(self.user.profile.require_auth)
+
+        self.xform.require_auth = True
+        self.xform.save()
+
+        request = self.factory.head('/')
+        response = self.view(request, username='bob', pk=self.xform.pk)
+        # authentication prompted
+        self.assertEqual(response.status_code, 401)
+
+        auth = DigestAuth('bob', 'bobbob')
+        request = self.factory.get('/')
+        request.META.update(auth(request.META, response))
+        response = self.view(request, username='bob', pk=self.xform.pk)
+        # success with authentication
+        self.assertEqual(response.status_code, 200)
