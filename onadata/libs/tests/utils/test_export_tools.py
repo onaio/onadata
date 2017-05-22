@@ -1,12 +1,15 @@
 import os
+import shutil
+import tempfile
+import zipfile
 from datetime import date, datetime, timedelta
 
 from django.conf import settings
 from django.contrib.sites.models import Site
 from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
-from django.utils import timezone
 from django.test.utils import override_settings
+from django.utils import timezone
 from pyxform.builder import create_survey_from_xls
 from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
 from savReaderWriter import SavWriter
@@ -18,9 +21,9 @@ from onadata.apps.viewer.models.export import Export
 from onadata.libs.utils.export_builder import (encode_if_str,
                                                get_value_or_attachment_uri)
 from onadata.libs.utils.export_tools import (
-    ExportBuilder, check_pending_export, generate_export, generate_kml_export,
-    generate_osm_export, parse_request_export_options,
-    should_create_new_export, str_to_bool)
+    ExportBuilder, check_pending_export, generate_attachments_zip_export,
+    generate_export, generate_kml_export, generate_osm_export,
+    parse_request_export_options, should_create_new_export, str_to_bool)
 
 
 def _logger_fixture_path(*args):
@@ -92,7 +95,62 @@ class TestExportTools(PyxformTestCase, TestBase):
         self.assertTrue(export.is_successful)
         with default_storage.open(export.filepath) as f2:
             content = f2.read()
-            self.assertMultiLineEqual(content.strip(), '')
+
+    def test_generate_attachments_zip_export(self):
+        filenames = [
+            'OSMWay234134797.osm',
+            'OSMWay34298972.osm',
+        ]
+        osm_fixtures_dir = os.path.realpath(
+            os.path.join(
+                os.path.dirname(api_tests.__file__), 'fixtures', 'osm'))
+        paths = [
+            os.path.join(osm_fixtures_dir, filename) for filename in filenames
+        ]
+        xlsform_path = os.path.join(osm_fixtures_dir, 'osm.xlsx')
+        self._publish_xls_file_and_set_xform(xlsform_path)
+        submission_path = os.path.join(osm_fixtures_dir, 'instance_a.xml')
+        count = Attachment.objects.filter(extension='osm').count()
+        self._make_submission_w_attachment(submission_path, paths)
+        self.assertTrue(
+            Attachment.objects.filter(extension='osm').count() > count)
+
+        options = {"extension": Export.ZIP_EXPORT}
+
+        export = generate_attachments_zip_export(
+            Export.ZIP_EXPORT, self.user.username, self.xform.id_string, None,
+            options)
+
+        self.assertTrue(export.is_successful)
+
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(default_storage.path(export.filepath), "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+
+        for a in Attachment.objects.all():
+            self.assertTrue(
+                os.path.exists(os.path.join(temp_dir, a.media_file.name)))
+        shutil.rmtree(temp_dir)
+
+        # deleted submission
+        submission = self.xform.instances.filter().first()
+        submission.deleted_at = timezone.now()
+        submission.save()
+
+        export = generate_attachments_zip_export(
+            Export.ZIP_EXPORT, self.user.username, self.xform.id_string, None,
+            options)
+        self.assertTrue(export.is_successful)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(default_storage.path(export.filepath), "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+
+        for a in Attachment.objects.all():
+            self.assertFalse(
+                os.path.exists(os.path.join(temp_dir, a.media_file.name)))
+        shutil.rmtree(temp_dir)
 
     def test_should_create_new_export(self):
         # should only create new export if filter is defined
