@@ -1,29 +1,26 @@
 import os
 from datetime import date, datetime, timedelta
+
 from django.conf import settings
-from django.core.files.storage import default_storage
 from django.contrib.sites.models import Site
+from django.core.files.storage import default_storage
+from django.core.files.temp import NamedTemporaryFile
+from django.utils import timezone
 from django.test.utils import override_settings
 from pyxform.builder import create_survey_from_xls
 from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
-from django.core.files.temp import NamedTemporaryFile
-
 from savReaderWriter import SavWriter
 
+from onadata.apps.api import tests as api_tests
+from onadata.apps.logger.models import Attachment
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
-from onadata.libs.utils.export_builder import encode_if_str
-from onadata.libs.utils.export_tools import check_pending_export
-from onadata.libs.utils.export_tools import generate_export
-from onadata.libs.utils.export_tools import generate_osm_export
-from onadata.libs.utils.export_builder import get_value_or_attachment_uri
-from onadata.libs.utils.export_tools import parse_request_export_options
-from onadata.libs.utils.export_tools import should_create_new_export
-from onadata.libs.utils.export_tools import str_to_bool
-from onadata.libs.utils.export_tools import ExportBuilder
-from onadata.libs.utils.export_tools import generate_kml_export
-from onadata.apps.logger.models import Attachment
-from onadata.apps.api import tests as api_tests
+from onadata.libs.utils.export_builder import (encode_if_str,
+                                               get_value_or_attachment_uri)
+from onadata.libs.utils.export_tools import (
+    ExportBuilder, check_pending_export, generate_export, generate_kml_export,
+    generate_osm_export, parse_request_export_options,
+    should_create_new_export, str_to_bool)
 
 
 def _logger_fixture_path(*args):
@@ -32,7 +29,6 @@ def _logger_fixture_path(*args):
 
 
 class TestExportTools(PyxformTestCase, TestBase):
-
     def _create_old_export(self, xform, export_type, options):
         Export(xform=xform, export_type=export_type, options=options).save()
         self.export = Export.objects.filter(
@@ -60,11 +56,12 @@ class TestExportTools(PyxformTestCase, TestBase):
             'OSMWay234134797.osm',
             'OSMWay34298972.osm',
         ]
-        osm_fixtures_dir = os.path.realpath(os.path.join(
-            os.path.dirname(api_tests.__file__), 'fixtures', 'osm'))
+        osm_fixtures_dir = os.path.realpath(
+            os.path.join(
+                os.path.dirname(api_tests.__file__), 'fixtures', 'osm'))
         paths = [
-            os.path.join(osm_fixtures_dir, filename)
-            for filename in filenames]
+            os.path.join(osm_fixtures_dir, filename) for filename in filenames
+        ]
         xlsform_path = os.path.join(osm_fixtures_dir, 'osm.xlsx')
         combined_osm_path = os.path.join(osm_fixtures_dir, 'combined.osm')
         self._publish_xls_file_and_set_xform(xlsform_path)
@@ -76,18 +73,26 @@ class TestExportTools(PyxformTestCase, TestBase):
 
         options = {"extension": Attachment.OSM}
 
-        export = generate_osm_export(
-            Attachment.OSM,
-            self.user.username,
-            self.xform.id_string,
-            None,
-            options)
+        export = generate_osm_export(Attachment.OSM, self.user.username,
+                                     self.xform.id_string, None, options)
         self.assertTrue(export.is_successful)
         with open(combined_osm_path) as f:
             osm = f.read()
             with default_storage.open(export.filepath) as f2:
                 content = f2.read()
                 self.assertMultiLineEqual(content.strip(), osm.strip())
+
+        # deleted submission
+        submission = self.xform.instances.filter().first()
+        submission.deleted_at = timezone.now()
+        submission.save()
+
+        export = generate_osm_export(Attachment.OSM, self.user.username,
+                                     self.xform.id_string, None, options)
+        self.assertTrue(export.is_successful)
+        with default_storage.open(export.filepath) as f2:
+            content = f2.read()
+            self.assertMultiLineEqual(content.strip(), '')
 
     def test_should_create_new_export(self):
         # should only create new export if filter is defined
@@ -104,9 +109,11 @@ class TestExportTools(PyxformTestCase, TestBase):
     def test_should_not_create_new_export_when_old_exists(self):
         export_type = "csv"
         self._publish_transportation_form_and_submit_instance()
-        options = {"group_delimiter": "/",
-                   "remove_group_name": False,
-                   "split_select_multiples": True}
+        options = {
+            "group_delimiter": "/",
+            "remove_group_name": False,
+            "split_select_multiples": True
+        }
         self._create_old_export(self.xform, export_type, options)
 
         will_create_new_export = should_create_new_export(
@@ -116,9 +123,11 @@ class TestExportTools(PyxformTestCase, TestBase):
 
     def test_should_create_new_export_when_filter_defined(self):
         export_type = "csv"
-        options = {"group_delimiter": "/",
-                   "remove_group_name": False,
-                   "split_select_multiples": True}
+        options = {
+            "group_delimiter": "/",
+            "remove_group_name": False,
+            "split_select_multiples": True
+        }
 
         self._publish_transportation_form_and_submit_instance()
         self._create_old_export(self.xform, export_type, options)
@@ -133,8 +142,8 @@ class TestExportTools(PyxformTestCase, TestBase):
 
     def test_get_value_or_attachment_uri(self):
         path = os.path.join(
-            os.path.dirname(__file__),
-            'fixtures', 'photo_type_in_repeat_group.xlsx')
+            os.path.dirname(__file__), 'fixtures',
+            'photo_type_in_repeat_group.xlsx')
         self._publish_xls_file_and_set_xform(path)
 
         filename = u'bob/attachments/123.jpg'
@@ -159,8 +168,8 @@ class TestExportTools(PyxformTestCase, TestBase):
         attachment_list = None
         key = 'photo'
         value = u'123.jpg'
-        val_or_url = get_value_or_attachment_uri(
-            key, value, row, self.xform, media_xpaths, attachment_list)
+        val_or_url = get_value_or_attachment_uri(key, value, row, self.xform,
+                                                 media_xpaths, attachment_list)
         self.assertTrue(val_or_url)
 
         current_site = Site.objects.get_current()
@@ -169,8 +178,8 @@ class TestExportTools(PyxformTestCase, TestBase):
 
         # when include_images is False, you get the value
         media_xpaths = []
-        val_or_url = get_value_or_attachment_uri(
-            key, value, row, self.xform, media_xpaths, attachment_list)
+        val_or_url = get_value_or_attachment_uri(key, value, row, self.xform,
+                                                 media_xpaths, attachment_list)
         self.assertTrue(val_or_url)
         self.assertEqual(value, val_or_url)
 
@@ -180,18 +189,21 @@ class TestExportTools(PyxformTestCase, TestBase):
         self.assertEqual(row, {})
 
         media_xpaths = ['photo']
-        val_or_url = get_value_or_attachment_uri(
-            key, value, row, self.xform, media_xpaths, attachment_list)
+        val_or_url = get_value_or_attachment_uri(key, value, row, self.xform,
+                                                 media_xpaths, attachment_list)
         self.assertTrue(val_or_url)
         self.assertEqual(value, val_or_url)
 
     def test_parse_request_export_options(self):
         request = self.factory.get(
-            '/export_async', data={"do_not_split_select_multiples": "false",
-                                   "remove_group_name": "false",
-                                   "include_labels": "false",
-                                   "include_labels_only": "false",
-                                   "include_images": "false"})
+            '/export_async',
+            data={
+                "do_not_split_select_multiples": "false",
+                "remove_group_name": "false",
+                "include_labels": "false",
+                "include_labels_only": "false",
+                "include_images": "false"
+            })
 
         options = parse_request_export_options(request.GET)
 
@@ -202,11 +214,14 @@ class TestExportTools(PyxformTestCase, TestBase):
         self.assertEqual(options['include_images'], False)
 
         request = self.factory.get(
-            '/export_async', data={"do_not_split_select_multiples": "true",
-                                   "remove_group_name": "true",
-                                   "include_labels": "true",
-                                   "include_labels_only": "true",
-                                   "include_images": "true"})
+            '/export_async',
+            data={
+                "do_not_split_select_multiples": "true",
+                "remove_group_name": "true",
+                "include_labels": "true",
+                "include_labels_only": "true",
+                "include_images": "true"
+            })
 
         options = parse_request_export_options(request.GET)
 
@@ -218,14 +233,16 @@ class TestExportTools(PyxformTestCase, TestBase):
 
     def test_export_not_found(self):
         export_type = "csv"
-        options = {"group_delimiter": "/",
-                   "remove_group_name": False,
-                   "split_select_multiples": True}
+        options = {
+            "group_delimiter": "/",
+            "remove_group_name": False,
+            "split_select_multiples": True
+        }
 
         self._publish_transportation_form_and_submit_instance()
         self._create_old_export(self.xform, export_type, options)
-        export = Export(xform=self.xform, export_type=export_type,
-                        options=options)
+        export = Export(
+            xform=self.xform, export_type=export_type, options=options)
         export.save()
         export_id = export.pk
 
@@ -238,15 +255,19 @@ class TestExportTools(PyxformTestCase, TestBase):
 
     def test_kml_exports(self):
         export_type = "kml"
-        options = {"group_delimiter": "/",  "remove_group_name": False,
-                   "split_select_multiples": True, "extension": 'kml'}
+        options = {
+            "group_delimiter": "/",
+            "remove_group_name": False,
+            "split_select_multiples": True,
+            "extension": 'kml'
+        }
 
         self._publish_transportation_form_and_submit_instance()
         username = self.xform.user.username
         id_string = self.xform.id_string
 
-        export = generate_kml_export(export_type, username, id_string,
-                                     options=options)
+        export = generate_kml_export(
+            export_type, username, id_string, options=options)
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)
 
@@ -254,8 +275,12 @@ class TestExportTools(PyxformTestCase, TestBase):
 
         export.delete()
 
-        export = generate_kml_export(export_type, username, id_string,
-                                     export_id=export_id, options=options)
+        export = generate_kml_export(
+            export_type,
+            username,
+            id_string,
+            export_id=export_id,
+            options=options)
 
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)
@@ -382,8 +407,8 @@ class TestExportTools(PyxformTestCase, TestBase):
             SavWriter(sav_file.name, **sav_options)
 
     def test_sav_special_char_columns(self):
-        survey = create_survey_from_xls(_logger_fixture_path(
-            'grains/grains.xls'))
+        survey = create_survey_from_xls(
+            _logger_fixture_path('grains/grains.xls'))
         export_builder = ExportBuilder()
         export_builder.TRUNCATE_GROUP_TITLE = True
         export_builder.set_survey(survey)
@@ -401,8 +426,11 @@ class TestExportTools(PyxformTestCase, TestBase):
         self._create_user_and_login()
         self._publish_transportation_form()
 
-        export = Export(xform=self.xform, export_type=Export.CSV_EXPORT,
-                        options={}, task_id="abcsde")
+        export = Export(
+            xform=self.xform,
+            export_type=Export.CSV_EXPORT,
+            options={},
+            task_id="abcsde")
 
         export.save()
 
