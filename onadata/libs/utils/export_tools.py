@@ -116,7 +116,14 @@ def get_or_create_export(export_id, xform, export_type, options):
         try:
             return Export.objects.get(id=export_id)
         except Export.DoesNotExist:
-            pass
+            if len(getattr(settings, 'SLAVE_DATABASES', [])):
+                from multidb.pinning import use_master
+
+                with use_master:
+                    try:
+                        return Export.objects.get(id=id)
+                    except Export.DoesNotExist:
+                        pass
 
     return create_export_object(xform, export_type, options)
 
@@ -444,14 +451,7 @@ def generate_attachments_zip_export(export_type, username, id_string,
 
     dir_name, basename = os.path.split(export_filename)
 
-    # get or create export object
-    if(export_id):
-        export = Export.objects.get(id=export_id)
-    else:
-        export_options = get_export_options(options)
-        export = Export.objects.create(xform=xform,
-                                       export_type=export_type,
-                                       options=export_options)
+    export = get_or_create_export(export_id, xform, export_type, options)
 
     export.filedir = dir_name
     export.filename = basename
