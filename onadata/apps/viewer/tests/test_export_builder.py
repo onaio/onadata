@@ -11,6 +11,7 @@ from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
 from openpyxl import load_workbook
 from pyxform.builder import create_survey_from_xls
+from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
 from savReaderWriter import SavReader
 from savReaderWriter import SavHeaderReader
 
@@ -29,7 +30,7 @@ def _logger_fixture_path(*args):
                         'tests', 'fixtures', *args)
 
 
-class TestExportBuilder(TestBase):
+class TestExportBuilder(PyxformTestCase, TestBase):
     data = [
         {
             'name': 'Abe',
@@ -408,6 +409,42 @@ class TestExportBuilder(TestBase):
                 data[u'children.info/fav_colors/pink\u2019s'.encode('utf-8')],
                 'False')
             # check that red and blue are set to true
+
+    def test_zipped_sav_export_with_date_field(self):
+        md = """
+        | survey |
+        |        | type              | name         | label        |
+        |        | date              | expense_date | Expense Date |
+
+        | choices |
+        |         | list name | name   | label  |
+        """
+        survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
+        data = [{"expense_date": "2013-01-03",
+                 '_submission_time': u'2016-11-21T03:43:43.000-08:00'}]
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        export_builder.to_zipped_sav(temp_zip_file.name, data)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+        # check that the children's file (which has the unicode header) exists
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "exp.sav")))
+        # check file's contents
+
+        with SavReader(os.path.join(temp_dir, "exp.sav"),
+                       returnHeader=True) as reader:
+            rows = [r for r in reader]
+            self.assertTrue(len(rows) > 1)
+            self.assertEqual(rows[1][0],  '2013-01-03')
+            self.assertEqual(rows[1][4], '2016-11-21 03:43:43')
+
         shutil.rmtree(temp_dir)
 
     def test_xls_export_works_with_unicode(self):
