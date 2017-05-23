@@ -90,13 +90,22 @@ def get_data_dictionary_from_survey(survey):
     return dd
 
 
-def encode_if_str(row, key, encode_dates=False):
+def encode_if_str(row, key, encode_dates=False, sav_writer=None):
     val = row.get(key)
 
     if isinstance(val, six.string_types):
         return val.encode('utf-8')
 
-    if encode_dates and (isinstance(val, datetime) or isinstance(val, date)):
+    if sav_writer and isinstance(val, (datetime, date)):
+        strptime_fmt = '%Y-%m-%dT%H:%M:%S.%f%z' \
+            if isinstance(val, datetime) else '%Y-%m-%d'
+
+        if isinstance(val, datetime) and len(val.isoformat()):
+            strptime_fmt = strptime_fmt[:17]
+
+        return sav_writer.spssDateTime(val.isoformat(), strptime_fmt)
+
+    if encode_dates and isinstance(val, (datetime, date)):
         return val.isoformat()
 
     return val
@@ -488,6 +497,10 @@ class ExportBuilder(object):
                 row[elm['xpath']] = ExportBuilder.convert_type(
                     value, elm['type'])
 
+        if SUBMISSION_TIME in row:
+            row[SUBMISSION_TIME] = ExportBuilder.convert_type(
+                row[SUBMISSION_TIME], 'dateTime')
+
         return row
 
     def to_zipped_csv(self, path, data, *args, **kwargs):
@@ -826,14 +839,20 @@ class ExportBuilder(object):
 
         var_types = dict(
             [(_var_types[element['xpath']],
-                0 if element['type'] in ['decimal', 'int'] else 255)
+                0 if element['type'] in ['decimal', 'int', 'date'] else 255)
                 for element in elements] +
             [(_var_types[item],
-                0 if item in ['_id', '_index', '_parent_index'] else 255)
+                0 if item in ['_id', '_index', '_parent_index',
+                              SUBMISSION_TIME] else 255)
                 for item in self.EXTRA_FIELDS]
         )
+        dates = [element for element in elements if element.get('type') ==
+                 'date']
+        formats = {d['xpath']: 'EDATE40' for d in dates}
+        formats['@' + SUBMISSION_TIME] = 'DATETIME40'
 
         return {
+            'formats': formats,
             'varLabels': var_labels,
             'varNames': var_names,
             'varTypes': var_types,
@@ -865,7 +884,8 @@ class ExportBuilder(object):
 
         def write_row(row, csv_writer, fields):
             sav_writer.writerow(
-                [encode_if_str(row, field, True) for field in fields])
+                [encode_if_str(row, field, sav_writer=sav_writer)
+                 for field in fields])
 
         sav_defs = {}
 
