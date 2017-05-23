@@ -178,6 +178,16 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, list))
+        self.assertEqual(len(response.data), 1)
+
+        # test when the submission is soft deleted
+        self.attachment.instance.deleted_at = timezone.now()
+        self.attachment.instance.save()
+
+        request = self.factory.get('/', **self.extra)
+        response = self.list_view(request)
+        self.assertTrue(isinstance(response.data, list))
+        self.assertEqual(len(response.data), 0)
 
     def test_data_list_with_xform_in_delete_async(self):
         self._submit_transport_instance_w_attachment()

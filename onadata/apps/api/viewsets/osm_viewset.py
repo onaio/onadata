@@ -175,7 +175,8 @@ The `.osm` file format concatenates all the files for a form or individual
         instances = Attachment.objects.filter(extension='osm').values(
             'instance__xform', 'instance__xform__user__username',
             'instance__xform__title', 'instance__xform__id_string')\
-            .distinct('instance__xform')
+            .order_by('instance__xform__id')\
+            .distinct('instance__xform__id')
         serializer = self.get_serializer(instances, many=True)
 
         return Response(serializer.data, content_type='application/json')

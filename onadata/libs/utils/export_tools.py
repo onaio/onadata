@@ -420,9 +420,11 @@ def generate_attachments_zip_export(export_type, username, id_string,
         dataview = DataView.objects.get(pk=options.get("dataview_pk"))
         records = dataview.query_data(dataview, all_data=True)
         instances_ids = [rec.get('_id') for rec in records]
-        attachments = Attachment.objects.filter(instance_id__in=instances_ids)
+        attachments = Attachment.objects.filter(
+            instance_id__in=instances_ids, instance__deleted_at__isnull=True)
     else:
-        attachments = Attachment.objects.filter(instance__xform=xform)
+        attachments = Attachment.objects.filter(
+            instance__xform=xform, instance__deleted_at__isnull=True)
 
     basename = "%s_%s" % (id_string,
                           datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
@@ -580,7 +582,8 @@ def generate_osm_export(export_type, username, id_string, export_id=None,
 
     if xform is None:
         xform = XForm.objects.get(user__username=username, id_string=id_string)
-    osm_list = OsmData.objects.filter(instance__xform=xform)
+    osm_list = OsmData.objects.filter(instance__xform=xform,
+                                      instance__deleted_at__isnull=True)
     content = get_combined_osm(osm_list)
 
     basename = "%s_%s" % (id_string,

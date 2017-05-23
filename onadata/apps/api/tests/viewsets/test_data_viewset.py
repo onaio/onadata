@@ -1216,7 +1216,7 @@ class TestDataViewSet(TestBase):
             self.attachment = Attachment.objects.last()
             self.attachment_media_file = self.attachment.media_file
 
-            data['_attachments'] = [{
+            data['_attachments'] = data.get('_attachments') + [{
                 'download_url': get_attachment_url(self.attachment),
                 'small_download_url':
                 get_attachment_url(self.attachment, 'small'),
@@ -1227,8 +1227,9 @@ class TestDataViewSet(TestBase):
                 u'filename': self.attachment.media_file.name,
                 u'id': self.attachment.pk,
                 u'xform': self.xform.id
-            }] + data.get('_attachments')
+            }]
             response = view(request, pk=formid)
+
             self.assertDictContainsSubset(data, sorted(response.data)[0])
             self.assertEqual(response.status_code, 200)
 
