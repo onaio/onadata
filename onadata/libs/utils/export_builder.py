@@ -774,12 +774,13 @@ class ExportBuilder(object):
                 _value_labels = {}
                 for choice in choices:
                     name = choice['name'].strip()
-                    try:
-                        name = float(name) \
-                            if (not name.startswith('0') and
-                                float(name) > int(name)) else int(name)
-                    except ValueError:
-                        pass
+                    if q.type != u'select all that apply':
+                        try:
+                            name = float(name) \
+                                if (not name.startswith('0') and
+                                    float(name) > int(name)) else int(name)
+                        except ValueError:
+                            pass
                     label = self.get_choice_label_from_dict(choice['label'])
                     _value_labels[name] = label.strip()
                 self._sav_value_labels[var_name or q['name']] = _value_labels
@@ -820,6 +821,20 @@ class ExportBuilder(object):
         def _is_numeric(xpath, element_type, data_dictionary):
             if element_type in ['decimal', 'int', 'date']:
                 return True
+            elif element_type == 'string':
+                # check if it is a choice part of multiple choice
+                # type is likely empty string
+                element = data_dictionary.get_element(xpath)
+                if element and (element.type == '' and
+                                not (element.name.startswith('0') and
+                                     len(element.name) > 1)):
+                    try:
+                        float(element.name)
+                    except:
+                        pass
+                    else:
+                        return True
+                return False
             elif element_type != 'select1':
                 return False
 
