@@ -774,6 +774,12 @@ class ExportBuilder(object):
                 _value_labels = {}
                 for choice in choices:
                     name = choice['name'].strip()
+                    try:
+                        name = float(name) \
+                            if (not name.startswith('0') and
+                                float(name) > int(name)) else int(name)
+                    except ValueError:
+                        pass
                     label = self.get_choice_label_from_dict(choice['label'])
                     _value_labels[name] = label.strip()
                 self._sav_value_labels[var_name or q['name']] = _value_labels
@@ -811,6 +817,29 @@ class ExportBuilder(object):
                 'ioUtf8': True
             }
         """
+        def _is_numeric(xpath, element_type, data_dictionary):
+            if element_type in ['decimal', 'int', 'date']:
+                return True
+            elif element_type != 'select1':
+                return False
+
+            if xpath not in all_value_labels:
+                return False
+
+            # Determine if all select1 choices are numeric in nature
+            # and as such have the field type in spss be numeric
+            choices = all_value_labels[xpath].keys()
+            if len(choices) == 0:
+                return False
+
+            # attempt float conversion, ValueError not all choices are numeric
+            try:
+                map(float, [i for i in choices])
+            except ValueError:
+                return False
+
+            return True
+
         _var_types = {}
         value_labels = {}
         var_labels = {}
@@ -839,7 +868,8 @@ class ExportBuilder(object):
 
         var_types = dict(
             [(_var_types[element['xpath']],
-                0 if element['type'] in ['decimal', 'int', 'date'] else 255)
+                0 if _is_numeric(element['xpath'], element['type'],
+                                 self.dd) else 255)
                 for element in elements] +
             [(_var_types[item],
                 0 if item in ['_id', '_index', '_parent_index',
