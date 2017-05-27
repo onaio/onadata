@@ -340,8 +340,10 @@ class ExportBuilder(object):
                             current_section, child, sections, select_multiples,
                             gps_fields, encoded_fields, field_delimiter,
                             remove_group_name)
-                elif isinstance(child, Question) and child.bind.get(u"type")\
-                        not in QUESTION_TYPES_TO_EXCLUDE:
+                elif isinstance(child, Question) and \
+                        (child.bind.get(u"type")
+                         not in QUESTION_TYPES_TO_EXCLUDE and
+                         child.type not in QUESTION_TYPES_TO_EXCLUDE):
                     # add to survey_sections
                     if isinstance(child, Question):
                         child_xpath = child.get_abbreviated_xpath()
