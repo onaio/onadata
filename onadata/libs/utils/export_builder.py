@@ -844,18 +844,9 @@ class ExportBuilder(object):
                 return True
             elif element_type == 'string':
                 # check if it is a choice part of multiple choice
-                # type is likely empty string
+                # type is likely empty string, split multi select is binary
                 element = data_dictionary.get_element(xpath)
-                if element and (element.type == '' and
-                                not (element.name.startswith('0') and
-                                     len(element.name) > 1)):
-                    try:
-                        float(element.name)
-                    except:
-                        pass
-                    else:
-                        return True
-                return False
+                return element and element.type == ''
             elif element_type != 'select1':
                 return False
 
