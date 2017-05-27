@@ -168,6 +168,24 @@ def dict_to_joined_export(data, index, indices, name, survey, row,
     return output
 
 
+def is_all_numeric(items):
+    """Check if all items on the list are numeric, zero padded numbers will not
+    be considered as numeric.
+
+    :param items: list of values to be checked
+
+    :return boolean:
+    """
+    try:
+        map(float, [i for i in items])
+    except ValueError:
+        return False
+
+    # check for zero padded numbers to be treated as non numeric
+    return not (any([i.startswith('0') and len(i) > 1 and i.find('.') == -1
+                     for i in items if isinstance(i, six.string_types)]))
+
+
 def track_task_progress(additions, total=None):
     """
     Updates the current export task with number of submission processed.
@@ -772,9 +790,12 @@ class ExportBuilder(object):
                     if choices is not None and q.get('itemset'):
                         choices = choices.get(q.get('itemset'))
                 _value_labels = {}
+                is_numeric = is_all_numeric([c['name'] for c in choices])
                 for choice in choices:
                     name = choice['name'].strip()
-                    if q.type != u'select all that apply':
+                    # should skip select multiple and zero padded numbers e.g
+                    # 009 or 09, they should be treated as strings
+                    if q.type != u'select all that apply' and is_numeric:
                         try:
                             name = float(name) \
                                 if (not name.startswith('0') and
@@ -847,13 +868,7 @@ class ExportBuilder(object):
             if len(choices) == 0:
                 return False
 
-            # attempt float conversion, ValueError not all choices are numeric
-            try:
-                map(float, [i for i in choices])
-            except ValueError:
-                return False
-
-            return True
+            return is_all_numeric(choices)
 
         _var_types = {}
         value_labels = {}

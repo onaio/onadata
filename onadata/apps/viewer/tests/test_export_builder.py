@@ -447,7 +447,44 @@ class TestExportBuilder(PyxformTestCase, TestBase):
 
         shutil.rmtree(temp_dir)
 
-    def test_zipped_sav_export_with_numeric_select_one_field_field(self):
+    def test_zipped_sav_export_with_zero_padded_select_one_field(self):
+        md = """
+        | survey |
+        |        | type              | name         | label        |
+        |        | select one yes_no | expensed     | Expensed?    |
+
+        | choices |
+        |         | list name | name   | label  |
+        |         | yes_no    | 1      | Yes    |
+        |         | yes_no    | 09      | No     |
+        """
+        survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
+        data = [{"expensed": "09",
+                 '_submission_time': u'2016-11-21T03:43:43.000-08:00'}]
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        export_builder.to_zipped_sav(temp_zip_file.name, data)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+        # check that the children's file (which has the unicode header) exists
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "exp.sav")))
+        # check file's contents
+
+        with SavReader(os.path.join(temp_dir, "exp.sav"),
+                       returnHeader=True) as reader:
+            rows = [r for r in reader]
+            self.assertTrue(len(rows) > 1)
+            self.assertEqual(rows[1][0],  "09")
+            self.assertEqual(rows[1][4], '2016-11-21 03:43:43')
+
+    def test_zipped_sav_export_with_numeric_select_one_field(self):
         md = """
         | survey |
         |        | type              | name         | label        |
@@ -484,7 +521,7 @@ class TestExportBuilder(PyxformTestCase, TestBase):
             self.assertEqual(rows[1][0],  1)
             self.assertEqual(rows[1][4], '2016-11-21 03:43:43')
 
-    def test_zipped_sav_export_with_numeric_select_multiple_field_field(self):
+    def test_zipped_sav_export_with_numeric_select_multiple_field(self):
         md = """
         | survey |
         |        | type              | name         | label        |
