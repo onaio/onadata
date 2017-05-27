@@ -1113,13 +1113,13 @@ class TestExportBuilder(PyxformTestCase, TestBase):
         ws1 = wb.get_sheet_by_name('childrens_survey_with_a_very_l1')
 
         # parent_table is in cell K2
-        parent_table_name = ws1.cell('K2').value
+        parent_table_name = ws1['K2'].value
         expected_parent_table_name = 'childrens_survey_with_a_very_lo'
         self.assertEqual(parent_table_name, expected_parent_table_name)
 
         # get cartoons sheet
         ws2 = wb.get_sheet_by_name('childrens_survey_with_a_very_l2')
-        parent_table_name = ws2.cell('G2').value
+        parent_table_name = ws2['G2'].value
         expected_parent_table_name = 'childrens_survey_with_a_very_l1'
         self.assertEqual(parent_table_name, expected_parent_table_name)
         xls_file.close()
