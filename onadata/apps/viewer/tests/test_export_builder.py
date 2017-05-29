@@ -607,6 +607,50 @@ class TestExportBuilder(PyxformTestCase, TestBase):
 
         shutil.rmtree(temp_dir)
 
+    def test_zipped_sav_export_with_values_split_select_multiple(self):
+        md = """
+        | survey |
+        |        | type              | name         | label        |
+        |        | select_multiple yes_no | expensed     | Expensed?    |
+
+        | choices |
+        |         | list name | name   | label  |
+        |         | yes_no    | 2      | Yes    |
+        |         | yes_no    | 09     | No     |
+        """
+        survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
+        data = [{"expensed": "2 09",
+                 '_submission_time': u'2016-11-21T03:43:43.000-08:00'}]
+        export_builder = ExportBuilder()
+        export_builder.VALUE_SELECT_MULTIPLES = True
+        export_builder.set_survey(survey)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        export_builder.to_zipped_sav(temp_zip_file.name, data)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+        # check that the children's file (which has the unicode header) exists
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "exp.sav")))
+        # check file's contents
+
+        with SavReader(os.path.join(temp_dir, "exp.sav"),
+                       returnHeader=True) as reader:
+            rows = [r for r in reader]
+            self.assertTrue(len(rows) > 1)
+            self.assertEqual(rows[1][0],  "2 09")
+            # expensed.1 is selected hence True, 1.00 or 1 in SPSS
+            self.assertEqual(rows[1][1], 2)
+            # expensed.0 is not selected hence False, .00 or 0 in SPSS
+            self.assertEqual(rows[1][2], '09')
+            self.assertEqual(rows[1][6], '2016-11-21 03:43:43')
+
+        shutil.rmtree(temp_dir)
+
     def test_xls_export_works_with_unicode(self):
         survey = create_survey_from_xls(_logger_fixture_path(
             'childrens_survey_unicode.xls'))

@@ -215,6 +215,7 @@ class ExportBuilder(object):
                     SUBMITTED_BY]
     SPLIT_SELECT_MULTIPLES = True
     BINARY_SELECT_MULTIPLES = False
+    VALUE_SELECT_MULTIPLES = False
 
     # column group delimiters get_value_or_attachment_uri
     GROUP_DELIMITER_SLASH = '/'
@@ -427,7 +428,8 @@ class ExportBuilder(object):
         return matches[0]
 
     @classmethod
-    def split_select_multiples(cls, row, select_multiples):
+    def split_select_multiples(cls, row, select_multiples,
+                               select_values=False):
         # for each select_multiple, get the associated data and split it
         for xpath, choices in select_multiples.iteritems():
             # get the data matching this xpath
@@ -437,7 +439,12 @@ class ExportBuilder(object):
                 selections = [
                     u'{0}/{1}'.format(
                         xpath, selection) for selection in data.split()]
-            if not cls.BINARY_SELECT_MULTIPLES:
+            if select_values:
+                row.update(dict(
+                    [(choice, data.split()[selections.index(choice)]
+                      if selections and choice in selections else None)
+                     for choice in choices]))
+            elif not cls.BINARY_SELECT_MULTIPLES:
                 row.update(dict(
                     [(choice, choice in selections if selections else None)
                      for choice in choices]))
@@ -501,7 +508,8 @@ class ExportBuilder(object):
         if self.SPLIT_SELECT_MULTIPLES and\
                 section_name in self.select_multiples:
             row = ExportBuilder.split_select_multiples(
-                row, self.select_multiples[section_name])
+                row, self.select_multiples[section_name],
+                self.VALUE_SELECT_MULTIPLES)
 
         if section_name in self.gps_fields:
             row = ExportBuilder.split_gps_components(
@@ -848,6 +856,8 @@ class ExportBuilder(object):
                 # check if it is a choice part of multiple choice
                 # type is likely empty string, split multi select is binary
                 element = data_dictionary.get_element(xpath)
+                if element and element.type == '' and value_select_multiples:
+                    return is_all_numeric([element.name])
                 return element and element.type == ''
             elif element_type != 'select1':
                 return False
@@ -863,6 +873,7 @@ class ExportBuilder(object):
 
             return is_all_numeric(choices)
 
+        value_select_multiples = self.VALUE_SELECT_MULTIPLES
         _var_types = {}
         value_labels = {}
         var_labels = {}

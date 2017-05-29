@@ -207,6 +207,9 @@ def generate_export(export_type, xform, export_id=None, options=None,
     export_builder.INCLUDE_IMAGES \
         = options.get("include_images", settings.EXPORT_WITH_IMAGE_DEFAULT)
 
+    export_builder.VALUE_SELECT_MULTIPLES = options.get(
+        'value_select_multiples', False)
+
     # 'win_excel_utf8' is only relevant for CSV exports
     if 'win_excel_utf8' in options and export_type != Export.CSV_EXPORT:
         del options['win_excel_utf8']
@@ -800,6 +803,7 @@ def parse_request_export_options(params):
     include_labels = params.get('include_labels', False)
     include_labels_only = params.get('include_labels_only', False)
     include_hxl = params.get('include_hxl', True)
+    value_select_multiples = params.get('value_select_multiples')
 
     if include_labels is not None:
         options['include_labels'] = str_to_bool(include_labels)
@@ -830,5 +834,8 @@ def parse_request_export_options(params):
         options["include_images"] = settings.EXPORT_WITH_IMAGE_DEFAULT
 
     options['win_excel_utf8'] = str_to_bool(params.get('win_excel_utf8'))
+
+    if value_select_multiples and value_select_multiples in boolean_list:
+        options['value_select_multiples'] = str_to_bool(value_select_multiples)
 
     return options

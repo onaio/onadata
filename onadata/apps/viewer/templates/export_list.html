@@ -48,9 +48,13 @@
             <input type="checkbox" name="options[dont_split_select_multiples]" value="yes" />
             {% trans "DONT split select multiple choice answers into separate columns" %}
           </label>
-            <label class="checkbox">
+          <label class="checkbox">
             <input type="checkbox" name="options[remove_group_name]" value="true" />
             {% trans "Remove the prefixed group names" %}
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" name="options[value_select_multiples]" value="true" />
+            {% trans "Use choice name in split select multiples (default is True or False)" %}
           </label>
         </div>
         {% endif %}
