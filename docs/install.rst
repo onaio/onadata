@@ -43,16 +43,9 @@ Connect to postgres using psql with:
 
     psql -h localhost -p 5432 -U postgres
 
-In psql:
+From now onwards start the onadata database with ``docker start onadata-postgres``
 
-.. code-block:: sh
-    CREATE USER <username> WITH PASSWORD '<password>' SUPERUSER CREATEDB LOGIN;
-    CREATE DATABASE <database-name> WITH ENCODING='UTF8' LC_CTYPE='en_US.UTF-8' LC_COLLATE='en_US.UTF-8' OWNER=<username> TEMPLATE=template0;
-    CONNECT <database-name>;
-    CREATE EXTENSION IF NOT EXISTS postgis;
-    CREATE EXTENSION IF NOT EXISTS postgis_topology;
-
-From now onwards start the onadata DB with ``docker start onadata-postgres``
+You can then initialize the users and database as explained above.
 
 Get the code
 ------------
