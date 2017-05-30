@@ -26,28 +26,18 @@ Replace username and db name accordingly.
 
 In Docker
 ~~~~~~~~~
+To run Postgres 9.6.3 with postgis 2.3.0 in Docker:
 
-These are just examples and you shouldn't run them as they are in production:
-To run this use the Dockerfile in
-`onaio/docker-builds <https://github.com/onaio/docker-builds/tree/master/postgres>`_
-for postgres 9.6.0 with postgis 2.3.0 and run:
+We shall use the Ona Docker builds `onaio/docker-builds <https://github.com/onaio/docker-builds>`
 
 .. code-block:: sh
 
-    mkdir ~/docker-images/postgres-9.6/
-    cd ~/docker-images/postgres-9.6
-    docker build -t postgres:9.6.1 .
+    git clone git@github.com:onaio/docker-builds.git
+    cd docker-builds/postgresql
+    mkdir ~/.postgresql/onadata/data
+    POSTGRES_PASSWORD=<password> docker-compose up -d
 
-.. note::
-
-  This will be a persisted using ~/.postgresql/data
-
-.. code-block:: sh
-
-    mkdir ~/.postgresql/data
-    docker run -e POSTGRES_PASSWORD=pass -p 5432:5432 --volume ~/.postgresql/data:/var/lib/postgresql/data --name onadata -d postgres:9.6.1
-
-Connect using psql with:
+Connect to postgres using psql with:
 
 .. code-block:: sh
 
@@ -62,7 +52,7 @@ In psql:
     CREATE EXTENSION IF NOT EXISTS postgis;
     CREATE EXTENSION IF NOT EXISTS postgis_topology;
 
-From now onwards start your DB with ``docker start onadata`` provided you passed
+From now onwards start your DB with ``docker start onadata-postgres`` provided you passed
 the name "onadata" to Docker's ``--name`` option.
 
 Get the code
