@@ -105,6 +105,7 @@ class Export(models.Model):
         "query",
         "remove_group_name",
         "split_select_multiples",
+        "value_select_multiples",
         "win_excel_utf8"
     ]
 

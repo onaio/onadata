@@ -11,6 +11,7 @@ from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
 from openpyxl import load_workbook
 from pyxform.builder import create_survey_from_xls
+from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
 from savReaderWriter import SavReader
 from savReaderWriter import SavHeaderReader
 
@@ -29,7 +30,7 @@ def _logger_fixture_path(*args):
                         'tests', 'fixtures', *args)
 
 
-class TestExportBuilder(TestBase):
+class TestExportBuilder(PyxformTestCase, TestBase):
     data = [
         {
             'name': 'Abe',
@@ -408,6 +409,246 @@ class TestExportBuilder(TestBase):
                 data[u'children.info/fav_colors/pink\u2019s'.encode('utf-8')],
                 'False')
             # check that red and blue are set to true
+
+    def test_zipped_sav_export_with_date_field(self):
+        md = """
+        | survey |
+        |        | type              | name         | label        |
+        |        | date              | expense_date | Expense Date |
+
+        | choices |
+        |         | list name | name   | label  |
+        """
+        survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
+        data = [{"expense_date": "2013-01-03",
+                 '_submission_time': u'2016-11-21T03:43:43.000-08:00'}]
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        export_builder.to_zipped_sav(temp_zip_file.name, data)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+        # check that the children's file (which has the unicode header) exists
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "exp.sav")))
+        # check file's contents
+
+        with SavReader(os.path.join(temp_dir, "exp.sav"),
+                       returnHeader=True) as reader:
+            rows = [r for r in reader]
+            self.assertTrue(len(rows) > 1)
+            self.assertEqual(rows[1][0],  '2013-01-03')
+            self.assertEqual(rows[1][4], '2016-11-21 03:43:43')
+
+        shutil.rmtree(temp_dir)
+
+    def test_zipped_sav_export_with_zero_padded_select_one_field(self):
+        md = """
+        | survey |
+        |        | type              | name         | label        |
+        |        | select one yes_no | expensed     | Expensed?    |
+
+        | choices |
+        |         | list name | name   | label  |
+        |         | yes_no    | 1      | Yes    |
+        |         | yes_no    | 09      | No     |
+        """
+        survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
+        data = [{"expensed": "09",
+                 '_submission_time': u'2016-11-21T03:43:43.000-08:00'}]
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        export_builder.to_zipped_sav(temp_zip_file.name, data)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+        # check that the children's file (which has the unicode header) exists
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "exp.sav")))
+        # check file's contents
+
+        with SavReader(os.path.join(temp_dir, "exp.sav"),
+                       returnHeader=True) as reader:
+            rows = [r for r in reader]
+            self.assertTrue(len(rows) > 1)
+            self.assertEqual(rows[1][0],  "09")
+            self.assertEqual(rows[1][4], '2016-11-21 03:43:43')
+
+    def test_zipped_sav_export_with_numeric_select_one_field(self):
+        md = """
+        | survey |
+        |        | type              | name         | label        |
+        |        | select one yes_no | expensed     | Expensed?    |
+
+        | choices |
+        |         | list name | name   | label  |
+        |         | yes_no    | 1      | Yes    |
+        |         | yes_no    | 0      | No     |
+        """
+        survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
+        data = [{"expensed": 1,
+                 '_submission_time': u'2016-11-21T03:43:43.000-08:00'}]
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        export_builder.to_zipped_sav(temp_zip_file.name, data)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+        # check that the children's file (which has the unicode header) exists
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "exp.sav")))
+        # check file's contents
+
+        with SavReader(os.path.join(temp_dir, "exp.sav"),
+                       returnHeader=True) as reader:
+            rows = [r for r in reader]
+            self.assertTrue(len(rows) > 1)
+            self.assertEqual(rows[1][0],  1)
+            self.assertEqual(rows[1][4], '2016-11-21 03:43:43')
+
+    def test_zipped_sav_export_with_numeric_select_multiple_field(self):
+        md = """
+        | survey |
+        |        | type              | name         | label        |
+        |        | select_multiple yes_no | expensed     | Expensed?    |
+
+        | choices |
+        |         | list name | name   | label  |
+        |         | yes_no    | 1      | Yes    |
+        |         | yes_no    | 0      | No     |
+        """
+        survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
+        data = [{"expensed": "1",
+                 '_submission_time': u'2016-11-21T03:43:43.000-08:00'}]
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        export_builder.to_zipped_sav(temp_zip_file.name, data)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+        # check that the children's file (which has the unicode header) exists
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "exp.sav")))
+        # check file's contents
+
+        with SavReader(os.path.join(temp_dir, "exp.sav"),
+                       returnHeader=True) as reader:
+            rows = [r for r in reader]
+            self.assertTrue(len(rows) > 1)
+            self.assertEqual(rows[1][0],  "1")
+            # expensed.1 is selected hence True, 1.00 or 1 in SPSS
+            self.assertEqual(rows[1][1], 1)
+            # expensed.0 is not selected hence False, .00 or 0 in SPSS
+            self.assertEqual(rows[1][2], 0)
+            self.assertEqual(rows[1][6], '2016-11-21 03:43:43')
+
+        shutil.rmtree(temp_dir)
+
+    def test_zipped_sav_export_with_zero_padded_select_multiple_field(self):
+        md = """
+        | survey |
+        |        | type              | name         | label        |
+        |        | select_multiple yes_no | expensed     | Expensed?    |
+
+        | choices |
+        |         | list name | name   | label  |
+        |         | yes_no    | 1      | Yes    |
+        |         | yes_no    | 09     | No     |
+        """
+        survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
+        data = [{"expensed": "1",
+                 '_submission_time': u'2016-11-21T03:43:43.000-08:00'}]
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        export_builder.to_zipped_sav(temp_zip_file.name, data)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+        # check that the children's file (which has the unicode header) exists
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "exp.sav")))
+        # check file's contents
+
+        with SavReader(os.path.join(temp_dir, "exp.sav"),
+                       returnHeader=True) as reader:
+            rows = [r for r in reader]
+            self.assertTrue(len(rows) > 1)
+            self.assertEqual(rows[1][0],  "1")
+            # expensed.1 is selected hence True, 1.00 or 1 in SPSS
+            self.assertEqual(rows[1][1], 1)
+            # expensed.0 is not selected hence False, .00 or 0 in SPSS
+            self.assertEqual(rows[1][2], 0)
+            self.assertEqual(rows[1][6], '2016-11-21 03:43:43')
+
+        shutil.rmtree(temp_dir)
+
+    def test_zipped_sav_export_with_values_split_select_multiple(self):
+        md = """
+        | survey |
+        |        | type              | name         | label        |
+        |        | select_multiple yes_no | expensed     | Expensed?    |
+
+        | choices |
+        |         | list name | name   | label  |
+        |         | yes_no    | 2      | Yes    |
+        |         | yes_no    | 09     | No     |
+        """
+        survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
+        data = [{"expensed": "2 09",
+                 '_submission_time': u'2016-11-21T03:43:43.000-08:00'}]
+        export_builder = ExportBuilder()
+        export_builder.VALUE_SELECT_MULTIPLES = True
+        export_builder.set_survey(survey)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        export_builder.to_zipped_sav(temp_zip_file.name, data)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+        # check that the children's file (which has the unicode header) exists
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "exp.sav")))
+        # check file's contents
+
+        with SavReader(os.path.join(temp_dir, "exp.sav"),
+                       returnHeader=True) as reader:
+            rows = [r for r in reader]
+            self.assertTrue(len(rows) > 1)
+            self.assertEqual(rows[1][0],  "2 09")
+            # expensed.1 is selected hence True, 1.00 or 1 in SPSS
+            self.assertEqual(rows[1][1], 2)
+            # expensed.0 is not selected hence False, .00 or 0 in SPSS
+            self.assertEqual(rows[1][2], '09')
+            self.assertEqual(rows[1][6], '2016-11-21 03:43:43')
+
         shutil.rmtree(temp_dir)
 
     def test_xls_export_works_with_unicode(self):
@@ -916,13 +1157,13 @@ class TestExportBuilder(TestBase):
         ws1 = wb.get_sheet_by_name('childrens_survey_with_a_very_l1')
 
         # parent_table is in cell K2
-        parent_table_name = ws1.cell('K2').value
+        parent_table_name = ws1['K2'].value
         expected_parent_table_name = 'childrens_survey_with_a_very_lo'
         self.assertEqual(parent_table_name, expected_parent_table_name)
 
         # get cartoons sheet
         ws2 = wb.get_sheet_by_name('childrens_survey_with_a_very_l2')
-        parent_table_name = ws2.cell('G2').value
+        parent_table_name = ws2['G2'].value
         expected_parent_table_name = 'childrens_survey_with_a_very_l1'
         self.assertEqual(parent_table_name, expected_parent_table_name)
         xls_file.close()

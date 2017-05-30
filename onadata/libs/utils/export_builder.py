@@ -90,13 +90,22 @@ def get_data_dictionary_from_survey(survey):
     return dd
 
 
-def encode_if_str(row, key, encode_dates=False):
+def encode_if_str(row, key, encode_dates=False, sav_writer=None):
     val = row.get(key)
 
     if isinstance(val, six.string_types):
         return val.encode('utf-8')
 
-    if encode_dates and (isinstance(val, datetime) or isinstance(val, date)):
+    if sav_writer and isinstance(val, (datetime, date)):
+        strptime_fmt = '%Y-%m-%dT%H:%M:%S.%f%z' \
+            if isinstance(val, datetime) else '%Y-%m-%d'
+
+        if isinstance(val, datetime) and len(val.isoformat()):
+            strptime_fmt = strptime_fmt[:17]
+
+        return sav_writer.spssDateTime(val.isoformat(), strptime_fmt)
+
+    if encode_dates and isinstance(val, (datetime, date)):
         return val.isoformat()
 
     return val
@@ -159,6 +168,24 @@ def dict_to_joined_export(data, index, indices, name, survey, row,
     return output
 
 
+def is_all_numeric(items):
+    """Check if all items on the list are numeric, zero padded numbers will not
+    be considered as numeric.
+
+    :param items: list of values to be checked
+
+    :return boolean:
+    """
+    try:
+        map(float, [i for i in items])
+    except ValueError:
+        return False
+
+    # check for zero padded numbers to be treated as non numeric
+    return not (any([i.startswith('0') and len(i) > 1 and i.find('.') == -1
+                     for i in items if isinstance(i, six.string_types)]))
+
+
 def track_task_progress(additions, total=None):
     """
     Updates the current export task with number of submission processed.
@@ -188,6 +215,7 @@ class ExportBuilder(object):
                     SUBMITTED_BY]
     SPLIT_SELECT_MULTIPLES = True
     BINARY_SELECT_MULTIPLES = False
+    VALUE_SELECT_MULTIPLES = False
 
     # column group delimiters get_value_or_attachment_uri
     GROUP_DELIMITER_SLASH = '/'
@@ -313,8 +341,10 @@ class ExportBuilder(object):
                             current_section, child, sections, select_multiples,
                             gps_fields, encoded_fields, field_delimiter,
                             remove_group_name)
-                elif isinstance(child, Question) and child.bind.get(u"type")\
-                        not in QUESTION_TYPES_TO_EXCLUDE:
+                elif isinstance(child, Question) and \
+                        (child.bind.get(u"type")
+                         not in QUESTION_TYPES_TO_EXCLUDE and
+                         child.type not in QUESTION_TYPES_TO_EXCLUDE):
                     # add to survey_sections
                     if isinstance(child, Question):
                         child_xpath = child.get_abbreviated_xpath()
@@ -398,7 +428,8 @@ class ExportBuilder(object):
         return matches[0]
 
     @classmethod
-    def split_select_multiples(cls, row, select_multiples):
+    def split_select_multiples(cls, row, select_multiples,
+                               select_values=False):
         # for each select_multiple, get the associated data and split it
         for xpath, choices in select_multiples.iteritems():
             # get the data matching this xpath
@@ -408,7 +439,12 @@ class ExportBuilder(object):
                 selections = [
                     u'{0}/{1}'.format(
                         xpath, selection) for selection in data.split()]
-            if not cls.BINARY_SELECT_MULTIPLES:
+            if select_values:
+                row.update(dict(
+                    [(choice, data.split()[selections.index(choice)]
+                      if selections and choice in selections else None)
+                     for choice in choices]))
+            elif not cls.BINARY_SELECT_MULTIPLES:
                 row.update(dict(
                     [(choice, choice in selections if selections else None)
                      for choice in choices]))
@@ -472,7 +508,8 @@ class ExportBuilder(object):
         if self.SPLIT_SELECT_MULTIPLES and\
                 section_name in self.select_multiples:
             row = ExportBuilder.split_select_multiples(
-                row, self.select_multiples[section_name])
+                row, self.select_multiples[section_name],
+                self.VALUE_SELECT_MULTIPLES)
 
         if section_name in self.gps_fields:
             row = ExportBuilder.split_gps_components(
@@ -487,6 +524,10 @@ class ExportBuilder(object):
                     and value is not None and value != '':
                 row[elm['xpath']] = ExportBuilder.convert_type(
                     value, elm['type'])
+
+        if SUBMISSION_TIME in row:
+            row[SUBMISSION_TIME] = ExportBuilder.convert_type(
+                row[SUBMISSION_TIME], 'dateTime')
 
         return row
 
@@ -759,8 +800,18 @@ class ExportBuilder(object):
                     if choices is not None and q.get('itemset'):
                         choices = choices.get(q.get('itemset'))
                 _value_labels = {}
+                is_numeric = is_all_numeric([c['name'] for c in choices])
                 for choice in choices:
                     name = choice['name'].strip()
+                    # should skip select multiple and zero padded numbers e.g
+                    # 009 or 09, they should be treated as strings
+                    if q.type != u'select all that apply' and is_numeric:
+                        try:
+                            name = float(name) \
+                                if (not name.startswith('0') and
+                                    float(name) > int(name)) else int(name)
+                        except ValueError:
+                            pass
                     label = self.get_choice_label_from_dict(choice['label'])
                     _value_labels[name] = label.strip()
                 self._sav_value_labels[var_name or q['name']] = _value_labels
@@ -798,6 +849,31 @@ class ExportBuilder(object):
                 'ioUtf8': True
             }
         """
+        def _is_numeric(xpath, element_type, data_dictionary):
+            if element_type in ['decimal', 'int', 'date']:
+                return True
+            elif element_type == 'string':
+                # check if it is a choice part of multiple choice
+                # type is likely empty string, split multi select is binary
+                element = data_dictionary.get_element(xpath)
+                if element and element.type == '' and value_select_multiples:
+                    return is_all_numeric([element.name])
+                return element and element.type == ''
+            elif element_type != 'select1':
+                return False
+
+            if xpath not in all_value_labels:
+                return False
+
+            # Determine if all select1 choices are numeric in nature
+            # and as such have the field type in spss be numeric
+            choices = all_value_labels[xpath].keys()
+            if len(choices) == 0:
+                return False
+
+            return is_all_numeric(choices)
+
+        value_select_multiples = self.VALUE_SELECT_MULTIPLES
         _var_types = {}
         value_labels = {}
         var_labels = {}
@@ -826,14 +902,21 @@ class ExportBuilder(object):
 
         var_types = dict(
             [(_var_types[element['xpath']],
-                0 if element['type'] in ['decimal', 'int'] else 255)
+                0 if _is_numeric(element['xpath'], element['type'],
+                                 self.dd) else 255)
                 for element in elements] +
             [(_var_types[item],
-                0 if item in ['_id', '_index', '_parent_index'] else 255)
+                0 if item in ['_id', '_index', '_parent_index',
+                              SUBMISSION_TIME] else 255)
                 for item in self.EXTRA_FIELDS]
         )
+        dates = [element for element in elements if element.get('type') ==
+                 'date']
+        formats = {d['xpath']: 'EDATE40' for d in dates}
+        formats['@' + SUBMISSION_TIME] = 'DATETIME40'
 
         return {
+            'formats': formats,
             'varLabels': var_labels,
             'varNames': var_names,
             'varTypes': var_types,
@@ -865,7 +948,8 @@ class ExportBuilder(object):
 
         def write_row(row, csv_writer, fields):
             sav_writer.writerow(
-                [encode_if_str(row, field, True) for field in fields])
+                [encode_if_str(row, field, sav_writer=sav_writer)
+                 for field in fields])
 
         sav_defs = {}
 
