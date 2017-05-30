@@ -114,14 +114,14 @@ def get_export_options(options):
 def get_or_create_export(export_id, xform, export_type, options):
     if export_id:
         try:
-            return Export.objects.get(id=export_id)
+            return Export.objects.get(pk=export_id)
         except Export.DoesNotExist:
             if len(getattr(settings, 'SLAVE_DATABASES', [])):
                 from multidb.pinning import use_master
 
                 with use_master:
                     try:
-                        return Export.objects.get(id=id)
+                        return Export.objects.get(pk=export_id)
                     except Export.DoesNotExist:
                         pass
 
