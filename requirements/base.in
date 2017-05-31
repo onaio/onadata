@@ -53,7 +53,8 @@ lxml
 -e git+https://github.com/XLSForm/pyxform.git@master#egg=pyxform
 
 # spss
--e git+https://bitbucket.org/fomcl/savreaderwriter.git@v3.4.2#egg=savreaderwriter
+#-e git+https://bitbucket.org/fomcl/savreaderwriter.git@v3.4.2#egg=savreaderwriter
+savreaderwriter
 
 unicodecsv
 xlrd

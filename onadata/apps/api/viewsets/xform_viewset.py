@@ -19,6 +19,8 @@ from django.utils.http import urlencode
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache
 
+from django_filters.rest_framework import DjangoFilterBackend
+
 try:
     from multidb.pinning import use_master
 except ImportError:
@@ -29,7 +31,6 @@ from pyxform.xls2json import parse_file_to_json
 from rest_framework import exceptions, status
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.exceptions import ParseError
-from rest_framework.filters import DjangoFilterBackend
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
