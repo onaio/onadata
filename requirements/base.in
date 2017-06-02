@@ -21,9 +21,10 @@ django-debug-toolbar
 python-digest
 -e git+https://github.com/onaio/django-digest.git@django-1.9-fixes#egg=django-digest
 
-# oath2 support
+# oauth2 support
 django-oauth-toolkit
 oauth2client
+jsonpickle
 
 # jwt
 PyJWT
