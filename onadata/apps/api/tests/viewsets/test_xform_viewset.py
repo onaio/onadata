@@ -5,7 +5,6 @@ import os
 import re
 import requests
 import jwt
-import hashlib
 import mock
 
 from collections import OrderedDict
@@ -3641,7 +3640,6 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             self.assertIn("query", export.options)
 
-            query_str = hashlib.md5(query_str).hexdigest()
             self.assertEquals(export.options['query'], query_str)
 
     def test_previous_export_with_date_filter_is_returned(self):

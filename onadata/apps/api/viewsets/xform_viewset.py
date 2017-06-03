@@ -644,8 +644,9 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             'meta': meta,
             'token': token,
             'data_id': data_id,
-            'query': query,
         })
+        if query:
+            options.update({'query': query})
 
         if job_uuid:
             try:

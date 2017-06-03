@@ -103,11 +103,6 @@ def get_export_options(options):
         key: value for key, value in options.iteritems()
         if key in Export.EXPORT_OPTION_FIELDS}
 
-    if EXPORT_QUERY_KEY in export_options:
-        query_str = '{}'.format(export_options[EXPORT_QUERY_KEY])
-
-        export_options[EXPORT_QUERY_KEY] = md5hash(query_str)
-
     return export_options
 
 
