@@ -331,3 +331,14 @@ class TestBase(TransactionTestCase):
         request = self.factory.post('/', data=post_data, **self.extra)
         response = view(request, pk=self.xform.id)
         self.assertEqual(response.status_code, 200)
+
+    def _publish_md(self, md, user, project=None):
+        survey = self.md_to_pyxform_survey(md)
+        if not project:
+            project = get_user_default_project(user)
+        xform = DataDictionary(created_by=user, user=user,
+                               xml=survey.to_xml(), json=survey.to_json(),
+                               project=project)
+        xform.save()
+
+        return xform

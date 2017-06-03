@@ -115,7 +115,8 @@ def custom_response_handler(request,
             status=status.HTTP_403_FORBIDDEN,
             content_type="application/json")
 
-    options['query'] = query
+    if query:
+        options['query'] = query
 
     remove_group_name = options.get("remove_group_name")
 

@@ -3,6 +3,7 @@ import os
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ReadOnlyModelViewSet
+from rest_framework.mixins import DestroyModelMixin
 
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.renderers import renderers
@@ -15,7 +16,7 @@ from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs import filters
 
 
-class ExportViewSet(ReadOnlyModelViewSet):
+class ExportViewSet(DestroyModelMixin, ReadOnlyModelViewSet):
     authentication_classes = (DigestAuthentication,
                               TempTokenAuthentication,
                               TempTokenURLParameterAuthentication,
