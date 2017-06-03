@@ -178,7 +178,7 @@ class TestExportBuilder(PyxformTestCase, TestBase):
                 {
                     'childrenLg==info/nameLg==first': 'Mike',
                     'childrenLg==info/age': 5,
-                    'childrenLg==info/fav_colors': u'red\u2019s blue\u2019s',
+                    'childrenLg==info/fav_colors': u'red\'s blue\'s',
                     'childrenLg==info/ice_creams': 'vanilla chocolate',
                     'childrenLg==info/cartoons':
                     [
@@ -384,9 +384,9 @@ class TestExportBuilder(PyxformTestCase, TestBase):
             expected_headers = ['children.info/name.first',
                                 'children.info/age',
                                 'children.info/fav_colors',
-                                u'children.info/fav_colors/red\u2019s',
-                                u'children.info/fav_colors/blue\u2019s',
-                                u'children.info/fav_colors/pink\u2019s',
+                                u'children.info/fav_colors/red\'s',
+                                u'children.info/fav_colors/blue\'s',
+                                u'children.info/fav_colors/pink\'s',
                                 'children.info/ice_creams',
                                 'children.info/ice_creams/vanilla',
                                 'children.info/ice_creams/strawberry',
@@ -400,13 +400,13 @@ class TestExportBuilder(PyxformTestCase, TestBase):
             self.assertEqual(sorted(actual_headers), sorted(expected_headers))
             data = dict(zip(rows[0], rows[1]))
             self.assertEqual(
-                data[u'children.info/fav_colors/red\u2019s'.encode('utf-8')],
+                data[u'children.info/fav_colors/red\'s'.encode('utf-8')],
                 'True')
             self.assertEqual(
-                data[u'children.info/fav_colors/blue\u2019s'.encode('utf-8')],
+                data[u'children.info/fav_colors/blue\'s'.encode('utf-8')],
                 'True')
             self.assertEqual(
-                data[u'children.info/fav_colors/pink\u2019s'.encode('utf-8')],
+                data[u'children.info/fav_colors/pink\'s'.encode('utf-8')],
                 'False')
             # check that red and blue are set to true
 
@@ -659,13 +659,13 @@ class TestExportBuilder(PyxformTestCase, TestBase):
         temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
         export_builder.to_xls_export(temp_xls_file.name, self.data_utf8)
         temp_xls_file.seek(0)
-        # check that values for red\u2019s and blue\u2019s are set to true
+        # check that values for red\'s and blue\'s are set to true
         wb = load_workbook(temp_xls_file.name)
         children_sheet = wb.get_sheet_by_name("children.info")
         data = dict([(r[0].value, r[1].value) for r in children_sheet.columns])
-        self.assertTrue(data[u'children.info/fav_colors/red\u2019s'])
-        self.assertTrue(data[u'children.info/fav_colors/blue\u2019s'])
-        self.assertFalse(data[u'children.info/fav_colors/pink\u2019s'])
+        self.assertTrue(data[u'children.info/fav_colors/red\'s'])
+        self.assertTrue(data[u'children.info/fav_colors/blue\'s'])
+        self.assertFalse(data[u'children.info/fav_colors/pink\'s'])
         temp_xls_file.close()
 
     def test_xls_export_with_hxl_adds_extra_row(self):
@@ -1408,13 +1408,13 @@ class TestExportBuilder(PyxformTestCase, TestBase):
         temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
         export_builder.to_xls_export(temp_xls_file.name, self.data_utf8)
         temp_xls_file.seek(0)
-        # check that values for red\u2019s and blue\u2019s are set to true
+        # check that values for red\'s and blue\'s are set to true
         wb = load_workbook(temp_xls_file.name)
         children_sheet = wb.get_sheet_by_name("children.info")
         data = dict([(r[0].value, r[1].value) for r in children_sheet.columns])
-        self.assertTrue(data[u'fav_colors/red\u2019s'])
-        self.assertTrue(data[u'fav_colors/blue\u2019s'])
-        self.assertFalse(data[u'fav_colors/pink\u2019s'])
+        self.assertTrue(data[u"fav_colors/red's"])
+        self.assertTrue(data[u"fav_colors/blue's"])
+        self.assertFalse(data[u"fav_colors/pink's"])
         temp_xls_file.close()
 
     def test_zipped_csv_export_remove_group_name(self):
@@ -1444,9 +1444,9 @@ class TestExportBuilder(PyxformTestCase, TestBase):
             expected_headers = ['name.first',
                                 'age',
                                 'fav_colors',
-                                u'fav_colors/red\u2019s',
-                                u'fav_colors/blue\u2019s',
-                                u'fav_colors/pink\u2019s',
+                                u'fav_colors/red\'s',
+                                u'fav_colors/blue\'s',
+                                u'fav_colors/pink\'s',
                                 'ice_creams',
                                 'ice_creams/vanilla',
                                 'ice_creams/strawberry',
@@ -1460,13 +1460,13 @@ class TestExportBuilder(PyxformTestCase, TestBase):
             self.assertEqual(sorted(actual_headers), sorted(expected_headers))
             data = dict(zip(rows[0], rows[1]))
             self.assertEqual(
-                data[u'fav_colors/red\u2019s'.encode('utf-8')],
+                data[u'fav_colors/red\'s'.encode('utf-8')],
                 'True')
             self.assertEqual(
-                data[u'fav_colors/blue\u2019s'.encode('utf-8')],
+                data[u'fav_colors/blue\'s'.encode('utf-8')],
                 'True')
             self.assertEqual(
-                data[u'fav_colors/pink\u2019s'.encode('utf-8')],
+                data[u'fav_colors/pink\'s'.encode('utf-8')],
                 'False')
             # check that red and blue are set to true
         shutil.rmtree(temp_dir)
@@ -1481,23 +1481,23 @@ class TestExportBuilder(PyxformTestCase, TestBase):
         temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
         export_builder.to_xls_export(temp_xls_file.name, self.data_utf8)
         temp_xls_file.seek(0)
-        # check that values for red\u2019s and blue\u2019s are set to true
+        # check that values for red\'s and blue\'s are set to true
         wb = load_workbook(temp_xls_file.name)
         children_sheet = wb.get_sheet_by_name("children.info")
         labels = dict([(r[0].value, r[1].value)
                        for r in children_sheet.columns])
         self.assertEqual(labels[u'name.first'], '3.1 Childs name')
         self.assertEqual(labels[u'age'], '3.2 Child age')
-        self.assertEqual(labels[u'fav_colors/red\u2019s'], 'fav_colors/Red')
-        self.assertEqual(labels[u'fav_colors/blue\u2019s'], 'fav_colors/Blue')
-        self.assertEqual(labels[u'fav_colors/pink\u2019s'], 'fav_colors/Pink')
+        self.assertEqual(labels[u'fav_colors/red\'s'], 'fav_colors/Red')
+        self.assertEqual(labels[u'fav_colors/blue\'s'], 'fav_colors/Blue')
+        self.assertEqual(labels[u'fav_colors/pink\'s'], 'fav_colors/Pink')
 
         data = dict([(r[0].value, r[2].value) for r in children_sheet.columns])
         self.assertEqual(data[u'name.first'], 'Mike')
         self.assertEqual(data[u'age'], 5)
-        self.assertTrue(data[u'fav_colors/red\u2019s'])
-        self.assertTrue(data[u'fav_colors/blue\u2019s'])
-        self.assertFalse(data[u'fav_colors/pink\u2019s'])
+        self.assertTrue(data[u'fav_colors/red\'s'])
+        self.assertTrue(data[u'fav_colors/blue\'s'])
+        self.assertFalse(data[u'fav_colors/pink\'s'])
         temp_xls_file.close()
 
     def test_xls_export_with_labels_only(self):
@@ -1510,7 +1510,7 @@ class TestExportBuilder(PyxformTestCase, TestBase):
         temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
         export_builder.to_xls_export(temp_xls_file.name, self.data_utf8)
         temp_xls_file.seek(0)
-        # check that values for red\u2019s and blue\u2019s are set to true
+        # check that values for red\'s and blue\'s are set to true
         wb = load_workbook(temp_xls_file.name)
         children_sheet = wb.get_sheet_by_name("children.info")
         data = dict([(r[0].value, r[1].value) for r in children_sheet.columns])
@@ -1549,9 +1549,9 @@ class TestExportBuilder(PyxformTestCase, TestBase):
             expected_headers = ['name.first',
                                 'age',
                                 'fav_colors',
-                                u'fav_colors/red\u2019s',
-                                u'fav_colors/blue\u2019s',
-                                u'fav_colors/pink\u2019s',
+                                u'fav_colors/red\'s',
+                                u'fav_colors/blue\'s',
+                                u'fav_colors/pink\'s',
                                 'ice_creams',
                                 'ice_creams/vanilla',
                                 'ice_creams/strawberry',
@@ -1581,13 +1581,13 @@ class TestExportBuilder(PyxformTestCase, TestBase):
             self.assertEqual(sorted(actual_labels), sorted(expected_labels))
             data = dict(zip(rows[0], rows[2]))
             self.assertEqual(
-                data[u'fav_colors/red\u2019s'.encode('utf-8')],
+                data[u'fav_colors/red\'s'.encode('utf-8')],
                 'True')
             self.assertEqual(
-                data[u'fav_colors/blue\u2019s'.encode('utf-8')],
+                data[u'fav_colors/blue\'s'.encode('utf-8')],
                 'True')
             self.assertEqual(
-                data[u'fav_colors/pink\u2019s'.encode('utf-8')],
+                data[u'fav_colors/pink\'s'.encode('utf-8')],
                 'False')
             # check that red and blue are set to true
         shutil.rmtree(temp_dir)
