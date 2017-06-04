@@ -345,6 +345,8 @@ def should_create_new_export(xform,
         export_type=export_type,
         **export_options_kwargs
     )
+    if options.get(EXPORT_QUERY_KEY) is None:
+        export_query = export_query.exclude(options__has_key=EXPORT_QUERY_KEY)
 
     if export_query.count() == 0 or\
        Export.exports_outdated(xform, export_type, options=options):

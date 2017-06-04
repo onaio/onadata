@@ -188,8 +188,9 @@ def _generate_new_export(request, xform, query, export_type,
         "extension": extension,
         "username": xform.user.username,
         "id_string": xform.id_string,
-        "query": query
     }
+    if query:
+        options['query'] = query
 
     options["dataview_pk"] = dataview_pk
     if export_type == Export.GOOGLE_SHEETS_EXPORT:

@@ -3741,7 +3741,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=self.xform.pk, format='csv')
             self.assertEqual(response.status_code, 200)
 
-            # no change in count of exports
+            # should create a new export
             self.assertEquals(count + 1, Export.objects.all().count())
 
             test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
