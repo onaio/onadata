@@ -37,6 +37,22 @@ class ParseError(Exception):
     pass
 
 
+def call_webhooks(instance_id):
+    if ASYNC_POST_SUBMISSION_PROCESSING_ENABLED:
+        call_service_async.apply_async(
+            args=[instance_id],
+            countdown=1
+        )
+
+        save_osm_data_async.apply_async(
+            args=[instance_id],
+            countdown=1
+        )
+    else:
+        call_service_async(instance_id)
+        save_osm_data_async(instance_id)
+
+
 def datetime_from_str(text):
     # Assumes text looks like 2011-01-01T09:50:06.966
     if text is None:
@@ -359,19 +375,7 @@ def post_save_submission(sender, **kwargs):
     created = kwargs.get('created')
 
     if created:
-        if ASYNC_POST_SUBMISSION_PROCESSING_ENABLED:
-            call_service_async.apply_async(
-                args=[parsed_instance.instance_id],
-                countdown=1
-            )
-
-            save_osm_data_async.apply_async(
-                args=[parsed_instance.instance_id],
-                countdown=1
-            )
-        else:
-            call_service_async(parsed_instance.instance_id)
-            save_osm_data_async(parsed_instance.instance_id)
+        call_webhooks(parsed_instance.instance_id)
 
 
 post_save.connect(post_save_submission, sender=ParsedInstance)
