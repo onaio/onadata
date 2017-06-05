@@ -7,10 +7,12 @@ from django.conf import settings
 from django.http import Http404
 from rest_framework.request import Request
 
+from onadata.apps.logger.models import XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.utils.api_export_tools import (get_async_response,
-                                                 process_async_export)
+                                                 process_async_export,
+                                                 response_for_format)
 from onadata.libs.utils.async_status import SUCCESSFUL, status_msg
 
 
@@ -98,3 +100,16 @@ class TestApiExportTools(TestBase):
 
         result = get_async_response('job_uuid', request, self.xform)
         self.assertEqual(result, {'job_status': 'PENDING'})
+
+    def test_response_for_format(self):
+        self._publish_xlsx_file()
+        xform = XForm.objects.filter().last()
+        self.assertIsNotNone(xform)
+        self.assertIsInstance(response_for_format(xform).data, dict)
+        self.assertIsInstance(response_for_format(xform, 'json').data, dict)
+        self.assertTrue(hasattr(response_for_format(xform, 'xls').data,
+                                'file'))
+
+        xform.xls.storage.delete(xform.xls.name)
+        with self.assertRaises(Http404):
+            response_for_format(xform, 'xls')

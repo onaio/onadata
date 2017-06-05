@@ -489,7 +489,7 @@ def response_for_format(data, format=None):
     if format == 'xml':
         formatted_data = data.xml
     elif format == 'xls':
-        if not data.xls:
+        if not data.xls or not data.xls.storage.exists(data.xls.name):
             raise Http404()
 
         formatted_data = data.xls
