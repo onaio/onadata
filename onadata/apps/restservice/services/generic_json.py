@@ -1,5 +1,6 @@
-import httplib2
 import json
+
+import requests
 
 from onadata.apps.restservice.RestServiceInterface import RestServiceInterface
 
@@ -11,7 +12,4 @@ class ServiceDefinition(RestServiceInterface):
     def send(self, url, submission_instance):
         post_data = json.dumps(submission_instance.json)
         headers = {"Content-Type": "application/json"}
-        http = httplib2.Http()
-        resp, content = http.request(uri=url, method='POST',
-                                     headers=headers,
-                                     body=post_data)
+        requests.post(url, headers=headers, data=post_data)

@@ -109,7 +109,7 @@ class RestServiceTest(TestBase):
         self.assertEqual(response.status_code, 404)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
-    @patch('httplib2.Http')
+    @patch('requests.post')
     def test_textit_service(self, mock_http):
         service_url = "https://textit.io/api/v1/runs.json"
         service_name = "textit"
@@ -136,7 +136,7 @@ class RestServiceTest(TestBase):
         self.assertEquals(mock_http.call_count, 1)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
-    @patch('httplib2.Http')
+    @patch('requests.post')
     def test_rest_service_not_set(self, mock_http):
         xml_submission = os.path.join(self.this_directory,
                                       u'fixtures',
