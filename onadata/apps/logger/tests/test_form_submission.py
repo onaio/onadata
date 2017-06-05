@@ -267,7 +267,8 @@ class TestFormSubmission(TestBase):
         # no change in xml content
         self.assertEqual(inst.xml, anothe_inst.xml)
 
-    def test_edited_submission(self):
+    @patch('onadata.libs.utils.logger_tools.call_webhooks')
+    def test_edited_submission(self, mock_edit_call_webhooks):
         """
         Test submissions that have been edited
         """
@@ -294,6 +295,7 @@ class TestFormSubmission(TestBase):
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
         self.assertEqual(Instance.objects.count(), num_instances + 1)
+        self.assertFalse(mock_edit_call_webhooks.called)
 
         # Take initial instance from DB
         initial_instance = self.xform.instances.first()
@@ -328,6 +330,7 @@ class TestFormSubmission(TestBase):
 
         self.assertDictEqual(initial_instance.get_dict(),
                              instance_history_1.get_dict())
+        self.assertTrue(mock_edit_call_webhooks.called)
 
         self.assertNotEqual(edited_instance.uuid, instance_history_1.uuid)
 
