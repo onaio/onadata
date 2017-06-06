@@ -49,7 +49,8 @@ from onadata.apps.logger.xform_instance_parser import (
     get_deprecated_uuid_from_xml,
     get_submission_date_from_xml)
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
-from onadata.apps.viewer.models.parsed_instance import ParsedInstance
+from onadata.apps.viewer.models.parsed_instance import (
+    ParsedInstance, call_webhooks)
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -88,6 +89,9 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform):
             instance.last_edited = last_edited
             instance.uuid = new_uuid
             instance.save()
+
+            # call webhooks
+            call_webhooks(instance.pk)
         elif history:
             instance = history.xform_instance
     if old_uuid is None or (instance is None and history is None):
