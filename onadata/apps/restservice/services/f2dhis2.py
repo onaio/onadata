@@ -1,4 +1,4 @@
-import httplib2
+import requests
 
 from onadata.apps.restservice.RestServiceInterface import RestServiceInterface
 
@@ -13,5 +13,4 @@ class ServiceDefinition(RestServiceInterface):
             "uuid": submission_instance.uuid
         }
         valid_url = url % info
-        http = httplib2.Http()
-        http.request(valid_url, 'GET')
+        requests.get(valid_url)

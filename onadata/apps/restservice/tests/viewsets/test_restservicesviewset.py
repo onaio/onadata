@@ -237,7 +237,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertEquals(response.status_code, 400)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
-    @patch('httplib2.Http')
+    @patch('requests.post')
     def test_textit_flow(self, mock_http):
         rest = RestService(name="textit",
                            service_url="https://server.io",
@@ -256,7 +256,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertEquals(mock_http.call_count, 4)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
-    @patch('httplib2.Http')
+    @patch('requests.post')
     def test_textit_flow_without_parsed_instances(self, mock_http):
         rest = RestService(name="textit",
                            service_url="https://server.io",
@@ -269,6 +269,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
                                                      "ksadaskjdajsda"))
         self.assertFalse(mock_http.called)
         self._make_submissions()
+        self.assertTrue(mock_http.called)
 
     def test_create_rest_service_invalid_form_id(self):
         count = RestService.objects.all().count()
