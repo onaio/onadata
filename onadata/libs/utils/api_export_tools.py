@@ -115,7 +115,8 @@ def custom_response_handler(request,
             status=status.HTTP_403_FORBIDDEN,
             content_type="application/json")
 
-    options['query'] = query
+    if query:
+        options['query'] = query
 
     remove_group_name = options.get("remove_group_name")
 
@@ -187,8 +188,9 @@ def _generate_new_export(request, xform, query, export_type,
         "extension": extension,
         "username": xform.user.username,
         "id_string": xform.id_string,
-        "query": query
     }
+    if query:
+        options['query'] = query
 
     options["dataview_pk"] = dataview_pk
     if export_type == Export.GOOGLE_SHEETS_EXPORT:

@@ -5,7 +5,6 @@ import os
 import re
 import requests
 import jwt
-import hashlib
 import mock
 
 from collections import OrderedDict
@@ -3638,11 +3637,51 @@ class TestXFormViewSet(TestAbstractViewSet):
             self._validate_csv_export(response, test_file_path)
 
             export = Export.objects.last()
-
             self.assertIn("query", export.options)
-
-            query_str = hashlib.md5(query_str).hexdigest()
             self.assertEquals(export.options['query'], query_str)
+
+    @patch('onadata.libs.utils.api_export_tools.AsyncResult')
+    def test_export_form_data_async_with_filtered_date(self, async_result):
+        with HTTMock(enketo_mock):
+            start_date = datetime(2015, 12, 2, tzinfo=utc)
+            self._make_submission_over_date_range(start_date)
+
+            first_datetime = start_date.strftime(MONGO_STRFTIME)
+            second_datetime = start_date + timedelta(days=1, hours=20)
+            query_str = '{"_submission_time": {"$gte": "'\
+                        + first_datetime + '", "$lte": "'\
+                        + second_datetime.strftime(MONGO_STRFTIME) + '"}}'
+            count = Export.objects.all().count()
+
+            export_view = XFormViewSet.as_view({
+                'get': 'export_async',
+            })
+            formid = self.xform.pk
+
+            for export_format in ['csv']:
+                request = self.factory.get(
+                    '/', data={
+                        "format": export_format, 'query': query_str
+                    }, **self.extra)
+                response = export_view(request, pk=formid)
+                self.assertIsNotNone(response.data)
+                self.assertEqual(response.status_code, 202)
+                self.assertTrue('job_uuid' in response.data)
+                self.assertEquals(count + 1, Export.objects.all().count())
+
+                task_id = response.data.get('job_uuid')
+                get_data = {'job_uuid': task_id}
+                request = self.factory.get('/', data=get_data, **self.extra)
+                response = export_view(request, pk=formid)
+
+                self.assertTrue(async_result.called)
+                self.assertEqual(response.status_code, 202)
+                export = Export.objects.get(task_id=task_id)
+                self.assertTrue(export.is_successful)
+
+                export = Export.objects.last()
+                self.assertIn("query", export.options)
+                self.assertEquals(export.options['query'], query_str)
 
     def test_previous_export_with_date_filter_is_returned(self):
         with HTTMock(enketo_mock):
@@ -3743,7 +3782,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=self.xform.pk, format='csv')
             self.assertEqual(response.status_code, 200)
 
-            # no change in count of exports
+            # should create a new export
             self.assertEquals(count + 1, Export.objects.all().count())
 
             test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',

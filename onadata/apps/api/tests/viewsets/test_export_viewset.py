@@ -1,19 +1,17 @@
 import os
+from tempfile import NamedTemporaryFile
 
 from django.conf import settings
-
+from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
+from rest_framework import status
+from rest_framework.test import APIRequestFactory, force_authenticate
 
 from onadata.apps.api.viewsets.export_viewset import ExportViewSet
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
 
-from rest_framework.test import APIRequestFactory, force_authenticate
-from rest_framework import status
 
-from tempfile import NamedTemporaryFile
-
-
-class TestExportViewSet(TestBase):
+class TestExportViewSet(PyxformTestCase, TestBase):
 
     def setUp(self):
         super(self.__class__, self).setUp()
@@ -115,3 +113,32 @@ class TestExportViewSet(TestBase):
         response = view(request)
         self.assertFalse(bool(response.data))
         self.assertEqual(status.HTTP_200_OK, response.status_code)
+
+    def test_export_delete(self):
+        md = """
+        | survey |
+        |        | type              | name  | label |
+        |        | select one fruits | fruit | Fruit |
+
+        | choices |
+        |         | list name | name   | label  |
+        |         | fruits    | orange | Orange |
+        |         | fruits    | mango  | Mango  |
+        """
+        self._create_user_and_login()
+        self.xform = self._publish_md(md, self.user)
+        bob = self.user
+        export = Export.objects.create(xform=self.xform)
+        export.save()
+        view = ExportViewSet.as_view({'delete': 'destroy'})
+        request = self.factory.delete('/export')
+
+        # mary has no access hence cannot delete
+        self._create_user_and_login(username='mary', password='password1')
+        response = view(request, pk=export.pk)
+        self.assertEqual(status.HTTP_404_NOT_FOUND, response.status_code)
+
+        # bob has access hence can delete
+        force_authenticate(request, user=bob)
+        response = view(request, pk=export.pk)
+        self.assertEqual(status.HTTP_204_NO_CONTENT, response.status_code)

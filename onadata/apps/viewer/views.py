@@ -251,8 +251,9 @@ def data_export(request, username, id_string, export_type):
 
     options = {"extension": extension,
                "username": username,
-               "id_string": id_string,
-               "query": query}
+               "id_string": id_string}
+    if query:
+        options['query'] = query
 
     # check if we need to re-generate,
     # we always re-generate if a filter is specified

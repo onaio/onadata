@@ -103,11 +103,6 @@ def get_export_options(options):
         key: value for key, value in options.iteritems()
         if key in Export.EXPORT_OPTION_FIELDS}
 
-    if EXPORT_QUERY_KEY in export_options:
-        query_str = '{}'.format(export_options[EXPORT_QUERY_KEY])
-
-        export_options[EXPORT_QUERY_KEY] = md5hash(query_str)
-
     return export_options
 
 
@@ -350,6 +345,8 @@ def should_create_new_export(xform,
         export_type=export_type,
         **export_options_kwargs
     )
+    if options.get(EXPORT_QUERY_KEY) is None:
+        export_query = export_query.exclude(options__has_key=EXPORT_QUERY_KEY)
 
     if export_query.count() == 0 or\
        Export.exports_outdated(xform, export_type, options=options):
