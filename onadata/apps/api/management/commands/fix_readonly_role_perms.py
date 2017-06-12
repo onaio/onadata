@@ -17,19 +17,19 @@ class Command(BaseCommand):
     args = '<app model [created_perm] >'
     help = _(u"Reassign permission to the model when permissions are changed")
 
+    def add_arguments(self, parser):
+        parser.add_argument('app', type=str, help="App")
+        parser.add_argument('model', type=str, help="Model")
+        parser.add_argument('username', type=str, help="Username")
+        parser.add_argument('new_perm', type=str, help="New Permission")
+
     def handle(self, *args, **options):
         self.stdout.write("Re-assigining started", ending='\n')
 
-        if not args:
-            raise CommandError('Param not set. <app model [created_perm]>')
-
-        if len(args) < 3:
-            raise CommandError('Param not set. <app model [created_perm]>')
-
-        app = args[0]
-        model = args[1]
-        username = args[2]
-        new_perms = list(args[3:])
+        app = options['app']
+        model = options['model']
+        username = options['username']
+        new_perms = [options['new_perm']]
 
         if username == "all":
             users = User.objects.exclude(
