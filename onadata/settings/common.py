@@ -104,6 +104,7 @@ ENKETO_PREVIEW_URL = urljoin(ENKETO_URL, ENKETO_API_SURVEY_PATH + '/preview')
 ENKETO_API_TOKEN = ''
 ENKETO_API_INSTANCE_IFRAME_URL = ENKETO_URL + "api_v1/instance/iframe"
 ENKETO_API_SALT = 'secretsalt'
+VERIFY_SSL = True
 
 # Login URLs
 LOGIN_URL = '/accounts/login/'

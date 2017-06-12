@@ -187,7 +187,9 @@ def enketo_url(form_url,
         values.update(kwargs)
 
     req = requests.post(
-        url, data=values, auth=(settings.ENKETO_API_TOKEN, ''), verify=False)
+        url, data=values, auth=(settings.ENKETO_API_TOKEN, ''),
+        verify=getattr(settings, 'VERIFY_SSL', True))
+
     if req.status_code in [200, 201]:
         try:
             response = req.json()
@@ -300,7 +302,7 @@ def get_enketo_preview_url(request, username, id_string, xform_pk=None):
         settings.ENKETO_PREVIEW_URL,
         data=values,
         auth=(settings.ENKETO_API_TOKEN, ''),
-        verify=False)
+        verify=getattr(settings, 'VERIFY_SSL', True))
 
     try:
         response = res.json()
