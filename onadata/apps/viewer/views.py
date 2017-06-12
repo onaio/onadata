@@ -218,7 +218,8 @@ def add_submission_with(request, username, id_string):
                'instance_id': uuid.uuid4().hex}
 
     r = requests.post(url, data=payload,
-                      auth=(settings.ENKETO_API_TOKEN, ''), verify=False)
+                      auth=(settings.ENKETO_API_TOKEN, ''),
+                      verify=getattr(settings, 'VERIFY_SSL', True))
 
     return HttpResponse(r.text, content_type='application/json')
 

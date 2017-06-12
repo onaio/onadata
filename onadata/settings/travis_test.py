@@ -1,5 +1,6 @@
 # flake8: noqa
 # this preset is used for automated testing of formhub
+from urlparse import urljoin
 
 from common import *  # nopep8
 
@@ -34,6 +35,13 @@ if TESTING_MODE:
     CELERY_ALWAYS_EAGER = True
     BROKER_BACKEND = 'memory'
     ENKETO_API_TOKEN = 'abc'
+    ENKETO_PROTOCOL = 'https'
+    ENKETO_URL = 'https://enketo.ona.io/'
+    ENKETO_API_SURVEY_PATH = '/api_v1/survey'
+    ENKETO_API_INSTANCE_PATH = '/api_v1/instance'
+    ENKETO_PREVIEW_URL = urljoin(ENKETO_URL, ENKETO_API_SURVEY_PATH +
+                                 '/preview')
+    ENKETO_API_INSTANCE_IFRAME_URL = ENKETO_URL + "api_v1/instance/iframe"
 else:
     MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'media/')
 
