@@ -850,6 +850,7 @@ class ExportBuilder(object):
             }
         """
         def _is_numeric(xpath, element_type, data_dictionary):
+            var_name = xpath_var_names.get(xpath) or xpath
             if element_type in ['decimal', 'int', 'date']:
                 return True
             elif element_type == 'string':
@@ -862,12 +863,12 @@ class ExportBuilder(object):
             elif element_type != 'select1':
                 return False
 
-            if xpath not in all_value_labels:
+            if var_name not in all_value_labels:
                 return False
 
             # Determine if all select1 choices are numeric in nature
             # and as such have the field type in spss be numeric
-            choices = all_value_labels[xpath].keys()
+            choices = all_value_labels[var_name].keys()
             if len(choices) == 0:
                 return False
 
