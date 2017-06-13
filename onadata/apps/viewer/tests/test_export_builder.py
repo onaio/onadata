@@ -415,12 +415,15 @@ class TestExportBuilder(PyxformTestCase, TestBase):
         | survey |
         |        | type              | name         | label        |
         |        | date              | expense_date | Expense Date |
+        |        | begin group       | A            | A group      |
+        |        | date              | gdate        | Good Day     |
+        |        | end group         |              |              |
 
         | choices |
         |         | list name | name   | label  |
         """
         survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
-        data = [{"expense_date": "2013-01-03",
+        data = [{"expense_date": "2013-01-03", "A/gdate": "2017-06-13",
                  '_submission_time': u'2016-11-21T03:43:43.000-08:00'}]
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
@@ -442,8 +445,12 @@ class TestExportBuilder(PyxformTestCase, TestBase):
                        returnHeader=True) as reader:
             rows = [r for r in reader]
             self.assertTrue(len(rows) > 1)
+            self.assertEqual(rows[0][0],  'expense_date')
             self.assertEqual(rows[1][0],  '2013-01-03')
-            self.assertEqual(rows[1][4], '2016-11-21 03:43:43')
+            self.assertEqual(rows[0][1],  'A.gdate')
+            self.assertEqual(rows[1][1],  '2017-06-13')
+            self.assertEqual(rows[0][5], '@_submission_time')
+            self.assertEqual(rows[1][5], '2016-11-21 03:43:43')
 
         shutil.rmtree(temp_dir)
 
