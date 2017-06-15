@@ -32,6 +32,7 @@ GROUP_DELIMITER_SLASH = '/'
 GROUP_DELIMITER_DOT = '.'
 DEFAULT_GROUP_DELIMITER = GROUP_DELIMITER_SLASH
 GROUP_DELIMITERS = [GROUP_DELIMITER_SLASH, GROUP_DELIMITER_DOT]
+DEFAULT_NA_REP = getattr(settings, 'NA_REP', NA_REP)
 
 
 def remove_dups_from_list_maintain_order(l):
@@ -348,8 +349,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
             for elem in children:
                 xp = elem.get_abbreviated_xpath()
-                if xp in repeat_value:
-                    item[xp] = repeat_value[xp]
+                item[xp] = repeat_value.get(xp, DEFAULT_NA_REP)
 
             return item
 
