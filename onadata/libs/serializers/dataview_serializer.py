@@ -75,15 +75,12 @@ class DataViewMinimalSerializer(serializers.HyperlinkedModelSerializer):
                   'instances_with_geopoints', 'date_modified')
 
 
-class DataViewSerializer(serializers.HyperlinkedModelSerializer):
+class DataViewSuperSerializer(serializers.HyperlinkedModelSerializer):
     dataviewid = serializers.ReadOnlyField(source='id')
     name = serializers.CharField(max_length=255)
     url = serializers.HyperlinkedIdentityField(view_name='dataviews-detail',
                                                lookup_field='pk')
-    xform = serializers.HyperlinkedRelatedField(
-        view_name='xform-detail', lookup_field='pk',
-        queryset=XForm.objects.all()
-    )
+
     project = serializers.HyperlinkedRelatedField(
         view_name='project-detail', lookup_field='pk',
         queryset=Project.objects.all()
@@ -106,12 +103,12 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
     def create(self, validated_data):
         validated_data = match_columns(validated_data)
 
-        return super(DataViewSerializer, self).create(validated_data)
+        return super(DataViewSuperSerializer, self).create(validated_data)
 
     def update(self, instance, validated_data):
         validated_data = match_columns(validated_data, instance)
 
-        return super(DataViewSerializer, self).update(instance, validated_data)
+        return super(DataViewSuperSerializer, self).update(instance, validated_data)
 
     def validate_query(self, value):
         if value:
@@ -166,7 +163,7 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
                         .format(column)
                     ))
 
-        return super(DataViewSerializer, self).validate(attrs)
+        return super(DataViewSuperSerializer, self).validate(attrs)
 
     def get_count(self, obj):
         if obj:
@@ -240,3 +237,9 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
         )
 
         return include_hxl_row(obj.columns, columns_with_hxl.keys())
+
+class DataViewSerializer(DataViewSuperSerializer):
+    xform = serializers.HyperlinkedRelatedField(
+        view_name='xform-detail', lookup_field='pk',
+        queryset=XForm.objects.all()
+    )
