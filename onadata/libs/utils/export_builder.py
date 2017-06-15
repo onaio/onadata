@@ -911,9 +911,9 @@ class ExportBuilder(object):
                               SUBMISSION_TIME] else 255)
                 for item in self.EXTRA_FIELDS]
         )
-        dates = [element for element in elements if element.get('type') ==
-                 'date']
-        formats = {d['xpath']: 'EDATE40' for d in dates}
+        dates = [_var_types[element['xpath']] for element in elements
+                 if element.get('type') == 'date']
+        formats = {d: 'EDATE40' for d in dates}
         formats['@' + SUBMISSION_TIME] = 'DATETIME40'
 
         return {
