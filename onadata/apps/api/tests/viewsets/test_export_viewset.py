@@ -37,27 +37,6 @@ class TestExportViewSet(PyxformTestCase, TestBase):
         response = self.view(request, pk=export.pk)
         self.assertIn(filename, response.get('Content-Disposition'))
 
-    def test_deleting_export(self):
-        self._create_user_and_login()
-
-        token = TempToken.objects.create(user=self.user)
-        self.extra = {'HTTP_AUTHORIZATION': 'TempToken %s' % token}
-
-        self._publish_transportation_form()
-        temp_dir = settings.MEDIA_ROOT
-        dummy_export_file = NamedTemporaryFile(suffix='.xlsx', dir=temp_dir)
-        filename = os.path.basename(dummy_export_file.name)
-        filedir = os.path.dirname(dummy_export_file.name)
-        export = Export.objects.create(xform=self.xform,
-                                       filename=filename,
-                                       filedir=filedir)
-        export.save()
-
-        request = self.factory.delete('/', **self.extra)
-        view = ExportViewSet.as_view({'delete': 'destroy'})
-        response = view(request, pk=export.pk)
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-
     def test_export_format_renderers_present(self):
         renderer_formats = [rc.format for rc in self.view.cls.renderer_classes]
 
@@ -69,12 +48,15 @@ class TestExportViewSet(PyxformTestCase, TestBase):
         pk = 1525266252676
         for f in self.formats:
             request = self.factory.get('/export')
+            force_authenticate(request, user=self.user)
             response = self.view(request, pk=pk, format=f)
             self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_export_list(self):
+        self._create_user_and_login()
         view = ExportViewSet.as_view({'get': 'list'})
         request = self.factory.get('/export')
+        force_authenticate(request, user=self.user)
         response = view(request)
         self.assertFalse(bool(response.data))
         self.assertEqual(status.HTTP_200_OK, response.status_code)
@@ -94,6 +76,7 @@ class TestExportViewSet(PyxformTestCase, TestBase):
         export.save()
         view = ExportViewSet.as_view({'get': 'list'})
         request = self.factory.get('/export')
+        force_authenticate(request, user=self.user)
         response = view(request)
         self.assertTrue(bool(response.data))
         self.assertEqual(status.HTTP_200_OK, response.status_code)
@@ -153,14 +136,16 @@ class TestExportViewSet(PyxformTestCase, TestBase):
         export = Export.objects.create(xform=self.xform)
         export.save()
         view = ExportViewSet.as_view({'delete': 'destroy'})
-        request = self.factory.delete('/export')
 
         # mary has no access hence cannot delete
         self._create_user_and_login(username='mary', password='password1')
+        request = self.factory.delete('/export')
+        force_authenticate(request, user=self.user)
         response = view(request, pk=export.pk)
         self.assertEqual(status.HTTP_404_NOT_FOUND, response.status_code)
 
         # bob has access hence can delete
+        request = self.factory.delete('/export')
         force_authenticate(request, user=bob)
         response = view(request, pk=export.pk)
         self.assertEqual(status.HTTP_204_NO_CONTENT, response.status_code)
