@@ -6,7 +6,6 @@ from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
 from rest_framework import status
 from rest_framework.test import APIRequestFactory, force_authenticate
 
-from onadata.apps.api.models import TempToken
 from onadata.apps.api.viewsets.export_viewset import ExportViewSet
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
