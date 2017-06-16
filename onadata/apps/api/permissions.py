@@ -57,6 +57,30 @@ class ViewDjangoObjectPermissions(DjangoObjectPermissions):
     }
 
 
+class ExportDjangoPermission(IsAuthenticated,
+                             AlternateHasObjectPermissionMixin,
+                             ViewDjangoObjectPermissions):
+
+    def has_permission(self, request, view):
+        is_authenticated = (
+            request and request.user and request.user.is_authenticated()
+        )
+
+        if view.action == 'destroy' and is_authenticated:
+            return request.user.has_perms(['logger.delete_xform'])
+
+        return super(ExportDjangoPermission, self).has_permission(
+            request, view
+        )
+
+    def has_object_permission(self, request, view, obj):
+        model_cls = XForm
+        user = request.user
+
+        return self._has_object_permission(request, model_cls, user,
+                                           obj.xform)
+
+
 class DjangoObjectPermissionsAllowAnon(DjangoObjectPermissions):
     authenticated_users_only = False
 
