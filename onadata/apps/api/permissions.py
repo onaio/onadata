@@ -57,9 +57,9 @@ class ViewDjangoObjectPermissions(DjangoObjectPermissions):
     }
 
 
-class ExportDjangoPermission(IsAuthenticated,
-                             AlternateHasObjectPermissionMixin,
-                             ViewDjangoObjectPermissions):
+class ExportDjangoObjectPermission(IsAuthenticated,
+                                   AlternateHasObjectPermissionMixin,
+                                   ViewDjangoObjectPermissions):
 
     def has_permission(self, request, view):
         is_authenticated = (
@@ -69,7 +69,7 @@ class ExportDjangoPermission(IsAuthenticated,
         if view.action == 'destroy' and is_authenticated:
             return request.user.has_perms(['logger.delete_xform'])
 
-        return super(ExportDjangoPermission, self).has_permission(
+        return super(ExportDjangoObjectPermission, self).has_permission(
             request, view
         )
 
