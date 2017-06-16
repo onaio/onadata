@@ -6,6 +6,7 @@ from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
 from rest_framework import status
 from rest_framework.test import APIRequestFactory, force_authenticate
 
+from onadata.apps.api.models import TempToken
 from onadata.apps.api.viewsets.export_viewset import ExportViewSet
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
@@ -35,6 +36,27 @@ class TestExportViewSet(PyxformTestCase, TestBase):
         force_authenticate(request, user=self.user)
         response = self.view(request, pk=export.pk)
         self.assertIn(filename, response.get('Content-Disposition'))
+
+    def test_deleting_export(self):
+        self._create_user_and_login()
+
+        token = TempToken.objects.create(user=self.user)
+        self.extra = {'HTTP_AUTHORIZATION': 'TempToken %s' % token}
+
+        self._publish_transportation_form()
+        temp_dir = settings.MEDIA_ROOT
+        dummy_export_file = NamedTemporaryFile(suffix='.xlsx', dir=temp_dir)
+        filename = os.path.basename(dummy_export_file.name)
+        filedir = os.path.dirname(dummy_export_file.name)
+        export = Export.objects.create(xform=self.xform,
+                                       filename=filename,
+                                       filedir=filedir)
+        export.save()
+
+        request = self.factory.delete('/', **self.extra)
+        view = ExportViewSet.as_view({'delete': 'destroy'})
+        response = view(request, pk=export.pk)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
     def test_export_format_renderers_present(self):
         renderer_formats = [rc.format for rc in self.view.cls.renderer_classes]
