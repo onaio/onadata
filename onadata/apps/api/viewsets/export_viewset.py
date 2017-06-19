@@ -6,6 +6,7 @@ from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.mixins import DestroyModelMixin
 
 from onadata.apps.viewer.models.export import Export
+from onadata.apps.api.permissions import ExportDjangoObjectPermission
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.export_serializer import ExportSerializer
 from onadata.libs.authentication import (
@@ -34,6 +35,7 @@ class ExportViewSet(DestroyModelMixin, ReadOnlyModelViewSet):
     ]
     serializer_class = ExportSerializer
     filter_backends = (filters.ExportFilter,)
+    permission_classes = [ExportDjangoObjectPermission]
 
     def retrieve(self, request, *args, **kwargs):
         export = self.get_object()
