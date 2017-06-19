@@ -493,11 +493,11 @@ class TestChartTools(TestBase):
         self.assertEqual(data['data'], [{
             '_submitted_by': u'bob',
             'count': 1L,
-            u'gender': [u'Male']
+            u'gender': [u'Female']
         }, {
             '_submitted_by': u'bob',
             'count': 1L,
-            u'gender': [u'Female']
+            u'gender': [u'Male']
         }])
 
     def test_build_chart_data_for_numeric_field_group_by_two_fields(self):

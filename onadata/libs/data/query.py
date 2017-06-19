@@ -67,7 +67,8 @@ def _postgres_count_group_field_n_group_by(field, name, xform, group_by,
             "count(*) as count "\
             "FROM %(table)s WHERE %(restrict_field)s=%(restrict_value)s " \
             "AND deleted_at IS NULL " + additional_filters + \
-            " GROUP BY %(json)s, %(group_by)s"
+            " GROUP BY %(json)s, %(group_by)s" + \
+            " ORDER BY %(json)s, %(group_by)s"
     query = query % string_args
 
     return query
@@ -85,7 +86,8 @@ def _postgres_count_group(field, name, xform, data_view=None):
 
     sql_query = "SELECT %(json)s AS \"%(name)s\", COUNT(*) AS count FROM "" \
     ""%(table)s WHERE %(restrict_field)s=%(restrict_value)s "" \
-    "" AND deleted_at IS NULL " + additional_filters + " GROUP BY %(json)s"
+    "" AND deleted_at IS NULL " + additional_filters + " GROUP BY %(json)s" \
+        " ORDER BY %(json)s"
     sql_query = sql_query % string_args
 
     return sql_query
@@ -119,7 +121,8 @@ def _postgres_aggregate_group_by(field, name, xform, group_by, data_view=None):
             "AVG((%(json)s)::numeric) AS mean  " \
             "FROM %(table)s WHERE %(restrict_field)s=%(restrict_value)s " \
             "AND deleted_at IS NULL " + additional_filters + \
-            " GROUP BY " + group_by_group_by
+            " GROUP BY " + group_by_group_by + \
+            " ORDER BY " + group_by_group_by
 
     query = query % string_args
 
