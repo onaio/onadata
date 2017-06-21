@@ -34,4 +34,4 @@ class TestExportSerializer(TestAbstractViewSet):
         self.assertEqual(serializer.data.keys(), ['id', 'job_status', 'type',
                                                   'task_id', 'xform',
                                                   'date_created', 'filename',
-                                                  'options'])
+                                                  'options', 'export_url'])
