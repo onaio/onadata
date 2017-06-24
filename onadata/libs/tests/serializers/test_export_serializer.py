@@ -35,3 +35,15 @@ class TestExportSerializer(TestAbstractViewSet):
                                                   'task_id', 'xform',
                                                   'date_created', 'filename',
                                                   'options', 'export_url'])
+        self.assertEqual(
+            serializer.data.get('export_url'),
+            'http://testserver/api/v1/export/%s.csv' % export[0].id
+        )
+
+        new_url = 'http://test.url/export/endpoint/123ABC'
+        export[0].export_url = new_url
+        export[0].save()
+        serializer = ExportSerializer(instance=export[0], context={'request':
+                                                                   request})
+
+        self.assertEqual(serializer.data.get('export_url'), new_url)
