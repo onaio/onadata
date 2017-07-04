@@ -75,7 +75,7 @@ class DataViewMinimalSerializer(serializers.HyperlinkedModelSerializer):
                   'instances_with_geopoints', 'date_modified')
 
 
-class DataViewSuperSerializer(serializers.HyperlinkedModelSerializer):
+class DataViewBaseSerializer(serializers.HyperlinkedModelSerializer):
     dataviewid = serializers.ReadOnlyField(source='id')
     name = serializers.CharField(max_length=255)
     url = serializers.HyperlinkedIdentityField(view_name='dataviews-detail',
@@ -103,12 +103,12 @@ class DataViewSuperSerializer(serializers.HyperlinkedModelSerializer):
     def create(self, validated_data):
         validated_data = match_columns(validated_data)
 
-        return super(DataViewSuperSerializer, self).create(validated_data)
+        return super(DataViewBaseSerializer, self).create(validated_data)
 
     def update(self, instance, validated_data):
         validated_data = match_columns(validated_data, instance)
 
-        return super(DataViewSuperSerializer, self).update(instance, validated_data)
+        return super(DataViewBaseSerializer, self).update(instance, validated_data)
 
     def validate_query(self, value):
         if value:
@@ -163,7 +163,7 @@ class DataViewSuperSerializer(serializers.HyperlinkedModelSerializer):
                         .format(column)
                     ))
 
-        return super(DataViewSuperSerializer, self).validate(attrs)
+        return super(DataViewBaseSerializer, self).validate(attrs)
 
     def get_count(self, obj):
         if obj:
@@ -238,7 +238,7 @@ class DataViewSuperSerializer(serializers.HyperlinkedModelSerializer):
 
         return include_hxl_row(obj.columns, columns_with_hxl.keys())
 
-class DataViewSerializer(DataViewSuperSerializer):
+class DataViewSerializer(DataViewBaseSerializer):
     xform = serializers.HyperlinkedRelatedField(
         view_name='xform-detail', lookup_field='pk',
         queryset=XForm.objects.all()
