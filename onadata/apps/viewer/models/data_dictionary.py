@@ -83,8 +83,7 @@ class DataDictionary(XForm):
                 else:
                     file_object = self.xls
                 survey_dict = parse_file_to_json(
-                    self.xls.name, default_name=default_name,
-                    file_object=file_object)
+                    self.xls.name, file_object=file_object)
             except csv.Error as e:
                 newline_error = u'new-line character seen in unquoted field '\
                     u'- do you need to open the file in universal-newline '\
@@ -118,6 +117,8 @@ class DataDictionary(XForm):
                      "the existing forms' id_string '%(old_id)s', if form has "
                      "submissions." % {'new_id': survey.get('id_string'),
                                        'old_id': self.id_string})))
+            elif default_name and default_name != survey.get('name'):
+                survey['name'] = default_name
             else:
                 survey['id_string'] = self.id_string
             self.json = survey.to_json()
