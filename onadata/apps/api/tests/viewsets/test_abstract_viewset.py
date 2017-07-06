@@ -161,6 +161,7 @@ class TestAbstractViewSet(PyxformTestCase, TestCase):
                               password=self.profile_data['password1']))
         self.extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        self.project = get_user_default_project(self.user)
 
     def _org_create(self, org_data={}):
         view = OrganizationProfileViewSet.as_view({
