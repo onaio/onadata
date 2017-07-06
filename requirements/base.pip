@@ -5,10 +5,10 @@
 #    pip-compile --output-file requirements/base.pip requirements/base.in
 #
 -e git+https://github.com/onaio/django-digest.git@django-1.9-fixes#egg=django-digest
--e git+https://github.com/onaio/django-multidb-router.git@django-1.11#egg=djang-multidb-router
+-e git+https://github.com/onaio/django-multidb-router.git@django-1.11#egg=django-multidb-router
 -e git+https://github.com/jbalogh/django-nose.git#egg=django-nose
 -e git+https://github.com/bfirsh/django-ordered-model.git@master#egg=django-ordered-model
--e git+https://github.com/onaio/python-json2xlsclient.git#egg=j2xclient
+-e git+https://github.com/onaio/python-json2xlsclient.git@master#egg=python-json2xlsclient
 -e git+https://github.com/XLSForm/pyxform.git@master#egg=pyxform
 alabaster==0.7.10         # via sphinx
 amqp==1.4.9               # via kombu, librabbitmq
