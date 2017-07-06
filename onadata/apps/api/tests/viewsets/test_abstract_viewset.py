@@ -1,40 +1,37 @@
 import json
 import os
 import re
-import requests
 import StringIO
+from tempfile import NamedTemporaryFile
 
+import requests
 from django.conf import settings
-from django.contrib.auth.models import Permission
+from django.contrib.auth import authenticate
+from django.contrib.auth.models import Permission, User
 from django.test import TestCase
 from django_digest.test import Client as DigestClient
-from tempfile import NamedTemporaryFile
-from django.contrib.auth.models import User
 from django_digest.test import DigestAuth
-from django.contrib.auth import authenticate
-from httmock import urlmatch, HTTMock
-
+from httmock import HTTMock, urlmatch
+from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
 from rest_framework.test import APIRequestFactory
 
-from onadata.apps.api.models import OrganizationProfile
+from onadata.apps.api.models import OrganizationProfile, Team
+from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
 from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
-from onadata.apps.api.viewsets.organization_profile_viewset import\
+from onadata.apps.api.viewsets.organization_profile_viewset import \
     OrganizationProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
-from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
-from onadata.apps.api.viewsets.widget_viewset import WidgetViewSet
-from onadata.apps.main.models import UserProfile, MetaData
-from onadata.apps.main import tests as main_tests
-from onadata.apps.logger.models import Attachment
-from onadata.apps.logger.models import Instance
-from onadata.apps.logger.models import XForm
-from onadata.apps.logger.models import Project
-from onadata.apps.logger.models.widget import Widget
-from onadata.apps.logger.models.data_view import DataView
-from onadata.libs.serializers.project_serializer import ProjectSerializer
-from onadata.apps.logger.views import submission
-from onadata.apps.api.models import Team
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
+from onadata.apps.api.viewsets.widget_viewset import WidgetViewSet
+from onadata.apps.logger.models import Attachment, Instance, Project, XForm
+from onadata.apps.logger.models.data_view import DataView
+from onadata.apps.logger.models.widget import Widget
+from onadata.apps.logger.views import submission
+from onadata.apps.main import tests as main_tests
+from onadata.apps.main.models import MetaData, UserProfile
+from onadata.apps.viewer.models import DataDictionary
+from onadata.libs.serializers.project_serializer import ProjectSerializer
+from onadata.libs.utils.user_auth import get_user_default_project
 
 
 def filename_from_disposition(content_disposition):
@@ -78,7 +75,7 @@ def enketo_url_mock(url, request):
     return response
 
 
-class TestAbstractViewSet(TestCase):
+class TestAbstractViewSet(PyxformTestCase, TestCase):
     surveys = ['transport_2011-07-25_19-05-49',
                'transport_2011-07-25_19-05-36',
                'transport_2011-07-25_19-06-01',
@@ -609,3 +606,15 @@ class TestAbstractViewSet(TestCase):
         request.session = self.client.session
 
         return request
+
+    def _publish_md(self, md, user, project=None, **kwargs):
+        survey = self.md_to_pyxform_survey(md, kwargs=kwargs)
+        survey['sms_keyword'] = survey['id_string']
+        if not project:
+            project = get_user_default_project(user)
+        xform = DataDictionary(created_by=user, user=user,
+                               xml=survey.to_xml(), json=survey.to_json(),
+                               project=project)
+        xform.save()
+
+        return xform
