@@ -36,7 +36,7 @@ from onadata.apps.restservice.viewsets.restservices_viewset import \
     RestServicesViewSet
 from onadata.apps.api.viewsets.media_viewset import MediaViewSet
 from onadata.apps.api.viewsets.widget_viewset import WidgetViewSet
-
+from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
 
 admin.autodiscover()
 
@@ -245,3 +245,5 @@ router.register(r'files', MediaViewSet, base_name='files')
 router.register(r'dataviews', DataViewViewSet, base_name='dataviews')
 router.register(r'widgets', WidgetViewSet, base_name='widgets')
 router.register(r'export', ExportViewSet, base_name='export')
+router.register(r'merged-dataset', MergedXFormViewSet,
+                base_name='merged-xform')
