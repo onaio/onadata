@@ -1,7 +1,10 @@
 # coding=utf-8
+import json
+
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
+
 
 MD = """
 | survey |
@@ -31,7 +34,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             ],
             'name': 'Merged Dataset',
             'project':
-                "http://testserver.com/api/v1/projects/%s" % self.project.pk,
+            "http://testserver.com/api/v1/projects/%s" % self.project.pk,
         }
         request = self.factory.post('/', data=data)
         response = view(request)
@@ -79,3 +82,41 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertIn('id', response.data)
         self.assertIn('title', response.data)
         self.assertIn('xforms', response.data)
+
+    def test_retrieve_merged_dataset_form_json(self):
+        # create a merged dataset
+        merged_dataset = self._create_merged_dataset()
+
+        view = MergedXFormViewSet.as_view({'get': 'form'})
+        request = self.factory.get('/')
+        response = view(request, pk=merged_dataset['id'], format='json')
+        self.assertEqual(response.status_code, 200)
+
+        response.render()
+        self.assertEqual('application/json', response['Content-Type'])
+
+        data = json.loads(response.content)
+        self.assertIsInstance(data, dict)
+        for key in ['children', 'id_string', 'name', 'default_language']:
+            self.assertIn(key, data)
+
+    def test_retrieve_merged_dataset_form_xml(self):
+        # create a merged dataset
+        merged_dataset = self._create_merged_dataset()
+
+        view = MergedXFormViewSet.as_view({'get': 'form'})
+        request = self.factory.get('/')
+        response = view(request, pk=merged_dataset['id'], format='xml')
+        self.assertEqual(response.status_code, 200)
+
+        response.render()
+        self.assertEqual('text/xml; charset=utf-8', response['Content-Type'])
+
+    def test_retrieve_merged_dataset_data(self):
+        # create xforms
+        # submit data to xforms
+        # create a merged dataset
+        # check that data exists
+        # Make submissions to parent xforms
+        # Ensure they show up in the merged dataset
+        pass
