@@ -783,8 +783,7 @@ class XForm(XFormMixin, BaseModel):
                     and self.num_of_submissions > 0:
                 raise XLSFormError(
                     _(u"Your updated form's id_string '%(new_id)s' must match "
-                      "the existing forms' id_string '%(old_id)s', if form has"
-                      " submissions." %
+                      "the existing forms' id_string '%(old_id)s'." %
                       {'new_id': self.id_string,
                        'old_id': old_id_string}))
 

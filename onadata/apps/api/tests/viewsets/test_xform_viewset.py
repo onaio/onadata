@@ -2170,15 +2170,14 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertEqual(response.status_code, 400)
                 expected_response = u"Your updated form's id_string " \
                     "'transportation_2015_01_07' must match the existing " \
-                    "forms' id_string 'transportation_2011_07_25', if form " \
-                    "has submissions."
+                    "forms' id_string 'transportation_2011_07_25'."
                 self.assertEqual(response.data.get(
                     'text'), expected_response)
 
             # try to replace a file whose id_string hasn't been set
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-                "transportation", "tutorial .xls")
+                "transportation", "tutorial_.xls")
             with open(path) as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
@@ -2186,9 +2185,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertEqual(response.status_code, 400)
                 expected_response = (
                     u"Your updated form's id_string "
-                    "'transportation' must match the existing "
-                    "forms' id_string 'transportation_2011_07_25', if form "
-                    "has submissions.")
+                    "'tutorial_' must match the existing "
+                    "forms' id_string 'transportation_2011_07_25'.")
                 self.assertEqual(response.data.get(
                     'text'), expected_response)
 
@@ -2215,15 +2213,14 @@ class TestXFormViewSet(TestAbstractViewSet):
                 expected_response = (
                     u"Your updated form's id_string "
                     "'transportation_2015_01_07' must match the existing "
-                    "forms' id_string 'transportation_2011_07_25', if form "
-                    "has submissions.")
+                    "forms' id_string 'transportation_2011_07_25'.")
                 self.assertEqual(response.data.get(
                     'text'), expected_response)
 
             # try to replace a file whose id_string hasn't been set
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-                "transportation", "tutorial .xls")
+                "transportation", "tutorial_.xls")
             with open(path) as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
@@ -2231,9 +2228,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertEqual(response.status_code, 400)
                 expected_response = (
                     u"Your updated form's id_string "
-                    "'transportation' must match the existing "
-                    "forms' id_string 'transportation_2011_07_25', if form "
-                    "has submissions.")
+                    "'tutorial_' must match the existing "
+                    "forms' id_string 'transportation_2011_07_25'.")
                 self.assertEqual(response.data.get(
                     'text'), expected_response)
 

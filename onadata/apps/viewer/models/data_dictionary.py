@@ -114,9 +114,9 @@ class DataDictionary(XForm):
             elif self.id_string != survey.get('id_string'):
                 raise XLSFormError(_(
                     (u"Your updated form's id_string '%(new_id)s' must match "
-                     "the existing forms' id_string '%(old_id)s', if form has "
-                     "submissions." % {'new_id': survey.get('id_string'),
-                                       'old_id': self.id_string})))
+                     "the existing forms' id_string '%(old_id)s'." % {
+                         'new_id': survey.get('id_string'),
+                         'old_id': self.id_string})))
             elif default_name and default_name != survey.get('name'):
                 survey['name'] = default_name
             else:
