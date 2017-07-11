@@ -609,6 +609,7 @@ class TestAbstractViewSet(PyxformTestCase, TestCase):
         return request
 
     def _publish_md(self, md, user, project=None, **kwargs):
+        kwargs['name'] = 'data'
         survey = self.md_to_pyxform_survey(md, kwargs=kwargs)
         survey['sms_keyword'] = survey['id_string']
         if not project:
