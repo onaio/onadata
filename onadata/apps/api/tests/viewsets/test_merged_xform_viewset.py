@@ -4,7 +4,7 @@ import json
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
-
+from onadata.apps.logger.models import Instance, MergedXForm
 
 MD = """
 | survey |
@@ -119,4 +119,35 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         # check that data exists
         # Make submissions to parent xforms
         # Ensure they show up in the merged dataset
-        pass
+        merged_dataset = self._create_merged_dataset()
+        request = self.factory.get('/')
+        view = MergedXFormViewSet.as_view({'get': 'data'})
+        merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
+
+        response = view(request, pk=merged_dataset['id'])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
+
+        # make submission to form a
+        a = merged_xform.xforms.all()[0]
+        xml = '<data id="a"><fruits>orange</fruits></data>'
+        Instance(xform=a, xml=xml).save()
+        response = view(request, pk=merged_dataset['id'])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+        fruits = [d['fruits'] for d in response.data]
+        expected_fruits = ['orange']
+        self.assertEqual(fruits, expected_fruits)
+
+        # make submission to form b
+        b = merged_xform.xforms.all()[1]
+        xml = '<data id="b"><fruits>mango</fruits></data>'
+        Instance(xform=b, xml=xml).save()
+        response = view(request, pk=merged_dataset['id'])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+        fruits = [d['fruits'] for d in response.data]
+        expected_fruits = ['orange', 'mango']
+        self.assertEqual(fruits, expected_fruits)
