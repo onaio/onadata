@@ -215,13 +215,13 @@ class XFormMixin(object):
         # hack
         # http://ronrothman.com/public/leftbraned/xml-dom-minidom-toprettyxml-\
         # and-silly-whitespace/
-        text_re = re.compile('>\n\s+([^<>\s].*?)\n\s+</', re.DOTALL)
+        text_re = re.compile('(>)\n\s*(\s[^<>\s].*?)\n\s*(\s</)', re.DOTALL)
         output_re = re.compile('\n.*(<output.*>)\n(  )*')
-        prettyXml = text_re.sub('>\g<1></', self.xml)
-        inlineOutput = output_re.sub('\g<1>', prettyXml)
-        inlineOutput = re.compile('<label>\s*\n*\s*\n*\s*</label>').sub(
-            '<label></label>', inlineOutput)
-        self.xml = inlineOutput
+        pretty_xml = text_re.sub(lambda m: ''.join(m.group(1, 2, 3)), self.xml)
+        inline_output = output_re.sub('\g<1>', pretty_xml)
+        inline_output = re.compile('<label>\s*\n*\s*\n*\s*</label>').sub(
+            '<label></label>', inline_output)
+        self.xml = inline_output
 
     class Meta:
         app_label = "viewer"
@@ -783,8 +783,7 @@ class XForm(XFormMixin, BaseModel):
                     and self.num_of_submissions > 0:
                 raise XLSFormError(
                     _(u"Your updated form's id_string '%(new_id)s' must match "
-                      "the existing forms' id_string '%(old_id)s', if form has"
-                      " submissions." %
+                      "the existing forms' id_string '%(old_id)s'." %
                       {'new_id': self.id_string,
                        'old_id': old_id_string}))
 
