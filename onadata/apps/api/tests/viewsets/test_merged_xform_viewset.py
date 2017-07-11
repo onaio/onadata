@@ -113,12 +113,6 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertEqual('text/xml; charset=utf-8', response['Content-Type'])
 
     def test_retrieve_merged_dataset_data(self):
-        # create xforms
-        # submit data to xforms
-        # create a merged dataset
-        # check that data exists
-        # Make submissions to parent xforms
-        # Ensure they show up in the merged dataset
         merged_dataset = self._create_merged_dataset()
         request = self.factory.get('/')
         view = MergedXFormViewSet.as_view({'get': 'data'})
