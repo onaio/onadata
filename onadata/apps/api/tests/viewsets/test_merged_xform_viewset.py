@@ -63,8 +63,17 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertIsInstance(response.data, list)
         self.assertEqual([], response.data)
 
-        # A list containing the merged datasets
+        # create a merged dataset
         merged_dataset = self._create_merged_dataset()
+
+        # Empty list for anonymous user
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+        self.assertEqual([], response.data)
+
+        # A list containing the merged datasets for user bob
+        request = self.factory.get('/', **self.extra)
         response = view(request)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
@@ -79,7 +88,12 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         response = view(request, pk=(1000 * merged_dataset['id']))
         self.assertEqual(response.status_code, 404)
 
-        # status_code is 200 when the pk exists
+        # status_code is 404 when: pk exists, user is not authenticated
+        response = view(request, pk=merged_dataset['id'])
+        self.assertEqual(response.status_code, 404)
+
+        # status_code is 200 when: pk exists, user is authenticated
+        request = self.factory.get('/', **self.extra)
         response = view(request, pk=merged_dataset['id'])
         self.assertEqual(response.status_code, 200)
 
@@ -93,7 +107,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         merged_dataset = self._create_merged_dataset()
 
         view = MergedXFormViewSet.as_view({'get': 'form'})
-        request = self.factory.get('/')
+        request = self.factory.get('/', **self.extra)
         response = view(request, pk=merged_dataset['id'], format='json')
         self.assertEqual(response.status_code, 200)
 
@@ -110,7 +124,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         merged_dataset = self._create_merged_dataset()
 
         view = MergedXFormViewSet.as_view({'get': 'form'})
-        request = self.factory.get('/')
+        request = self.factory.get('/', **self.extra)
         response = view(request, pk=merged_dataset['id'], format='xml')
         self.assertEqual(response.status_code, 200)
 
@@ -119,7 +133,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
 
     def test_retrieve_merged_dataset_data(self):
         merged_dataset = self._create_merged_dataset()
-        request = self.factory.get('/')
+        request = self.factory.get('/', **self.extra)
         view = MergedXFormViewSet.as_view({'get': 'data'})
         merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
 

@@ -8,6 +8,7 @@ from rest_framework.settings import api_settings
 
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models import Instance, MergedXForm
+from onadata.libs import filters
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.merged_xform_serializer import \
     MergedXFormSerializer
@@ -18,6 +19,8 @@ class MergedXFormViewSet(viewsets.ModelViewSet):
     Merged XForms viewset: create, list, retrieve, destroy
     """
 
+    filter_backends = (filters.AnonDjangoObjectPermissionFilter,
+                       filters.PublicDatasetsFilter)
     permission_classes = [XFormPermissions]
     queryset = MergedXForm.objects.all()
     serializer_class = MergedXFormSerializer
