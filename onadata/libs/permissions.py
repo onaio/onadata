@@ -1,19 +1,13 @@
 import json
-import six
-
 from collections import defaultdict
 
-from guardian.shortcuts import (
-    assign_perm,
-    remove_perm,
-    get_perms,
-    get_users_with_perms)
-
+import six
+from guardian.shortcuts import (assign_perm, get_perms, get_users_with_perms,
+                                remove_perm)
 
 from onadata.apps.api.models import OrganizationProfile
+from onadata.apps.logger.models import MergedXForm, Project, XForm
 from onadata.apps.main.models.user_profile import UserProfile
-from onadata.apps.logger.models import Project
-from onadata.apps.logger.models import XForm
 from onadata.libs.exceptions import NoRecordsPermission
 from onadata.libs.utils.common_tags import XFORM_META_PERMS
 
@@ -44,6 +38,9 @@ CAN_DELETE_SUBMISSION = 'delete_submission'
 CAN_TRANSFER_OWNERSHIP = 'transfer_xform'
 CAN_MOVE_TO_FOLDER = 'move_xform'
 CAN_EXPORT_XFORM = 'can_export_xform_data'
+
+# MergedXform Permissions
+CAN_VIEW_MERGED_XFORM = 'view_mergedxform'
 
 # Project Permissions
 CAN_ADD_PROJECT = 'add_project'
@@ -109,7 +106,7 @@ class ReadOnlyRoleNoDownload(Role):
         (CAN_VIEW_PROJECT, Project),
         (CAN_VIEW_XFORM_ALL, XForm),
         (CAN_VIEW_PROJECT_ALL, Project),
-    )
+        (CAN_VIEW_MERGED_XFORM, MergedXForm), )
 
 
 class ReadOnlyRole(Role):
@@ -122,7 +119,7 @@ class ReadOnlyRole(Role):
         (CAN_EXPORT_PROJECT, Project),
         (CAN_VIEW_XFORM_ALL, XForm),
         (CAN_VIEW_PROJECT_ALL, Project),
-    )
+        (CAN_VIEW_MERGED_XFORM, MergedXForm), )
 
 
 class DataEntryOnlyRole(Role):
@@ -135,7 +132,7 @@ class DataEntryOnlyRole(Role):
         (CAN_ADD_SUBMISSIONS_PROJECT, Project),
         (CAN_EXPORT_XFORM, XForm),
         (CAN_EXPORT_PROJECT, Project),
-    )
+        (CAN_VIEW_MERGED_XFORM, MergedXForm), )
 
 
 class DataEntryMinorRole(Role):
@@ -150,7 +147,7 @@ class DataEntryMinorRole(Role):
         (CAN_EXPORT_PROJECT, Project),
         (CAN_VIEW_XFORM_DATA, XForm),
         (CAN_VIEW_PROJECT_DATA, Project),
-    )
+        (CAN_VIEW_MERGED_XFORM, MergedXForm), )
 
 
 class DataEntryRole(Role):
@@ -167,7 +164,7 @@ class DataEntryRole(Role):
         (CAN_VIEW_XFORM_DATA, XForm),
         (CAN_VIEW_PROJECT_DATA, Project),
         (CAN_VIEW_PROJECT_ALL, Project),
-    )
+        (CAN_VIEW_MERGED_XFORM, MergedXForm), )
 
 
 class EditorMinorRole(Role):
@@ -185,7 +182,7 @@ class EditorMinorRole(Role):
         (CAN_EXPORT_PROJECT, Project),
         (CAN_VIEW_XFORM_DATA, XForm),
         (CAN_VIEW_PROJECT_DATA, Project),
-    )
+        (CAN_VIEW_MERGED_XFORM, MergedXForm), )
 
 
 class EditorRole(Role):
@@ -205,7 +202,7 @@ class EditorRole(Role):
         (CAN_VIEW_XFORM_DATA, XForm),
         (CAN_VIEW_PROJECT_DATA, Project),
         (CAN_VIEW_PROJECT_ALL, Project),
-    )
+        (CAN_VIEW_MERGED_XFORM, MergedXForm), )
 
 
 class ManagerRole(Role):
@@ -232,7 +229,7 @@ class ManagerRole(Role):
         (CAN_VIEW_XFORM_DATA, XForm),
         (CAN_VIEW_PROJECT_DATA, Project),
         (CAN_VIEW_PROJECT_ALL, Project),
-    )
+        (CAN_VIEW_MERGED_XFORM, MergedXForm), )
 
 
 class MemberRole(Role):
@@ -285,18 +282,14 @@ class OwnerRole(Role):
         (CAN_VIEW_XFORM_DATA, XForm),
         (CAN_VIEW_PROJECT_DATA, Project),
         (CAN_VIEW_PROJECT_ALL, Project),
-    )
+        (CAN_VIEW_MERGED_XFORM, MergedXForm), )
 
 
-ROLES_ORDERED = [ReadOnlyRoleNoDownload,
-                 ReadOnlyRole,
-                 DataEntryOnlyRole,
-                 DataEntryMinorRole,
-                 DataEntryRole,
-                 EditorMinorRole,
-                 EditorRole,
-                 ManagerRole,
-                 OwnerRole]
+ROLES_ORDERED = [
+    ReadOnlyRoleNoDownload, ReadOnlyRole, DataEntryOnlyRole,
+    DataEntryMinorRole, DataEntryRole, EditorMinorRole, EditorRole,
+    ManagerRole, OwnerRole
+]
 
 ROLES = {role.name: role for role in ROLES_ORDERED}
 
@@ -354,8 +347,8 @@ def get_object_users_with_permissions(obj,
             'role': get_role(permissions, obj),
             'is_org': is_organization(user.profile),
             'gravatar': user.profile.gravatar,
-            'metadata': user.profile.metadata} for user, permissions in
-            users_with_perms]
+            'metadata': user.profile.metadata
+        } for user, permissions in users_with_perms]
 
     return result
 
