@@ -6,6 +6,7 @@ from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 
+from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models import Instance, MergedXForm
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.merged_xform_serializer import \
@@ -17,6 +18,7 @@ class MergedXFormViewSet(viewsets.ModelViewSet):
     Merged XForms viewset: create, list, retrieve, destroy
     """
 
+    permission_classes = [XFormPermissions]
     queryset = MergedXForm.objects.all()
     serializer_class = MergedXFormSerializer
 

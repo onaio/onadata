@@ -36,7 +36,12 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             'project':
             "http://testserver.com/api/v1/projects/%s" % self.project.pk,
         }
+        # anonymous user
         request = self.factory.post('/', data=data)
+        response = view(request)
+        self.assertEqual(response.status_code, 401)
+
+        request = self.factory.post('/', data=data, **self.extra)
         response = view(request)
         self.assertEqual(response.status_code, 201)
         self.assertIn('id', response.data)
