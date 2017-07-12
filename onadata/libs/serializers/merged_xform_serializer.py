@@ -34,11 +34,16 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
         # we get the xml and json from the first xforms
         xform = validated_data['xforms'][0]
 
+        request = self.context['request']
+
         # create merged xml, json with non conflicting id_string
         survey = create_survey_element_from_json(xform.json)
         survey['id_string'] = base64.b64encode(uuid.uuid4().hex[:6])
+        survey['sms_keyword'] = survey['id_string']
         survey['title'] = validated_data.pop('name')
         validated_data['json'] = survey.to_json()
         validated_data['xml'] = survey.to_xml()
+        validated_data['user'] = validated_data['project'].user
+        validated_data['created_by'] = request.user
 
         return super(MergedXFormSerializer, self).create(validated_data)
