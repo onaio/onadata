@@ -76,8 +76,7 @@ class TestIntegratedDataView(TestAbstractViewSet):
         self._create_dataview()
 
     def test_generate_query_string_for_data_without_filter(self):
-        expected_sql = "SELECT json->%s,json->%s,json->%s,json->%s,json->%s,"\
-                       "json->%s,json->%s,json->%s FROM "\
+        expected_sql = "SELECT json FROM "\
                        "logger_instance WHERE xform_id = %s  AND "\
                        "CAST(json->>%s AS INT) > %s AND "\
                        "CAST(json->>%s AS INT) < %s AND deleted_at IS NULL"\
@@ -92,16 +91,16 @@ class TestIntegratedDataView(TestAbstractViewSet):
             self.sort)
 
         self.assertEquals(sql, expected_sql)
+        self.assertEqual(len(columns), 8)
 
-        self.cursor.execute(sql, [unicode(i) for i in (columns + params)])
+        self.cursor.execute(sql, [unicode(i) for i in (params)])
         results = self.cursor.fetchall()
 
         self.assertEquals(len(results), 3)
 
     def test_generate_query_string_for_data_with_limit_filter(self):
         limit_filter = 1
-        expected_sql = "SELECT json->%s,json->%s,json->%s,json->%s,json->%s,"\
-                       "json->%s,json->%s,json->%s FROM logger_instance"\
+        expected_sql = "SELECT json FROM logger_instance"\
                        " WHERE xform_id = %s  AND CAST(json->>%s AS INT) > %s"\
                        " AND CAST(json->>%s AS INT) < %s AND deleted_at "\
                        "IS NULL ORDER BY id LIMIT %s"
@@ -125,8 +124,7 @@ class TestIntegratedDataView(TestAbstractViewSet):
 
     def test_generate_query_string_for_data_with_start_index_filter(self):
         start_index = 2
-        expected_sql = "SELECT json->%s,json->%s,json->%s,json->%s,json->%s,"\
-                       "json->%s,json->%s,json->%s FROM logger_instance WHERE"\
+        expected_sql = "SELECT json FROM logger_instance WHERE"\
                        " xform_id = %s  AND CAST(json->>%s AS INT) > %s AND"\
                        " CAST(json->>%s AS INT) < %s AND deleted_at IS NULL "\
                        "ORDER BY id OFFSET %s"
@@ -146,11 +144,14 @@ class TestIntegratedDataView(TestAbstractViewSet):
                                                                 params,
                                                                 self.count)]
         self.assertEquals(len(records), 1)
+        self.assertIn('name', records[0])
+        self.assertIn('age', records[0])
+        self.assertIn('gender', records[0])
+        self.assertNotIn('pizza_type', records[0])
 
     def test_generate_query_string_for_data_with_sort_column_asc(self):
         sort = '{"age":1}'
-        expected_sql = "SELECT json->%s,json->%s,json->%s,json->%s,json->%s,"\
-                       "json->%s,json->%s,json->%s FROM logger_instance WHERE"\
+        expected_sql = "SELECT json FROM logger_instance WHERE"\
                        " xform_id = %s  AND CAST(json->>%s AS INT) > %s AND"\
                        " CAST(json->>%s AS INT) < %s AND deleted_at IS NULL"\
                        " ORDER BY  json->>%s ASC"
@@ -174,8 +175,7 @@ class TestIntegratedDataView(TestAbstractViewSet):
 
     def test_generate_query_string_for_data_with_sort_column_desc(self):
         sort = '{"age": -1}'
-        expected_sql = "SELECT json->%s,json->%s,json->%s,json->%s,json->%s,"\
-                       "json->%s,json->%s,json->%s FROM logger_instance WHERE"\
+        expected_sql = "SELECT json FROM logger_instance WHERE"\
                        " xform_id = %s  AND CAST(json->>%s AS INT) > %s AND"\
                        " CAST(json->>%s AS INT) < %s AND deleted_at IS NULL"\
                        " ORDER BY  json->>%s DESC"
