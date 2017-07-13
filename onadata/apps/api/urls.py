@@ -245,5 +245,5 @@ router.register(r'files', MediaViewSet, base_name='files')
 router.register(r'dataviews', DataViewViewSet, base_name='dataviews')
 router.register(r'widgets', WidgetViewSet, base_name='widgets')
 router.register(r'export', ExportViewSet, base_name='export')
-router.register(r'merged-dataset', MergedXFormViewSet,
+router.register(r'merged-datasets', MergedXFormViewSet,
                 base_name='merged-xform')
