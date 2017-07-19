@@ -32,26 +32,26 @@ Example
 ::
 
         {
-            'name': "My Dataset",
-            'xforms': [
-                https://api.ona.io/api/v1/forms/12',
-                https://api.ona.io/api/v1/forms/13'
+            "name": "My Dataset",
+            "xforms": [
+                "https://api.ona.io/api/v1/forms/12",
+                "https://api.ona.io/api/v1/forms/13"
             ],
-            'project':  'https://api.ona.io/api/v1/projects/13'
+            "project":  "https://api.ona.io/api/v1/projects/13"
         }
 
 Response
 --------
-
 ::
 
         {
-            name: "My Dataset",
-            url: "https://api.ona.io/api/v1/merged-datasets/1",
-            xforms: [
+            "title": "My Dataset",
+            "url": "https://api.ona.io/api/v1/merged-datasets/14",
+            "xforms": [
                 "https://api.ona.io/api/v1/forms/12",
-                "https://api.ona.io/api/v1/forms/13"]
-            project: "https://api.ona.io/api/v1/projects/13"
+                "https://api.ona.io/api/v1/forms/13"
+            ],
+            "project": "https://api.ona.io/api/v1/projects/13"
         }
 
 
@@ -149,7 +149,7 @@ Returns the data using the dataview filters
 
 ::
 
-    curl -X GET 'https://api.ona.io/api/v1/merged-datasets/1/data'
+    curl -X GET "https://api.ona.io/api/v1/merged-datasets/1/data"
 
 
 
