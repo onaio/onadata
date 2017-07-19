@@ -137,8 +137,8 @@ Response
     HTTP 204 NO CONTENT
 
 
-Retrieving Data from the Merged Dataset
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Retrieving Data from a Merged Dataset
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Returns the data using the dataview filters
 
 .. raw:: html
@@ -163,3 +163,14 @@ Example Response
                 {"date": "2015-05-19", "gender": "female", "age": 41, "name": "Maasai", "_xform_id_string": "form_b"},
                 {"date": "2015-05-19", "gender": "male", "age": 21, "name": "Tom", "_xform_id_string": "form_c"}
         ]
+
+How data in parent forms differs from and affects the merged xform
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A merged dataset combines data from multiple forms into one. It creates a new form structure from the intersection of the fields from the forms being merged.
+
+A merged dataset:
+ - Does not allow submissions or data edits, this can only be done on the individual forms
+ - Data deleted from the individual forms will also not be present in the mereged dataset
+ - Form replacement doesn't cause regenation of the merged dataset, you have to create a new merged dataset
+ - It has it's own form structure, which is not replaceable the same way you could replace an individual form when changing certain aspects of a form
