@@ -43,6 +43,7 @@ class MergedXFormViewSet(viewsets.ModelViewSet):
 
         return Response(data)
 
+    @detail_route(methods=['get'])
     def data(self, request, *args, **kwargs):
         merged_xform = self.get_object()
         qs = Instance.objects.filter(
