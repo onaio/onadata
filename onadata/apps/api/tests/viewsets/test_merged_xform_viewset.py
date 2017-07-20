@@ -164,3 +164,6 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         fruits = [d['fruits'] for d in response.data]
         expected_fruits = ['orange', 'mango']
         self.assertEqual(fruits, expected_fruits)
+
+    def test_update_merged_dataset(self):
+        self.assertEqual(False, 'update' in dir(MergedXFormViewSet))

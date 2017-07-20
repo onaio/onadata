@@ -282,7 +282,7 @@ class OwnerRole(Role):
         (CAN_VIEW_XFORM_DATA, XForm),
         (CAN_VIEW_PROJECT_DATA, Project),
         (CAN_VIEW_PROJECT_ALL, Project),
-        (CAN_VIEW_MERGED_XFORM, MergedXForm), )
+        (CAN_VIEW_MERGED_XFORM, MergedXForm))
 
 
 ROLES_ORDERED = [
