@@ -4,6 +4,7 @@ import json
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
+from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Instance, MergedXForm
 
 MD = """
@@ -78,6 +79,16 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
         self.assertIn(merged_dataset, response.data)
+
+        # merged dataset included in api/forms endpoint
+        request = self.factory.get('/', **self.extra)
+        view = XFormViewSet.as_view({'get': 'list'})
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+        self.assertEqual(len(response.data), 3)
+        self.assertIn(merged_dataset['id'],
+                      [d['formid'] for d in response.data])
 
     def test_merged_datasets_retrieve(self):
         merged_dataset = self._create_merged_dataset()
