@@ -92,3 +92,4 @@ simplejson
 google-api-python-client
 uwsgi
 flake8
+raven
