@@ -1,60 +1,48 @@
-from datetime import datetime
 import os
-import pytz
 import re
 import sys
 import tempfile
 import traceback
+from datetime import datetime
+from wsgiref.util import FileWrapper
 from xml.dom import Node
 from xml.parsers.expat import ExpatError
 
+import pytz
 from dict2xml import dict2xml
 from django.conf import settings
-from django.core.exceptions import (
-    ValidationError, PermissionDenied, MultipleObjectsReturned)
+from django.contrib.auth.models import User
+from django.core.exceptions import (MultipleObjectsReturned, PermissionDenied,
+                                    ValidationError)
 from django.core.files.storage import get_storage_class
 from django.core.mail import mail_admins
-from django.contrib.auth.models import User
 from django.db import IntegrityError, transaction
 from django.db.models import Q
-from django.http import HttpResponse
-from django.http import HttpResponseNotFound
-from django.http import StreamingHttpResponse
-from django.http import UnreadablePostError
+from django.http import (HttpResponse, HttpResponseNotFound,
+                         StreamingHttpResponse, UnreadablePostError)
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from django.utils.encoding import DjangoUnicodeDecodeError
 from django.utils.translation import ugettext as _
-from django.utils import timezone
 from modilabs.utils.subprocess_timeout import ProcessTimedOut
-from pyxform.errors import PyXFormError
-from pyxform.xform2json import create_survey_element_from_xml
-from wsgiref.util import FileWrapper
 from raven.contrib.django.raven_compat.models import client
 
-from onadata.apps.logger.models import Attachment
-from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.logger.models.instance import (
-    FormInactiveError,
-    InstanceHistory,
-    get_id_string_from_xml_str)
-from onadata.apps.logger.models import XForm
+    FormInactiveError, InstanceHistory, get_id_string_from_xml_str)
 from onadata.apps.logger.models.xform import XLSFormError
 from onadata.apps.logger.xform_instance_parser import (
-    InstanceEmptyError,
-    InstanceInvalidUserError,
-    InstanceMultipleNodeError,
-    NonUniqueFormIdError,
-    DuplicateInstance,
-    clean_and_parse_xml,
-    get_uuid_from_xml,
-    get_deprecated_uuid_from_xml,
-    get_submission_date_from_xml)
+    DuplicateInstance, InstanceEmptyError, InstanceInvalidUserError,
+    InstanceMultipleNodeError, NonUniqueFormIdError, clean_and_parse_xml,
+    get_deprecated_uuid_from_xml, get_submission_date_from_xml,
+    get_uuid_from_xml)
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
-from onadata.apps.viewer.models.parsed_instance import (
-    ParsedInstance, call_webhooks)
+from onadata.apps.viewer.models.parsed_instance import (ParsedInstance,
+                                                        call_webhooks)
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
-
+from pyxform.errors import PyXFormError
+from pyxform.xform2json import create_survey_element_from_xml
 
 OPEN_ROSA_VERSION_HEADER = 'X-OpenRosa-Version'
 HTTP_OPEN_ROSA_VERSION_HEADER = 'HTTP_X_OPENROSA_VERSION'
@@ -74,8 +62,8 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform):
     if old_uuid:
         instance = Instance.objects.filter(uuid=old_uuid).first()
         history = InstanceHistory.objects.filter(
-            xform_instance__xform=xform, uuid=new_uuid
-        ).only('xform_instance').first()
+            xform_instance__xform=xform,
+            uuid=new_uuid).only('xform_instance').first()
 
         if instance:
             # edits
@@ -83,8 +71,11 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform):
 
             last_edited = timezone.now()
             InstanceHistory.objects.create(
-                xml=instance.xml, xform_instance=instance, uuid=old_uuid,
-                user=submitted_by, geom=instance.geom,
+                xml=instance.xml,
+                xform_instance=instance,
+                uuid=old_uuid,
+                user=submitted_by,
+                geom=instance.geom,
                 submission_date=instance.last_edited or instance.date_created)
             instance.xml = xml
             instance.last_edited = last_edited
@@ -125,8 +116,8 @@ def get_xform_from_submission(xml, username, uuid=None):
 
     if uuid:
         # try find the form by its uuid which is the ideal condition
-        if XForm.objects.filter(uuid=uuid,
-                                deleted_at__isnull=True).count() > 0:
+        if XForm.objects.filter(
+                uuid=uuid, deleted_at__isnull=True).count() > 0:
             xform = XForm.objects.get(uuid=uuid)
 
             return xform
@@ -134,9 +125,11 @@ def get_xform_from_submission(xml, username, uuid=None):
     id_string = get_id_string_from_xml_str(xml)
 
     try:
-        return get_object_or_404(XForm, id_string__iexact=id_string,
-                                 user__username=username,
-                                 deleted_at__isnull=True)
+        return get_object_or_404(
+            XForm,
+            id_string__iexact=id_string,
+            user__username=username,
+            deleted_at__isnull=True)
     except MultipleObjectsReturned:
         raise NonUniqueFormIdError()
 
@@ -159,7 +152,8 @@ def check_edit_submission_permissions(request_user, xform):
                   u"to %(form_user)s's %(form_title)s form." % {
                       'request_user': request_user,
                       'form_user': xform.user,
-                      'form_title': xform.title}))
+                      'form_title': xform.title
+                  }))
 
 
 def check_submission_permissions(request, xform):
@@ -185,7 +179,8 @@ def check_submission_permissions(request, xform):
               u"to %(form_user)s's %(form_title)s form." % {
                   'request_user': request.user,
                   'form_user': xform.user,
-                  'form_title': xform.title}))
+                  'form_title': xform.title
+              }))
 
 
 def save_attachments(xform, instance, media_files):
@@ -199,9 +194,10 @@ def save_attachments(xform, instance, media_files):
             xform.save()
 
         Attachment.objects.get_or_create(
-            instance=instance, media_file=f, mimetype=content_type,
-            extension=extension
-        )
+            instance=instance,
+            media_file=f,
+            mimetype=content_type,
+            extension=extension)
 
 
 def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
@@ -223,8 +219,7 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
 
     if instance.xform is not None:
         instance.save()
-        pi, created = ParsedInstance.objects.get_or_create(
-            instance=instance)
+        pi, created = ParsedInstance.objects.get_or_create(instance=instance)
         if not created:
             pi.save(async=False)
 
@@ -242,9 +237,13 @@ def get_filtered_instances(*args, **kwargs):
         )
 
 
-def create_instance(username, xml_file, media_files,
-                    status=u'submitted_via_web', uuid=None,
-                    date_created_override=None, request=None):
+def create_instance(username,
+                    xml_file,
+                    media_files,
+                    status=u'submitted_via_web',
+                    uuid=None,
+                    date_created_override=None,
+                    request=None):
     """
     I used to check if this file had been submitted already, I've
     taken this out because it was too slow. Now we're going to create
@@ -267,8 +266,7 @@ def create_instance(username, xml_file, media_files,
 
     new_uuid = get_uuid_from_xml(xml)
     filtered_instances = get_filtered_instances(
-        Q(xml=xml) | Q(uuid=new_uuid), xform_id=xform.pk
-    )
+        Q(xml=xml) | Q(uuid=new_uuid), xform_id=xform.pk)
     existing_instance = filtered_instances.first()
 
     if existing_instance and \
@@ -286,8 +284,8 @@ def create_instance(username, xml_file, media_files,
 
     # get new and depracated uuid's
     history = InstanceHistory.objects.filter(
-        xform_instance__xform_id=xform.pk, uuid=new_uuid
-    ).only('xform_instance').first()
+        xform_instance__xform_id=xform.pk,
+        uuid=new_uuid).only('xform_instance').first()
 
     if history:
         duplicate_instance = history.xform_instance
@@ -300,12 +298,11 @@ def create_instance(username, xml_file, media_files,
 
     try:
         with transaction.atomic():
-            instance = save_submission(
-                xform, xml, media_files, new_uuid, submitted_by, status,
-                date_created_override)
+            instance = save_submission(xform, xml, media_files, new_uuid,
+                                       submitted_by, status,
+                                       date_created_override)
     except IntegrityError:
-        instance = Instance.objects.filter(
-            xml=xml, xform__id=xform.pk).first()
+        instance = Instance.objects.filter(xml=xml, xform__id=xform.pk).first()
 
         if instance:
             attachment_names = [
@@ -340,14 +337,12 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
         error = OpenRosaResponseBadRequest(_(u"Username or ID required."))
     except InstanceEmptyError:
         error = OpenRosaResponseBadRequest(
-            _(u"Received empty submission. No instance was created")
-        )
+            _(u"Received empty submission. No instance was created"))
     except FormInactiveError:
         error = OpenRosaResponseNotAllowed(_(u"Form is not active"))
     except XForm.DoesNotExist:
         error = OpenRosaResponseNotFound(
-            _(u"Form does not exist on this account")
-        )
+            _(u"Form does not exist on this account"))
     except ExpatError:
         error = OpenRosaResponseBadRequest(_(u"Improperly formatted XML."))
     except DuplicateInstance:
@@ -358,19 +353,18 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
     except PermissionDenied as e:
         error = OpenRosaResponseForbidden(e)
     except UnreadablePostError as e:
-        error = OpenRosaResponseBadRequest(_(
-            u"Unable to read submitted file: %(error)s" % {'error': str(e)}
-        ))
+        error = OpenRosaResponseBadRequest(
+            _(u"Unable to read submitted file: %(error)s" % {'error': str(e)}))
     except InstanceMultipleNodeError as e:
         error = OpenRosaResponseBadRequest(e)
     except DjangoUnicodeDecodeError:
-        error = OpenRosaResponseBadRequest(_(u"File likely corrupted during "
-                                             u"transmission, please try later."
-                                             ))
+        error = OpenRosaResponseBadRequest(
+            _(u"File likely corrupted during "
+              u"transmission, please try later."))
     except NonUniqueFormIdError as e:
-        error = OpenRosaResponseBadRequest(_(
-            u"Unable to submit because there are multiple forms with this form"
-            u"ID."))
+        error = OpenRosaResponseBadRequest(
+            _(u"Unable to submit because there are multiple forms with"
+              u" this formID."))
     if isinstance(instance, DuplicateInstance):
         response = OpenRosaResponse(_(u"Duplicate submission"))
         response.status_code = 202
@@ -408,9 +402,13 @@ def report_exception(subject, info, exc_info=None):
         mail_admins(subject=subject, message=message)
 
 
-def response_with_mimetype_and_name(
-        mimetype, name, extension=None, show_date=True, file_path=None,
-        use_local_filesystem=False, full_mime=False):
+def response_with_mimetype_and_name(mimetype,
+                                    name,
+                                    extension=None,
+                                    show_date=True,
+                                    file_path=None,
+                                    use_local_filesystem=False,
+                                    full_mime=False):
     if extension is None:
         extension = mimetype
     if not full_mime:
@@ -420,13 +418,13 @@ def response_with_mimetype_and_name(
             if not use_local_filesystem:
                 default_storage = get_storage_class()()
                 wrapper = FileWrapper(default_storage.open(file_path))
-                response = StreamingHttpResponse(wrapper,
-                                                 content_type=mimetype)
+                response = StreamingHttpResponse(
+                    wrapper, content_type=mimetype)
                 response['Content-Length'] = default_storage.size(file_path)
             else:
                 wrapper = FileWrapper(open(file_path))
-                response = StreamingHttpResponse(wrapper,
-                                                 content_type=mimetype)
+                response = StreamingHttpResponse(
+                    wrapper, content_type=mimetype)
                 response['Content-Length'] = os.path.getsize(file_path)
         except IOError:
             response = HttpResponseNotFound(
@@ -468,10 +466,7 @@ def publish_form(callback):
             msg = _(u"Invalid file name; Names must begin with a letter, "
                     u"colon, or underscore, subsequent characters can include"
                     u" numbers, dashes,periods and with no spacing.")
-        return {
-            'type': 'alert-error',
-            'text': msg
-        }
+        return {'type': 'alert-error', 'text': msg}
     except IntegrityError as e:
         return {
             'type': 'alert-error',
@@ -486,16 +481,11 @@ def publish_form(callback):
     except (MemoryError, OSError) as e:
         return {
             'type': 'alert-error',
-            'text': _((
-                u'An error occurred while publishing the form. '
-                'Please try again.'
-            )),
+            'text': _((u'An error occurred while publishing the form. '
+                       'Please try again.')),
         }
     except (AttributeError, Exception, ValidationError) as e:
-        return {
-            'type': 'alert-error',
-            'text': unicode(e)
-        }
+        return {'type': 'alert-error', 'text': unicode(e)}
 
 
 def publish_xls_form(xls_file, user, project, id_string=None, created_by=None):
@@ -515,8 +505,7 @@ def publish_xls_form(xls_file, user, project, id_string=None, created_by=None):
             created_by=created_by or user,
             user=user,
             xls=xls_file,
-            project=project
-        )
+            project=project)
 
 
 def publish_xml_form(xml_file, user, project, id_string=None, created_by=None):
@@ -536,8 +525,12 @@ def publish_xml_form(xml_file, user, project, id_string=None, created_by=None):
         return dd
     else:
         created_by = created_by or user
-        dd = DataDictionary(created_by=created_by, user=user, xml=xml,
-                            json=form_json, project=project)
+        dd = DataDictionary(
+            created_by=created_by,
+            user=user,
+            xml=xml,
+            json=form_json,
+            project=project)
         dd._mark_start_time_boolean()
         set_uuid(dd)
         dd._set_uuid_in_xml(file_name=xml_file.name)
@@ -599,8 +592,8 @@ def inject_instanceid(xml_str, uuid):
         survey_node = children.item(0)
         meta_tags = [
             n for n in survey_node.childNodes
-            if n.nodeType == Node.ELEMENT_NODE and
-            n.tagName.lower() == "meta"]
+            if n.nodeType == Node.ELEMENT_NODE and n.tagName.lower() == "meta"
+        ]
         if len(meta_tags) == 0:
             meta_tag = xml.createElement("meta")
             xml.documentElement.appendChild(meta_tag)
@@ -610,7 +603,8 @@ def inject_instanceid(xml_str, uuid):
         # check if we have an instanceID tag
         uuid_tags = [
             n for n in meta_tag.childNodes
-            if n.nodeType == Node.ELEMENT_NODE and n.tagName == "instanceID"]
+            if n.nodeType == Node.ELEMENT_NODE and n.tagName == "instanceID"
+        ]
         if len(uuid_tags) == 0:
             uuid_tag = xml.createElement("instanceID")
             meta_tag.appendChild(uuid_tag)
@@ -629,7 +623,6 @@ def remove_xform(xform):
 
 
 class PublishXForm(object):
-
     def __init__(self, xml_file, user):
         self.xml_file = xml_file
         self.user = user
