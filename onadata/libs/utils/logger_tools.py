@@ -29,6 +29,7 @@ from modilabs.utils.subprocess_timeout import ProcessTimedOut
 from pyxform.errors import PyXFormError
 from pyxform.xform2json import create_survey_element_from_xml
 from wsgiref.util import FileWrapper
+from raven.contrib.django.raven_compat.models import client
 
 from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.models import Instance
@@ -390,6 +391,13 @@ def report_exception(subject, info, exc_info=None):
                     u" %(class)s: %(error)s")\
             % {'class': cls.__name__, 'error': err}
         message += u"".join(traceback.format_exception(*exc_info))
+
+        # send to sentry
+        try:
+            client.captureException(exc_info)
+        except Exception:
+            # fail silently
+            pass
     else:
         message = u"%s" % info
 

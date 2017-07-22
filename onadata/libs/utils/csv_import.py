@@ -1,5 +1,6 @@
 import cStringIO
 import json
+import sys
 import uuid
 from collections import defaultdict
 from copy import deepcopy
@@ -18,7 +19,8 @@ from onadata.libs.utils.async_status import (FAILED, async_status,
                                              celery_state_to_status)
 from onadata.libs.utils.common_tags import MULTIPLE_SELECT_TYPE
 from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
-from onadata.libs.utils.logger_tools import dict2xml, safe_create_instance
+from onadata.libs.utils.logger_tools import (dict2xml, report_exception,
+                                             safe_create_instance)
 
 
 def get_submission_meta_dict(xform, instance_id):
@@ -289,11 +291,19 @@ def submit_csv(username, xform, csv_file):
                     instance.user = users[0]
                     instance.save()
 
-    except UnicodeDecodeError:
+    except UnicodeDecodeError as e:
         Instance.objects.filter(uuid__in=rollback_uuids, xform=xform).delete()
+        report_exception('CSV Import Failed : %d - %s - %s' % (xform.pk,
+                                                               xform.id_string,
+                                                               xform.title),
+                         e, sys.exc_info())
         return async_status(FAILED, u'CSV file must be utf-8 encoded')
     except Exception as e:
         Instance.objects.filter(uuid__in=rollback_uuids, xform=xform).delete()
+        report_exception('CSV Import Failed : %d - %s - %s' % (xform.pk,
+                                                               xform.id_string,
+                                                               xform.title),
+                         e, sys.exc_info())
         return async_status(FAILED, str(e))
     finally:
         xform.submission_count(True)
