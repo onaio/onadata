@@ -274,7 +274,7 @@ def submit_csv(username, xform, csv_file):
                             'total': num_rows,
                             'info': addition_col
                         })
-                except:
+                except Exception:
                     pass
 
                 users = User.objects.filter(
