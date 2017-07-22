@@ -9,6 +9,7 @@ import unicodecsv as ucsv
 from celery import current_task, task
 from celery.backends.amqp import BacklogLimitExceeded
 from celery.result import AsyncResult
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.storage import default_storage
 
@@ -266,16 +267,21 @@ def submit_csv(username, xform, csv_file):
                 return async_status(FAILED, str(error))
             else:
                 additions += 1
-                try:
-                    current_task.update_state(
-                        state='PROGRESS',
-                        meta={
-                            'progress': additions,
-                            'total': num_rows,
-                            'info': addition_col
-                        })
-                except Exception:
-                    pass
+                if additions % getattr(settings,
+                                       'EXPORT_TASK_PROGRESS_UPDATE_BATCH',
+                                       100) == 0:
+                    try:
+                        current_task.update_state(
+                            state='PROGRESS',
+                            meta={
+                                'progress': additions,
+                                'total': num_rows,
+                                'info': addition_col
+                            })
+                    except Exception:
+                        pass
+                    finally:
+                        xform.submission_count(True)
 
                 users = User.objects.filter(
                     username=submitted_by) if submitted_by else []
