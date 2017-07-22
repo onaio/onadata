@@ -289,6 +289,8 @@ def submit_csv(username, xform, csv_file):
     except Exception as e:
         Instance.objects.filter(uuid__in=rollback_uuids, xform=xform).delete()
         return async_status(FAILED, str(e))
+    finally:
+        xform.submission_count(True)
 
     return {
         u"additions": additions - inserts,
