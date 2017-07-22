@@ -212,7 +212,7 @@ class DataView(models.Model):
     @classmethod
     def query_iterator(cls, sql, fields=None, params=[], count=False):
         cursor = connection.cursor()
-        sql_params = fields + params if fields is not None else params
+        sql_params = params
 
         if count:
             from_pos = sql.upper().find(' FROM')
@@ -223,7 +223,6 @@ class DataView(models.Model):
             if order_pos != -1:
                 sql = sql[:order_pos]
 
-            sql_params = params
             fields = [u'count']
 
         cursor.execute(sql, [unicode(i) for i in sql_params])
@@ -232,8 +231,12 @@ class DataView(models.Model):
             for row in cursor.fetchall():
                 yield row[0]
         else:
-            for row in cursor.fetchall():
-                yield dict(zip(fields, row))
+            if count:
+                for row in cursor.fetchall():
+                    yield dict(zip(fields, row))
+            else:
+                for row in cursor.fetchall():
+                    yield dict(zip(fields, [row[0].get(f) for f in fields]))
 
     @classmethod
     def generate_query_string(cls, data_view, start_index, limit,
@@ -245,19 +248,18 @@ class DataView(models.Model):
         if has_attachments_fields(data_view):
             additional_columns += [ATTACHMENTS]
 
-        if all_data:
-            sql = u"SELECT json FROM logger_instance"
+        sql = u"SELECT json FROM logger_instance"
+        if all_data or data_view.matches_parent:
             columns = None
         elif last_submission_time:
-            sql = u"SELECT json->%s FROM logger_instance"
             columns = [SUBMISSION_TIME]
         else:
             # get the columns needed
             columns = data_view.columns + DEFAULT_COLUMNS + additional_columns
 
-            field_list = [u"json->%s" for i in columns]
+            # field_list = [u"json->%s" for i in columns]
 
-            sql = u"SELECT %s FROM logger_instance" % u",".join(field_list)
+            # sql = u"SELECT %s FROM logger_instance" % u",".join(field_list)
 
         where, where_params = cls._get_where_clause(
             data_view,
