@@ -179,9 +179,6 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         view = MergedXFormViewSet.as_view({'get': 'data'})
         merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
-        data_view = DataViewSet.as_view({
-            'get': 'list',
-        })
         detail_view = MergedXFormViewSet.as_view({
             'get': 'retrieve',
         })
@@ -207,15 +204,6 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         expected_fruits = ['orange']
         self.assertEqual(fruits, expected_fruits)
 
-        # DataViewSet /data/[pk] endpoint
-        response = data_view(request, pk=merged_dataset['id'])
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 1)
-
-        fruits = [d['fruits'] for d in response.data]
-        expected_fruits = ['orange']
-        self.assertEqual(fruits, expected_fruits)
-
         # check num_of_submissions
         response = detail_view(request, pk=merged_dataset['id'])
         self.assertEqual(response.status_code, 200)
@@ -233,6 +221,39 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         expected_fruits = ['orange', 'mango']
         self.assertEqual(fruits, expected_fruits)
 
+        # check num_of_submissions
+        response = detail_view(request, pk=merged_dataset['id'])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['num_of_submissions'], 2)
+
+    def test_md_data_viewset(self):
+        """Test retrieving data of a merged dataset at the /data endpoint"""
+        merged_dataset = self._create_merged_dataset()
+        merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
+        request = self.factory.get('/', **self.extra)
+        data_view = DataViewSet.as_view({
+            'get': 'list',
+        })
+
+        # make submission to form a
+        form_a = merged_xform.xforms.all()[0]
+        xml = '<data id="a"><fruits>orange</fruits></data>'
+        Instance(xform=form_a, xml=xml).save()
+
+        # DataViewSet /data/[pk] endpoint
+        response = data_view(request, pk=merged_dataset['id'])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+        fruits = [d['fruits'] for d in response.data]
+        expected_fruits = ['orange']
+        self.assertEqual(fruits, expected_fruits)
+
+        # make submission to form b
+        form_b = merged_xform.xforms.all()[1]
+        xml = '<data id="b"><fruits>mango</fruits></data>'
+        Instance(xform=form_b, xml=xml).save()
+
         # DataViewSet /data/[pk] endpoint
         response = data_view(request, pk=merged_dataset['id'])
         self.assertEqual(response.status_code, 200)
@@ -242,11 +263,6 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         fruits = [d['fruits'] for d in response.data]
         expected_fruits = ['orange', 'mango']
         self.assertEqual(fruits, expected_fruits)
-
-        # check num_of_submissions
-        response = detail_view(request, pk=merged_dataset['id'])
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['num_of_submissions'], 2)
 
         # DataViewSet /data/[pk]/[dataid] endpoint
         data_view = DataViewSet.as_view({
