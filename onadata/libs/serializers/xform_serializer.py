@@ -208,7 +208,7 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
         model = XForm
         read_only_fields = ('json', 'xml', 'date_created', 'date_modified',
                             'encrypted', 'bamboo_dataset',
-                            'last_submission_time')
+                            'last_submission_time', 'is_merged_dataset')
         exclude = ('json', 'xml', 'xls', 'user', 'has_start_time', 'shared',
                    'shared_data', 'deleted_at')
 

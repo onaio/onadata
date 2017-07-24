@@ -11,6 +11,7 @@ from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Instance, MergedXForm
 
+
 MD = """
 | survey |
 |        | type              | name  | label |
@@ -27,7 +28,9 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
     """Test merged dataset functionality."""
 
     def _create_merged_dataset(self):
-        view = MergedXFormViewSet.as_view({'post': 'create', })
+        view = MergedXFormViewSet.as_view({
+            'post': 'create',
+        })
         xform1 = self._publish_md(MD, self.user, id_string='a')
         xform2 = self._publish_md(MD, self.user, id_string='b')
 
@@ -36,7 +39,8 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
                 "http://testserver.com/api/v1/forms/%s" % xform1.pk,
                 "http://testserver.com/api/v1/forms/%s" % xform2.pk,
             ],
-            'name': 'Merged Dataset',
+            'name':
+            'Merged Dataset',
             'project':
             "http://testserver.com/api/v1/projects/%s" % self.project.pk,
         }
@@ -60,7 +64,9 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
 
     def test_merged_datasets_list(self):
         """Test list endpoint of a merged dataset"""
-        view = MergedXFormViewSet.as_view({'get': 'list', })
+        view = MergedXFormViewSet.as_view({
+            'get': 'list',
+        })
         request = self.factory.get('/')
 
         # Empty list when there are no merged datasets
@@ -94,11 +100,18 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertEqual(len(response.data), 3)
         self.assertIn(merged_dataset['id'],
                       [d['formid'] for d in response.data])
+        data = [
+            _ for _ in response.data if _['formid'] == merged_dataset['id']
+        ][0]
+        self.assertIn('is_merged_dataset', data)
+        self.assertTrue(data['is_merged_dataset'])
 
     def test_merged_datasets_retrieve(self):
         """Test retrieving a specific merged dataset"""
         merged_dataset = self._create_merged_dataset()
-        view = MergedXFormViewSet.as_view({'get': 'retrieve', })
+        view = MergedXFormViewSet.as_view({
+            'get': 'retrieve',
+        })
         request = self.factory.get('/')
 
         # status_code is 404 when the pk doesn't exist
