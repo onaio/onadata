@@ -156,7 +156,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
 
         data = json.loads(response.content)
         self.assertIsInstance(data, dict)
-        for key in ['children', 'id_string', 'name', 'default_language', 'num_of_submissions']:
+        for key in ['children', 'id_string', 'name', 'default_language']:
             self.assertIn(key, data)
 
     def test_merged_datasets_form_xml(self):
