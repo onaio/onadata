@@ -433,6 +433,9 @@ GOOGLE_SHEET_UPLOAD_BATCH = 1000
 # duration to keep zip exports before deletion (in seconds)
 ZIP_EXPORT_COUNTDOWN = 3600  # 1 hour
 
+# number of records on export or CSV import before a progress update
+EXPORT_TASK_PROGRESS_UPDATE_BATCH = 1000
+
 # default content length for submission requests
 DEFAULT_CONTENT_LENGTH = 10000000
 

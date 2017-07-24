@@ -22,6 +22,10 @@ from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
 from onadata.libs.utils.logger_tools import (dict2xml, report_exception,
                                              safe_create_instance)
 
+DEFAULT_UPDATE_BATCH = 100
+PROGRESS_BATCH_UPDATE = getattr(settings, 'EXPORT_TASK_PROGRESS_UPDATE_BATCH',
+                                DEFAULT_UPDATE_BATCH)
+
 
 def get_submission_meta_dict(xform, instance_id):
     """Generates metadata for our submission
@@ -269,9 +273,7 @@ def submit_csv(username, xform, csv_file):
                 return async_status(FAILED, str(error))
             else:
                 additions += 1
-                if additions % getattr(settings,
-                                       'EXPORT_TASK_PROGRESS_UPDATE_BATCH',
-                                       100) == 0:
+                if additions % PROGRESS_BATCH_UPDATE == 0:
                     try:
                         current_task.update_state(
                             state='PROGRESS',
@@ -293,24 +295,24 @@ def submit_csv(username, xform, csv_file):
 
     except UnicodeDecodeError as e:
         Instance.objects.filter(uuid__in=rollback_uuids, xform=xform).delete()
-        report_exception('CSV Import Failed : %d - %s - %s' % (xform.pk,
-                                                               xform.id_string,
-                                                               xform.title),
-                         e, sys.exc_info())
+        report_exception('CSV Import Failed : %d - %s - %s' %
+                         (xform.pk, xform.id_string, xform.title), e,
+                         sys.exc_info())
         return async_status(FAILED, u'CSV file must be utf-8 encoded')
     except Exception as e:
         Instance.objects.filter(uuid__in=rollback_uuids, xform=xform).delete()
-        report_exception('CSV Import Failed : %d - %s - %s' % (xform.pk,
-                                                               xform.id_string,
-                                                               xform.title),
-                         e, sys.exc_info())
+        report_exception('CSV Import Failed : %d - %s - %s' %
+                         (xform.pk, xform.id_string, xform.title), e,
+                         sys.exc_info())
         return async_status(FAILED, str(e))
     finally:
         xform.submission_count(True)
 
     return {
-        u"additions": additions - inserts,
-        u"updates": inserts,
+        u"additions":
+        additions - inserts,
+        u"updates":
+        inserts,
         u"info":
         u"Additional column(s) excluded from the upload: '{0}'."
         .format(', '.join(list(addition_col)))
@@ -332,8 +334,8 @@ def get_async_csv_submission_status(job_uuid):
         result = (job.result or job.state)
 
         if isinstance(result, (Exception)):
-            return async_status(celery_state_to_status(job.state),
-                                job.result.message)
+            return async_status(
+                celery_state_to_status(job.state), job.result.message)
 
         if isinstance(result, (str, unicode)):
             return async_status(celery_state_to_status(job.state))
