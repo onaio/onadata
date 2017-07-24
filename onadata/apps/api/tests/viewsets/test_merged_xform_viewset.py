@@ -178,10 +178,18 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         view = MergedXFormViewSet.as_view({'get': 'data'})
         merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
+        detail_view = MergedXFormViewSet.as_view({
+            'get': 'retrieve',
+        })
 
         response = view(request, pk=merged_dataset['id'])
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 0)
+
+        # check num_of_submissions
+        response = detail_view(request, pk=merged_dataset['id'])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['num_of_submissions'], 0)
 
         # make submission to form a
         form_a = merged_xform.xforms.all()[0]
@@ -195,6 +203,11 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         expected_fruits = ['orange']
         self.assertEqual(fruits, expected_fruits)
 
+        # check num_of_submissions
+        response = detail_view(request, pk=merged_dataset['id'])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['num_of_submissions'], 1)
+
         # make submission to form b
         form_b = merged_xform.xforms.all()[1]
         xml = '<data id="b"><fruits>mango</fruits></data>'
@@ -206,3 +219,8 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         fruits = [d['fruits'] for d in response.data]
         expected_fruits = ['orange', 'mango']
         self.assertEqual(fruits, expected_fruits)
+
+        # check num_of_submissions
+        response = detail_view(request, pk=merged_dataset['id'])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['num_of_submissions'], 2)

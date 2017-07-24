@@ -40,10 +40,14 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
             queryset=XForm.objects.filter(is_merged_dataset=False),
             view_name='xform-detail'),
         validators=[minimum_two_xforms])
+    num_of_submissions = serializers.ReadOnlyField(
+        source='number_of_submissions')
 
     class Meta:
         model = MergedXForm
-        fields = ('url', 'id', 'xforms', 'name', 'project', 'title')
+        fields = ('url', 'id', 'xforms', 'name', 'project', 'title',
+                  'num_of_submissions')
+        read_only_fields = ('num_of_submissions',)
 
     def create(self, validated_data):
         # we get the xml and json from the first xforms
