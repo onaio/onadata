@@ -94,6 +94,8 @@ class CSVImportTestCase(TestBase):
             Instance.objects.filter(user=self.user).count(),
             count + 8,
             u'submit_csv username check failed!')
+        self.xform.reload()
+        self.assertEqual(self.xform.num_of_submissions, count + 9)
 
     def test_submit_csv_edits(self):
         xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
