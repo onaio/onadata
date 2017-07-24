@@ -9,6 +9,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
+from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.logger.models import Instance, MergedXForm
 
 
@@ -178,6 +179,9 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         view = MergedXFormViewSet.as_view({'get': 'data'})
         merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
+        data_view = DataViewSet.as_view({
+            'get': 'list',
+        })
         detail_view = MergedXFormViewSet.as_view({
             'get': 'retrieve',
         })
@@ -203,6 +207,15 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         expected_fruits = ['orange']
         self.assertEqual(fruits, expected_fruits)
 
+        # DataViewSet /data/[pk] endpoint
+        response = data_view(request, pk=merged_dataset['id'])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+        fruits = [d['fruits'] for d in response.data]
+        expected_fruits = ['orange']
+        self.assertEqual(fruits, expected_fruits)
+
         # check num_of_submissions
         response = detail_view(request, pk=merged_dataset['id'])
         self.assertEqual(response.status_code, 200)
@@ -213,6 +226,15 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         xml = '<data id="b"><fruits>mango</fruits></data>'
         Instance(xform=form_b, xml=xml).save()
         response = view(request, pk=merged_dataset['id'])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+        fruits = [d['fruits'] for d in response.data]
+        expected_fruits = ['orange', 'mango']
+        self.assertEqual(fruits, expected_fruits)
+
+        # DataViewSet /data/[pk] endpoint
+        response = data_view(request, pk=merged_dataset['id'])
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
 

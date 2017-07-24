@@ -24,7 +24,7 @@ from rest_framework.settings import api_settings
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.api.tools import add_tags_to_instance
 from onadata.apps.logger.models.attachment import Attachment
-from onadata.apps.logger.models import OsmData
+from onadata.apps.logger.models import OsmData, MergedXForm
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.viewer.models.parsed_instance import get_etag_hash_from_query
@@ -336,10 +336,14 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         elif lookup:
             qs = self.filter_queryset(
                 self.get_queryset()
-            ).values_list('pk', flat=True)
-            xform_id = qs[0] if qs else lookup
+            ).values_list('pk', 'is_merged_dataset')
+            xform_id, is_merged_dataset = qs[0] if qs else (lookup, False)
+            pks = [xform_id]
+            if is_merged_dataset:
+                pks = [__ for __ in MergedXForm.objects.values_list('xforms',
+                                                                    flat=True)]
             self.object_list = Instance.objects.filter(
-                xform_id=xform_id, deleted_at=None).only('json')
+                xform_id__in=pks, deleted_at=None).only('json')
             xform = self.get_object()
             self.object_list = \
                 filter_queryset_xform_meta_perms(xform, request.user,
