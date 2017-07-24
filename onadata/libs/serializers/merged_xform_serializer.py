@@ -45,5 +45,6 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
         validated_data['xml'] = survey.to_xml()
         validated_data['user'] = validated_data['project'].user
         validated_data['created_by'] = request.user
+        validated_data['is_merged_dataset'] = True
 
         return super(MergedXFormSerializer, self).create(validated_data)

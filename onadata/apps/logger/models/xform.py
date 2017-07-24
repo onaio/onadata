@@ -686,6 +686,9 @@ class XForm(XFormMixin, BaseModel):
     has_hxl_support = models.BooleanField(default=False)
     last_updated_at = models.DateTimeField(auto_now=True)
 
+    # XForm was created as a merged dataset
+    is_merged_dataset = models.BooleanField(default=False)
+
     tags = TaggableManager()
 
     class Meta:

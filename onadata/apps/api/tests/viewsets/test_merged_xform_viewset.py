@@ -1,4 +1,8 @@
-# coding=utf-8
+# -*- coding: utf-8 -*-
+"""
+Test merged dataset functionality.
+"""
+
 import json
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
@@ -20,8 +24,7 @@ MD = """
 
 
 class TestMergedXFormViewSet(TestAbstractViewSet):
-    def setUp(self):
-        super(self.__class__, self).setUp()
+    """Test merged dataset functionality."""
 
     def _create_merged_dataset(self):
         view = MergedXFormViewSet.as_view({'post': 'create', })
@@ -52,9 +55,11 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         return response.data
 
     def test_create_merged_dataset(self):
+        """Test creating a merged dataset"""
         self._create_merged_dataset()
 
     def test_merged_datasets_list(self):
+        """Test list endpoint of a merged dataset"""
         view = MergedXFormViewSet.as_view({'get': 'list', })
         request = self.factory.get('/')
 
@@ -91,6 +96,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
                       [d['formid'] for d in response.data])
 
     def test_merged_datasets_retrieve(self):
+        """Test retrieving a specific merged dataset"""
         merged_dataset = self._create_merged_dataset()
         view = MergedXFormViewSet.as_view({'get': 'retrieve', })
         request = self.factory.get('/')
@@ -113,7 +119,17 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertIn('title', response.data)
         self.assertIn('xforms', response.data)
 
-    def test_retrieve_merged_dataset_form_json(self):
+        # merged dataset should be available at api/forms/[pk] endpoint
+        request = self.factory.get('/', **self.extra)
+        view = XFormViewSet.as_view({'get': 'retrieve'})
+        response = view(request, pk=merged_dataset['id'])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(merged_dataset['id'], response.data['formid'])
+        self.assertIn('is_merged_dataset', response.data)
+        self.assertTrue(response.data['is_merged_dataset'])
+
+    def test_merged_datasets_form_json(self):
+        """Test retrieving the XLSForm JSON of a merged dataset"""
         # create a merged dataset
         merged_dataset = self._create_merged_dataset()
 
@@ -130,7 +146,8 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         for key in ['children', 'id_string', 'name', 'default_language', 'num_of_submissions']:
             self.assertIn(key, data)
 
-    def test_retrieve_merged_dataset_form_xml(self):
+    def test_merged_datasets_form_xml(self):
+        """Test retrieving the XLSForm XForm of a merged dataset"""
         # create a merged dataset
         merged_dataset = self._create_merged_dataset()
 
@@ -142,7 +159,8 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         response.render()
         self.assertEqual('text/xml; charset=utf-8', response['Content-Type'])
 
-    def test_retrieve_merged_dataset_data(self):
+    def test_merged_datasets_data(self):
+        """Test retrieving data of a merged dataset"""
         merged_dataset = self._create_merged_dataset()
         request = self.factory.get('/', **self.extra)
         view = MergedXFormViewSet.as_view({'get': 'data'})
@@ -153,9 +171,9 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertEqual(len(response.data), 0)
 
         # make submission to form a
-        a = merged_xform.xforms.all()[0]
+        form_a = merged_xform.xforms.all()[0]
         xml = '<data id="a"><fruits>orange</fruits></data>'
-        Instance(xform=a, xml=xml).save()
+        Instance(xform=form_a, xml=xml).save()
         response = view(request, pk=merged_dataset['id'])
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
@@ -165,9 +183,9 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertEqual(fruits, expected_fruits)
 
         # make submission to form b
-        b = merged_xform.xforms.all()[1]
+        form_b = merged_xform.xforms.all()[1]
         xml = '<data id="b"><fruits>mango</fruits></data>'
-        Instance(xform=b, xml=xml).save()
+        Instance(xform=form_b, xml=xml).save()
         response = view(request, pk=merged_dataset['id'])
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
