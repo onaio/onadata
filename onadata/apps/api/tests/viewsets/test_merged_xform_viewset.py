@@ -237,6 +237,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         response = data_view(request, pk=merged_dataset['id'])
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
+        dataid = response.data[0]['_id']
 
         fruits = [d['fruits'] for d in response.data]
         expected_fruits = ['orange', 'mango']
@@ -246,3 +247,11 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         response = detail_view(request, pk=merged_dataset['id'])
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['num_of_submissions'], 2)
+
+        # DataViewSet /data/[pk]/[dataid] endpoint
+        data_view = DataViewSet.as_view({
+            'get': 'retrieve',
+        })
+        response = data_view(request, pk=merged_dataset['id'], dataid=dataid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['fruits'], 'orange')

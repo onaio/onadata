@@ -154,7 +154,13 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 raise ParseError(_(u"Invalid dataid %(dataid)s"
                                    % {'dataid': dataid}))
 
-            obj = get_object_or_404(Instance, pk=dataid, xform__pk=pk)
+            if not obj.is_merged_dataset:
+                obj = get_object_or_404(Instance, pk=dataid, xform__pk=pk)
+            else:
+                pks = [__ for __ in obj.mergedxform.xforms.values_list(
+                    'pk', flat=True)]
+
+                obj = get_object_or_404(Instance, pk=dataid, xform_id__in=pks)
 
         return obj
 
