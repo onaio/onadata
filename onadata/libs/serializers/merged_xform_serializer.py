@@ -1,34 +1,49 @@
+# -*- coding: utf-8 -*-
+"""
+MergedXFormSerializer class
+"""
+
 import base64
 import uuid
 
 from django.utils.translation import ugettext as _
-from pyxform.builder import create_survey_element_from_json
 from rest_framework import serializers
 
-from onadata.apps.logger.models import MergedXForm
+from onadata.apps.logger.models import MergedXForm, XForm
 from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
+from pyxform.builder import create_survey_element_from_json
+
+
+def minimum_two_xforms(value):
+    """Validate at least 2 xforms are provided"""
+    if len(value) < 2:
+        raise serializers.ValidationError(
+            _('This field should have at least two unique xforms.'))
+
+    if len(set(value)) != len(value):
+        raise serializers.ValidationError(
+            _('This field should have unique xforms'))
+
+    return value
 
 
 class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
+    """MergedXForm Serializer to create and update merged datasets"""
     url = serializers.HyperlinkedIdentityField(
         view_name='merged-xform-detail', lookup_field='pk')
     name = serializers.CharField(
         max_length=XFORM_TITLE_LENGTH, write_only=True)
+    xforms = serializers.ManyRelatedField(
+        allow_empty=False,
+        child_relation=serializers.HyperlinkedRelatedField(
+            allow_empty=False,
+            queryset=XForm.objects.filter(is_merged_dataset=False),
+            view_name='xform-detail'),
+        validators=[minimum_two_xforms])
 
     class Meta:
         model = MergedXForm
         fields = ('url', 'id', 'xforms', 'name', 'project', 'title')
-
-    def validate_xforms(self, value):
-        if len(value) < 2:
-            raise serializers.ValidationError(
-                _('This field should have at least two unique xforms.'))
-
-        if len(set(value)) != len(value):
-            raise serializers.ValidationError(
-                _('This field should have unique xforms'))
-
-        return value
 
     def create(self, validated_data):
         # we get the xml and json from the first xforms
