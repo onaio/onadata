@@ -110,6 +110,12 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
     def test_merged_datasets_retrieve(self):
         """Test retrieving a specific merged dataset"""
         merged_dataset = self._create_merged_dataset()
+        merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
+
+        # make submission to form b
+        form_b = merged_xform.xforms.all()[1]
+        xml = '<data id="b"><fruits>mango</fruits></data>'
+        Instance(xform=form_b, xml=xml).save()
         view = MergedXFormViewSet.as_view({
             'get': 'retrieve',
         })
@@ -132,6 +138,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertIn('id', response.data)
         self.assertIn('title', response.data)
         self.assertIn('xforms', response.data)
+        self.assertEqual(response.data['num_of_submissions'], 1)
 
         # merged dataset should be available at api/forms/[pk] endpoint
         request = self.factory.get('/', **self.extra)
@@ -141,6 +148,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertEqual(merged_dataset['id'], response.data['formid'])
         self.assertIn('is_merged_dataset', response.data)
         self.assertTrue(response.data['is_merged_dataset'])
+        self.assertEqual(response.data['num_of_submissions'], 1)
 
     def test_merged_datasets_form_json(self):
         """Test retrieving the XLSForm JSON of a merged dataset"""

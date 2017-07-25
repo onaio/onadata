@@ -13,6 +13,7 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db import models
+from django.db.models import Sum
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.utils import timezone
 from django.utils.translation import ugettext as _
@@ -31,7 +32,8 @@ from onadata.libs.models.base_model import BaseModel
 from onadata.libs.utils.cache_tools import (IS_ORG, PROJ_FORMS_CACHE,
                                             PROJ_BASE_FORMS_CACHE,
                                             PROJ_NUM_DATASET_CACHE,
-                                            PROJ_SUB_DATE_CACHE, safe_delete)
+                                            PROJ_SUB_DATE_CACHE, XFORM_COUNT,
+                                            safe_delete)
 from onadata.libs.utils.common_tags import (DURATION, KNOWN_MEDIA_TYPES, NOTES,
                                             SUBMISSION_TIME, SUBMITTED_BY,
                                             TAGS, UUID, VERSION)
@@ -836,11 +838,20 @@ class XForm(XFormMixin, BaseModel):
 
     def submission_count(self, force_update=False):
         if self.num_of_submissions == 0 or force_update:
-            count = self.instances.filter(deleted_at__isnull=True).count()
+            if self.is_merged_dataset:
+                count = self.mergedxform.xforms.aggregate(
+                    num=Sum('num_of_submissions')).get('num')
+            else:
+                count = self.instances.filter(deleted_at__isnull=True).count()
 
             if count != self.num_of_submissions:
                 self.num_of_submissions = count
                 self.save(update_fields=['num_of_submissions'])
+
+                # clear cache
+                key = '{}{}'.format(XFORM_COUNT, self.pk)
+                safe_delete(key)
+
         return self.num_of_submissions
 
     submission_count.short_description = ugettext_lazy("Submission Count")
