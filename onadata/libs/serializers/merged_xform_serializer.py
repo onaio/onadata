@@ -54,7 +54,7 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
         'num_of_submissions'.
         """
 
-        value = getattr(obj, 'number_of_submission', obj.num_of_submissions)
+        value = getattr(obj, 'number_of_submissions', obj.num_of_submissions)
 
         return value
 
