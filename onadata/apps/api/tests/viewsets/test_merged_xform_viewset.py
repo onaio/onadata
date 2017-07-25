@@ -3,15 +3,16 @@
 Test merged dataset functionality.
 """
 
+import csv
 import json
+from cStringIO import StringIO
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
+from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.logger.models import Instance, MergedXForm
-
 
 MD = """
 | survey |
@@ -114,7 +115,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
 
         # make submission to form b
         form_b = merged_xform.xforms.all()[1]
-        xml = '<data id="b"><fruits>mango</fruits></data>'
+        xml = '<data id="b"><fruit>mango</fruit></data>'
         Instance(xform=form_b, xml=xml).save()
         view = MergedXFormViewSet.as_view({
             'get': 'retrieve',
@@ -202,15 +203,15 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
 
         # make submission to form a
         form_a = merged_xform.xforms.all()[0]
-        xml = '<data id="a"><fruits>orange</fruits></data>'
+        xml = '<data id="a"><fruit>orange</fruit></data>'
         Instance(xform=form_a, xml=xml).save()
         response = view(request, pk=merged_dataset['id'])
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
 
-        fruits = [d['fruits'] for d in response.data]
-        expected_fruits = ['orange']
-        self.assertEqual(fruits, expected_fruits)
+        fruit = [d['fruit'] for d in response.data]
+        expected_fruit = ['orange']
+        self.assertEqual(fruit, expected_fruit)
 
         # check num_of_submissions
         response = detail_view(request, pk=merged_dataset['id'])
@@ -219,15 +220,15 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
 
         # make submission to form b
         form_b = merged_xform.xforms.all()[1]
-        xml = '<data id="b"><fruits>mango</fruits></data>'
+        xml = '<data id="b"><fruit>mango</fruit></data>'
         Instance(xform=form_b, xml=xml).save()
         response = view(request, pk=merged_dataset['id'])
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
 
-        fruits = [d['fruits'] for d in response.data]
-        expected_fruits = ['orange', 'mango']
-        self.assertEqual(fruits, expected_fruits)
+        fruit = [d['fruit'] for d in response.data]
+        expected_fruit = ['orange', 'mango']
+        self.assertEqual(fruit, expected_fruit)
 
         # check num_of_submissions
         response = detail_view(request, pk=merged_dataset['id'])
@@ -245,7 +246,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
 
         # make submission to form a
         form_a = merged_xform.xforms.all()[0]
-        xml = '<data id="a"><fruits>orange</fruits></data>'
+        xml = '<data id="a"><fruit>orange</fruit></data>'
         Instance(xform=form_a, xml=xml).save()
 
         # DataViewSet /data/[pk] endpoint
@@ -253,13 +254,13 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
 
-        fruits = [d['fruits'] for d in response.data]
-        expected_fruits = ['orange']
-        self.assertEqual(fruits, expected_fruits)
+        fruit = [d['fruit'] for d in response.data]
+        expected_fruit = ['orange']
+        self.assertEqual(fruit, expected_fruit)
 
         # make submission to form b
         form_b = merged_xform.xforms.all()[1]
-        xml = '<data id="b"><fruits>mango</fruits></data>'
+        xml = '<data id="b"><fruit>mango</fruit></data>'
         Instance(xform=form_b, xml=xml).save()
 
         # DataViewSet /data/[pk] endpoint
@@ -268,9 +269,9 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertEqual(len(response.data), 2)
         dataid = response.data[0]['_id']
 
-        fruits = [d['fruits'] for d in response.data]
-        expected_fruits = ['orange', 'mango']
-        self.assertEqual(fruits, expected_fruits)
+        fruit = [d['fruit'] for d in response.data]
+        expected_fruit = ['orange', 'mango']
+        self.assertEqual(fruit, expected_fruit)
 
         # DataViewSet /data/[pk]/[dataid] endpoint
         data_view = DataViewSet.as_view({
@@ -278,4 +279,38 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         })
         response = data_view(request, pk=merged_dataset['id'], dataid=dataid)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['fruits'], 'orange')
+        self.assertEqual(response.data['fruit'], 'orange')
+
+    def test_md_csv_export(self):
+        """Test CSV export of a merged dataset"""
+        merged_dataset = self._create_merged_dataset()
+        merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
+
+        # make submission to form a
+        form_a = merged_xform.xforms.all()[0]
+        xml = '<data id="a"><fruit>orange</fruit></data>'
+        Instance(xform=form_a, xml=xml).save()
+
+        # make submission to form b
+        form_b = merged_xform.xforms.all()[1]
+        xml = '<data id="b"><fruit>mango</fruit></data>'
+        Instance(xform=form_b, xml=xml).save()
+
+        # merged dataset should be available at api/forms/[pk] endpoint
+        request = self.factory.get('/', **self.extra)
+        view = XFormViewSet.as_view({'get': 'retrieve'})
+        response = view(request, pk=merged_dataset['id'], format='csv')
+        self.assertEqual(response.status_code, 200)
+
+        csv_file_obj = StringIO(u''.join(response.streaming_content))
+        csv_reader = csv.reader(csv_file_obj)
+        # jump over headers first
+        headers = csv_reader.next()
+        self.assertEqual(headers, [
+            'fruit', 'meta/instanceID', '_uuid', '_submission_time', '_tags',
+            '_notes', '_version', '_duration', '_submitted_by'
+        ])
+        row1 = csv_reader.next()
+        self.assertEqual(row1[0], 'orange')
+        row2 = csv_reader.next()
+        self.assertEqual(row2[0], 'mango')
