@@ -171,7 +171,13 @@ def _get_instances(xform, start, end):
     if isinstance(end, datetime.datetime):
         kwargs.update({'date_created__lte': end})
 
-    instances = xform.instances.filter(**kwargs)
+    instances = xform.instances
+    if xform.is_merged_dataset:
+        xform_ids = \
+            [i for i in xform.mergedxform.xforms.values_list('id', flat=True)]
+        instances = Instance.objects.filter(xform_id__in=xform_ids)
+
+    instances = instances.filter(**kwargs)
 
     return instances
 
