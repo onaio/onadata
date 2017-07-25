@@ -40,14 +40,23 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
             queryset=XForm.objects.filter(is_merged_dataset=False),
             view_name='xform-detail'),
         validators=[minimum_two_xforms])
-    num_of_submissions = serializers.ReadOnlyField(
-        source='number_of_submissions')
+    num_of_submissions = serializers.SerializerMethodField()
 
     class Meta:
         model = MergedXForm
         fields = ('url', 'id', 'xforms', 'name', 'project', 'title',
                   'num_of_submissions')
-        read_only_fields = ('num_of_submissions',)
+
+    # pylint: disable=no-self-use
+    def get_num_of_submissions(self, obj):
+        """Return number of submissions either from the aggregate
+        'number_of_submissions' in the queryset or from the xform field
+        'num_of_submissions'.
+        """
+
+        value = getattr(obj, 'number_of_submission', obj.num_of_submissions)
+
+        return value
 
     def create(self, validated_data):
         # we get the xml and json from the first xforms
@@ -65,5 +74,7 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
         validated_data['user'] = validated_data['project'].user
         validated_data['created_by'] = request.user
         validated_data['is_merged_dataset'] = True
+        validated_data['num_of_submissions'] = sum(
+            [__.num_of_submissions for __ in validated_data.get('xforms')])
 
         return super(MergedXFormSerializer, self).create(validated_data)
