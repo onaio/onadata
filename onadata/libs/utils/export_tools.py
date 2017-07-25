@@ -565,6 +565,20 @@ def kml_export_data(id_string, user, xform=None):
     return data_for_template
 
 
+def get_osm_data_kwargs(xform):
+    """Return kwargs for OsmData queryset for given xform"""
+
+    kwargs = {'instance__deleted_at__isnull': True}
+
+    if xform.is_merged_dataset:
+        kwargs['instance__xform_id__in'] = [
+            i for i in xform.mergedxform.xforms.values_list('id', flat=True)]
+    else:
+        kwargs['instance__xform_id'] = xform.pk
+
+    return kwargs
+
+
 def generate_osm_export(export_type, username, id_string, export_id=None,
                         options=None, xform=None):
     """
@@ -582,8 +596,9 @@ def generate_osm_export(export_type, username, id_string, export_id=None,
 
     if xform is None:
         xform = XForm.objects.get(user__username=username, id_string=id_string)
-    osm_list = OsmData.objects.filter(instance__xform=xform,
-                                      instance__deleted_at__isnull=True)
+
+    kwargs = get_osm_data_kwargs(xform)
+    osm_list = OsmData.objects.filter(**kwargs)
     content = get_combined_osm(osm_list)
 
     basename = "%s_%s" % (id_string,

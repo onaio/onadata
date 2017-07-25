@@ -13,6 +13,7 @@ from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Instance, MergedXForm
+from onadata.libs.utils.export_tools import get_osm_data_kwargs
 
 MD = """
 | survey |
@@ -314,3 +315,21 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertEqual(row1[0], 'orange')
         row2 = csv_reader.next()
         self.assertEqual(row2[0], 'mango')
+
+    def test_osm_filter(self):
+        """Test CSV export of a merged dataset"""
+        merged_dataset = self._create_merged_dataset()
+        merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
+        pks = [_ for _ in merged_xform.xforms.values_list('id', flat=True)]
+        kwargs = get_osm_data_kwargs(merged_xform)
+        self.assertEqual(kwargs, {
+            'instance__deleted_at__isnull': True,
+            'instance__xform_id__in': pks
+        })
+
+        xform = merged_xform.xforms.all()[0]
+        kwargs = get_osm_data_kwargs(xform)
+        self.assertEqual(kwargs, {
+            'instance__deleted_at__isnull': True,
+            'instance__xform_id': xform.pk
+        })
