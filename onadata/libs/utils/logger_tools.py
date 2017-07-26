@@ -25,6 +25,7 @@ from django.utils import timezone
 from django.utils.encoding import DjangoUnicodeDecodeError
 from django.utils.translation import ugettext as _
 from modilabs.utils.subprocess_timeout import ProcessTimedOut
+from multidb.pinning import use_master
 from raven.contrib.django.raven_compat.models import client
 
 from onadata.apps.logger.models import Attachment, Instance, XForm
@@ -322,6 +323,7 @@ def create_instance(username,
     return instance
 
 
+@use_master
 def safe_create_instance(username, xml_file, media_files, uuid, request):
     """Create an instance and catch exceptions.
 
