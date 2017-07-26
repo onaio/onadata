@@ -74,7 +74,11 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
         validated_data['user'] = validated_data['project'].user
         validated_data['created_by'] = request.user
         validated_data['is_merged_dataset'] = True
-        validated_data['num_of_submissions'] = sum(
-            [__.num_of_submissions for __ in validated_data.get('xforms')])
+        validated_data['num_of_submissions'] = sum([
+            __.num_of_submissions for __ in validated_data.get('xforms')
+        ])
+        validated_data['instances_with_geopoints'] = any([
+            __.instances_with_geopoints for __ in validated_data.get('xforms')
+        ])
 
         return super(MergedXFormSerializer, self).create(validated_data)

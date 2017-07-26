@@ -30,12 +30,15 @@ MD = """
 class TestMergedXFormViewSet(TestAbstractViewSet):
     """Test merged dataset functionality."""
 
-    def _create_merged_dataset(self):
+    def _create_merged_dataset(self, geo=False):
         view = MergedXFormViewSet.as_view({
             'post': 'create',
         })
         xform1 = self._publish_md(MD, self.user, id_string='a')
         xform2 = self._publish_md(MD, self.user, id_string='b')
+        if geo:
+            xform2.instances_with_geopoints = True
+            xform2.save(update_fields=['instances_with_geopoints'])
 
         data = {
             'xforms': [
@@ -111,7 +114,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
 
     def test_merged_datasets_retrieve(self):
         """Test retrieving a specific merged dataset"""
-        merged_dataset = self._create_merged_dataset()
+        merged_dataset = self._create_merged_dataset(geo=True)
         merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
 
         # make submission to form b
@@ -150,6 +153,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertEqual(merged_dataset['id'], response.data['formid'])
         self.assertIn('is_merged_dataset', response.data)
         self.assertTrue(response.data['is_merged_dataset'])
+        self.assertTrue(response.data['instances_with_geopoints'])
         self.assertEqual(response.data['num_of_submissions'], 1)
 
     def test_merged_datasets_form_json(self):
