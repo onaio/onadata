@@ -9,6 +9,7 @@ from cStringIO import StringIO
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
+from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
@@ -25,6 +26,18 @@ MD = """
 |         | fruits    | orange | Orange |
 |         | fruits    | mango  | Mango  |
 """
+
+
+def _make_submissions_merged_datasets(merged_xform):
+    # make submission to form a
+    form_a = merged_xform.xforms.all()[0]
+    xml = '<data id="a"><fruit>orange</fruit></data>'
+    Instance(xform=form_a, xml=xml).save()
+
+    # make submission to form b
+    form_b = merged_xform.xforms.all()[1]
+    xml = '<data id="b"><fruit>mango</fruit></data>'
+    Instance(xform=form_b, xml=xml).save()
 
 
 class TestMergedXFormViewSet(TestAbstractViewSet):
@@ -291,15 +304,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         merged_dataset = self._create_merged_dataset()
         merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
 
-        # make submission to form a
-        form_a = merged_xform.xforms.all()[0]
-        xml = '<data id="a"><fruit>orange</fruit></data>'
-        Instance(xform=form_a, xml=xml).save()
-
-        # make submission to form b
-        form_b = merged_xform.xforms.all()[1]
-        xml = '<data id="b"><fruit>mango</fruit></data>'
-        Instance(xform=form_b, xml=xml).save()
+        _make_submissions_merged_datasets(merged_xform)
 
         # merged dataset should be available at api/forms/[pk] endpoint
         request = self.factory.get('/', **self.extra)
@@ -337,3 +342,23 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             'instance__deleted_at__isnull': True,
             'instance__xform_id': xform.pk
         })
+
+    def test_merged_dataset_charts(self):
+        """Test /charts endpoint for a merged dataset works"""
+
+        merged_dataset = self._create_merged_dataset()
+        merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
+        _make_submissions_merged_datasets(merged_xform)
+
+        data = {'field_name': 'fruit'}
+        view = ChartsViewSet.as_view({'get': 'retrieve'})
+
+        request = self.factory.get('/charts', data, **self.extra)
+        response = view(request, pk=merged_dataset['id'], format='html')
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.data['field_type'], 'select one')
+        self.assertEqual(response.data['field_name'], 'fruit')
+        self.assertEqual(response.data['data_type'], 'categorized')
+        self.assertEqual(response.data['data'][0]['fruit'], 'Mango')
+        self.assertEqual(response.data['data'][1]['fruit'], 'Orange')
