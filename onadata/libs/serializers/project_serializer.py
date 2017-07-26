@@ -174,7 +174,8 @@ class ProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
             'last_submission_time',
             'date_created',
             'url',
-            'last_updated_at'
+            'last_updated_at',
+            'is_merged_dataset',
         )
 
     def get_published_by_formbuilder(self, obj):
