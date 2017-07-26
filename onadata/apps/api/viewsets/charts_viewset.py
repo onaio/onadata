@@ -1,26 +1,33 @@
+# -*- coding: utf-8 -*-
+"""
+/charts api endpoint for chart data and chart widgets
+"""
+
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework import viewsets
 from rest_framework.exceptions import ParseError
+from rest_framework.renderers import (BrowsableAPIRenderer, JSONRenderer,
+                                      TemplateHTMLRenderer)
 from rest_framework.response import Response
-from rest_framework.renderers import (
-    TemplateHTMLRenderer, BrowsableAPIRenderer, JSONRenderer)
 
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs import filters
-from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
-    AnonymousUserPublicFormsMixin)
+from onadata.libs.mixins.anonymous_user_public_forms_mixin import \
+    AnonymousUserPublicFormsMixin
 from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
-from onadata.libs.serializers.chart_serializer import (
-    ChartSerializer, FieldsChartSerializer)
-from onadata.libs.utils.chart_tools import get_chart_data_for_field
 from onadata.libs.renderers.renderers import DecimalJSONRenderer
+from onadata.libs.serializers.chart_serializer import (ChartSerializer,
+                                                       FieldsChartSerializer)
+from onadata.libs.utils.chart_tools import get_chart_data_for_field
 
 
 def get_form_field_chart_url(url, field):
+    """Append 'field_name' to a given url"""
+
     return u'%s?field_name=%s' % (url, field)
 
 
@@ -34,14 +41,16 @@ class ChartBrowsableAPIRenderer(BrowsableAPIRenderer):
         Return an instance of the first valid renderer.
         (Don't use another documenting renderer.)
         """
-        renderers = [renderer for renderer in view.renderer_classes
-                     if not issubclass(renderer, BrowsableAPIRenderer)]
+        renderers = [
+            renderer for renderer in view.renderer_classes
+            if not issubclass(renderer, BrowsableAPIRenderer)
+        ]
         if not renderers:
             return None
         return renderers[0]()
 
-    def get_content(self, renderer, data,
-                    accepted_media_type, renderer_context):
+    def get_content(self, renderer, data, accepted_media_type,
+                    renderer_context):
 
         try:
             content = super(ChartBrowsableAPIRenderer, self).get_content(
@@ -53,21 +62,23 @@ class ChartBrowsableAPIRenderer(BrowsableAPIRenderer):
         return content
 
 
-class ChartsViewSet(AnonymousUserPublicFormsMixin,
-                    AuthenticateHeaderMixin,
-                    CacheControlMixin,
-                    ETagsMixin,
+# pylint: disable=R0901
+class ChartsViewSet(AnonymousUserPublicFormsMixin, AuthenticateHeaderMixin,
+                    CacheControlMixin, ETagsMixin,
                     viewsets.ReadOnlyModelViewSet):
+    """
+    ChartsViewSet: /charts api endpoint for chart data and chart widgets
+    """
 
     filter_backends = (filters.AnonDjangoObjectPermissionFilter, )
     queryset = XForm.objects.all()
     serializer_class = ChartSerializer
     lookup_field = 'pk'
-    renderer_classes = (DecimalJSONRenderer,
-                        ChartBrowsableAPIRenderer,
-                        TemplateHTMLRenderer,
-                        )
-    permission_classes = [XFormPermissions, ]
+    renderer_classes = (DecimalJSONRenderer, ChartBrowsableAPIRenderer,
+                        TemplateHTMLRenderer, )
+    permission_classes = [
+        XFormPermissions,
+    ]
 
     def retrieve(self, request, *args, **kwargs):
         field_name = request.query_params.get('field_name')
@@ -90,8 +101,8 @@ class ChartsViewSet(AnonymousUserPublicFormsMixin,
             return Response(serializer.data)
 
         if field_name or field_xpath:
-            data = get_chart_data_for_field(
-                field_name, xform, fmt, group_by, field_xpath)
+            data = get_chart_data_for_field(field_name, xform, fmt, group_by,
+                                            field_xpath)
 
             return Response(data, template_name='chart_detail.html')
 
