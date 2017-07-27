@@ -1,7 +1,7 @@
 Django
 django-guardian
 -e git+https://github.com/bfirsh/django-ordered-model.git@master#egg=django-ordered-model
--e git+https://github.com/onaio/django-multidb-router.git@django-1.11#egg=djang-multidb-router
+-e git+https://github.com/onaio/django-multidb-router.git@django-1.11#egg=django-multidb-router
 django-registration-redux
 django-templated-email
 django-reversion
@@ -51,7 +51,7 @@ pymongo
 # sms support
 dict2xml
 lxml
--e git+https://github.com/XLSForm/pyxform.git@master#egg=pyxform
+-e git+https://github.com/ukanga/pyxform.git@refactor-pyxform-test-case#egg=pyxform
 
 # spss
 #-e git+https://bitbucket.org/fomcl/savreaderwriter.git@v3.4.2#egg=savreaderwriter
@@ -61,7 +61,7 @@ unicodecsv
 xlrd
 xlwt
 openpyxl
--e git+https://github.com/onaio/python-json2xlsclient.git#egg=j2xclient
+-e git+https://github.com/onaio/python-json2xlsclient.git#egg=python-json2xlsclient
 
 # tests
 mock

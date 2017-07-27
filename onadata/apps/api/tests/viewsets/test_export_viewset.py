@@ -2,7 +2,7 @@ import os
 from tempfile import NamedTemporaryFile
 
 from django.conf import settings
-from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
+from pyxform.tests_v1.pyxform_test_case import PyxformMarkdown
 from rest_framework import status
 from rest_framework.test import APIRequestFactory, force_authenticate
 
@@ -12,7 +12,7 @@ from onadata.apps.viewer.models.export import Export
 from onadata.libs.utils.export_tools import generate_export
 
 
-class TestExportViewSet(PyxformTestCase, TestBase):
+class TestExportViewSet(PyxformMarkdown, TestBase):
 
     def setUp(self):
         super(self.__class__, self).setUp()

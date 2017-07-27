@@ -1,12 +1,12 @@
 import os
 
-from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
+from pyxform.tests_v1.pyxform_test_case import PyxformMarkdown
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm, Instance
 
 
-class TestXForm(PyxformTestCase, TestBase):
+class TestXForm(PyxformMarkdown, TestBase):
     def test_submission_count_filters_deleted(self):
         self._publish_transportation_form_and_submit_instance()
 

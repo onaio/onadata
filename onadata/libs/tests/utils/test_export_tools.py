@@ -11,7 +11,7 @@ from django.core.files.temp import NamedTemporaryFile
 from django.test.utils import override_settings
 from django.utils import timezone
 from pyxform.builder import create_survey_from_xls
-from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
+from pyxform.tests_v1.pyxform_test_case import PyxformMarkdown
 from savReaderWriter import SavWriter
 
 from onadata.apps.api import tests as api_tests
@@ -31,7 +31,7 @@ def _logger_fixture_path(*args):
                         *args)
 
 
-class TestExportTools(PyxformTestCase, TestBase):
+class TestExportTools(PyxformMarkdown, TestBase):
     def _create_old_export(self, xform, export_type, options):
         Export(xform=xform, export_type=export_type, options=options).save()
         self.export = Export.objects.filter(

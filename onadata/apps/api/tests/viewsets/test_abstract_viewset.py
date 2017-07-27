@@ -12,7 +12,7 @@ from django.test import TestCase
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from httmock import HTTMock, urlmatch
-from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
+from pyxform.tests_v1.pyxform_test_case import PyxformMarkdown
 from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.models import OrganizationProfile, Team
@@ -75,7 +75,7 @@ def enketo_url_mock(url, request):
     return response
 
 
-class TestAbstractViewSet(PyxformTestCase, TestCase):
+class TestAbstractViewSet(PyxformMarkdown, TestCase):
     surveys = ['transport_2011-07-25_19-05-49',
                'transport_2011-07-25_19-05-36',
                'transport_2011-07-25_19-06-01',
