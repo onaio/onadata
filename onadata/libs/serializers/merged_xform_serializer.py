@@ -32,10 +32,21 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
 
     url = serializers.HyperlinkedIdentityField(
         view_name='xform-detail', lookup_field='pk')
+    owner = serializers.SerializerMethodField()
+    project_name = serializers.SerializerMethodField()
 
     class Meta:
         model = XForm
-        fields = ('url', 'id', 'id_string', 'title', 'num_of_submissions')
+        fields = ('url', 'id', 'id_string', 'title', 'num_of_submissions',
+                  'owner', 'project_id', 'project_name')
+
+    def get_owner(self, obj):
+        """Owner of the form"""
+        return obj.user.username
+
+    def get_project_name(self, obj):
+        """Project name"""
+        return obj.project.name
 
 
 class XFormListField(serializers.ManyRelatedField):
