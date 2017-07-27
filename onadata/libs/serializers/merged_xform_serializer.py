@@ -27,13 +27,32 @@ def minimum_two_xforms(value):
     return value
 
 
+class XFormSerializer(serializers.HyperlinkedModelSerializer):
+    """XFormSerializer"""
+
+    url = serializers.HyperlinkedIdentityField(
+        view_name='xform-detail', lookup_field='pk')
+
+    class Meta:
+        model = XForm
+        fields = ('url', 'id', 'id_string', 'title', 'num_of_submissions')
+
+
+class XFormListField(serializers.ManyRelatedField):
+    """XFormSerializer"""
+
+    def to_representation(self, iterable):
+        return [dict(i) for i in XFormSerializer(iterable, many=True,
+                                                 context=self.context).data]
+
+
 class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
     """MergedXForm Serializer to create and update merged datasets"""
     url = serializers.HyperlinkedIdentityField(
         view_name='merged-xform-detail', lookup_field='pk')
     name = serializers.CharField(
         max_length=XFORM_TITLE_LENGTH, write_only=True)
-    xforms = serializers.ManyRelatedField(
+    xforms = XFormListField(
         allow_empty=False,
         child_relation=serializers.HyperlinkedRelatedField(
             allow_empty=False,

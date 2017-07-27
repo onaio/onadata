@@ -57,13 +57,13 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
 
         data = {
             'xforms': [
-                "http://testserver.com/api/v1/forms/%s" % xform1.pk,
-                "http://testserver.com/api/v1/forms/%s" % xform2.pk,
+                "http://testserver/api/v1/forms/%s" % xform1.pk,
+                "http://testserver/api/v1/forms/%s" % xform2.pk,
             ],
             'name':
             'Merged Dataset',
             'project':
-            "http://testserver.com/api/v1/projects/%s" % self.project.pk,
+            "http://testserver/api/v1/projects/%s" % self.project.pk,
         }
         # anonymous user
         request = self.factory.post('/', data=data)
@@ -76,6 +76,11 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertIn('id', response.data)
         self.assertIn('title', response.data)
         self.assertIn('xforms', response.data)
+        self.assertEqual(response.data['xforms'][0], {
+            'id': xform1.pk, 'title': xform1.title,
+            'id_string': xform1.id_string,
+            'url': "http://testserver/api/v1/forms/%s" % xform1.pk,
+            'num_of_submissions': xform1.num_of_submissions})
 
         return response.data
 
