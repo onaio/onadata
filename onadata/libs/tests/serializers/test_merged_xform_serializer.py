@@ -1,3 +1,6 @@
+"""
+Test MergedXFormSerializer
+"""
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.libs.serializers.merged_xform_serializer import \
@@ -16,7 +19,11 @@ MD = """
 
 
 class TestMergedXFormSerializer(TestAbstractViewSet):
+    """
+    Test MergedXFormSerializer
+    """
     def test_create_merged_xform(self):
+        """Test creating a merged dataset with the MergedXFormSerializer"""
         serializer = MergedXFormSerializer(data={})
         self.assertFalse(serializer.is_valid(raise_exception=False))
 
