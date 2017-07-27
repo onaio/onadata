@@ -15,6 +15,7 @@ from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Instance, MergedXForm
 from onadata.libs.utils.export_tools import get_osm_data_kwargs
+from onadata.libs.utils.user_auth import get_user_default_project
 
 MD = """
 | survey |
@@ -47,6 +48,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         view = MergedXFormViewSet.as_view({
             'post': 'create',
         })
+        self.project = get_user_default_project(self.user)
         xform1 = self._publish_md(MD, self.user, id_string='a')
         xform2 = self._publish_md(MD, self.user, id_string='b')
         if geo:

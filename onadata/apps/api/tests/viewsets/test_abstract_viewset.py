@@ -161,7 +161,6 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
                               password=self.profile_data['password1']))
         self.extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
-        self.project = get_user_default_project(self.user)
 
     def _org_create(self, org_data={}):
         view = OrganizationProfileViewSet.as_view({
@@ -612,7 +611,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         kwargs['name'] = 'data'
         survey = self.md_to_pyxform_survey(md, kwargs=kwargs)
         survey['sms_keyword'] = survey['id_string']
-        if not project:
+        if not project or not hasattr(self, 'project'):
             project = get_user_default_project(user)
         xform = DataDictionary(created_by=user, user=user,
                                xml=survey.to_xml(), json=survey.to_json(),
