@@ -1431,8 +1431,3 @@ class OnaAuthorizationView(AuthorizationView):
         context['user'] = self.request.user
         context['request_path'] = self.request.get_full_path()
         return context
-
-
-
-
-
