@@ -47,6 +47,8 @@ urlpatterns = [
     url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
 
     # oath2_provider
+    url(r'^o/authorize/$', main_views.OnaAuthorizationView.as_view(),
+        name="oauth2_provider_authorize"),
     url(r'^o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
 
     # main website views
