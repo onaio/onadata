@@ -20,6 +20,7 @@ from django.views.decorators.http import (require_GET, require_http_methods,
                                           require_POST)
 from guardian.shortcuts import assign_perm, remove_perm
 from rest_framework.authtoken.models import Token
+from oauth2_provider.views.base import AuthorizationView
 
 from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.logger.models.xform import get_forms_shared_with_user
@@ -1416,3 +1417,22 @@ def username_list(request):
         data = [user['username'] for user in users]
 
     return HttpResponse(json.dumps(data), content_type='application/json')
+
+
+class OnaAuthorizationView(AuthorizationView):
+
+    """
+    Overrides the AuthorizationView provided by oauth2_provider
+    and adds the user to the context
+    """
+
+    def get_context_data(self, **kwargs):
+        context = super(OnaAuthorizationView, self).get_context_data(**kwargs)
+        context['user'] = self.request.user
+        context['request_path'] = self.request.get_full_path()
+        return context
+
+
+
+
+
