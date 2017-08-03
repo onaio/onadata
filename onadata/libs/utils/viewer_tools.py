@@ -11,6 +11,7 @@ from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.mail import mail_admins
 from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy
 
 from onadata.libs.utils import common_tags
 
@@ -22,7 +23,18 @@ class MyError(Exception):
 
 
 class EnketoError(Exception):
-    pass
+
+    default_message = ugettext_lazy("There was a problem with your submission"
+                                    " or form. Please contact support.")
+
+    def __init__(self, message=None):
+        if message is None:
+            self.message = self.default_message
+        else:
+            self.message = message
+
+    def __str__(self):
+        return "{}".format(self.message)
 
 
 def image_urls_for_form(xform):
@@ -120,8 +132,8 @@ def report_exception(subject, info, exc_info=None):
         info += u"".join(traceback.format_exception(*exc_info))
 
     if settings.DEBUG:
-        print subject
-        print info
+        print(subject)
+        print(info)
     else:
         mail_admins(subject=subject, message=info)
 
@@ -189,7 +201,6 @@ def enketo_url(form_url,
     req = requests.post(
         url, data=values, auth=(settings.ENKETO_API_TOKEN, ''),
         verify=getattr(settings, 'VERIFY_SSL', True))
-
     if req.status_code in [200, 201]:
         try:
             response = req.json()
@@ -208,7 +219,7 @@ def enketo_url(form_url,
         try:
             response = req.json()
         except ValueError:
-            pass
+            raise EnketoError()
         else:
             if 'message' in response:
                 raise EnketoError(response['message'])

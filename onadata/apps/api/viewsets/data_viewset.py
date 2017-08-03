@@ -254,7 +254,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                     data["url"] = get_enketo_edit_url(
                         request, self.object, return_url)
                 except EnketoError as e:
-                    data['detail'] = "{}".format(e)
+                    raise ParseError(str(e))
             else:
                 raise PermissionDenied(_(u"You do not have edit permissions."))
 
