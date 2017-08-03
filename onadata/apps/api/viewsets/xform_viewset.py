@@ -67,10 +67,11 @@ from onadata.libs.utils.csv_import import (get_async_csv_submission_status,
 from onadata.libs.utils.export_tools import parse_request_export_options
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.string import str2bool
-from onadata.libs.utils.viewer_tools import (EnketoError, enketo_url,
+from onadata.libs.utils.viewer_tools import (enketo_url,
                                              generate_enketo_form_defaults,
                                              get_enketo_preview_url,
                                              get_form_url)
+from onadata.libs.exceptions import EnketoError
 
 BaseViewset = get_baseviewset_class()
 

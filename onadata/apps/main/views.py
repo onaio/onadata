@@ -56,8 +56,9 @@ from onadata.libs.utils.user_auth import (add_cors_headers, check_and_set_user,
                                           get_xform_users_with_perms,
                                           has_permission,
                                           helper_auth_helper, set_profile_data)
-from onadata.libs.utils.viewer_tools import (EnketoError, enketo_url,
+from onadata.libs.utils.viewer_tools import (enketo_url,
                                              get_enketo_preview_url, get_form)
+from onadata.libs.exceptions import EnketoError
 
 
 def home(request):

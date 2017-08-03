@@ -11,30 +11,16 @@ from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.mail import mail_admins
 from django.utils.translation import ugettext as _
-from django.utils.translation import ugettext_lazy
 
 from onadata.libs.utils import common_tags
+from onadata.libs.exceptions import EnketoError
+
 
 SLASH = u"/"
 
 
 class MyError(Exception):
     pass
-
-
-class EnketoError(Exception):
-
-    default_message = ugettext_lazy("There was a problem with your submission"
-                                    " or form. Please contact support.")
-
-    def __init__(self, message=None):
-        if message is None:
-            self.message = self.default_message
-        else:
-            self.message = message
-
-    def __str__(self):
-        return "{}".format(self.message)
 
 
 def image_urls_for_form(xform):

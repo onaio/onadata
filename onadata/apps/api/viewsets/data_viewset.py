@@ -50,7 +50,7 @@ from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs import filters
 from onadata.libs.permissions import CAN_DELETE_SUBMISSION,\
     filter_queryset_xform_meta_perms, filter_queryset_xform_meta_perms_sql
-from onadata.libs.utils.viewer_tools import EnketoError
+from onadata.libs.exceptions import EnketoError
 from onadata.libs.utils.viewer_tools import get_enketo_edit_url
 from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.data import parse_int
