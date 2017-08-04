@@ -16,7 +16,6 @@ class TestNote(TestBase):
             created_by=None,
         )
         note.save()
-        try:
-            note.get_data()
-        except AttributeError:
-            self.fail("note.get_data() raised AttributeError unexpectedly!")
+        note_data = note.get_data()
+        self.assertEqual(note_data['owner'], "")
+        self.assertEqual(note_data['created_by'], "")
