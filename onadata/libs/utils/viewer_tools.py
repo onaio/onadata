@@ -1,5 +1,5 @@
 import os
-import traceback
+import sys
 import zipfile
 from tempfile import NamedTemporaryFile
 from urlparse import urljoin
@@ -9,19 +9,17 @@ import requests
 from django.conf import settings
 from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.core.mail import mail_admins
 from django.utils.translation import ugettext as _
 
 from onadata.libs.utils import common_tags
+from onadata.libs.exceptions import EnketoError
+from onadata.libs.utils.common_tools import report_exception
+
 
 SLASH = u"/"
 
 
 class MyError(Exception):
-    pass
-
-
-class EnketoError(Exception):
     pass
 
 
@@ -109,23 +107,6 @@ def _all_attributes(node):
             yield pair
 
 
-def report_exception(subject, info, exc_info=None):
-    # Add hostname to subject mail
-
-    subject = "{0} - {1}".format(subject, settings.HOSTNAME)
-    if exc_info:
-        cls, err = exc_info[:2]
-        info += _(u"Exception in request: %(class)s: %(error)s") \
-            % {'class': cls.__name__, 'error': err}
-        info += u"".join(traceback.format_exception(*exc_info))
-
-    if settings.DEBUG:
-        print subject
-        print info
-    else:
-        mail_admins(subject=subject, message=info)
-
-
 def django_file(path, field_name, content_type):
     # adapted from here: http://groups.google.com/group/django-users/browse_th\
     # read/thread/834f988876ff3c45/
@@ -189,7 +170,6 @@ def enketo_url(form_url,
     req = requests.post(
         url, data=values, auth=(settings.ENKETO_API_TOKEN, ''),
         verify=getattr(settings, 'VERIFY_SSL', True))
-
     if req.status_code in [200, 201]:
         try:
             response = req.json()
@@ -208,7 +188,10 @@ def enketo_url(form_url,
         try:
             response = req.json()
         except ValueError:
-            pass
+            report_exception("HTTP Error {}".format(req.status_code),
+                             req.text,
+                             sys.exc_info())
+            raise EnketoError()
         else:
             if 'message' in response:
                 raise EnketoError(response['message'])
@@ -238,7 +221,7 @@ def create_attachments_zipfile(attachments):
                 try:
                     with default_storage.open(attachment.media_file.name) as f:
                         z.writestr(attachment.media_file.name, f.read())
-                except Exception, e:
+                except Exception as e:
                     report_exception("Create attachment zip exception", e)
 
     return tmp

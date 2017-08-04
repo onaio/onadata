@@ -1,8 +1,6 @@
 import os
 import re
-import sys
 import tempfile
-import traceback
 from datetime import datetime
 from wsgiref.util import FileWrapper
 from xml.dom import Node
@@ -15,7 +13,6 @@ from django.contrib.auth.models import User
 from django.core.exceptions import (MultipleObjectsReturned, PermissionDenied,
                                     ValidationError)
 from django.core.files.storage import get_storage_class
-from django.core.mail import mail_admins
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.http import (HttpResponse, HttpResponseNotFound,
@@ -26,7 +23,6 @@ from django.utils.encoding import DjangoUnicodeDecodeError
 from django.utils.translation import ugettext as _
 from modilabs.utils.subprocess_timeout import ProcessTimedOut
 from multidb.pinning import use_master
-from raven.contrib.django.raven_compat.models import client
 
 from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.logger.models.instance import (
@@ -375,33 +371,6 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
         instance = None
 
     return [error, instance]
-
-
-def report_exception(subject, info, exc_info=None):
-    # Add hostname to subject mail
-
-    subject = "{0} - {1}".format(subject, settings.HOSTNAME)
-    if exc_info:
-        cls, err = exc_info[:2]
-        message = _(u"Exception in request:"
-                    u" %(class)s: %(error)s")\
-            % {'class': cls.__name__, 'error': err}
-        message += u"".join(traceback.format_exception(*exc_info))
-
-        # send to sentry
-        try:
-            client.captureException(exc_info)
-        except Exception:
-            # fail silently
-            pass
-    else:
-        message = u"%s" % info
-
-    if settings.DEBUG or settings.TESTING_MODE:
-        sys.stdout.write("Subject: %s\n" % subject)
-        sys.stdout.write("Message: %s\n" % message)
-    else:
-        mail_admins(subject=subject, message=message)
 
 
 def response_with_mimetype_and_name(mimetype,

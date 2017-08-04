@@ -43,6 +43,14 @@ def enketo_mock(url, request):
     return response
 
 
+@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
+def enketo_mock_http_413(url, request):
+    response = requests.Response()
+    response.status_code = 413
+    response._content = ''
+    return response
+
+
 def _data_list(formid):
     return [{
         u'id': formid,
@@ -1127,6 +1135,11 @@ class TestDataViewSet(TestBase):
             self.assertEqual(
                 response.data['url'],
                 "https://hmh2a.enketo.ona.io")
+
+        with HTTMock(enketo_mock_http_413):
+            response = view(request, pk=formid, dataid=dataid)
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.get('Cache-Control'), None)
 
     def test_get_form_public_data(self):
         self._make_submissions()

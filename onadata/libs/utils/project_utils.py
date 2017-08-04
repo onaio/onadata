@@ -7,7 +7,7 @@ from onadata.apps.logger.models import Project, XForm
 from onadata.libs.permissions import (ROLES, OwnerRole,
                                       get_object_users_with_permissions)
 from onadata.libs.utils.common_tags import OWNER_TEAM_NAME
-from onadata.libs.utils.logger_tools import report_exception
+from onadata.libs.utils.common_tools import report_exception
 
 
 def set_project_perms_to_xform(xform, project):

@@ -19,8 +19,8 @@ from onadata.libs.utils.async_status import (FAILED, async_status,
                                              celery_state_to_status)
 from onadata.libs.utils.common_tags import MULTIPLE_SELECT_TYPE
 from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
-from onadata.libs.utils.logger_tools import (dict2xml, report_exception,
-                                             safe_create_instance)
+from onadata.libs.utils.logger_tools import dict2xml, safe_create_instance
+from onadata.libs.utils.common_tools import report_exception
 
 DEFAULT_UPDATE_BATCH = 100
 PROGRESS_BATCH_UPDATE = getattr(settings, 'EXPORT_TASK_PROGRESS_UPDATE_BATCH',
