@@ -358,12 +358,7 @@ class InstanceBaseClass(object):
         return self.numeric_converter(instance_dict)
 
     def get_notes(self):
-        return [{"id": note.id,
-                 "owner": note.created_by.username,
-                 "note": note.note,
-                 "instance_field": note.instance_field,
-                 "created_by": note.created_by.id}
-                for note in self.notes.all()]
+        return [note.get_data() for note in self.notes.all()]
 
     def get_root_node(self):
         self._set_parser()
