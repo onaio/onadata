@@ -6,7 +6,7 @@ from django.core.management.base import CommandError
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.xform import XForm
-from onadata.libs.utils.logger_tools import report_exception
+from onadata.libs.utils.common_tools import report_exception
 
 
 class TestPublishXLS(TestBase):
