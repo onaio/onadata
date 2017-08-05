@@ -9,10 +9,11 @@
 -e git+https://github.com/jbalogh/django-nose.git#egg=django-nose
 -e git+https://github.com/bfirsh/django-ordered-model.git@master#egg=django-ordered-model
 -e git+https://github.com/onaio/python-json2xlsclient.git#egg=python-json2xlsclient
--e git+https://github.com/ukanga/pyxform.git@refactor-pyxform-test-case#egg=pyxform
+-e git+https://github.com/XLSForm/pyxform.git@master#egg=pyxform
 alabaster==0.7.10         # via sphinx
 amqp==1.4.9               # via kombu, librabbitmq
 anyjson==0.3.3            # via kombu
+appnope==0.1.0            # via ipython
 argparse==1.4.0           # via unittest2
 astroid==1.5.3            # via pylint, pylint-celery, pylint-plugin-utils
 babel==2.4.0              # via sphinx
@@ -23,6 +24,7 @@ celery==3.1.25
 certifi==2017.4.17        # via requests
 chardet==3.0.3            # via requests
 configparser==3.5.0       # via flake8, pylint
+contextlib2==0.5.5        # via raven
 decorator==4.0.11         # via ipython, traitlets
 defusedxml==0.5.0         # via djangorestframework-xml
 dict2xml==1.5
@@ -109,6 +111,7 @@ python-dateutil==2.6.0
 python-digest==1.7
 python-memcached==1.58
 pytz==2017.2
+raven==6.1.0
 recaptcha-client==1.0.6
 requests==2.17.3
 rsa==3.4.2                # via oauth2client
