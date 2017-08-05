@@ -5,6 +5,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.libs.serializers.merged_xform_serializer import \
     MergedXFormSerializer
+from onadata.libs.utils.user_auth import get_user_default_project
 
 MD = """
 | survey |
@@ -40,6 +41,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
         self.assertTrue(serializer.errors['xforms'],
                         [u'This field is required.'])
 
+        self.project = get_user_default_project(self.user)
         xform1 = self._publish_md(MD, self.user, id_string='a')
         data = {
             'xforms': [],
