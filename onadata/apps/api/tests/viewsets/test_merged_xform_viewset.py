@@ -13,7 +13,8 @@ from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import Instance, MergedXForm
+from onadata.apps.logger.models import Instance, MergedXForm, XForm
+from onadata.apps.logger.models.instance import FormIsMergedDatasetError
 from onadata.libs.utils.export_tools import get_osm_data_kwargs
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -380,3 +381,13 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.data['data_type'], 'categorized')
         self.assertEqual(response.data['data'][0]['fruit'], 'Mango')
         self.assertEqual(response.data['data'][1]['fruit'], 'Orange')
+
+    def test_submissions_not_allowed(self):
+        """Test submissions to a merged form is not allowed"""
+        merged_dataset = self._create_merged_dataset()
+        merged_xform = XForm.objects.get(pk=merged_dataset['id'])
+
+        # make submission to form a
+        xml = '<data id="a"><fruit>orange</fruit></data>'
+        with self.assertRaises(FormIsMergedDatasetError):
+            Instance(xform=merged_xform, xml=xml).save()
