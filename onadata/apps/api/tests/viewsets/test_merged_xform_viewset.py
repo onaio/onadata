@@ -252,7 +252,8 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         # make submission to form b
         form_b = merged_xform.xforms.all()[1]
         xml = '<data id="b"><fruit>mango</fruit></data>'
-        Instance(xform=form_b, xml=xml).save()
+        last_submission = Instance(xform=form_b, xml=xml)
+        last_submission.save()
         response = view(request, pk=merged_dataset['id'])
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
@@ -265,6 +266,10 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         response = detail_view(request, pk=merged_dataset['id'])
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['num_of_submissions'], 2)
+
+        # check last_submission_time
+        self.assertEqual(response.data['last_submission_time'],
+                         last_submission.date_created)
 
     def test_md_data_viewset(self):
         """Test retrieving data of a merged dataset at the /data endpoint"""

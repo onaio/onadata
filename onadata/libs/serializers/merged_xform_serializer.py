@@ -7,11 +7,11 @@ import base64
 import uuid
 
 from django.utils.translation import ugettext as _
+from pyxform.builder import create_survey_element_from_json
 from rest_framework import serializers
 
 from onadata.apps.logger.models import MergedXForm, XForm
 from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
-from pyxform.builder import create_survey_element_from_json
 
 
 def minimum_two_xforms(value):
@@ -45,8 +45,11 @@ class XFormListField(serializers.ManyRelatedField):
     """XFormSerializer"""
 
     def to_representation(self, iterable):
-        return [dict(i) for i in XFormSerializer(iterable, many=True,
-                                                 context=self.context).data]
+        return [
+            dict(i)
+            for i in XFormSerializer(
+                iterable, many=True, context=self.context).data
+        ]
 
 
 class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
@@ -63,11 +66,12 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
             view_name='xform-detail'),
         validators=[minimum_two_xforms])
     num_of_submissions = serializers.SerializerMethodField()
+    last_submission_time = serializers.SerializerMethodField()
 
     class Meta:
         model = MergedXForm
         fields = ('url', 'id', 'xforms', 'name', 'project', 'title',
-                  'num_of_submissions')
+                  'num_of_submissions', 'last_submission_time')
 
     # pylint: disable=no-self-use
     def get_num_of_submissions(self, obj):
@@ -79,6 +83,16 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
         value = getattr(obj, 'number_of_submissions', obj.num_of_submissions)
 
         return value
+
+    def get_last_submission_time(self, obj):
+        """Return datetime of last submission from all forms"""
+        values = [
+            x.last_submission_time
+            for x in obj.xforms.only('last_submission_time')
+            if x.last_submission_time
+        ]
+        if values:
+            return sorted(values, reverse=True)[0]
 
     def create(self, validated_data):
         # we get the xml and json from the first xforms
@@ -96,9 +110,8 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
         validated_data['user'] = validated_data['project'].user
         validated_data['created_by'] = request.user
         validated_data['is_merged_dataset'] = True
-        validated_data['num_of_submissions'] = sum([
-            __.num_of_submissions for __ in validated_data.get('xforms')
-        ])
+        validated_data['num_of_submissions'] = sum(
+            [__.num_of_submissions for __ in validated_data.get('xforms')])
         validated_data['instances_with_geopoints'] = any([
             __.instances_with_geopoints for __ in validated_data.get('xforms')
         ])
