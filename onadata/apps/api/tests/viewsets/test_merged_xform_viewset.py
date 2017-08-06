@@ -12,6 +12,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
 from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
+from onadata.apps.api.viewsets.xform_list_viewset import XFormListViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Instance, MergedXForm, XForm
 from onadata.apps.logger.models.instance import FormIsMergedDatasetError
@@ -391,3 +392,14 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         xml = '<data id="a"><fruit>orange</fruit></data>'
         with self.assertRaises(FormIsMergedDatasetError):
             Instance(xform=merged_xform, xml=xml).save()
+
+    def test_openrosa_form_list(self):
+        """Test merged dataset form is not included in /formList"""
+        merged_dataset = self._create_merged_dataset()
+        merged_xform = XForm.objects.get(pk=merged_dataset['id'])
+        view = XFormListViewSet.as_view({"get": "list"})
+        request = self.factory.get('/')
+        response = view(request, username=self.user.username)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(merged_xform.id_string,
+                         [_['formID'] for _ in response.data])
