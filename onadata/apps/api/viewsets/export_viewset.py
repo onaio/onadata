@@ -1,5 +1,7 @@
 import os
 
+from django.shortcuts import get_object_or_404
+
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ReadOnlyModelViewSet
@@ -22,7 +24,7 @@ class ExportViewSet(DestroyModelMixin, ReadOnlyModelViewSet):
                               TempTokenAuthentication,
                               TempTokenURLParameterAuthentication,
                               BasicAuthentication)
-    queryset = Export.objects.filter()
+    queryset = Export.objects.all()
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
         renderers.CSVRenderer,
         renderers.CSVZIPRenderer,
@@ -38,7 +40,7 @@ class ExportViewSet(DestroyModelMixin, ReadOnlyModelViewSet):
     permission_classes = [ExportDjangoObjectPermission]
 
     def retrieve(self, request, *args, **kwargs):
-        export = self.get_object()
+        export = get_object_or_404(self.queryset, pk=kwargs.get('pk'))
         filename, extension = os.path.splitext(export.filename)
         extension = extension[1:]
 

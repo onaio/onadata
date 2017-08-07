@@ -16,6 +16,7 @@ from onadata.apps.api.tools import get_user_profile_or_none, \
 from onadata.apps.logger.models import XForm, Instance
 from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import DataView
+from onadata.apps.viewer.models.export import Export
 
 SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
 
@@ -62,6 +63,17 @@ class ExportDjangoObjectPermission(IsAuthenticated,
                                    ViewDjangoObjectPermissions):
 
     def has_permission(self, request, view):
+        export_pk = view.kwargs.get('pk', None)
+        if export_pk:
+            try:
+                this_export = Export.objects.get(pk=export_pk)
+            except Export.DoesNotExist:
+                pass
+            else:
+                if (this_export.xform.shared is True
+                        or this_export.xform.project.shared is True):
+                    return True
+
         is_authenticated = (
             request and request.user and request.user.is_authenticated()
         )
@@ -76,7 +88,6 @@ class ExportDjangoObjectPermission(IsAuthenticated,
     def has_object_permission(self, request, view, obj):
         model_cls = XForm
         user = request.user
-
         return self._has_object_permission(request, model_cls, user,
                                            obj.xform)
 
