@@ -177,6 +177,26 @@ class XFormMixin(object):
             cache.set(key, count)
             return count
 
+    def get_last_submission_time(self, obj):
+        """Return datetime of last submission
+
+        If a form is a merged dataset then it is picked from the list of forms
+        attached to that merged dataset.
+        """
+        if 'last_submission_time' not in self.fields:
+            return None
+
+        if obj.is_merged_dataset:
+            values = [
+                x.last_submission_time
+                for x in obj.mergedxform.xforms.only('last_submission_time')
+                if x.last_submission_time
+            ]
+            if values:
+                return sorted(values, reverse=True)[0]
+
+        return obj.last_submission_time
+
 
 class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     formid = serializers.ReadOnlyField(source='id')
@@ -202,6 +222,7 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     enketo_url = serializers.SerializerMethodField()
     enketo_preview_url = serializers.SerializerMethodField()
     num_of_submissions = serializers.SerializerMethodField()
+    last_submission_time = serializers.SerializerMethodField()
     data_views = serializers.SerializerMethodField()
 
     class Meta:
@@ -239,6 +260,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     enketo_url = serializers.SerializerMethodField()
     enketo_preview_url = serializers.SerializerMethodField()
     num_of_submissions = serializers.SerializerMethodField()
+    last_submission_time = serializers.SerializerMethodField()
     form_versions = serializers.SerializerMethodField()
     data_views = serializers.SerializerMethodField()
 

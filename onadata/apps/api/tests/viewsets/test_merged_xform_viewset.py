@@ -50,6 +50,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         view = MergedXFormViewSet.as_view({
             'post': 'create',
         })
+        # pylint: disable=attribute-defined-outside-init
         self.project = get_user_default_project(self.user)
         xform1 = self._publish_md(MD, self.user, id_string='a')
         xform2 = self._publish_md(MD, self.user, id_string='b')
@@ -224,6 +225,9 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         detail_view = MergedXFormViewSet.as_view({
             'get': 'retrieve',
         })
+        xform_detail_view = XFormViewSet.as_view({
+            'get': 'retrieve',
+        })
 
         response = view(request, pk=merged_dataset['id'])
         self.assertEqual(response.status_code, 200)
@@ -264,8 +268,17 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         expected_fruit = ['orange', 'mango']
         self.assertEqual(fruit, expected_fruit)
 
-        # check num_of_submissions
+        # check num_of_submissions /merged-datasets/[pk]
         response = detail_view(request, pk=merged_dataset['id'])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['num_of_submissions'], 2)
+
+        # check last_submission_time
+        self.assertEqual(response.data['last_submission_time'],
+                         last_submission.date_created)
+
+        # check num_of_submissions /forms/[pk]
+        response = xform_detail_view(request, pk=merged_dataset['id'])
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['num_of_submissions'], 2)
 
