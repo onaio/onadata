@@ -4,6 +4,8 @@ from django.conf import settings
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.tasks import create_async_export
+from onadata.apps.viewer.tasks import check_pending_exports
+from onadata.apps.viewer.tasks import delete_old_failed_exports
 
 
 class TestExportTasks(TestBase):
@@ -38,3 +40,11 @@ class TestExportTasks(TestBase):
             self.assertTrue(export.id)
             self.assertIn("username", options)
             self.assertEquals(options.get("id_string"), self.xform.id_string)
+
+    def test_check_pending_exports(self):
+        result = check_pending_exports.delay()
+        self.assertTrue(result)
+
+    def test_delete_old_failed_exports(self):
+        result = delete_old_failed_exports.delay()
+        self.assertTrue(result)

@@ -435,6 +435,7 @@ ZIP_EXPORT_COUNTDOWN = 3600  # 1 hour
 
 # number of records on export or CSV import before a progress update
 EXPORT_TASK_PROGRESS_UPDATE_BATCH = 1000
+EXPORT_TASK_LIFESPAN = 6  # six hours
 
 # default content length for submission requests
 DEFAULT_CONTENT_LENGTH = 10000000
