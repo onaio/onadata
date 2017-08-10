@@ -39,6 +39,7 @@ build
 *~
 *orig
 celerybeat-schedule
+celerybeat.pid
 *.swp
 .venv
 *.ropeproject
