@@ -81,39 +81,11 @@ class TestExportViewSet(PyxformTestCase, TestBase):
         self.assertTrue(bool(response.data))
         self.assertEqual(status.HTTP_200_OK, response.status_code)
 
-    def test_export_public_form_project(self):
-        self._create_user_and_login()
-        self._publish_transportation_form()
-        self.xform.shared = True
-        self.xform.save()
-        self.xform.project.shared = True
-        self.xform.project.save()
-        export = generate_export(Export.CSV_EXPORT,
-                                 self.xform,
-                                 None,
-                                 {"extension": "csv"})
-        request = self.factory.get('/export')
-        response = self.view(request, pk=export.pk)
-        self.assertEqual(status.HTTP_200_OK, response.status_code)
-
-    def test_export_public_form(self):
-        self._create_user_and_login()
-        self._publish_transportation_form()
-        self.xform.shared = True
-        self.xform.save()
-        export = generate_export(Export.CSV_EXPORT,
-                                 self.xform,
-                                 None,
-                                 {"extension": "csv"})
-        request = self.factory.get('/export')
-        response = self.view(request, pk=export.pk)
-        self.assertEqual(status.HTTP_200_OK, response.status_code)
-
     def test_export_public_project(self):
         self._create_user_and_login()
         self._publish_transportation_form()
-        self.xform.project.shared = True
-        self.xform.project.save()
+        self.xform.shared_data = True
+        self.xform.save()
         export = generate_export(Export.CSV_EXPORT,
                                  self.xform,
                                  None,
@@ -125,10 +97,8 @@ class TestExportViewSet(PyxformTestCase, TestBase):
     def test_export_public_authenticated(self):
         self._create_user_and_login()
         self._publish_transportation_form()
-        self.xform.shared = True
+        self.xform.shared_data = True
         self.xform.save()
-        self.xform.project.shared = True
-        self.xform.project.save()
         export = generate_export(Export.CSV_EXPORT,
                                  self.xform,
                                  None,
@@ -141,17 +111,15 @@ class TestExportViewSet(PyxformTestCase, TestBase):
     def test_export_non_public_export(self):
         self._create_user_and_login()
         self._publish_transportation_form()
-        self.xform.shared = False
+        self.xform.shared_data = False
         self.xform.save()
-        self.xform.project.shared = False
-        self.xform.project.save()
         export = generate_export(Export.CSV_EXPORT,
                                  self.xform,
                                  None,
                                  {"extension": "csv"})
         request = self.factory.get('/export')
         response = self.view(request, pk=export.pk)
-        self.assertEqual(status.HTTP_401_UNAUTHORIZED, response.status_code)
+        self.assertEqual(status.HTTP_404_NOT_FOUND, response.status_code)
 
     def test_export_list_on_user(self):
         self._create_user_and_login()

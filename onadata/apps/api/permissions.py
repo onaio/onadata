@@ -16,7 +16,6 @@ from onadata.apps.api.tools import get_user_profile_or_none, \
 from onadata.apps.logger.models import XForm, Instance
 from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import DataView
-from onadata.apps.viewer.models.export import Export
 
 SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
 
@@ -58,25 +57,26 @@ class ViewDjangoObjectPermissions(DjangoObjectPermissions):
     }
 
 
-class ExportDjangoObjectPermission(IsAuthenticated,
-                                   AlternateHasObjectPermissionMixin,
+class ExportDjangoObjectPermission(AlternateHasObjectPermissionMixin,
                                    ViewDjangoObjectPermissions):
+    authenticated_users_only = False
+    perms_map = {
+        'GET': ['logger.view_xform'],
+        'OPTIONS': [],
+        'HEAD': [],
+        'POST': ['logger.add_xform'],
+        'PUT': ['logger.change_xform'],
+        'PATCH': ['logger.change_xform'],
+        'DELETE': ['logger.delete_xform'],
+    }
 
     def has_permission(self, request, view):
-        export_pk = view.kwargs.get('pk', None)
-        if export_pk:
-            try:
-                this_export = Export.objects.get(pk=export_pk)
-            except Export.DoesNotExist:
-                pass
-            else:
-                if (this_export.xform.shared is True
-                        or this_export.xform.project.shared is True):
-                    return True
-
         is_authenticated = (
             request and request.user and request.user.is_authenticated()
         )
+
+        if not is_authenticated:
+            view._ignore_model_permissions = True
 
         if view.action == 'destroy' and is_authenticated:
             return request.user.has_perms(['logger.delete_xform'])
@@ -88,8 +88,8 @@ class ExportDjangoObjectPermission(IsAuthenticated,
     def has_object_permission(self, request, view, obj):
         model_cls = XForm
         user = request.user
-        return self._has_object_permission(request, model_cls, user,
-                                           obj.xform)
+        return (obj.xform.shared_data or obj.xform.project.shared) or\
+            self._has_object_permission(request, model_cls, user, obj.xform)
 
 
 class DjangoObjectPermissionsAllowAnon(DjangoObjectPermissions):
@@ -122,7 +122,6 @@ class XFormPermissions(DjangoObjectPermissions):
 
         if request.method == 'DELETE' and view.action == 'labels':
             user = request.user
-
             return user.has_perm(CAN_CHANGE_XFORM, obj)
 
         if request.method == 'DELETE' and view.action == 'destroy':

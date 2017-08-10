@@ -1,7 +1,5 @@
 import os
 
-from django.shortcuts import get_object_or_404
-
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ReadOnlyModelViewSet
@@ -40,7 +38,7 @@ class ExportViewSet(DestroyModelMixin, ReadOnlyModelViewSet):
     permission_classes = [ExportDjangoObjectPermission]
 
     def retrieve(self, request, *args, **kwargs):
-        export = get_object_or_404(self.queryset, pk=kwargs.get('pk'))
+        export = self.get_object()
         filename, extension = os.path.splitext(export.filename)
         extension = extension[1:]
 
