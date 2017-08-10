@@ -173,20 +173,16 @@ class XFormPermissionFilterMixin(object):
             xform_qs = XForm.objects.filter(pk=xform.pk)
         else:
             xform_qs = XForm.objects.all()
-
         xform_qs = xform_qs.filter(deleted_at=None)
-
         if request.user.is_anonymous():
             xforms = xform_qs.filter(shared_data=True)
         else:
             xforms = super(XFormPermissionFilterMixin, self).filter_queryset(
                 request, xform_qs, view)
-
         return {"%s__in" % keyword: xforms}
 
     def _xform_filter_queryset(self, request, queryset, view, keyword):
         kwarg = self._xform_filter(request, view, keyword)
-
         return queryset.filter(**kwarg)
 
 

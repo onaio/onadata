@@ -22,7 +22,7 @@ class ExportViewSet(DestroyModelMixin, ReadOnlyModelViewSet):
                               TempTokenAuthentication,
                               TempTokenURLParameterAuthentication,
                               BasicAuthentication)
-    queryset = Export.objects.filter()
+    queryset = Export.objects.all()
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
         renderers.CSVRenderer,
         renderers.CSVZIPRenderer,
