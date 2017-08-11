@@ -375,7 +375,7 @@ def mark_expired_pending_exports_as_failed():
     run_every=(crontab(hour='*/7')),
     ignore_result=True
 )
-def delete_old_failed_exports():
+def delete_expired_failed_exports():
     """
     Delete old failed exports
     """
@@ -383,5 +383,4 @@ def delete_old_failed_exports():
     time_threshold = timezone.now() - timedelta(hours=task_lifespan)
     exports = Export.objects.filter(internal_status=Export.FAILED,
                                     created_on__lt=time_threshold)
-    for export in exports:
-        export.delete()
+    exports.delete()
