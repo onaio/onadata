@@ -1,8 +1,11 @@
 import sys
+from datetime import timedelta
 
 from celery import task
+from celery.task.schedules import crontab
 from django.conf import settings
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from requests import ConnectionError
 
 from onadata.apps.viewer.models.export import Export
@@ -349,3 +352,35 @@ def delete_export(export_id):
         export.delete()
         return True
     return False
+
+
+@task.periodic_task(
+    run_every=(crontab(hour='*/7')),
+    ignore_result=True
+)
+def mark_expired_pending_exports_as_failed():
+    """
+    Exports that have not completed within a set time should be marked as
+    failed
+    """
+    # import pdb; pdb.set_trace()
+    task_lifespan = settings.EXPORT_TASK_LIFESPAN
+    time_threshold = timezone.now() - timedelta(hours=task_lifespan)
+    exports = Export.objects.filter(internal_status=Export.PENDING,
+                                    created_on__lt=time_threshold)
+    exports.update(internal_status=Export.FAILED)
+
+
+@task.periodic_task(
+    run_every=(crontab(hour='*/7')),
+    ignore_result=True
+)
+def delete_expired_failed_exports():
+    """
+    Delete old failed exports
+    """
+    task_lifespan = settings.EXPORT_TASK_LIFESPAN
+    time_threshold = timezone.now() - timedelta(hours=task_lifespan)
+    exports = Export.objects.filter(internal_status=Export.FAILED,
+                                    created_on__lt=time_threshold)
+    exports.delete()
