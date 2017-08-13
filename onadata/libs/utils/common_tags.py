@@ -25,6 +25,7 @@ NAME = u"name"
 
 # extra fields that we're adding to our mongo doc
 XFORM_ID_STRING = u"_xform_id_string"
+XFORM_ID = u"_xform_id"
 STATUS = u"_status"
 ATTACHMENTS = u"_attachments"
 UUID = u"_uuid"

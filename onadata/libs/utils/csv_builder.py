@@ -18,7 +18,7 @@ from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID,
                                             GEOLOCATION, ID, NA_REP, NOTES,
                                             STATUS, SUBMISSION_TIME,
                                             SUBMITTED_BY, TAGS, UUID, VERSION,
-                                            XFORM_ID_STRING)
+                                            XFORM_ID_STRING, XFORM_ID)
 from onadata.libs.utils.export_builder import get_value_or_attachment_uri
 from onadata.libs.utils.export_builder import track_task_progress
 from onadata.libs.utils.model_tools import get_columns_with_hxl
@@ -131,7 +131,7 @@ class AbstractDataFrameBuilder(object):
     # fields NOT within the form def that we want to include
     ADDITIONAL_COLUMNS = [
         UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION, DURATION,
-        SUBMITTED_BY]
+        SUBMITTED_BY, XFORM_ID]
     BINARY_SELECT_MULTIPLES = False
     """
     Group functionality used by any DataFrameBuilder i.e. XLS, CSV and KML
