@@ -12,10 +12,12 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
 from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
+from onadata.apps.api.viewsets.open_data_viewset import OpenDataViewSet
 from onadata.apps.api.viewsets.xform_list_viewset import XFormListViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Instance, MergedXForm, XForm
 from onadata.apps.logger.models.instance import FormIsMergedDatasetError
+from onadata.apps.logger.models.open_data import get_or_create_opendata
 from onadata.libs.utils.export_tools import get_osm_data_kwargs
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -29,6 +31,13 @@ MD = """
 |         | fruits    | orange | Orange |
 |         | fruits    | mango  | Mango  |
 """
+
+
+def streaming_data(response):
+    """
+    Iterates through a streaming response to return a json list object
+    """
+    return json.loads(u''.join([i for i in response.streaming_content]))
 
 
 def _make_submissions_merged_datasets(merged_xform):
@@ -416,3 +425,20 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertNotIn(merged_xform.id_string,
                          [_['formID'] for _ in response.data])
+
+    def test_open_data(self):
+        """Test OpenDataViewSet data endpoint"""
+        merged_dataset = self._create_merged_dataset()
+        merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
+        _make_submissions_merged_datasets(merged_xform)
+        xform = XForm.objects.get(pk=merged_dataset['id'])
+        view = OpenDataViewSet.as_view({
+            'get': 'data'
+        })
+        _open_data = get_or_create_opendata(xform)[0]
+        uuid = _open_data.uuid
+        request = self.factory.get('/', **self.extra)
+        response = view(request, uuid=uuid)
+        self.assertEqual(response.status_code, 200)
+        # cast generator response to list so that we can get the response count
+        self.assertEqual(len(streaming_data(response)), 2)
