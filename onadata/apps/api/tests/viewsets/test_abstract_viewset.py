@@ -452,17 +452,19 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
                                  'Digest')
         return client
 
-    def _create_dataview(self, data=None):
+    def _create_dataview(self, data=None, project=None, xform=None):
         view = DataViewViewSet.as_view({
             'post': 'create'
         })
 
+        project = project if project else self.project
+        xform = xform if xform else self.xform
+
         if not data:
             data = {
                 'name': "My DataView",
-                'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
-                'project': 'http://testserver/api/v1/projects/%s'
-                           % self.project.pk,
+                'xform': 'http://testserver/api/v1/forms/%s' % xform.pk,
+                'project': 'http://testserver/api/v1/projects/%s' % project.pk,
                 'columns': '["name", "age", "gender"]',
                 'query': '[{"column":"age","filter":">","value":"20"},'
                          '{"column":"age","filter":"<","value":"50"}]'
@@ -475,8 +477,8 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         self.assertEquals(response.status_code, 201)
 
         # load the created dataview
-        self.data_view = DataView.objects.filter(xform=self.xform,
-                                                 project=self.project).last()
+        self.data_view = DataView.objects.filter(xform=xform,
+                                                 project=project).last()
 
         self.assertEquals(response.data['name'], data['name'])
         self.assertEquals(response.data['xform'], data['xform'])

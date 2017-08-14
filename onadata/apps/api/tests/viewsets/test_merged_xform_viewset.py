@@ -11,6 +11,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
+from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
 from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
 from onadata.apps.api.viewsets.open_data_viewset import OpenDataViewSet
 from onadata.apps.api.viewsets.xform_list_viewset import XFormListViewSet
@@ -432,9 +433,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
         _make_submissions_merged_datasets(merged_xform)
         xform = XForm.objects.get(pk=merged_dataset['id'])
-        view = OpenDataViewSet.as_view({
-            'get': 'data'
-        })
+        view = OpenDataViewSet.as_view({'get': 'data'})
         _open_data = get_or_create_opendata(xform)[0]
         uuid = _open_data.uuid
         request = self.factory.get('/', **self.extra)
@@ -442,3 +441,28 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         # cast generator response to list so that we can get the response count
         self.assertEqual(len(streaming_data(response)), 2)
+
+    def test_filtered_dataset(self):
+        """
+        Test a filtered datasets created on a merged xform returns data from
+        the linked forms.
+        """
+        merged_dataset = self._create_merged_dataset()
+        xform = XForm.objects.get(pk=merged_dataset['id'])
+        _make_submissions_merged_datasets(xform.mergedxform)
+        self.assertTrue(xform.is_merged_dataset)
+        data = {
+            'name': "My DataView",
+            'xform': 'http://testserver/api/v1/forms/%s' % xform.pk,
+            'project':
+            'http://testserver/api/v1/projects/%s' % xform.project.pk,
+            # ensure there's an attachment column(photo) in you dataview
+            'columns': '["fruit"]'
+        }
+        view = DataViewViewSet.as_view({'get': 'data'})
+
+        self._create_dataview(data=data, project=xform.project, xform=xform)
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
