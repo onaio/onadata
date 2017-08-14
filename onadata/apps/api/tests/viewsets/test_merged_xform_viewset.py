@@ -6,6 +6,7 @@ Test merged dataset functionality.
 import csv
 import json
 from cStringIO import StringIO
+from django.test.utils import override_settings
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
@@ -342,6 +343,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['fruit'], 'orange')
 
+    @override_settings(EXTRA_COLUMNS=['_xform_id'])
     def test_md_csv_export(self):
         """Test CSV export of a merged dataset"""
         merged_dataset = self._create_merged_dataset()
@@ -368,8 +370,10 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         row2 = csv_reader.next()
         self.assertEqual(row2[0], 'mango')
 
-    def test_osm_filter(self):
-        """Test CSV export of a merged dataset"""
+    def test_get_osm_data_kwargs(self):
+        """
+        Test get_osm_data_kwargs returns correct kwargs for a merged dataset.
+        """
         merged_dataset = self._create_merged_dataset()
         merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
         pks = [_ for _ in merged_xform.xforms.values_list('id', flat=True)]
