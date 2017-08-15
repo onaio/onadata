@@ -224,6 +224,15 @@ def save_attachments(xform, instance, media_files):
             extension=extension)
     update_instance_attachment_tracking(instance)
 
+    instance.total_media = len([m for m in instance.get_dict().keys() if m in
+                                xform.get_media_survey_xpaths()])
+    instance.media_count = instance.attachments.count()
+    instance.media_all_received = instance.media_count == \
+        instance.total_media
+    instance.save(update_fields=['total_media',
+                                 'media_count',
+                                 'media_all_received'])
+
 
 def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
                     date_created_override):
