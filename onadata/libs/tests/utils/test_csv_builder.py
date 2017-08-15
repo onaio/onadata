@@ -120,6 +120,7 @@ class TestCSVDataFrameBuilder(TestBase):
             u'web_browsers/chrome',
             u'web_browsers/ie',
             u'web_browsers/safari',
+            u'_xform_id',
         ] + AbstractDataFrameBuilder.ADDITIONAL_COLUMNS +\
             AbstractDataFrameBuilder.IGNORED_COLUMNS
         try:
@@ -158,6 +159,7 @@ class TestCSVDataFrameBuilder(TestBase):
             u'web_browsers/safari': False,
             u'web_browsers/firefox': False,
             u'info/name': u'Adam',
+            u'_xform_id': self.xform.pk,
         }
         self.assertEqual(expected_data_0, data_0)
 
@@ -448,6 +450,7 @@ class TestCSVDataFrameBuilder(TestBase):
             data_0.pop(item)
         expected_data_0 = {
             u'_xform_id_string': u'groups_in_repeats',
+            u'_xform_id': self.xform.pk,
             u'_status': u'submitted_via_web',
             u'_tags': u'',
             u'_notes': u'',
