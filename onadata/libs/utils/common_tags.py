@@ -39,6 +39,12 @@ SUBMITTED_BY = u"_submitted_by"
 VERSION = u"_version"
 DURATION = u"_duration"
 
+# fields to deal with media attachments and keep track of how many
+# have been received
+MEDIA_ALL_RECEIVED = u"_media_all_received"
+TOTAL_MEDIA = u"_total_media"
+MEDIA_COUNT = u"_media_count"
+
 INSTANCE_ID = u"instanceID"
 META_INSTANCE_ID = u"meta/instanceID"
 INDEX = u"_index"

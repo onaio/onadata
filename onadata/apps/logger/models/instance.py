@@ -25,7 +25,8 @@ from onadata.apps.logger.xform_instance_parser import XFormInstanceParser,\
 from onadata.libs.utils.common_tags import ATTACHMENTS, BAMBOO_DATASET_ID,\
     DELETEDAT, EDITED, GEOLOCATION, ID, MONGO_STRFTIME, NOTES, \
     SUBMISSION_TIME, TAGS, UUID, XFORM_ID_STRING, SUBMITTED_BY, VERSION, \
-    STATUS, DURATION, START, END, LAST_EDITED, XFORM_ID
+    STATUS, DURATION, START, END, LAST_EDITED, MEDIA_ALL_RECEIVED, \
+    TOTAL_MEDIA, MEDIA_COUNT, XFORM_ID
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import safe_delete
@@ -301,7 +302,6 @@ class InstanceBaseClass(object):
         doc = self.json or {} if load_existing else {}
         # Get latest dict
         doc = self.get_dict()
-
         if self.id:
             doc.update({
                 UUID: self.uuid,
@@ -331,6 +331,10 @@ class InstanceBaseClass(object):
 
             doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
 
+            doc[TOTAL_MEDIA] = self.total_media
+            doc[MEDIA_COUNT] = self.media_count
+            doc[MEDIA_ALL_RECEIVED] = self.media_all_received
+
             edited = False
             if hasattr(self, 'last_edited'):
                 edited = self.last_edited is not None
@@ -339,7 +343,6 @@ class InstanceBaseClass(object):
             edited and doc.update({
                 LAST_EDITED: convert_to_serializable_date(self.last_edited)
             })
-
         return doc
 
     def _set_parser(self):
@@ -422,6 +425,15 @@ class Instance(models.Model, InstanceBaseClass):
 
     # store a geographic objects associated with this instance
     geom = models.GeometryCollectionField(null=True)
+
+    # Keep track of whether all media attachments have been received
+    media_all_received = models.BooleanField(
+        _("Received All Media Attachemts"),
+        default=True)
+    total_media = models.PositiveIntegerField(_("Total Media Attachments"),
+                                              default=0)
+    media_count = models.PositiveIntegerField(_("Received Media Attachments"),
+                                              default=0)
 
     tags = TaggableManager()
 
