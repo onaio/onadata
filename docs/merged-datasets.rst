@@ -1,9 +1,9 @@
 Merged Datasets
 ***************
 
-This endpoint provides access to data from multiple forms Merged datasets should have the same functionality as the forms endpoint with the difference being:
+This endpoint provides access to data from multiple forms. Merged datasets should have the same functionality as the forms endpoint with the difference being:
 
-- They do not accept submissions directly
+- They do not accept submissions directly, submissions to individual forms will be reflected in merged datasets..
 - No edits are allowed on the merged dataset, edits should be applied on the individual form.
 
 Merged datasets will only display the fields that are common to all the forms that are being merged.
@@ -15,8 +15,8 @@ Where:
 Definition
 ^^^^^^^^^^
 - ``name`` - Name or title of the merged dataset (required)
-- ``project`` -  Project for the merged dataset (required)
-- ``xforms`` -  list of forms to merge (required, at least 2 forms should be provided )
+- ``project`` - Project for the merged dataset (required)
+- ``xforms`` - List of forms to merge (required, at least 2 forms should be provided)
 
 
 Create a new Merged Dataset
@@ -165,12 +165,12 @@ Example Response
         ]
 
 How data in parent forms differs from and affects the merged xform
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A merged dataset combines data from multiple forms into one. It creates a new form structure from the intersection of the fields from the forms being merged.
+A merged dataset combines data from multiple forms into one form. It creates a new form structure from the intersection of the fields in the forms being merged.
 
 A merged dataset:
- - Does not allow submissions or data edits, this can only be done on the individual forms
- - Data deleted from the individual forms will also not be present in the mereged dataset
- - Form replacement doesn't cause regenation of the merged dataset, you have to create a new merged dataset
- - It has it's own form structure, which is not replaceable the same way you could replace an individual form when changing certain aspects of a form
+ - Does not allow submissions or data edits, this can only be done on the individual forms.
+ - Data deleted from the individual forms will also not be present in the mereged dataset.
+ - Form replacement is not supported.
+ - It has it's own form structure, which is not replaceable the same way you could replace an individual form when changing certain aspects of a form.
