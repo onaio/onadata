@@ -445,10 +445,10 @@ class TestExportBuilder(PyxformTestCase, TestBase):
                        returnHeader=True) as reader:
             rows = [r for r in reader]
             self.assertTrue(len(rows) > 1)
-            self.assertEqual(rows[0][0],  'expense_date')
-            self.assertEqual(rows[1][0],  '2013-01-03')
-            self.assertEqual(rows[0][1],  'A.gdate')
-            self.assertEqual(rows[1][1],  '2017-06-13')
+            self.assertEqual(rows[0][0], 'expense_date')
+            self.assertEqual(rows[1][0], '2013-01-03')
+            self.assertEqual(rows[0][1], 'A.gdate')
+            self.assertEqual(rows[1][1], '2017-06-13')
             self.assertEqual(rows[0][5], '@_submission_time')
             self.assertEqual(rows[1][5], '2016-11-21 03:43:43')
 
@@ -460,10 +460,10 @@ class TestExportBuilder(PyxformTestCase, TestBase):
         |        | type              | name         | label        |
         |        | select one yes_no | expensed     | Expensed?    |
 
-        | choices |
-        |         | list name | name   | label  |
-        |         | yes_no    | 1      | Yes    |
-        |         | yes_no    | 09      | No     |
+        | choices |           |      |       |
+        |         | list name | name | label |
+        |         | yes_no    | 1    | Yes   |
+        |         | yes_no    | 09   | No    |
         """
         survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
         data = [{"expensed": "09",
@@ -488,7 +488,7 @@ class TestExportBuilder(PyxformTestCase, TestBase):
                        returnHeader=True) as reader:
             rows = [r for r in reader]
             self.assertTrue(len(rows) > 1)
-            self.assertEqual(rows[1][0],  "09")
+            self.assertEqual(rows[1][0], "09")
             self.assertEqual(rows[1][4], '2016-11-21 03:43:43')
 
     def test_zipped_sav_export_with_numeric_select_one_field(self):
@@ -530,12 +530,12 @@ class TestExportBuilder(PyxformTestCase, TestBase):
             self.assertTrue(len(rows) > 1)
 
             # expensed 1
-            self.assertEqual(rows[0][0],  'expensed')
-            self.assertEqual(rows[1][0],  1)
+            self.assertEqual(rows[0][0], 'expensed')
+            self.assertEqual(rows[1][0], 1)
 
             # A/q1 1
-            self.assertEqual(rows[0][1],  'A.q1')
-            self.assertEqual(rows[1][1],  1)
+            self.assertEqual(rows[0][1], 'A.q1')
+            self.assertEqual(rows[1][1], 1)
 
             # _submission_time is a date string
             self.assertEqual(rows[0][5], '@_submission_time')
@@ -543,20 +543,22 @@ class TestExportBuilder(PyxformTestCase, TestBase):
 
     def test_zipped_sav_export_with_numeric_select_multiple_field(self):
         md = """
-        | survey |
-        |        | type                   | name         | label        |
-        |        | select_multiple yes_no | expensed     | Expensed?    |
-        |        | begin group            | A            | A            |
-        |        | select_multiple yes_no | q1           | Q1           |
-        |        | end group              |              |              |
+        | survey |                     |          |           |               |
+        |        | type                | name     | label     | choice_filter |
+        |        | select_multiple y_n | expensed | Expensed? |               |
+        |        | begin group         | A        | A         |               |
+        |        | select_multiple y_n | q1       | Q1        |               |
+        |        | select_multiple y_n | q2       | Q2        | n=1           |
+        |        | end group           |          |           |               |
 
-        | choices |
-        |         | list name | name   | label  |
-        |         | yes_no    | 1      | Yes    |
-        |         | yes_no    | 0      | No     |
+        | choices |           |      |       |
+        |         | list name | name | label |
+        |         | y_n       | 1    | Yes   |
+        |         | y_n       | 0    | No    |
+        |         |           |      |       |
         """
         survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
-        data = [{"expensed": "1", "A/q1": "1",
+        data = [{"expensed": "1", "A/q1": "1", "A/q2": "1",
                  '_submission_time': u'2016-11-21T03:43:43.000-08:00'}]
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
@@ -577,40 +579,46 @@ class TestExportBuilder(PyxformTestCase, TestBase):
         with SavReader(os.path.join(temp_dir, "exp.sav"),
                        returnHeader=True) as reader:
             rows = [r for r in reader]
+            # import ipdb; ipdb.set_trace()
             self.assertTrue(len(rows) > 1)
 
-            self.assertEqual(rows[0][0],  "expensed")
-            self.assertEqual(rows[1][0],  "1")
+            self.assertEqual(rows[0][0], "expensed")
+            self.assertEqual(rows[1][0], "1")
 
             # expensed.1 is selected hence True, 1.00 or 1 in SPSS
-            self.assertEqual(rows[0][1],  "expensed.1")
+            self.assertEqual(rows[0][1], "expensed.1")
             self.assertEqual(rows[1][1], 1)
 
             # expensed.0 is not selected hence False, .00 or 0 in SPSS
-            self.assertEqual(rows[0][2],  "expensed.0")
+            self.assertEqual(rows[0][2], "expensed.0")
             self.assertEqual(rows[1][2], 0)
 
-            self.assertEqual(rows[0][3],  "A.q1")
-            self.assertEqual(rows[1][3],  "1")
+            self.assertEqual(rows[0][3], "A.q1")
+            self.assertEqual(rows[1][3], "1")
+
+            # ensure you get a numeric value for multiple select with choice
+            # filters
+            self.assertEqual(rows[0][6], "A.q2")
+            self.assertEqual(rows[1][6], "1")
 
             # expensed.1 is selected hence True, 1.00 or 1 in SPSS
-            self.assertEqual(rows[0][4],  "A.q1.1")
+            self.assertEqual(rows[0][4], "A.q1.1")
             self.assertEqual(rows[1][4], 1)
 
             # expensed.0 is not selected hence False, .00 or 0 in SPSS
-            self.assertEqual(rows[0][5],  "A.q1.0")
+            self.assertEqual(rows[0][5], "A.q1.0")
             self.assertEqual(rows[1][5], 0)
 
-            self.assertEqual(rows[0][9],  "@_submission_time")
-            self.assertEqual(rows[1][9], '2016-11-21 03:43:43')
+            self.assertEqual(rows[0][12], "@_submission_time")
+            self.assertEqual(rows[1][12], '2016-11-21 03:43:43')
 
         shutil.rmtree(temp_dir)
 
     def test_zipped_sav_export_with_zero_padded_select_multiple_field(self):
         md = """
-        | survey |
-        |        | type              | name         | label        |
-        |        | select_multiple yes_no | expensed     | Expensed?    |
+        | survey |                        |          |           |
+        |        | type                   | name     | label     |
+        |        | select_multiple yes_no | expensed | Expensed? |
 
         | choices |
         |         | list name | name   | label  |
@@ -651,9 +659,9 @@ class TestExportBuilder(PyxformTestCase, TestBase):
 
     def test_zipped_sav_export_with_values_split_select_multiple(self):
         md = """
-        | survey |
-        |        | type              | name         | label        |
-        |        | select_multiple yes_no | expensed     | Expensed?    |
+        | survey |                        |          |           |
+        |        | type                   | name     | label     |
+        |        | select_multiple yes_no | expensed | Expensed? |
 
         | choices |
         |         | list name | name   | label  |
@@ -684,7 +692,7 @@ class TestExportBuilder(PyxformTestCase, TestBase):
                        returnHeader=True) as reader:
             rows = [r for r in reader]
             self.assertTrue(len(rows) > 1)
-            self.assertEqual(rows[1][0],  "2 09")
+            self.assertEqual(rows[1][0], "2 09")
             # expensed.1 is selected hence True, 1.00 or 1 in SPSS
             self.assertEqual(rows[1][1], 2)
             # expensed.0 is not selected hence False, .00 or 0 in SPSS
@@ -1904,17 +1912,20 @@ class TestExportBuilder(PyxformTestCase, TestBase):
                 'title': u'county/king',
                 'type': 'string',
                 'xpath': u'county/king'
-            },  {
+            },
+            {
                 'label': u'county/Pierce',
                 'title': u'county/pierce',
                 'type': 'string',
                 'xpath': u'county/pierce'
-            },  {
+            },
+            {
                 'label': u'county/King',
                 'title': u'county/king',
                 'type': 'string',
                 'xpath': u'county/king'
-            },  {
+            },
+            {
                 'label': u'county/Cameron',
                 'title': u'county/cameron',
                 'type': 'string',

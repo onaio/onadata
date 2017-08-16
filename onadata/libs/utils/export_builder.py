@@ -22,7 +22,7 @@ from onadata.apps.logger.models.xform import _encode_for_mongo,\
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.common_tags import (
     ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION, BAMBOO_DATASET_ID,
-    DELETEDAT, INDEX, PARENT_INDEX, PARENT_TABLE_NAME,
+    DELETEDAT, INDEX, PARENT_INDEX, PARENT_TABLE_NAME, MULTIPLE_SELECT_TYPE,
     SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION)
 from onadata.libs.utils.mongo import _is_invalid_for_mongo,\
     _decode_from_mongo
@@ -859,7 +859,9 @@ class ExportBuilder(object):
                 element = data_dictionary.get_element(xpath)
                 if element and element.type == '' and value_select_multiples:
                     return is_all_numeric([element.name])
-                return element and element.type == ''
+                parent_xpath = '/'.join(xpath.split('/')[:-1])
+                parent = data_dictionary.get_element(parent_xpath)
+                return (parent and parent.type == MULTIPLE_SELECT_TYPE)
             elif element_type != 'select1':
                 return False
 
