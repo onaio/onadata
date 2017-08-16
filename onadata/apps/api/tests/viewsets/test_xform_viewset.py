@@ -29,7 +29,7 @@ from django.http import HttpResponseRedirect
 
 from onadata.apps.logger.models import Project
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
-    TestAbstractViewSet, get_response_content, filename_from_disposition
+    TestAbstractViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.logger.xform_instance_parser import XLSFormError
@@ -50,6 +50,8 @@ from onadata.libs.utils.cache_tools import (
     PROJ_FORMS_CACHE, XFORM_DATA_VERSIONS)
 from onadata.libs.utils.cache_tools import XFORM_PERMISSIONS_CACHE
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
+from onadata.libs.utils.common_tools import (
+    filename_from_disposition, get_response_content)
 
 
 @urlmatch(netloc=r'(.*\.)?ona\.io$', path=r'^/examples/forms/tutorial/form$')
@@ -3131,18 +3133,23 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get('/', data=data, **self.extra)
             response = view(request, pk=self.xform.pk, format='csv')
             self.assertEqual(response.status_code, 200)
+            data_id = self.xform.instances.first().pk
 
             content = get_response_content(response)
             expected_content = (
                 '\xef\xbb\xbfage,\xef\xbb\xbfname,\xef\xbb\xbfmeta/instanceID,'
+                '\xef\xbb\xbf_id,'
                 '\xef\xbb\xbf_uuid,\xef\xbb\xbf_submission_time,'
                 '\xef\xbb\xbf_tags,\xef\xbb\xbf_notes,\xef\xbb\xbf_version,'
                 '\xef\xbb\xbf_duration,\xef\xbb\xbf_submitted_by\n'
-                '\xef\xbb\xbf#age,,,,,,,,,\n29,\xef\xbb\xbfLionel Messi,'
+                '\xef\xbb\xbf#age,,,,,,,,,,\n29,\xef\xbb\xbfLionel Messi,'
                 '\xef\xbb\xbf''uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,'
+                '%s,'
                 '\xef\xbb\xbf74ee8b73-48aa-4ced-9072-862f93d49c16,\xef\xbb\xbf'
                 '2013-02-18T15:54:01,\xef\xbb\xbf,\xef\xbb\xbf,'
-                '\xef\xbb\xbf201604121155,\xef\xbb\xbf,\xef\xbb\xbfbob\n')
+                '\xef\xbb\xbf201604121155,\xef\xbb\xbf,\xef\xbb\xbfbob\n' %
+                data_id
+            )
             self.assertEqual(expected_content, content)
             headers = dict(response.items())
             self.assertEqual(headers['Content-Type'], 'application/csv')
@@ -3158,12 +3165,12 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             content = get_response_content(response)
             expected_content = (
-                'age,name,meta/instanceID,_uuid,_submission_time,_tags,'
+                'age,name,meta/instanceID,_id,_uuid,_submission_time,_tags,'
                 '_notes,_version,_duration,_submitted_by\n'
-                '#age,,,,,,,,,\n'
-                '29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,'
+                '#age,,,,,,,,,,\n'
+                '29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,%s,'
                 '74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01,'
-                ',,201604121155,,bob\n')
+                ',,201604121155,,bob\n' % data_id)
             self.assertEqual(expected_content, content)
 
             headers = dict(response.items())
@@ -3188,6 +3195,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                     "hxl_test", "hxl_example.xml"),
                 forced_submission_time=_submission_time)
             self.assertTrue(self.xform.has_hxl_support)
+            data_id = self.xform.instances.first().pk
 
             view = XFormViewSet.as_view({
                 'get': 'retrieve'
@@ -3206,11 +3214,11 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             content = get_response_content(response)
             expected_content = (
-                'age,name,meta/instanceID,_uuid,_submission_time,_tags,'
+                'age,name,meta/instanceID,_id,_uuid,_submission_time,_tags,'
                 '_notes,_version,_duration,_submitted_by\n'
                 '29,Lionel Messi,''uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,'
-                '74ee8b73-48aa-4ced-9072-862f93d49c16,'
-                '2013-02-18T15:54:01,,,201604121155,,bob\n')
+                '%s,74ee8b73-48aa-4ced-9072-862f93d49c16,'
+                '2013-02-18T15:54:01,,,201604121155,,bob\n' % data_id)
             self.assertEqual(expected_content, content)
             headers = dict(response.items())
             self.assertEqual(headers['Content-Type'], 'application/csv')
@@ -3225,12 +3233,12 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             content = get_response_content(response)
             expected_content = (
-                'age,name,meta/instanceID,_uuid,_submission_time,_tags,'
+                'age,name,meta/instanceID,_id,_uuid,_submission_time,_tags,'
                 '_notes,_version,_duration,_submitted_by\n'
-                '#age,,,,,,,,,\n'
+                '#age,,,,,,,,,,\n'
                 '29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,'
-                '74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01,'
-                ',,201604121155,,bob\n')
+                '%s,74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01,'
+                ',,201604121155,,bob\n' % data_id)
             self.assertEqual(expected_content, content)
 
             headers = dict(response.items())
@@ -3377,12 +3385,9 @@ class TestXFormViewSet(TestAbstractViewSet):
             basename, ext = os.path.splitext(filename)
             self.assertEqual(ext, '.csv')
 
-            content = get_response_content(response)
-            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
-                                          'viewer', 'tests', 'fixtures',
-                                          'transportation_no_group_names.csv')
-            with open(test_file_path, 'r') as test_file:
-                self.assertEqual(content, test_file.read())
+            expected_data = ['n/a']
+            key = 'available_transportation_types_to_referral_facility_other'  # noqa
+            self._validate_csv_export(response, None, key, expected_data)
 
             request = self.factory.get('/', **self.extra)
             response = view(request, pk=self.xform.pk, format='csv')
@@ -3396,12 +3401,9 @@ class TestXFormViewSet(TestAbstractViewSet):
             basename, ext = os.path.splitext(filename)
             self.assertEqual(ext, '.csv')
 
-            content = get_response_content(response)
-            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
-                                          'viewer', 'tests', 'fixtures',
-                                          'transportation.csv')
-            with open(test_file_path, 'r') as test_file:
-                self.assertEqual(content, test_file.read())
+            expected_data = ['n/a']
+            key = 'transport/available_transportation_types_to_referral_facility_other'  # noqa
+            self._validate_csv_export(response, None, key, expected_data)
 
     def test_csv_export_no_new_generated(self):
         with HTTMock(enketo_mock):
@@ -3434,13 +3436,6 @@ class TestXFormViewSet(TestAbstractViewSet):
             basename, ext = os.path.splitext(filename)
             self.assertEqual(ext, '.csv')
 
-            content = get_response_content(response)
-            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
-                                          'viewer', 'tests', 'fixtures',
-                                          'transportation.csv')
-            with open(test_file_path, 'r') as test_file:
-                self.assertEqual(content, test_file.read())
-
             request = self.factory.get('/', **self.extra)
             response = view(request, pk=self.xform.pk, format='csv')
             self.assertEqual(response.status_code, 200)
@@ -3455,13 +3450,6 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertNotIn(GROUPNAME_REMOVED_FLAG, filename)
             basename, ext = os.path.splitext(filename)
             self.assertEqual(ext, '.csv')
-
-            content = get_response_content(response)
-            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
-                                          'viewer', 'tests', 'fixtures',
-                                          'transportation.csv')
-            with open(test_file_path, 'r') as test_file:
-                self.assertEqual(content, test_file.read())
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch('onadata.libs.utils.api_export_tools.AsyncResult')
@@ -3587,7 +3575,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                 forced_submission_time=_submission_time)
             curr_time += timedelta(days=days)
 
-    def _validate_csv_export(self, response, test_file_path):
+    def _validate_csv_export(self, response, test_file_path, field=None,
+                             test_data=None):
         headers = dict(response.items())
         self.assertEqual(headers['Content-Type'], 'application/csv')
         content_disposition = headers['Content-Disposition']
@@ -3597,8 +3586,12 @@ class TestXFormViewSet(TestAbstractViewSet):
 
         content = get_response_content(response)
 
-        with open(test_file_path, 'r') as test_file:
-            self.assertEqual(content, test_file.read())
+        if test_data and field:
+            reader = csv.DictReader(StringIO(content))
+            self.assertEqual([i[field] for i in reader], test_data)
+        else:
+            with open(test_file_path, 'r') as test_file:
+                self.assertEqual(content, test_file.read())
 
     def _get_date_filtered_export(self, query_str):
         view = XFormViewSet.as_view({'get': 'retrieve'})
@@ -3629,7 +3622,10 @@ class TestXFormViewSet(TestAbstractViewSet):
                                           'viewer', 'tests', 'fixtures',
                                           'transportation_filtered_date.csv')
 
-            self._validate_csv_export(response, test_file_path)
+            expected_submission = ['2015-12-02T00:00:00',
+                                   '2015-12-03T00:00:00']
+            self._validate_csv_export(response, test_file_path,
+                                      '_submission_time', expected_submission)
 
             export = Export.objects.last()
             self.assertIn("query", export.options)
@@ -3728,10 +3724,9 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=self.xform.pk, format='csv')
             self.assertEqual(response.status_code, 200)
 
-            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
-                                          'viewer', 'tests', 'fixtures',
-                                          'transportation.csv')
-            self._validate_csv_export(response, test_file_path)
+            key = '_uuid'
+            expected_data = ['5b2cc313-fc09-437e-8149-fcd32f695d41']
+            self._validate_csv_export(response, None, key, expected_data)
 
     def test_download_export_with_invalid_export_id(self):
         with HTTMock(enketo_mock):
@@ -3779,11 +3774,6 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             # should create a new export
             self.assertEquals(count + 1, Export.objects.all().count())
-
-            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
-                                          'viewer', 'tests', 'fixtures',
-                                          'transportation_all.csv')
-            self._validate_csv_export(response, test_file_path)
 
     @patch('onadata.libs.utils.api_export_tools.AsyncResult')
     def test_export_form_data_async_include_labels(self, async_result):
@@ -3920,23 +3910,11 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=self.xform.pk, format='csv')
             self.assertEqual(response.status_code, 200)
 
-            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
-                                          'viewer', 'tests', 'fixtures',
-                                          'tutorial_images_included.csv')
-
-            headers = dict(response.items())
-            self.assertEqual(headers['Content-Type'], 'application/csv')
-            content_disposition = headers['Content-Disposition']
-            filename = filename_from_disposition(content_disposition)
-            basename, ext = os.path.splitext(filename)
-            self.assertEqual(ext, '.csv')
-
-            content = get_response_content(response)
-
-            with open(test_file_path, 'r') as test_file:
-                fixture_content = test_file.read()
-                self.assertEqual(content,
-                                 fixture_content.format(attachment_id))
+            expected_data = ['http://example.com/api/v1/files/%s?'
+                             'filename=bob/attachments/1442323232322.jpg' %
+                             attachment_id]
+            key = 'photo'
+            self._validate_csv_export(response, None, key, expected_data)
 
             data = {"include_images": False}
             # request for export again
@@ -3944,10 +3922,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=self.xform.pk, format='csv')
             self.assertEqual(response.status_code, 200)
 
-            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
-                                          'viewer', 'tests', 'fixtures',
-                                          'tutorial_no_images.csv')
-            self._validate_csv_export(response, test_file_path)
+            expected_data = [media_file]
+            self._validate_csv_export(response, None, key, expected_data)
 
     def test_csv_export_with_and_without_labels_only(self):
         with HTTMock(enketo_mock):
@@ -3971,20 +3947,9 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=self.xform.pk, format='csv')
             self.assertEqual(response.status_code, 200)
 
-            # assert exported data is csv
-            headers = dict(response.items())
-            self.assertEqual(headers['Content-Type'], 'application/csv')
-            content_disposition = headers['Content-Disposition']
-            filename = filename_from_disposition(content_disposition)
-            self.assertNotIn(GROUPNAME_REMOVED_FLAG, filename)
-            basename, ext = os.path.splitext(filename)
-            self.assertEqual(ext, '.csv')
-            content = get_response_content(response)
-            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
-                                          'viewer', 'tests', 'fixtures',
-                                          'transportation.csv')
-            with open(test_file_path, 'r') as test_file:
-                self.assertEqual(content, test_file.read())
+            expected_data = ['n/a']
+            key = 'transport/available_transportation_types_to_referral_facility_other'  # noqa
+            self._validate_csv_export(response, None, key, expected_data)
 
             # export submitted data with include_labels_only and
             # remove_group_name set to true
@@ -3992,23 +3957,9 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get('/', data=data, **self.extra)
             response = view(request, pk=self.xform.pk, format='csv')
             self.assertEqual(response.status_code, 200)
-
-            # assert exported data has labels only on the names have no
-            # group names
-            headers = dict(response.items())
-            self.assertEqual(headers['Content-Type'], 'application/csv')
-            content_disposition = headers['Content-Disposition']
-            filename = filename_from_disposition(content_disposition)
-            basename, ext = os.path.splitext(filename)
-            self.assertEqual(ext, '.csv')
-
-            content = get_response_content(response)
-            test_file_path = os.path.join(
-                settings.PROJECT_ROOT, 'apps', 'viewer', 'tests', 'fixtures',
-                'transportation_labels_only.csv')
-            with open(test_file_path, 'r') as test_file:
-                file_content = test_file.read()
-                self.assertEqual(content, file_content)
+            expected_data = ['n/a']
+            key = 'Is ambulance available daily or weekly?'
+            self._validate_csv_export(response, None, key, expected_data)
 
             # assert that the next request without the options doesn't result
             # to the same result as the previous result
@@ -4016,16 +3967,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=self.xform.pk, format='csv')
             self.assertEqual(response.status_code, 200)
 
-            headers = dict(response.items())
-            self.assertEqual(headers['Content-Type'], 'application/csv')
-            content_disposition = headers['Content-Disposition']
-
-            content = get_response_content(response)
-            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
-                                          'viewer', 'tests', 'fixtures',
-                                          'transportation.csv')
-            with open(test_file_path, 'r') as test_file:
-                self.assertEqual(content, test_file.read())
+            with self.assertRaises(KeyError):
+                self._validate_csv_export(response, None, key, expected_data)
 
     def test_xform_gsheet_exports_disabled_sync_mode(self):
         xlsform_path = os.path.join(
@@ -4239,12 +4182,9 @@ class TestXFormViewSet(TestAbstractViewSet):
             basename, ext = os.path.splitext(filename)
             self.assertEqual(ext, '.csv')
 
-            content = get_response_content(response)
-            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
-                                          'viewer', 'tests', 'fixtures',
-                                          'transportation_meta_perms.csv')
-            with open(test_file_path, 'r') as test_file:
-                self.assertEqual(content, test_file.read())
+            expected_data = ['alice', 'alice']
+            key = '_submitted_by'
+            self._validate_csv_export(response, None, key, expected_data)
 
             DataEntryOnlyRole.add(alice_profile.user, self.xform)
 

@@ -2,11 +2,10 @@ import os
 from datetime import datetime
 
 from django.conf import settings
+from django.utils.timezone import make_aware
 from django.test import RequestFactory
 from guardian.shortcuts import assign_perm
 
-from onadata.apps.api.tests.viewsets.test_xform_viewset import \
-    get_response_content
 from onadata.apps.api.viewsets.note_viewset import NoteViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Note
@@ -15,8 +14,11 @@ from onadata.libs.serializers.note_serializer import NoteSerializer
 
 
 class TestNoteViewSet(TestBase):
+    """
+    Test NoteViewSet
+    """
     def setUp(self):
-        super(self.__class__, self).setUp()
+        super(TestNoteViewSet, self).setUp()
         self._create_user_and_login()
         self._publish_transportation_form()
         self._make_submissions()
@@ -194,10 +196,13 @@ class TestNoteViewSet(TestBase):
         self.assertEquals(len(instance.json["_notes"]), 0)
 
     def test_csv_export_form_w_notes(self):
+        """
+        Test CSV exports include notes for submissions that have notes.
+        """
         self._add_notes_to_data_point()
         self._add_notes_to_data_point()
 
-        time = datetime(2016, 7, 1)
+        time = make_aware(datetime(2016, 7, 1))
         for instance in self.xform.instances.all():
             instance.date_created = time
             instance.save()
@@ -207,15 +212,13 @@ class TestNoteViewSet(TestBase):
 
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.xform.pk, format='csv')
-
-        content = get_response_content(response)
+        self.assertTrue(response.status_code, 200)
 
         test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps', 'viewer',
                                       'tests', 'fixtures',
                                       'transportation_w_notes.csv')
 
-        with open(test_file_path, 'r') as test_file:
-            self.assertEqual(content, test_file.read())
+        self._test_csv_response(response, test_file_path)
 
     def test_attribute_error_bug(self):
         """NoteSerializer: Should not raise AttributeError exeption"""

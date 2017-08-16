@@ -306,7 +306,7 @@ class TestProcess(TestBase):
         for d_from_db in self.data_dictionary.get_data_for_excel():
             for k, v in d_from_db.items():
                 if (k not in [u'_xform_id_string',  u'meta/instanceID',
-                              '_version']) and v:
+                              '_version', '_id']) and v:
                     new_key = k[len('transport/'):]
                     d_from_db[new_key] = d_from_db[k]
                 del d_from_db[k]
@@ -316,13 +316,7 @@ class TestProcess(TestBase):
 
     def _check_group_xpaths_do_not_appear_in_dicts_for_export(self):
         uuid = u'uuid:f3d8dc65-91a6-4d0f-9e97-802128083390'
-        instances = self.xform.instances.all()
-        instance = None
-
-        for i in instances:
-            if i.get_dict()['meta/instanceID'] == uuid:
-                instance = i
-
+        instance = self.xform.instances.get(uuid=uuid.split(':')[1])
         expected_dict = {
             u"transportation": {
                 u"meta": {
@@ -365,15 +359,14 @@ class TestProcess(TestBase):
         return csv.reader(actual_lines)
 
     def _check_csv_export_first_pass(self):
-        actual_csv = self._get_csv_()
-        f = open(os.path.join(
+        url = reverse('csv_export', kwargs={
+            'username': self.user.username, 'id_string': self.xform.id_string})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        test_file_path = os.path.join(
             self.this_directory, "fixtures",
-            "transportation", "transportation.csv"), "r")
-        expected_csv = csv.reader(f)
-        for actual_row, expected_row in zip(actual_csv, expected_csv):
-            for actual_cell, expected_cell in zip(actual_row, expected_row):
-                self.assertEqual(actual_cell, expected_cell)
-        f.close()
+            "transportation", "transportation.csv")
+        self._test_csv_response(response, test_file_path)
 
     def _check_csv_export_second_pass(self):
         url = reverse('csv_export', kwargs={
@@ -428,10 +421,11 @@ class TestProcess(TestBase):
         ]
 
         dd = DataDictionary.objects.get(pk=self.xform.pk)
+        additional_headers = dd._additional_headers() + ['_id']
         for row, expected_dict in zip(actual_csv, data):
             d = dict(zip(headers, row))
             for k, v in d.items():
-                if v in ["n/a", "False"] or k in dd._additional_headers():
+                if v in ["n/a", "False"] or k in additional_headers:
                     del d[k]
             l = []
             for k, v in expected_dict.items():

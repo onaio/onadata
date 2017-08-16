@@ -1,19 +1,21 @@
+import csv
 import os
 
+from cStringIO import StringIO
 from django.test import RequestFactory
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
-    TestAbstractViewSet, \
-    get_response_content, \
-    filename_from_disposition
+    TestAbstractViewSet
 from onadata.apps.api.viewsets.osm_viewset import OsmViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.models import OsmData
 from onadata.apps.viewer.models import Export
+from onadata.libs.utils.common_tools import (
+    filename_from_disposition, get_response_content)
 
 
 class TestOSMViewSet(TestAbstractViewSet):
@@ -131,9 +133,13 @@ class TestOSMViewSet(TestAbstractViewSet):
         self.assertEqual(ext, '.csv')
 
         content = get_response_content(response)
+        reader = csv.DictReader(StringIO(content))
+        data = [_ for _ in reader]
         test_file_path = os.path.join(self.fixtures_dir, 'osm.csv')
         with open(test_file_path, 'r') as test_file:
-            self.assertEqual(content, test_file.read())
+            expected_csv_reader = csv.DictReader(test_file)
+            for index, row in enumerate(expected_csv_reader):
+                self.assertDictContainsSubset(row, data[index])
 
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.xform.pk, format='csv')

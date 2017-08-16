@@ -72,9 +72,7 @@ class TestExports(TestBase):
             }))
         self.assertEqual(response.status_code, 200)
         test_file_path = viewer_fixture_path('transportation.csv')
-        content = self._get_response_content(response)
-        with open(test_file_path, 'r') as test_file:
-            self.assertEqual(content, test_file.read())
+        self._test_csv_response(response, test_file_path)
 
     def test_csv_without_na_values(self):
         self._publish_transportation_form()
@@ -94,9 +92,7 @@ class TestExports(TestBase):
             }))
         self.assertEqual(response.status_code, 200)
         test_file_path = viewer_fixture_path('transportation_without_na.csv')
-        content = self._get_response_content(response)
-        with open(test_file_path, 'r') as test_file:
-            self.assertEqual(content, test_file.read())
+        self._test_csv_response(response, test_file_path)
         settings.NA_REP = na_rep_restore
 
     def test_responses_for_empty_exports(self):

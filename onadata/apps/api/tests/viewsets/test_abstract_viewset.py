@@ -1,7 +1,6 @@
 import json
 import os
 import re
-import StringIO
 from tempfile import NamedTemporaryFile
 
 import requests
@@ -32,27 +31,6 @@ from onadata.apps.main.models import MetaData, UserProfile
 from onadata.apps.viewer.models import DataDictionary
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.utils.user_auth import get_user_default_project
-
-
-def filename_from_disposition(content_disposition):
-    filename_pos = content_disposition.index('filename=')
-    assert filename_pos != -1
-
-    return content_disposition[filename_pos + len('filename='):]
-
-
-def get_response_content(response):
-    contents = u''
-    if response.streaming:
-        actual_content = StringIO.StringIO()
-        for content in response.streaming_content:
-            actual_content.write(content)
-        contents = actual_content.getvalue()
-        actual_content.close()
-    else:
-        contents = response.content
-
-    return contents
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$', path=r'^/api_v1/survey/preview$')
@@ -536,23 +514,6 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         self.assertEquals(response.data['order'], self.widget.order)
         self.assertEquals(response.data['data'], [])
         self.assertEquals(response.data['metadata'], data.get('metadata', {}))
-
-    def filename_from_disposition(self, content_disposition):
-        filename_pos = content_disposition.index('filename=')
-        assert filename_pos != -1
-        return content_disposition[filename_pos + len('filename='):]
-
-    def get_response_content(self, response):
-        contents = u''
-        if response.streaming:
-            actual_content = StringIO.StringIO()
-            for content in response.streaming_content:
-                actual_content.write(content)
-            contents = actual_content.getvalue()
-            actual_content.close()
-        else:
-            contents = response.content
-        return contents
 
     def _team_create(self):
         self._org_create()

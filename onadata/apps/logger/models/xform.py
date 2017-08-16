@@ -36,7 +36,7 @@ from onadata.libs.utils.cache_tools import (IS_ORG, PROJ_FORMS_CACHE,
                                             safe_delete)
 from onadata.libs.utils.common_tags import (DURATION, KNOWN_MEDIA_TYPES, NOTES,
                                             SUBMISSION_TIME, SUBMITTED_BY,
-                                            TAGS, UUID, VERSION)
+                                            TAGS, UUID, VERSION, ID)
 from onadata.libs.utils.model_tools import queryset_iterator
 
 QUESTION_TYPES_TO_EXCLUDE = [
@@ -429,7 +429,7 @@ class XFormMixin(object):
 
     def _additional_headers(self):
         return [
-            u'_xform_id_string', u'_percentage_complete', u'_status', u'_id',
+            u'_xform_id_string', u'_percentage_complete', u'_status',
             u'_attachments', u'_potential_duplicates'
         ]
 
@@ -444,7 +444,8 @@ class XFormMixin(object):
 
         header_list = [shorten(xpath) for xpath in self.xpaths()]
         header_list += [
-            UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION, DURATION, SUBMITTED_BY
+            ID, UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION, DURATION,
+            SUBMITTED_BY
         ]
         if include_additional_headers:
             header_list += self._additional_headers()

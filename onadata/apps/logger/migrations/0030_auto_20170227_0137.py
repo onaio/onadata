@@ -16,6 +16,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='opendata',
             name='uuid',
-            field=models.CharField(default=onadata.libs.utils.common_tools.getUUID, max_length=32, unique=True),
-        ),
+            field=models.CharField(
+                default=onadata.libs.utils.common_tools.get_uuid,
+                max_length=32,
+                unique=True), ),
     ]
