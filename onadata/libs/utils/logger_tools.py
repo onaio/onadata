@@ -184,8 +184,21 @@ def update_instance_attachment_tracking(instance):
     """
     Takes an Instance object and updates attachment tracking fields
     """
-    instance.total_media = len([m for m in instance.get_dict().keys() if m in
-                                instance.xform.get_media_survey_xpaths()])
+    # check if it has repeats
+    num_media = 0
+    elems_with_repeats = instance.xform.get_survey_elements_of_type('repeat')
+    for elem in elems_with_repeats:
+        if elem.name in instance.get_dict():
+            child_elems = instance.get_dict()[elem.name]
+            # child elems is a list of dicts
+            # we now get a list of the dict's keys
+            child_elems_keys = [z for y in (x.keys() for x in child_elems)
+                                for z in y]
+            num_media += len([n for n in child_elems_keys if n in
+                             instance.xform.get_media_survey_xpaths()])
+    num_media += len([m for m in instance.get_dict().keys() if m in
+                     instance.xform.get_media_survey_xpaths()])
+    instance.total_media = num_media
     instance.media_count = instance.attachments.count()
     instance.media_all_received = instance.media_count == \
         instance.total_media
@@ -279,7 +292,6 @@ def create_instance(username,
     filtered_instances = get_filtered_instances(
         Q(xml=xml) | Q(uuid=new_uuid), xform_id=xform.pk)
     existing_instance = filtered_instances.first()
-
     if existing_instance and \
             (new_uuid or existing_instance.xform.has_start_time):
         # ensure we have saved the extra attachments
