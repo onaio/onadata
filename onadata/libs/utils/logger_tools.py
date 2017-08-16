@@ -26,8 +26,7 @@ from multidb.pinning import use_master
 
 from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.logger.models.instance import (
-    FormInactiveError, FormIsMergedDatasetError, InstanceHistory,
-    get_id_string_from_xml_str)
+    FormInactiveError, InstanceHistory, get_id_string_from_xml_str)
 from onadata.apps.logger.models.xform import XLSFormError
 from onadata.apps.logger.xform_instance_parser import (
     DuplicateInstance, InstanceEmptyError, InstanceInvalidUserError,
@@ -38,6 +37,7 @@ from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import (ParsedInstance,
                                                         call_webhooks)
 from onadata.libs.utils.model_tools import set_uuid
+from onadata.libs.utils.dict_tools import get_values_matching_key
 from onadata.libs.utils.user_auth import get_user_default_project
 from pyxform.errors import PyXFormError
 from pyxform.xform2json import create_survey_element_from_xml
@@ -184,26 +184,13 @@ def update_instance_attachment_tracking(instance):
     """
     Takes an Instance object and updates attachment tracking fields
     """
-<<<<<<< HEAD
-    # check if Instance has repeats
+    # top level elements
     num_media = 0
-    elems_with_repeats = instance.xform.get_survey_elements_of_type('repeat')
-    for elem in elems_with_repeats:
-        if elem.name in instance.get_dict():
-            child_elems = instance.get_dict()[elem.name]
-            # child elems is a list of dicts
-            # we now get a list of the dict's keys
-            child_elems_keys = [z for y in (x.keys() for x in child_elems)
-                                for z in y]
-            num_media += len([n for n in child_elems_keys if n in
-                             instance.xform.get_media_survey_xpaths()])
-    num_media += len([m for m in instance.get_dict().keys() if m in
-                     instance.xform.get_media_survey_xpaths()])
+    media_xpaths = instance.xform.get_media_survey_xpaths()
+    for media_xpath in media_xpaths:
+        num_media += len([x for x in get_values_matching_key(
+            instance.get_dict(), media_xpath)])
     instance.total_media = num_media
-=======
-    instance.total_media = len([m for m in instance.get_dict().keys() if m in
-                                instance.xform.get_media_survey_xpaths()])
->>>>>>> Make Sure All Tests Pass
     instance.media_count = instance.attachments.count()
     instance.media_all_received = instance.media_count == \
         instance.total_media
@@ -228,18 +215,6 @@ def save_attachments(xform, instance, media_files):
             mimetype=content_type,
             extension=extension)
     update_instance_attachment_tracking(instance)
-<<<<<<< HEAD
-
-    instance.total_media = len([m for m in instance.get_dict().keys() if m in
-                                xform.get_media_survey_xpaths()])
-    instance.media_count = instance.attachments.count()
-    instance.media_all_received = instance.media_count == \
-        instance.total_media
-    instance.save(update_fields=['total_media',
-                                 'media_count',
-                                 'media_all_received'])
-=======
->>>>>>> Make Sure All Tests Pass
 
 
 def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
@@ -379,8 +354,8 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
     except InstanceEmptyError:
         error = OpenRosaResponseBadRequest(
             _(u"Received empty submission. No instance was created"))
-    except (FormInactiveError, FormIsMergedDatasetError) as e:
-        error = OpenRosaResponseNotAllowed(str(e))
+    except FormInactiveError:
+        error = OpenRosaResponseNotAllowed(_(u"Form is not active"))
     except XForm.DoesNotExist:
         error = OpenRosaResponseNotFound(
             _(u"Form does not exist on this account"))

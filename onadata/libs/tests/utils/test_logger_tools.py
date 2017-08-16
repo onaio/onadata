@@ -57,11 +57,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         xml_string = """
         <data id="{}">
             <meta>
-<<<<<<< HEAD
                 <instanceID>uuid:UJ5jSMAJ1Jz4EszdgHy8n851AsKaqBPO5</instanceID>
-=======
-                <instanceID>uuid:UJ5jSMAJ1Jz4EszdgHy8n851AsKaqBPO5VN7</instanceID>
->>>>>>> Make Sure All Tests Pass
             </meta>
             <image1>1300221157303.jpg</image1>
             <image2>1300375832136.jpg</image2>
@@ -83,7 +79,6 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         self.assertEquals(instance.json[MEDIA_COUNT], instance.media_count)
         self.assertEquals(instance.json[MEDIA_ALL_RECEIVED],
                           instance.media_all_received)
-<<<<<<< HEAD
         file2_path = "{}/apps/logger/tests/Water_2011_03_17_2011-03-17_16-29"\
                      "-59/1300375832136.jpg".format(settings.PROJECT_ROOT)
         media2_file = django_file(path=file2_path,
@@ -210,8 +205,6 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         self.assertEquals(instance.json[MEDIA_COUNT], instance.media_count)
         self.assertEquals(instance.json[MEDIA_ALL_RECEIVED],
                           instance.media_all_received)
-=======
->>>>>>> Make Sure All Tests Pass
         file2_path = "{}/apps/logger/tests/Water_2011_03_17_2011-03-17_16-29"\
                      "-59/1300375832136.jpg".format(settings.PROJECT_ROOT)
         media2_file = django_file(path=file2_path,
