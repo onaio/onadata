@@ -180,6 +180,20 @@ def check_submission_permissions(request, xform):
               }))
 
 
+def update_instance_attachment_tracking(instance):
+    """
+    Takes an Instance object and updates attachment tracking fields
+    """
+    instance.total_media = len([m for m in instance.get_dict().keys() if m in
+                                instance.xform.get_media_survey_xpaths()])
+    instance.media_count = instance.attachments.count()
+    instance.media_all_received = instance.media_count == \
+        instance.total_media
+    instance.save(update_fields=['total_media',
+                                 'media_count',
+                                 'media_all_received'])
+
+
 def save_attachments(xform, instance, media_files):
     for f in media_files:
         filename, extension = os.path.splitext(f.name)
@@ -195,15 +209,7 @@ def save_attachments(xform, instance, media_files):
             media_file=f,
             mimetype=content_type,
             extension=extension)
-
-    instance.total_media = len([m for m in instance.get_dict().keys() if m in
-                                xform.get_media_survey_xpaths()])
-    instance.media_count = instance.attachments.count()
-    instance.media_all_received = instance.media_count == \
-        instance.total_media
-    instance.save(update_fields=['total_media',
-                                 'media_count',
-                                 'media_all_received'])
+    update_instance_attachment_tracking(instance)
 
 
 def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,

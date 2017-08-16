@@ -13,7 +13,7 @@ from onadata.apps.logger.import_tools import django_file
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import Instance
 from onadata.libs.utils.common_tags import MEDIA_ALL_RECEIVED, TOTAL_MEDIA,\
-                                           MEDIA_COUNT
+    MEDIA_COUNT
 
 
 class TestLoggerTools(PyxformTestCase, TestBase):
@@ -56,6 +56,9 @@ class TestLoggerTools(PyxformTestCase, TestBase):
 
         xml_string = """
         <data id="{}">
+            <meta>
+                <instanceID>uuid:UJ5jSMAJ1Jz4EszdgHy8n851AsKaqBPO5VN7</instanceID>
+            </meta>
             <image1>1300221157303.jpg</image1>
             <image2>1300375832136.jpg</image2>
         </data>
@@ -76,22 +79,13 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         self.assertEquals(instance.json[MEDIA_COUNT], instance.media_count)
         self.assertEquals(instance.json[MEDIA_ALL_RECEIVED],
                           instance.media_all_received)
-        xml2_string = """
-        <data id="{}">
-            <meta>
-                <instanceID>uuid:{}</instanceID>
-            </meta>
-            <image1>1300221157303.jpg</image1>
-            <image2>1300375832136.jpg</image2>
-        </data>
-        """.format(self.xform.id_string, instance.uuid)
         file2_path = "{}/apps/logger/tests/Water_2011_03_17_2011-03-17_16-29"\
                      "-59/1300375832136.jpg".format(settings.PROJECT_ROOT)
         media2_file = django_file(path=file2_path,
                                   field_name="image2",
                                   content_type="image/jpeg")
         create_instance(self.user.username,
-                        StringIO(xml2_string.strip()),
+                        StringIO(xml_string.strip()),
                         media_files=[media2_file])
         instance2 = Instance.objects.get(pk=instance.pk)
         self.assertTrue(instance2.json[MEDIA_ALL_RECEIVED])
