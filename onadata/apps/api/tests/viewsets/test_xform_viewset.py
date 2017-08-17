@@ -3137,20 +3137,6 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             content = get_response_content(response)
 
-            # expected_content = (
-            #     '\xef\xbb\xbfage,\xef\xbb\xbfname,\xef\xbb\xbfmeta/instanceID,'
-            #     '\xef\xbb\xbf_uuid,\xef\xbb\xbf_submission_time,'
-            #     '\xef\xbb\xbf_tags,\xef\xbb\xbf_notes,\xef\xbb\xbf_version,'
-            #     '\xef\xbb\xbf_duration,\xef\xbb\xbf_submitted_by,'
-            #     '\xef\xbb\xbf_total_media,\xef\xbb\xbf_media_count,'
-            #     '\xef\xbb\xbf_media_all_received\n'
-            #     '\xef\xbb\xbf#age,,,,,,,,,\n29,\xef\xbb\xbfLionel Messi,'
-            #     '\xef\xbb\xbf''uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,'
-            #     '\xef\xbb\xbf74ee8b73-48aa-4ced-9072-862f93d49c16,\xef\xbb\xbf'
-            #     '2013-02-18T15:54:01,\xef\xbb\xbf,\xef\xbb\xbf,'
-            #     '\xef\xbb\xbf201604121155,\xef\xbb\xbf,\xef\xbb\xbfbob,'
-            #     '\xef\xbb\xbf0,\xef\xbb\xbf0,\xef\xbb\xbfTrue\n')
-
             expected_content = (
                 '\xef\xbb\xbfage,\xef\xbb\xbfname,\xef\xbb\xbfmeta/instanceID,'
                 '\xef\xbb\xbf_id,'
@@ -3238,7 +3224,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 '_media_all_received\n29,Lionel Messi,'
                 'uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,'
                 '74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01,,,'
-                '201604121155,,bob,0,0,True\n'  % data_id
+                '201604121155,,bob,0,0,True\n' % data_id
             )
 
             self.assertEqual(expected_content, content)
@@ -3260,7 +3246,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 '_total_media,_media_count,_media_all_received\n#age,,,,,,,,,,'
                 ',,\n29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16'
                 ',74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01,,,'
-                '201604121155,,bob,0,0,True\n'  % data_id
+                '201604121155,,bob,0,0,True\n' % data_id
             )
 
             self.assertEqual(expected_content, content)
