@@ -563,6 +563,18 @@ class InstanceHistory(models.Model, InstanceBaseClass):
     def deleted_at(self):
         return None
 
+    @property
+    def total_media(self):
+        return self.xform_instance.total_media
+
+    @property
+    def media_count(self):
+        return self.xform_instance.media_count
+
+    @property
+    def media_all_received(self):
+        return self.xform_instance.media_all_received
+
     def _set_parser(self):
         if not hasattr(self, "_parser"):
             self._parser = XFormInstanceParser(
