@@ -207,6 +207,22 @@ def track_task_progress(additions, total=None):
         pass
 
 
+def get_parent_element(xpath, element_type, data_dictionary):
+    parent_xpath = '/'.join(xpath.split('/')[:-1])
+    return data_dictionary.get_element(parent_xpath)
+
+
+def get_element_from_xpath(xpath, elements):
+    return next((el for el in elements if el['xpath'] == xpath), None)
+
+
+def get_element_type_from_xpath(xpath, elements):
+    element = get_element_from_xpath(xpath, elements)
+    if element:
+        return element['type']
+    return "unknown"
+
+
 class ExportBuilder(object):
     IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION,
                        BAMBOO_DATASET_ID, DELETEDAT]
@@ -898,9 +914,16 @@ class ExportBuilder(object):
                                 in fields_and_labels])
         all_value_labels = self._get_sav_value_labels(xpath_var_names)
 
+        duplicate_names = []  # list of (xpath, var_name)
+        already_done = []  # list of xpaths
         for field, label, xpath, var_name in fields_and_labels:
             var_labels[var_name] = label
-            _var_types[xpath] = var_name
+            #  keep track of duplicates
+            if xpath not in already_done:
+                already_done.append(xpath)
+                _var_types[xpath] = var_name
+            else:
+                duplicate_names.append((xpath, var_name))
             if var_name in all_value_labels:
                 value_labels[var_name] = all_value_labels.get(var_name)
 
@@ -912,7 +935,12 @@ class ExportBuilder(object):
             [(_var_types[item],
                 0 if item in ['_id', '_index', '_parent_index',
                               SUBMISSION_TIME] else 255)
-                for item in self.EXTRA_FIELDS]
+                for item in self.EXTRA_FIELDS] +
+            [(x[1],
+              0 if _is_numeric(x[0],
+                               get_element_type_from_xpath(x[0], elements),
+                               self.dd) else 255)
+                for x in duplicate_names]
         )
         dates = [_var_types[element['xpath']] for element in elements
                  if element.get('type') == 'date']
