@@ -184,7 +184,7 @@ def update_instance_attachment_tracking(instance):
     """
     Takes an Instance object and updates attachment tracking fields
     """
-    # check if it has repeats
+    # check if Instance has repeats
     num_media = 0
     elems_with_repeats = instance.xform.get_survey_elements_of_type('repeat')
     for elem in elems_with_repeats:

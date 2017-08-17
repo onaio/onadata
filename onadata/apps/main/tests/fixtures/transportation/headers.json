@@ -27,5 +27,8 @@
     "_notes",
     "_version",
     "_duration",
-    "_submitted_by"
+    "_submitted_by",
+    "_total_media",
+    "_media_count",
+    "_media_all_received"
 ]
