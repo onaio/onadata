@@ -1931,6 +1931,35 @@ class TestDataViewSet(TestBase):
         self.assertEqual(instance_count, Instance.objects.count())
         self.assertNotIn('name', response.data)
 
+    def test_filterset(self):
+        self._make_submissions()
+        formid = self.xform.pk
+        # instance_count = Instance.objects.count()
+        instance = Instance.objects.last()
+        # test version
+        instance.version = 777
+        instance.save()
+        request = self.factory.get('/', {'version__gt': 776}, **self.extra)
+        view = DataViewSet.as_view({'get': 'list'})
+        response = view(request, pk=formid, format='json')
+        self.assertEqual(len(response.data),
+                         Instance.objects.filter(version=777).count())
+        # test date_created
+        one_year = timedelta(days=366)
+        initial_year = instance.date_created.year
+        instance.date_created = instance.date_created - one_year
+        instance.save()
+        request = self.factory.get('/',
+                                   {'date_created__year__lt': initial_year},
+                                   **self.extra)
+        view = DataViewSet.as_view({'get': 'list'})
+        response = view(request, pk=formid, format='json')
+        self.assertEqual(
+            len(response.data),
+            Instance.objects.filter(
+                date_created__year__lt=initial_year).count()
+        )
+
 
 class TestOSM(TestAbstractViewSet):
 
