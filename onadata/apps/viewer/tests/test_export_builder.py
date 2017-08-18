@@ -579,7 +579,6 @@ class TestExportBuilder(PyxformTestCase, TestBase):
         with SavReader(os.path.join(temp_dir, "exp.sav"),
                        returnHeader=True) as reader:
             rows = [r for r in reader]
-            # import ipdb; ipdb.set_trace()
             self.assertTrue(len(rows) > 1)
 
             self.assertEqual(rows[0][0], "expensed")

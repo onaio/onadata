@@ -363,7 +363,6 @@ def mark_expired_pending_exports_as_failed():
     Exports that have not completed within a set time should be marked as
     failed
     """
-    # import pdb; pdb.set_trace()
     task_lifespan = settings.EXPORT_TASK_LIFESPAN
     time_threshold = timezone.now() - timedelta(hours=task_lifespan)
     exports = Export.objects.filter(internal_status=Export.PENDING,

@@ -116,7 +116,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
     public_data_endpoint = 'public'
     pagination_class = StandardPageNumberPagination
 
-    queryset = XForm.objects.filter()
+    queryset = XForm.objects.filter(deleted_at__isnull=True)
 
     def get_serializer_class(self):
         pk_lookup, dataid_lookup = self.lookup_fields
@@ -347,6 +347,12 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             tags = self.request.query_params.get('tags')
             not_tagged = self.request.query_params.get('not_tagged')
 
+            self.object_list = filters.InstanceFilter(
+                self.request.query_params,
+                queryset=self.object_list,
+                request=request
+            ).qs
+
             if tags and isinstance(tags, six.string_types):
                 tags = tags.split(',')
                 self.object_list = self.object_list.filter(tags__name__in=tags)
@@ -433,9 +439,9 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                     limit=limit, fields=fields
                 )
                 self.etag_hash = get_etag_hash_from_query(records, sql, params)
-        except ValueError, e:
+        except ValueError as e:
             raise ParseError(unicode(e))
-        except DataError, e:
+        except DataError as e:
             raise ParseError(unicode(e))
 
     def _get_data(self, query, fields, sort, start, limit, is_public_request):
