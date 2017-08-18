@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.http import Http404
 from django.utils import six
 from rest_framework import filters
-
+from django_filters import rest_framework as django_filter_filters
 
 from onadata.apps.api.models import Team, OrganizationProfile
 from onadata.apps.logger.models import Project, XForm, Instance
@@ -99,6 +99,25 @@ class DataFilter(filters.DjangoObjectPermissionsFilter):
         if request.user.is_anonymous():
             return queryset.filter(Q(shared_data=True))
         return queryset
+
+
+class InstanceFilter(django_filter_filters.FilterSet):
+    """
+    Instance FilterSet implemented using django-filter
+    """
+
+    class Meta:
+        model = Instance
+        date_field_lookups = ['exact', 'gt', 'lt', 'gte', 'lte', 'year',
+                              'year__gt', 'year__lt', 'year__gte', 'year__lte',
+                              'month', 'month__gt', 'month__lt', 'month__gte',
+                              'month__lte', 'day', 'day__gt', 'day__lt',
+                              'day__gte', 'day__lte']
+        generic_field_lookups = ['exact', 'gt', 'lt', 'gte', 'lte']
+        fields = {'date_created': date_field_lookups,
+                  'date_modified': date_field_lookups,
+                  'status': ['exact'],
+                  'version': generic_field_lookups}
 
 
 class ProjectOwnerFilter(filters.BaseFilterBackend):
