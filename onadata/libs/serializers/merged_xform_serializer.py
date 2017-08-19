@@ -12,8 +12,7 @@ from rest_framework import serializers
 
 from onadata.apps.logger.models import MergedXForm, XForm
 from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
-from pyxform.builder import (create_survey_element_from_dict,
-                             create_survey_element_from_json)
+from pyxform.builder import create_survey_element_from_dict
 
 
 def _get_fields_set(xform):
@@ -42,13 +41,18 @@ def get_merged_xform_survey(xforms):
 
     intersect = set(xform_sets[0]).intersection(*xform_sets[1:])
 
+    is_empty = True
     for field in intersect:
         element = xforms[0].get_element(field)
         if element:
             merged_xform_dict['children'].append(element.to_json_dict())
+            # if we only have meta fields, we should consider the new form as
+            # being blank.
+            if element.name != 'meta' and is_empty:
+                is_empty = False
 
-    if not merged_xform_dict['children']:
-        raise ValueError(_("No matching fields in xforms."))
+    if is_empty:
+        raise serializers.ValidationError(_("No matching fields in xforms."))
 
     return create_survey_element_from_dict(merged_xform_dict)
 
@@ -62,6 +66,9 @@ def minimum_two_xforms(value):
     if len(set(value)) != len(value):
         raise serializers.ValidationError(
             _('This field should have unique xforms'))
+
+    # checks we have at least matching fields
+    get_merged_xform_survey(value)
 
     return value
 
@@ -134,13 +141,10 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
             return sorted(values, reverse=True)[0]
 
     def create(self, validated_data):
-        # we get the xml and json from the first xforms
-        xform = validated_data['xforms'][0]
-
         request = self.context['request']
 
         # create merged xml, json with non conflicting id_string
-        survey = create_survey_element_from_json(xform.json)
+        survey = get_merged_xform_survey(validated_data['xforms'])
         survey['id_string'] = base64.b64encode(uuid.uuid4().hex[:6])
         survey['sms_keyword'] = survey['id_string']
         survey['title'] = validated_data.pop('name')

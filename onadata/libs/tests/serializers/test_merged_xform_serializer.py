@@ -2,6 +2,8 @@
 """
 Test MergedXFormSerializer
 """
+from rest_framework import serializers
+
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.libs.serializers.merged_xform_serializer import (
@@ -61,17 +63,17 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
         self.assertFalse(serializer.is_valid(raise_exception=False))
 
         # project is required
-        self.assertTrue(serializer.errors['project'],
-                        [u'This field is required.'])
+        self.assertEqual(serializer.errors['project'],
+                         [u'This field is required.'])
 
         # name is required
-        self.assertTrue(serializer.errors['name'],
-                        [u'This field is required.'])
+        self.assertEqual(serializer.errors['name'],
+                         [u'This field is required.'])
 
         # At least 2 *different* xforms
         # 0 xforms
-        self.assertTrue(serializer.errors['xforms'],
-                        [u'This field is required.'])
+        self.assertEqual(serializer.errors['xforms'],
+                         [u'This field is required.'])
 
         self.project = get_user_default_project(self.user)
         xform1 = self._publish_md(MD, self.user, id_string='a')
@@ -86,29 +88,40 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
         self.assertFalse(serializer.is_valid(raise_exception=False))
         self.assertNotIn('name', serializer.errors)
         self.assertNotIn('project', serializer.errors)
-        self.assertTrue(serializer.errors['xforms'],
-                        [u'This field is required.'])
+        self.assertEqual(serializer.errors['xforms'],
+                         [u'This list may not be empty.'])
 
         # 1 xform
         data['xforms'] = ["http://testserver.com/api/v1/forms/%s" % xform1.pk]
         serializer = MergedXFormSerializer(data=data)
         self.assertFalse(serializer.is_valid(raise_exception=False))
-        self.assertTrue(serializer.errors['xforms'], [
+        self.assertEqual(serializer.errors['xforms'], [
             u'This field should have at least two unique xforms.'
         ])
 
         # same xform twice
-        xform2 = self._publish_md(MD, self.user, id_string='b')
         data['xforms'] = [
             "http://testserver.com/api/v1/forms/%s" % xform1.pk,
             "http://testserver.com/api/v1/forms/%s" % xform1.pk
         ]
         serializer = MergedXFormSerializer(data=data)
         self.assertFalse(serializer.is_valid(raise_exception=False))
-        self.assertTrue(serializer.errors['xforms'],
-                        [u'This field should have unique xforms'])
+        self.assertEqual(serializer.errors['xforms'],
+                         [u'This field should have unique xforms'])
+
+        # xform with no matching fields
+        xform3 = self._publish_md(A_MD, self.user, id_string='c')
+        data['xforms'] = [
+            "http://testserver.com/api/v1/forms/%s" % xform1.pk,
+            "http://testserver.com/api/v1/forms/%s" % xform3.pk
+        ]
+        serializer = MergedXFormSerializer(data=data)
+        self.assertFalse(serializer.is_valid(raise_exception=False))
+        self.assertEqual(serializer.errors['xforms'],
+                         [u'No matching fields in xforms.'])
 
         # two different xforms
+        xform2 = self._publish_md(MD, self.user, id_string='b')
         data['xforms'] = [
             "http://testserver.com/api/v1/forms/%s" % xform1.pk,
             "http://testserver.com/api/v1/forms/%s" % xform2.pk
@@ -127,6 +140,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
         self.project = get_user_default_project(self.user)
         xform1 = self._publish_md(A_MD, self.user, id_string='a')
         xform2 = self._publish_md(B_MD, self.user, id_string='b')
+        xform3 = self._publish_md(MD, self.user, id_string='c')
         expected = {
             u'name':
             u'data',
@@ -190,3 +204,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
 
         survey = get_merged_xform_survey([xform1, xform2])
         self.assertEqual(survey.to_json_dict(), expected)
+
+        # no matching fields
+        with self.assertRaises(serializers.ValidationError):
+            survey = get_merged_xform_survey([xform1, xform3])
