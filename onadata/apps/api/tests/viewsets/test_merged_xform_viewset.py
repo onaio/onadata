@@ -19,6 +19,9 @@ from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Instance, MergedXForm, XForm
 from onadata.apps.logger.models.instance import FormIsMergedDatasetError
 from onadata.apps.logger.models.open_data import get_or_create_opendata
+from onadata.apps.restservice.models import RestService
+from onadata.apps.restservice.viewsets.restservices_viewset import \
+    RestServicesViewSet
 from onadata.libs.utils.export_tools import get_osm_data_kwargs
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -468,3 +471,29 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         response = view(request, pk=self.data_view.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
+
+    def test_rest_service(self):
+        """
+        Test rest service creating and deletion for a merged dataset.
+        """
+        count = RestService.objects.count()
+        merged_dataset = self._create_merged_dataset()
+        xform = XForm.objects.get(pk=merged_dataset['id'])
+        view = RestServicesViewSet.as_view({'post': 'create'})
+
+        post_data = {
+            "name": "generic_json",
+            "service_url": "http://crunch.goodbot.ai",
+            "xform": xform.pk
+        }
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request)
+
+        self.assertEquals(response.status_code, 201)
+        self.assertEquals(count + 3, RestService.objects.count())
+
+        # deleting the service for a merged xform deletes the same service from
+        # the individual forms as well.
+        service = RestService.objects.get(xform=xform)
+        service.delete()
+        self.assertEquals(count, RestService.objects.count())
