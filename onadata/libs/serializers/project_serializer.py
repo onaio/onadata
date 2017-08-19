@@ -151,7 +151,7 @@ class BaseProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = XForm
-        fields = ('name', 'formid', 'id_string')
+        fields = ('name', 'formid', 'id_string', 'is_merged_dataset')
 
 
 class ProjectXFormSerializer(serializers.HyperlinkedModelSerializer):

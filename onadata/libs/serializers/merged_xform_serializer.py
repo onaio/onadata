@@ -4,14 +4,53 @@ MergedXFormSerializer class
 """
 
 import base64
+import json
 import uuid
 
 from django.utils.translation import ugettext as _
-from pyxform.builder import create_survey_element_from_json
 from rest_framework import serializers
 
 from onadata.apps.logger.models import MergedXForm, XForm
 from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
+from pyxform.builder import (create_survey_element_from_dict,
+                             create_survey_element_from_json)
+
+
+def _get_fields_set(xform):
+    xform_dict = json.loads(xform.json)
+
+    assert '_xpath' in xform_dict
+    assert 'name' in xform_dict
+
+    return set([
+        ___ for (___, __) in xform_dict['_xpath'].items()
+        if __[1:] != xform_dict['name']
+    ])
+
+
+def get_merged_xform_survey(xforms):
+    """
+    Genertates a new pyxform survey object from the intersection of fields of
+    the xforms being merged.
+    """
+    assert len(xforms) > 1, _("Expecting at least 2 xforms")
+
+    xform_sets = [_get_fields_set(xform) for xform in xforms]
+
+    merged_xform_dict = json.loads(xforms[0].json)
+    merged_xform_dict['children'] = []
+
+    intersect = set(xform_sets[0]).intersection(*xform_sets[1:])
+
+    for field in intersect:
+        element = xforms[0].get_element(field)
+        if element:
+            merged_xform_dict['children'].append(element.to_json_dict())
+
+    if not merged_xform_dict['children']:
+        raise ValueError(_("No matching fields in xforms."))
+
+    return create_survey_element_from_dict(merged_xform_dict)
 
 
 def minimum_two_xforms(value):
