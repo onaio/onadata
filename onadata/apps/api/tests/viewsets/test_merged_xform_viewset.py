@@ -360,13 +360,13 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         # jump over headers first
         headers = csv_reader.next()
         self.assertEqual(headers, [
-            'meta/instanceID', 'fruit', '_id', '_uuid', '_submission_time',
+            'fruit', 'meta/instanceID', '_id', '_uuid', '_submission_time',
             '_tags', '_notes', '_version', '_duration', '_submitted_by'
         ])
         row1 = csv_reader.next()
-        self.assertEqual(row1[1], 'orange')
+        self.assertEqual(row1[0], 'orange')
         row2 = csv_reader.next()
-        self.assertEqual(row2[1], 'mango')
+        self.assertEqual(row2[0], 'mango')
 
     def test_get_osm_data_kwargs(self):
         """

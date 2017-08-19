@@ -37,18 +37,18 @@ def get_merged_xform_survey(xforms):
     xform_sets = [_get_fields_set(xform) for xform in xforms]
 
     merged_xform_dict = json.loads(xforms[0].json)
+    children = merged_xform_dict.pop('children')
     merged_xform_dict['children'] = []
 
     intersect = set(xform_sets[0]).intersection(*xform_sets[1:])
 
     is_empty = True
-    for field in intersect:
-        element = xforms[0].get_element(field)
-        if element:
-            merged_xform_dict['children'].append(element.to_json_dict())
+    for child in children:
+        if child['name'] in intersect:
+            merged_xform_dict['children'].append(child)
             # if we only have meta fields, we should consider the new form as
             # being blank.
-            if element.name != 'meta' and is_empty:
+            if child['name'] != 'meta' and is_empty:
                 is_empty = False
 
     if is_empty:

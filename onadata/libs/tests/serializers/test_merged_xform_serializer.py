@@ -163,6 +163,10 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
             u'type':
             u'survey',
             u'children': [{
+                u'name': u'name',
+                u'label': u'Name',
+                u'type': u'text'
+            }, {
                 u'children': [{
                     u'name': u'female',
                     u'label': u'Female'
@@ -192,10 +196,6 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
                 u'meta',
                 u'type':
                 u'group'
-            }, {
-                u'name': u'name',
-                u'label': u'Name',
-                u'type': u'text'
             }]
         }
 
