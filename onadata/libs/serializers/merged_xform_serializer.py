@@ -12,19 +12,37 @@ from rest_framework import serializers
 
 from onadata.apps.logger.models import MergedXForm, XForm
 from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
+from onadata.libs.utils.common_tags import MULTIPLE_SELECT_TYPE, SELECT_ONE
 from pyxform.builder import create_survey_element_from_dict
 
 
 def _get_fields_set(xform):
-    xform_dict = json.loads(xform.json)
+    return [
+        element.get_abbreviated_xpath()
+        for element in xform.survey_elements
+        if element.type not in ['', 'survey']
+    ]
 
-    assert '_xpath' in xform_dict
-    assert 'name' in xform_dict
 
-    return set([
-        ___ for (___, __) in xform_dict['_xpath'].items()
-        if __[1:] != xform_dict['name']
-    ])
+def _get_elements(elements, intersect, parent_prefix=None):
+    new_elements = []
+
+    for element in elements:
+        name = element['name']
+        name = name if not parent_prefix else '/'.join([parent_prefix, name])
+        if name in intersect:
+            k = element.copy()
+            if 'children' in element and element['type'] not in [
+                    SELECT_ONE, MULTIPLE_SELECT_TYPE]:
+                k['children'] = _get_elements(
+                    element['children'],
+                    [__ for __ in intersect if __.startswith(name)],
+                    name)
+                if not k['children']:
+                    continue
+            new_elements.append(k)
+
+    return new_elements
 
 
 def get_merged_xform_survey(xforms):
@@ -42,14 +60,11 @@ def get_merged_xform_survey(xforms):
 
     intersect = set(xform_sets[0]).intersection(*xform_sets[1:])
 
+    merged_xform_dict['children'] = _get_elements(children, intersect)
     is_empty = True
-    for child in children:
-        if child['name'] in intersect:
-            merged_xform_dict['children'].append(child)
-            # if we only have meta fields, we should consider the new form as
-            # being blank.
-            if child['name'] != 'meta' and is_empty:
-                is_empty = False
+    for child in merged_xform_dict['children']:
+        if child['name'] != 'meta' and is_empty:
+            is_empty = False
 
     if is_empty:
         raise serializers.ValidationError(_("No matching fields in xforms."))
