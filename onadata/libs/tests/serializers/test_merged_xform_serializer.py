@@ -186,14 +186,6 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
             u'title': u'pyxform_autotesttitle',
             u'sms_keyword': u'a',
             u'default_language': u'default',
-            u'_xpath': {
-                u'name': u'/data/name',
-                u'instanceID': u'/data/meta/instanceID',
-                u'gender': u'/data/gender',
-                u'age': u'/data/age',
-                u'meta': u'/data/meta',
-                u'data': u'/data'
-            },
             u'id_string': u'a',
             u'type': u'survey',
             u'children': [{
@@ -305,16 +297,123 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
                 u'name': u'meta',
                 u'type': u'group'
             }],
-            u'_xpath': {
-                u'info': u'/data/info',
-                u'name': u'/data/name',
-                u'instanceID': u'/data/meta/instanceID',
-                u'gender': None,
-                u'meta': u'/data/meta',
-                u'data': u'/data',
-                u'other': u'/data/other',
-                u'person': u'/data/other/person'
-            },
+            u'type': u'survey',
+            u'name': u'data',
+            u'sms_keyword': u'a',
+            u'title': u'pyxform_autotesttitle'
+        }  # yapf: disable
+
+        self.assertEqual(survey.to_json_dict(), expected)
+
+    def test_repeat_merged_xform_survey(self):
+        """
+        Test get_merged_xform_survey() with repeats in xforms.
+        """
+        self.project = get_user_default_project(self.user)
+        xform1 = self._publish_md(GROUP_A_MD.replace('group', 'repeat'),
+                                  self.user, id_string='a')
+        xform2 = self._publish_md(GROUP_B_MD.replace('group', 'repeat'),
+                                  self.user, id_string='b')
+        survey = get_merged_xform_survey([xform1, xform2])
+        expected = {
+            u'default_language': u'default',
+            u'id_string': u'a',
+            u'children': [{
+                u'name': u'name',
+                u'label': u'Name',
+                u'type': u'text'
+            }, {
+                u'children': [{
+                    u'children': [{
+                        u'name': u'female',
+                        u'label': u'Female'
+                    }, {
+                        u'name': u'male',
+                        u'label': u'Male'
+                    }],
+                    u'name': u'gender',
+                    u'label': u'Sex',
+                    u'type': u'select one'
+                }],
+                u'name': u'info',
+                u'label': u'Info',
+                u'type': u'repeat'
+            }, {
+                u'children': [{
+                    u'children': [{
+                        u'children': [{
+                            u'name': u'female',
+                            u'label': u'Female'
+                        }, {
+                            u'name': u'male',
+                            u'label': u'Male'
+                        }],
+                        u'name': u'gender',
+                        u'label': u'Sex',
+                        u'type': u'select one'
+                    }],
+                    u'name': u'person',
+                    u'label': u'Person',
+                    u'type': u'repeat'
+                }],
+                u'name': u'other',
+                u'label': u'Other',
+                u'type': u'repeat',
+            }, {
+                u'control': {
+                    u'bodyless': True
+                },
+                u'children': [{
+                    u'name': u'instanceID',
+                    u'bind': {
+                        u'readonly': u'true()',
+                        u'calculate': u"concat('uuid:', uuid())"
+                    },
+                    u'type': u'calculate'
+                }],
+                u'name': u'meta',
+                u'type': u'group'
+            }],
+            u'type': u'survey',
+            u'name': u'data',
+            u'sms_keyword': u'a',
+            u'title': u'pyxform_autotesttitle'
+        }  # yapf: disable
+
+        self.assertEqual(survey.to_json_dict(), expected)
+
+    def test_matching_fields_by_type(self):
+        """
+        Test get_merged_xform_survey(): should only match when question type
+        matches.
+        """
+        self.project = get_user_default_project(self.user)
+        xform1 = self._publish_md(GROUP_A_MD.replace('group', 'repeat'),
+                                  self.user, id_string='a')
+        xform2 = self._publish_md(GROUP_B_MD, self.user, id_string='b')
+        survey = get_merged_xform_survey([xform1, xform2])
+        expected = {
+            u'default_language': u'default',
+            u'id_string': u'a',
+            u'children': [{
+                u'name': u'name',
+                u'label': u'Name',
+                u'type': u'text'
+            }, {
+                u'control': {
+                    u'bodyless': True
+                },
+                u'children': [{
+                    u'name': u'instanceID',
+                    u'bind': {
+                        u'readonly': u'true()',
+                        u'calculate': u"concat('uuid:', uuid())"
+                    },
+                    u'type': u'calculate'
+                }],
+                u'name': u'meta',
+                u'type': u'group'
+            }],
             u'type': u'survey',
             u'name': u'data',
             u'sms_keyword': u'a',

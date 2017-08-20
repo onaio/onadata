@@ -18,7 +18,7 @@ from pyxform.builder import create_survey_element_from_dict
 
 def _get_fields_set(xform):
     return [
-        element.get_abbreviated_xpath()
+        (element.get_abbreviated_xpath(), element.type)
         for element in xform.survey_elements
         if element.type not in ['', 'survey']
     ]
@@ -59,8 +59,10 @@ def get_merged_xform_survey(xforms):
     merged_xform_dict['children'] = []
 
     intersect = set(xform_sets[0]).intersection(*xform_sets[1:])
+    intersect = set([__ for (__, ___) in intersect])
 
     merged_xform_dict['children'] = _get_elements(children, intersect)
+    del merged_xform_dict['_xpath']
     is_empty = True
     for child in merged_xform_dict['children']:
         if child['name'] != 'meta' and is_empty:
