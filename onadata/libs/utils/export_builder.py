@@ -22,9 +22,9 @@ from onadata.apps.logger.models.xform import _encode_for_mongo,\
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.common_tags import (
     ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION, BAMBOO_DATASET_ID,
-    DELETEDAT, INDEX, PARENT_INDEX, PARENT_TABLE_NAME,
+    DELETEDAT, INDEX, PARENT_INDEX, PARENT_TABLE_NAME, MULTIPLE_SELECT_TYPE,
     SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION,
-    MULTIPLE_SELECT_TYPE)
+    SAV_255_BYTES_TYPE, SAV_NUMERIC_TYPE)
 from onadata.libs.utils.mongo import _is_invalid_for_mongo,\
     _decode_from_mongo
 
@@ -220,7 +220,7 @@ def get_element_type_from_xpath(xpath, elements):
     element = get_element_from_xpath(xpath, elements)
     if element:
         return element['type']
-    return "unknown"
+    return ""
 
 
 class ExportBuilder(object):
@@ -929,17 +929,21 @@ class ExportBuilder(object):
 
         var_types = dict(
             [(_var_types[element['xpath']],
-                0 if _is_numeric(element['xpath'], element['type'],
-                                 self.dd) else 255)
+                SAV_NUMERIC_TYPE if _is_numeric(element['xpath'],
+                                                element['type'],
+                                                self.dd) else
+                SAV_255_BYTES_TYPE)
                 for element in elements] +
             [(_var_types[item],
-                0 if item in ['_id', '_index', '_parent_index',
-                              SUBMISSION_TIME] else 255)
+                SAV_NUMERIC_TYPE if item in [
+                    '_id', '_index', '_parent_index', SUBMISSION_TIME]
+                else SAV_255_BYTES_TYPE)
                 for item in self.EXTRA_FIELDS] +
             [(x[1],
-              0 if _is_numeric(x[0],
-                               get_element_type_from_xpath(x[0], elements),
-                               self.dd) else 255)
+              SAV_NUMERIC_TYPE if _is_numeric(
+                x[0],
+                get_element_type_from_xpath(x[0], elements),
+                self.dd) else SAV_255_BYTES_TYPE)
                 for x in duplicate_names]
         )
         dates = [_var_types[element['xpath']] for element in elements

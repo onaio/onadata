@@ -92,3 +92,9 @@ USER_ID = u'USER_ID'
 # tag group delimiter name
 GROUP_DELIMETER_TAG = 'group_delimiter'
 XFORM_META_PERMS = u'xform_meta_perms'
+
+# SAV
+# VarTyoes: 0 means 'numeric', and varType > 0 means 'character' of that length
+# (in bytes)
+SAV_NUMERIC_TYPE = 0
+SAV_255_BYTES_TYPE = 255
