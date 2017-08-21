@@ -1395,8 +1395,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 "There should be a choices sheet in this xlsform. "
                 "Please ensure that the choices sheet name is all in small "
                 "caps and has columns 'list name', 'name', and 'label' "
-                "(or aliased column names)."
-                )
+                "(or aliased column names).")
             self.assertEqual(response.data.get('text'), error_msg)
 
     def test_partial_update(self):
@@ -4229,7 +4228,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                                       alice_profile.user.auth_token.key
             }
 
-            request = self.factory.get('/',  **alices_extra)
+            request = self.factory.get('/', **alices_extra)
             response = view(request, pk=self.xform.pk, format='csv')
             self.assertEqual(response.status_code, 200)
 
@@ -4396,3 +4395,40 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.data.get('progress'), 4)
             self.assertIn('total', response.data)
             self.assertEqual(response.data.get('total'), 4)
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(EXPORT_TASK_PROGRESS_UPDATE_BATCH=1)
+    def test_export_with_filter_and_labels(self):
+        with HTTMock(enketo_mock):
+            start_date = datetime(2015, 12, 2, tzinfo=utc)
+            self._make_submission_over_date_range(start_date)
+
+            first_datetime = start_date.strftime(MONGO_STRFTIME)
+            second_datetime = start_date + timedelta(days=1, hours=20)
+
+            query_str = '{"_submission_time": {"$gte": "'\
+                        + first_datetime + '", "$lte": "'\
+                        + second_datetime.strftime(MONGO_STRFTIME) + '"}}'
+
+            # Generate initial filtered export by date
+            view = XFormViewSet.as_view({'get': 'export_async'})
+            request = self.factory.get('/?query=%s' % query_str,
+                                       data={'format': 'csv',
+                                             'include_labels': 'true'},
+                                       **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+
+            formid = self.xform.pk
+            task_id = response.data.get('job_uuid')
+            get_data = {'job_uuid': task_id}
+            request = self.factory.get('/', data=get_data, **self.extra)
+            response = view(request, pk=formid)
+            export = Export.objects.get(task_id=task_id)
+            self.assertTrue(export.is_successful)
+            with default_storage.open(export.filepath) as f:
+                csv_reader = csv.reader(f)
+                csv_reader.next()
+                labels = csv_reader.next()
+                self.assertIn(
+                    'Is ambulance available daily or weekly?', labels
+                )

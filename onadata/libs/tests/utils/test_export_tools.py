@@ -427,7 +427,7 @@ class TestExportTools(PyxformTestCase, TestBase):
 
     def test_sav_duplicate_columns(self):
         more_than_64_char = "akjasdlsakjdkjsadlsakjgdlsagdgdgdsajdgkjdsdgsj" \
-                "adsasdasgdsahdsahdsadgsdf"
+            "adsasdasgdsahdsahdsadgsdf"
         md = """
         | survey |
         |        | type           | name | label | choice_filter |

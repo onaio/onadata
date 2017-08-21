@@ -230,8 +230,7 @@ def get_filtered_instances(*args, **kwargs):
         .select_related('user', 'xform__user').only(
             'user__username',
             'xform__user__username',
-            'xform__has_start_time'
-        )
+            'xform__has_start_time')
 
 
 def create_instance(username,
