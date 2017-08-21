@@ -184,7 +184,6 @@ def update_instance_attachment_tracking(instance):
     """
     Takes an Instance object and updates attachment tracking fields
     """
-    # top level elements
     num_media = 0
     media_xpaths = instance.xform.get_media_survey_xpaths()
     for media_xpath in media_xpaths:
