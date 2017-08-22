@@ -62,7 +62,10 @@ def get_merged_xform_survey(xforms):
     intersect = set([__ for (__, ___) in intersect])
 
     merged_xform_dict['children'] = _get_elements(children, intersect)
-    del merged_xform_dict['_xpath']
+
+    if '_xpath' in merged_xform_dict:
+        del merged_xform_dict['_xpath']
+
     is_empty = True
     for child in merged_xform_dict['children']:
         if child['name'] != 'meta' and is_empty:
