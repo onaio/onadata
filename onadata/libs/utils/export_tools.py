@@ -398,6 +398,7 @@ def increment_index_in_filename(filename):
     return new_filename
 
 
+# pylint: disable=R0913
 def generate_attachments_zip_export(export_type, username, id_string,
                                     export_id=None, options=None,
                                     xform=None):
@@ -418,17 +419,25 @@ def generate_attachments_zip_export(export_type, username, id_string,
 
     if options.get("dataview_pk"):
         dataview = DataView.objects.get(pk=options.get("dataview_pk"))
-        records = dataview.query_data(dataview, all_data=True)
-        instances_ids = [rec.get('_id') for rec in records]
         attachments = Attachment.objects.filter(
-            instance_id__in=instances_ids, instance__deleted_at__isnull=True)
+            instance_id__in=[
+                rec.get('_id')
+                for rec in dataview.query_data(dataview, all_data=True)],
+            instance__deleted_at__isnull=True)
     else:
         attachments = Attachment.objects.filter(
-            instance__xform=xform, instance__deleted_at__isnull=True)
+            instance__deleted_at__isnull=True)
+        if xform.is_merged_dataset:
+            attachments = attachments.filter(
+                instance__xform_id__in=[
+                    i for i in xform.mergedxform.xforms.values_list(
+                        'id', flat=True)])
+        else:
+            attachments = attachments.filter(instance__xform_id=xform.pk)
 
-    basename = "%s_%s" % (id_string,
-                          datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
-    filename = basename + "." + export_type.lower()
+    filename = "%s_%s.%s" % (id_string,
+                             datetime.now().strftime("%Y_%m_%d_%H_%M_%S"),
+                             export_type.lower())
     file_path = os.path.join(
         username,
         'exports',
@@ -442,22 +451,20 @@ def generate_attachments_zip_export(export_type, username, id_string,
 
         try:
             temp_file = open(zip_file.name)
-            export_filename = default_storage.save(
+            filename = default_storage.save(
                 file_path,
                 File(temp_file, file_path))
         finally:
             temp_file.close()
     finally:
-        zip_file and zip_file.close()
-
-    dir_name, basename = os.path.split(export_filename)
+        if zip_file:
+            zip_file.close()
 
     export = get_or_create_export(export_id, xform, export_type, options)
-
-    export.filedir = dir_name
-    export.filename = basename
+    export.filedir, export.filename = os.path.split(filename)
     export.internal_status = Export.SUCCESSFUL
     export.save()
+
     return export
 
 
