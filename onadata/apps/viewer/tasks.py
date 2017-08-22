@@ -112,7 +112,6 @@ def create_xls_export(username, id_string, export_id, **options):
 
     # though export is not available when for has 0 submissions, we
     # catch this since it potentially stops celery
-
     try:
         gen_export = generate_export(Export.XLS_EXPORT, export.xform,
                                      export_id, options)
@@ -363,7 +362,6 @@ def mark_expired_pending_exports_as_failed():
     Exports that have not completed within a set time should be marked as
     failed
     """
-    # import pdb; pdb.set_trace()
     task_lifespan = settings.EXPORT_TASK_LIFESPAN
     time_threshold = timezone.now() - timedelta(hours=task_lifespan)
     exports = Export.objects.filter(internal_status=Export.PENDING,
