@@ -11,7 +11,7 @@ from urlparse import urlparse
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.base import File
-from django.core.files.storage import get_storage_class
+from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
 from django.db import OperationalError
 from django.db.models.query import QuerySet
@@ -259,10 +259,10 @@ def generate_export(export_type, xform, export_id=None, options=None,
         filename)
 
     # TODO: if s3 storage, make private - how will we protect local storage??
-    storage = get_storage_class()()
     # seek to the beginning as required by storage classes
     temp_file.seek(0)
-    export_filename = storage.save(file_path, File(temp_file, file_path))
+    export_filename = default_storage.save(file_path,
+                                           File(temp_file, file_path))
     temp_file.close()
 
     dir_name, basename = os.path.split(export_filename)
@@ -411,7 +411,7 @@ def generate_attachments_zip_export(export_type, username, id_string,
     param: options: additional parameters required for the lookup.
         ext: File extension of the generated export
     """
-    extension = options.get("extension", export_type)
+    export_type = options.get("extension", export_type)
 
     if xform is None:
         xform = XForm.objects.get(user__username=username, id_string=id_string)
@@ -428,14 +428,13 @@ def generate_attachments_zip_export(export_type, username, id_string,
 
     basename = "%s_%s" % (id_string,
                           datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
-    filename = basename + "." + extension
+    filename = basename + "." + export_type.lower()
     file_path = os.path.join(
         username,
         'exports',
         id_string,
         export_type,
         filename)
-    storage = get_storage_class()()
     zip_file = None
 
     try:
@@ -443,7 +442,7 @@ def generate_attachments_zip_export(export_type, username, id_string,
 
         try:
             temp_file = open(zip_file.name)
-            export_filename = storage.save(
+            export_filename = default_storage.save(
                 file_path,
                 File(temp_file, file_path))
         finally:
@@ -462,6 +461,7 @@ def generate_attachments_zip_export(export_type, username, id_string,
     return export
 
 
+# pylint: disable=R0913
 def generate_kml_export(export_type, username, id_string, export_id=None,
                         options=None, xform=None):
     """
@@ -472,9 +472,9 @@ def generate_kml_export(export_type, username, id_string, export_id=None,
     params: id_string: xform id_string
     params: export_id: ID of export object associated with the request
     param: options: additional parameters required for the lookup.
-        ext: File extension of the generated export
+        extension: File extension of the generated export
     """
-    extension = options.get("extension", export_type)
+    export_type = options.get("extension", export_type)
 
     user = User.objects.get(username=username)
     if xform is None:
@@ -484,7 +484,7 @@ def generate_kml_export(export_type, username, id_string, export_id=None,
 
     basename = "%s_%s" % (id_string,
                           datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
-    filename = basename + "." + extension
+    filename = basename + "." + export_type.lower()
     file_path = os.path.join(
         username,
         'exports',
@@ -492,16 +492,13 @@ def generate_kml_export(export_type, username, id_string, export_id=None,
         export_type,
         filename)
 
-    storage = get_storage_class()()
-    temp_file = NamedTemporaryFile(suffix=extension)
+    temp_file = NamedTemporaryFile(suffix=export_type.lower())
     temp_file.write(response.content)
     temp_file.seek(0)
-    export_filename = storage.save(
+    export_filename = default_storage.save(
         file_path,
         File(temp_file, file_path))
     temp_file.close()
-
-    dir_name, basename = os.path.split(export_filename)
 
     # get or create export object
     if export_id and Export.objects.filter(pk=export_id).exists():
@@ -512,8 +509,7 @@ def generate_kml_export(export_type, username, id_string, export_id=None,
                                        export_type=export_type,
                                        options=export_options)
 
-    export.filedir = dir_name
-    export.filename = basename
+    export.filedir, export.filename = os.path.split(export_filename)
     export.internal_status = Export.SUCCESSFUL
     export.save()
 
@@ -521,46 +517,54 @@ def generate_kml_export(export_type, username, id_string, export_id=None,
 
 
 def kml_export_data(id_string, user, xform=None):
-    if xform is None:
-        xform = XForm.objects.get(id_string=id_string, user=user)
-
-    instances = Instance.objects.filter(
-        xform__user=user, xform__id_string=id_string, geom__isnull=False
-    ).order_by('id')
-    data_for_template = []
-
-    labels = {}
-
+    """
+    KML export data from form submissions.
+    """
     def cached_get_labels(xpath):
+        """
+        Get and Cache labels for the XForm.
+        """
         if xpath in labels.keys():
             return labels[xpath]
         labels[xpath] = xform.get_label(xpath)
+
         return labels[xpath]
 
+    xform = xform or XForm.objects.get(id_string=id_string, user=user)
+
+    data_kwargs = {'geom__isnull': False}
+    if xform.is_merged_dataset:
+        data_kwargs.update({
+            'xform_id__in':
+            [i for i in xform.mergedxform.xforms.values_list('id', flat=True)]
+        })
+    else:
+        data_kwargs.update({'xform_id': xform.pk})
+    instances = Instance.objects.filter(**data_kwargs).order_by('id')
+    data_for_template = []
+    labels = {}
     for instance in queryset_iterator(instances):
         # read the survey instances
         data_for_display = instance.get_dict()
         xpaths = data_for_display.keys()
         xpaths.sort(cmp=instance.xform.get_xpath_cmp())
-        label_value_pairs = [
+        table_rows = [
+            '<tr><td>%s</td><td>%s</td></tr>' %
             (cached_get_labels(xpath), data_for_display[xpath]) for xpath in
             xpaths if not xpath.startswith(u"_")]
-        table_rows = ['<tr><td>%s</td><td>%s</td></tr>' % (k, v) for k, v
-                      in label_value_pairs]
         img_urls = image_urls(instance)
-        img_url = img_urls[0] if img_urls else ""
-        point = instance.point
 
-        if point:
+        if instance.point:
             data_for_template.append({
-                'name': id_string,
+                'name': instance.xform.id_string,
                 'id': instance.id,
-                'lat': point.y,
-                'lng': point.x,
+                'lat': instance.point.y,
+                'lng': instance.point.x,
                 'image_urls': img_urls,
                 'table': '<table border="1"><a href="#"><img width="210" '
                          'class="thumbnail" src="%s" alt=""></a>%s'
-                         '</table>' % (img_url, ''.join(table_rows))})
+                         '</table>' % (img_urls[0] if img_urls else "",
+                                       ''.join(table_rows))})
 
     return data_for_template
 
@@ -611,11 +615,10 @@ def generate_osm_export(export_type, username, id_string, export_id=None,
         export_type,
         filename)
 
-    storage = get_storage_class()()
     temp_file = NamedTemporaryFile(suffix=extension)
     temp_file.write(content)
     temp_file.seek(0)
-    export_filename = storage.save(
+    export_filename = default_storage.save(
         file_path,
         File(temp_file, file_path))
     temp_file.close()
