@@ -221,8 +221,8 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
         return get_starred(obj, self.context['request'])
 
     def get_users(self, obj):
-        owner_query_param_in_request = \
-          'request' in self.context and "owner" in self.context['request'].GET
+        owner_query_param_in_request = 'request' in self.context and\
+            "owner" in self.context['request'].GET
         return get_users(obj,
                          self.context,
                          owner_query_param_in_request)
@@ -293,11 +293,23 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             raise serializers.ValidationError({
                 'name': _(u"Project {} already exists.".format(name))
             })
-
         return attrs
+
+    def validate_metadata(self, value):
+        msg = serializers.ValidationError(_("Invaid value for metadata"))
+        try:
+            json_val = JsonField.to_json(value)
+        except ValueError:
+            raise serializers.ValidationError(msg)
+        else:
+            if json_val is None:
+                raise serializers.ValidationError(msg)
+        return value
 
     def update(self, instance, validated_data):
         metadata = JsonField.to_json(validated_data.get('metadata'))
+        if metadata is None:
+            metadata = dict()
         owner = validated_data.get('organization')
 
         if self.partial and metadata:
@@ -329,13 +341,16 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         return instance
 
     def create(self, validated_data):
+        metadata = validated_data.get('metadata', dict())
+        if metadata is None:
+            metadata = dict()
         created_by = self.context['request'].user
         project = Project.objects.create(
             name=validated_data.get('name'),
             organization=validated_data.get('organization'),
             created_by=created_by,
             shared=validated_data.get('shared', False),
-            metadata=validated_data.get('metadata', dict())
+            metadata=metadata
         )
 
         project.xform_set.exclude(shared=project.shared)\
