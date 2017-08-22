@@ -570,7 +570,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
 
         return request
 
-    def _publish_md(self, md, user, project=None, **kwargs):
+    def _publish_markdown(self, md, user, project=None, **kwargs):
         kwargs['name'] = 'data'
         survey = self.md_to_pyxform_survey(md, kwargs=kwargs)
         survey['sms_keyword'] = survey['id_string']

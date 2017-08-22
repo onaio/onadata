@@ -18,6 +18,7 @@ from django_digest.test import DigestAuth
 from django.contrib.auth import authenticate
 from django.utils import timezone
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from pyxform.tests_v1.pyxform_test_case import PyxformMarkdown
 from rest_framework.test import APIRequestFactory
 
 from onadata.apps.logger.models import XForm, Instance, Attachment
@@ -30,7 +31,7 @@ from onadata.libs.utils.common_tools import (
 from onadata.libs.utils.user_auth import get_user_default_project
 
 
-class TestBase(TransactionTestCase):
+class TestBase(PyxformMarkdown, TransactionTestCase):
 
     surveys = ['transport_2011-07-25_19-05-49',
                'transport_2011-07-25_19-05-36',
@@ -335,9 +336,14 @@ class TestBase(TransactionTestCase):
         response = view(request, pk=self.xform.id)
         self.assertEqual(response.status_code, 200)
 
-    def _publish_md(self, md, user, project=None):
-        survey = self.md_to_pyxform_survey(md)
-        if not project:
+    def _publish_markdown(self, md_xlsform, user, project=None, **kwargs):
+        """
+        Publishes a markdown XLSForm.
+        """
+        kwargs['name'] = 'data'
+        survey = self.md_to_pyxform_survey(md_xlsform, kwargs=kwargs)
+        survey['sms_keyword'] = survey['id_string']
+        if not project or not hasattr(self, 'project'):
             project = get_user_default_project(user)
         xform = DataDictionary(created_by=user, user=user,
                                xml=survey.to_xml(), json=survey.to_json(),

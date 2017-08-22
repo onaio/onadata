@@ -171,7 +171,7 @@ class TestExportViewSet(PyxformMarkdown, TestBase):
         |         | fruits    | mango  | Mango  |
         """
         self._create_user_and_login()
-        self.xform = self._publish_md(md, self.user)
+        self.xform = self._publish_markdown(md, self.user)
         bob = self.user
         export = Export.objects.create(xform=self.xform)
         export.save()

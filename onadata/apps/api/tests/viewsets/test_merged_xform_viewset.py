@@ -65,8 +65,8 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         })
         # pylint: disable=attribute-defined-outside-init
         self.project = get_user_default_project(self.user)
-        xform1 = self._publish_md(MD, self.user, id_string='a')
-        xform2 = self._publish_md(MD, self.user, id_string='b')
+        xform1 = self._publish_markdown(MD, self.user, id_string='a')
+        xform2 = self._publish_markdown(MD, self.user, id_string='b')
         if geo:
             xform2.instances_with_geopoints = True
             xform2.save(update_fields=['instances_with_geopoints'])

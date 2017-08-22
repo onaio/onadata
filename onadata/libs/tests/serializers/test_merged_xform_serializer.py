@@ -116,7 +116,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
                          [u'This field is required.'])
 
         self.project = get_user_default_project(self.user)
-        xform1 = self._publish_md(MD, self.user, id_string='a')
+        xform1 = self._publish_markdown(MD, self.user, id_string='a')
         data = {
             'xforms': [],
             'name':
@@ -150,7 +150,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
                          [u'This field should have unique xforms'])
 
         # xform with no matching fields
-        xform3 = self._publish_md(A_MD, self.user, id_string='c')
+        xform3 = self._publish_markdown(A_MD, self.user, id_string='c')
         data['xforms'] = [
             "http://testserver.com/api/v1/forms/%s" % xform1.pk,
             "http://testserver.com/api/v1/forms/%s" % xform3.pk
@@ -161,7 +161,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
                          [u'No matching fields in xforms.'])
 
         # two different xforms
-        xform2 = self._publish_md(MD, self.user, id_string='b')
+        xform2 = self._publish_markdown(MD, self.user, id_string='b')
         data['xforms'] = [
             "http://testserver.com/api/v1/forms/%s" % xform1.pk,
             "http://testserver.com/api/v1/forms/%s" % xform2.pk
@@ -178,9 +178,9 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
             get_merged_xform_survey([])
 
         self.project = get_user_default_project(self.user)
-        xform1 = self._publish_md(A_MD, self.user, id_string='a')
-        xform2 = self._publish_md(B_MD, self.user, id_string='b')
-        xform3 = self._publish_md(MD, self.user, id_string='c')
+        xform1 = self._publish_markdown(A_MD, self.user, id_string='a')
+        xform2 = self._publish_markdown(B_MD, self.user, id_string='b')
+        xform3 = self._publish_markdown(MD, self.user, id_string='c')
         expected = {
             u'name': u'data',
             u'title': u'pyxform_autotesttitle',
@@ -235,8 +235,8 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
         Test get_merged_xform_survey() with groups in xforms.
         """
         self.project = get_user_default_project(self.user)
-        xform1 = self._publish_md(GROUP_A_MD, self.user, id_string='a')
-        xform2 = self._publish_md(GROUP_B_MD, self.user, id_string='b')
+        xform1 = self._publish_markdown(GROUP_A_MD, self.user, id_string='a')
+        xform2 = self._publish_markdown(GROUP_B_MD, self.user, id_string='b')
         survey = get_merged_xform_survey([xform1, xform2])
         expected = {
             u'default_language': u'default',
@@ -310,10 +310,10 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
         Test get_merged_xform_survey() with repeats in xforms.
         """
         self.project = get_user_default_project(self.user)
-        xform1 = self._publish_md(GROUP_A_MD.replace('group', 'repeat'),
-                                  self.user, id_string='a')
-        xform2 = self._publish_md(GROUP_B_MD.replace('group', 'repeat'),
-                                  self.user, id_string='b')
+        xform1 = self._publish_markdown(GROUP_A_MD.replace('group', 'repeat'),
+                                        self.user, id_string='a')
+        xform2 = self._publish_markdown(GROUP_B_MD.replace('group', 'repeat'),
+                                        self.user, id_string='b')
         survey = get_merged_xform_survey([xform1, xform2])
         expected = {
             u'default_language': u'default',
@@ -388,9 +388,9 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
         matches.
         """
         self.project = get_user_default_project(self.user)
-        xform1 = self._publish_md(GROUP_A_MD.replace('group', 'repeat'),
-                                  self.user, id_string='a')
-        xform2 = self._publish_md(GROUP_B_MD, self.user, id_string='b')
+        xform1 = self._publish_markdown(GROUP_A_MD.replace('group', 'repeat'),
+                                        self.user, id_string='a')
+        xform2 = self._publish_markdown(GROUP_B_MD, self.user, id_string='b')
         survey = get_merged_xform_survey([xform1, xform2])
         expected = {
             u'default_language': u'default',
