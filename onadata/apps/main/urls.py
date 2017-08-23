@@ -1,3 +1,5 @@
+import sys
+
 import django
 
 from django.conf import settings
@@ -26,13 +28,15 @@ from onadata.apps.viewer import views as viewer_views
 # enable the admin:
 from django.contrib import admin
 
+TESTING = len(sys.argv) > 1 and sys.argv[1] == 'test'
+
 admin.autodiscover()
 
 urlpatterns = [
     # change Language
     url(r'^i18n/', include(i18n)),
     url('^api/v1/', include(router.urls)),
-    url('^api/v1/dataviews/(?P<pk>[^/]+)/(?P<action>[^/]+).'
+    url('^api/v1/dataviews/(?P<pk>\d+)/(?P<action>[^/]+).'
         '(?P<format>([a-z]|[0-9])*)$', DataViewViewSet,
         name='dataviews-data'),
     url(r'^api-docs/',
@@ -296,7 +300,7 @@ if custom_urls:
     for url_module in custom_urls:
         urlpatterns.append(url(r'^', include(url_module)))
 
-if settings.DEBUG and 'debug_toolbar' in settings.INSTALLED_APPS:
+if (settings.DEBUG or TESTING) and 'debug_toolbar' in settings.INSTALLED_APPS:
     try:
         import debug_toolbar
     except ImportError:

@@ -1230,3 +1230,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         self.assertEqual(1, len(response.data))
         self.assertEqual(45, response.data[0].get('age'))
+
+    def test_invalid_url_parameters(self):
+        response = self.client.get('/api/v1/dataviews/css/ona.css/')
+        self.assertEquals(response.status_code, 404)
