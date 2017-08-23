@@ -182,8 +182,6 @@ def enketo_url(form_url,
                 return response['offline_url']
             if 'url' in response:
                 return response['url']
-            if 'offline_url' in response:
-                return response['offline_url']
     else:
         try:
             response = req.json()
@@ -195,7 +193,9 @@ def enketo_url(form_url,
         else:
             if 'message' in response:
                 raise EnketoError(response['message'])
-    return False
+            raise EnketoError(req.text)
+
+    raise EnketoError()
 
 
 def generate_enketo_form_defaults(xform, **kwargs):
