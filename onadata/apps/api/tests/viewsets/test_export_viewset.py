@@ -1,8 +1,12 @@
+# -*- coding: utf-8 -*-
+"""
+test_export_viewset module
+"""
+
 import os
 from tempfile import NamedTemporaryFile
 
 from django.conf import settings
-from pyxform.tests_v1.pyxform_test_case import PyxformMarkdown
 from rest_framework import status
 from rest_framework.test import APIRequestFactory, force_authenticate
 
@@ -12,16 +16,22 @@ from onadata.apps.viewer.models.export import Export
 from onadata.libs.utils.export_tools import generate_export
 
 
-class TestExportViewSet(PyxformMarkdown, TestBase):
+class TestExportViewSet(TestBase):
+    """
+    Test ExportViewSet functionality.
+    """
 
     def setUp(self):
-        super(self.__class__, self).setUp()
+        super(TestExportViewSet, self).setUp()
         self.factory = APIRequestFactory()
         self.formats = ['csv', 'csvzip', 'kml', 'osm', 'savzip', 'xls',
                         'xlsx', 'zip']
         self.view = ExportViewSet.as_view({'get': 'retrieve'})
 
-    def test_generates_expected_response(self):
+    def test_export_response(self):
+        """
+        Test ExportViewSet retrieve has the correct headers in response.
+        """
         self._create_user_and_login()
         self._publish_transportation_form()
         temp_dir = settings.MEDIA_ROOT
@@ -37,22 +47,31 @@ class TestExportViewSet(PyxformMarkdown, TestBase):
         response = self.view(request, pk=export.pk)
         self.assertIn(filename, response.get('Content-Disposition'))
 
-    def test_export_format_renderers_present(self):
+    def test_export_formats_present(self):
+        """
+        Test export formats are in ExportViewSet.renderer_classes.
+        """
         renderer_formats = [rc.format for rc in self.view.cls.renderer_classes]
 
-        for f in self.formats:
-            self.assertIn(f, renderer_formats)
+        for ext in self.formats:
+            self.assertIn(ext, renderer_formats)
 
     def test_export_non_existent_file(self):
+        """
+        Test non existent primary key results in HTTP_404_NOT_FOUND.
+        """
         self._create_user_and_login()
-        pk = 1525266252676
-        for f in self.formats:
+        non_existent_pk = 1525266252676
+        for ext in self.formats:
             request = self.factory.get('/export')
             force_authenticate(request, user=self.user)
-            response = self.view(request, pk=pk, format=f)
+            response = self.view(request, pk=non_existent_pk, format=ext)
             self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_export_list(self):
+        """
+        Test ExportViewSet list endpoint.
+        """
         self._create_user_and_login()
         view = ExportViewSet.as_view({'get': 'list'})
         request = self.factory.get('/export')
@@ -62,6 +81,9 @@ class TestExportViewSet(PyxformMarkdown, TestBase):
         self.assertEqual(status.HTTP_200_OK, response.status_code)
 
     def test_export_list_public(self):
+        """
+        Test ExportViewSet list endpoint for public forms.
+        """
         self._create_user_and_login()
         self._publish_transportation_form()
         self.xform.shared_data = True
@@ -82,6 +104,9 @@ class TestExportViewSet(PyxformMarkdown, TestBase):
         self.assertEqual(status.HTTP_200_OK, response.status_code)
 
     def test_export_public_project(self):
+        """
+        Test export of a public form for anonymous users.
+        """
         self._create_user_and_login()
         self._publish_transportation_form()
         self.xform.shared_data = True
@@ -94,7 +119,11 @@ class TestExportViewSet(PyxformMarkdown, TestBase):
         response = self.view(request, pk=export.pk)
         self.assertEqual(status.HTTP_200_OK, response.status_code)
 
+    # pylint: disable=C0103
     def test_export_public_authenticated(self):
+        """
+        Test export of a public form for authenticated users.
+        """
         self._create_user_and_login()
         self._publish_transportation_form()
         self.xform.shared_data = True
@@ -109,6 +138,10 @@ class TestExportViewSet(PyxformMarkdown, TestBase):
         self.assertEqual(status.HTTP_200_OK, response.status_code)
 
     def test_export_non_public_export(self):
+        """
+        Test export of a private form for anonymous users results in
+        HTTP_404_NOT_FOUND response.
+        """
         self._create_user_and_login()
         self._publish_transportation_form()
         self.xform.shared_data = False
@@ -122,6 +155,9 @@ class TestExportViewSet(PyxformMarkdown, TestBase):
         self.assertEqual(status.HTTP_404_NOT_FOUND, response.status_code)
 
     def test_export_list_on_user(self):
+        """
+        Test ExportViewSet list endpoint with xform filter.
+        """
         self._create_user_and_login()
         self._publish_transportation_form()
         temp_dir = settings.MEDIA_ROOT
@@ -141,6 +177,9 @@ class TestExportViewSet(PyxformMarkdown, TestBase):
         self.assertEqual(status.HTTP_200_OK, response.status_code)
 
     def test_export_list_on_with_different_users(self):
+        """
+        Test ExportViewSet list endpoint with a different user.
+        """
         self._create_user_and_login()
         self._publish_transportation_form()
         temp_dir = settings.MEDIA_ROOT
@@ -160,7 +199,10 @@ class TestExportViewSet(PyxformMarkdown, TestBase):
         self.assertEqual(status.HTTP_200_OK, response.status_code)
 
     def test_export_delete(self):
-        md = """
+        """
+        Test deleting an export on ExportViewSet.
+        """
+        markdown_xlsform = """
         | survey |
         |        | type              | name  | label |
         |        | select one fruits | fruit | Fruit |
@@ -171,9 +213,9 @@ class TestExportViewSet(PyxformMarkdown, TestBase):
         |         | fruits    | mango  | Mango  |
         """
         self._create_user_and_login()
-        self.xform = self._publish_markdown(md, self.user)
+        xform = self._publish_markdown(markdown_xlsform, self.user)
         bob = self.user
-        export = Export.objects.create(xform=self.xform)
+        export = Export.objects.create(xform=xform)
         export.save()
         view = ExportViewSet.as_view({'delete': 'destroy'})
 
