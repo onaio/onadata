@@ -1,3 +1,5 @@
+import os
+
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
@@ -7,6 +9,7 @@ from django.utils.translation import ugettext as _
 
 from rest_framework import serializers
 from rest_framework.reverse import reverse
+from urlparse import urlparse
 
 from onadata.apps.logger.models import DataView
 from onadata.apps.logger.models import Project
@@ -169,6 +172,15 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                 else:
                     raise serializers.ValidationError({
                         'data_value': _(u"Invalid url '%s'." % value)
+                    })
+            else:
+                # check if we have a value for the filename.
+                if not os.path.basename(urlparse(value).path):
+                    raise serializers.ValidationError({
+                        'data_value': _(
+                            u"Cannot get filename from URL %s. URL should "
+                            u"include the filename e.g "
+                            u"http://example.com/data.csv" % value)
                     })
 
         if data_type == XFORM_META_PERMS:
