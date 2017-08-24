@@ -151,7 +151,7 @@ class BaseProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = XForm
-        fields = ('name', 'formid', 'id_string')
+        fields = ('name', 'formid', 'id_string', 'is_merged_dataset')
 
 
 class ProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
@@ -174,7 +174,8 @@ class ProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
             'last_submission_time',
             'date_created',
             'url',
-            'last_updated_at'
+            'last_updated_at',
+            'is_merged_dataset',
         )
 
     def get_published_by_formbuilder(self, obj):

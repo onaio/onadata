@@ -1,0 +1,10 @@
+# include base.pip
+-r base.in
+
+django-extensions
+ipdb
+pylint
+pylint-django
+pylint-celery
+yapf
+isort

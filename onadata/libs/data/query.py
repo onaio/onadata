@@ -62,10 +62,11 @@ def _postgres_count_group_field_n_group_by(field, name, xform, group_by,
     if data_view:
         additional_filters = _additional_data_view_filters(data_view)
 
+    restricted_string = _restricted_query(xform)
     query = "SELECT %(json)s AS \"%(name)s\", "\
             "%(group_by)s AS \"%(group_name)s\", "\
             "count(*) as count "\
-            "FROM %(table)s WHERE %(restrict_field)s=%(restrict_value)s " \
+            "FROM %(table)s WHERE " + restricted_string + \
             "AND deleted_at IS NULL " + additional_filters + \
             " GROUP BY %(json)s, %(group_by)s" + \
             " ORDER BY %(json)s, %(group_by)s"
@@ -84,9 +85,10 @@ def _postgres_count_group(field, name, xform, data_view=None):
     if data_view:
         additional_filters = _additional_data_view_filters(data_view)
 
-    sql_query = "SELECT %(json)s AS \"%(name)s\", COUNT(*) AS count FROM "" \
-    ""%(table)s WHERE %(restrict_field)s=%(restrict_value)s "" \
-    "" AND deleted_at IS NULL " + additional_filters + " GROUP BY %(json)s" \
+    restricted_string = _restricted_query(xform)
+    sql_query = "SELECT %(json)s AS \"%(name)s\", COUNT(*) AS count FROM " \
+        "%(table)s WHERE " + restricted_string + \
+        " AND deleted_at IS NULL " + additional_filters + " GROUP BY %(json)s"\
         " ORDER BY %(json)s"
     sql_query = sql_query % string_args
 
@@ -107,7 +109,7 @@ def _postgres_aggregate_group_by(field, name, xform, group_by, data_view=None):
     group_by_group_by = ""
     if isinstance(group_by, list):
         group_by_group_by = []
-        for i, v in enumerate(group_by):
+        for i, __ in enumerate(group_by):
             group_by_select += "%(group_by" + str(i) + \
                     ")s AS \"%(group_name" + str(i) + ")s\", "
             group_by_group_by.append("%(group_by" + str(i) + ")s")
@@ -116,11 +118,12 @@ def _postgres_aggregate_group_by(field, name, xform, group_by, data_view=None):
         group_by_select = "%(group_by)s AS \"%(group_name)s\","
         group_by_group_by = "%(group_by)s"
 
+    restricted_string = _restricted_query(xform)
     query = "SELECT " + group_by_select + \
             "SUM((%(json)s)::numeric) AS sum, " \
             "AVG((%(json)s)::numeric) AS mean  " \
-            "FROM %(table)s WHERE %(restrict_field)s=%(restrict_value)s " \
-            "AND deleted_at IS NULL " + additional_filters + \
+            "FROM %(table)s WHERE " + restricted_string + \
+            " AND deleted_at IS NULL " + additional_filters + \
             " GROUP BY " + group_by_group_by + \
             " ORDER BY " + group_by_group_by
 
@@ -131,10 +134,18 @@ def _postgres_aggregate_group_by(field, name, xform, group_by, data_view=None):
 
 def _postgres_select_key(field, name, xform):
     string_args = _query_args(field, name, xform)
+    restricted_string = _restricted_query(xform)
+    query = "SELECT %(json)s AS \"%(name)s\" FROM %(table)s WHERE " + \
+        restricted_string + " AND deleted_at IS NULL "\
 
-    return "SELECT %(json)s AS \"%(name)s\" FROM %(table)s WHERE "\
-           "%(restrict_field)s=%(restrict_value)s AND deleted_at IS NULL "\
-           % string_args
+    return query % string_args
+
+
+def _restricted_query(xform):
+    if xform.is_merged_dataset:
+        return "%(restrict_field)s IN %(restrict_value)s"
+
+    return "%(restrict_field)s=%(restrict_value)s"
 
 
 def _query_args(field, name, xform, group_by=None):
@@ -144,6 +155,10 @@ def _query_args(field, name, xform, group_by=None):
         'name': name,
         'restrict_field': 'xform_id',
         'restrict_value': xform.pk}
+
+    if xform.is_merged_dataset:
+        qargs['restrict_value'] = tuple(
+            __ for __ in xform.mergedxform.xforms.values_list('id', flat=True))
 
     if isinstance(group_by, list):
         for i, v in enumerate(group_by):

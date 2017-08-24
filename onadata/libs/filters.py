@@ -441,3 +441,11 @@ class ExportFilter(XFormPermissionFilterMixin,
     def filter_queryset(self, request, queryset, view):
         return self._xform_filter_queryset(
             request, queryset, view, 'xform_id')
+
+
+class PublicDatasetsFilter(object):
+    def filter_queryset(self, request, queryset, view):
+        if request and request.user.is_anonymous():
+            return queryset.filter(shared=True)
+
+        return queryset

@@ -102,10 +102,13 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, TotalHeaderMixin,
 
     @detail_route(methods=['GET'])
     def data(self, request, **kwargs):
+        """
+        Streams submission data response matching uuid in the request.
+        """
         self.object = self.get_object()
         # get greater than value and cast it to an int
-        gt = request.query_params.get('gt_id')
-        gt = gt and parse_int(gt)
+        gt_id = request.query_params.get('gt_id')
+        gt_id = gt_id and parse_int(gt_id)
         count = request.query_params.get('count')
         pagination_keys = [
             self.paginator.page_query_param,
@@ -120,9 +123,13 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, TotalHeaderMixin,
                 return Response(status=status.HTTP_404_NOT_FOUND)
 
             xform = self.object.content_object
-            qs_kwargs = {'xform_id': xform.pk}
-            if gt:
-                qs_kwargs.update({'id__gt': gt})
+            if xform.is_merged_dataset:
+                qs_kwargs = {'xform_id__in': list(
+                    xform.mergedxform.xforms.values_list('pk', flat=True))}
+            else:
+                qs_kwargs = {'xform_id': xform.pk}
+            if gt_id:
+                qs_kwargs.update({'id__gt': gt_id})
 
             instances = Instance.objects.filter(**qs_kwargs).order_by('pk')
             length = self.total_count = instances.count()

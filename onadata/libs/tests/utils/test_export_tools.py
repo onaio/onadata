@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+"""
+Test export_tools module
+"""
+
 import os
 import shutil
 import tempfile
@@ -10,20 +15,21 @@ from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
 from django.test.utils import override_settings
 from django.utils import timezone
-from pyxform.builder import create_survey_from_xls
-from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
 from savReaderWriter import SavWriter
 
 from onadata.apps.api import tests as api_tests
-from onadata.apps.logger.models import Attachment
+from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
+from onadata.libs.serializers.merged_xform_serializer import \
+    MergedXFormSerializer
 from onadata.libs.utils.export_builder import (encode_if_str,
                                                get_value_or_attachment_uri)
 from onadata.libs.utils.export_tools import (
     ExportBuilder, check_pending_export, generate_attachments_zip_export,
-    generate_export, generate_kml_export, generate_osm_export,
+    generate_export, generate_kml_export, generate_osm_export, kml_export_data,
     parse_request_export_options, should_create_new_export, str_to_bool)
+from pyxform.builder import create_survey_from_xls
 
 
 def _logger_fixture_path(*args):
@@ -31,7 +37,10 @@ def _logger_fixture_path(*args):
                         *args)
 
 
-class TestExportTools(PyxformTestCase, TestBase):
+class TestExportTools(TestBase):
+    """
+    Test export_tools functions.
+    """
     def _create_old_export(self, xform, export_type, options):
         Export(xform=xform, export_type=export_type, options=options).save()
         self.export = Export.objects.filter(
@@ -219,7 +228,7 @@ class TestExportTools(PyxformTestCase, TestBase):
                 u'id': 1,
                 u'xform': 1
             }]
-        }
+        }  # yapf: disable
 
         # when include_images is True, you get the attachment url
         media_xpaths = ['photo']
@@ -311,7 +320,67 @@ class TestExportTools(PyxformTestCase, TestBase):
         self.assertTrue(export.is_successful)
         self.assertNotEqual(export_id, export.pk)
 
+    def test_kml_export_data(self):
+        """
+        Test kml_export_data(id_string, user, xform=None).
+        """
+        kml_md = """
+        | survey |
+        |        | type              | name  | label |
+        |        | geopoint          | gps   | GPS   |
+        |        | select one fruits | fruit | Fruit |
+
+        | choices |
+        |         | list name | name   | label  |
+        |         | fruits    | orange | Orange |
+        |         | fruits    | mango  | Mango  |
+        """
+        xform1 = self._publish_markdown(kml_md, self.user, id_string='a')
+        xform2 = self._publish_markdown(kml_md, self.user, id_string='b')
+        xml = '<data id="a"><gps>-1.28 36.83</gps><fruit>orange</fruit></data>'
+        Instance(xform=xform1, xml=xml).save()
+        xml = '<data id="b"><gps>32.85 13.04</gps><fruit>mango</fruit></data>'
+        Instance(xform=xform2, xml=xml).save()
+        data = {
+            'xforms': [
+                "http://testserver/api/v1/forms/%s" % xform1.pk,
+                "http://testserver/api/v1/forms/%s" % xform2.pk,
+            ],
+            'name': 'Merged Dataset',
+            'project':
+            "http://testserver/api/v1/projects/%s" % xform1.project.pk,
+        }  # yapf: disable
+        request = self.factory.post('/')
+        request.user = self.user
+        serializer = MergedXFormSerializer(
+            data=data, context={'request': request})
+        self.assertTrue(serializer.is_valid())
+        serializer.save()
+        xform = XForm.objects.filter(
+            pk__gt=xform2.pk, is_merged_dataset=True).first()
+        expected_data = [{
+            'name': u'a',
+            'image_urls': [],
+            'lat': -1.28,
+            'table': u'<table border="1"><a href="#"><img width="210" class="thumbnail" src="" alt=""></a><tr><td>GPS</td><td>-1.28 36.83</td></tr><tr><td>Fruit</td><td>orange</td></tr></table>',  # noqa pylint: disable=C0301
+            'lng': 36.83,
+            'id': xform1.instances.all().first().pk
+        }, {
+            'name': u'b',
+            'image_urls': [],
+            'lat': 32.85,
+            'table':
+            u'<table border="1"><a href="#"><img width="210" class="thumbnail" src="" alt=""></a><tr><td>GPS</td><td>32.85 13.04</td></tr><tr><td>Fruit</td><td>mango</td></tr></table>',  # noqa pylint: disable=C0301
+            'lng': 13.04,
+            'id': xform2.instances.all().first().pk
+        }]  # yapf: disable
+        self.assertEqual(
+            kml_export_data(xform.id_string, xform.user), expected_data)
+
     def test_kml_exports(self):
+        """
+        Test generate_kml_export()
+        """
         export_type = "kml"
         options = {
             "group_delimiter": "/",

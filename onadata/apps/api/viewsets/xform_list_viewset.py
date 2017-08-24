@@ -44,7 +44,8 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
     content_negotiation_class = MediaFileContentNegotiation
     filter_backends = (filters.XFormListObjectPermissionFilter,
                        filters.XFormListXFormPKFilter)
-    queryset = XForm.objects.filter(downloadable=True, deleted_at=None)
+    queryset = XForm.objects.filter(downloadable=True, deleted_at=None,
+                                    is_merged_dataset=False)
     permission_classes = (permissions.AllowAny,)
     renderer_classes = (XFormListRenderer,)
     serializer_class = XFormListSerializer

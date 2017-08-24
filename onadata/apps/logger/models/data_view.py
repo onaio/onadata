@@ -212,7 +212,8 @@ class DataView(models.Model):
     @classmethod
     def query_iterator(cls, sql, fields=None, params=[], count=False):
         cursor = connection.cursor()
-        sql_params = params
+        sql_params = tuple(
+            i if isinstance(i, tuple) else unicode(i) for i in params)
 
         if count:
             from_pos = sql.upper().find(' FROM')
@@ -225,7 +226,7 @@ class DataView(models.Model):
 
             fields = [u'count']
 
-        cursor.execute(sql, [unicode(i) for i in sql_params])
+        cursor.execute(sql, sql_params)
 
         if fields is None:
             for row in cursor.fetchall():
@@ -278,9 +279,16 @@ class DataView(models.Model):
         if where:
             sql_where = u" AND " + u" AND ".join(where)
 
-        sql += u" WHERE xform_id = %s " + sql_where \
-               + u" AND deleted_at IS NULL"
-        params = [data_view.xform.pk] + where_params
+        if data_view.xform.is_merged_dataset:
+            sql += u" WHERE xform_id IN %s " + sql_where \
+                    + u" AND deleted_at IS NULL"
+            params = [tuple(list(
+                data_view.xform.mergedxform.xforms.values_list('pk', flat=True)
+            ))] + where_params
+        else:
+            sql += u" WHERE xform_id = %s " + sql_where \
+                    + u" AND deleted_at IS NULL"
+            params = [data_view.xform.pk] + where_params
 
         if sort is not None:
             sort = ['id'] if sort is None\

@@ -1,61 +1,36 @@
 import json
 import os
 import re
-import requests
-import StringIO
+from tempfile import NamedTemporaryFile
 
+import requests
 from django.conf import settings
-from django.contrib.auth.models import Permission
+from django.contrib.auth import authenticate
+from django.contrib.auth.models import Permission, User
 from django.test import TestCase
 from django_digest.test import Client as DigestClient
-from tempfile import NamedTemporaryFile
-from django.contrib.auth.models import User
 from django_digest.test import DigestAuth
-from django.contrib.auth import authenticate
-from httmock import urlmatch, HTTMock
-
+from httmock import HTTMock, urlmatch
+from pyxform.tests_v1.pyxform_test_case import PyxformMarkdown
 from rest_framework.test import APIRequestFactory
 
-from onadata.apps.api.models import OrganizationProfile
+from onadata.apps.api.models import OrganizationProfile, Team
+from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
 from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
-from onadata.apps.api.viewsets.organization_profile_viewset import\
+from onadata.apps.api.viewsets.organization_profile_viewset import \
     OrganizationProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
-from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
-from onadata.apps.api.viewsets.widget_viewset import WidgetViewSet
-from onadata.apps.main.models import UserProfile, MetaData
-from onadata.apps.main import tests as main_tests
-from onadata.apps.logger.models import Attachment
-from onadata.apps.logger.models import Instance
-from onadata.apps.logger.models import XForm
-from onadata.apps.logger.models import Project
-from onadata.apps.logger.models.widget import Widget
-from onadata.apps.logger.models.data_view import DataView
-from onadata.libs.serializers.project_serializer import ProjectSerializer
-from onadata.apps.logger.views import submission
-from onadata.apps.api.models import Team
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
-
-
-def filename_from_disposition(content_disposition):
-    filename_pos = content_disposition.index('filename=')
-    assert filename_pos != -1
-
-    return content_disposition[filename_pos + len('filename='):]
-
-
-def get_response_content(response):
-    contents = u''
-    if response.streaming:
-        actual_content = StringIO.StringIO()
-        for content in response.streaming_content:
-            actual_content.write(content)
-        contents = actual_content.getvalue()
-        actual_content.close()
-    else:
-        contents = response.content
-
-    return contents
+from onadata.apps.api.viewsets.widget_viewset import WidgetViewSet
+from onadata.apps.logger.models import Attachment, Instance, Project, XForm
+from onadata.apps.logger.models.data_view import DataView
+from onadata.apps.logger.models.widget import Widget
+from onadata.apps.logger.views import submission
+from onadata.apps.main import tests as main_tests
+from onadata.apps.main.models import MetaData, UserProfile
+from onadata.apps.viewer.models import DataDictionary
+from onadata.libs.serializers.project_serializer import ProjectSerializer
+from onadata.libs.utils.user_auth import get_user_default_project
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$', path=r'^/api_v1/survey/preview$')
@@ -78,7 +53,7 @@ def enketo_url_mock(url, request):
     return response
 
 
-class TestAbstractViewSet(TestCase):
+class TestAbstractViewSet(PyxformMarkdown, TestCase):
     surveys = ['transport_2011-07-25_19-05-49',
                'transport_2011-07-25_19-05-36',
                'transport_2011-07-25_19-06-01',
@@ -455,17 +430,19 @@ class TestAbstractViewSet(TestCase):
                                  'Digest')
         return client
 
-    def _create_dataview(self, data=None):
+    def _create_dataview(self, data=None, project=None, xform=None):
         view = DataViewViewSet.as_view({
             'post': 'create'
         })
 
+        project = project if project else self.project
+        xform = xform if xform else self.xform
+
         if not data:
             data = {
                 'name': "My DataView",
-                'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
-                'project': 'http://testserver/api/v1/projects/%s'
-                           % self.project.pk,
+                'xform': 'http://testserver/api/v1/forms/%s' % xform.pk,
+                'project': 'http://testserver/api/v1/projects/%s' % project.pk,
                 'columns': '["name", "age", "gender"]',
                 'query': '[{"column":"age","filter":">","value":"20"},'
                          '{"column":"age","filter":"<","value":"50"}]'
@@ -478,8 +455,8 @@ class TestAbstractViewSet(TestCase):
         self.assertEquals(response.status_code, 201)
 
         # load the created dataview
-        self.data_view = DataView.objects.filter(xform=self.xform,
-                                                 project=self.project).last()
+        self.data_view = DataView.objects.filter(xform=xform,
+                                                 project=project).last()
 
         self.assertEquals(response.data['name'], data['name'])
         self.assertEquals(response.data['xform'], data['xform'])
@@ -538,23 +515,6 @@ class TestAbstractViewSet(TestCase):
         self.assertEquals(response.data['data'], [])
         self.assertEquals(response.data['metadata'], data.get('metadata', {}))
 
-    def filename_from_disposition(self, content_disposition):
-        filename_pos = content_disposition.index('filename=')
-        assert filename_pos != -1
-        return content_disposition[filename_pos + len('filename='):]
-
-    def get_response_content(self, response):
-        contents = u''
-        if response.streaming:
-            actual_content = StringIO.StringIO()
-            for content in response.streaming_content:
-                actual_content.write(content)
-            contents = actual_content.getvalue()
-            actual_content.close()
-        else:
-            contents = response.content
-        return contents
-
     def _team_create(self):
         self._org_create()
 
@@ -609,3 +569,16 @@ class TestAbstractViewSet(TestCase):
         request.session = self.client.session
 
         return request
+
+    def _publish_markdown(self, md, user, project=None, **kwargs):
+        kwargs['name'] = 'data'
+        survey = self.md_to_pyxform_survey(md, kwargs=kwargs)
+        survey['sms_keyword'] = survey['id_string']
+        if not project or not hasattr(self, 'project'):
+            project = get_user_default_project(user)
+        xform = DataDictionary(created_by=user, user=user,
+                               xml=survey.to_xml(), json=survey.to_json(),
+                               project=project)
+        xform.save()
+
+        return xform

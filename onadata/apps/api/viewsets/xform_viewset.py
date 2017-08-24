@@ -256,7 +256,8 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             'date_created', 'date_modified', 'last_submission_time',
             'uuid', 'bamboo_dataset', 'instances_with_osm',
             'instances_with_geopoints', 'version', 'has_hxl_support',
-            'project', 'last_updated_at', 'user', 'allows_sms', 'description'
+            'project', 'last_updated_at', 'user', 'allows_sms', 'description',
+            'is_merged_dataset'
         )
     serializer_class = XFormSerializer
     lookup_field = 'pk'

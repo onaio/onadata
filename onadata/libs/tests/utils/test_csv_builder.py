@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Test CSVDataFrameBuilder
+"""
 import csv
 import os
 from tempfile import NamedTemporaryFile
@@ -34,6 +38,9 @@ def xml_inst_filepath_from_fixture_name(fixture_name, instance_name):
 
 
 class TestCSVDataFrameBuilder(TestBase):
+    """
+    CSVDataFrameBuilder test class
+    """
 
     def setUp(self):
         self._create_user_and_login()
@@ -97,13 +104,9 @@ class TestCSVDataFrameBuilder(TestBase):
             "fixtures", "nested_repeats", "nested_repeats.csv"
         )
         temp_file.close()
-        fixture, output = '', ''
-        with open(csv_fixture_path) as f:
-            fixture = f.read()
-        with open(temp_file.name) as f:
-            output = f.read()
+        with open(temp_file.name) as csv_file:
+            self._test_csv_files(csv_file, csv_fixture_path)
         os.unlink(temp_file.name)
-        self.assertEqual(fixture, output)
 
     def test_csv_columns_for_gps_within_groups(self):
         self._publish_grouped_gps_form()
@@ -120,6 +123,7 @@ class TestCSVDataFrameBuilder(TestBase):
             u'web_browsers/chrome',
             u'web_browsers/ie',
             u'web_browsers/safari',
+            u'_xform_id',
         ] + AbstractDataFrameBuilder.ADDITIONAL_COLUMNS +\
             AbstractDataFrameBuilder.IGNORED_COLUMNS
         try:
@@ -158,6 +162,7 @@ class TestCSVDataFrameBuilder(TestBase):
             u'web_browsers/safari': False,
             u'web_browsers/firefox': False,
             u'info/name': u'Adam',
+            u'_xform_id': self.xform.pk,
         }
         self.assertEqual(expected_data_0, data_0)
 
@@ -426,7 +431,8 @@ class TestCSVDataFrameBuilder(TestBase):
             '\xef\xbb\xbf_gps_precision', '\xef\xbb\xbfweb_browsers/firefox',
             '\xef\xbb\xbfweb_browsers/chrome', '\xef\xbb\xbfweb_browsers/ie',
             '\xef\xbb\xbfweb_browsers/safari', '\xef\xbb\xbfinstanceID',
-            '\xef\xbb\xbf_uuid', '\xef\xbb\xbf_submission_time',
+            '\xef\xbb\xbf_id', '\xef\xbb\xbf_uuid',
+            '\xef\xbb\xbf_submission_time',
             '\xef\xbb\xbf_tags', '\xef\xbb\xbf_notes', '\xef\xbb\xbf_version',
             '\xef\xbb\xbf_duration', '\xef\xbb\xbf_submitted_by'
         ]
@@ -448,6 +454,7 @@ class TestCSVDataFrameBuilder(TestBase):
             data_0.pop(item)
         expected_data_0 = {
             u'_xform_id_string': u'groups_in_repeats',
+            u'_xform_id': self.xform.pk,
             u'_status': u'submitted_via_web',
             u'_tags': u'',
             u'_notes': u'',
@@ -509,7 +516,7 @@ class TestCSVDataFrameBuilder(TestBase):
             'kids_age', 'gps', '_gps_latitude', '_gps_longitude',
             '_gps_altitude', '_gps_precision', 'web_browsers/firefox',
             'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
-            'instanceID', '_uuid', '_submission_time', '_tags',
+            'instanceID', '_id', '_uuid', '_submission_time', '_tags',
             '_notes', '_version', '_duration', '_submitted_by'
         ]
         self.assertEqual(expected_header, header)
@@ -550,7 +557,7 @@ class TestCSVDataFrameBuilder(TestBase):
             'kids_age', 'gps', '_gps_latitude', '_gps_longitude',
             '_gps_altitude', '_gps_precision', 'web_browsers/firefox',
             'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
-            'instanceID', '_uuid', '_submission_time', '_tags',
+            'instanceID', '_id', '_uuid', '_submission_time', '_tags',
             '_notes', '_version', '_duration', '_submitted_by'
         ]
         self.assertEqual(expected_header, header)
@@ -564,7 +571,7 @@ class TestCSVDataFrameBuilder(TestBase):
             '_gps_altitude', '_gps_precision', 'web_browsers/Mozilla Firefox',
             'web_browsers/Google Chrome', 'web_browsers/Internet Explorer',
             'web_browsers/Safari',
-            'instanceID', '_uuid', '_submission_time', '_tags',
+            'instanceID', '_id', '_uuid', '_submission_time', '_tags',
             '_notes', '_version', '_duration', '_submitted_by'
         ]
         self.assertEqual(expected_labels, labels)
@@ -607,7 +614,7 @@ class TestCSVDataFrameBuilder(TestBase):
             '_gps_altitude', '_gps_precision', 'web_browsers/Mozilla Firefox',
             'web_browsers/Google Chrome', 'web_browsers/Internet Explorer',
             'web_browsers/Safari',
-            'instanceID', '_uuid', '_submission_time', '_tags',
+            'instanceID', '_id', '_uuid', '_submission_time', '_tags',
             '_notes', '_version', '_duration', '_submitted_by'
         ]
         self.assertEqual(expected_labels, labels)

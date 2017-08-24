@@ -24,6 +24,8 @@ from onadata.libs.utils.cache_tools import (
     PROJECT_LINKED_DATAVIEWS)
 from onadata.libs.utils.common_tags import EDITED
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
+from onadata.libs.utils.common_tools import (
+    filename_from_disposition, get_response_content)
 
 
 class TestDataViewViewSet(TestAbstractViewSet):
@@ -504,11 +506,11 @@ class TestDataViewViewSet(TestAbstractViewSet):
         headers = dict(response.items())
         self.assertEqual(headers['Content-Type'], 'application/csv')
         content_disposition = headers['Content-Disposition']
-        filename = self.filename_from_disposition(content_disposition)
+        filename = filename_from_disposition(content_disposition)
         basename, ext = os.path.splitext(filename)
         self.assertEqual(ext, '.csv')
 
-        content = self.get_response_content(response)
+        content = get_response_content(response)
         test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
                                       'viewer', 'tests', 'fixtures',
                                       'dataview.csv')
@@ -575,7 +577,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         headers = dict(response.items())
         self.assertEqual(headers['Content-Type'], 'application/zip')
         content_disposition = headers['Content-Disposition']
-        filename = self.filename_from_disposition(content_disposition)
+        filename = filename_from_disposition(content_disposition)
         basename, ext = os.path.splitext(filename)
         self.assertEqual(ext, '.zip')
 
@@ -1071,11 +1073,11 @@ class TestDataViewViewSet(TestAbstractViewSet):
         headers = dict(response.items())
         self.assertEqual(headers['Content-Type'], 'application/csv')
         content_disposition = headers['Content-Disposition']
-        filename = self.filename_from_disposition(content_disposition)
+        filename = filename_from_disposition(content_disposition)
         basename, ext = os.path.splitext(filename)
         self.assertEqual(ext, '.csv')
 
-        content = self.get_response_content(response)
+        content = get_response_content(response)
 
         # count csv headers and ensure they are three
         self.assertEqual(len(content.split('\n')[0].split(',')), 3)

@@ -1,4 +1,5 @@
 import base64
+import csv
 import os
 import re
 import socket
@@ -17,6 +18,7 @@ from django_digest.test import DigestAuth
 from django.contrib.auth import authenticate
 from django.utils import timezone
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from pyxform.tests_v1.pyxform_test_case import PyxformMarkdown
 from rest_framework.test import APIRequestFactory
 
 from onadata.apps.logger.models import XForm, Instance, Attachment
@@ -24,10 +26,12 @@ from onadata.apps.logger.views import submission
 from onadata.apps.main.models import UserProfile
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.viewer.models import DataDictionary
+from onadata.libs.utils.common_tools import (
+    filename_from_disposition, get_response_content)
 from onadata.libs.utils.user_auth import get_user_default_project
 
 
-class TestBase(TransactionTestCase):
+class TestBase(PyxformMarkdown, TransactionTestCase):
 
     surveys = ['transport_2011-07-25_19-05-49',
                'transport_2011-07-25_19-05-36',
@@ -332,9 +336,14 @@ class TestBase(TransactionTestCase):
         response = view(request, pk=self.xform.id)
         self.assertEqual(response.status_code, 200)
 
-    def _publish_md(self, md, user, project=None):
-        survey = self.md_to_pyxform_survey(md)
-        if not project:
+    def _publish_markdown(self, md_xlsform, user, project=None, **kwargs):
+        """
+        Publishes a markdown XLSForm.
+        """
+        kwargs['name'] = 'data'
+        survey = self.md_to_pyxform_survey(md_xlsform, kwargs=kwargs)
+        survey['sms_keyword'] = survey['id_string']
+        if not project or not hasattr(self, 'project'):
             project = get_user_default_project(user)
         xform = DataDictionary(created_by=user, user=user,
                                xml=survey.to_xml(), json=survey.to_json(),
@@ -342,3 +351,31 @@ class TestBase(TransactionTestCase):
         xform.save()
 
         return xform
+
+    def _test_csv_response(self, response, csv_file_path):
+        headers = dict(response.items())
+        self.assertEqual(headers['Content-Type'], 'application/csv')
+        content_disposition = headers['Content-Disposition']
+        filename = filename_from_disposition(content_disposition)
+        __, ext = os.path.splitext(filename)
+        self.assertEqual(ext, '.csv')
+
+        data = get_response_content(response)
+        reader = csv.DictReader(StringIO(data))
+        data = [_ for _ in reader]
+        with open(csv_file_path, 'r') as test_file:
+            expected_csv_reader = csv.DictReader(test_file)
+            for index, row in enumerate(expected_csv_reader):
+                if None in row:
+                    row.pop(None)
+                self.assertDictContainsSubset(row, data[index])
+
+    def _test_csv_files(self, csv_file, csv_file_path):
+        reader = csv.DictReader(csv_file)
+        data = [_ for _ in reader]
+        with open(csv_file_path, 'r') as test_file:
+            expected_csv_reader = csv.DictReader(test_file)
+            for index, row in enumerate(expected_csv_reader):
+                if None in row:
+                    row.pop(None)
+                self.assertDictContainsSubset(row, data[index])

@@ -11,7 +11,6 @@ from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
 from openpyxl import load_workbook
 from pyxform.builder import create_survey_from_xls
-from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
 from savReaderWriter import SavReader
 from savReaderWriter import SavHeaderReader
 
@@ -30,7 +29,7 @@ def _logger_fixture_path(*args):
                         'tests', 'fixtures', *args)
 
 
-class TestExportBuilder(PyxformTestCase, TestBase):
+class TestExportBuilder(TestBase):
     data = [
         {
             'name': 'Abe',

@@ -1,32 +1,44 @@
-import os
+# -*- coding: utf-8 -*-
+"""
+test_xform module
+"""
 
-from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
+import os
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm, Instance
 
 
-class TestXForm(PyxformTestCase, TestBase):
-    def test_submission_count_filters_deleted(self):
+class TestXForm(TestBase):
+    """
+    Test XForm model.
+    """
+    def test_submission_count(self):
+        """
+        Test submission count does not include deleted submissions.
+        """
         self._publish_transportation_form_and_submit_instance()
 
         # update the xform object the num_submissions seems to be cached in
         # the in-memory xform object as zero
-        self.xform = XForm.objects.get(pk=self.xform.id)
-        self.assertEqual(self.xform.submission_count(), 1)
+        xform = XForm.objects.get(pk=self.xform.id)
+        self.assertEqual(xform.submission_count(), 1)
         instance = Instance.objects.get(xform=self.xform)
         instance.set_deleted()
         self.assertIsNotNone(instance.deleted_at)
 
         # update the xform object, the num_submissions seems to be cached in
         # the in-memory xform object as one
-        self.xform = XForm.objects.get(pk=self.xform.id)
-        self.assertEqual(self.xform.submission_count(), 0)
+        xform = XForm.objects.get(pk=self.xform.id)
+        self.assertEqual(xform.submission_count(), 0)
 
-    def test_set_title_in_xml_unicode_error(self):
+    def test_set_title_unicode_error(self):
+        """
+        Test title in xml does not error on unicode title.
+        """
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../..",  "fixtures", "tutorial", "tutorial_arabic_labels.xls"
+            "../..", "fixtures", "tutorial", "tutorial_arabic_labels.xls"
         )
         self._publish_xls_file_and_set_xform(xls_file_path)
 
@@ -42,7 +54,7 @@ class TestXForm(PyxformTestCase, TestBase):
         self.assertTrue(isinstance(self.xform.xml, str))
 
         # set title in xform xml
-        self.xform._set_title()
+        self.xform._set_title()  # pylint: disable=W0212
         self.assertIn(self.xform.title, self.xform.xml)
 
     def test_version_length(self):
@@ -55,6 +67,9 @@ class TestXForm(PyxformTestCase, TestBase):
         self.assertTrue(len(xform.version) > 12)
 
     def test_soft_delete(self):
+        """
+        Test XForm soft delete.
+        """
         self._publish_transportation_form_and_submit_instance()
         xform = XForm.objects.get(pk=self.xform.id)
 
@@ -86,7 +101,10 @@ class TestXForm(PyxformTestCase, TestBase):
         self.assertIn("-deleted-at-", xform.sms_id_string)
 
     def test_get_survey_element(self):
-        md = """
+        """
+        Test XForm.get_survey_element()
+        """
+        markdown_xlsform = """
         | survey |
         |        | type                   | name   | label   |
         |        | begin group            | a      | Group A |
@@ -105,9 +123,9 @@ class TestXForm(PyxformTestCase, TestBase):
         |         | fruity    | mango  | Mango  |
         """
         kwargs = {'name': 'favs', 'title': 'Fruits', 'id_string': 'favs'}
-        survey = self.md_to_pyxform_survey(md, kwargs)
+        survey = self.md_to_pyxform_survey(markdown_xlsform, kwargs)
         xform = XForm()
-        xform._survey = survey
+        xform._survey = survey  # pylint: disable=W0212
 
         # non existent field
         self.assertIsNone(xform.get_survey_element("non_existent"))

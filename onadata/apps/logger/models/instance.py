@@ -25,7 +25,7 @@ from onadata.apps.logger.xform_instance_parser import XFormInstanceParser,\
 from onadata.libs.utils.common_tags import ATTACHMENTS, BAMBOO_DATASET_ID,\
     DELETEDAT, EDITED, GEOLOCATION, ID, MONGO_STRFTIME, NOTES, \
     SUBMISSION_TIME, TAGS, UUID, XFORM_ID_STRING, SUBMITTED_BY, VERSION, \
-    STATUS, DURATION, START, END, LAST_EDITED
+    STATUS, DURATION, START, END, LAST_EDITED, XFORM_ID
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import safe_delete
@@ -76,9 +76,20 @@ def _get_tag_or_element_type_xpath(xform, tag):
 
 
 class FormInactiveError(Exception):
+    """Exception class for inactive forms"""
 
     def __unicode__(self):
         return _("Form is inactive")
+
+    def __str__(self):
+        return unicode(self).encode('utf-8')
+
+
+class FormIsMergedDatasetError(Exception):
+    """Exception class for merged datasets"""
+
+    def __unicode__(self):
+        return _("Submissions are not allowed on merged datasets.")
 
     def __str__(self):
         return unicode(self).encode('utf-8')
@@ -303,6 +314,7 @@ class InstanceBaseClass(object):
                 VERSION: self.version,
                 DURATION: self.get_duration(),
                 XFORM_ID_STRING: self._parser.get_xform_id_string(),
+                XFORM_ID: self.xform.pk,
                 GEOLOCATION: [self.point.y, self.point.x] if self.point
                 else [None, None],
                 SUBMITTED_BY: self.user.username if self.user else None
@@ -434,14 +446,22 @@ class Instance(models.Model, InstanceBaseClass):
         if not force and self.xform and not self.xform.downloadable:
             raise FormInactiveError()
 
+    def _check_is_merged_dataset(self):
+        """Check for merged datasets.
+
+        Raises an exception to prevent datasubmissions
+        """
+        if self.xform and self.xform.is_merged_dataset:
+            raise FormIsMergedDatasetError()
+
     def save(self, *args, **kwargs):
         force = kwargs.get('force')
 
         if force:
             del kwargs['force']
 
+        self._check_is_merged_dataset()
         self._check_active(force)
-
         self._set_geom()
         self._set_json()
         self._set_survey_type()

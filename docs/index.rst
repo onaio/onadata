@@ -25,6 +25,7 @@ Data Endpoints
    charts
    data
    dataviews
+   merged-datasets
    widgets
    stats
 

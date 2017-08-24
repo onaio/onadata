@@ -2,7 +2,7 @@ sudo: required
 dist: trusty
 language: python
 addons:
-  postgresql: 9.4
+  postgresql: 9.6
   apt:
     packages:
       - libjpeg-dev
@@ -34,8 +34,8 @@ env:
 before_install:
   - export DEBIAN_FRONTEND=noninteractive;
   - sudo -E apt-get -yq update &>> ~/apt-get-update.log;
-  - sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install postgresql-9.4-postgis-2.3
-  - sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install openjdk-8-jdk
+  - sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install postgresql-9.6-postgis-2.3
+  - sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install openjdk-8-jre-headless
   - ./script/database/install_postgis onadata_test postgres 127.0.0.1
 
 install:

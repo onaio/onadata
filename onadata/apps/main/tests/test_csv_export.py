@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Test CSV Exports
+"""
 import os
 
 from django.core.files.storage import get_storage_class
@@ -7,10 +11,13 @@ from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.export_tools import generate_export
-from test_base import TestBase
+from onadata.apps.main.tests.test_base import TestBase
 
 
 class TestCsvExport(TestBase):
+    """
+    TestCSVExport class
+    """
 
     def setUp(self):
         self._create_user_and_login()
@@ -19,12 +26,12 @@ class TestCsvExport(TestBase):
             self.this_directory, 'fixtures', 'csv_export')
         self._submission_time = parse_datetime('2013-02-18 15:54:01Z')
         self.options = {"extension": "csv"}
-
-    def test_csv_export_url(self):
-        """TODO: test data csv export"""
-        pass
+        self.xform = None
 
     def test_csv_export_output(self):
+        """
+        Test CSV export output
+        """
         path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xls')
         self._publish_xls_file_and_set_xform(path)
         path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xml')
@@ -41,14 +48,15 @@ class TestCsvExport(TestBase):
         self.assertTrue(storage.exists(export.filepath))
         path, ext = os.path.splitext(export.filename)
         self.assertEqual(ext, '.csv')
-        with open(os.path.join(
-                self.fixture_dir, 'tutorial_w_repeats.csv')) as f1:
-            with storage.open(export.filepath) as f2:
-                expected_content = f1.read()
-                actual_content = f2.read()
-                self.assertEquals(actual_content, expected_content)
+        test_file_path = os.path.join(
+            self.fixture_dir, 'tutorial_w_repeats.csv')
+        with storage.open(export.filepath) as csv_file:
+            self._test_csv_files(csv_file, test_file_path)
 
     def test_csv_nested_repeat_output(self):
+        """
+        Test CSV export with nested repeats
+        """
         path = os.path.join(self.fixture_dir, 'double_repeat.xls')
         self._publish_xls_file(path)
         self.xform = XForm.objects.get(id_string='double_repeat')
@@ -56,7 +64,7 @@ class TestCsvExport(TestBase):
         self._make_submission(
             path, forced_submission_time=self._submission_time)
         self.maxDiff = None
-        dd = DataDictionary.objects.all()[0]
+        data_dictionary = DataDictionary.objects.all()[0]
         xpaths = [
             u'/double_repeat/bed_net[1]/member[1]/name',
             u'/double_repeat/bed_net[1]/member[2]/name',
@@ -64,7 +72,7 @@ class TestCsvExport(TestBase):
             u'/double_repeat/bed_net[2]/member[2]/name',
             u'/double_repeat/meta/instanceID'
         ]
-        self.assertEquals(dd.xpaths(repeat_iterations=2), xpaths)
+        self.assertEquals(data_dictionary.xpaths(repeat_iterations=2), xpaths)
         # test csv
         export = generate_export(
             Export.CSV_EXPORT,
@@ -75,13 +83,14 @@ class TestCsvExport(TestBase):
         self.assertTrue(storage.exists(export.filepath))
         path, ext = os.path.splitext(export.filename)
         self.assertEqual(ext, '.csv')
-        with open(os.path.join(self.fixture_dir, 'export.csv')) as f1:
-            with storage.open(export.filepath) as f2:
-                expected_content = f1.read()
-                actual_content = f2.read()
-                self.assertEquals(actual_content, expected_content)
+        test_file_path = os.path.join(self.fixture_dir, 'export.csv')
+        with storage.open(export.filepath) as csv_file:
+            self._test_csv_files(csv_file, test_file_path)
 
-    def test_dotted_fields_csv_export_output(self):
+    def test_dotted_fields_csv_export(self):
+        """
+        Test CSV export with dotted field names
+        """
         path = os.path.join(os.path.dirname(__file__), 'fixtures', 'userone',
                             'userone_with_dot_name_fields.xls')
         self._publish_xls_file_and_set_xform(path)
@@ -100,15 +109,16 @@ class TestCsvExport(TestBase):
         self.assertTrue(storage.exists(export.filepath))
         path, ext = os.path.splitext(export.filename)
         self.assertEqual(ext, '.csv')
-        with open(os.path.join(
-                os.path.dirname(__file__), 'fixtures', 'userone',
-                'userone_with_dot_name_fields.csv')) as f1:
-            with storage.open(export.filepath) as f2:
-                expected_content = f1.read()
-                actual_content = f2.read()
-                self.assertEquals(actual_content, expected_content)
+        test_file_path = os.path.join(
+            os.path.dirname(__file__), 'fixtures', 'userone',
+            'userone_with_dot_name_fields.csv')
+        with storage.open(export.filepath) as csv_file:
+            self._test_csv_files(csv_file, test_file_path)
 
-    def test_csv_export_truncated_titles(self):
+    def test_csv_truncated_titles(self):
+        """
+        Test CSV export with removed_group_name = True
+        """
         path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xls')
         self._publish_xls_file_and_set_xform(path)
         path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xml')
@@ -125,10 +135,7 @@ class TestCsvExport(TestBase):
         self.assertTrue(storage.exists(export.filepath))
         path, ext = os.path.splitext(export.filename)
         self.assertEqual(ext, '.csv')
-        with open(os.path.join(
-                self.fixture_dir, 'tutorial_w_repeats_truncate_titles.csv')) \
-                as f1:
-            with storage.open(export.filepath) as f2:
-                expected_content = f1.read()
-                actual_content = f2.read()
-                self.assertEquals(actual_content, expected_content)
+        test_file_path = os.path.join(
+            self.fixture_dir, 'tutorial_w_repeats_truncate_titles.csv')
+        with storage.open(export.filepath) as csv_file:
+            self._test_csv_files(csv_file, test_file_path)

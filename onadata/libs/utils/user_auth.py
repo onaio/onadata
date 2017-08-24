@@ -1,19 +1,17 @@
 import base64
-from functools import wraps
 import re
+from functools import wraps
 
 from django.contrib.auth import authenticate
-from django.http import HttpResponseRedirect, HttpResponse
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
-from guardian.shortcuts import get_perms_for_model, assign_perm
+from guardian.shortcuts import assign_perm, get_perms_for_model
 
-from onadata.apps.api.models import OrganizationProfile
-from onadata.apps.api.models import Team
-from onadata.apps.logger.models import Project
+from onadata.apps.api.models import OrganizationProfile, Team
+from onadata.apps.logger.models import MergedXForm, Note, Project, XForm
 from onadata.apps.main.models import UserProfile
-from onadata.apps.logger.models import XForm, Note
 from onadata.libs.utils.viewer_tools import get_form
 
 
@@ -55,10 +53,15 @@ def set_profile_data(data, content_user):
     if home_page and re.match("http", home_page) is None:
         home_page = "http://%s" % home_page
 
-    data.update({'location': location, 'user_instances': user_instances,
-                 'home_page': home_page, 'num_forms': num_forms,
-                 'forms': forms, 'profile': profile,
-                 'content_user': content_user})
+    data.update({
+        'location': location,
+        'user_instances': user_instances,
+        'home_page': home_page,
+        'num_forms': num_forms,
+        'forms': forms,
+        'profile': profile,
+        'content_user': content_user
+    })
 
 
 def has_permission(xform, owner, request, shared=False):
@@ -129,8 +132,8 @@ def get_xform_users_with_perms(xform):
     """
     user_perms = {}
     for p in xform.xformuserobjectpermission_set.all().select_related(
-        'user', 'permission').only(
-            'user', 'permission__codename', 'content_object_id'):
+            'user', 'permission').only('user', 'permission__codename',
+                                       'content_object_id'):
         if p.user.username not in user_perms:
             user_perms[p.user] = []
         user_perms[p.user].append(p.permission.codename)
@@ -161,6 +164,7 @@ def basic_http_auth(func):
         if result is not None:
             return result
         return func(request, *args, **kwargs)
+
     return inner
 
 
@@ -181,26 +185,25 @@ def add_cors_headers(response):
 
 
 def set_api_permissions_for_user(user):
-    models = [UserProfile, XForm, Project, Team, OrganizationProfile, Note]
+    models = [
+        UserProfile, XForm, MergedXForm, Project, Team, OrganizationProfile,
+        Note
+    ]
     for model in models:
         for perm in get_perms_for_model(model):
-            assign_perm(
-                '%s.%s' % (perm.content_type.app_label, perm.codename), user)
+            assign_perm('%s.%s' % (perm.content_type.app_label, perm.codename),
+                        user)
 
 
 def get_user_default_project(user):
     name = u"{}'s Project".format(user.username)
-    user_projects = user.project_owner.filter(
-        name=name, organization=user)
+    user_projects = user.project_owner.filter(name=name, organization=user)
 
     if user_projects:
         project = user_projects[0]
     else:
         metadata = {'description': 'Default Project'}
         project = Project.objects.create(
-            name=name,
-            organization=user,
-            created_by=user,
-            metadata=metadata)
+            name=name, organization=user, created_by=user, metadata=metadata)
 
     return project

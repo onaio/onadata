@@ -403,8 +403,8 @@ class TestWidgetViewSet(TestAbstractViewSet):
                               'field_label': u'Gender',
                               'grouped_by': None,
                               'data': [
-                                  {'count': 7, 'gender': u'male'},
-                                  {'count': 1, 'gender': u'female'}]})
+                                  {'count': 1, 'gender': u'female'},
+                                  {'count': 7, 'gender': u'male'}]})
 
     def test_widget_with_key(self):
         self._create_widget()
@@ -694,8 +694,8 @@ class TestWidgetViewSet(TestAbstractViewSet):
                               'field_label': u'Gender',
                               'grouped_by': None,
                               'data': [
-                                  {'count': 7, 'Gender': u'male'},
-                                  {'count': 1, 'Gender': u'female'}]})
+                                  {'count': 1, 'Gender': u'female'},
+                                  {'count': 7, 'Gender': u'male'}]})
 
     def test_widget_create_by_org_admin(self):
         self.project.organization = self.organization.user

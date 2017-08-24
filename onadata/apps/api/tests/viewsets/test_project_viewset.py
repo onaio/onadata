@@ -155,6 +155,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                           'encrypted',
                           'formid',
                           'id_string',
+                          'is_merged_dataset',
                           'last_submission_time',
                           'last_updated_at',
                           'name',

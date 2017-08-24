@@ -1,10 +1,15 @@
+# -*- coding: utf-8 -*-
+"""
+OpenData tests.
+"""
+
 import json
 
 from django.test import RequestFactory
-from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.models import User
 
 from onadata.apps.logger.models import OpenData, Instance
+from onadata.apps.logger.models.open_data import get_or_create_opendata
 from onadata.apps.api.viewsets.open_data_viewset import (
     OpenDataViewSet, replace_special_characters_with_underscores
 )
@@ -18,7 +23,7 @@ def streaming_data(response):
 class TestOpenDataViewSet(TestBase):
 
     def setUp(self):
-        super(self.__class__, self).setUp()
+        super(TestOpenDataViewSet, self).setUp()
         self._create_user_and_login()
         self._publish_transportation_form()
         self.factory = RequestFactory()
@@ -42,17 +47,7 @@ class TestOpenDataViewSet(TestBase):
         )
 
     def get_open_data_object(self):
-        ct = ContentType.objects.get_for_model(self.xform)
-        _open_data, created = OpenData.objects.get_or_create(
-            object_id=self.xform.id,
-            defaults={
-                'name': self.xform.id_string,
-                'content_type': ct,
-                'content_object': self.xform,
-            }
-        )
-
-        return _open_data
+        return get_or_create_opendata(self.xform)[0]
 
     def test_create_open_data_object_with_valid_fields(self):
         initial_count = OpenData.objects.count()

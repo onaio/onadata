@@ -22,8 +22,9 @@ from onadata.apps.logger.models.xform import _encode_for_mongo,\
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.common_tags import (
     ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION, BAMBOO_DATASET_ID,
-    DELETEDAT, INDEX, PARENT_INDEX, PARENT_TABLE_NAME, MULTIPLE_SELECT_TYPE,
-    SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION)
+    DELETEDAT, INDEX, PARENT_INDEX, PARENT_TABLE_NAME,
+    SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION,
+    MULTIPLE_SELECT_TYPE)
 from onadata.libs.utils.mongo import _is_invalid_for_mongo,\
     _decode_from_mongo
 
@@ -212,7 +213,7 @@ class ExportBuilder(object):
     # fields we export but are not within the form's structure
     EXTRA_FIELDS = [ID, UUID, SUBMISSION_TIME, INDEX, PARENT_TABLE_NAME,
                     PARENT_INDEX, TAGS, NOTES, VERSION, DURATION,
-                    SUBMITTED_BY]
+                    SUBMITTED_BY] + getattr(settings, 'EXTRA_COLUMNS', [])
     SPLIT_SELECT_MULTIPLES = True
     BINARY_SELECT_MULTIPLES = False
     VALUE_SELECT_MULTIPLES = False

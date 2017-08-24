@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+"""
+TextItService model: sets up all properties for interaction with TextIt or
+RapidPro.
+"""
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.restservice.models import RestService
 from django.conf import settings
@@ -8,12 +13,18 @@ from rest_framework import serializers
 METADATA_SEPARATOR = settings.METADATA_SEPARATOR
 
 
+# pylint: disable=R0902
 class TextItService(object):
+    """
+    TextItService model: access/create/update RestService and MetaData objects
+    with all properties for TextIt or RapidPro like services.
+    """
 
+    # pylint: disable=R0913
     def __init__(self, xform, service_url=None, name=None, auth_token=None,
                  flow_uuid=None, contacts=None,
                  pk=None):
-        self.pk = pk
+        self.pk = pk  # pylint: disable=C0103
         self.xform = xform
         self.auth_token = auth_token
         self.flow_uuid = flow_uuid
@@ -23,16 +34,19 @@ class TextItService(object):
         self.date_created = None
         self.date_modified = None
 
-    def save(self, **kwargs):
-
-        rs = RestService() if not self.pk else \
+    def save(self):
+        """
+        Creates and updates RestService and MetaData objects with textit or
+        rapidpro service properties.
+        """
+        service = RestService() if not self.pk else \
             RestService.objects.get(pk=self.pk)
 
-        rs.name = self.name
-        rs.service_url = self.service_url
-        rs.xform = self.xform
+        service.name = self.name
+        service.service_url = self.service_url
+        service.xform = self.xform
         try:
-            rs.save()
+            service.save()
         except IntegrityError as e:
             if str(e).startswith("duplicate key value violates unique "
                                  "constraint"):
@@ -41,17 +55,28 @@ class TextItService(object):
                 msg = _(str(e))
             raise serializers.ValidationError(msg)
 
-        self.date_created = rs.date_created
-        self.date_modified = rs.date_modified
+        self.pk = service.pk
+        self.date_created = service.date_created
+        self.date_modified = service.date_modified
 
         data_value = '{}|{}|{}'.format(self.auth_token,
                                        self.flow_uuid,
                                        self.contacts)
 
         MetaData.textit(self.xform, data_value=data_value)
-        self.pk = rs.pk
+
+        if self.xform.is_merged_dataset:
+            for xform in self.xform.mergedxform.xforms.all():
+                MetaData.textit(xform, data_value=data_value)
 
     def retrieve(self):
+        """
+        Sets the textit or rapidpro properties from the MetaData object.
+        The properties are:
+            - auth_token
+            - flow_uuid
+            - contacts
+        """
         data_value = MetaData.textit(self.xform)
 
         try:
