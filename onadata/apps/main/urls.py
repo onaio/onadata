@@ -1,3 +1,5 @@
+import sys
+
 import django
 
 from django.conf import settings
@@ -6,7 +8,6 @@ from django.contrib.staticfiles import views as staticfiles_views
 from django.views.generic import RedirectView
 
 from onadata.apps import sms_support
-from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
 from onadata.apps.api.urls import router
 from onadata.apps.api.urls import XFormListViewSet
 from onadata.apps.api.viewsets.xform_list_viewset import (
@@ -26,15 +27,14 @@ from onadata.apps.viewer import views as viewer_views
 # enable the admin:
 from django.contrib import admin
 
+TESTING = len(sys.argv) > 1 and sys.argv[1] == 'test'
+
 admin.autodiscover()
 
 urlpatterns = [
     # change Language
     url(r'^i18n/', include(i18n)),
     url('^api/v1/', include(router.urls)),
-    url('^api/v1/dataviews/(?P<pk>[^/]+)/(?P<action>[^/]+).'
-        '(?P<format>([a-z]|[0-9])*)$', DataViewViewSet,
-        name='dataviews-data'),
     url(r'^api-docs/',
         RedirectView.as_view(url=settings.STATIC_DOC, permanent=True)),
     url(r'^api/$',
@@ -296,7 +296,7 @@ if custom_urls:
     for url_module in custom_urls:
         urlpatterns.append(url(r'^', include(url_module)))
 
-if settings.DEBUG and 'debug_toolbar' in settings.INSTALLED_APPS:
+if (settings.DEBUG or TESTING) and 'debug_toolbar' in settings.INSTALLED_APPS:
     try:
         import debug_toolbar
     except ImportError:
