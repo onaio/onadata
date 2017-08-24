@@ -1954,6 +1954,18 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid, format='json')
         self.assertEqual(len(response.data),
                          Instance.objects.filter(version=777).count())
+        # ## Test Status
+        # all the instanced created have the same status i.e.
+        # 'submitted_via_web' .  We now set one instance to have a different
+        # status and filter for it
+        instance = Instance.objects.last()
+        instance.status = 'fortytwo'
+        instance.save()
+        request = self.factory.get('/', {'status': 'fortytwo'}, **self.extra)
+        view = DataViewSet.as_view({'get': 'list'})
+        response = view(request, pk=formid, format='json')
+        self.assertEqual(len(response.data),
+                         Instance.objects.filter(status='fortytwo').count())
         # ## Test date_created
         # all the instances created have the same date_created i.e. the
         # datetime at the time of creation
