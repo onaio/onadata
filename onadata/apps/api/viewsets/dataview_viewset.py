@@ -105,8 +105,19 @@ class DataViewViewSet(AuthenticateHeaderMixin,
         job_uuid = params.get('job_uuid')
         export_type = params.get('format')
         include_hxl = params.get('include_hxl', False)
+        include_labels = params.get('include_labels', False)
+        include_labels_only = params.get('include_labels_only', False)
         dataview = self.get_object()
         xform = dataview.xform
+
+        if include_labels is not None:
+            include_labels = str_to_bool(include_labels)
+
+        if include_labels_only is not None:
+            include_labels_only = str_to_bool(include_labels_only)
+
+        if include_hxl is not None:
+            include_hxl = str_to_bool(include_hxl)
 
         remove_group_name = params.get('remove_group_name', False)
         columns_with_hxl = get_columns_with_hxl(xform.survey.get('children'))
@@ -119,7 +130,9 @@ class DataViewViewSet(AuthenticateHeaderMixin,
         options = {
             'remove_group_name': remove_group_name,
             'dataview_pk': dataview.pk,
-            'include_hxl': include_hxl
+            'include_hxl': include_hxl,
+            'include_labels': include_labels,
+            'include_labels_only': include_labels_only
         }
 
         if job_uuid:

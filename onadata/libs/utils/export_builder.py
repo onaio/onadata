@@ -1025,8 +1025,8 @@ class ExportBuilder(object):
     def get_fields(self, dataview, section, key):
         if dataview:
             return [element[key] for element in section['elements']
-                    if [col for col in dataview.columns
-                        if element[key].startswith(col)]] + self.EXTRA_FIELDS
+                    if element['title'] in dataview.columns]\
+                + self.EXTRA_FIELDS
 
         else:
             return [element[key] for element in

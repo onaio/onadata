@@ -1,10 +1,13 @@
 import json
 import os
+import csv
 
 from django.conf import settings
 from django.test.utils import override_settings
 from django.core.cache import cache
+from django.core.files.storage import default_storage
 from mock import patch
+import xlrd
 
 from onadata.libs.permissions import ReadOnlyRole
 from onadata.apps.logger.models.data_view import DataView
@@ -612,6 +615,95 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 202)
         export = Export.objects.get(task_id=task_id)
         self.assertTrue(export.is_successful)
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch('onadata.apps.api.viewsets.dataview_viewset.AsyncResult')
+    def test_export_csv_dataview_with_labels_async(self, async_result):
+        self._create_dataview()
+        self._publish_xls_form_to_project()
+
+        view = DataViewViewSet.as_view({
+            'get': 'export_async',
+        })
+
+        request = self.factory.get('/', data={"format": "csv",
+                                              'include_labels': 'true'},
+                                   **self.extra)
+        response = view(request, pk=self.data_view.pk)
+        self.assertIsNotNone(response.data)
+
+        self.assertEqual(response.status_code, 202)
+        self.assertTrue('job_uuid' in response.data)
+        task_id = response.data.get('job_uuid')
+
+        export_pk = Export.objects.all().order_by('pk').reverse()[0].pk
+
+        # metaclass for mocking results
+        job = type('AsyncResultMock', (),
+                   {'state': 'SUCCESS', 'result': export_pk})
+        async_result.return_value = job
+
+        get_data = {'job_uuid': task_id}
+        request = self.factory.get('/', data=get_data, **self.extra)
+        response = view(request, pk=self.data_view.pk)
+
+        self.assertIn('export_url', response.data)
+
+        self.assertTrue(async_result.called)
+        self.assertEqual(response.status_code, 202)
+        export = Export.objects.get(task_id=task_id)
+        self.assertTrue(export.is_successful)
+        with default_storage.open(export.filepath) as f:
+            csv_reader = csv.reader(f)
+            csv_reader.next()
+            labels = csv_reader.next()
+            self.assertIn(
+                'Gender', labels
+            )
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch('onadata.apps.api.viewsets.dataview_viewset.AsyncResult')
+    def test_export_xls_dataview_with_labels_async(self, async_result):
+        self._create_dataview()
+        self._publish_xls_form_to_project()
+
+        view = DataViewViewSet.as_view({
+            'get': 'export_async',
+        })
+
+        request = self.factory.get('/', data={"format": "xls",
+                                              'include_labels': 'true'},
+                                   **self.extra)
+        response = view(request, pk=self.data_view.pk)
+        self.assertIsNotNone(response.data)
+
+        self.assertEqual(response.status_code, 202)
+        self.assertTrue('job_uuid' in response.data)
+        task_id = response.data.get('job_uuid')
+
+        export_pk = Export.objects.all().order_by('pk').reverse()[0].pk
+
+        # metaclass for mocking results
+        job = type('AsyncResultMock', (),
+                   {'state': 'SUCCESS', 'result': export_pk})
+        async_result.return_value = job
+
+        get_data = {'job_uuid': task_id}
+        request = self.factory.get('/', data=get_data, **self.extra)
+        response = view(request, pk=self.data_view.pk)
+
+        self.assertIn('export_url', response.data)
+
+        self.assertTrue(async_result.called)
+        self.assertEqual(response.status_code, 202)
+        export = Export.objects.get(task_id=task_id)
+        self.assertTrue(export.is_successful)
+        workbook = xlrd.open_workbook(export.full_filepath)
+        main_sheet = workbook.sheets()[0]
+        labels = main_sheet.row_values(1)
+        self.assertIn(
+            'Gender', labels
+        )
 
     def _test_csv_export_with_hxl_support(self, columns, expected_output):
         data = {

@@ -1395,8 +1395,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 "There should be a choices sheet in this xlsform. "
                 "Please ensure that the choices sheet name is all in small "
                 "caps and has columns 'list name', 'name', and 'label' "
-                "(or aliased column names)."
-                )
+                "(or aliased column names).")
             self.assertEqual(response.data.get('text'), error_msg)
 
     def test_partial_update(self):
@@ -4229,7 +4228,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                                       alice_profile.user.auth_token.key
             }
 
-            request = self.factory.get('/',  **alices_extra)
+            request = self.factory.get('/', **alices_extra)
             response = view(request, pk=self.xform.pk, format='csv')
             self.assertEqual(response.status_code, 200)
 
