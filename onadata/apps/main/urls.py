@@ -8,7 +8,6 @@ from django.contrib.staticfiles import views as staticfiles_views
 from django.views.generic import RedirectView
 
 from onadata.apps import sms_support
-from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
 from onadata.apps.api.urls import router
 from onadata.apps.api.urls import XFormListViewSet
 from onadata.apps.api.viewsets.xform_list_viewset import (
@@ -36,9 +35,6 @@ urlpatterns = [
     # change Language
     url(r'^i18n/', include(i18n)),
     url('^api/v1/', include(router.urls)),
-    url('^api/v1/dataviews/(?P<pk>\d+)/(?P<action>[^/]+).'
-        '(?P<format>([a-z]|[0-9])*)$', DataViewViewSet,
-        name='dataviews-data'),
     url(r'^api-docs/',
         RedirectView.as_view(url=settings.STATIC_DOC, permanent=True)),
     url(r'^api/$',
