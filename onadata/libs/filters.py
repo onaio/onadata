@@ -105,6 +105,16 @@ class InstanceFilter(django_filter_filters.FilterSet):
     """
     Instance FilterSet implemented using django-filter
     """
+    submitted_by__id = django_filter_filters.ModelChoiceFilter(
+        name='user',
+        queryset=User.objects.all(),
+        to_field_name='id',
+    )
+    submitted_by__username = django_filter_filters.ModelChoiceFilter(
+        name='user',
+        queryset=User.objects.all(),
+        to_field_name='username',
+    )
 
     class Meta:
         model = Instance
@@ -116,7 +126,14 @@ class InstanceFilter(django_filter_filters.FilterSet):
         generic_field_lookups = ['exact', 'gt', 'lt', 'gte', 'lte']
         fields = {'date_created': date_field_lookups,
                   'date_modified': date_field_lookups,
+                  'last_edited': date_field_lookups,
                   'status': ['exact'],
+                  'submitted_by__id': ['exact'],
+                  'submitted_by__username': ['exact'],
+                  'survey_type__slug': ['exact'],
+                  'user__id': ['exact'],
+                  'user__username': ['exact'],
+                  'uuid': ['exact'],
                   'version': generic_field_lookups}
 
 
