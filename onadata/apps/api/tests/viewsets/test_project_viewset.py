@@ -15,7 +15,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.permissions import (
     OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorMinorRole,
-    EditorRole, ReadOnlyRoleNoDownload,  DataEntryMinorRole, DataEntryOnlyRole,
+    EditorRole, ReadOnlyRoleNoDownload, DataEntryMinorRole, DataEntryOnlyRole,
     ROLES_ORDERED)
 from onadata.libs.serializers.project_serializer import ProjectSerializer,\
     BaseProjectSerializer
@@ -1044,6 +1044,28 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.get('Cache-Control'), None)
         self.assertEqual(len(self.project.user_stars.all()), 1)
         self.assertEqual(self.project.user_stars.all()[0], self.user)
+
+    def test_create_project_invalid_metadata(self):
+        """
+        Make sure that invalid metadata values are outright rejected
+        Test fix for: https://github.com/onaio/onadata/issues/977
+        """
+        view = ProjectViewSet.as_view({
+            'post': 'create'
+        })
+        data = {
+            'name': u'demo',
+            'owner':
+            'http://testserver/api/v1/users/%s' % self.user.username,
+            'metadata': "null",
+            'public': False
+        }
+        request = self.factory.post(
+            '/',
+            data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, owner=self.user.username)
+        self.assertEqual(response.status_code, 400)
 
     def test_project_delete_star(self):
         self._project_create()
