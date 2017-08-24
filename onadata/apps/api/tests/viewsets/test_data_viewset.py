@@ -22,7 +22,7 @@ from onadata.apps.main.models import UserProfile
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.logger_tools import create_instance
 from onadata.apps.logger.models import Attachment
-from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models import Instance, SurveyType
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.logger.models.instance import InstanceHistory
 from onadata.apps.logger.models import XForm
@@ -1932,19 +1932,33 @@ class TestDataViewSet(TestBase):
         self.assertNotIn('name', response.data)
 
     def test_filterset(self):
+        # create submissions to test with
         self._make_submissions()
         formid = self.xform.pk
-        # instance_count = Instance.objects.count()
+        # the original count of Instance objects
+        instance_count = Instance.objects.all().count()
+        # ## Test no filters
+        request = self.factory.get('/', **self.extra)
+        view = DataViewSet.as_view({'get': 'list'})
+        response = view(request, pk=formid, format='json')
+        self.assertEqual(len(response.data), instance_count)
+        # ## Test version
+        # all the instances created have no version
+        # we now set one instance to have a specific version and then test
+        # that we can filter for it
         instance = Instance.objects.last()
-        # test version
         instance.version = 777
         instance.save()
-        request = self.factory.get('/', {'version__gt': 776}, **self.extra)
+        request = self.factory.get('/', {'version': 777}, **self.extra)
         view = DataViewSet.as_view({'get': 'list'})
         response = view(request, pk=formid, format='json')
         self.assertEqual(len(response.data),
                          Instance.objects.filter(version=777).count())
-        # test date_created
+        # ## Test date_created
+        # all the instances created have the same date_created i.e. the
+        # datetime at the time of creation
+        # we now set one instance to have date_created a year ago and test that
+        # we can filter for this one instance
         one_year = timedelta(days=366)
         initial_year = instance.date_created.year
         instance.date_created = instance.date_created - one_year
@@ -1958,6 +1972,105 @@ class TestDataViewSet(TestBase):
             len(response.data),
             Instance.objects.filter(
                 date_created__year__lt=initial_year).count()
+        )
+        # ## Test last_edited
+        # all the instances created have None as the last_edited
+        # we now set one instance to have last_edited a year ago and test that
+        # we can filter for this one instance
+        instance.last_edited = instance.date_created - one_year
+        instance.save()
+        request = self.factory.get('/',
+                                   {'last_edited__year': initial_year},
+                                   **self.extra)
+        view = DataViewSet.as_view({'get': 'list'})
+        response = view(request, pk=formid, format='json')
+        self.assertEqual(
+            len(response.data),
+            Instance.objects.filter(
+                last_edited__year=initial_year).count()
+        )
+        # ## Test uuid
+        # all the instances created have different uuid values
+        # we test this by looking for just one match
+        request = self.factory.get('/',
+                                   {'uuid': instance.uuid},
+                                   **self.extra)
+        view = DataViewSet.as_view({'get': 'list'})
+        response = view(request, pk=formid, format='json')
+        self.assertEqual(
+            len(response.data),
+            Instance.objects.filter(
+                uuid=instance.uuid).count()
+        )
+        # ## Test user
+        # all the forms are owned by a user named bob
+        # we create a user named alice and confirm that data filtered for her
+        # has a count fo 0
+        user_alice = self._create_user('alice', 'alice')
+        request = self.factory.get('/',
+                                   {'user__id': user_alice.id},
+                                   **self.extra)
+        view = DataViewSet.as_view({'get': 'list'})
+        response = view(request, pk=formid, format='json')
+        self.assertEqual(
+            len(response.data),
+            0
+        )
+        # we make one instance belong to user_alice and then filter for that
+        instance.user = user_alice
+        instance.save()
+        request = self.factory.get('/',
+                                   {'user__username': user_alice.username},
+                                   **self.extra)
+        view = DataViewSet.as_view({'get': 'list'})
+        response = view(request, pk=formid, format='json')
+        self.assertEqual(
+            len(response.data),
+            Instance.objects.filter(
+                user__username=user_alice.username).count()
+        )
+        # ## Test submitted_by
+        # submitted_by is mapped to the user field
+        # to test, we do the same as we did for user above
+        user_mosh = self._create_user('mosh', 'mosh')
+        request = self.factory.get('/',
+                                   {'submitted_by__id': user_mosh.id},
+                                   **self.extra)
+        view = DataViewSet.as_view({'get': 'list'})
+        response = view(request, pk=formid, format='json')
+        self.assertEqual(
+            len(response.data),
+            0
+        )
+        # we make one instance belong to user_mosh and then filter for that
+        instance.user = user_mosh
+        instance.save()
+        request = self.factory.get('/',
+                                   {'submitted_by__username':
+                                    user_mosh.username},
+                                   **self.extra)
+        view = DataViewSet.as_view({'get': 'list'})
+        response = view(request, pk=formid, format='json')
+        self.assertEqual(
+            len(response.data),
+            Instance.objects.filter(
+                user__username=user_mosh.username).count()
+        )
+        #  ## Test survey_type
+        # all the instances created have the same survey_type
+        # we create a new one and filter for that
+        new_survey_type = SurveyType.objects.create(slug="hunter2")
+        instance.survey_type = new_survey_type
+        instance.save()
+        request = self.factory.get('/',
+                                   {'survey_type__slug': new_survey_type.slug},
+                                   **self.extra)
+        view = DataViewSet.as_view({'get': 'list'})
+        response = view(request, pk=formid, format='json')
+        self.assertEqual(
+            len(response.data),
+            Instance.objects.filter(
+                survey_type__slug=new_survey_type.slug).count()
         )
 
 
