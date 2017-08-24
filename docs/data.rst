@@ -367,6 +367,204 @@ Filter    Description
 **$i**    Case insensitive or partial search
 ========  ===================================
 
+Query submitted data of a specific form using date_created
+----------------------------------------------------------
+
+Filter submissions using the date_created field
+
+Example
+^^^^^^^^^
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845?date_created__year=2017
+
+
+All Filters Options
+
+=============================     ===================================
+Filter                            Description
+=============================     ===================================
+**$date_created__year**           Exact year e.g. 2017
+**$date_created__year__lt**       year Less than
+**$date_created__year__lte**      year Less than or Equal to
+**$date_created__year__gt**       year Greater than
+**$date_created__year__gte**      year Greater than or Equal to
+**$date_created__month**          Exact month e.g. 11
+**$date_created__month__lt**      Month Less than
+**$date_created__month__lte**     Month Less than or Equal to
+**$date_created__month__gt**      Month Greater than
+**$date_created__month__gte**     Month Greater than or Equal to
+**$date_created__day**            Exact day e.g. 13
+**$date_created__day__lt**        Day Less than
+**$date_created__day__lte**       Day Less than or Equal to
+**$date_created__day__gt**        Day Greater than
+**$date_created__day__gte**       Day Greater than or Equal to
+=============================     ===================================
+
+Filter options can be chained to narrow results even further.
+
+
+Query submitted data of a specific form using date_modified
+-----------------------------------------------------------
+
+Filter submissions using the date_modified field
+
+Example
+^^^^^^^^^
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845?date_modified__month=11
+
+All Filters Options
+
+=============================     ===================================
+Filter                            Description
+=============================     ===================================
+**$date_modified__year**          Exact year e.g. 2017
+**$date_modified__year__lt**      year Less than
+**$date_modified__year__lte**     year Less than or Equal to
+**$date_modified__year__gt**      year Greater than
+**$date_modified__year__gte**     year Greater than or Equal to
+**$date_modified__month**         Exact month e.g. 11
+**$date_modified__month__lt**     Month Less than
+**$date_modified__month__lte**    Month Less than or Equal to
+**$date_modified__month__gt**     Month Greater than
+**$date_modified__month__gte**    Month Greater than or Equal to
+**$date_modified__day**           Exact day e.g. 13
+**$date_modified__day__lt**       Day Less than
+**$date_modified__day__lte**      Day Less than or Equal to
+**$date_modified__day__gt**       Day Greater than
+**$date_modified__day__gte**      Day Greater than or Equal to
+=============================     ===================================
+
+Filter options can be chained to narrow results even further.
+
+
+Query submitted data of a specific form using last_edited
+---------------------------------------------------------
+
+Filter submissions using the last_edited field
+
+Example
+^^^^^^^^^
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845?last_edited__year=2017&last_edited__month=2
+
+All Filters Options
+
+=============================     ===================================
+Filter                            Description
+=============================     ===================================
+**$last_edited__year**            Exact year e.g. 2017
+**$last_edited__year__lt**        year Less than
+**$last_edited__year__lte**       year Less than or Equal to
+**$last_edited__year__gt**        year Greater than
+**$last_edited__year__gte**       year Greater than or Equal to
+**$last_edited__month**           Exact month e.g. 11
+**$last_edited__month__lt**       Month Less than
+**$last_edited__month__lte**      Month Less than or Equal to
+**$last_edited__month__gt**       Month Greater than
+**$last_edited__month__gte**      Month Greater than or Equal to
+**$last_edited__day**             Exact day e.g. 13
+**$last_edited__day__lt**         Day Less than
+**$last_edited__day__lte**        Day Less than or Equal to
+**$last_edited__day__gt**         Day Greater than
+**$last_edited__day__gte**        Day Greater than or Equal to
+=============================     ===================================
+
+Filter options can be chained to narrow results even further.
+
+
+Query submitted data of a specific form using version
+-----------------------------------------------------
+
+Filter submissions using the version field
+
+Example
+^^^^^^^^^
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845?version=2324243
+
+
+Query submitted data of a specific form using status
+----------------------------------------------------
+
+Filter submissions using the status field
+
+Example
+^^^^^^^^^
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845?status=submitted_via_web
+
+
+Query submitted data of a specific form using uuid
+--------------------------------------------------
+
+Filter submissions using the uuid field
+
+Example
+^^^^^^^^^
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845?uuid=9c6f3468-cfda-46e8-84c1-75458e72805d
+
+
+Query submitted data of a specific form using user
+--------------------------------------------------
+
+Filter submissions using the user field
+
+Example
+^^^^^^^^^
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845?user__id=260
+
+All Filters Options
+
+===================     ===================================
+Filter                  Description
+===================     ===================================
+**$user__id**           user's id
+**$user__username**     user's username
+===================     ===================================
+
+
+Query submitted data of a specific form using submitted_by
+----------------------------------------------------------
+
+Filter submissions using the submitted_by field
+
+Example
+^^^^^^^^^
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845?submitted_by__username=hunter2
+
+All Filters Options
+
+===========================     ===================================
+Filter                          Description
+===========================     ===================================
+**$submitted_by__id**           submitted_by user's id
+**$submitted_by__username**     submitted_by user's username
+===========================     ===================================
+
+
+Query submitted data of a specific form using survey_type
+---------------------------------------------------------
+
+Filter submissions using the survey_type field
+
+Example
+^^^^^^^^^
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845?survey_type__slug=fortytwo
+
 
 Query submitted data of a specific form using Tags
 --------------------------------------------------
