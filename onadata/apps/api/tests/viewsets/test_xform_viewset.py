@@ -3145,8 +3145,9 @@ class TestXFormViewSet(TestAbstractViewSet):
                 '\xef\xbb\xbf_duration,\xef\xbb\xbf_submitted_by,'
                 '\xef\xbb\xbf_total_media,\xef\xbb\xbf_media_count,'
                 '\xef\xbb\xbf_media_all_received\n'
-                '\xef\xbb\xbf#age,,,,,,,,,,,,\n29,\xef\xbb\xbfLionel Messi,'
+                '\xef\xbb\xbf#age,,,,,,,,,,,,,\n29,\xef\xbb\xbfLionel Messi,'
                 '\xef\xbb\xbfuuid:74ee8b73-48aa-4ced-9072-862f93d49c16,'
+                '%s,'
                 '\xef\xbb\xbf74ee8b73-48aa-4ced-9072-862f93d49c16,\xef\xbb\xbf'
                 '2013-02-18T15:54:01,\xef\xbb\xbf,\xef\xbb\xbf,'
                 '\xef\xbb\xbf201604121155,\xef\xbb\xbf,\xef\xbb\xbfbob,0,0,'
@@ -3168,12 +3169,13 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             content = get_response_content(response)
             expected_content = (
-                'age,name,meta/instanceID,_uuid,_submission_time,_tags,'
-                '_notes,_version,_duration,_submitted_by,'
-                '_total_media,_media_count,_media_all_received\n#age,,,,,,,,,,'
-                ',,\n29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16'
-                ',74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01,,,'
-                '201604121155,,bob,0,0,True\n' % data_id
+                'age,name,meta/instanceID,_id,_uuid,_submission_time,_tags,'
+                '_notes,_version,_duration,_submitted_by,_total_media,'
+                '_media_count,_media_all_received\n'
+                '#age,,,,,,,,,,,,,\n'
+                '29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16'
+                ',%s,74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01,'
+                ',,201604121155,,bob,0,0,True\n' % data_id
             )
 
             self.assertEqual(expected_content, content)
@@ -3219,14 +3221,13 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             content = get_response_content(response)
             expected_content = (
-                'age,name,meta/instanceID,_uuid,_submission_time,_tags,_notes,'
-                '_version,_duration,_submitted_by,_total_media,_media_count,'
-                '_media_all_received\n29,Lionel Messi,'
-                'uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,'
-                '74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01,,,'
-                '201604121155,,bob,0,0,True\n' % data_id
+                'age,name,meta/instanceID,_id,_uuid,_submission_time,_tags,'
+                '_notes,_version,_duration,_submitted_by,_total_media,'
+                '_media_count,_media_all_received\n'
+                '29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,'
+                '%s,74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01,,'
+                ',201604121155,,bob,0,0,True\n' % data_id
             )
-
             self.assertEqual(expected_content, content)
             headers = dict(response.items())
             self.assertEqual(headers['Content-Type'], 'application/csv')
@@ -3241,12 +3242,13 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             content = get_response_content(response)
             expected_content = (
-                'age,name,meta/instanceID,_uuid,_submission_time,_tags,'
-                '_notes,_version,_duration,_submitted_by,'
-                '_total_media,_media_count,_media_all_received\n#age,,,,,,,,,,'
-                ',,\n29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16'
-                ',74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01,,,'
-                '201604121155,,bob,0,0,True\n' % data_id
+                'age,name,meta/instanceID,_id,_uuid,_submission_time,_tags,'
+                '_notes,_version,_duration,_submitted_by,_total_media,'
+                '_media_count,_media_all_received\n'
+                '#age,,,,,,,,,,,,,\n'
+                '29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,'
+                '%s,74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01'
+                ',,,201604121155,,bob,0,0,True\n' % data_id
             )
 
             self.assertEqual(expected_content, content)

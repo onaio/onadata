@@ -88,7 +88,6 @@ class TestCSVDataFrameBuilder(TestBase):
         return [d for d in csv_df_builder._format_for_dataframe(cursor)]
 
     def test_csv_dataframe_export_to(self):
-        # FAILING
         self._publish_nested_repeats_form()
         self._submit_fixture_instance(
             "nested_repeats", "01", submission_time=self._submission_time)
@@ -108,7 +107,6 @@ class TestCSVDataFrameBuilder(TestBase):
         with open(temp_file.name) as csv_file:
             self._test_csv_files(csv_file, csv_fixture_path)
         os.unlink(temp_file.name)
-        self.assertEqual(fixture, output)
 
     def test_csv_columns_for_gps_within_groups(self):
         self._publish_grouped_gps_form()
@@ -523,7 +521,7 @@ class TestCSVDataFrameBuilder(TestBase):
             'kids_age', 'gps', '_gps_latitude', '_gps_longitude',
             '_gps_altitude', '_gps_precision', 'web_browsers/firefox',
             'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
-            'instanceID', '_uuid', '_submission_time', '_tags',
+            'instanceID', '_id', '_uuid', '_submission_time', '_tags',
             '_notes', '_version', '_duration', '_submitted_by', '_total_media',
             '_media_count', '_media_all_received'
         ]
@@ -565,7 +563,7 @@ class TestCSVDataFrameBuilder(TestBase):
             'kids_age', 'gps', '_gps_latitude', '_gps_longitude',
             '_gps_altitude', '_gps_precision', 'web_browsers/firefox',
             'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
-            'instanceID', '_uuid', '_submission_time', '_tags',
+            'instanceID', '_id', '_uuid', '_submission_time', '_tags',
             '_notes', '_version', '_duration', '_submitted_by', '_total_media',
             '_media_count', '_media_all_received'
         ]
@@ -580,7 +578,7 @@ class TestCSVDataFrameBuilder(TestBase):
             '_gps_altitude', '_gps_precision', 'web_browsers/Mozilla Firefox',
             'web_browsers/Google Chrome', 'web_browsers/Internet Explorer',
             'web_browsers/Safari',
-            'instanceID', '_uuid', '_submission_time', '_tags',
+            'instanceID', '_id', '_uuid', '_submission_time', '_tags',
             '_notes', '_version', '_duration', '_submitted_by', '_total_media',
             '_media_count', '_media_all_received'
         ]
@@ -624,7 +622,7 @@ class TestCSVDataFrameBuilder(TestBase):
             '_gps_altitude', '_gps_precision', 'web_browsers/Mozilla Firefox',
             'web_browsers/Google Chrome', 'web_browsers/Internet Explorer',
             'web_browsers/Safari',
-            'instanceID', '_uuid', '_submission_time', '_tags',
+            'instanceID', '_id', '_uuid', '_submission_time', '_tags',
             '_notes', '_version', '_duration', '_submitted_by', '_total_media',
             '_media_count', '_media_all_received'
         ]

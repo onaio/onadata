@@ -52,7 +52,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         |        | image | image2 | Photo |
         """
         self._create_user_and_login()
-        self.xform = self._publish_md(md, self.user)
+        self.xform = self._publish_markdown(md, self.user)
 
         xml_string = """
         <data id="{}">
@@ -110,7 +110,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         |        | end repeat   |        |        |
         """
         self._create_user_and_login()
-        self.xform = self._publish_md(md, self.user)
+        self.xform = self._publish_markdown(md, self.user)
 
         xml_string = """
         <data id="{}">
@@ -174,71 +174,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         |        | end repeat   |        |        |
         """
         self._create_user_and_login()
-        self.xform = self._publish_md(md, self.user)
-
-        xml_string = """
-        <data id="{}">
-            <meta>
-                <instanceID>uuid:UJ5jz4EszdgH8uhy8n851AsKaqBPO5VN7</instanceID>
-            </meta>
-            <images>
-                <g><image1>1300221157303.jpg</image1></g>
-            </images>
-            <images>
-                <g><image1>1300375832136.jpg</image1></g>
-            </images>
-        </data>
-        """.format(self.xform.id_string)
-        file_path = "{}/apps/logger/tests/Health_2011_03_13."\
-                    "xml_2011-03-15_20-30-28/1300221157303"\
-                    ".jpg".format(settings.PROJECT_ROOT)
-        media_file = django_file(path=file_path,
-                                 field_name="image1",
-                                 content_type="image/jpeg")
-        instance = create_instance(self.user.username,
-                                   StringIO(xml_string.strip()),
-                                   media_files=[media_file])
-        self.assertFalse(instance.json[MEDIA_ALL_RECEIVED])
-        self.assertEquals(instance.json[TOTAL_MEDIA], 2)
-        self.assertEquals(instance.json[MEDIA_COUNT], 1)
-        self.assertEquals(instance.json[TOTAL_MEDIA], instance.total_media)
-        self.assertEquals(instance.json[MEDIA_COUNT], instance.media_count)
-        self.assertEquals(instance.json[MEDIA_ALL_RECEIVED],
-                          instance.media_all_received)
-        file2_path = "{}/apps/logger/tests/Water_2011_03_17_2011-03-17_16-29"\
-                     "-59/1300375832136.jpg".format(settings.PROJECT_ROOT)
-        media2_file = django_file(path=file2_path,
-                                  field_name="image1",
-                                  content_type="image/jpeg")
-        create_instance(self.user.username,
-                        StringIO(xml_string.strip()),
-                        media_files=[media2_file])
-        instance2 = Instance.objects.get(pk=instance.pk)
-        self.assertTrue(instance2.json[MEDIA_ALL_RECEIVED])
-        self.assertEquals(instance2.json[TOTAL_MEDIA], 2)
-        self.assertEquals(instance2.json[MEDIA_COUNT], 2)
-        self.assertEquals(instance2.json[TOTAL_MEDIA], instance2.total_media)
-        self.assertEquals(instance2.json[MEDIA_COUNT], instance2.media_count)
-        self.assertEquals(instance2.json[MEDIA_ALL_RECEIVED],
-                          instance2.media_all_received)
-
-    def test_attachment_tracking_for_nested_repeats(self):
-        """
-        Test that when a submission with many attachments is made,
-        we keep track of the total number of attachments expected
-        and if we have received all of them
-        """
-        md = """
-        | survey |              |        |        |
-        |        | type         | name   | label  |
-        |        | begin repeat | images | Photos |
-        |        | begin repeat | g      | G      |
-        |        | image        | image1 | Photo  |
-        |        | end repeat   |        |        |
-        |        | end repeat   |        |        |
-        """
-        self._create_user_and_login()
-        self.xform = self._publish_md(md, self.user)
+        self.xform = self._publish_markdown(md, self.user)
 
         xml_string = """
         <data id="{}">
