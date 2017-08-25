@@ -1,16 +1,17 @@
 def get_values_matching_key(doc, key):
     def _get_values(doc, key):
-        if key in doc:
-            yield doc[key]
+        if doc is not None:
+            if key in doc:
+                yield doc[key]
 
-        for k, v in doc.items():
-            if isinstance(v, dict):
-                for item in _get_values(v, key):
-                    yield item
-            elif isinstance(v, list):
-                for i in v:
-                    for j in _get_values(i, key):
-                        yield j
+            for k, v in doc.items():
+                if isinstance(v, dict):
+                    for item in _get_values(v, key):
+                        yield item
+                elif isinstance(v, list):
+                    for i in v:
+                        for j in _get_values(i, key):
+                            yield j
 
     return _get_values(doc, key)
 

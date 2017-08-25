@@ -21,7 +21,8 @@ from onadata.libs.models.sorting import (
 from onadata.apps.restservice.tasks import call_service_async
 from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
     SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS,\
-    NOTES, SUBMITTED_BY, VERSION, DURATION, EDITED, XFORM_ID
+    NOTES, SUBMITTED_BY, VERSION, DURATION, EDITED, MEDIA_COUNT, TOTAL_MEDIA,\
+    MEDIA_ALL_RECEIVED, XFORM_ID
 from onadata.libs.utils.osm import save_osm_data_async
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.mongo import _is_invalid_for_mongo
@@ -303,6 +304,9 @@ class ParsedInstance(models.Model):
             VERSION: self.instance.version,
             DURATION: self.instance.get_duration(),
             XFORM_ID: self.instance.xform.pk,
+            TOTAL_MEDIA: self.instance.total_media,
+            MEDIA_COUNT: self.instance.media_count,
+            MEDIA_ALL_RECEIVED: self.instance.media_all_received
         }
 
         if isinstance(self.instance.deleted_at, datetime.datetime):

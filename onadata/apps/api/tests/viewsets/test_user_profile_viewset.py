@@ -18,7 +18,7 @@ from onadata.libs.serializers.user_profile_serializer import (
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
 from onadata.libs.authentication import DigestAuthentication
 from onadata.apps.main.models.user_profile import\
-        set_kpi_formbuilder_permissions
+    set_kpi_formbuilder_permissions
 
 
 def _profile_data():

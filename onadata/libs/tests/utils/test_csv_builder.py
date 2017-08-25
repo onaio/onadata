@@ -356,8 +356,8 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertEqual(dict, expected_dict)
 
     def test_remove_dups_from_list_maintain_order(self):
-        l = ["a", "z", "b", "y", "c", "b", "x"]
-        result = remove_dups_from_list_maintain_order(l)
+        list_with_dups = ["a", "z", "b", "y", "c", "b", "x"]
+        result = remove_dups_from_list_maintain_order(list_with_dups)
         expected_result = ["a", "z", "b", "y", "c", "x"]
         self.assertEqual(result, expected_result)
 
@@ -434,7 +434,9 @@ class TestCSVDataFrameBuilder(TestBase):
             '\xef\xbb\xbf_id', '\xef\xbb\xbf_uuid',
             '\xef\xbb\xbf_submission_time',
             '\xef\xbb\xbf_tags', '\xef\xbb\xbf_notes', '\xef\xbb\xbf_version',
-            '\xef\xbb\xbf_duration', '\xef\xbb\xbf_submitted_by'
+            '\xef\xbb\xbf_duration', '\xef\xbb\xbf_submitted_by',
+            '\xef\xbb\xbf_total_media', '\xef\xbb\xbf_media_count',
+            '\xef\xbb\xbf_media_all_received'
         ]
         self.assertEqual(expected_header, header)
         # close and delete file
@@ -483,7 +485,10 @@ class TestCSVDataFrameBuilder(TestBase):
             u'_gps_longitude': u'36.7923571',
             u'_gps_altitude': u'0.0',
             u'_gps_precision': u'30.0',
-            u'_attachments': []
+            u'_attachments': [],
+            u'_total_media': 0,
+            u'_media_count': 0,
+            u'_media_all_received': True
         }
         self.maxDiff = None
         self.assertEqual(data_0, expected_data_0)
@@ -517,7 +522,8 @@ class TestCSVDataFrameBuilder(TestBase):
             '_gps_altitude', '_gps_precision', 'web_browsers/firefox',
             'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
             'instanceID', '_id', '_uuid', '_submission_time', '_tags',
-            '_notes', '_version', '_duration', '_submitted_by'
+            '_notes', '_version', '_duration', '_submitted_by', '_total_media',
+            '_media_count', '_media_all_received'
         ]
         self.assertEqual(expected_header, header)
         rows = []
@@ -558,7 +564,8 @@ class TestCSVDataFrameBuilder(TestBase):
             '_gps_altitude', '_gps_precision', 'web_browsers/firefox',
             'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
             'instanceID', '_id', '_uuid', '_submission_time', '_tags',
-            '_notes', '_version', '_duration', '_submitted_by'
+            '_notes', '_version', '_duration', '_submitted_by', '_total_media',
+            '_media_count', '_media_all_received'
         ]
         self.assertEqual(expected_header, header)
         labels = csv_reader.next()
@@ -572,7 +579,8 @@ class TestCSVDataFrameBuilder(TestBase):
             'web_browsers/Google Chrome', 'web_browsers/Internet Explorer',
             'web_browsers/Safari',
             'instanceID', '_id', '_uuid', '_submission_time', '_tags',
-            '_notes', '_version', '_duration', '_submitted_by'
+            '_notes', '_version', '_duration', '_submitted_by', '_total_media',
+            '_media_count', '_media_all_received'
         ]
         self.assertEqual(expected_labels, labels)
         rows = []
@@ -615,7 +623,8 @@ class TestCSVDataFrameBuilder(TestBase):
             'web_browsers/Google Chrome', 'web_browsers/Internet Explorer',
             'web_browsers/Safari',
             'instanceID', '_id', '_uuid', '_submission_time', '_tags',
-            '_notes', '_version', '_duration', '_submitted_by'
+            '_notes', '_version', '_duration', '_submitted_by', '_total_media',
+            '_media_count', '_media_all_received'
         ]
         self.assertEqual(expected_labels, labels)
         rows = []

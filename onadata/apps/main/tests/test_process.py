@@ -159,7 +159,7 @@ class TestProcess(TestBase):
                         if self.xform:
                             self.xform.delete()
                             self.xform = None
-                print 'finished sub-folder %s' % root
+                print ('finished sub-folder %s' % root)
             self.assertEqual(success, True)
 
     def test_url_upload_non_dot_xls_path(self):
@@ -190,7 +190,7 @@ class TestProcess(TestBase):
         # make sure publishing the survey worked
         if XForm.objects.count() != pre_count + 1:
             # print file location
-            print '\nPublish Failure for file: %s' % xls_path
+            print ('\nPublish Failure for file: %s' % xls_path)
             if strict:
                 self.assertEqual(XForm.objects.count(), pre_count + 1)
             else:
@@ -273,7 +273,6 @@ class TestProcess(TestBase):
         with open(os.path.join(self.this_directory, "fixtures",
                                "transportation", "headers.json")) as f:
             expected_list = json.load(f)
-
         self.assertEqual(self.data_dictionary.get_headers(), expected_list)
 
         # test to make sure the headers in the actual csv are as expected
@@ -305,7 +304,7 @@ class TestProcess(TestBase):
         ]
         for d_from_db in self.data_dictionary.get_data_for_excel():
             for k, v in d_from_db.items():
-                if (k not in [u'_xform_id_string',  u'meta/instanceID',
+                if (k not in [u'_xform_id_string', u'meta/instanceID',
                               '_version', '_id']) and v:
                     new_key = k[len('transport/'):]
                     d_from_db[new_key] = d_from_db[k]
@@ -382,7 +381,8 @@ class TestProcess(TestBase):
              '_uuid': '5b2cc313-fc09-437e-8149-fcd32f695d41',
              '_submission_time': '2013-02-14T15:37:21',
              '_tags': '', '_notes': '', '_version': '2014111', '_duration': '',
-             '_submitted_by': 'bob'
+             '_submitted_by': 'bob', '_total_media': '0', '_media_count': '0',
+             '_media_all_received': 'True'
              },
             {"available_transportation_types_to_referral_facility/ambulance":
              "True",
@@ -394,7 +394,8 @@ class TestProcess(TestBase):
              '_uuid': 'f3d8dc65-91a6-4d0f-9e97-802128083390',
              '_submission_time': '2013-02-14T15:37:22',
              '_tags': '', '_notes': '', '_version': '2014111', '_duration': '',
-             '_submitted_by': 'bob'
+             '_submitted_by': 'bob', '_total_media': '0', '_media_count': '0',
+             '_media_all_received': 'True'
              },
             {"available_transportation_types_to_referral_facility/ambulance":
              "True",
@@ -403,7 +404,8 @@ class TestProcess(TestBase):
              '_uuid': '9c6f3468-cfda-46e8-84c1-75458e72805d',
              '_submission_time': '2013-02-14T15:37:23',
              '_tags': '', '_notes': '', '_version': '2014111', '_duration': '',
-             '_submitted_by': 'bob'
+             '_submitted_by': 'bob', '_total_media': '0', '_media_count': '0',
+             '_media_all_received': 'True'
              },
             {"available_transportation_types_to_referral_facility/taxi":
              "True",
@@ -416,7 +418,8 @@ class TestProcess(TestBase):
              '_uuid': '9f0a1508-c3b7-4c99-be00-9b237c26bcbf',
              '_submission_time': '2013-02-14T15:37:24',
              '_tags': '', '_notes': '', '_version': '2014111', '_duration': '',
-             '_submitted_by': 'bob'
+             '_submitted_by': 'bob', '_total_media': '0', '_media_count': '0',
+             '_media_all_received': 'True'
              }
         ]
 
@@ -427,14 +430,13 @@ class TestProcess(TestBase):
             for k, v in d.items():
                 if v in ["n/a", "False"] or k in additional_headers:
                     del d[k]
-            l = []
+            this_list = []
             for k, v in expected_dict.items():
                 if k == 'meta/instanceID' or k.startswith("_"):
-                    l.append((k, v))
+                    this_list.append((k, v))
                 else:
-                    l.append(("transport/" + k, v))
-
-            self.assertEqual(d, dict(l))
+                    this_list.append(("transport/" + k, v))
+            self.assertEqual(d, dict(this_list))
 
     def test_xls_export_content(self):
         self._publish_xls_file()

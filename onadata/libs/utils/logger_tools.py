@@ -26,7 +26,7 @@ from multidb.pinning import use_master
 
 from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.logger.models.instance import (
-    FormInactiveError, FormIsMergedDatasetError, InstanceHistory,
+    FormInactiveError, InstanceHistory, FormIsMergedDatasetError,
     get_id_string_from_xml_str)
 from onadata.apps.logger.models.xform import XLSFormError
 from onadata.apps.logger.xform_instance_parser import (
@@ -38,6 +38,7 @@ from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import (ParsedInstance,
                                                         call_webhooks)
 from onadata.libs.utils.model_tools import set_uuid
+from onadata.libs.utils.dict_tools import get_values_matching_key
 from onadata.libs.utils.user_auth import get_user_default_project
 from pyxform.errors import PyXFormError
 from pyxform.xform2json import create_survey_element_from_xml
@@ -88,7 +89,6 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform):
         # new submission
         instance = Instance.objects.create(
             xml=xml, user=submitted_by, status=status, xform=xform)
-
     return instance
 
 
@@ -181,6 +181,24 @@ def check_submission_permissions(request, xform):
               }))
 
 
+def update_instance_attachment_tracking(instance):
+    """
+    Takes an Instance object and updates attachment tracking fields
+    """
+    num_media = 0
+    media_xpaths = instance.xform.get_media_survey_xpaths()
+    for media_xpath in media_xpaths:
+        num_media += len([x for x in get_values_matching_key(
+            instance.get_dict(), media_xpath)])
+    instance.total_media = num_media
+    instance.media_count = instance.attachments.count()
+    instance.media_all_received = instance.media_count == \
+        instance.total_media
+    instance.save(update_fields=['total_media',
+                                 'media_count',
+                                 'media_all_received'])
+
+
 def save_attachments(xform, instance, media_files):
     for f in media_files:
         filename, extension = os.path.splitext(f.name)
@@ -196,6 +214,7 @@ def save_attachments(xform, instance, media_files):
             media_file=f,
             mimetype=content_type,
             extension=extension)
+    update_instance_attachment_tracking(instance)
 
 
 def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
@@ -265,7 +284,6 @@ def create_instance(username,
     filtered_instances = get_filtered_instances(
         Q(xml=xml) | Q(uuid=new_uuid), xform_id=xform.pk)
     existing_instance = filtered_instances.first()
-
     if existing_instance and \
             (new_uuid or existing_instance.xform.has_start_time):
         # ensure we have saved the extra attachments

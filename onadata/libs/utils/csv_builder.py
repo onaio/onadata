@@ -18,7 +18,8 @@ from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID,
                                             GEOLOCATION, ID, NA_REP, NOTES,
                                             STATUS, SUBMISSION_TIME,
                                             SUBMITTED_BY, TAGS, UUID, VERSION,
-                                            XFORM_ID_STRING)
+                                            XFORM_ID_STRING, MEDIA_COUNT,
+                                            TOTAL_MEDIA, MEDIA_ALL_RECEIVED)
 from onadata.libs.utils.export_builder import get_value_or_attachment_uri
 from onadata.libs.utils.export_builder import track_task_progress
 from onadata.libs.utils.model_tools import get_columns_with_hxl
@@ -129,8 +130,9 @@ class AbstractDataFrameBuilder(object):
     IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION,
                        BAMBOO_DATASET_ID, DELETEDAT, EDITED]
     # fields NOT within the form def that we want to include
-    ADDITIONAL_COLUMNS = [ID, UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION,
-                          DURATION, SUBMITTED_BY]
+    ADDITIONAL_COLUMNS = [
+        ID, UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION, DURATION,
+        SUBMITTED_BY, TOTAL_MEDIA, MEDIA_COUNT, MEDIA_ALL_RECEIVED]
     BINARY_SELECT_MULTIPLES = False
     """
     Group functionality used by any DataFrameBuilder i.e. XLS, CSV and KML

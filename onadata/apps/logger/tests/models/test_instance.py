@@ -12,7 +12,7 @@ from onadata.apps.logger.models.instance import get_id_string_from_xml_str
 from onadata.apps.viewer.models.parsed_instance import (
     ParsedInstance, query_data)
 from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMISSION_TIME,\
-    XFORM_ID_STRING, SUBMITTED_BY
+                                           XFORM_ID_STRING, SUBMITTED_BY
 
 
 class TestInstance(TestBase):
