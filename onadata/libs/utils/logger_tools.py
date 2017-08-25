@@ -356,8 +356,6 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
             _(u"Received empty submission. No instance was created"))
     except (FormInactiveError, FormIsMergedDatasetError) as e:
         error = OpenRosaResponseNotAllowed(str(e))
-    except FormInactiveError:
-        error = OpenRosaResponseNotAllowed(_(u"Form is not active"))
     except XForm.DoesNotExist:
         error = OpenRosaResponseNotFound(
             _(u"Form does not exist on this account"))
