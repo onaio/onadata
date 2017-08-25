@@ -713,7 +713,7 @@ class TestExportBuilder(TestBase):
         |         | animals   | 4    | Sheep      |
         |         | animals   | 5    | Donkey     |
         |         | animals   | 6    | Hen        |
-        |         | animals   | 6    | Other      | <--- duplicate name
+        |         | animals   | 6    | Other      | # <--- duplicate name
         |         | animals   | 8    | None       |
         |         | animals   | 9    | Don't Know |
         """

@@ -212,17 +212,6 @@ def get_parent_element(xpath, element_type, data_dictionary):
     return data_dictionary.get_element(parent_xpath)
 
 
-def get_element_from_xpath(xpath, elements):
-    return next((el for el in elements if el['xpath'] == xpath), None)
-
-
-def get_element_type_from_xpath(xpath, elements):
-    element = get_element_from_xpath(xpath, elements)
-    if element:
-        return element['type']
-    return ""
-
-
 class ExportBuilder(object):
     IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION,
                        BAMBOO_DATASET_ID, DELETEDAT]
@@ -942,7 +931,7 @@ class ExportBuilder(object):
             [(x[1],
               SAV_NUMERIC_TYPE if _is_numeric(
                 x[0],
-                get_element_type_from_xpath(x[0], elements),
+                self.dd.get_element(x[0]),
                 self.dd) else SAV_255_BYTES_TYPE)
                 for x in duplicate_names]
         )
