@@ -646,7 +646,7 @@ class TestExportBuilder(TestBase):
                        returnHeader=True) as reader:
             rows = [r for r in reader]
             self.assertTrue(len(rows) > 1)
-            self.assertEqual(rows[1][0],  "1")
+            self.assertEqual(rows[1][0], "1")
             # expensed.1 is selected hence True, 1.00 or 1 in SPSS
             self.assertEqual(rows[1][1], 1)
             # expensed.0 is not selected hence False, .00 or 0 in SPSS
@@ -698,6 +698,45 @@ class TestExportBuilder(TestBase):
             self.assertEqual(rows[1][6], '2016-11-21 03:43:43')
 
         shutil.rmtree(temp_dir)
+
+    def test_zipped_sav_export_with_duplicate_name_in_choice_list(self):
+        md = """
+        | survey |                         |      |                  |
+        |        | type                    | name | label            |
+        |        | select_multiple animals | q1   | Favorite animal? |
+
+        | choices |           |      |            |
+        |         | list_name | name | label      |
+        |         | animals   | 1    | Goat       |
+        |         | animals   | 2    | Camel      |
+        |         | animals   | 3    | Cow        |
+        |         | animals   | 4    | Sheep      |
+        |         | animals   | 5    | Donkey     |
+        |         | animals   | 6    | Hen        |
+        |         | animals   | 6    | Other      | # <--- duplicate name
+        |         | animals   | 8    | None       |
+        |         | animals   | 9    | Don't Know |
+        """
+        survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
+        data = [{"q1": "1",
+                '_submission_time': u'2016-11-21T03:43:43.000-08:00'},
+                {"q1": "6",
+                '_submission_time': u'2016-11-21T03:43:43.000-08:00'}
+                ]
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        export_builder.to_zipped_sav(temp_zip_file.name, data)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+        # check that the children's file (which has the unicode header) exists
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "exp.sav")))
 
     def test_xls_export_works_with_unicode(self):
         survey = create_survey_from_xls(_logger_fixture_path(

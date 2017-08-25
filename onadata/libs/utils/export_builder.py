@@ -22,9 +22,9 @@ from onadata.apps.logger.models.xform import _encode_for_mongo,\
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.common_tags import (
     ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION, BAMBOO_DATASET_ID,
-    DELETEDAT, INDEX, PARENT_INDEX, PARENT_TABLE_NAME,
+    DELETEDAT, INDEX, PARENT_INDEX, PARENT_TABLE_NAME, MULTIPLE_SELECT_TYPE,
     SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION,
-    MULTIPLE_SELECT_TYPE)
+    SAV_255_BYTES_TYPE, SAV_NUMERIC_TYPE)
 from onadata.libs.utils.mongo import _is_invalid_for_mongo,\
     _decode_from_mongo
 
@@ -898,21 +898,37 @@ class ExportBuilder(object):
                                 in fields_and_labels])
         all_value_labels = self._get_sav_value_labels(xpath_var_names)
 
+        duplicate_names = []  # list of (xpath, var_name)
+        already_done = []  # list of xpaths
         for field, label, xpath, var_name in fields_and_labels:
             var_labels[var_name] = label
-            _var_types[xpath] = var_name
+            #  keep track of duplicates
+            if xpath not in already_done:
+                already_done.append(xpath)
+                _var_types[xpath] = var_name
+            else:
+                duplicate_names.append((xpath, var_name))
             if var_name in all_value_labels:
                 value_labels[var_name] = all_value_labels.get(var_name)
 
         var_types = dict(
             [(_var_types[element['xpath']],
-                0 if _is_numeric(element['xpath'], element['type'],
-                                 self.dd) else 255)
+                SAV_NUMERIC_TYPE if _is_numeric(element['xpath'],
+                                                element['type'],
+                                                self.dd) else
+                SAV_255_BYTES_TYPE)
                 for element in elements] +
             [(_var_types[item],
-                0 if item in ['_id', '_index', '_parent_index',
-                              SUBMISSION_TIME] else 255)
-                for item in self.EXTRA_FIELDS]
+                SAV_NUMERIC_TYPE if item in [
+                    '_id', '_index', '_parent_index', SUBMISSION_TIME]
+                else SAV_255_BYTES_TYPE)
+                for item in self.EXTRA_FIELDS] +
+            [(x[1],
+              SAV_NUMERIC_TYPE if _is_numeric(
+                x[0],
+                self.dd.get_element(x[0]).type,
+                self.dd) else SAV_255_BYTES_TYPE)
+                for x in duplicate_names]
         )
         dates = [_var_types[element['xpath']] for element in elements
                  if element.get('type') == 'date']
