@@ -26,7 +26,8 @@ from multidb.pinning import use_master
 
 from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.logger.models.instance import (
-    FormInactiveError, InstanceHistory, get_id_string_from_xml_str)
+    FormInactiveError, InstanceHistory, FormIsMergedDatasetError,
+    get_id_string_from_xml_str)
 from onadata.apps.logger.models.xform import XLSFormError
 from onadata.apps.logger.xform_instance_parser import (
     DuplicateInstance, InstanceEmptyError, InstanceInvalidUserError,
@@ -353,6 +354,8 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
     except InstanceEmptyError:
         error = OpenRosaResponseBadRequest(
             _(u"Received empty submission. No instance was created"))
+    except (FormInactiveError, FormIsMergedDatasetError) as e:
+        error = OpenRosaResponseNotAllowed(str(e))
     except FormInactiveError:
         error = OpenRosaResponseNotAllowed(_(u"Form is not active"))
     except XForm.DoesNotExist:
