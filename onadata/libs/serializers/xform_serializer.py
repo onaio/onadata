@@ -409,7 +409,6 @@ class XFormManifestSerializer(serializers.Serializer):
         # third item
         if len(parts) > 2:
             filename = u'%s.csv' % parts[2]
-
         else:
             try:
                 URLValidator()(filename)
@@ -417,7 +416,6 @@ class XFormManifestSerializer(serializers.Serializer):
                 pass
             else:
                 urlparts = urlparse(obj.data_value)
-                filename = os.path.basename(urlparts.path)
-                filename = filename if filename else urlparts.netloc
+                filename = os.path.basename(urlparts.path) or urlparts.netloc
 
         return filename
