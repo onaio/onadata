@@ -1,28 +1,31 @@
+# -*- coding: utf-8 -*-
+"""
+MetaData Serializer
+"""
+
+import os
+from urlparse import urlparse
+
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db.utils import IntegrityError
 from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
-
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
-from onadata.apps.logger.models import DataView
-from onadata.apps.logger.models import Project
-from onadata.apps.logger.models import Instance
-from onadata.apps.logger.models import XForm
-from onadata.apps.main.models import MetaData
-from onadata.libs.utils.common_tags import XFORM_META_PERMS
-from onadata.libs.permissions import ROLES
-from onadata.libs.permissions import ManagerRole
-from onadata.libs.serializers.fields.xform_related_field import (
-    XFormRelatedField,)
-from onadata.libs.serializers.fields.project_related_field import (
-    ProjectRelatedField,)
-from onadata.libs.serializers.fields.instance_related_field import (
-    InstanceRelatedField,)
 from onadata.apps.api.tools import update_role_by_meta_xform_perms
+from onadata.apps.logger.models import DataView, Instance, Project, XForm
+from onadata.apps.main.models import MetaData
+from onadata.libs.permissions import ROLES, ManagerRole
+from onadata.libs.serializers.fields.instance_related_field import \
+    InstanceRelatedField
+from onadata.libs.serializers.fields.project_related_field import \
+    ProjectRelatedField
+from onadata.libs.serializers.fields.xform_related_field import \
+    XFormRelatedField
+from onadata.libs.utils.common_tags import XFORM_META_PERMS
 
 UNIQUE_TOGETHER_ERROR = u"Object already exists"
 
@@ -40,17 +43,15 @@ METADATA_TYPES = (
     ('source', _(u"Source")),
     (DOC_TYPE, _(u"Supporting Document")),
     ('external_export', _(u"External Export")),
-    ('textit', _(u"External Export")),
+    ('textit', _(u"TextIt")),
     ('google_sheets', _(u"Google Sheet")),
-    ('xform_meta_perms', _("Xform meta permissions"))
-)
+    ('xform_meta_perms', _("Xform meta permissions")))  # yapf:disable
 
 DATAVIEW_TAG = 'dataview'
 XFORM_TAG = 'xform'
 
-PROJECT_METADATA_TYPES = (
-    (MEDIA_TYPE, _(u"Media")),
-    ('supporting_doc', _(u"Supporting Document")))
+PROJECT_METADATA_TYPES = ((MEDIA_TYPE, _(u"Media")),
+                          ('supporting_doc', _(u"Supporting Document")))
 
 
 def get_linked_object(parts):
@@ -60,43 +61,40 @@ def get_linked_object(parts):
     Raises serializers.ValidationError if the format of the linked
     object is not valid.
     """
-    if isinstance(parts, list) and len(parts):
+    if isinstance(parts, list) and parts:
         obj_type = parts[0]
         if obj_type in [DATAVIEW_TAG, XFORM_TAG] and len(parts) > 1:
-            pk = parts[1]
+            obj_pk = parts[1]
             try:
-                pk = int(pk)
+                obj_pk = int(obj_pk)
             except ValueError:
                 raise serializers.ValidationError({
                     'data_value':
                     _(u"Invalid %(type)s id %(id)s." %
-                      {'type': obj_type, 'id': pk})
+                      {'type': obj_type,
+                       'id': obj_pk})
                 })
             else:
                 model = DataView if obj_type == DATAVIEW_TAG else XForm
 
-                return get_object_or_404(model, pk=pk)
+                return get_object_or_404(model, pk=obj_pk)
 
 
 class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
-    id = serializers.ReadOnlyField()
-    xform = XFormRelatedField(
-        queryset=XForm.objects.all(),
-        required=False
-    )
+    """
+    MetaData HyperlinkedModelSerializer
+    """
+    id = serializers.ReadOnlyField()  # pylint: disable=C0103
+    xform = XFormRelatedField(queryset=XForm.objects.all(), required=False)
     project = ProjectRelatedField(
-        queryset=Project.objects.all(),
-        required=False
-    )
+        queryset=Project.objects.all(), required=False)
     instance = InstanceRelatedField(
-        queryset=Instance.objects.all(),
-        required=False)
-    data_value = serializers.CharField(max_length=255,
-                                       required=True)
+        queryset=Instance.objects.all(), required=False)
+    data_value = serializers.CharField(max_length=255, required=True)
     data_type = serializers.ChoiceField(choices=METADATA_TYPES)
     data_file = serializers.FileField(required=False)
-    data_file_type = serializers.CharField(max_length=255, required=False,
-                                           allow_blank=True)
+    data_file_type = serializers.CharField(
+        max_length=255, required=False, allow_blank=True)
     media_url = serializers.SerializerMethodField()
     date_created = serializers.ReadOnlyField()
 
@@ -110,6 +108,9 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                   'file_hash', 'url', 'date_created')
 
     def get_media_url(self, obj):
+        """
+        Returns media URL for given metadata
+        """
         if obj.data_type in [DOC_TYPE, MEDIA_TYPE] and\
                 getattr(obj, "data_file") and getattr(obj.data_file, "url"):
             return obj.data_file.url
@@ -136,8 +137,9 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
 
         if not ('project' in attrs or 'xform' in attrs or 'instance' in attrs):
             raise serializers.ValidationError({
-                'missing_field': _(u"`xform` or `project` or `instance`"
-                                   "field is required.")
+                'missing_field':
+                _(u"`xform` or `project` or `instance`"
+                  "field is required.")
             })
 
         if data_type == 'media' and data_file is None:
@@ -147,11 +149,10 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                 parts = value.split()
                 if len(parts) < 3:
                     raise serializers.ValidationError({
-                        'data_value': _(
-                            u"Expecting 'xform [xform id] [media name]' "
-                            "or 'dataview [dataview id] [media name]' "
-                            "or a valid URL."
-                        )
+                        'data_value':
+                        _(u"Expecting 'xform [xform id] [media name]' "
+                          "or 'dataview [dataview id] [media name]' "
+                          "or a valid URL.")
                     })
                 obj = get_linked_object(parts)
                 if obj:
@@ -164,11 +165,21 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                         raise serializers.ValidationError({
                             'data_value':
                             _(u"User has no permission to "
-                                "the dataview.")
+                              "the dataview.")
                         })
                 else:
                     raise serializers.ValidationError({
-                        'data_value': _(u"Invalid url '%s'." % value)
+                        'data_value':
+                        _(u"Invalid url '%s'." % value)
+                    })
+            else:
+                # check if we have a value for the filename.
+                if not os.path.basename(urlparse(value).path):
+                    raise serializers.ValidationError({
+                        'data_value':
+                        _(u"Cannot get filename from URL %s. URL should "
+                          u"include the filename e.g "
+                          u"http://example.com/data.csv" % value)
                     })
 
         if data_type == XFORM_META_PERMS:
@@ -179,12 +190,17 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
 
         return attrs
 
+    # pylint: disable=R0201
     def get_content_object(self, validated_data):
+        """
+        Returns the validated 'xform' or 'project' or 'instance' ids being
+        linked to the metadata.
+        """
 
         if validated_data:
-            return (validated_data.get('xform') or
-                    validated_data.get('project') or
-                    validated_data.get('instance'))
+            return (validated_data.get('xform')
+                    or validated_data.get('project')
+                    or validated_data.get('instance'))
 
     def create(self, validated_data):
         data_type = validated_data.get('data_type')
@@ -220,16 +236,15 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                     data_value=data_value,
                     data_file=data_file,
                     data_file_type=data_file_type,
-                    object_id=content_object.id
-                )
+                    object_id=content_object.id)
 
             return metadata
         except IntegrityError:
             raise serializers.ValidationError(_(UNIQUE_TOGETHER_ERROR))
 
     def update(self, instance, validated_data):
-        instance = super(MetaDataSerializer, self).update(instance,
-                                                          validated_data)
+        instance = super(MetaDataSerializer, self).update(
+            instance, validated_data)
 
         if instance.data_type == XFORM_META_PERMS:
             update_role_by_meta_xform_perms(instance.content_object)

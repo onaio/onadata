@@ -1,6 +1,10 @@
+import os
 import logging
 from hashlib import md5
+from urlparse import urlparse
 
+from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.cache import cache
@@ -405,5 +409,13 @@ class XFormManifestSerializer(serializers.Serializer):
         # third item
         if len(parts) > 2:
             filename = u'%s.csv' % parts[2]
+        else:
+            try:
+                URLValidator()(filename)
+            except ValidationError:
+                pass
+            else:
+                urlparts = urlparse(obj.data_value)
+                filename = os.path.basename(urlparts.path) or urlparts.netloc
 
         return filename
