@@ -405,6 +405,14 @@ class TestChartTools(TestBase):
 
         self.assertEqual(get_choice_label(choices, string), [string])
 
+        string = 200
+
+        self.assertEqual(get_choice_label(choices, string), [])
+
+        string = long(200)
+
+        self.assertEqual(get_choice_label(choices, string), [])
+
     def test_select_one_choices(self):
         path = os.path.join(
             os.path.dirname(__file__), "..", "..", "..", "apps", "api",
