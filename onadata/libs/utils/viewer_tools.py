@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Util functions for data views.
+"""
 import os
 import sys
 import zipfile
@@ -11,37 +15,49 @@ from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.translation import ugettext as _
 
-from onadata.libs.utils import common_tags
 from onadata.libs.exceptions import EnketoError
+from onadata.libs.utils import common_tags
+from onadata.libs.utils.common_tags import EXPORT_MIMES
 from onadata.libs.utils.common_tools import report_exception
-
 
 SLASH = u"/"
 
 
-class MyError(Exception):
-    pass
-
-
 def image_urls_for_form(xform):
-    return sum([image_urls(s) for s in xform.instances.all()], [])
+    """
+    Returns image urls of all image attachments of the xform.
+    """
+    return sum(
+        [
+            image_urls(s)
+            for s in xform.instances.filter(deleted_at__isnull=True)
+        ], [])
 
 
 def get_path(path, suffix):
-    fileName, fileExtension = os.path.splitext(path)
-    return fileName + suffix + fileExtension
+    """
+    Apply the suffix to the path.
+    """
+    filename, file_extension = os.path.splitext(path)
+
+    return filename + suffix + file_extension
 
 
 def image_urls(instance):
+    """
+    Returns image urls of all image attachments of the submission instance.
+    """
     default_storage = get_storage_class()()
     urls = []
     suffix = settings.THUMB_CONF['medium']['suffix']
-    for a in instance.attachments.all():
-        if default_storage.exists(get_path(a.media_file.name, suffix)):
-            url = default_storage.url(get_path(a.media_file.name, suffix))
+    for attachment in instance.attachments.all():
+        path = get_path(attachment.media_file.name, suffix)
+        if default_storage.exists(path):
+            url = default_storage.url(path)
         else:
-            url = a.media_file.url
+            url = attachment.media_file.url
         urls.append(url)
+
     return urls
 
 
@@ -64,15 +80,16 @@ def parse_xform_instance(xml_str):
         common_tags.INSTANCE_DOC_NAME:
         root_node.nodeName,
     })
+
     return survey_data
 
 
 def _path(node):
-    n = node
+    _node = node
     levels = []
-    while n.nodeType != n.DOCUMENT_NODE:
-        levels = [n.nodeName] + levels
-        n = n.parentNode
+    while _node.nodeType != _node.DOCUMENT_NODE:
+        levels = [_node.nodeName] + levels
+        _node = _node.parentNode
     return SLASH.join(levels[1:])
 
 
@@ -81,7 +98,7 @@ def _path_value_pairs(node):
     Using a depth first traversal of the xml nodes build up a python
     object in parent that holds the tree structure of the data.
     """
-    if len(node.childNodes) == 0:
+    if node.childNodes:
         # there's no data for this leaf node
         yield _path(node), None
     elif len(node.childNodes) == 1 and \
@@ -108,35 +125,42 @@ def _all_attributes(node):
 
 
 def django_file(path, field_name, content_type):
+    """
+    Returns an InMemoryUploadedFile object for file uploads.
+    """
     # adapted from here: http://groups.google.com/group/django-users/browse_th\
     # read/thread/834f988876ff3c45/
-    f = open(path)
+    file_object = open(path)
+
     return InMemoryUploadedFile(
-        file=f,
+        file=file_object,
         field_name=field_name,
-        name=f.name,
+        name=file_object.name,
         content_type=content_type,
         size=os.path.getsize(path),
         charset=None)
 
 
 def export_def_from_filename(filename):
-    # TODO fix circular import and move to top
-    from onadata.apps.viewer.models.export import Export
-    path, ext = os.path.splitext(filename)
+    """
+    Returns file extension and mimetype from filename.
+    """
+    __, ext = os.path.splitext(filename)
     ext = ext[1:]
-    # try get the def from extension
-    mime_type = Export.EXPORT_MIMES[ext]
+    mime_type = EXPORT_MIMES[ext]
+
     return ext, mime_type
 
 
 def get_client_ip(request):
+    """
+    Returns an IP from HTTP_X_FORWARDED_FOR or REMOTE_ADDR request headers.
+    """
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
+        return x_forwarded_for.split(',')[0]
+
+    return request.META.get('REMOTE_ADDR')
 
 
 def enketo_url(form_url,
@@ -145,6 +169,9 @@ def enketo_url(form_url,
                instance_id=None,
                return_url=None,
                **kwargs):
+    """
+    Returns Enketo webform URL.
+    """
     if not hasattr(settings, 'ENKETO_URL')\
             and not hasattr(settings, 'ENKETO_API_SURVEY_PATH')\
             and (not hasattr(settings, 'ENKETO_API_TOKEN') or
@@ -167,38 +194,40 @@ def enketo_url(form_url,
         # kwargs = {'defaults[/widgets/text_widgets/my_string]': "Hey Mark"}
         values.update(kwargs)
 
-    req = requests.post(
-        url, data=values, auth=(settings.ENKETO_API_TOKEN, ''),
+    response = requests.post(
+        url,
+        data=values,
+        auth=(settings.ENKETO_API_TOKEN, ''),
         verify=getattr(settings, 'VERIFY_SSL', True))
-    if req.status_code in [200, 201]:
+    if response.status_code in [200, 201]:
         try:
-            response = req.json()
+            data = response.json()
         except ValueError:
             pass
         else:
-            if 'edit_url' in response:
-                return response['edit_url']
-            if 'offline_url' in response:
-                return response['offline_url']
-            if 'url' in response:
-                return response['url']
+            url = (data.get('edit_url') or data.get('offline_url')
+                   or data.get('url'))
+            if url:
+                return url
     else:
         try:
-            response = req.json()
+            data = response.json()
         except ValueError:
-            report_exception("HTTP Error {}".format(req.status_code),
-                             req.text,
-                             sys.exc_info())
+            report_exception("HTTP Error {}".format(response.status_code),
+                             response.text, sys.exc_info())
             raise EnketoError()
         else:
-            if 'message' in response:
-                raise EnketoError(response['message'])
-            raise EnketoError(req.text)
+            if 'message' in data:
+                raise EnketoError(data['message'])
+            raise EnketoError(response.text)
 
     raise EnketoError()
 
 
 def generate_enketo_form_defaults(xform, **kwargs):
+    """
+    Returns Enketo default options for preloading data into a web form.
+    """
     defaults = {}
 
     if kwargs:
@@ -211,30 +240,37 @@ def generate_enketo_form_defaults(xform, **kwargs):
 
 
 def create_attachments_zipfile(attachments):
+    """
+    Returns a zip file with submission attachments.
+    """
     # create zip_file
     tmp = NamedTemporaryFile()
     with zipfile.ZipFile(tmp, 'w', zipfile.ZIP_DEFLATED, allowZip64=True) as z:
         for attachment in attachments:
             default_storage = get_storage_class()()
+            filename = attachment.media_file.name
 
-            if default_storage.exists(attachment.media_file.name):
+            if default_storage.exists(filename):
                 try:
-                    with default_storage.open(attachment.media_file.name) as f:
+                    with default_storage.open(filename) as f:
                         z.writestr(attachment.media_file.name, f.read())
-                except Exception as e:
+                except IOError as e:
                     report_exception("Create attachment zip exception", e)
 
     return tmp
 
 
 def get_form(kwargs):
+    """
+    Returns XForm object by applying kwargs on an XForm queryset.
+    """
     # adding inline imports here because adding them at the top of the file
     # triggers the following error:
     # django.core.exceptions.AppRegistryNotReady: Apps aren't loaded yet.
     from onadata.apps.logger.models import XForm
     from django.http import Http404
 
-    queryset = kwargs.pop('queryset', XForm.objects.filter())
+    queryset = kwargs.pop('queryset', XForm.objects.all())
     kwargs['deleted_at__isnull'] = True
     xform = queryset.filter(**kwargs).first()
     if xform:
@@ -243,8 +279,20 @@ def get_form(kwargs):
     raise Http404("XForm does not exist.")
 
 
-def get_form_url(request, username=None, protocol='https', preview=False,
+def get_form_url(request,
+                 username=None,
+                 protocol='https',
+                 preview=False,
                  xform_pk=None):
+    """
+    Returns a form list url endpoint to be used to make a request to Enketo.
+
+    For example, it will return https://example.com and Enketo will know to
+    look for the form list at https://example.com/formList. If a username is
+    provided then Enketo will request the form list from
+    https://example.com/[username]/formList. Same applies for preview if
+    preview is True and also to a single form when xform_pk is provided.
+    """
     if settings.TESTING_MODE:
         http_host = settings.TEST_HTTP_HOST
         username = settings.TEST_USERNAME
@@ -265,9 +313,15 @@ def get_form_url(request, username=None, protocol='https', preview=False,
 
 
 def get_enketo_edit_url(request, instance, return_url):
-    form_url = get_form_url(request, instance.xform.user.username,
-                            settings.ENKETO_PROTOCOL,
-                            xform_pk=instance.xform_id)
+    """
+    Given a submssion instance, returns an Enketo link to edit the specified
+    submission.
+    """
+    form_url = get_form_url(
+        request,
+        instance.xform.user.username,
+        settings.ENKETO_PROTOCOL,
+        xform_pk=instance.xform_id)
     url = enketo_url(
         form_url,
         instance.xform.id_string,
@@ -278,8 +332,11 @@ def get_enketo_edit_url(request, instance, return_url):
 
 
 def get_enketo_preview_url(request, username, id_string, xform_pk=None):
-    form_url = get_form_url(request, username, settings.ENKETO_PROTOCOL, True,
-                            xform_pk=xform_pk)
+    """
+    Returns an Enketo preview URL.
+    """
+    form_url = get_form_url(
+        request, username, settings.ENKETO_PROTOCOL, True, xform_pk=xform_pk)
     values = {'form_id': id_string, 'server_url': form_url}
 
     res = requests.post(

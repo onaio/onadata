@@ -11,10 +11,10 @@ SURVEY_TYPE = u'_survey_type_slug'
 
 # Phone IMEI:
 DEVICE_ID = u"device_id"  # This tag was used in Phase I
-IMEI = u"imei"            # This tag was used in Phase II
+IMEI = u"imei"  # This tag was used in Phase II
 # Survey start time:
 START_TIME = u"start_time"  # This tag was used in Phase I
-START = u"start"            # This tag was used in Phase II
+START = u"start"  # This tag was used in Phase II
 END_TIME = u"end_time"
 END = u"end"
 
@@ -104,3 +104,15 @@ XFORM_META_PERMS = u'xform_meta_perms'
 # (in bytes)
 SAV_NUMERIC_TYPE = 0
 SAV_255_BYTES_TYPE = 255
+
+EXPORT_MIMES = {
+    'xls': 'vnd.ms-excel',
+    'xlsx': 'vnd.openxmlformats',
+    'csv': 'csv',
+    'zip': 'zip',
+    'csv_zip': 'zip',
+    'sav_zip': 'zip',
+    'sav': 'sav',
+    'kml': 'vnd.google-earth.kml+xml',
+    OSM: OSM
+}
