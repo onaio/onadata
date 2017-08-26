@@ -235,6 +235,7 @@ def get_form(kwargs):
     from django.http import Http404
 
     queryset = kwargs.pop('queryset', XForm.objects.filter())
+    kwargs['deleted_at__isnull'] = True
     xform = queryset.filter(**kwargs).first()
     if xform:
         return xform
