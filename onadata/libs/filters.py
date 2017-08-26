@@ -54,7 +54,9 @@ class XFormListXFormPKFilter(object):
             except ValueError:
                 pass
             else:
-                return queryset.filter(pk=xform_pk)
+                queryset = queryset.filter(pk=xform_pk)
+                if queryset.count() == 0:
+                    raise Http404
 
         return queryset
 

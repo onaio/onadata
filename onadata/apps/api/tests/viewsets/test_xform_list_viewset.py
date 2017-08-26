@@ -50,7 +50,40 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             self.assertEqual(response['Content-Type'],
                              'text/xml; charset=utf-8')
 
+    def test_get_xform_list_xform_pk_filter_anon(self):
+        """
+        Test formList xform_pk filter for anonymous user.
+        """
+        request = self.factory.get('/')
+        response = self.view(request, username=self.user.username,
+                             xform_pk=self.xform.pk + 10000)
+        self.assertEqual(response.status_code, 404)
+
+        # existing form is in result when xform_pk filter is in use.
+        response = self.view(request, username=self.user.username,
+                             xform_pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+        path = os.path.join(
+            os.path.dirname(__file__), '..', 'fixtures', 'formList.xml')
+
+        with open(path) as f:
+            form_list_xml = f.read().strip()
+            data = {"hash": self.xform.hash, "pk": self.xform.pk}
+            content = response.render().content
+            self.assertEqual(content, form_list_xml % data)
+            self.assertTrue(response.has_header('X-OpenRosa-Version'))
+            self.assertTrue(
+                response.has_header('X-OpenRosa-Accept-Content-Length'))
+            self.assertTrue(response.has_header('Date'))
+            self.assertEqual(response['Content-Type'],
+                             'text/xml; charset=utf-8')
+
     def test_get_xform_list_xform_pk_filter(self):
+        """
+        Test formList xform_pk filter for authenticated user.
+        """
         self.user.profile.require_auth = True
         self.user.profile.save()
         request = self.factory.get('/')
@@ -60,8 +93,20 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         auth = DigestAuth('bob', 'bobbob')
         request.META.update(auth(request.META, response))
         response = self.view(request, username=self.user.username,
+                             xform_pk=self.xform.pk + 10000)
+        self.assertEqual(response.status_code, 404)
+
+        request = self.factory.get('/')
+        response = self.view(request, username=self.user.username,
+                             xform_pk=self.xform.pk)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth('bob', 'bobbob')
+        request.META.update(auth(request.META, response))
+        # existing form is in result when xform_pk filter is in use.
+        response = self.view(request, username=self.user.username,
                              xform_pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
 
         path = os.path.join(
             os.path.dirname(__file__), '..', 'fixtures', 'formList.xml')
