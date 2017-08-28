@@ -2011,8 +2011,7 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid, format='json')
         self.assertEqual(
             len(response.data),
-            Instance.objects.filter(
-                uuid=instance.uuid).count()
+            Instance.objects.filter(uuid=instance.uuid).count()
         )
         # ## Test user
         # all the forms are owned by a user named bob
@@ -2024,10 +2023,7 @@ class TestDataViewSet(TestBase):
                                    **self.extra)
         view = DataViewSet.as_view({'get': 'list'})
         response = view(request, pk=formid, format='json')
-        self.assertEqual(
-            len(response.data),
-            0
-        )
+        self.assertEqual(len(response.data), 0)
         # we make one instance belong to user_alice and then filter for that
         instance.user = user_alice
         instance.save()
@@ -2038,8 +2034,7 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid, format='json')
         self.assertEqual(
             len(response.data),
-            Instance.objects.filter(
-                user__username=user_alice.username).count()
+            Instance.objects.filter(user__username=user_alice.username).count()
         )
         # ## Test submitted_by
         # submitted_by is mapped to the user field
@@ -2050,10 +2045,7 @@ class TestDataViewSet(TestBase):
                                    **self.extra)
         view = DataViewSet.as_view({'get': 'list'})
         response = view(request, pk=formid, format='json')
-        self.assertEqual(
-            len(response.data),
-            0
-        )
+        self.assertEqual(len(response.data), 0)
         # we make one instance belong to user_mosh and then filter for that
         instance.user = user_mosh
         instance.save()
@@ -2065,8 +2057,7 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid, format='json')
         self.assertEqual(
             len(response.data),
-            Instance.objects.filter(
-                user__username=user_mosh.username).count()
+            Instance.objects.filter(user__username=user_mosh.username).count()
         )
         #  ## Test survey_type
         # all the instances created have the same survey_type
@@ -2084,6 +2075,25 @@ class TestDataViewSet(TestBase):
             Instance.objects.filter(
                 survey_type__slug=new_survey_type.slug).count()
         )
+        # ## Test all_media_received
+        # all the instances have media_all_received == True
+        request = self.factory.get('/',
+                                   {'media_all_received': 'true'},
+                                   **self.extra)
+        view = DataViewSet.as_view({'get': 'list'})
+        response = view(request, pk=formid, format='json')
+        self.assertEqual(
+            len(response.data),
+            Instance.objects.filter(media_all_received=True).count())
+        # we set one to False and filter for it
+        instance.media_all_received = False
+        instance.save()
+        request = self.factory.get('/',
+                                   {'media_all_received': 'false'},
+                                   **self.extra)
+        view = DataViewSet.as_view({'get': 'list'})
+        response = view(request, pk=formid, format='json')
+        self.assertEqual(len(response.data), 1)
 
 
 class TestOSM(TestAbstractViewSet):

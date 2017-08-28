@@ -127,6 +127,7 @@ class InstanceFilter(django_filter_filters.FilterSet):
         fields = {'date_created': date_field_lookups,
                   'date_modified': date_field_lookups,
                   'last_edited': date_field_lookups,
+                  'media_all_received': ['exact'],
                   'status': ['exact'],
                   'submitted_by__id': ['exact'],
                   'submitted_by__username': ['exact'],
