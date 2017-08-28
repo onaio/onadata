@@ -2078,13 +2078,11 @@ class TestDataViewSet(TestBase):
         # ## Test all_media_received
         # all the instances have media_all_received == True
         request = self.factory.get('/',
-                                   {'media_all_received': 'true'},
+                                   {'media_all_received': 'false'},
                                    **self.extra)
         view = DataViewSet.as_view({'get': 'list'})
         response = view(request, pk=formid, format='json')
-        self.assertEqual(
-            len(response.data),
-            Instance.objects.filter(media_all_received=True).count())
+        self.assertEqual(len(response.data), 0)
         # we set one to False and filter for it
         instance.media_all_received = False
         instance.save()
