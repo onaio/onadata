@@ -90,7 +90,8 @@ def clone_xlsform(request, username):
         form_owner = request.POST.get('username')
         id_string = request.POST.get('id_string')
         xform = XForm.objects.get(user__username__iexact=form_owner,
-                                  id_string__iexact=id_string)
+                                  id_string__iexact=id_string,
+                                  deleted_at__isnull=True)
         if len(id_string) > 0 and id_string[0].isdigit():
             id_string = '_' + id_string
         path = xform.xls.name
@@ -208,14 +209,15 @@ def profile(request, username):
     # for the same user -> dashboard
     if content_user == request.user:
         show_dashboard = True
-        all_forms = content_user.xforms.count()
+        all_forms = content_user.xforms.filter(deleted_at__isnull=True).count()
         form = QuickConverterFile()
         form_url = QuickConverterURL()
 
         request_url = request.build_absolute_uri(
             "/%s" % request.user.username)
         url = request_url.replace('http://', 'https://')
-        xforms = XForm.objects.filter(user=content_user)\
+        xforms = XForm.objects.filter(user=content_user,
+                                      deleted_at__isnull=True)\
             .select_related('user').only(
                 'id', 'id_string', 'downloadable', 'shared', 'shared_data',
                 'user__username', 'num_of_submissions', 'title',
@@ -332,7 +334,7 @@ def dashboard(request):
 
 
 def redirect_to_public_link(request, uuid):
-    xform = get_object_or_404(XForm, uuid=uuid)
+    xform = get_object_or_404(XForm, uuid=uuid, deleted_at__isnull=True)
     request.session['public_link'] = \
         xform.uuid if MetaData.public_link(xform) else False
 
@@ -395,7 +397,8 @@ def show(request, username=None, id_string=None, uuid=None):
     data = {}
     data['cloned'] = len(
         XForm.objects.filter(user__username__iexact=request.user.username,
-                             id_string__iexact=id_string + XForm.CLONED_SUFFIX)
+                             id_string__iexact=id_string + XForm.CLONED_SUFFIX,
+                             deleted_at__isnull=True)
     ) > 0
     try:
         data['public_link'] = MetaData.public_link(xform)
@@ -558,7 +561,8 @@ def public_api(request, username, id_string):
 @login_required
 def edit(request, username, id_string):
     xform = XForm.objects.get(user__username__iexact=username,
-                              id_string__iexact=id_string)
+                              id_string__iexact=id_string,
+                              deleted_at__isnull=True)
     owner = xform.user
 
     if username == request.user.username or\
@@ -876,7 +880,8 @@ def form_gallery(request):
     data = {}
     if request.user.is_authenticated():
         data['loggedin_user'] = request.user
-    data['shared_forms'] = XForm.objects.filter(shared=True)
+    data['shared_forms'] = XForm.objects.filter(shared=True,
+                                                deleted_at__isnull=True)
     # build list of shared forms with cloned suffix
     id_strings_with_cloned_suffix = [
         x.id_string + XForm.CLONED_SUFFIX for x in data['shared_forms']
@@ -886,7 +891,8 @@ def form_gallery(request):
         x.id_string.split(XForm.CLONED_SUFFIX)[0]
         for x in XForm.objects.filter(
             user__username__iexact=request.user.username,
-            id_string__in=id_strings_with_cloned_suffix
+            id_string__in=id_strings_with_cloned_suffix,
+            deleted_at__isnull=True
         )
     ]
 
@@ -981,7 +987,7 @@ def delete_metadata(request, username, id_string, data_id):
 
 def download_media_data(request, username, id_string, data_id):
     xform = get_object_or_404(
-        XForm, user__username__iexact=username,
+        XForm, user__username__iexact=username, deleted_at__isnull=True,
         id_string__iexact=id_string)
     owner = xform.user
     data = get_object_or_404(MetaData, id=data_id)
@@ -1054,7 +1060,7 @@ def form_photos(request, username, id_string):
     data['xform'] = xform
     image_urls = []
 
-    for instance in xform.instances.all():
+    for instance in xform.instances.filter(deleted_at__isnull=True):
         for attachment in instance.attachments.all():
             # skip if not image e.g video or file
             if not attachment.mimetype.startswith('image'):

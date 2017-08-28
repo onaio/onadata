@@ -136,7 +136,7 @@ def get_forms_shared_with_user(user):
     xforms = XForm.objects.filter(
         pk__in=user.xformuserobjectpermission_set.values_list(
             'content_object_id', flat=True).distinct(),
-        downloadable=True)
+        downloadable=True, deleted_at__isnull=True)
 
     return xforms.exclude(user=user).select_related('user')
 
