@@ -117,6 +117,7 @@ class InstanceFilter(django_filter_filters.FilterSet):
         queryset=User.objects.all(),
         to_field_name='username',
     )
+    media_all_received = django_filter_filters.BooleanFilter()
 
     class Meta:
         model = Instance
