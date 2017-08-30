@@ -199,7 +199,8 @@ class XFormMixin(object):
             if values:
                 return sorted(values, reverse=True)[0]
 
-        return obj.last_submission_time.isoformat()
+        return obj.last_submission_time.isoformat() \
+            if obj.last_submission_time else None
 
 
 class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
