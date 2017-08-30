@@ -192,14 +192,14 @@ class XFormMixin(object):
 
         if obj.is_merged_dataset:
             values = [
-                x.last_submission_time
+                x.last_submission_time.isoformat()
                 for x in obj.mergedxform.xforms.only('last_submission_time')
                 if x.last_submission_time
             ]
             if values:
                 return sorted(values, reverse=True)[0]
 
-        return obj.last_submission_time
+        return obj.last_submission_time.isoformat()
 
 
 class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
