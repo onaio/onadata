@@ -29,7 +29,7 @@ class PrefetchManager(models.Manager):
                      .prefetch_related('metadata_set')
                      .only('id', 'user', 'project', 'title', 'date_created',
                            'last_submission_time', 'num_of_submissions',
-                           'downloadable'),
+                           'downloadable', 'id_string', 'is_merged_dataset'),
                      to_attr='xforms_prefetch')
         ).prefetch_related('tags')\
             .prefetch_related(Prefetch(
