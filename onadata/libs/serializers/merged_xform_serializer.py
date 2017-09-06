@@ -153,7 +153,7 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
     def get_last_submission_time(self, obj):
         """Return datetime of last submission from all forms"""
         values = [
-            x.last_submission_time
+            x.last_submission_time.isoformat()
             for x in obj.xforms.only('last_submission_time')
             if x.last_submission_time
         ]

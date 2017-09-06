@@ -288,7 +288,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
 
         # check last_submission_time
         self.assertEqual(response.data['last_submission_time'],
-                         last_submission.date_created)
+                         last_submission.date_created.isoformat())
 
         # check num_of_submissions /forms/[pk]
         response = xform_detail_view(request, pk=merged_dataset['id'])
@@ -297,7 +297,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
 
         # check last_submission_time
         self.assertEqual(response.data['last_submission_time'],
-                         last_submission.date_created)
+                         last_submission.date_created.isoformat())
 
     def test_md_data_viewset(self):
         """Test retrieving data of a merged dataset at the /data endpoint"""
