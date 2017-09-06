@@ -14,7 +14,6 @@ from django.core.exceptions import (MultipleObjectsReturned, PermissionDenied,
                                     ValidationError)
 from django.core.files.storage import get_storage_class
 from django.db import IntegrityError, transaction
-from django.db.models import Q
 from django.http import (HttpResponse, HttpResponseNotFound,
                          StreamingHttpResponse, UnreadablePostError)
 from django.shortcuts import get_object_or_404
@@ -59,9 +58,10 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform):
     # check if its an edit submission
     old_uuid = get_deprecated_uuid_from_xml(xml)
     if old_uuid:
-        instance = Instance.objects.filter(uuid=old_uuid).first()
+        instance = Instance.objects.filter(uuid=old_uuid,
+                                           xform_id=xform.pk).first()
         history = InstanceHistory.objects.filter(
-            xform_instance__xform=xform,
+            xform_instance__xform_id=xform.pk,
             uuid=new_uuid).only('xform_instance').first()
 
         if instance:
@@ -282,7 +282,7 @@ def create_instance(username,
 
     new_uuid = get_uuid_from_xml(xml)
     filtered_instances = get_filtered_instances(
-        Q(xml=xml) | Q(uuid=new_uuid), xform_id=xform.pk)
+        uuid=new_uuid, xform_id=xform.pk)
     existing_instance = filtered_instances.first()
     if existing_instance and \
             (new_uuid or existing_instance.xform.has_start_time):
@@ -317,7 +317,8 @@ def create_instance(username,
                                        submitted_by, status,
                                        date_created_override)
     except IntegrityError:
-        instance = Instance.objects.filter(xml=xml, xform__id=xform.pk).first()
+        instance = Instance.objects.filter(uuid=new_uuid,
+                                           xform__id=xform.pk).first()
 
         if instance:
             attachment_names = [
