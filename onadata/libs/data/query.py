@@ -119,17 +119,20 @@ def _postgres_aggregate_group_by(field, name, xform, group_by, data_view=None):
         group_by_group_by = "%(group_by)s"
 
     restricted_string = _restricted_query(xform)
-    query = "SELECT " + group_by_select + \
-            "SUM((%(json)s)::numeric) AS sum, " \
-            "AVG((%(json)s)::numeric) AS mean  " \
+    aggregation_string = "COUNT(%(json)s) AS count "
+    if field in get_numeric_fields(xform) or not isinstance(group_by, list):
+        aggregation_string += ", SUM((%(json)s)::numeric) AS sum, " \
+            "AVG((%(json)s)::numeric) AS mean "
+    else:
+        group_by_select = "%(json)s AS %(name)s, " + group_by_select
+        group_by_group_by = "%(json)s, " + group_by_group_by
+    query = "SELECT " + group_by_select + aggregation_string + \
             "FROM %(table)s WHERE " + restricted_string + \
             " AND deleted_at IS NULL " + additional_filters + \
             " GROUP BY " + group_by_group_by + \
             " ORDER BY " + group_by_group_by
 
-    query = query % string_args
-
-    return query
+    return query % string_args
 
 
 def _postgres_select_key(field, name, xform):
