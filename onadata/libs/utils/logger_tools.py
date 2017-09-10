@@ -14,12 +14,14 @@ from django.core.exceptions import (MultipleObjectsReturned, PermissionDenied,
                                     ValidationError)
 from django.core.files.storage import get_storage_class
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.http import (HttpResponse, HttpResponseNotFound,
                          StreamingHttpResponse, UnreadablePostError)
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.encoding import DjangoUnicodeDecodeError
 from django.utils.translation import ugettext as _
+from hashlib import md5
 from modilabs.utils.subprocess_timeout import ProcessTimedOut
 from multidb.pinning import use_master
 
@@ -52,7 +54,7 @@ uuid_regex = re.compile(r'<formhub>\s*<uuid>\s*([^<]+)\s*</uuid>\s*</formhub>',
                         re.DOTALL)
 
 
-def _get_instance(xml, new_uuid, submitted_by, status, xform):
+def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum):
     history = None
     instance = None
     # check if its an edit submission
@@ -70,6 +72,7 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform):
 
             last_edited = timezone.now()
             InstanceHistory.objects.create(
+                checksum=instance.checksum,
                 xml=instance.xml,
                 xform_instance=instance,
                 uuid=old_uuid,
@@ -79,6 +82,7 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform):
             instance.xml = xml
             instance.last_edited = last_edited
             instance.uuid = new_uuid
+            instance.checksum = checksum
             instance.save()
 
             # call webhooks
@@ -88,7 +92,8 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform):
     if old_uuid is None or (instance is None and history is None):
         # new submission
         instance = Instance.objects.create(
-            xml=xml, user=submitted_by, status=status, xform=xform)
+            xml=xml, user=submitted_by, status=status, xform=xform,
+            checksum=checksum)
     return instance
 
 
@@ -218,11 +223,12 @@ def save_attachments(xform, instance, media_files):
 
 
 def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
-                    date_created_override):
+                    date_created_override, checksum):
     if not date_created_override:
         date_created_override = get_submission_date_from_xml(xml)
 
-    instance = _get_instance(xml, new_uuid, submitted_by, status, xform)
+    instance = _get_instance(xml, new_uuid, submitted_by, status, xform,
+                             checksum)
     save_attachments(xform, instance, media_files)
 
     # override date created if required
@@ -279,10 +285,11 @@ def create_instance(username,
     xml = xml_file.read()
     xform = get_xform_from_submission(xml, username, uuid)
     check_submission_permissions(request, xform)
+    checksum = md5(xml).hexdigest()
 
     new_uuid = get_uuid_from_xml(xml)
     filtered_instances = get_filtered_instances(
-        uuid=new_uuid, xform_id=xform.pk)
+        Q(checksum=checksum) | Q(uuid=new_uuid), xform_id=xform.pk)
     existing_instance = filtered_instances.first()
     if existing_instance and \
             (new_uuid or existing_instance.xform.has_start_time):
@@ -297,7 +304,7 @@ def create_instance(username,
         #    has already been submitted for that user.
         return DuplicateInstance()
 
-    # get new and depracated uuid's
+    # get new and deprecated uuid's
     history = InstanceHistory.objects.filter(
         xform_instance__xform_id=xform.pk,
         uuid=new_uuid).only('xform_instance').first()
@@ -315,10 +322,11 @@ def create_instance(username,
         with transaction.atomic():
             instance = save_submission(xform, xml, media_files, new_uuid,
                                        submitted_by, status,
-                                       date_created_override)
+                                       date_created_override, checksum)
     except IntegrityError:
-        instance = Instance.objects.filter(uuid=new_uuid,
-                                           xform__id=xform.pk).first()
+        instance = Instance.objects.filter(
+            Q(checksum=checksum) | Q(uuid=new_uuid),
+            xform_id=xform.pk).first()
 
         if instance:
             attachment_names = [
