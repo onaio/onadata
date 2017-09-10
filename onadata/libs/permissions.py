@@ -2,11 +2,15 @@ import json
 from collections import defaultdict
 
 import six
-from guardian.shortcuts import (assign_perm, get_perms, get_users_with_perms,
-                                remove_perm)
+from guardian.shortcuts import (assign_perm, get_perms, remove_perm,
+                                get_users_with_perms)
 
 from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.logger.models import MergedXForm, Project, XForm
+from onadata.apps.logger.models.project import (ProjectUserObjectPermission,
+                                                ProjectGroupObjectPermission)
+from onadata.apps.logger.models.xform import (XFormUserObjectPermission,
+                                              XFormGroupObjectPermission)
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.exceptions import NoRecordsPermission
 from onadata.libs.utils.common_tags import XFORM_META_PERMS
@@ -325,6 +329,67 @@ def get_role_in_org(user, organization):
         return get_role(perms, organization) or MemberRole.name
 
 
+def _get_group_users_with_perms(obj, attach_perms=False, user_perms=None):
+    """
+    Returns a list of users in the groups with permissions on the object obj.
+    """
+    if isinstance(obj, XForm):
+        Klass = XFormGroupObjectPermission  # pylint: disable=C0103
+    elif isinstance(obj, Project):
+        Klass = ProjectGroupObjectPermission  # pylint: disable=C0103
+    else:
+        return get_users_with_perms(obj, attach_perms=attach_perms,
+                                    with_group_users=True)
+    group_obj_perms = Klass.objects.filter(content_object_id=obj.pk)
+    group_users = {}
+    if attach_perms:
+        if user_perms:
+            group_users.update(user_perms)
+        for perm in group_obj_perms:
+            for user in perm.groups.users.all():
+                if user in group_users:
+                    group_users[user].add(perm.permission.codename)
+                else:
+                    group_users[user] = set([perm.permission.codename])
+    else:
+        group_users = set() if not user_perms else set(user_perms)
+        for perm in group_obj_perms.distinct('group'):
+            group_users.union(set([user for user in
+                                   perm.group.user_set.all()]))
+        group_users = list(group_obj_perms)
+
+    return group_users
+
+
+def _get_users_with_perms(obj, attach_perms=False, with_group_users=None):
+    """
+    Returns a list of users with their permissions on an object obj.
+    """
+    if isinstance(obj, XForm):
+        Klass = XFormUserObjectPermission  # pylint: disable=C0103
+    elif isinstance(obj, Project):
+        Klass = ProjectUserObjectPermission  # pylint: disable=C0103
+    else:
+        return get_users_with_perms(obj, attach_perms=attach_perms,
+                                    with_group_users=with_group_users)
+    user_obj_perms = Klass.objects.filter(content_object_id=obj.pk)
+    user_perms = {}
+    if attach_perms:
+        for perm in user_obj_perms:
+            if perm.user in user_perms:
+                user_perms[perm.user].add(perm.permission.codename)
+            else:
+                user_perms[perm.user] = set([perm.permission.codename])
+    else:
+        user_perms = [
+            perm.user for perm in user_obj_perms.only('user').distinct('user')]
+
+    if with_group_users:
+        user_perms = _get_group_users_with_perms(obj, attach_perms, user_perms)
+
+    return user_perms
+
+
 def get_object_users_with_permissions(obj,
                                       username=False,
                                       with_group_users=False):
@@ -337,7 +402,7 @@ def get_object_users_with_permissions(obj,
     result = []
 
     if obj:
-        users_with_perms = get_users_with_perms(
+        users_with_perms = _get_users_with_perms(
             obj, attach_perms=True, with_group_users=with_group_users).items()
 
         result = [{
