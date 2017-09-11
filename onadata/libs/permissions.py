@@ -346,7 +346,7 @@ def _get_group_users_with_perms(obj, attach_perms=False, user_perms=None):
         if user_perms:
             group_users.update(user_perms)
         for perm in group_obj_perms:
-            for user in perm.groups.users.all():
+            for user in perm.group.user_set.all():
                 if user in group_users:
                     group_users[user].add(perm.permission.codename)
                 else:

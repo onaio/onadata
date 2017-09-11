@@ -1,3 +1,4 @@
+from django.contrib.auth.models import Group
 from guardian.shortcuts import get_users_with_perms
 from mock import patch
 
@@ -80,11 +81,17 @@ class TestPermissions(TestBase):
 
     def test_get_object_users_with_permission(self):
         alice = self._create_user('alice', 'alice')
+        UserProfile.objects.get_or_create(user=alice)
         org_user = tools.create_organization("modilabs", alice).user
+        demo_grp = Group.objects.create(name='demo')
+        alice.groups.add(demo_grp)
         self._publish_transportation_form()
         EditorRole.add(org_user, self.xform)
-        users_with_perms = get_object_users_with_permissions(self.xform)
+        EditorRole.add(demo_grp, self.xform)
+        users_with_perms = get_object_users_with_permissions(
+            self.xform, with_group_users=True)
         self.assertTrue(org_user in [d['user'] for d in users_with_perms])
+        self.assertTrue(alice in [d['user'] for d in users_with_perms])
         self.assertIn('first_name', users_with_perms[0].keys())
         self.assertIn('last_name', users_with_perms[0].keys())
         self.assertIn('user', users_with_perms[0].keys())
