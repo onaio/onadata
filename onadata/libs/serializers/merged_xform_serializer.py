@@ -89,17 +89,6 @@ def minimum_two_xforms(value):
     return value
 
 
-def non_deleted_xforms(value):
-    """
-    Validate we have no deleted forms
-    """
-    if any([xform.deleted_at for xform in value]):
-        raise serializers.ValidationError(
-            _("At least one xform appears to have been deleted."))
-
-    return value
-
-
 def has_matching_fields(value):
     """
     Validate we have some matching fields in the xforms being merged.
@@ -145,11 +134,10 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
         allow_empty=False,
         child_relation=serializers.HyperlinkedRelatedField(
             allow_empty=False,
-            queryset=XForm.objects.filter(is_merged_dataset=False),
+            queryset=XForm.objects.filter(is_merged_dataset=False,
+                                          deleted_at__isnull=True),
             view_name='xform-detail'),
-        validators=[
-            non_deleted_xforms, minimum_two_xforms, has_matching_fields
-        ])
+        validators=[minimum_two_xforms, has_matching_fields])
     num_of_submissions = serializers.SerializerMethodField()
     last_submission_time = serializers.SerializerMethodField()
 

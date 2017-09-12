@@ -561,7 +561,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         response = view(request)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data, {
-            'xforms': [u'At least one xform appears to have been deleted.']
+            'xforms': [u'Invalid hyperlink - Object does not exist.']
         })
 
     def test_md_has_no_matching_fields(self):
