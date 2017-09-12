@@ -15,11 +15,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='instance',
             name='checksum',
-            field=models.CharField(blank=True, max_length=32, null=True),
+            field=models.CharField(blank=True, max_length=64, null=True),
         ),
         migrations.AddField(
             model_name='instancehistory',
             name='checksum',
-            field=models.CharField(blank=True, max_length=32, null=True),
+            field=models.CharField(blank=True, max_length=64, null=True),
         ),
     ]

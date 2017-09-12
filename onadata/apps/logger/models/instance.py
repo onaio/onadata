@@ -437,7 +437,7 @@ class Instance(models.Model, InstanceBaseClass):
     media_count = models.PositiveIntegerField(_("Received Media Attachments"),
                                               null=True,
                                               default=0)
-    checksum = models.CharField(max_length=32, null=True, blank=True)
+    checksum = models.CharField(max_length=64, null=True, blank=True)
 
     tags = TaggableManager()
 
@@ -529,7 +529,7 @@ class InstanceHistory(models.Model, InstanceBaseClass):
     date_modified = models.DateTimeField(auto_now=True)
     submission_date = models.DateTimeField(null=True, default=None)
     geom = models.GeometryCollectionField(null=True)
-    checksum = models.CharField(max_length=32, null=True, blank=True)
+    checksum = models.CharField(max_length=64, null=True, blank=True)
 
     objects = models.GeoManager()
 

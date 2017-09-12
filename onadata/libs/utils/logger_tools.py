@@ -21,7 +21,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.encoding import DjangoUnicodeDecodeError
 from django.utils.translation import ugettext as _
-from hashlib import md5
+from hashlib import sha256
 from modilabs.utils.subprocess_timeout import ProcessTimedOut
 from multidb.pinning import use_master
 
@@ -285,7 +285,7 @@ def create_instance(username,
     xml = xml_file.read()
     xform = get_xform_from_submission(xml, username, uuid)
     check_submission_permissions(request, xform)
-    checksum = md5(xml).hexdigest()
+    checksum = sha256(xml).hexdigest()
 
     new_uuid = get_uuid_from_xml(xml)
     filtered_instances = get_filtered_instances(
@@ -304,7 +304,7 @@ def create_instance(username,
         #    has already been submitted for that user.
         return DuplicateInstance()
 
-    # get new and deprecated uuid's
+    # get new and deprecated UUIDs
     history = InstanceHistory.objects.filter(
         xform_instance__xform_id=xform.pk,
         uuid=new_uuid).only('xform_instance').first()
