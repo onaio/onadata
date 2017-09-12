@@ -346,12 +346,11 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             xform_id, is_merged_dataset = qs[0] if qs else (lookup, False)
             pks = [xform_id]
             if is_merged_dataset:
-                pks = [__ for __ in MergedXForm.objects.filter(
-                    pk=xform_id).values_list('xforms', flat=True) if __]
-                if not pks:
-                    pks = [xform_id]
+                pks = [pk for pk in MergedXForm.objects.filter(
+                    pk=xform_id).values_list('xforms', flat=True) if pk] or\
+                        [xform_id]
             self.object_list = Instance.objects.filter(
-                xform_id__in=pks, deleted_at=None).only('json')
+                xform_id__in=pks, deleted_at=None).only('json').order_by('id')
             xform = self.get_object()
             self.object_list = \
                 filter_queryset_xform_meta_perms(xform, request.user,
@@ -445,7 +444,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
             if self.total_count and isinstance(self.object_list, QuerySet):
                 self.etag_hash = get_etag_hash_from_query(self.object_list)
-            elif self.total_count:
+            else:
                 sql, params, records = get_sql_with_params(
                     xform, query=query, sort=sort, start_index=start,
                     limit=limit, fields=fields
