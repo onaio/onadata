@@ -368,7 +368,8 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
         merged_xform.xforms.all().delete()
         request = self.factory.get(
-            '/', data={'sort': '{"_submission_time":1}'}, **self.extra)
+            '/', data={'sort': '{"_submission_time":1}', 'limit': '10'},
+            **self.extra)
         data_view = DataViewSet.as_view({
             'get': 'list',
         })
@@ -592,3 +593,58 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.data, {
             'xforms': [u'No matching fields in xforms.']
         })
+
+    def test_md_data_viewset_deleted_form(self):
+        """Test retrieving data of a merged dataset with one form deleted"""
+        merged_dataset = self._create_merged_dataset()
+        merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
+        request = self.factory.get('/', **self.extra)
+        data_view = DataViewSet.as_view({
+            'get': 'list',
+        })
+
+        # make submission to form a
+        form_a = merged_xform.xforms.all()[0]
+        xml = '<data id="a"><fruit>orange</fruit></data>'
+        Instance(xform=form_a, xml=xml).save()
+
+        # DataViewSet /data/[pk] endpoint
+        response = data_view(request, pk=merged_dataset['id'])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+        fruit = [d['fruit'] for d in response.data]
+        expected_fruit = ['orange']
+        self.assertEqual(fruit, expected_fruit)
+
+        # make submission to form b
+        form_b = merged_xform.xforms.all()[1]
+        xml = '<data id="b"><fruit>mango</fruit></data>'
+        Instance(xform=form_b, xml=xml).save()
+
+        # DataViewSet /data/[pk] endpoint
+        response = data_view(request, pk=merged_dataset['id'])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+        dataid = response.data[0]['_id']
+
+        fruit = [d['fruit'] for d in response.data]
+        expected_fruit = ['orange', 'mango']
+        self.assertEqual(fruit, expected_fruit)
+
+        # DataViewSet /data/[pk] endpoint, form_a deleted
+        form_a.soft_delete()
+        response = data_view(request, pk=merged_dataset['id'])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+        fruit = [d['fruit'] for d in response.data]
+        expected_fruit = ['mango']
+        self.assertEqual(fruit, expected_fruit)
+
+        # DataViewSet /data/[pk]/[dataid] endpoint, form_a deleted
+        data_view = DataViewSet.as_view({
+            'get': 'retrieve',
+        })
+        response = data_view(request, pk=merged_dataset['id'], dataid=dataid)
+        self.assertEqual(response.status_code, 404)

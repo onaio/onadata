@@ -430,8 +430,8 @@ def generate_attachments_zip_export(export_type, username, id_string,
         if xform.is_merged_dataset:
             attachments = attachments.filter(
                 instance__xform_id__in=[
-                    i for i in xform.mergedxform.xforms.values_list(
-                        'id', flat=True)])
+                    i for i in xform.mergedxform.xforms.filter(
+                        deleted_at__isnull=True).values_list('id', flat=True)])
         else:
             attachments = attachments.filter(instance__xform_id=xform.pk)
 
@@ -543,7 +543,8 @@ def kml_export_data(id_string, user, xform=None):
     if xform.is_merged_dataset:
         data_kwargs.update({
             'xform_id__in':
-            [i for i in xform.mergedxform.xforms.values_list('id', flat=True)]
+            [i for i in xform.mergedxform.xforms.filter(
+                deleted_at__isnull=True).values_list('id', flat=True)]
         })
     else:
         data_kwargs.update({'xform_id': xform.pk})
@@ -583,7 +584,8 @@ def get_osm_data_kwargs(xform):
 
     if xform.is_merged_dataset:
         kwargs['instance__xform_id__in'] = [
-            i for i in xform.mergedxform.xforms.values_list('id', flat=True)]
+            i for i in xform.mergedxform.xforms.filter(
+                deleted_at__isnull=True).values_list('id', flat=True)]
     else:
         kwargs['instance__xform_id'] = xform.pk
 

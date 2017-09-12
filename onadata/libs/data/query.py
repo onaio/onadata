@@ -160,8 +160,11 @@ def _query_args(field, name, xform, group_by=None):
         'restrict_value': xform.pk}
 
     if xform.is_merged_dataset:
-        qargs['restrict_value'] = tuple(
-            __ for __ in xform.mergedxform.xforms.values_list('id', flat=True))
+        xforms = (
+            __ for __ in xform.mergedxform.xforms.filter(
+                deleted_at__isnull=True).values_list('id', flat=True)
+        ) or (xform.pk,)
+        qargs['restrict_value'] = tuple(xforms)
 
     if isinstance(group_by, list):
         for i, v in enumerate(group_by):
