@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Tests onadata.libs.permissions module
+"""
 from django.contrib.auth.models import Group
 from guardian.shortcuts import get_users_with_perms
 from mock import patch
@@ -12,12 +16,21 @@ from onadata.libs.permissions import (
 
 
 def perms_for(user, obj):
+    """
+    Return user permissions for obj.
+    """
     return get_users_with_perms(obj, attach_perms=True).get(user) or []
 
 
 class TestPermissions(TestBase):
+    """
+    Tests for onadata.libs.permissions module
+    """
     def test_manager_role_add(self):
-        bob, created = UserProfile.objects.get_or_create(user=self.user)
+        """
+        Test adding ManagerRole
+        """
+        bob, _ = UserProfile.objects.get_or_create(user=self.user)
         alice = self._create_user('alice', 'alice')
         self.assertFalse(alice.has_perm(CAN_ADD_XFORM_TO_PROFILE, bob))
 
@@ -26,7 +39,10 @@ class TestPermissions(TestBase):
         self.assertTrue(alice.has_perm(CAN_ADD_XFORM_TO_PROFILE, bob))
 
     def test_manager_has_role(self):
-        bob, created = UserProfile.objects.get_or_create(user=self.user)
+        """
+        Test manager has role
+        """
+        bob, _ = UserProfile.objects.get_or_create(user=self.user)
         alice = self._create_user('alice', 'alice')
 
         self.assertFalse(ManagerRole.user_has_role(alice, bob))
@@ -38,6 +54,9 @@ class TestPermissions(TestBase):
         self.assertTrue(ManagerRole.has_role(perms_for(alice, bob), bob))
 
     def test_reassign_role(self):
+        """
+        Test role reassignment.
+        """
         self._publish_transportation_form()
         alice = self._create_user('alice', 'alice')
 
@@ -58,7 +77,11 @@ class TestPermissions(TestBase):
         self.assertTrue(
             ReadOnlyRole.has_role(perms_for(alice, self.xform), self.xform))
 
+    # pylint: disable=C0103
     def test_reassign_role_owner_to_editor(self):
+        """
+        Test role reassignment owner to editor.
+        """
         self._publish_transportation_form()
         alice = self._create_user('alice', 'alice')
 
@@ -79,7 +102,11 @@ class TestPermissions(TestBase):
         self.assertTrue(
             EditorRole.has_role(perms_for(alice, self.xform), self.xform))
 
+    # pylint: disable=C0103
     def test_get_object_users_with_permission(self):
+        """
+        Test get_object_users_with_permissions()
+        """
         alice = self._create_user('alice', 'alice')
         UserProfile.objects.get_or_create(user=alice)
         org_user = tools.create_organization("modilabs", alice).user
@@ -101,6 +128,9 @@ class TestPermissions(TestBase):
         self.assertIn('is_org', users_with_perms[0].keys())
 
     def test_readonly_no_downloads_has_role(self):
+        """
+        Test readonly no downloads role.
+        """
         self._publish_transportation_form()
         alice = self._create_user('alice', 'alice')
 
@@ -120,6 +150,9 @@ class TestPermissions(TestBase):
 
     @patch('onadata.libs.permissions._check_meta_perms_enabled')
     def test_filter_queryset_xform_meta_perms_sql(self, check_meta_mock):
+        """
+        Test filter query by meta permissions.
+        """
         self._publish_transportation_form()
 
         query = '{"_id": 1}'
