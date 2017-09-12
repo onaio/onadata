@@ -26,14 +26,25 @@ from onadata.libs.utils.export_tools import get_osm_data_kwargs
 from onadata.libs.utils.user_auth import get_user_default_project
 
 MD = """
-| survey |
-|        | type              | name  | label |
-|        | select one fruits | fruit | Fruit |
+| survey  |
+|         | type              | name  | label   |
+|         | select one fruits | fruit | Fruit   |
 
 | choices |
-|         | list name | name   | label  |
-|         | fruits    | orange | Orange |
-|         | fruits    | mango  | Mango  |
+|         | list name         | name   | label  |
+|         | fruits            | orange | Orange |
+|         | fruits            | mango  | Mango  |
+"""
+
+NOT_MATCHING = """
+| survey  |
+|         | type              | name  | label   |
+|         | select one fruits | tunda | Tunda   |
+
+| choices |
+|         | list name         | name   | label  |
+|         | fruits            | orange | Orange |
+|         | fruits            | mango  | Mango  |
 """
 
 
@@ -356,9 +367,8 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         merged_dataset = self._create_merged_dataset()
         merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
         merged_xform.xforms.all().delete()
-        request = self.factory.get('/',
-                                   data={'sort': '{"_submission_time":1}'},
-                                   **self.extra)
+        request = self.factory.get(
+            '/', data={'sort': '{"_submission_time":1}'}, **self.extra)
         data_view = DataViewSet.as_view({
             'get': 'list',
         })
@@ -521,3 +531,64 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         service = RestService.objects.get(xform=xform)
         service.delete()
         self.assertEquals(count, RestService.objects.count())
+
+    def test_md_has_deleted_xforms(self):
+        """
+        Test creating a merged dataset that includes a soft deleted form.
+        """
+        view = MergedXFormViewSet.as_view({
+            'post': 'create',
+        })
+        # pylint: disable=attribute-defined-outside-init
+        self.project = get_user_default_project(self.user)
+        xform1 = self._publish_markdown(MD, self.user, id_string='a')
+        xform2 = self._publish_markdown(MD, self.user, id_string='b')
+        xform2.soft_delete()
+
+        data = {
+            'xforms': [
+                "http://testserver/api/v1/forms/%s" % xform1.pk,
+                "http://testserver/api/v1/forms/%s" % xform2.pk,
+            ],
+            'name':
+            'Merged Dataset',
+            'project':
+            "http://testserver/api/v1/projects/%s" % self.project.pk,
+        }
+
+        request = self.factory.post('/', data=data, **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {
+            'xforms': [u'At least one xform appears to have been deleted.']
+        })
+
+    def test_md_has_no_matching_fields(self):
+        """
+        Test creating a merged dataset that has no matching fields.
+        """
+        view = MergedXFormViewSet.as_view({
+            'post': 'create',
+        })
+        # pylint: disable=attribute-defined-outside-init
+        self.project = get_user_default_project(self.user)
+        xform1 = self._publish_markdown(MD, self.user, id_string='a')
+        xform2 = self._publish_markdown(NOT_MATCHING, self.user, id_string='b')
+
+        data = {
+            'xforms': [
+                "http://testserver/api/v1/forms/%s" % xform1.pk,
+                "http://testserver/api/v1/forms/%s" % xform2.pk,
+            ],
+            'name':
+            'Merged Dataset',
+            'project':
+            "http://testserver/api/v1/projects/%s" % self.project.pk,
+        }
+
+        request = self.factory.post('/', data=data, **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {
+            'xforms': [u'No matching fields in xforms.']
+        })
