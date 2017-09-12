@@ -94,7 +94,10 @@ def has_matching_fields(value):
     Validate we have some matching fields in the xforms being merged.
     """
     # checks we have at least matching fields
-    get_merged_xform_survey(value)
+    try:
+        get_merged_xform_survey(value)
+    except AssertionError as e:
+        raise serializers.ValidationError(unicode(e))
 
     return value
 
