@@ -356,14 +356,16 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         merged_dataset = self._create_merged_dataset()
         merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
         merged_xform.xforms.all().delete()
-        request = self.factory.get('/', **self.extra)
+        request = self.factory.get('/',
+                                   data={'sort': '{"_submission_time":1}'},
+                                   **self.extra)
         data_view = DataViewSet.as_view({
             'get': 'list',
         })
 
         # DataViewSet /data/[pk] endpoint
         response = data_view(request, pk=merged_dataset['id'])
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 200, response.data)
         self.assertEqual(response.data, [])
 
     def test_md_csv_export(self):
