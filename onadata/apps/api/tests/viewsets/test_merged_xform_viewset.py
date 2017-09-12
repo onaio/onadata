@@ -368,7 +368,9 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
         merged_xform.xforms.all().delete()
         request = self.factory.get(
-            '/', data={'sort': '{"_submission_time":1}', 'limit': '10'},
+            '/',
+            data={'sort': '{"_submission_time":1}',
+                  'limit': '10'},
             **self.extra)
         data_view = DataViewSet.as_view({
             'get': 'list',
@@ -378,6 +380,14 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         response = data_view(request, pk=merged_dataset['id'])
         self.assertEqual(response.status_code, 200, response.data)
         self.assertEqual(response.data, [])
+
+        data = {'field_name': 'fruit'}
+        view = ChartsViewSet.as_view({'get': 'retrieve'})
+
+        request = self.factory.get('/charts', data, **self.extra)
+        response = view(request, pk=merged_dataset['id'], format='html')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['data'].__len__(), 0)
 
     def test_md_csv_export(self):
         """Test CSV export of a merged dataset"""
@@ -590,9 +600,8 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=data, **self.extra)
         response = view(request)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, {
-            'xforms': [u'No matching fields in xforms.']
-        })
+        self.assertEqual(response.data,
+                         {'xforms': [u'No matching fields in xforms.']})
 
     def test_md_data_viewset_deleted_form(self):
         """Test retrieving data of a merged dataset with one form deleted"""
