@@ -444,7 +444,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
             if self.total_count and isinstance(self.object_list, QuerySet):
                 self.etag_hash = get_etag_hash_from_query(self.object_list)
-            else:
+            elif self.total_count:
                 sql, params, records = get_sql_with_params(
                     xform, query=query, sort=sort, start_index=start,
                     limit=limit, fields=fields

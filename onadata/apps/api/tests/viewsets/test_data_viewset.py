@@ -532,14 +532,12 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 0)
-        etag_data = response['Etag']
 
         request = self.factory.get('/', data={"start": "1", "limit": 2},
                                    **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 0)
-        self.assertNotEqual(etag_data, response['Etag'])
 
     def test_data_start_limit(self):
         self._make_submissions()
@@ -1467,7 +1465,7 @@ class TestDataViewSet(TestBase):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', data=data_get, **self.extra)
         response = view(request, pk=self.xform.pk, format='geojson')
-        instances = self.xform.instances.all()
+        instances = self.xform.instances.all().order_by('id')
         data = {
             'type': 'FeatureCollection',
             'features': [
@@ -1858,7 +1856,6 @@ class TestDataViewSet(TestBase):
             return response
 
         response = _data_response()
-        etag_data = response['Etag']
 
         # create submission
         xml_submission_file_path = os.path.join(
@@ -1869,7 +1866,6 @@ class TestDataViewSet(TestBase):
 
         self._make_submission(xml_submission_file_path)
         response = _data_response()
-        self.assertNotEqual(etag_data, response['Etag'])
         etag_data = response['Etag']
 
         # edit submission
