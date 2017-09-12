@@ -420,7 +420,7 @@ class Instance(models.Model, InstanceBaseClass):
     # we add a fourth status: submitted_via_web
     status = models.CharField(max_length=20,
                               default=u'submitted_via_web')
-    uuid = models.CharField(max_length=249, default=u'')
+    uuid = models.CharField(max_length=249, default=u'', db_index=True)
     version = models.CharField(max_length=XFORM_TITLE_LENGTH, null=True)
 
     # store a geographic objects associated with this instance
@@ -437,7 +437,8 @@ class Instance(models.Model, InstanceBaseClass):
     media_count = models.PositiveIntegerField(_("Received Media Attachments"),
                                               null=True,
                                               default=0)
-    checksum = models.CharField(max_length=64, null=True, blank=True)
+    checksum = models.CharField(max_length=64, null=True, blank=True,
+                                db_index=True)
 
     tags = TaggableManager()
 
