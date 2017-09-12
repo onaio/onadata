@@ -351,6 +351,21 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['fruit'], 'orange')
 
+    def test_deleted_forms(self):
+        """Test retrieving data of a merged dataset with no forms linked."""
+        merged_dataset = self._create_merged_dataset()
+        merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
+        merged_xform.xforms.all().delete()
+        request = self.factory.get('/', **self.extra)
+        data_view = DataViewSet.as_view({
+            'get': 'list',
+        })
+
+        # DataViewSet /data/[pk] endpoint
+        response = data_view(request, pk=merged_dataset['id'])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
     def test_md_csv_export(self):
         """Test CSV export of a merged dataset"""
         merged_dataset = self._create_merged_dataset()

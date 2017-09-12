@@ -346,8 +346,10 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             xform_id, is_merged_dataset = qs[0] if qs else (lookup, False)
             pks = [xform_id]
             if is_merged_dataset:
-                pks = [__ for __ in MergedXForm.objects.values_list('xforms',
-                                                                    flat=True)]
+                pks = [__ for __ in MergedXForm.objects.filter(
+                    pk=xform_id).values_list('xforms', flat=True) if __]
+                if not pks:
+                    pks = [xform_id]
             self.object_list = Instance.objects.filter(
                 xform_id__in=pks, deleted_at=None).only('json')
             xform = self.get_object()
