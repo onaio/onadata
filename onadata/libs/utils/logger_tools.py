@@ -252,11 +252,7 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
 def get_filtered_instances(*args, **kwargs):
     """Get filtered instances - mainly to allow mocking in tests"""
 
-    return Instance.objects.filter(*args, **kwargs)\
-        .select_related('user', 'xform__user').only(
-            'user__username',
-            'xform__user__username',
-            'xform__has_start_time')
+    return Instance.objects.filter(*args, **kwargs)
 
 
 def create_instance(username,
@@ -290,7 +286,7 @@ def create_instance(username,
     new_uuid = get_uuid_from_xml(xml)
     filtered_instances = get_filtered_instances(
         Q(checksum=checksum) | Q(uuid=new_uuid), xform_id=xform.pk)
-    existing_instance = filtered_instances.first()
+    existing_instance = filtered_instances.only('id').first()
     if existing_instance and \
             (new_uuid or existing_instance.xform.has_start_time):
         # ensure we have saved the extra attachments
