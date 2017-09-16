@@ -45,7 +45,7 @@ geojson
 django-taggit
 
 # database
-psycopg2
+psycopg2>2.7.1
 pymongo
 
 # sms support

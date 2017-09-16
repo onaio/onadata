@@ -13,7 +13,6 @@
 alabaster==0.7.10         # via sphinx
 amqp==1.4.9               # via kombu, librabbitmq
 anyjson==0.3.3            # via kombu
-appnope==0.1.0            # via ipython
 argparse==1.4.0           # via unittest2
 astroid==1.5.3            # via pylint, pylint-celery, pylint-plugin-utils
 babel==2.4.0              # via sphinx
@@ -93,7 +92,7 @@ pexpect==4.2.1            # via ipython
 pickleshare==0.7.4        # via ipython
 pillow==4.1.1
 prompt-toolkit==1.0.14    # via ipython
-psycopg2==2.7.1
+psycopg2==2.7.3.1
 ptyprocess==0.5.2         # via pexpect
 pyasn1-modules==0.0.8     # via oauth2client
 pyasn1==0.2.3             # via oauth2client, pyasn1-modules, rsa
