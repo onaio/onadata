@@ -193,9 +193,9 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
             instance = super(MergedXFormSerializer,
                              self).create(validated_data)
 
-        if instance.xforms.all().count() != len(xforms):
-            instance.delete()
-            raise serializers.ValidationError(
-                _(u"Unable to create a merged dataset, please try again."))
+            if instance.xforms.all().count() == 0 and xforms:
+                for xform in xforms:
+                    instance.xforms.add(xform)
+                instance.save()
 
         return instance
