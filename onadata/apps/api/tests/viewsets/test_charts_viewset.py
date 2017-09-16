@@ -369,8 +369,9 @@ class TestChartsViewSet(TestBase):
         res = renderer.render(response.data)
 
         expected = ('{"field_type":"calculate","data_type":"numeric",'
-                    '"field_xpath":"networth_calc","data":[{"sum":150000.0,'
-                    '"pizza_fan":["No"],"mean":75000.0},{"sum":null,'
+                    '"field_xpath":"networth_calc","data":[{"count":2,'
+                    '"sum":150000.0,'
+                    '"pizza_fan":["No"],"mean":75000.0},{"count":2,"sum":null,'
                     '"pizza_fan":["Yes"],"mean":null}],"grouped_by":'
                     '"pizza_fan","field_label":"Networth Calc","field_name":'
                     '"networth_calc","xform":' + str(self.xform.pk) + '}')

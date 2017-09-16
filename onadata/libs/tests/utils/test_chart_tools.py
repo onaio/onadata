@@ -134,6 +134,7 @@ class TestChartTools(TestBase):
         self.assertEqual(data['grouped_by'], 'pizza_type')
         self.assertEqual(data['data_type'], 'numeric')
         self.assertEqual(data['data'], [{
+            'count': 2,
             'sum': 150000.0,
             'pizza_type': [],
             'mean': 75000.0
@@ -151,6 +152,7 @@ class TestChartTools(TestBase):
         self.assertEqual(data['grouped_by'], 'pizza_fan')
         self.assertEqual(data['data_type'], 'numeric')
         self.assertEqual(data['data'], [{
+            'count': 2,
             'sum': 150000.0,
             'pizza_fan': [u'No'],
             'mean': 75000.0
@@ -475,6 +477,7 @@ class TestChartTools(TestBase):
             'field_xpath':
             u'toexppc',
             'data': [{
+                'count': 1,
                 'sum': Decimal('3.357142857142857'),
                 'name_I': [u'Aynalem Tenaw'],
                 'mean': Decimal('3.3571428571428570')
@@ -520,11 +523,13 @@ class TestChartTools(TestBase):
         self.assertEqual(data['grouped_by'], group_by_field)
         self.assertEqual(data['data_type'], 'numeric')
         self.assertEqual(data['data'], [{
+            'count': 1,
             'date': u'2014-01-09',
             'mean': 100000.0,
             'pizza_fan': u'no',
             'sum': 100000.0
         }, {
+            'count': 1,
             'date': u'2014-01-10',
             'mean': 50000.0,
             'pizza_fan': u'no',
@@ -534,9 +539,25 @@ class TestChartTools(TestBase):
     def test_build_chart_data_for_non_numeric_field_group_by_two_fields(self):
         field = find_field_by_name(self.xform, 'name')
         group_by_field = ['pizza_fan', 'date']
-        with self.assertRaises(ParseError):
-            build_chart_data_for_field(
-                self.xform, field, group_by=group_by_field)
+        data = build_chart_data_for_field(
+            self.xform, field, group_by=group_by_field)
+
+        self.assertEqual(data['field_name'], 'name')
+        self.assertEqual(data['field_xpath'], 'name')
+        self.assertEqual(data['field_type'], 'text')
+        self.assertEqual(data['grouped_by'], group_by_field)
+        self.assertEqual(data['data_type'], 'categorized')
+        self.assertEqual(data['data'], [{
+            'date': u'2014-01-09',
+            'pizza_fan': u'no',
+            'count': 1,
+            'name': ['Efgh']
+        }, {
+            'date': u'2014-01-10',
+            'pizza_fan': u'no',
+            'count': 1,
+            'name': ['Ghi']
+        }])
 
 
 class TestChartUtilFunctions(unittest.TestCase):
