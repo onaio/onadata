@@ -26,14 +26,25 @@ from onadata.libs.utils.export_tools import get_osm_data_kwargs
 from onadata.libs.utils.user_auth import get_user_default_project
 
 MD = """
-| survey |
-|        | type              | name  | label |
-|        | select one fruits | fruit | Fruit |
+| survey  |
+|         | type              | name  | label   |
+|         | select one fruits | fruit | Fruit   |
 
 | choices |
-|         | list name | name   | label  |
-|         | fruits    | orange | Orange |
-|         | fruits    | mango  | Mango  |
+|         | list name         | name   | label  |
+|         | fruits            | orange | Orange |
+|         | fruits            | mango  | Mango  |
+"""
+
+NOT_MATCHING = """
+| survey  |
+|         | type              | name  | label   |
+|         | select one fruits | tunda | Tunda   |
+
+| choices |
+|         | list name         | name   | label  |
+|         | fruits            | orange | Orange |
+|         | fruits            | mango  | Mango  |
 """
 
 
@@ -351,6 +362,33 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['fruit'], 'orange')
 
+    def test_deleted_forms(self):
+        """Test retrieving data of a merged dataset with no forms linked."""
+        merged_dataset = self._create_merged_dataset()
+        merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
+        merged_xform.xforms.all().delete()
+        request = self.factory.get(
+            '/',
+            data={'sort': '{"_submission_time":1}',
+                  'limit': '10'},
+            **self.extra)
+        data_view = DataViewSet.as_view({
+            'get': 'list',
+        })
+
+        # DataViewSet /data/[pk] endpoint
+        response = data_view(request, pk=merged_dataset['id'])
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data, [])
+
+        data = {'field_name': 'fruit'}
+        view = ChartsViewSet.as_view({'get': 'retrieve'})
+
+        request = self.factory.get('/charts', data, **self.extra)
+        response = view(request, pk=merged_dataset['id'], format='html')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['data'].__len__(), 0)
+
     def test_md_csv_export(self):
         """Test CSV export of a merged dataset"""
         merged_dataset = self._create_merged_dataset()
@@ -504,3 +542,118 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         service = RestService.objects.get(xform=xform)
         service.delete()
         self.assertEquals(count, RestService.objects.count())
+
+    def test_md_has_deleted_xforms(self):
+        """
+        Test creating a merged dataset that includes a soft deleted form.
+        """
+        view = MergedXFormViewSet.as_view({
+            'post': 'create',
+        })
+        # pylint: disable=attribute-defined-outside-init
+        self.project = get_user_default_project(self.user)
+        xform1 = self._publish_markdown(MD, self.user, id_string='a')
+        xform2 = self._publish_markdown(MD, self.user, id_string='b')
+        xform2.soft_delete()
+
+        data = {
+            'xforms': [
+                "http://testserver/api/v1/forms/%s" % xform1.pk,
+                "http://testserver/api/v1/forms/%s" % xform2.pk,
+            ],
+            'name':
+            'Merged Dataset',
+            'project':
+            "http://testserver/api/v1/projects/%s" % self.project.pk,
+        }
+
+        request = self.factory.post('/', data=data, **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {
+            'xforms': [u'Invalid hyperlink - Object does not exist.']
+        })
+
+    def test_md_has_no_matching_fields(self):
+        """
+        Test creating a merged dataset that has no matching fields.
+        """
+        view = MergedXFormViewSet.as_view({
+            'post': 'create',
+        })
+        # pylint: disable=attribute-defined-outside-init
+        self.project = get_user_default_project(self.user)
+        xform1 = self._publish_markdown(MD, self.user, id_string='a')
+        xform2 = self._publish_markdown(NOT_MATCHING, self.user, id_string='b')
+
+        data = {
+            'xforms': [
+                "http://testserver/api/v1/forms/%s" % xform1.pk,
+                "http://testserver/api/v1/forms/%s" % xform2.pk,
+            ],
+            'name':
+            'Merged Dataset',
+            'project':
+            "http://testserver/api/v1/projects/%s" % self.project.pk,
+        }
+
+        request = self.factory.post('/', data=data, **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data,
+                         {'xforms': [u'No matching fields in xforms.']})
+
+    def test_md_data_viewset_deleted_form(self):
+        """Test retrieving data of a merged dataset with one form deleted"""
+        merged_dataset = self._create_merged_dataset()
+        merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
+        request = self.factory.get('/', **self.extra)
+        data_view = DataViewSet.as_view({
+            'get': 'list',
+        })
+
+        # make submission to form a
+        form_a = merged_xform.xforms.all()[0]
+        xml = '<data id="a"><fruit>orange</fruit></data>'
+        Instance(xform=form_a, xml=xml).save()
+
+        # DataViewSet /data/[pk] endpoint
+        response = data_view(request, pk=merged_dataset['id'])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+        fruit = [d['fruit'] for d in response.data]
+        expected_fruit = ['orange']
+        self.assertEqual(fruit, expected_fruit)
+
+        # make submission to form b
+        form_b = merged_xform.xforms.all()[1]
+        xml = '<data id="b"><fruit>mango</fruit></data>'
+        Instance(xform=form_b, xml=xml).save()
+
+        # DataViewSet /data/[pk] endpoint
+        response = data_view(request, pk=merged_dataset['id'])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+        dataid = response.data[0]['_id']
+
+        fruit = [d['fruit'] for d in response.data]
+        expected_fruit = ['orange', 'mango']
+        self.assertEqual(fruit, expected_fruit)
+
+        # DataViewSet /data/[pk] endpoint, form_a deleted
+        form_a.soft_delete()
+        response = data_view(request, pk=merged_dataset['id'])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+        fruit = [d['fruit'] for d in response.data]
+        expected_fruit = ['mango']
+        self.assertEqual(fruit, expected_fruit)
+
+        # DataViewSet /data/[pk]/[dataid] endpoint, form_a deleted
+        data_view = DataViewSet.as_view({
+            'get': 'retrieve',
+        })
+        response = data_view(request, pk=merged_dataset['id'], dataid=dataid)
+        self.assertEqual(response.status_code, 404)

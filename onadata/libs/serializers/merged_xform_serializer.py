@@ -7,6 +7,7 @@ import base64
 import json
 import uuid
 
+from django.db import transaction
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
@@ -15,13 +16,13 @@ from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
 from onadata.libs.utils.common_tags import MULTIPLE_SELECT_TYPE, SELECT_ONE
 from pyxform.builder import create_survey_element_from_dict
 
+SELECTS = [SELECT_ONE, MULTIPLE_SELECT_TYPE]
+
 
 def _get_fields_set(xform):
-    return [
-        (element.get_abbreviated_xpath(), element.type)
-        for element in xform.survey_elements
-        if element.type not in ['', 'survey']
-    ]
+    return [(element.get_abbreviated_xpath(), element.type)
+            for element in xform.survey_elements
+            if element.type not in ['', 'survey']]
 
 
 def _get_elements(elements, intersect, parent_prefix=None):
@@ -32,12 +33,10 @@ def _get_elements(elements, intersect, parent_prefix=None):
         name = name if not parent_prefix else '/'.join([parent_prefix, name])
         if name in intersect:
             k = element.copy()
-            if 'children' in element and element['type'] not in [
-                    SELECT_ONE, MULTIPLE_SELECT_TYPE]:
-                k['children'] = _get_elements(
-                    element['children'],
-                    [__ for __ in intersect if __.startswith(name)],
-                    name)
+            if 'children' in element and element['type'] not in SELECTS:
+                k['children'] = _get_elements(element['children'], [
+                    __ for __ in intersect if __.startswith(name)
+                ], name)
                 if not k['children']:
                     continue
             new_elements.append(k)
@@ -87,8 +86,18 @@ def minimum_two_xforms(value):
         raise serializers.ValidationError(
             _('This field should have unique xforms'))
 
+    return value
+
+
+def has_matching_fields(value):
+    """
+    Validate we have some matching fields in the xforms being merged.
+    """
     # checks we have at least matching fields
-    get_merged_xform_survey(value)
+    try:
+        get_merged_xform_survey(value)
+    except AssertionError as e:
+        raise serializers.ValidationError(unicode(e))
 
     return value
 
@@ -128,9 +137,10 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
         allow_empty=False,
         child_relation=serializers.HyperlinkedRelatedField(
             allow_empty=False,
-            queryset=XForm.objects.filter(is_merged_dataset=False),
+            queryset=XForm.objects.filter(is_merged_dataset=False,
+                                          deleted_at__isnull=True),
             view_name='xform-detail'),
-        validators=[minimum_two_xforms])
+        validators=[minimum_two_xforms, has_matching_fields])
     num_of_submissions = serializers.SerializerMethodField()
     last_submission_time = serializers.SerializerMethodField()
 
@@ -162,9 +172,9 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
 
     def create(self, validated_data):
         request = self.context['request']
-
+        xforms = validated_data['xforms']
         # create merged xml, json with non conflicting id_string
-        survey = get_merged_xform_survey(validated_data['xforms'])
+        survey = get_merged_xform_survey(xforms)
         survey['id_string'] = base64.b64encode(uuid.uuid4().hex[:6])
         survey['sms_keyword'] = survey['id_string']
         survey['title'] = validated_data.pop('name')
@@ -179,4 +189,13 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
             __.instances_with_geopoints for __ in validated_data.get('xforms')
         ])
 
-        return super(MergedXFormSerializer, self).create(validated_data)
+        with transaction.atomic():
+            instance = super(MergedXFormSerializer,
+                             self).create(validated_data)
+
+            if instance.xforms.all().count() == 0 and xforms:
+                for xform in xforms:
+                    instance.xforms.add(xform)
+                instance.save()
+
+        return instance

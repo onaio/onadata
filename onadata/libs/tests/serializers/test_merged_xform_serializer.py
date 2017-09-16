@@ -135,9 +135,10 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
         data['xforms'] = ["http://testserver.com/api/v1/forms/%s" % xform1.pk]
         serializer = MergedXFormSerializer(data=data)
         self.assertFalse(serializer.is_valid(raise_exception=False))
-        self.assertEqual(serializer.errors['xforms'], [
-            u'This field should have at least two unique xforms.'
-        ])
+        self.assertIn(
+            u'This field should have at least two unique xforms.',
+            serializer.errors['xforms']
+        )
 
         # same xform twice
         data['xforms'] = [
@@ -146,8 +147,10 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
         ]
         serializer = MergedXFormSerializer(data=data)
         self.assertFalse(serializer.is_valid(raise_exception=False))
-        self.assertEqual(serializer.errors['xforms'],
-                         [u'This field should have unique xforms'])
+        self.assertIn(
+            u'This field should have unique xforms',
+            serializer.errors['xforms']
+        )
 
         # xform with no matching fields
         xform3 = self._publish_markdown(A_MD, self.user, id_string='c')

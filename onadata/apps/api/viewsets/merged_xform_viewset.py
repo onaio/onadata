@@ -33,7 +33,7 @@ class MergedXFormViewSet(mixins.CreateModelMixin,
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,
                        filters.PublicDatasetsFilter)
     permission_classes = [XFormPermissions]
-    queryset = MergedXForm.objects.annotate(
+    queryset = MergedXForm.objects.filter(deleted_at__isnull=True).annotate(
         number_of_submissions=Sum('xforms__num_of_submissions')).all()
     serializer_class = MergedXFormSerializer
 

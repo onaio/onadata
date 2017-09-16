@@ -78,7 +78,7 @@ olefile==0.44             # via pillow
 openpyxl==2.4.8
 pbr==3.0.1                # via mock
 pillow==4.1.1
-psycopg2==2.7.1
+psycopg2==2.7.3.1
 pyasn1-modules==0.0.8     # via oauth2client
 pyasn1==0.2.3             # via oauth2client, pyasn1-modules, rsa
 pycodestyle==2.3.1        # via flake8
