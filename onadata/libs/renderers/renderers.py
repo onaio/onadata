@@ -265,3 +265,9 @@ class DecimalJSONRenderer(JSONRenderer):
     Extends the default json renderer to handle Decimal('NaN') values
     """
     encoder_class = DecimalEncoder
+
+
+class FlowJsonRenderer(BaseRenderer):
+    media_type = 'application/json'
+    format = 'flowjson'
+    charset = 'utf-8'

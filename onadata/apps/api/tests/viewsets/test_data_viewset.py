@@ -1423,6 +1423,22 @@ class TestDataViewSet(TestBase):
         # remaining 3 submissions
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=formid)
+
+    def test_flowjson_format(self):
+        self._make_submissions()
+
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+
+        view = DataViewSet.as_view({'get': 'retrieve'})
+        data_get = {
+            "fields": 'today'
+        }
+        request = self.factory.get('/', data=data_get, **self.extra)
+        response = view(request, pk=self.xform.pk, dataid=dataid,
+                        format='flowjson')
+
+        self.assertEqual(response.status_code, 200)
+
         self.assertEqual(len(response.data), 3)
 
     def test_geojson_format(self):
