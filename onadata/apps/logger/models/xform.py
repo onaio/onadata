@@ -690,7 +690,8 @@ class XForm(XFormMixin, BaseModel):
         object_id_field="object_id")
     has_hxl_support = models.BooleanField(default=False)
     last_updated_at = models.DateTimeField(auto_now=True)
-
+    hash = models.CharField(_("Hash"), max_length=32, blank=True, null=True,
+                            default=None)
     # XForm was created as a merged dataset
     is_merged_dataset = models.BooleanField(default=False)
 
@@ -815,6 +816,9 @@ class XForm(XFormMixin, BaseModel):
         if 'skip_xls_read' in kwargs:
             del kwargs['skip_xls_read']
 
+        # update hash field
+        self.hash = self.get_hash()
+
         super(XForm, self).save(*args, **kwargs)
 
     def __unicode__(self):
@@ -894,8 +898,7 @@ class XForm(XFormMixin, BaseModel):
         except ObjectDoesNotExist:
             pass
 
-    @property
-    def hash(self):
+    def get_hash(self):
         return u'%s' % md5(self.xml.encode('utf8')).hexdigest()
 
     @property
