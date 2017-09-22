@@ -896,7 +896,7 @@ class XForm(XFormMixin, BaseModel):
 
     @property
     def hash(self):
-        return u'%s' % md5(self.xml.encode('utf8')).hexdigest()
+        return u'%s' % md5('%s%s' % (self.uuid, self.version)).hexdigest()
 
     @property
     def can_be_replaced(self):
