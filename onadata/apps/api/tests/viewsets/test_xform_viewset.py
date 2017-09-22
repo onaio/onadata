@@ -1789,7 +1789,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             'created_by': None,
             'instances_with_osm': False,
             'instances_with_geopoints': False,
-            'has_hxl_support': False
+            'has_hxl_support': False,
+            'hash': u''
         }
         self.assertEqual(data, XFormSerializer(None).data)
 
