@@ -715,6 +715,21 @@ class XForm(XFormMixin, BaseModel):
             ("delete_submission", _(u"Can delete submissions from form")),
         )
 
+    def __init__(self, *args, **kwargs):
+        super(XForm, self).__init__(*args, **kwargs)
+        # fields whose old value we want to 'remember'
+        self.__important_fields = ['xml']
+        for field in self.__important_fields:
+            setattr(self, '__original_%s' % field, getattr(self, field))
+
+    def has_changed(self):
+        """ check that any of the important fields has changed"""
+        for field in self.__important_fields:
+            orig = '__original_%s' % field
+            if getattr(self, orig) != getattr(self, field):
+                return True
+        return False
+
     def file_name(self):
         return self.id_string + ".xml"
 
@@ -817,7 +832,8 @@ class XForm(XFormMixin, BaseModel):
             del kwargs['skip_xls_read']
 
         # update hash field
-        self.hash = self.get_hash()
+        if self.has_changed() or not self.id:
+            self.hash = self.get_hash()
 
         super(XForm, self).save(*args, **kwargs)
 
