@@ -66,6 +66,7 @@ from onadata.libs.utils.csv_import import (get_async_csv_submission_status,
                                            submit_csv, submit_csv_async)
 from onadata.libs.utils.export_tools import parse_request_export_options
 from onadata.libs.utils.logger_tools import publish_form
+from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.string import str2bool
 from onadata.libs.utils.viewer_tools import (enketo_url,
                                              generate_enketo_form_defaults,
@@ -688,7 +689,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             yield u"["
             start = 1
 
-            for xform in self.object_list.iterator():
+            for xform in queryset_iterator(self.object_list):
                 yield json.dumps(XFormBaseSerializer(
                     instance=xform,
                     context={'request': self.request}
