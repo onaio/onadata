@@ -3,19 +3,15 @@
 OSM utility module.
 """
 from celery import task
-
-from django.contrib.gis.geos import LineString
-from django.contrib.gis.geos import Point
-from django.contrib.gis.geos import Polygon
-from django.contrib.gis.geos import GeometryCollection
-from django.db import IntegrityError
-from django.db import models
-
+from django.contrib.gis.geos import (GeometryCollection, LineString, Point,
+                                     Polygon)
+from django.contrib.gis.geos.error import GEOSException
+from django.db import IntegrityError, models
 from lxml import etree
 
-from onadata.apps.logger.models.osmdata import OsmData
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import Instance
+from onadata.apps.logger.models.osmdata import OsmData
 from onadata.apps.restservice.signals import trigger_webhook
 
 
@@ -86,7 +82,7 @@ def parse_osm_ways(osm_xml, include_osm_id=False):
             points.append(_get_node(node.get('ref'), root))
         try:
             geom = Polygon(points)
-        except ValueError:
+        except GEOSException:
             geom = LineString(points)
 
         tags = parse_osm_tags(way, include_osm_id)
