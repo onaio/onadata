@@ -1,6 +1,6 @@
 # -*- coding=utf-8 -*-
 """
-OSM utility moduel.
+OSM utility module.
 """
 from celery import task
 
@@ -16,6 +16,7 @@ from lxml import etree
 from onadata.apps.logger.models.osmdata import OsmData
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import Instance
+from onadata.apps.restservice.signals import trigger_webhook
 
 
 def _get_xml_obj(xml):
@@ -206,6 +207,7 @@ def save_osm_data(instance_id):
                     osm_data.filename = filename
                     osm_data.save()
         instance.save()
+        trigger_webhook.send(sender=instance.__class__, instance=instance)
 
 
 def osm_flat_dict(instance_id):
