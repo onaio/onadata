@@ -1,3 +1,5 @@
+import StringIO
+
 from django.utils.translation import ugettext as _
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
@@ -9,8 +11,9 @@ from rest_framework import exceptions
 from onadata.apps.logger.models.instance import Instance, InstanceHistory
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.serializers.fields.json_field import JsonField
-from onadata.libs.utils.logger_tools import safe_create_instance
+from onadata.libs.utils.logger_tools import dict2xform, safe_create_instance
 from onadata.apps.main.models.user_profile import UserProfile
+from onadata.libs.utils.dict_tools import dict_lists2strings, dict_paths2dict
 
 
 class DataSerializer(serializers.HyperlinkedModelSerializer):
@@ -137,3 +140,33 @@ class OSMSiteMapSerializer(serializers.Serializer):
         return {
             'url': url, 'title': title, 'id_string': id_string, 'user': user
         }
+
+
+class JSONSubmissionSerializer(serializers.Serializer):
+    def create(self, validated_data):
+        # request.accepted_renderer = JSONRenderer()
+        # request.accepted_media_type = JSONRenderer.media_type
+        request = self.context['request']
+        view = self.context['view']
+        username = view.kwargs.get('username')
+        dict_form = request.data
+        submission = dict_form.get('submission')
+
+        if submission is None:
+            # return an error
+            return [_(u"No submission key provided."), None]
+
+        # convert lists in submission dict to joined strings
+        submission_joined = dict_paths2dict(dict_lists2strings(submission))
+        xml_string = dict2xform(submission_joined, dict_form.get('id'))
+
+        xml_file = StringIO.StringIO(xml_string)
+
+        error, instance = safe_create_instance(username, xml_file, [], None, request)
+        if error:
+            exc = exceptions.APIException(detail=error)
+            exc.response = error
+            exc.status_code = error.status_code
+            raise exc
+
+        return instance

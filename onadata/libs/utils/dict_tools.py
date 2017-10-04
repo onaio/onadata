@@ -94,3 +94,33 @@ def csv_dict_to_nested_dict(a):
     merged_dict = merge_list_of_dicts(results)
 
     return remove_indices_from_dict(merged_dict)
+
+
+def dict_lists2strings(d):
+    """Convert lists in a dict to joined strings.
+
+    :param d: The dict to convert.
+    :returns: The converted dict."""
+    for k, v in d.items():
+        if isinstance(v, list) and all([isinstance(e, basestring) for e in v]):
+            d[k] = ' '.join(v)
+        elif isinstance(v, dict):
+            d[k] = dict_lists2strings(v)
+
+    return d
+
+
+def dict_paths2dict(d):
+    result = {}
+
+    for k, v in d.items():
+        if k.find('/') > 0:
+            parts = k.split('/')
+            if len(parts) > 1:
+                k = parts[0]
+                for p in parts[1:]:
+                    v = {p: v}
+
+        result[k] = v
+
+    return result
