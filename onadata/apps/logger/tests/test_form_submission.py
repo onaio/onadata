@@ -1,12 +1,13 @@
 import os
 import re
 
+from contextlib import contextmanager
 from django.http import Http404
 from django.http import UnreadablePostError
 from django_digest.test import DigestAuth
 from django_digest.test import Client as DigestClient
 from guardian.shortcuts import assign_perm
-from mock import patch
+from mock import patch, Mock, ANY
 from nose import SkipTest
 
 from onadata.apps.main.models.user_profile import UserProfile
@@ -17,7 +18,17 @@ from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.viewer.models.parsed_instance import query_data
+from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.common_tags import GEOLOCATION, LAST_EDITED
+
+
+# NOQA https://medium.freecodecamp.org/how-to-testing-django-signals-like-a-pro-c7ed74279311
+@contextmanager
+def catch_signal(signal):
+    handler = Mock()
+    signal.connect(handler)
+    yield handler
+    signal.disconnect(handler)
 
 
 class TestFormSubmission(TestBase):
@@ -267,11 +278,12 @@ class TestFormSubmission(TestBase):
         # no change in xml content
         self.assertEqual(inst.xml, anothe_inst.xml)
 
-    @patch('onadata.libs.utils.logger_tools.call_webhooks')
-    def test_edited_submission(self, mock_edit_call_webhooks):
+    # @patch('onadata.apps.viewer.signals.process_submission')
+    def test_edited_submission(self):
         """
         Test submissions that have been edited
         """
+
         # Delete all previous instance history objects
         InstanceHistory.objects.all().delete()
 
@@ -295,7 +307,6 @@ class TestFormSubmission(TestBase):
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
         self.assertEqual(Instance.objects.count(), num_instances + 1)
-        self.assertFalse(mock_edit_call_webhooks.called)
 
         # Take initial instance from DB
         initial_instance = self.xform.instances.first()
@@ -317,7 +328,8 @@ class TestFormSubmission(TestBase):
         )
         client = DigestClient()
         client.set_authorization('bob', 'bob', 'Digest')
-        self._make_submission(xml_edit_submission_file_path, client=client)
+        with catch_signal(process_submission) as handler:
+            self._make_submission(xml_edit_submission_file_path, client=client)
         self.assertEqual(self.response.status_code, 201)
         # we must have the same number of instances
         self.assertEqual(Instance.objects.count(), num_instances + 1)
@@ -330,7 +342,8 @@ class TestFormSubmission(TestBase):
 
         self.assertDictEqual(initial_instance.get_dict(),
                              instance_history_1.get_dict())
-        self.assertTrue(mock_edit_call_webhooks.called)
+        handler.assert_called_once_with(instance=edited_instance,
+                                        sender=Instance, signal=ANY)
 
         self.assertNotEqual(edited_instance.uuid, instance_history_1.uuid)
 
