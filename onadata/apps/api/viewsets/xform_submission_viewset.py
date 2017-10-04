@@ -18,6 +18,7 @@ from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer
 
 from onadata.apps.logger.models import Instance
 from onadata.apps.main.models.user_profile import UserProfile
+from onadata.apps.api.permissions import IsAuthenticatedSubmission
 from onadata.libs import filters
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.authentication import EnketoTokenAuthentication
@@ -71,14 +72,6 @@ def dict_paths2dict(d):
     return result
 
 
-def create_instance_from_xml(username, request):
-    xml_file_list = request.FILES.pop('xml_submission_file', [])
-    xml_file = xml_file_list[0] if len(xml_file_list) else None
-    media_files = request.FILES.values()
-
-    return safe_create_instance(username, xml_file, media_files, None, request)
-
-
 def create_instance_from_json(username, request):
     request.accepted_renderer = JSONRenderer()
     request.accepted_media_type = JSONRenderer.media_type
@@ -109,58 +102,12 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,
                               EnketoTokenAuthentication)
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,)
     model = Instance
-    permission_classes = (permissions.AllowAny,)
+    permission_classes = (permissions.AllowAny, IsAuthenticatedSubmission)
     renderer_classes = (TemplateXMLRenderer,
                         JSONRenderer,
                         BrowsableAPIRenderer)
     serializer_class = SubmissionSerializer
     template_name = 'submission.xml'
-
-    def create(self, request, *args, **kwargs):
-        username = self.kwargs.get('username')
-
-        if self.request.user.is_anonymous():
-            if username is None:
-                # raises a permission denied exception, forces authentication
-                self.permission_denied(self.request)
-            else:
-                user = get_object_or_404(User, username=username.lower())
-
-                profile, created = UserProfile.objects.get_or_create(user=user)
-
-                if profile.require_auth:
-                    # raises a permission denied exception,
-                    # forces authentication
-                    self.permission_denied(self.request)
-        elif not username:
-            # get the username from the user if not set
-            username = (request.user and request.user.username)
-
-        if request.method.upper() == 'HEAD':
-            return Response(status=status.HTTP_204_NO_CONTENT,
-                            headers=self.get_openrosa_headers(request),
-                            template_name=self.template_name)
-
-        is_json_request = is_json(request)
-
-        try:
-            create_fn = create_instance_from_json if is_json_request else\
-                create_instance_from_xml
-            error, instance = create_fn(username, request)
-        except AttributeError:
-            error = _(u'Incorrect format, see format details here, '
-                      u'https://api.ona.io/static/docs/submissions.html')
-
-        if error or not instance:
-            return self.error_response(error, is_json_request, request)
-
-        context = self.get_serializer_context()
-        serializer = SubmissionSerializer(instance, context=context)
-
-        return Response(serializer.data,
-                        headers=self.get_openrosa_headers(request),
-                        status=status.HTTP_201_CREATED,
-                        template_name=self.template_name)
 
     def error_response(self, error, is_json_request, request):
         if not error:

@@ -22,3 +22,9 @@ class OpenRosaHeadersMixin(object):
             data['Location'] = request.build_absolute_uri(request.path)
 
         return data
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        self.headers.update(self.get_openrosa_headers(request))
+        
+        return super(OpenRosaHeadersMixin, self).finalize_response(
+            request, response, *args, **kwargs)

@@ -1,11 +1,16 @@
 from django.utils.translation import ugettext as _
+from django.shortcuts import get_object_or_404
+from django.contrib.auth.models import User
 
 from rest_framework import serializers
 from rest_framework.reverse import reverse
+from rest_framework import exceptions
 
 from onadata.apps.logger.models.instance import Instance, InstanceHistory
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.serializers.fields.json_field import JsonField
+from onadata.libs.utils.logger_tools import safe_create_instance
+from onadata.apps.main.models.user_profile import UserProfile
 
 
 class DataSerializer(serializers.HyperlinkedModelSerializer):
@@ -52,6 +57,25 @@ class DataInstanceSerializer(serializers.ModelSerializer):
 
 
 class SubmissionSerializer(serializers.Serializer):
+    def create(self, validated_data):
+        request = self.context['request']
+        view = self.context['view']
+        username = view.kwargs.get('username')
+
+        if not username:
+            # get the username from the user if not set
+            username = (request.user and request.user.username)
+
+        xml_file_list = request.FILES.pop('xml_submission_file', [])
+        xml_file = xml_file_list[0] if len(xml_file_list) else None
+        media_files = request.FILES.values()
+
+        error, instance = safe_create_instance(
+            username, xml_file, media_files, None, request)
+        if error:
+            raise error  # pylint: disable-msg=E0702
+
+        return instance
 
     def to_representation(self, obj):
         if obj is None:

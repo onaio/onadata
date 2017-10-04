@@ -1,8 +1,11 @@
 from django.http import Http404
+from rest_framework.permissions import BasePermission
 from rest_framework.permissions import DjangoObjectPermissions
 from rest_framework.permissions import DjangoModelPermissionsOrAnonReadOnly
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import exceptions
+from django.shortcuts import get_object_or_404
+from django.contrib.auth.models import User
 
 from onadata.libs.permissions import (
     CAN_ADD_XFORM_TO_PROFILE,
@@ -16,6 +19,7 @@ from onadata.apps.api.tools import get_user_profile_or_none, \
 from onadata.apps.logger.models import XForm, Instance
 from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import DataView
+from onadata.apps.main.models.user_profile import UserProfile
 
 SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
 
@@ -375,3 +379,23 @@ class OpenDataViewSetPermissions(IsAuthenticated,
 
         return self._has_object_permission(request, model_cls, user,
                                            obj.content_object)
+
+
+class IsAuthenticatedSubmission(BasePermission):
+    def has_permission(self, request, view):
+        username = view.kwargs.get('username')
+        if request.user.is_anonymous():
+            if username is None:
+                # raises a permission denied exception, forces authentication
+                return False
+            else:
+                user = get_object_or_404(User, username=username.lower())
+
+                profile, _ = UserProfile.objects.get_or_create(user=user)
+
+                if profile.require_auth:
+                    # raises a permission denied exception,
+                    # forces authentication
+                    return False
+
+        return True
