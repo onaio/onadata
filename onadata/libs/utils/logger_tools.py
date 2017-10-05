@@ -482,6 +482,7 @@ def publish_form(callback):
         return {'type': 'alert-error', 'text': unicode(e)}
 
 
+@transaction.atomic()
 def publish_xls_form(xls_file, user, project, id_string=None, created_by=None):
     """Create or update DataDictionary with xls_file, user
     id_string is optional when updating
