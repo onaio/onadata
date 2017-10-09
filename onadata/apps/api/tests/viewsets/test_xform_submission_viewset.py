@@ -383,11 +383,9 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(response.status_code, 401)
         auth = DigestAuth('bob', 'bobbob')
         request.META.update(auth(request.META, response))
-        response = self.view(request, username=self.user.username)
+        response = self.view(request, username=self.user.username, xform_pk=self.xform.pk)
         self.assertContains(response, 'Successful submission',
                             status_code=201)
         self.assertTrue(response.has_header('Date'))
-        self.assertEqual(response['Content-Type'],
-                          'application/json; charset=utf-8')
         self.assertEqual(response['Location'],
                               'http://testserver/submission')
