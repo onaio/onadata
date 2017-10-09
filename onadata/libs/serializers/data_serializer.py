@@ -59,7 +59,22 @@ class DataInstanceSerializer(serializers.ModelSerializer):
         return ret
 
 
-class SubmissionSerializer(serializers.Serializer):
+class SubmissionSuccessMixin(object):
+    def to_representation(self, obj):
+        if obj is None:
+            return super(SubmissionSuccessMixin, self).to_representation(obj)
+
+        return {
+            'message': _("Successful submission."),
+            'formid': obj.xform.id_string,
+            'encrypted': obj.xform.encrypted,
+            'instanceID': u'uuid:%s' % obj.uuid,
+            'submissionDate': obj.date_created.isoformat(),
+            'markedAsCompleteDate': obj.date_modified.isoformat()
+        }
+
+
+class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
     def create(self, validated_data):
         request = self.context['request']
         view = self.context['view']
@@ -76,22 +91,13 @@ class SubmissionSerializer(serializers.Serializer):
         error, instance = safe_create_instance(
             username, xml_file, media_files, None, request)
         if error:
-            raise error  # pylint: disable-msg=E0702
+            exc = exceptions.APIException(detail=error)
+            exc.response = error
+            exc.status_code = error.status_code
+
+            raise exc
 
         return instance
-
-    def to_representation(self, obj):
-        if obj is None:
-            return super(SubmissionSerializer, self).to_representation(obj)
-
-        return {
-            'message': _("Successful submission."),
-            'formid': obj.xform.id_string,
-            'encrypted': obj.xform.encrypted,
-            'instanceID': u'uuid:%s' % obj.uuid,
-            'submissionDate': obj.date_created.isoformat(),
-            'markedAsCompleteDate': obj.date_modified.isoformat()
-        }
 
 
 class OSMSerializer(serializers.Serializer):
@@ -142,31 +148,44 @@ class OSMSiteMapSerializer(serializers.Serializer):
         }
 
 
-class JSONSubmissionSerializer(serializers.Serializer):
+class JSONSubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
+    def validate(self, attrs):
+        request = self.context['request']
+        
+        if 'submission' not in request.data:
+            raise serializers.ValidationError({
+                'submission': _(u"No submission key provided.")
+            })
+
+        submission = request.data.get('submission')
+        if not submission:
+            raise serializers.ValidationError({
+                'submission': _(u"Received empty submission. No instance was created")
+            })
+        return super(JSONSubmissionSerializer, self).validate(attrs)
+
     def create(self, validated_data):
-        # request.accepted_renderer = JSONRenderer()
-        # request.accepted_media_type = JSONRenderer.media_type
         request = self.context['request']
         view = self.context['view']
+
         username = view.kwargs.get('username')
-        dict_form = request.data
-        submission = dict_form.get('submission')
+        if not username:
+            # get the username from the user if not set
+            username = (request.user and request.user.username)
 
-        if submission is None:
-            # return an error
-            return [_(u"No submission key provided."), None]
-
+        submission = request.data.get('submission')
         # convert lists in submission dict to joined strings
-        submission_joined = dict_paths2dict(dict_lists2strings(submission))
-        xml_string = dict2xform(submission_joined, dict_form.get('id'))
+        try:
+            submission_joined = dict_paths2dict(dict_lists2strings(submission))
+        except AttributeError:
+            raise serializers.ValidationError(_(u'Incorrect format, see format details here,'
+                u'https://api.ona.io/static/docs/submissions.html.'))
+        xml_string = dict2xform(submission_joined, request.data.get('id'))
 
         xml_file = StringIO.StringIO(xml_string)
 
         error, instance = safe_create_instance(username, xml_file, [], None, request)
-        if error:
-            exc = exceptions.APIException(detail=error)
-            exc.response = error
-            exc.status_code = error.status_code
-            raise exc
+        if error and error.status_code >= 400:
+            raise serializers.ValidationError(error.message)
 
         return instance
