@@ -552,6 +552,7 @@ class OpenRosaResponse(BaseOpenRosaResponse):
 
     def __init__(self, *args, **kwargs):
         super(OpenRosaResponse, self).__init__(*args, **kwargs)
+        self.message = self.content
         # wrap content around xml
         self.content = '''<?xml version='1.0' encoding='UTF-8' ?>
 <OpenRosaResponse xmlns="http://openrosa.org/http/response">
