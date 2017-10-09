@@ -13,7 +13,7 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.logger_tools import dict2xform, safe_create_instance
 from onadata.apps.main.models.user_profile import UserProfile
-from onadata.libs.utils.dict_tools import dict_lists2strings, dict_paths2dict
+from onadata.libs.utils.dict_tools import dict_lists2strings, dict_paths2dict, query_list_to_dict
 
 
 class DataSerializer(serializers.HyperlinkedModelSerializer):
@@ -83,7 +83,7 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
         if not username:
             # get the username from the user if not set
             username = (request.user and request.user.username)
-
+        
         xml_file_list = request.FILES.pop('xml_submission_file', [])
         xml_file = xml_file_list[0] if len(xml_file_list) else None
         media_files = request.FILES.values()
@@ -151,7 +151,7 @@ class OSMSiteMapSerializer(serializers.Serializer):
 class JSONSubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
     def validate(self, attrs):
         request = self.context['request']
-        
+
         if 'submission' not in request.data:
             raise serializers.ValidationError({
                 'submission': _(u"No submission key provided.")
@@ -179,13 +179,54 @@ class JSONSubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
             submission_joined = dict_paths2dict(dict_lists2strings(submission))
         except AttributeError:
             raise serializers.ValidationError(_(u'Incorrect format, see format details here,'
-                u'https://api.ona.io/static/docs/submissions.html.'))
+                                                u'https://api.ona.io/static/docs/submissions.html.'))
         xml_string = dict2xform(submission_joined, request.data.get('id'))
 
         xml_file = StringIO.StringIO(xml_string)
 
-        error, instance = safe_create_instance(username, xml_file, [], None, request)
+        error, instance = safe_create_instance(
+            username, xml_file, [], None, request)
         if error and error.status_code >= 400:
+            raise serializers.ValidationError(error.message)
+
+        return instance
+
+
+class RapidProSubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
+    def validate(self, attrs):
+        view = self.context['view']
+
+        if 'xform_pk' in view.kwargs:
+            xform_pk = view.kwargs.get('xform_pk')
+            xform = get_object_or_404(XForm, pk=xform_pk)
+            attrs.update({'id_string': xform.id_string})
+        
+        else:
+            raise serializers.ValidationError({
+                'xform_pk': _(u'Incorrect url format, Use format '
+                              u'https://api.ona.io/username/formid/submission')})
+        
+        return super(RapidProSubmissionSerializer, self).validate(attrs)
+        
+
+    def create(self, validated_data):
+        request = self.context['request']
+        view = self.context['view']
+        username = view.kwargs.get('username')
+
+        if not username:
+            # get the username from the user if not set
+            username = (request.user and request.user.username)
+        
+        rapidpro_query_list = request.data.get('values')
+        rapidpro_dict = query_list_to_dict(rapidpro_query_list)
+        
+        xml_string = dict2xform(rapidpro_dict, validated_data['id_string'])
+        xml_file = StringIO.StringIO(xml_string)
+
+        error, instance = safe_create_instance(
+            username, xml_file, [], None, request)
+        if error:
             raise serializers.ValidationError(error.message)
 
         return instance
