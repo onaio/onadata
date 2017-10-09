@@ -25,7 +25,8 @@ from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
 from onadata.libs.mixins.openrosa_headers_mixin import OpenRosaHeadersMixin
 from onadata.libs.renderers.renderers import TemplateXMLRenderer
-from onadata.libs.serializers.data_serializer import SubmissionSerializer, JSONSubmissionSerializer
+from onadata.libs.serializers.data_serializer import (
+    SubmissionSerializer, JSONSubmissionSerializer,RapidProSubmissionSerializer)
 from onadata.libs.utils.logger_tools import dict2xform, safe_create_instance
 from onadata.apps.api.tools import get_baseviewset_class
 
@@ -60,6 +61,8 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,
             self.request.accepted_renderer = JSONRenderer()
             self.request.accepted_media_type = 'application/json'
             return JSONSubmissionSerializer
+        if 'application/x-www-form-urlencoded' in self.request.content_type.lower():
+            return RapidProSubmissionSerializer
 
         return SubmissionSerializer
     
