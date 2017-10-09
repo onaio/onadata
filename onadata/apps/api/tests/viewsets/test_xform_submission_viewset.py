@@ -159,7 +159,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             auth = DigestAuth('bob', 'bobbob')
             request.META.update(auth(request.META, response))
             response = self.view(request)
-            self.assertContains(response, 'Incorrect format',
+            self.assertContains(response, 'Invalid data',
                                 status_code=400)
             self.assertTrue(response.has_header('X-OpenRosa-Version'))
             self.assertTrue(
