@@ -57,6 +57,8 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,
 
     def get_serializer_class(self):
         if 'application/json' in self.request.content_type.lower():
+            self.request.accepted_renderer = JSONRenderer()
+            self.request.accepted_media_type = 'application/json'
             return JSONSubmissionSerializer
 
         return SubmissionSerializer
@@ -65,18 +67,3 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,
         if hasattr(exc, 'response'):
             return exc.response
         return super(XFormSubmissionViewSet, self).handle_exception(exc)
-        # if not error:
-        #     error_msg = _(u"Unable to create submission.")
-        #     status_code = status.HTTP_400_BAD_REQUEST
-        # elif isinstance(error, basestring):
-        #     error_msg = error
-        #     status_code = status.HTTP_400_BAD_REQUEST
-        # elif not is_json_request:
-        #     return error
-        # else:
-        #     error_msg = xml_error_re.search(error.content).groups()[0]
-        #     status_code = error.status_code
-
-        # return Response({'error': error_msg},
-        #                 headers=self.get_openrosa_headers(request),
-        #                 status=status_code)
