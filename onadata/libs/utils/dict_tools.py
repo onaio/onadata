@@ -1,3 +1,5 @@
+import json
+
 def get_values_matching_key(doc, key):
     def _get_values(doc, key):
         if doc is not None:
@@ -124,3 +126,12 @@ def dict_paths2dict(d):
         result[k] = v
 
     return result
+
+
+def query_list_to_dict(query_list):
+    data_list = json.loads(query_list)
+    data_dict = dict()
+    for value in data_list:
+        data_dict[value['label']] = value['text']
+
+    return data_dict
