@@ -25,7 +25,7 @@ from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs import filters
 from onadata.libs.authentication import DigestAuthentication
-from onadata.libs.mixins.openrosa_headers_mixin import OpenRosaHeadersMixin
+from onadata.libs.mixins.openrosa_headers_mixin import get_openrosa_headers
 from onadata.libs.renderers.renderers import TemplateXMLRenderer
 from onadata.libs.serializers.xform_serializer import XFormListSerializer
 from onadata.libs.serializers.xform_serializer import XFormManifestSerializer
@@ -64,7 +64,7 @@ def _parse_int(num):
         pass
 
 
-class BriefcaseViewset(OpenRosaHeadersMixin, mixins.CreateModelMixin,
+class BriefcaseViewset(mixins.CreateModelMixin,
                        mixins.RetrieveModelMixin, mixins.ListModelMixin,
                        viewsets.GenericViewSet):
     """
@@ -151,7 +151,7 @@ class BriefcaseViewset(OpenRosaHeadersMixin, mixins.CreateModelMixin,
     def create(self, request, *args, **kwargs):
         if request.method.upper() == 'HEAD':
             return Response(status=status.HTTP_204_NO_CONTENT,
-                            headers=self.get_openrosa_headers(request),
+                            headers=get_openrosa_headers(request),
                             template_name=self.template_name)
 
         xform_def = request.FILES.get('form_def_file', None)
@@ -183,8 +183,8 @@ class BriefcaseViewset(OpenRosaHeadersMixin, mixins.CreateModelMixin,
             response_status = status.HTTP_400_BAD_REQUEST
 
         return Response(data, status=response_status,
-                        headers=self.get_openrosa_headers(request,
-                                                          location=False),
+                        headers=get_openrosa_headers(request,
+                                                     location=False),
                         template_name=self.template_name)
 
     def list(self, request, *args, **kwargs):
@@ -194,8 +194,8 @@ class BriefcaseViewset(OpenRosaHeadersMixin, mixins.CreateModelMixin,
                 'resumptionCursor': self.resumptionCursor}
 
         return Response(data,
-                        headers=self.get_openrosa_headers(request,
-                                                          location=False),
+                        headers=get_openrosa_headers(request,
+                                                     location=False),
                         template_name='submissionList.xml')
 
     def retrieve(self, request, *args, **kwargs):
@@ -217,7 +217,7 @@ class BriefcaseViewset(OpenRosaHeadersMixin, mixins.CreateModelMixin,
 
         return Response(
             data,
-            headers=self.get_openrosa_headers(request, location=False),
+            headers=get_openrosa_headers(request, location=False),
             template_name='downloadSubmission.xml'
         )
 
@@ -231,8 +231,7 @@ class BriefcaseViewset(OpenRosaHeadersMixin, mixins.CreateModelMixin,
                                              context=context)
 
         return Response(serializer.data,
-                        headers=self.get_openrosa_headers(request,
-                                                          location=False))
+                        headers=get_openrosa_headers(request, location=False))
 
     @detail_route(methods=['GET'])
     def media(self, request, *args, **kwargs):
