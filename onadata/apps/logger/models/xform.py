@@ -715,21 +715,6 @@ class XForm(XFormMixin, BaseModel):
             ("delete_submission", _(u"Can delete submissions from form")),
         )
 
-    def __init__(self, *args, **kwargs):
-        super(XForm, self).__init__(*args, **kwargs)
-        # fields whose old value we want to 'remember'
-        self.__important_fields = ['xml']
-        for field in self.__important_fields:
-            setattr(self, '__original_%s' % field, getattr(self, field))
-
-    def has_changed(self):
-        """ check that any of the important fields has changed"""
-        for field in self.__important_fields:
-            orig = '__original_%s' % field
-            if getattr(self, orig) != getattr(self, field):
-                return True
-        return False
-
     def file_name(self):
         return self.id_string + ".xml"
 
@@ -777,6 +762,9 @@ class XForm(XFormMixin, BaseModel):
 
         self.title = title_xml
 
+    def _set_hash(self):
+        self.hash = self.get_hash()
+
     def _set_encrypted_field(self):
         if self.json and self.json != '':
             json_dict = json.loads(self.json)
@@ -795,6 +783,9 @@ class XForm(XFormMixin, BaseModel):
                 set(list(update_fields) + ['date_modified']))
         if update_fields is None or 'title' in update_fields:
             self._set_title()
+        if (self.pk is None) or (update_fields is not None and 'title' in
+                                 update_fields):
+            self._set_hash()
         if update_fields is None or 'encrypted' in update_fields:
             self._set_encrypted_field()
         if update_fields is None or 'id_string' in update_fields:
@@ -830,10 +821,6 @@ class XForm(XFormMixin, BaseModel):
 
         if 'skip_xls_read' in kwargs:
             del kwargs['skip_xls_read']
-
-        # update hash field
-        if self.has_changed() or not self.id:
-            self.hash = self.get_hash()
 
         super(XForm, self).save(*args, **kwargs)
 

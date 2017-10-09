@@ -59,27 +59,12 @@ class TestPublishXLS(TestBase):
         # make sure the has is created and is not empty
         self.assertFalse(self.xform.hash == "" or self.xform.hash is None)
         self.assertEqual(self.xform.hash, self.xform.get_hash())
-        old_hash = self.xform.hash
-        # publish a second form
-        md2 = """
-        | survey |                        |          |           |
-        |        | type                   | name     | label     |
-        |        | select_multiple yes_no | expensed | Expensed? |
-
-        | choices |           |      |       |
-        |         | list name | name | label |
-        |         | yes_no    | 1    | Yes   |
-        |         | yes_no    | 09   | No    |
-        """
-        self.new_user = User.objects.create(username='mosh')
-        self.new_profile = UserProfile.objects.create(user=self.new_user)
-        self.xform2 = self._publish_markdown(md2, self.new_user)
-        # chane the xml value of form1
-        self.xform.xml = self.xform2.xml
-        self.xform.save()
-        # assert that the hash has been updated and is not empty
+        xform_old_hash = self.xform.hash
+        # assert that the hash changes when you change the form title
+        self.xform.title = "Hunter 2 Rules"
+        self.xform.save(update_fields=['title'])
         self.assertFalse(self.xform.hash == "" or self.xform.hash is None)
-        self.assertFalse(self.xform.hash == old_hash)
+        self.assertFalse(self.xform.hash == xform_old_hash)
 
     def test_report_exception_with_exc_info(self):
         e = Exception("A test exception")

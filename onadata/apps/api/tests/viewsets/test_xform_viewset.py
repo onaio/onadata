@@ -916,6 +916,53 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEquals(form_id, self.xform.pk)
             self.assertEquals(id_string, self.xform.id_string)
 
+    def test_xform_hash_changes_after_form_replacement(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+
+            self.assertIsNotNone(self.xform.version)
+            form_id = self.xform.pk
+            xform_old_hash = self.xform.hash
+
+            view = XFormViewSet.as_view({
+                'patch': 'partial_update',
+            })
+
+            path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                "transportation", "transportation_version.xls")
+            with open(path) as xls_file:
+                post_data = {'xls_file': xls_file}
+                request = self.factory.patch('/', data=post_data, **self.extra)
+                response = view(request, pk=form_id)
+                self.assertEqual(response.status_code, 200)
+
+            self.xform.reload()
+            self.assertNotEquals(xform_old_hash, self.xform.hash)
+
+    def test_hash_changes_after_update_xform_xls_file(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+
+            xform_old_hash = self.xform.hash
+            form_id = self.xform.pk
+
+            view = XFormViewSet.as_view({
+                'patch': 'partial_update',
+            })
+
+            path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                "transportation", "transportation_version.xls")
+            with open(path) as xls_file:
+                post_data = {'xls_file': xls_file}
+                request = self.factory.patch('/', data=post_data, **self.extra)
+                response = view(request, pk=form_id)
+                self.assertEqual(response.status_code, 200)
+
+            self.xform.reload()
+            self.assertNotEquals(xform_old_hash, self.xform.hash)
+
     def test_login_enketo_no_redirect(self):
         with HTTMock(enketo_preview_url_mock, enketo_url_mock):
             self._publish_xls_form_to_project()

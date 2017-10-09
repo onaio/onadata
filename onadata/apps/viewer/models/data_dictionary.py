@@ -127,6 +127,7 @@ class DataDictionary(XForm):
             self.last_updated_at = timezone.now()
             self.title = survey.get('title')
             self._mark_start_time_boolean()
+            self._set_hash()
             set_uuid(self)
             self._set_uuid_in_xml()
 
