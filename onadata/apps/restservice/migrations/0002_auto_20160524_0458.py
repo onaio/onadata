@@ -25,6 +25,10 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='restservice',
             name='name',
-            field=models.CharField(choices=[('f2dhis2', 'f2dhis2'), ('generic_json', 'JSON POST'), ('generic_xml', 'XML POST'), ('bamboo', 'bamboo'), ('textit', 'TextIt POST'), ('google_sheets', 'Google Sheet')], max_length=50),
+            field=models.CharField(
+                choices=[('f2dhis2', 'f2dhis2'), ('generic_json', 'JSON POST'),
+                         ('generic_xml', 'XML POST'), ('bamboo', 'bamboo'),
+                         ('textit', 'TextIt POST'),
+                         ('google_sheets', 'Google Sheet')], max_length=50),
         ),
     ]

@@ -17,7 +17,10 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='xform',
             name='last_updated_at',
-            field=models.DateTimeField(auto_now=True, default=datetime.datetime(2016, 8, 18, 12, 43, 30, 316792, tzinfo=utc)),
+            field=models.DateTimeField(
+                auto_now=True,
+                default=datetime.datetime(2016, 8, 18, 12, 43, 30, 316792,
+                                          tzinfo=utc)),
             preserve_default=False,
         ),
     ]

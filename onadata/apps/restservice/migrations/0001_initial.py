@@ -14,9 +14,16 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='RestService',
             fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('id', models.AutoField(verbose_name='ID', serialize=False,
+                                        auto_created=True, primary_key=True)),
                 ('service_url', models.URLField(verbose_name='Service URL')),
-                ('name', models.CharField(max_length=50, choices=[('f2dhis2', 'f2dhis2'), ('generic_json', 'JSON POST'), ('generic_xml', 'XML POST'), ('bamboo', 'bamboo'), ('textit', 'TextIt POST')])),
+                ('name', models.CharField(
+                    max_length=50,
+                    choices=[('f2dhis2', 'f2dhis2'),
+                             ('generic_json', 'JSON POST'),
+                             ('generic_xml', 'XML POST'),
+                             ('bamboo', 'bamboo'),
+                             ('textit', 'TextIt POST')])),
                 ('xform', models.ForeignKey(to='logger.XForm')),
             ],
             options={

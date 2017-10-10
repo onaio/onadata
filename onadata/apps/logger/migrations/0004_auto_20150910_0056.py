@@ -17,7 +17,8 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ProjectGroupObjectPermission',
             fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('id', models.AutoField(verbose_name='ID', serialize=False,
+                                        auto_created=True, primary_key=True)),
                 ('content_object', models.ForeignKey(to='logger.Project')),
                 ('group', models.ForeignKey(to='auth.Group')),
                 ('permission', models.ForeignKey(to='auth.Permission')),
@@ -30,7 +31,8 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ProjectUserObjectPermission',
             fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('id', models.AutoField(verbose_name='ID', serialize=False,
+                                        auto_created=True, primary_key=True)),
                 ('content_object', models.ForeignKey(to='logger.Project')),
                 ('permission', models.ForeignKey(to='auth.Permission')),
                 ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),

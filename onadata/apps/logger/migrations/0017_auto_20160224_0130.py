@@ -20,7 +20,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='instance',
             name='xform',
-            field=models.ForeignKey(related_name='instances', default=-1, to='logger.XForm'),
+            field=models.ForeignKey(related_name='instances', default=-1,
+                                    to='logger.XForm'),
             preserve_default=False,
         ),
         migrations.AlterUniqueTogether(
