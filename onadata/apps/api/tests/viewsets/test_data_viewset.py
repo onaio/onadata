@@ -1694,7 +1694,7 @@ class TestDataViewSet(TestBase):
             response = view(request, pk=projectid)
 
             self.assertEqual(response.status_code, 200)
-            self.xform.reload()
+            self.xform.refresh_from_db()
             self.assertEqual(self.xform.shared, True)
 
             # anonymous user

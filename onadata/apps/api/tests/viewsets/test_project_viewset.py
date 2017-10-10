@@ -48,7 +48,7 @@ def enketo_mock(url, request):
 
 
 def get_latest_tags(project):
-    return [tag.name for tag in project.reload().tags.all()]
+    return [tag.name for tag in project.refresh_from_db().tags.all()]
 
 
 class TestProjectViewSet(TestAbstractViewSet):
@@ -204,7 +204,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         # check filter by tag
         request = self.factory.get('/', data={"tags": "hello"}, **self.extra)
 
-        self.project.reload()
+        self.project.refresh_from_db()
         request.user = self.user
         self.project_data = BaseProjectSerializer(
             self.project, context={'request': request}).data
@@ -277,7 +277,7 @@ class TestProjectViewSet(TestAbstractViewSet):
 
     def test_num_datasets(self):
         self._publish_xls_form_to_project()
-        self.project.reload()
+        self.project.refresh_from_db()
         request = self.factory.post('/', data={}, **self.extra)
         request.user = self.user
         self.project_data = ProjectSerializer(
@@ -289,7 +289,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self._make_submissions()
         request = self.factory.post('/', data={}, **self.extra)
         request.user = self.user
-        self.project.reload()
+        self.project.refresh_from_db()
         self.project_data = ProjectSerializer(
             self.project, context={'request': request}).data
         date_created = self.xform.instances.order_by(
@@ -888,7 +888,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.get('/', {'owner': 'bob'}, **self.extra)
         response = view(request, pk=self.project.pk)
         request.user = self.user
-        self.project.reload()
+        self.project.refresh_from_db()
         self.project_data = BaseProjectSerializer(
             self.project, context={'request': request}).data
         updated_project_data = self.project_data
@@ -1039,7 +1039,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         })
         request = self.factory.post('/', **self.extra)
         response = view(request, pk=self.project.pk)
-        self.project.reload()
+        self.project.refresh_from_db()
 
         self.assertEqual(response.status_code, 204)
         self.assertEqual(response.get('Cache-Control'), None)
@@ -1077,13 +1077,13 @@ class TestProjectViewSet(TestAbstractViewSet):
         })
         request = self.factory.post('/', **self.extra)
         response = view(request, pk=self.project.pk)
-        self.project.reload()
+        self.project.refresh_from_db()
         self.assertEqual(len(self.project.user_stars.all()), 1)
         self.assertEqual(self.project.user_stars.all()[0], self.user)
 
         request = self.factory.delete('/', **self.extra)
         response = view(request, pk=self.project.pk)
-        self.project.reload()
+        self.project.refresh_from_db()
 
         self.assertEqual(response.status_code, 204)
         self.assertEqual(len(self.project.user_stars.all()), 0)
@@ -1235,8 +1235,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.xform.shared = True
         self.xform.save()
         self.project.save()
-        self.xform.reload()
-        self.project.reload()
+        self.xform.refresh_from_db()
+        self.project.refresh_from_db()
         self.assertTrue(self.xform.shared)
         self.assertFalse(self.xform.shared_data)
         self.assertFalse(self.project.shared)
@@ -1246,8 +1246,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.xform.shared_data = True
         self.xform.save()
         self.project.save()
-        self.xform.reload()
-        self.project.reload()
+        self.xform.refresh_from_db()
+        self.project.refresh_from_db()
         self.assertFalse(self.xform.shared)
         self.assertTrue(self.xform.shared_data)
         self.assertFalse(self.project.shared)
@@ -1259,8 +1259,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.xform.save()
         self.project.save()
         self._make_submissions()
-        self.xform.reload()
-        self.project.reload()
+        self.xform.refresh_from_db()
+        self.project.refresh_from_db()
         self.assertTrue(self.xform.shared)
         self.assertFalse(self.xform.shared_data)
         self.assertFalse(self.project.shared)
@@ -1374,14 +1374,14 @@ class TestProjectViewSet(TestAbstractViewSet):
         last_date = self.project.date_modified
         self._publish_xls_form_to_project()
 
-        self.project.reload()
+        self.project.refresh_from_db()
         current_last_date = self.project.date_modified
 
         self.assertNotEquals(last_date, current_last_date)
 
         self._make_submissions()
 
-        self.project.reload()
+        self.project.refresh_from_db()
         self.assertNotEquals(current_last_date, self.project.date_modified)
 
     def test_anon_project_form_endpoint(self):
@@ -1441,7 +1441,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.patch('/', data=data_patch, **self.extra)
         response = view(request, pk=projectid)
 
-        self.project.reload()
+        self.project.refresh_from_db()
         self.assertEqual(response.status_code, 200)
         self.assertEquals(self.project.organization, alice)
         self.assertTrue(OwnerRole.user_has_role(alice, self.project))

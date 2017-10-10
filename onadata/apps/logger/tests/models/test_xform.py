@@ -88,7 +88,7 @@ class TestXForm(TestBase):
         xform.title = 'Trial & Error'
 
         xform.soft_delete()
-        xform.reload()
+        xform.refresh_from_db()
 
         # deleted_at is not None
         self.assertIsNotNone(xform.deleted_at)

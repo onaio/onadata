@@ -91,7 +91,7 @@ class TestUserPermissions(TestAbstractViewSet):
         request = self.factory.put('/', data=data, **self.extra)
         response = view(request, pk=self.xform.id)
 
-        self.xform.reload()
+        self.xform.refresh_from_db()
         self.assertTrue(self.xform.shared)
         self.assertEqual(self.xform.description, description)
         self.assertEqual(response.data['public'], True)

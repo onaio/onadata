@@ -25,7 +25,7 @@ class TestProjectUtils(TestBase):
         project_b.save()
         self.xform.project = project_b
         self.xform.save()
-        self.xform.reload()
+        self.xform.refresh_from_db()
         self.assertTrue(self.project.pk, self.xform.project_id)
 
         # set permissions for new project

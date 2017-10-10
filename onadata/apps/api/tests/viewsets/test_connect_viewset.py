@@ -176,7 +176,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         response = view(request, user=self.user)
 
         self.assertEqual(response.status_code, 200)
-        self.project.reload()
+        self.project.refresh_from_db()
         request.user = self.user
         self.project_data = ProjectSerializer(
             self.project, context={'request': request}).data

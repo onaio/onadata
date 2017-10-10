@@ -332,7 +332,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 "tutorial", "instances", "tutorial_2012-06-27_11-27-53.xml")
 
             self._make_submission(xml_submission_file_path)
-            self.xform.reload()
+            self.xform.refresh_from_db()
 
             view = XFormViewSet.as_view({
                 'get': 'retrieve',
@@ -909,7 +909,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertEqual(response.data.get('enketo_url'), enketo_url)
                 self.assertEqual(response.status_code, 200)
 
-            self.xform.reload()
+            self.xform.refresh_from_db()
 
             # diff versions
             self.assertNotEquals(version, self.xform.version)
@@ -1470,7 +1470,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=self.xform.id)
             self.assertEqual(response.status_code, 200)
             xform_old_hash = self.xform.hash
-            self.xform.reload()
+            self.xform.refresh_from_db()
             self.assertTrue(self.xform.downloadable)
             self.assertTrue(self.xform.shared)
             self.assertEqual(self.xform.description, description)
@@ -1521,7 +1521,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.patch('/', data=data, **self.extra)
             response = view(request, pk=self.xform.id)
 
-            self.xform.reload()
+            self.xform.refresh_from_db()
             self.assertFalse(self.xform.__getattribute__(key))
             self.assertFalse(response.data['public'])
 
@@ -1537,7 +1537,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.patch('/', data=data, **self.extra)
             response = view(request, pk=self.xform.id)
 
-            self.xform.reload()
+            self.xform.refresh_from_db()
             self.assertFalse(self.xform.__getattribute__(key))
             shared = [u'"String" is not a valid boolean.']
             self.assertEqual(response.data, {'public': shared})
@@ -1554,7 +1554,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.patch('/', data=data, **self.extra)
             response = view(request, pk=self.xform.id)
 
-            self.xform.reload()
+            self.xform.refresh_from_db()
             self.assertFalse(self.xform.shared)
             self.assertFalse(response.data['public'])
 
@@ -1615,7 +1615,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                                         self.project.pk)),
                 None)
 
-            self.xform.reload()
+            self.xform.refresh_from_db()
 
             self.assertIsNotNone(self.xform.deleted_at)
             self.assertTrue('deleted-at' in self.xform.id_string)
@@ -2132,7 +2132,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response = view(request, pk=form_id)
                 self.assertEqual(response.status_code, 200)
 
-            self.xform.reload()
+            self.xform.refresh_from_db()
             new_version = self.xform.version
             new_last_updated_at = self.xform.last_updated_at
             # diff versions
@@ -2183,7 +2183,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=form_id)
             self.assertEqual(response.status_code, 200)
 
-        self.xform.reload()
+        self.xform.refresh_from_db()
         new_version = self.xform.version
 
         # diff versions
@@ -2404,7 +2404,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertEqual(response.status_code, 400)
                 self.assertEqual(response.get('Cache-Control'), None)
 
-            self.xform.reload()
+            self.xform.refresh_from_db()
             new_version = self.xform.version
 
             # fails to update the form
@@ -2437,7 +2437,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.get('Cache-Control'), None)
 
-            self.xform.reload()
+            self.xform.refresh_from_db()
 
             self.assertEquals(form_id, self.xform.pk)
             self.assertNotEquals(version, self.xform.version)
@@ -2469,7 +2469,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
                 self.assertEqual(response.status_code, 200)
 
-            self.xform.reload()
+            self.xform.refresh_from_db()
 
             # diff versions
             self.assertEquals(self.xform.version, u"212121211")
@@ -2502,7 +2502,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             self.assertEqual(response.status_code, 200)
 
-            self.xform.reload()
+            self.xform.refresh_from_db()
 
             self.assertEquals(count, XForm.objects.all().count())
             # diff versions
@@ -2536,7 +2536,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             self.assertEqual(response.status_code, 200)
 
-            self.xform.reload()
+            self.xform.refresh_from_db()
 
             self.assertEquals(count, XForm.objects.all().count())
             # diff versions
@@ -2572,7 +2572,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=form_id)
             self.assertEqual(response.status_code, 200, response.data)
 
-            self.xform.reload()
+            self.xform.refresh_from_db()
 
             self.assertEquals(version, self.xform.version)
             self.assertEquals(self.xform.description, u'Transport form')

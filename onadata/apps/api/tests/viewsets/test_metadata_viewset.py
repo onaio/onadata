@@ -69,7 +69,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
         self._make_submission(xml_submission_file_path,
                               username=self.user.username)
-        self.xform.reload()
+        self.xform.refresh_from_db()
         self.instance = self.xform.instances.first()
 
         data = {
@@ -109,7 +109,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         for data_type in ['supporting_doc', 'media', 'source']:
             self._add_form_metadata(self.xform, data_type,
                                     self.data_value, self.path)
-            self.xform.reload()
+            self.xform.refresh_from_db()
             self.assertNotEqual(date_modified, self.xform.date_modified)
 
         # /forms
