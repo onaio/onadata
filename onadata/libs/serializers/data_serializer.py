@@ -2,6 +2,8 @@
 """
 Submission data serializers module.
 """
+import StringIO
+
 from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
 from rest_framework import exceptions, serializers
@@ -12,9 +14,37 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.dict_tools import (dict_lists2strings, dict_paths2dict,
                                            query_list_to_dict)
-from onadata.libs.utils.logger_tools import (get_object_instance,
-                                             get_request_and_username,
-                                             safe_create_instance)
+from onadata.libs.utils.logger_tools import dict2xform, safe_create_instance
+
+
+def get_request_and_username(context):
+    """
+    Returns request object and username
+    """
+    request = context['request']
+    view = context['view']
+    username = view.kwargs.get('username')
+
+    if not username:
+        # get the username from the user if not set
+        username = (request.user and request.user.username)
+
+    return (request, username)
+
+
+def create_submission(request, username, data_dict, xform_id):
+    """
+    Returns validated data object instances
+    """
+    xml_string = dict2xform(data_dict, xform_id)
+    xml_file = StringIO.StringIO(xml_string)
+
+    error, instance = safe_create_instance(username, xml_file, [], None,
+                                           request)
+    if error:
+        raise serializers.ValidationError(error.message)
+
+    return instance
 
 
 class DataSerializer(serializers.HyperlinkedModelSerializer):
@@ -108,7 +138,7 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
         """
         Returns object instances based on the validated data
         """
-        request, username = get_request_and_username(self)
+        request, username = get_request_and_username(self.context)
 
         xml_file_list = request.FILES.pop('xml_submission_file', [])
         xml_file = xml_file_list[0] if xml_file_list else None
@@ -174,8 +204,8 @@ class OSMSiteMapSerializer(serializers.Serializer):
         user = instance.get('instance__xform__user__username')
 
         kwargs = {'pk': instance.get('instance__xform')}
-        url = reverse('osm-list', kwargs=kwargs,
-                      request=self.context.get('request'))
+        url = reverse(
+            'osm-list', kwargs=kwargs, request=self.context.get('request'))
 
         return {
             'url': url,
@@ -198,7 +228,8 @@ class JSONSubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
 
         if 'submission' not in request.data:
             raise serializers.ValidationError({
-                'submission': _(u"No submission key provided.")
+                'submission':
+                _(u"No submission key provided.")
             })
 
         submission = request.data.get('submission')
@@ -207,13 +238,14 @@ class JSONSubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
                 'submission':
                 _(u"Received empty submission. No instance was created")
             })
+
         return super(JSONSubmissionSerializer, self).validate(attrs)
 
     def create(self, validated_data):
         """
         Returns object instances based on the validated data
         """
-        request = self.context.get('request')
+        request, username = get_request_and_username(self.context)
         submission = request.data.get('submission')
         # convert lists in submission dict to joined strings
         try:
@@ -223,8 +255,8 @@ class JSONSubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
                 _(u'Incorrect format, see format details here,'
                   u'https://api.ona.io/static/docs/submissions.html.'))
 
-        instance = get_object_instance(self, submission_joined,
-                                       request.data.get('id'))
+        instance = create_submission(request, username, submission_joined,
+                                     request.data.get('id'))
 
         return instance
 
@@ -245,7 +277,6 @@ class RapidProSubmissionSerializer(SubmissionSuccessMixin,
             xform_pk = view.kwargs.get('xform_pk')
             xform = get_object_or_404(XForm, pk=xform_pk)
             attrs.update({'id_string': xform.id_string})
-
         else:
             raise serializers.ValidationError({
                 'xform_pk':
@@ -259,9 +290,9 @@ class RapidProSubmissionSerializer(SubmissionSuccessMixin,
         """
         Returns object instances based on the validated data.
         """
-        request = self.context.get('request')
+        request, username = get_request_and_username(self.context)
         rapidpro_dict = query_list_to_dict(request.data.get('values'))
-        instance = get_object_instance(self, rapidpro_dict,
-                                       validated_data['id_string'])
+        instance = create_submission(request, username, rapidpro_dict,
+                                     validated_data['id_string'])
 
         return instance

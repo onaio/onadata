@@ -1,12 +1,10 @@
 import os
 import re
 import tempfile
-import StringIO
 from datetime import datetime
 from wsgiref.util import FileWrapper
 from xml.dom import Node
 from xml.parsers.expat import ExpatError
-from rest_framework import serializers
 
 import pytz
 from dict2xml import dict2xml
@@ -627,34 +625,3 @@ class PublishXForm(object):
 
     def publish_xform(self):
         return publish_xml_form(self.xml_file, self.user, self.project)
-
-
-def get_request_and_username(self):
-    """
-    Returns request object and username
-    """
-    request = self.context['request']
-    view = self.context['view']
-    username = view.kwargs.get('username')
-
-    if not username:
-        # get the username from the user if not set
-        username = (request.user and request.user.username)
-
-    return (request, username)
-
-
-def get_object_instance(self, data_dict, xform_id):
-    """
-    Returns validated data object instances
-    """
-    request, username = get_request_and_username(self)
-    xml_string = dict2xform(data_dict, xform_id)
-    xml_file = StringIO.StringIO(xml_string)
-
-    error, instance = safe_create_instance(
-        username, xml_file, [], None, request)
-    if error:
-        raise serializers.ValidationError(error.message)
-
-    return instance
