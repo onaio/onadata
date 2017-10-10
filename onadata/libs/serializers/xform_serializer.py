@@ -325,7 +325,7 @@ class XFormListSerializer(serializers.Serializer):
     name = serializers.ReadOnlyField(source='title')
     majorMinorVersion = serializers.SerializerMethodField('get_version')
     version = serializers.SerializerMethodField()
-    hash = serializers.ReadOnlyField(source='hash')
+    hash = serializers.ReadOnlyField()
     descriptionText = serializers.ReadOnlyField(source='description')
     downloadUrl = serializers.SerializerMethodField('get_url')
     manifestUrl = serializers.SerializerMethodField('get_manifest_url')
