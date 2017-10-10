@@ -48,7 +48,8 @@ def enketo_mock(url, request):
 
 
 def get_latest_tags(project):
-    return [tag.name for tag in project.refresh_from_db().tags.all()]
+    project.refresh_from_db()
+    return [tag.name for tag in project.tags.all()]
 
 
 class TestProjectViewSet(TestAbstractViewSet):
