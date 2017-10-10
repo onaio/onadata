@@ -1,5 +1,6 @@
 import os
 import sys
+from hashlib import md5
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
@@ -57,8 +58,11 @@ class TestPublishXLS(TestBase):
         # make sure the has is created and is not empty
         self.assertFalse(self.xform.hash == "" or self.xform.hash is None)
         self.assertEqual(self.xform.hash, self.xform.get_hash())
-        xform_old_hash = self.xform.hash
+        # test that the md5 value of the hash is as expected
+        calculated_hash = md5(self.xform.xml.encode('utf8')).hexdigest()
+        self.assertEqual(self.xform.hash[4:], calculated_hash)
         # assert that the hash changes when you change the form title
+        xform_old_hash = self.xform.hash
         self.xform.title = "Hunter 2 Rules"
         self.xform.save(update_fields=['title'])
         self.assertFalse(self.xform.hash == "" or self.xform.hash is None)
