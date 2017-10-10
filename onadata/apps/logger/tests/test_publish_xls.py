@@ -1,11 +1,9 @@
 import os
 import sys
 
-from django.contrib.auth.models import User
 from django.core.management import call_command
 from django.core.management.base import CommandError
 
-from onadata.apps.main.models import UserProfile
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.common_tools import report_exception
