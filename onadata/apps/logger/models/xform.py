@@ -754,7 +754,7 @@ class XForm(XFormMixin, BaseModel):
                 self.xml = self.xml.decode('utf-8')
             self.xml = title_pattern.sub(u"<h:title>%s</h:title>" % title_xml,
                                          self.xml)
-
+            self._set_hash()
         if contains_xml_invalid_char(title_xml):
             raise XLSFormError(
                 _("Title shouldn't have any invalid xml "
@@ -783,8 +783,7 @@ class XForm(XFormMixin, BaseModel):
                 set(list(update_fields) + ['date_modified']))
         if update_fields is None or 'title' in update_fields:
             self._set_title()
-        if (self.pk is None) or (update_fields is not None and 'title' in
-                                 update_fields):
+        if self.pk is None:
             self._set_hash()
         if update_fields is None or 'encrypted' in update_fields:
             self._set_encrypted_field()

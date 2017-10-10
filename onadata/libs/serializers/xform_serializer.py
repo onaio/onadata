@@ -325,17 +325,13 @@ class XFormListSerializer(serializers.Serializer):
     name = serializers.ReadOnlyField(source='title')
     majorMinorVersion = serializers.SerializerMethodField('get_version')
     version = serializers.SerializerMethodField()
-    hash = serializers.SerializerMethodField()
+    hash = serializers.ReadOnlyField(source='hash')
     descriptionText = serializers.ReadOnlyField(source='description')
     downloadUrl = serializers.SerializerMethodField('get_url')
     manifestUrl = serializers.SerializerMethodField('get_manifest_url')
 
     def get_version(self, obj):
         return None
-
-    @check_obj
-    def get_hash(self, obj):
-        return u"md5:%s" % obj.hash
 
     @check_obj
     def get_url(self, obj):

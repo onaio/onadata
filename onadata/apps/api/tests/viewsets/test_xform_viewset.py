@@ -1469,7 +1469,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.patch('/', data=data, **self.extra)
             response = view(request, pk=self.xform.id)
             self.assertEqual(response.status_code, 200)
-
+            xform_old_hash = self.xform.hash
             self.xform.reload()
             self.assertTrue(self.xform.downloadable)
             self.assertTrue(self.xform.shared)
@@ -1480,6 +1480,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             matches = re.findall(r"<h:title>([^<]+)</h:title>", self.xform.xml)
             self.assertTrue(len(matches) > 0)
             self.assertEqual(matches[0], title)
+            self.assertFalse(self.xform.hash == "" or self.xform.hash is None)
+            self.assertFalse(self.xform.hash == xform_old_hash)
 
     def test_partial_update_anon(self):
         with HTTMock(enketo_mock):
