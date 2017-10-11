@@ -1,14 +1,57 @@
-from django.utils.translation import ugettext as _
+# -*- coding=utf-8 -*-
+"""
+Submission data serializers module.
+"""
+import StringIO
 
-from rest_framework import serializers
+from django.shortcuts import get_object_or_404
+from django.utils.translation import ugettext as _
+from rest_framework import exceptions, serializers
 from rest_framework.reverse import reverse
 
 from onadata.apps.logger.models.instance import Instance, InstanceHistory
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.serializers.fields.json_field import JsonField
+from onadata.libs.utils.dict_tools import (dict_lists2strings, dict_paths2dict,
+                                           query_list_to_dict)
+from onadata.libs.utils.logger_tools import dict2xform, safe_create_instance
+
+
+def get_request_and_username(context):
+    """
+    Returns request object and username
+    """
+    request = context['request']
+    view = context['view']
+    username = view.kwargs.get('username')
+
+    if not username:
+        # get the username from the user if not set
+        username = (request.user and request.user.username)
+
+    return (request, username)
+
+
+def create_submission(request, username, data_dict, xform_id):
+    """
+    Returns validated data object instances
+    """
+    xml_string = dict2xform(data_dict, xform_id)
+    xml_file = StringIO.StringIO(xml_string)
+
+    error, instance = safe_create_instance(username, xml_file, [], None,
+                                           request)
+    if error:
+        raise serializers.ValidationError(error.message)
+
+    return instance
 
 
 class DataSerializer(serializers.HyperlinkedModelSerializer):
+    """
+    DataSerializer class - used for the list view to show `id`, `id_string`,
+    `title` and `description`.
+    """
     url = serializers.HyperlinkedIdentityField(
         view_name='data-list', lookup_field='pk')
 
@@ -17,12 +60,19 @@ class DataSerializer(serializers.HyperlinkedModelSerializer):
         fields = ('id', 'id_string', 'title', 'description', 'url')
 
 
-class JsonDataSerializer(serializers.Serializer):
-    def to_representation(self, obj):
-        return obj
+class JsonDataSerializer(serializers.Serializer):  # pylint: disable=W0223
+    """
+    JSON DataSerializer class - for json field data representation.
+    """
+
+    def to_representation(self, instance):
+        return instance
 
 
 class InstanceHistorySerializer(serializers.ModelSerializer):
+    """
+    InstanceHistorySerializer class - fo the json field data representation.
+    """
     json = JsonField()
 
     class Meta:
@@ -30,13 +80,17 @@ class InstanceHistorySerializer(serializers.ModelSerializer):
         fields = ('json', )
 
     def to_representation(self, instance):
-        ret = super(
-            InstanceHistorySerializer, self).to_representation(instance)
+        ret = super(InstanceHistorySerializer,
+                    self).to_representation(instance)
 
         return ret['json'] if 'json' in ret else ret
 
 
 class DataInstanceSerializer(serializers.ModelSerializer):
+    """
+    DataInstanceSerializer class - for json field data representation on the
+    Instance (submission) model.
+    """
     json = JsonField()
 
     class Meta:
@@ -51,30 +105,69 @@ class DataInstanceSerializer(serializers.ModelSerializer):
         return ret
 
 
-class SubmissionSerializer(serializers.Serializer):
+class SubmissionSuccessMixin(object):  # pylint: disable=R0903
+    """
+    SubmissionSuccessMixin - prepares submission success data/message.
+    """
 
-    def to_representation(self, obj):
-        if obj is None:
-            return super(SubmissionSerializer, self).to_representation(obj)
+    def to_representation(self, instance):
+        """
+        Returns a dict with a successful submission message.
+        """
+        if instance is None:
+            return super(SubmissionSuccessMixin, self)\
+                .to_representation(instance)
 
         return {
             'message': _("Successful submission."),
-            'formid': obj.xform.id_string,
-            'encrypted': obj.xform.encrypted,
-            'instanceID': u'uuid:%s' % obj.uuid,
-            'submissionDate': obj.date_created.isoformat(),
-            'markedAsCompleteDate': obj.date_modified.isoformat()
+            'formid': instance.xform.id_string,
+            'encrypted': instance.xform.encrypted,
+            'instanceID': u'uuid:%s' % instance.uuid,
+            'submissionDate': instance.date_created.isoformat(),
+            'markedAsCompleteDate': instance.date_modified.isoformat()
         }
 
 
-class OSMSerializer(serializers.Serializer):
+# pylint: disable=W0223
+class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
+    """
+    XML SubmissionSerializer - handles creating a submission from XML.
+    """
 
-    def to_representation(self, obj):
+    def create(self, validated_data):
+        """
+        Returns object instances based on the validated data
+        """
+        request, username = get_request_and_username(self.context)
+
+        xml_file_list = request.FILES.pop('xml_submission_file', [])
+        xml_file = xml_file_list[0] if xml_file_list else None
+        media_files = request.FILES.values()
+
+        error, instance = safe_create_instance(username, xml_file, media_files,
+                                               None, request)
+        if error:
+            exc = exceptions.APIException(detail=error)
+            exc.response = error
+            exc.status_code = error.status_code
+
+            raise exc
+
+        return instance
+
+
+class OSMSerializer(serializers.Serializer):
+    """
+    OSM Serializer - represents OSM data.
+    """
+
+    def to_representation(self, instance):
         """
         Return a list of osm file objects from attachments.
         """
-        return obj
+        return instance
 
+    # pylint: disable=W0201
     @property
     def data(self):
         """
@@ -94,22 +187,112 @@ class OSMSerializer(serializers.Serializer):
 
 
 class OSMSiteMapSerializer(serializers.Serializer):
-    def to_representation(self, obj):
+    """
+    OSM SiteMap Serializer.
+    """
+
+    def to_representation(self, instance):
         """
         Return a list of osm file objects from attachments.
         """
-        if obj is None:
-            return super(OSMSiteMapSerializer, self).to_representation(obj)
+        if instance is None:
+            return super(OSMSiteMapSerializer, self)\
+                .to_representation(instance)
 
-        id_string = obj.get('instance__xform__id_string')
-        pk = obj.get('instance__xform')
-        title = obj.get('instance__xform__title')
-        user = obj.get('instance__xform__user__username')
+        id_string = instance.get('instance__xform__id_string')
+        title = instance.get('instance__xform__title')
+        user = instance.get('instance__xform__user__username')
 
-        kwargs = {'pk': pk}
-        url = reverse('osm-list', kwargs=kwargs,
-                      request=self.context.get('request'))
+        kwargs = {'pk': instance.get('instance__xform')}
+        url = reverse(
+            'osm-list', kwargs=kwargs, request=self.context.get('request'))
 
         return {
-            'url': url, 'title': title, 'id_string': id_string, 'user': user
+            'url': url,
+            'title': title,
+            'id_string': id_string,
+            'user': user
         }
+
+
+class JSONSubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
+    """
+    JSON SubmissionSerializer - handles JSON submission data.
+    """
+
+    def validate(self, attrs):
+        """
+        Custom submission validator in request data.
+        """
+        request = self.context['request']
+
+        if 'submission' not in request.data:
+            raise serializers.ValidationError({
+                'submission':
+                _(u"No submission key provided.")
+            })
+
+        submission = request.data.get('submission')
+        if not submission:
+            raise serializers.ValidationError({
+                'submission':
+                _(u"Received empty submission. No instance was created")
+            })
+
+        return super(JSONSubmissionSerializer, self).validate(attrs)
+
+    def create(self, validated_data):
+        """
+        Returns object instances based on the validated data
+        """
+        request, username = get_request_and_username(self.context)
+        submission = request.data.get('submission')
+        # convert lists in submission dict to joined strings
+        try:
+            submission_joined = dict_paths2dict(dict_lists2strings(submission))
+        except AttributeError:
+            raise serializers.ValidationError(
+                _(u'Incorrect format, see format details here,'
+                  u'https://api.ona.io/static/docs/submissions.html.'))
+
+        instance = create_submission(request, username, submission_joined,
+                                     request.data.get('id'))
+
+        return instance
+
+
+class RapidProSubmissionSerializer(SubmissionSuccessMixin,
+                                   serializers.Serializer):
+    """
+    Rapidpro SubmissionSerializer - handles Rapidpro webhook post.
+    """
+
+    def validate(self, attrs):
+        """
+        Custom xform id validator in views kwargs.
+        """
+        view = self.context['view']
+
+        if 'xform_pk' in view.kwargs:
+            xform_pk = view.kwargs.get('xform_pk')
+            xform = get_object_or_404(XForm, pk=xform_pk)
+            attrs.update({'id_string': xform.id_string})
+        else:
+            raise serializers.ValidationError({
+                'xform_pk':
+                _(u'Incorrect url format, Use format '
+                  u'https://api.ona.io/username/formid/submission')
+            })
+
+        return super(RapidProSubmissionSerializer, self).validate(attrs)
+
+    def create(self, validated_data):
+        """
+        Returns object instances based on the validated data.
+        """
+        request, username = get_request_and_username(self.context)
+        rapidpro_dict = query_list_to_dict(request.data.get('values'))
+        instance = create_submission(request, username, rapidpro_dict,
+                                     validated_data['id_string'])
+
+        return instance

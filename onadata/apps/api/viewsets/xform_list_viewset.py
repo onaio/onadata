@@ -1,7 +1,3 @@
-import pytz
-
-from datetime import datetime
-
 from django.conf import settings
 from django.http import Http404
 from django.shortcuts import get_object_or_404
@@ -20,6 +16,7 @@ from onadata.libs import filters
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.authentication import EnketoTokenAuthentication
 from onadata.libs.mixins.etags_mixin import ETagsMixin
+from onadata.libs.mixins.openrosa_headers_mixin import get_openrosa_headers
 from onadata.libs.renderers.renderers import MediaFileContentNegotiation
 from onadata.libs.renderers.renderers import XFormListRenderer
 from onadata.libs.renderers.renderers import XFormManifestRenderer
@@ -52,16 +49,6 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
     renderer_classes = (XFormListRenderer,)
     serializer_class = XFormListSerializer
     template_name = 'api/xformsList.xml'
-
-    def get_openrosa_headers(self):
-        tz = pytz.timezone(settings.TIME_ZONE)
-        dt = datetime.now(tz).strftime('%a, %d %b %Y %H:%M:%S %Z')
-
-        return {
-            'Date': dt,
-            'X-OpenRosa-Version': '1.0',
-            'X-OpenRosa-Accept-Content-Length': DEFAULT_CONTENT_LENGTH
-        }
 
     def get_object(self):
         queryset = self.filter_queryset(self.get_queryset())
@@ -116,17 +103,18 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
     def list(self, request, *args, **kwargs):
         self.object_list = self.filter_queryset(self.get_queryset())
 
+        headers = get_openrosa_headers(request, location=False)
         serializer = self.get_serializer(self.object_list, many=True)
         if request.method in ['HEAD']:
-            return Response('', headers=self.get_openrosa_headers(),
-                            status=204)
+            return Response('', headers=headers, status=204)
 
-        return Response(serializer.data, headers=self.get_openrosa_headers())
+        return Response(serializer.data, headers=headers)
 
     def retrieve(self, request, *args, **kwargs):
         self.object = self.get_object()
 
-        return Response(self.object.xml, headers=self.get_openrosa_headers())
+        return Response(self.object.xml,
+                        headers=get_openrosa_headers(request, location=False))
 
     @detail_route(methods=['GET', 'HEAD'])
     def manifest(self, request, *args, **kwargs):
@@ -138,7 +126,8 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
         serializer = XFormManifestSerializer(object_list, many=True,
                                              context=context)
 
-        return Response(serializer.data, headers=self.get_openrosa_headers())
+        return Response(serializer.data,
+                        headers=get_openrosa_headers(request, location=False))
 
     @detail_route(methods=['GET', 'HEAD'])
     def media(self, request, *args, **kwargs):
