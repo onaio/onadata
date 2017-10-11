@@ -17,7 +17,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='instancehistory',
             name='geom',
-            field=django.contrib.gis.db.models.fields.GeometryCollectionField(srid=4326, null=True),
+            field=django.contrib.gis.db.models.fields.GeometryCollectionField(
+                srid=4326, null=True),
             preserve_default=True,
         ),
         migrations.AddField(

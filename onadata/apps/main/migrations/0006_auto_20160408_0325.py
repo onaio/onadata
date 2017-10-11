@@ -21,6 +21,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='userprofile',
             name='metadata',
-            field=django.contrib.postgres.fields.jsonb.JSONField(blank=True, default=dict),
+            field=django.contrib.postgres.fields.jsonb.JSONField(
+                blank=True, default=dict),
         ),
     ]

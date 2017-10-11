@@ -27,7 +27,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='instance',
             name='xform',
-            field=models.ForeignKey(related_name='instances', to='logger.XForm', null=True),
+            field=models.ForeignKey(related_name='instances',
+                                    to='logger.XForm', null=True),
             preserve_default=True,
         ),
     ]

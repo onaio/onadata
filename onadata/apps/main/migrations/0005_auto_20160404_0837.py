@@ -15,7 +15,9 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='tokenstoragemodel',
             name='id',
-            field=models.OneToOneField(related_name='google_id', primary_key=True, serialize=False, to=settings.AUTH_USER_MODEL),
+            field=models.OneToOneField(
+                related_name='google_id', primary_key=True, serialize=False,
+                to=settings.AUTH_USER_MODEL),
         ),
         migrations.AlterField(
             model_name='userprofile',

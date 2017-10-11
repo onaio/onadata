@@ -14,7 +14,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='widget',
             name='aggregation',
-            field=models.CharField(default=None, max_length=255, null=True, blank=True),
+            field=models.CharField(default=None, max_length=255, null=True,
+                                   blank=True),
             preserve_default=True,
         ),
     ]

@@ -17,8 +17,11 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='OrgProfileGroupObjectPermission',
             fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('content_object', models.ForeignKey(to='api.OrganizationProfile')),
+                ('id', models.AutoField(
+                    verbose_name='ID', serialize=False, auto_created=True,
+                    primary_key=True)),
+                ('content_object',
+                 models.ForeignKey(to='api.OrganizationProfile')),
                 ('group', models.ForeignKey(to='auth.Group')),
                 ('permission', models.ForeignKey(to='auth.Permission')),
             ],
@@ -30,8 +33,11 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='OrgProfileUserObjectPermission',
             fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('content_object', models.ForeignKey(to='api.OrganizationProfile')),
+                ('id', models.AutoField(
+                    verbose_name='ID', serialize=False, auto_created=True,
+                    primary_key=True)),
+                ('content_object',
+                 models.ForeignKey(to='api.OrganizationProfile')),
                 ('permission', models.ForeignKey(to='auth.Permission')),
                 ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
             ],

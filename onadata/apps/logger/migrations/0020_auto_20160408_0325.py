@@ -21,7 +21,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='dataview',
             name='query',
-            field=django.contrib.postgres.fields.jsonb.JSONField(blank=True, default=dict),
+            field=django.contrib.postgres.fields.jsonb.JSONField(blank=True,
+                                                                 default=dict),
         ),
         migrations.AlterField(
             model_name='instance',
@@ -41,6 +42,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='widget',
             name='metadata',
-            field=django.contrib.postgres.fields.jsonb.JSONField(blank=True, default=dict),
+            field=django.contrib.postgres.fields.jsonb.JSONField(blank=True,
+                                                                 default=dict),
         ),
     ]

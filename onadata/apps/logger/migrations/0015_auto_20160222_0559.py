@@ -18,7 +18,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='widget',
             name='order',
-            field=models.PositiveIntegerField(default=0, editable=False, db_index=True),
+            field=models.PositiveIntegerField(default=0, editable=False,
+                                              db_index=True),
             preserve_default=False,
         ),
     ]
