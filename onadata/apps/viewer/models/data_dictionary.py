@@ -31,13 +31,11 @@ def sheet_to_csv(xls_content, sheet_name):
     """
     wb = xlrd.open_workbook(file_contents=xls_content)
 
-    try:
-        sheet = wb.sheet_by_name(sheet_name)
-    except xlrd.biffh.XLRDError:
-        return False
+    sheet = wb.sheet_by_name(sheet_name)
 
     if not sheet or sheet.nrows < 2:
-        return False
+        raise Exception(_(u"Sheet <'%(sheet_name)s'> has no data." %
+                          {'sheet_name': sheet_name}))
 
     csv_file = StringIO()
 
