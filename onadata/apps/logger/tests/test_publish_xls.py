@@ -1,5 +1,6 @@
 import os
 import sys
+from hashlib import md5
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
@@ -45,6 +46,27 @@ class TestPublishXLS(TestBase):
         is_updated_form = len([e.name for e in self.xform.survey_elements
                                if e.name == u'preferred_means']) > 0
         self.assertTrue(is_updated_form)
+
+    def test_xform_hash(self):
+        md = """
+        | survey |       |        |       |
+        |        | type  | name   | label |
+        |        | image | image1 | Photo |
+        """
+        self._create_user_and_login()
+        self.xform = self._publish_markdown(md, self.user)
+        # make sure the has is created and is not empty
+        self.assertFalse(self.xform.hash == "" or self.xform.hash is None)
+        self.assertEqual(self.xform.hash, self.xform.get_hash())
+        # test that the md5 value of the hash is as expected
+        calculated_hash = md5(self.xform.xml.encode('utf8')).hexdigest()
+        self.assertEqual(self.xform.hash[4:], calculated_hash)
+        # assert that the hash changes when you change the form title
+        xform_old_hash = self.xform.hash
+        self.xform.title = "Hunter 2 Rules"
+        self.xform.save(update_fields=['title'])
+        self.assertFalse(self.xform.hash == "" or self.xform.hash is None)
+        self.assertFalse(self.xform.hash == xform_old_hash)
 
     def test_report_exception_with_exc_info(self):
         e = Exception("A test exception")

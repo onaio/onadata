@@ -690,7 +690,8 @@ class XForm(XFormMixin, BaseModel):
         object_id_field="object_id")
     has_hxl_support = models.BooleanField(default=False)
     last_updated_at = models.DateTimeField(auto_now=True)
-
+    hash = models.CharField(_("Hash"), max_length=36, blank=True, null=True,
+                            default=None)
     # XForm was created as a merged dataset
     is_merged_dataset = models.BooleanField(default=False)
 
@@ -753,13 +754,16 @@ class XForm(XFormMixin, BaseModel):
                 self.xml = self.xml.decode('utf-8')
             self.xml = title_pattern.sub(u"<h:title>%s</h:title>" % title_xml,
                                          self.xml)
-
+            self._set_hash()
         if contains_xml_invalid_char(title_xml):
             raise XLSFormError(
                 _("Title shouldn't have any invalid xml "
                   "characters ('>' '&' '<')"))
 
         self.title = title_xml
+
+    def _set_hash(self):
+        self.hash = self.get_hash()
 
     def _set_encrypted_field(self):
         if self.json and self.json != '':
@@ -779,6 +783,8 @@ class XForm(XFormMixin, BaseModel):
                 set(list(update_fields) + ['date_modified']))
         if update_fields is None or 'title' in update_fields:
             self._set_title()
+        if self.pk is None:
+            self._set_hash()
         if update_fields is None or 'encrypted' in update_fields:
             self._set_encrypted_field()
         if update_fields is None or 'id_string' in update_fields:
@@ -894,9 +900,8 @@ class XForm(XFormMixin, BaseModel):
         except ObjectDoesNotExist:
             pass
 
-    @property
-    def hash(self):
-        return u'%s' % md5(self.xml.encode('utf8')).hexdigest()
+    def get_hash(self):
+        return u'md5:%s' % md5(self.xml.encode('utf8')).hexdigest()
 
     @property
     def can_be_replaced(self):

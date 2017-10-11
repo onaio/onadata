@@ -135,7 +135,9 @@ Response
                 "_id": 4503,
                 "_bamboo_dataset_id": "",
                 "_deleted_at": null,
+                "_edited": false,
                 "expense_type": "service",
+                "_xform_id": 22845,
                 "_xform_id_string": "exp",
                 "_geolocation": [
                     null,
@@ -143,6 +145,7 @@ Response
                 ],
                 "end": "2013-01-03T10:26:25.674+03",
                 "start": "2013-01-03T10:25:17.409+03",
+                "_duration": "",
                 "expense_date": "2011-12-23",
                 "_status": "submitted_via_web",
                 "today": "2013-01-03",
@@ -151,12 +154,19 @@ Response
                 "formhub/uuid": "46ea15e2b8134624a47e2c4b77eef0d4",
                 "kind": "monthly",
                 "_submission_time": "2013-01-03T02:27:19",
+                "_submitted_by": "onaio",
                 "required": "yes",
                 "_attachments": [],
+                "_tags": [],
+                "_notes": [],
                 "item": "Rent",
                 "amount": "35000.0",
                 "deviceid": "351746052013466",
-                "subscriberid": "639027...60317"
+                "subscriberid": "639027...60317",
+                "_version": "1",
+                "_media_count": 0,
+                "_total_media": 0,
+                "_media_all_received": true
             },
             ....
         ]
