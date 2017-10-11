@@ -290,9 +290,10 @@ class UserProfileWithTokenSerializer(serializers.HyperlinkedModelSerializer):
     def get_temp_token(self, object):
         """This should return a valid temp token for this user profile."""
         token, created = TempToken.objects.get_or_create(user=object.user)
+        check_expired = getattr(settings, 'CHECK_EXPIRED_TEMP_TOKEN', True)
 
         try:
-            if not created and expired(token.created):
+            if check_expired and not created and expired(token.created):
                 with transaction.atomic():
                     TempToken.objects.get(user=object.user).delete()
                     token = TempToken.objects.create(user=object.user)
