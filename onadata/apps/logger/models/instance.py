@@ -39,6 +39,8 @@ from onadata.libs.utils.timing import calculate_duration
 
 ASYNC_POST_SUBMISSION_PROCESSING_ENABLED = \
     getattr(settings, 'ASYNC_POST_SUBMISSION_PROCESSING_ENABLED', False)
+DISABLE_XFORM_PROJECT_UPDATES = \
+    getattr(settings, 'DISABLE_XFORM_PROJECT_UPDATES', False)
 
 
 def get_attachment_url(attachment, suffix=None):
@@ -497,13 +499,19 @@ class Instance(models.Model, InstanceBaseClass):
 
 def post_save_submission(sender, instance=None, created=False, **kwargs):
     if ASYNC_POST_SUBMISSION_PROCESSING_ENABLED:
-        update_xform_submission_count.apply_async(args=[instance.pk, created])
+        if not DISABLE_XFORM_PROJECT_UPDATES:
+            update_xform_submission_count.apply_async(args=[instance.pk,
+                                                            created])
         save_full_json.apply_async(args=[instance.pk, created])
-        update_project_date_modified.apply_async(args=[instance.pk, created])
+        if not DISABLE_XFORM_PROJECT_UPDATES:
+            update_project_date_modified.apply_async(args=[instance.pk,
+                                                           created])
     else:
-        update_xform_submission_count(instance.pk, created)
+        if not DISABLE_XFORM_PROJECT_UPDATES:
+            update_xform_submission_count(instance.pk, created)
         save_full_json(instance.pk, created)
-        update_project_date_modified(instance.pk, created)
+        if not DISABLE_XFORM_PROJECT_UPDATES:
+            update_project_date_modified(instance.pk, created)
 
 
 post_save.connect(post_save_submission, sender=Instance,
