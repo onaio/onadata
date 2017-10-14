@@ -543,7 +543,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                  for xpath, cols in self.ordered_columns.iteritems()]))
 
             # add extra columns
-            columns += [col for col in self.ADDITIONAL_COLUMNS]
+            columns += [col for col in set(self.ADDITIONAL_COLUMNS)]
             for field in self.dd.get_survey_elements_of_type('osm'):
                 columns += OsmData.get_tag_keys(self.xform,
                                                 field.get_abbreviated_xpath(),
