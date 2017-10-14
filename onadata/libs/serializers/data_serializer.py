@@ -134,6 +134,13 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
     XML SubmissionSerializer - handles creating a submission from XML.
     """
 
+    def validate(self, attrs):
+        request, __ = get_request_and_username(self.context)
+        if not request.FILES or 'xml_submission_file' not in request.FILES:
+            raise serializers.ValidationError(_("No XML submission file."))
+
+        return super(SubmissionSerializer, self).validate(attrs)
+
     def create(self, validated_data):
         """
         Returns object instances based on the validated data
