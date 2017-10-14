@@ -393,3 +393,14 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertContains(response, 'Successful submission', status_code=201)
         self.assertTrue(response.has_header('Date'))
         self.assertEqual(response['Location'], 'http://testserver/submission')
+
+    def test_post_empty_submission(self):
+        """
+        Test empty submission fails.
+        """
+        request = self.factory.post(
+            '/%s/submission' % self.user.username, {})
+        request.user = AnonymousUser()
+        response = self.view(request, username=self.user.username)
+        self.assertContains(response, 'No XML submission file.',
+                            status_code=400)
