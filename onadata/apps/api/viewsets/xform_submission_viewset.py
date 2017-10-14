@@ -3,10 +3,11 @@
 XFormSubmissionViewSet module
 """
 from django.conf import settings
-from rest_framework import mixins, permissions, viewsets
+from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.authentication import (BasicAuthentication,
                                            TokenAuthentication)
 from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer
+from rest_framework.response import Response
 
 from onadata.apps.api.permissions import IsAuthenticatedSubmission
 from onadata.apps.api.tools import get_baseviewset_class
@@ -60,6 +61,15 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
             return RapidProSubmissionSerializer
 
         return SubmissionSerializer
+
+    def create(self, request, *args, **kwargs):
+        if request.method.upper() == 'HEAD':
+            return Response(
+                status=status.HTTP_204_NO_CONTENT,
+                template_name=self.template_name)
+
+        return super(XFormSubmissionViewSet, self).create(
+            request, *args, **kwargs)
 
     def handle_exception(self, exc):
         if hasattr(exc, 'response'):
