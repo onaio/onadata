@@ -13,7 +13,7 @@ from onadata.apps.logger.models.instance import Instance, InstanceHistory
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.dict_tools import (dict_lists2strings, dict_paths2dict,
-                                           query_list_to_dict)
+                                           query_list_to_dict, floip_response_headers_dict)
 from onadata.libs.utils.logger_tools import dict2xform, safe_create_instance
 
 
@@ -302,4 +302,22 @@ class RapidProSubmissionSerializer(SubmissionSuccessMixin,
         instance = create_submission(request, username, rapidpro_dict,
                                      validated_data['id_string'])
 
+        return instance
+
+
+class FLOIPSubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
+    """
+    FLOIP Submmission Serializer - Handles a single row of FLOIP specification format.
+    """
+    def create(self, validated_data):
+        """
+        Returns object instances based on the validated data.
+        """
+        request, username = get_request_and_username(self.context)
+        xform_pk = self.context['view'].kwargs['xform_pk']
+        xform_id = get_object_or_404(XForm, pk=xform_pk).id_string
+        xform_headers = XForm.objects.get(id_string=xform_id).get_headers()
+        flow_dict = floip_response_headers_dict(request.data, xform_headers)
+        instance = create_submission(request, username, flow_dict,
+                                     xform_id)
         return instance
