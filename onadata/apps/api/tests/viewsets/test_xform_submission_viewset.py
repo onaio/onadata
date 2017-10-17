@@ -404,3 +404,36 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         response = self.view(request, username=self.user.username)
         self.assertContains(response, 'No XML submission file.',
                             status_code=400)
+
+    def test_auth_submission_head_request(self):
+        """
+        Test HEAD submission request.
+        """
+        request = self.factory.head('/submission')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth('bob', 'bobbob')
+        request.META.update(auth(request.META, response))
+        response = self.view(request, username=self.user.username)
+        self.assertEqual(response.status_code, 204, response.data)
+        self.assertTrue(response.has_header('X-OpenRosa-Version'))
+        self.assertTrue(
+            response.has_header('X-OpenRosa-Accept-Content-Length'))
+        self.assertTrue(response.has_header('Date'))
+        self.assertEqual(response['Location'], 'http://testserver/submission')
+
+    def test_head_submission_anonymous(self):
+        """
+        Test HEAD submission request for anonymous user.
+        """
+        request = self.factory.head('/%s/submission' % self.user.username)
+        request.user = AnonymousUser()
+        response = self.view(request, username=self.user.username)
+        self.assertEqual(response.status_code, 204, response.data)
+        self.assertTrue(response.has_header('X-OpenRosa-Version'))
+        self.assertTrue(
+            response.has_header('X-OpenRosa-Accept-Content-Length'))
+        self.assertTrue(response.has_header('Date'))
+        self.assertEqual(response['Location'],
+                         'http://testserver/%s/submission'
+                         % self.user.username)

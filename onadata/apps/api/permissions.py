@@ -426,7 +426,7 @@ class IsAuthenticatedSubmission(BasePermission):
     """
     def has_permission(self, request, view):
         username = view.kwargs.get('username')
-        if request.method == 'POST' and request.user.is_anonymous():
+        if request.method in ['HEAD', 'POST'] and request.user.is_anonymous():
             if username is None:
                 # raises a permission denied exception, forces authentication
                 return False
