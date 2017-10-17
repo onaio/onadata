@@ -265,3 +265,12 @@ class DecimalJSONRenderer(JSONRenderer):
     Extends the default json renderer to handle Decimal('NaN') values
     """
     encoder_class = DecimalEncoder
+
+
+class FLOIPRenderer(BaseRenderer):
+    media_type = 'application/flow+json'
+    format = 'json'
+    charset = 'utf-8'
+
+    def render(self, data, media_type=None, renderer_context=None):
+        return data

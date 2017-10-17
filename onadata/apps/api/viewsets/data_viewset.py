@@ -103,6 +103,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         renderers.GeoJsonRenderer,
         renderers.KMLRenderer,
         renderers.OSMRenderer,
+        renderers.FLOIPRenderer
     ]
 
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,
