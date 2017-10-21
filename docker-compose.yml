@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  db:
+    build: ./docker/postgis
+    image: postgis:9.6
+  queue:
+    image: rabbitmq
+  web:
+    build: .
+    image: onadata:master
+    volumes:
+      - .:/srv/onadata
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - queue
+
