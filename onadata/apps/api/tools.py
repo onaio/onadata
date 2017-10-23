@@ -328,9 +328,14 @@ def publish_project_xform(request, project):
     xform = None
 
     def id_string_exists_in_account():
+        """
+        Returns True if form with same id_string exists in the account.
+        """
         try:
             XForm.objects.get(
-                user=project.organization, id_string=xform.id_string)
+                Q(id_string=xform.id_string) |
+                Q(sms_id_string=xform.id_string),
+                user=project.organization)
         except XForm.DoesNotExist:
             return False
 
