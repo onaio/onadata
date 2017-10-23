@@ -108,7 +108,10 @@ class DataDictionary(XForm):
                     survey.get('id_string'))
                 self._id_string_changed = \
                     new_id_string != survey.get('id_string')
+                sms_id_change = survey['sms_keyword'] == survey['id_string']
                 survey['id_string'] = new_id_string
+                if self._id_string_changed and sms_id_change:
+                    survey['sms_keyword'] = new_id_string
             elif self.id_string != survey.get('id_string'):
                 raise XLSFormError(_(
                     (u"Your updated form's id_string '%(new_id)s' must match "

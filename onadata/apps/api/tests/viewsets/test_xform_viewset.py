@@ -1186,7 +1186,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                     'url': 'http://testserver/api/v1/forms/%s' % xform.pk,
                     'id_string': u'Transportation_2011_07_25_1',
                     'title': u'Transportation_2011_07_25',
-                    'sms_id_string': u'Transportation_2011_07_25',
+                    'sms_id_string': u'Transportation_2011_07_25_1',
                     'has_id_string_changed': True,
                 })
 
