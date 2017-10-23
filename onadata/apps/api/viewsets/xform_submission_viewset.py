@@ -52,6 +52,17 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
     template_name = 'submission.xml'
     parser_classes = (FLOIPParser, JSONParser, FormParser, MultiPartParser)
 
+    def get_serializer(self, *args, **kwargs):
+        """
+        Pass many=True flag if data is a list.
+        """
+        if "data" in kwargs:
+            data = kwargs["data"]
+
+            if isinstance(data, list):
+                kwargs["many"] = True
+        return super(XFormSubmissionViewSet, self).get_serializer(*args, **kwargs)
+
     def get_serializer_class(self):
         """
         Returns the serializer class to be used based on content_type.
@@ -68,6 +79,9 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
             return RapidProSubmissionSerializer
 
         if 'application/flow+json' in content_type:
+            self.request.accepted_renderer = FLOIPRenderer()
+            self.request.accepted_media_type = 'application/flow+json'
+
             return FLOIPSubmissionSerializer
 
         return SubmissionSerializer
