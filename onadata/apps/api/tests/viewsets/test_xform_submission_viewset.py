@@ -455,3 +455,43 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertContains(response, 'Successful submission', status_code=201)
         self.assertTrue(response.has_header('Date'))
         self.assertEqual(response['Location'], 'http://testserver/submission')
+
+    def test_floip_format_submission_missing_column(self):
+        """
+        Test receiving a row of FLOIP submission.
+        """
+        # pylint: disable=C0301
+        data = '[["2017-05-23T13:35:37.119-04:00", 923842093, "ae54d3", "female", {"option_order": ["male", "female"]}]]'  # noqa
+        request = self.factory.post(
+            '/submission', data,
+            content_type='application/vnd.org.flowinterop.results+json')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth('bob', 'bobbob')
+        request.META.update(auth(request.META, response))
+        response = self.view(request, username=self.user.username,
+                             xform_pk=self.xform.pk)
+        self.assertContains(response,
+                            "{u'non_field_errors': [u'All rows must have 6 "
+                            "values, row 0 does not.']}",
+                            status_code=400)
+
+    def test_floip_format_submission_not_list(self):
+        """
+        Test receiving a row of FLOIP submission.
+        """
+        # pylint: disable=C0301
+        data = '"2017-05-23T13:35:37.119-04:00", 923842093, "ae54d3", "female", {"option_order": ["male", "female"]}'  # noqa
+        request = self.factory.post(
+            '/submission', data,
+            content_type='application/vnd.org.flowinterop.results+json')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth('bob', 'bobbob')
+        request.META.update(auth(request.META, response))
+        response = self.view(request, username=self.user.username,
+                             xform_pk=self.xform.pk)
+        self.assertContains(response,
+                            "{u'non_field_errors': [u'Invalid format. "
+                            "Expecting a list.']}",
+                            status_code=400)
