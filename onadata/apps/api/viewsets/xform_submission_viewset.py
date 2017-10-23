@@ -56,12 +56,13 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
         """
         Pass many=True flag if data is a list.
         """
-        if "data" in kwargs:
-            data = kwargs["data"]
+        data = kwargs.get("data")
 
-            if isinstance(data, list):
-                kwargs["many"] = True
-        return super(XFormSubmissionViewSet, self).get_serializer(*args, **kwargs)
+        if isinstance(data, list):
+            kwargs["many"] = True
+
+        return super(XFormSubmissionViewSet, self).get_serializer(*args,
+                                                                  **kwargs)
 
     def get_serializer_class(self):
         """
@@ -102,4 +103,5 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
         """
         if hasattr(exc, 'response'):
             return exc.response
+
         return super(XFormSubmissionViewSet, self).handle_exception(exc)
