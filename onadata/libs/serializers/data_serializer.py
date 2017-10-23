@@ -310,20 +310,28 @@ class FLOIPSubmissionSerializer(SubmissionSuccessMixin,
     """
     FLOIP SubmmissionSerializer - Handles a row of FLOIP specification format.
     """
-    def to_internal_value(self, data):
-        """
-        Overrides validating rows in list data.
-        """
+    def validate(self, attrs):
+        data = self.context['request'].data
         error_msg = None
 
         if not isinstance(data, list):
             error_msg = u'Invalid format. Expecting a list.'
-        elif len(data) < 5:
-            error_msg = u"Invalid row."
+        else:
+            for row_i in xrange(len(data)):
+                if len(data[row_i]) != 6:
+                    error_msg = u"All rows must have 6 values, "\
+                                u"row %s does not." % row_i
+                    break
 
         if error_msg:
             raise serializers.ValidationError(_(error_msg))
 
+        return super(FLOIPSubmissionSerializer, self).validate(attrs)
+
+    def to_internal_value(self, data):
+        """
+        Overrides validating rows in list data.
+        """
         data = {data[1]: data}
 
         return data
