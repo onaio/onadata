@@ -187,15 +187,22 @@ def check_submission_permissions(request, xform):
               }))
 
 
-def update_instance_attachment_tracking(instance):
+def update_attachment_tracking(instance):
     """
     Takes an Instance object and updates attachment tracking fields
     """
     num_media = 0
-    media_xpaths = instance.xform.get_media_survey_xpaths()
-    for media_xpath in media_xpaths:
-        num_media += len([x for x in get_values_matching_key(
-            instance.get_dict(), media_xpath)])
+    if instance.xform.encrypted:
+        data = instance.get_dict()
+        if 'encryptedXmlFile' in data:
+            num_media += 1
+        if 'media' in data:
+            num_media += len(data['media'])
+    else:
+        media_xpaths = instance.xform.get_media_survey_xpaths()
+        for media_xpath in media_xpaths:
+            num_media += len([x for x in get_values_matching_key(
+                instance.get_dict(), media_xpath)])
     instance.total_media = num_media
     instance.media_count = instance.attachments.count()
     instance.media_all_received = instance.media_count == \
@@ -206,6 +213,11 @@ def update_instance_attachment_tracking(instance):
 
 
 def save_attachments(xform, instance, media_files):
+    """
+    Saves attachments for the given instance/submission.
+    """
+    # upload_path = os.path.join(instance.xform.user.username, 'attachments')
+
     for f in media_files:
         filename, extension = os.path.splitext(f.name)
         extension = extension.replace('.', '')
@@ -214,13 +226,21 @@ def save_attachments(xform, instance, media_files):
         if extension == Attachment.OSM and not xform.instances_with_osm:
             xform.instances_with_osm = True
             xform.save()
-
+        # filename = os.path.join(upload_path, f.name)
+        # attachments = Attachment.objects.filter(instance=instance,
+        #                                         media_file=filename)
+        # attachment = attachments.first()
+        # if attachment:
+        #     if attachment.media_file.size < f.size():
+        #         attachment.media_file = f
+        #         attachment.save()
+        # else:
         Attachment.objects.get_or_create(
             instance=instance,
             media_file=f,
             mimetype=content_type,
             extension=extension)
-    update_instance_attachment_tracking(instance)
+    update_attachment_tracking(instance)
 
 
 def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
