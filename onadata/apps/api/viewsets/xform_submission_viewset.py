@@ -29,7 +29,7 @@ DEFAULT_CONTENT_LENGTH = getattr(settings, 'DEFAULT_CONTENT_LENGTH', 10000000)
 
 
 class FLOIPParser(JSONParser):
-    media_type = 'application/flow+json'
+    media_type = 'application/vnd.org.flowinterop.results+json'
     renderer_classes = FLOIPRenderer
 
 
@@ -78,9 +78,9 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
         if 'application/x-www-form-urlencoded' in content_type:
             return RapidProSubmissionSerializer
 
-        if 'application/flow+json' in content_type:
+        if 'application/vnd.org.flowinterop.results+json' in content_type:
             self.request.accepted_renderer = FLOIPRenderer()
-            self.request.accepted_media_type = 'application/flow+json'
+            self.request.accepted_media_type = 'application/vnd.org.flowinterop.results+json'
 
             return FLOIPSubmissionSerializer
 

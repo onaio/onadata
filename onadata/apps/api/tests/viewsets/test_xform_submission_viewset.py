@@ -444,7 +444,8 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         # pylint: disable=C0301
         data = '[["2017-05-23T13:35:37.119-04:00", 20394823948, 923842093, "ae54d3", "female", {"option_order": ["male", "female"]}]]'
         request = self.factory.post(
-            '/submission', data, content_type='application/flow+json')
+            '/submission', data,
+            content_type='application/vnd.org.flowinterop.results+json')
         response = self.view(request)
         self.assertEqual(response.status_code, 401)
         auth = DigestAuth('bob', 'bobbob')

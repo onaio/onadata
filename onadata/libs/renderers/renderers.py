@@ -268,7 +268,7 @@ class DecimalJSONRenderer(JSONRenderer):
 
 
 class FLOIPRenderer(BaseRenderer):
-    media_type = 'application/flow+json'
+    media_type = 'application/vnd.org.flowinterop.results+json'
     format = 'json'
     charset = 'utf-8'
 
