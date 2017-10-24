@@ -13,6 +13,7 @@ from onadata.apps.api.viewsets.xform_submission_viewset import\
     XFormSubmissionViewSet
 from onadata.apps.logger.models import Attachment
 from onadata.libs.permissions import DataEntryRole
+from onadata.apps.logger.models import Instance
 
 
 class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
@@ -514,4 +515,21 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertContains(response, 'Successful submission', status_code=201)
         self.assertTrue(response.has_header('Date'))
         self.assertEqual(response['Location'], 'http://testserver/submission')
-
+    
+    def test_floip_format_multiple_rows_instance(self):
+        # pylint: disable=C0301
+        data = '[["2017-05-23T13:35:37.119-04:00", 20394823948, 923842093, "ae54d3", "female", {"option_order": ["male", "female"]}], ["2017-05-23T13:35:47.822-04:00", 20394823950, 923842093, "ae54d7", "chocolate", null ]]'  # noqa
+        request = self.factory.post(
+            '/submission', data,
+            content_type='application/vnd.org.flowinterop.results+json')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth('bob', 'bobbob')
+        request.META.update(auth(request.META, response))
+        response = self.view(request, username=self.user.username,
+                             xform_pk=self.xform.pk)
+        instance_json = Instance.objects.last().json
+        instance_json_values = [item for sublist in instance_json.values()
+                                for item in sublist]
+        data_responses = [i[4] for i in json.loads(data)]
+        self.assertTrue(set(data_responses).issubset(instance_json_values))  
