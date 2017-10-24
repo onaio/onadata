@@ -495,3 +495,23 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                             "{u'non_field_errors': [u'Invalid format. "
                             "Expecting a list.']}",
                             status_code=400)
+    
+    def test_floip_format_multiple_rows_submission(self):
+        """
+        Test FLOIP multiple rows submission
+        """
+        # pylint: disable=C0301
+        data = '[["2017-05-23T13:35:37.119-04:00", 20394823948, 923842093, "ae54d3", "female", {"option_order": ["male", "female"]}], ["2017-05-23T13:35:47.822-04:00", 20394823950, 923842093, "ae54d7", "chocolate", null ]]'  # noqa
+        request = self.factory.post(
+            '/submission', data,
+            content_type='application/vnd.org.flowinterop.results+json')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth('bob', 'bobbob')
+        request.META.update(auth(request.META, response))
+        response = self.view(request, username=self.user.username,
+                             xform_pk=self.xform.pk)
+        self.assertContains(response, 'Successful submission', status_code=201)
+        self.assertTrue(response.has_header('Date'))
+        self.assertEqual(response['Location'], 'http://testserver/submission')
+
