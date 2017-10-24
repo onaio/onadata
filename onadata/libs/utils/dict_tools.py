@@ -170,9 +170,8 @@ def floip_response_headers_dict(data, xform_headers):
     """
     Returns a dict from matching xform headers and floip responses.
     """
-    flow_dict = dict()
-    for header in xform_headers:
-        for response in data:
-            flow_dict[header.split('/')[-1]] = response[4]
+    headers = [i.split('/')[-1] for i in xform_headers]
+    data = [i[4] for i in data]
+    flow_dict = dict(zip(headers, data))
 
     return flow_dict
