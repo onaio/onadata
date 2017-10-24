@@ -46,8 +46,8 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
     filter_backends = (filters.AnonDjangoObjectPermissionFilter, )
     model = Instance
     permission_classes = (permissions.AllowAny, IsAuthenticatedSubmission)
-    renderer_classes = (FLOIPRenderer, TemplateXMLRenderer, JSONRenderer,
-                        BrowsableAPIRenderer)
+    renderer_classes = (TemplateXMLRenderer, JSONRenderer,
+                        BrowsableAPIRenderer, FLOIPRenderer)
     serializer_class = SubmissionSerializer
     template_name = 'submission.xml'
     parser_classes = (FLOIPParser, JSONParser, FormParser, MultiPartParser)
@@ -60,7 +60,7 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
         content_type = self.request.content_type.lower()
 
         if (isinstance(data, list)
-            and 'application/vnd.org.flowinterop.results+json' in content_type):
+                and 'application/vnd.org.flowinterop.results+json' in content_type):
             kwargs["many"] = True
 
         return super(XFormSubmissionViewSet, self).get_serializer(*args,
@@ -94,6 +94,7 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
             return Response(
                 status=status.HTTP_204_NO_CONTENT,
                 template_name=self.template_name)
+
         return super(XFormSubmissionViewSet, self).create(
             request, *args, **kwargs)
 
