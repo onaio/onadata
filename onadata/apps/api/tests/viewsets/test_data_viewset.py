@@ -605,6 +605,13 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
 
+        # invalid start is ignored, all data is returned
+        request = self.factory.get('/', data={"start": "", "limit": 10},
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
     def test_data_start_limit_sort(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
