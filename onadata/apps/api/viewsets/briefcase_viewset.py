@@ -125,8 +125,11 @@ class BriefcaseViewset(mixins.CreateModelMixin,
             xform_kwargs['user__username__iexact'] = username
         xform = get_form(xform_kwargs)
         self.check_object_permissions(self.request, xform)
-        instances = Instance.objects.filter(
-            xform=xform, deleted_at__isnull=True).order_by('pk')
+        instances = Instance.objects.filter(xform=xform,
+                                            deleted_at__isnull=True)
+        if xform.encrypted:
+            instances = instances.filter(media_all_received=True)
+        instances = instances.order_by('pk')
         num_entries = self.request.GET.get('numEntries')
         cursor = self.request.GET.get('cursor')
 
