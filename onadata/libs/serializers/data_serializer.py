@@ -342,9 +342,9 @@ class FLOIPSubmissionSerializer(SubmissionSuccessMixin,
         """
         request, username = get_request_and_username(self.context)
         xform_pk = self.context['view'].kwargs['xform_pk']
-        xform_id = get_object_or_404(XForm, pk=xform_pk).id_string
-        xform_headers = XForm.objects.get(id_string=xform_id).get_keys()
+        xform = get_object_or_404(XForm, pk=xform_pk)
+        xform_headers = xform.get_keys()
         flow_dict = floip_response_headers_dict(request.data, xform_headers)
         instance = create_submission(request, username, flow_dict,
-                                     xform_id)
+                                     xform)
         return instance
