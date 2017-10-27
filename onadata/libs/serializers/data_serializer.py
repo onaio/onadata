@@ -319,8 +319,8 @@ class FLOIPSubmissionSerializer(SubmissionSuccessMixin,
         else:
             for row_i in xrange(len(data)):
                 if len(data[row_i]) != 6:
-                    error_msg = u"All rows must have 6 values, "\
-                                u"row %s does not." % row_i
+                    error_msg = _(u"All rows must have 6 values, "\
+                                  u"row %(row)s does not." % {'row': row_i})
                     break
 
         if error_msg:
