@@ -82,7 +82,7 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
         if 'application/x-www-form-urlencoded' in content_type:
             return RapidProSubmissionSerializer
 
-        if FLOIP_RESULTS_CONTENT_TYPE' in content_type:
+        if FLOIP_RESULTS_CONTENT_TYPE in content_type:
             self.request.accepted_renderer = FLOIPRenderer()
             self.request.accepted_media_type = FLOIP_RESULTS_CONTENT_TYPE
             return FLOIPSubmissionSerializer
