@@ -26,10 +26,11 @@ BaseViewset = get_baseviewset_class()  # pylint: disable=C0103
 
 # 10,000,000 bytes
 DEFAULT_CONTENT_LENGTH = getattr(settings, 'DEFAULT_CONTENT_LENGTH', 10000000)
+FLOIP_RESULTS_CONTENT_TYPE = 'application/vnd.org.flowinterop.results+json'
 
 
 class FLOIPParser(JSONParser):
-    media_type = 'application/vnd.org.flowinterop.results+json'
+    media_type = FLOIP_RESULTS_CONTENT_TYPE
     renderer_classes = FLOIPRenderer
 
 
@@ -60,7 +61,7 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
         content_type = self.request.content_type.lower()
 
         if (isinstance(data, list)
-                and 'application/vnd.org.flowinterop.results+json' in content_type):
+                and FLOIP_RESULTS_CONTENT_TYPE in content_type):
             kwargs["many"] = True
 
         return super(XFormSubmissionViewSet, self).get_serializer(*args,
@@ -81,10 +82,9 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
         if 'application/x-www-form-urlencoded' in content_type:
             return RapidProSubmissionSerializer
 
-        if 'application/vnd.org.flowinterop.results+json' in content_type:
+        if FLOIP_RESULTS_CONTENT_TYPE' in content_type:
             self.request.accepted_renderer = FLOIPRenderer()
-            self.request.accepted_media_type = ('application/vnd.org.'
-                                                'flowinterop.results+json')
+            self.request.accepted_media_type = FLOIP_RESULTS_CONTENT_TYPE
             return FLOIPSubmissionSerializer
 
         return SubmissionSerializer
