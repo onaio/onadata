@@ -1,3 +1,8 @@
+# -*- coding=utf-8 -*-
+# pylint: disable=too-many-lines
+"""
+XForm model for the XLSForm/XForm.
+"""
 import base64
 import json
 import os
@@ -19,33 +24,29 @@ from django.utils import timezone
 from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
-from pyxform import SurveyElementBuilder, constants
-from pyxform.question import Question
-from pyxform.section import RepeatingSection
-from pyxform.xform2json import create_survey_element_from_xml
 from taggit.managers import TaggableManager
 
 from onadata.apps.logger.xform_instance_parser import (XLSFormError,
                                                        clean_and_parse_xml)
 from onadata.apps.main.models import MetaData
 from onadata.libs.models.base_model import BaseModel
-from onadata.libs.utils.cache_tools import (IS_ORG, PROJ_FORMS_CACHE,
-                                            PROJ_BASE_FORMS_CACHE,
-                                            PROJ_NUM_DATASET_CACHE,
-                                            PROJ_SUB_DATE_CACHE, XFORM_COUNT,
-                                            safe_delete)
-from onadata.libs.utils.common_tags import (DURATION, KNOWN_MEDIA_TYPES, NOTES,
-                                            SUBMISSION_TIME, SUBMITTED_BY,
-                                            TAGS, UUID, VERSION, TOTAL_MEDIA,
-                                            MEDIA_COUNT, MEDIA_ALL_RECEIVED,
-                                            ID)
+from onadata.libs.utils.cache_tools import (
+    IS_ORG, PROJ_BASE_FORMS_CACHE, PROJ_FORMS_CACHE, PROJ_NUM_DATASET_CACHE,
+    PROJ_SUB_DATE_CACHE, XFORM_COUNT, safe_delete)
+from onadata.libs.utils.common_tags import (
+    DURATION, ID, KNOWN_MEDIA_TYPES, MEDIA_ALL_RECEIVED, MEDIA_COUNT, NOTES,
+    SUBMISSION_TIME, SUBMITTED_BY, TAGS, TOTAL_MEDIA, UUID, VERSION)
 from onadata.libs.utils.model_tools import queryset_iterator
+from pyxform import SurveyElementBuilder, constants
+from pyxform.question import Question
+from pyxform.section import RepeatingSection
+from pyxform.xform2json import create_survey_element_from_xml
 
 QUESTION_TYPES_TO_EXCLUDE = [
     u'note',
 ]
 XFORM_TITLE_LENGTH = 255
-title_pattern = re.compile(r"<h:title>(.*?)</h:title>")
+TITLE_PATTERN = re.compile(r"<h:title>(.*?)</h:title>")
 
 
 def _encode_for_mongo(key):
@@ -53,28 +54,57 @@ def _encode_for_mongo(key):
                   [(r'^\$', '$'), (r'\.', '.')], key)
 
 
-def question_types_to_exclude(_type):
-    return _type in QUESTION_TYPES_TO_EXCLUDE
+def _rename_key(record, old_key, new_key):
+    """
+    Renames a key in a dict.
+    """
+    assert new_key not in record, record
+    record[new_key] = record[old_key]
+    del record[old_key]
+
+
+def _expand_select_all_that_apply(record, key, e):
+    if e and e.bind.get(u"type") == u"select":
+        options_selected = record[key].split()
+        for child in e.children:
+            new_key = child.get_abbreviated_xpath()
+            record[new_key] = child.name in options_selected
+
+        del record[key]
+
+
+def question_types_to_exclude(element_type):
+    """
+    Ruturns True if the element_type is in QUESTION_TYPES_TO_EXCLUDE.
+    """
+    return element_type in QUESTION_TYPES_TO_EXCLUDE
 
 
 def upload_to(instance, filename):
+    """
+    Returns XLSForm upload path.
+    """
     return os.path.join(instance.user.username, 'xls',
                         os.path.split(filename)[1])
 
 
-def contains_xml_invalid_char(text, invalids=['&', '>', '<']):
+def contains_xml_invalid_char(text, invalids=None):
     """Check whether 'text' contains ANY invalid xml chars"""
+    default_invalids = ['&', '>', '<']
+    if not invalids:
+        invalids = default_invalids
     return 1 in [c in text for c in invalids]
 
 
-class DictOrganizer(object):
-    def set_dict_iterator(self, dict_iterator):
-        self._dict_iterator = dict_iterator
-
+class DictOrganizer(object):  # pylint: disable=too-few-public-methods
+    """
+    Splits submission data into different tables/sheets for export.
+    """
     # Every section will get its own table
     # I need to think of an easy way to flatten out a dictionary
     # parent name, index, table name, data
-    def _build_obs_from_dict(self, d, obs, table_name, parent_table_name,
+    # pylint: disable=too-many-arguments
+    def _build_obs_from_dict(self, record, obs, table_name, parent_table_name,
                              parent_index):
         if table_name not in obs:
             obs[table_name] = []
@@ -83,26 +113,26 @@ class DictOrganizer(object):
             u"_parent_table_name": parent_table_name,
             u"_parent_index": parent_index,
         })
-        for k, v in d.items():
-            if type(v) != dict and type(v) != list:
+        for k, v in record.items():
+            if not isinstance(v, (dict, list)):
                 assert k not in obs[table_name][-1]
                 obs[table_name][-1][k] = v
         obs[table_name][-1][u"_index"] = this_index
 
-        for k, v in d.items():
-            if type(v) == dict:
+        for k, v in record.items():
+            if isinstance(v, dict):
                 kwargs = {
-                    "d": v,
+                    "record": v,
                     "obs": obs,
                     "table_name": k,
                     "parent_table_name": table_name,
                     "parent_index": this_index
                 }
                 self._build_obs_from_dict(**kwargs)
-            elif type(v) == list:
+            elif isinstance(v, list):
                 for item in v:
                     kwargs = {
-                        "d": item,
+                        "record": item,
                         "obs": obs,
                         "table_name": k,
                         "parent_table_name": table_name,
@@ -111,11 +141,15 @@ class DictOrganizer(object):
                     self._build_obs_from_dict(**kwargs)
         return obs
 
-    def get_observation_from_dict(self, d):
-        assert len(d.keys()) == 1
-        root_name = d.keys()[0]
+    def get_observation_from_dict(self, record):
+        """
+        Splits a submission dictionary into different tables/sheets for export
+        to Excel or zipped CSV.
+        """
+        assert len(record.keys()) == 1
+        root_name = record.keys()[0]
         kwargs = {
-            "d": d[root_name],
+            "record": record[root_name],
             "obs": {},
             "table_name": root_name,
             "parent_table_name": u"",
@@ -126,6 +160,9 @@ class DictOrganizer(object):
 
 
 class DuplicateUUIDError(Exception):
+    """
+    DuplicateUUIDError exception.
+    """
     pass
 
 
@@ -141,19 +178,23 @@ def get_forms_shared_with_user(user):
     return xforms.exclude(user=user).select_related('user')
 
 
-class XFormMixin(object):
+class XFormMixin(object):  # pylint: disable=R0904,R0902
+    """
+    XForm mixin functionality.
+    """
 
     GEODATA_SUFFIXES = ['latitude', 'longitude', 'altitude', 'precision']
 
     PREFIX_NAME_REGEX = re.compile(r'(?P<prefix>.+/)(?P<name>[^/]+)$')
 
-    def _set_uuid_in_xml(self, file_name=None):
+    def _set_uuid_in_xml(self, file_name=None):  # pylint: disable=R0914
         """
         Add bind to automatically set UUID node in XML.
         """
         if not file_name:
             file_name = self.file_name()
-        file_name, file_ext = os.path.splitext(file_name)
+            # pylint: disable=unused-variable
+            file_name, file_ext = os.path.splitext(file_name)
 
         doc = clean_and_parse_xml(self.xml)
         model_nodes = doc.getElementsByTagName("model")
@@ -204,9 +245,9 @@ class XFormMixin(object):
             if node.nodeType == Node.ELEMENT_NODE and node.tagName == "uuid"
         ]
 
-        if len(uuid_nodes) == 0:
+        if uuid_nodes:
             formhub_node.appendChild(doc.createElement("uuid"))
-        if len(formhub_nodes) == 0:
+        if formhub_nodes:
             # append the calculate bind node
             calculate_node = doc.createElement("bind")
             calculate_node.setAttribute(
@@ -219,23 +260,25 @@ class XFormMixin(object):
         # hack
         # http://ronrothman.com/public/leftbraned/xml-dom-minidom-toprettyxml-\
         # and-silly-whitespace/
-        text_re = re.compile('(>)\n\s*(\s[^<>\s].*?)\n\s*(\s</)', re.DOTALL)
-        output_re = re.compile('\n.*(<output.*>)\n(  )*')
+        text_re = re.compile(r'(>)\n\s*(\s[^<>\s].*?)\n\s*(\s</)', re.DOTALL)
+        output_re = re.compile(r'\n.*(<output.*>)\n(  )*')
         pretty_xml = text_re.sub(lambda m: ''.join(m.group(1, 2, 3)), self.xml)
-        inline_output = output_re.sub('\g<1>', pretty_xml)
-        inline_output = re.compile('<label>\s*\n*\s*\n*\s*</label>').sub(
-            '<label></label>', inline_output)
+        inline_output = output_re.sub(r'\g<1>', pretty_xml)
+        inline_output = re.compile(r'<label>\s*\n*\s*\n*\s*</label>').sub(
+            r'<label></label>', inline_output)
         self.xml = inline_output
-
-    class Meta:
-        app_label = "viewer"
-        proxy = True
 
     @property
     def has_id_string_changed(self):
+        """
+        Returns True if the id_string changed.
+        """
         return getattr(self, '_id_string_changed', False)
 
     def add_instances(self):
+        """
+        Returns parsed instances.
+        """
         _get_observation_from_dict = DictOrganizer().get_observation_from_dict
 
         return [
@@ -252,13 +295,15 @@ class XFormMixin(object):
         return True
 
     def get_unique_id_string(self, id_string, count=0):
+        """
+        Returns a unique id_string for the user.
+        """
         # used to generate a new id_string for new data_dictionary object if
         # id_string already existed
         if self._id_string_already_exists_in_account(id_string):
             if count != 0:
                 if re.match(r'\w+_\d+$', id_string):
-                    a = id_string.split('_')
-                    id_string = "_".join(a[:-1])
+                    id_string = "_".join(id_string.split('_')[:-1])
             count += 1
             id_string = "{}_{}".format(id_string, count)
 
@@ -267,6 +312,9 @@ class XFormMixin(object):
         return id_string
 
     def get_survey(self):
+        """
+        Returns the pyxform Survey object from the XML or JSON.
+        """
         if not hasattr(self, "_survey"):
             try:
                 builder = SurveyElementBuilder()
@@ -280,10 +328,14 @@ class XFormMixin(object):
     survey = property(get_survey)
 
     def get_survey_elements(self):
+        """
+        Returns an iterator for all survey elements.
+        """
         return self.survey.iter_descendants()
 
     def get_survey_element(self, name_or_xpath):
-        """Searches survey element by xpath first,
+        """
+        Searches survey element by xpath first,
         if that fails it searches by name, the first element matching
         the name will be returned.
         """
@@ -298,16 +350,21 @@ class XFormMixin(object):
             if field.name == name_or_xpath
         ]
 
-        return fields[0] if len(fields) else None
+        return fields[0] if fields else None
 
     def get_child_elements(self, name_or_xpath):
-        """Returns a list of survey elements children in a flat list.
+        """
+        Returns a list of survey elements children in a flat list.
         If the element is a group or multiple select the child elements are
         appended to the list. If the name_or_xpath is a repeat we iterate
         through the child elements as well.
         """
 
-        def flatten(elem, items=[]):
+        def flatten(elem, items=None):
+            """
+            Flattens list of survey elements.
+            """
+            items = [] if items is None else items
             results = []
             if elem:
                 xpath = elem.get_abbreviated_xpath()
@@ -324,11 +381,15 @@ class XFormMixin(object):
 
         return flatten(element)
 
+    # pylint: disable=no-self-use
     def get_choice_label(self, field, choice_value, lang='English'):
+        """
+        Returns the choice label for the field.
+        """
         choices = [
             choice for choice in field.children if choice.name == choice_value
         ]
-        if len(choices):
+        if choices:
             choice = choices[0]
             label = choice.label
 
@@ -353,12 +414,18 @@ class XFormMixin(object):
     survey_elements = property(get_survey_elements)
 
     def get_field_name_xpaths_only(self):
+        """
+        Returns abbreviated_xpath for all questions.
+        """
         return [
             elem.get_abbreviated_xpath() for elem in self.survey_elements
             if elem.type != '' and elem.type != 'survey'
         ]
 
     def geopoint_xpaths(self):
+        """
+        Returns abbreviated_xpath for all geopoint questions.
+        """
         survey_elements = self.get_survey_elements()
 
         return [
@@ -367,6 +434,9 @@ class XFormMixin(object):
         ]
 
     def xpath_of_first_geopoint(self):
+        """
+        Returns the abbreviated_xpath of the first geopoint in the survey.
+        """
         geo_xpaths = self.geopoint_xpaths()
 
         return len(geo_xpaths) and geo_xpaths[0]
@@ -390,7 +460,8 @@ class XFormMixin(object):
 
         if survey_element.children is not None:
             # add xpaths to result for each child
-            indices = [''] if type(survey_element) != RepeatingSection else \
+            indices = [''] \
+                if not isinstance(survey_element, RepeatingSection) else \
                 ['[%d]' % (i + 1) for i in range(repeat_iterations)]
             for i in indices:
                 for e in survey_element.children:
@@ -440,11 +511,11 @@ class XFormMixin(object):
         Return a list of headers for a csv file.
         """
 
-        def shorten(xpath):
+        def _shorten(xpath):
             xpath_list = xpath.split('/')
             return '/'.join(xpath_list[2:])
 
-        header_list = [shorten(xpath) for xpath in self.xpaths()]
+        header_list = [_shorten(xpath) for xpath in self.xpaths()]
         header_list += [
             ID, UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION, DURATION,
             SUBMITTED_BY, TOTAL_MEDIA, MEDIA_COUNT, MEDIA_ALL_RECEIVED
@@ -454,24 +525,33 @@ class XFormMixin(object):
         return header_list
 
     def get_keys(self):
-        def remove_first_index(xpath):
+        """
+        Returns question names without the repeat index.
+        """
+        def _remove_first_index(xpath):
             return re.sub(r'\[1\]', '', xpath)
 
-        return [remove_first_index(header) for header in self.get_headers()]
+        return [_remove_first_index(header) for header in self.get_headers()]
 
     def get_element(self, abbreviated_xpath):
+        """
+        Returns an xform element for the given abbreviated_xpath.
+        """
         if not hasattr(self, "_survey_elements"):
             self._survey_elements = {}
             for e in self.get_survey_elements():
                 self._survey_elements[e.get_abbreviated_xpath()] = e
 
-        def remove_all_indices(xpath):
+        def _remove_all_indices(xpath):
             return re.sub(r"\[\d+\]", u"", xpath)
 
-        clean_xpath = remove_all_indices(abbreviated_xpath)
+        clean_xpath = _remove_all_indices(abbreviated_xpath)
         return self._survey_elements.get(clean_xpath)
 
     def get_default_language(self):
+        """
+        Returns the default language of the XLSForm.
+        """
         if not hasattr(self, '_default_language'):
             self._default_language = \
                 self.survey.to_json_dict().get('default_language')
@@ -480,35 +560,56 @@ class XFormMixin(object):
 
     default_language = property(get_default_language)
 
-    def get_language(self, languages, language_index=0):
+    def get_language(self, languages, language_index=None):
+        """
+        Returns the language at the selected index, defaults to 0 index.
+        """
         language = None
-        if isinstance(languages, list) and len(languages):
+        is_multilingual = isinstance(languages, list) and len(languages)
+        if is_multilingual:
+            default_language_index = 0
             if self.default_language in languages:
-                language_index = languages.index(self.default_language)
-
+                default_language_index = languages.index(self.default_language)
+            language_index = language_index \
+                if language_index is not None else default_language_index
             language = languages[language_index]
 
         return language
 
     def get_label(self, abbreviated_xpath, elem=None, language_index=None):
+        """
+        Returns the label of the abbreviated_xpath element.
+
+        keyword arguments:
+        elem -- the parent element from which the abbreviated_xpath will be
+                searched from.
+        language_index -- the selected language index
+        """
         elem = self.get_element(abbreviated_xpath) if elem is None else elem
 
         if elem:
             label = elem.label
 
             if isinstance(label, dict):
-                language = self.get_language(label.keys())
+                language = self.get_language(label.keys(), language_index)
                 label = label[language] if language else ''
 
             return label
 
     def get_xpath_cmp(self):
+        """
+        Returns a compare function for comparing two xpaths.
+        """
         if not hasattr(self, "_xpaths"):
             self._xpaths = [
                 e.get_abbreviated_xpath() for e in self.survey_elements
             ]
 
         def xpath_cmp(x, y):
+            """
+            Compare the two x and y objects and return an integer according to
+            the outcome.
+            """
             # For the moment, we aren't going to worry about repeating
             # nodes.
             new_x = re.sub(r"\[\d+\]", u"", x)
@@ -544,7 +645,7 @@ class XFormMixin(object):
             from onadata.apps.viewer.models.column_rename import ColumnRename
 
             self._variable_names = ColumnRename.get_dict()
-            assert type(self._variable_names) == dict
+            assert isinstance(self._variable_names, dict)
 
         if header in self._variable_names and self._variable_names[header]:
             return self._variable_names[header]
@@ -552,52 +653,46 @@ class XFormMixin(object):
         return header
 
     def get_list_of_parsed_instances(self, flat=True):
+        """
+        Parsed instances iterator.
+        """
         for i in queryset_iterator(self.instances_for_export(self)):
-            # TODO: there is information we want to add in parsed xforms.
             yield i.get_dict(flat=flat)
 
-    def _rename_key(self, d, old_key, new_key):
-        assert new_key not in d, d
-        d[new_key] = d[old_key]
-        del d[old_key]
-
-    def _expand_select_all_that_apply(self, d, key, e):
-        if e and e.bind.get(u"type") == u"select":
-            options_selected = d[key].split()
-            for child in e.children:
-                new_key = child.get_abbreviated_xpath()
-                d[new_key] = child.name in options_selected
-
-            del d[key]
-
-    def _expand_geocodes(self, d, key, e):
+    def _expand_geocodes(self, record, key, e):
         if e and e.bind.get(u"type") == u"geopoint":
-            geodata = d[key].split()
-            for i in range(len(geodata)):
+            geodata = record[key].split()
+            for i, __ in enumerate(geodata):
                 new_key = "%s_%s" % (key, self.geodata_suffixes[i])
-                d[new_key] = geodata[i]
+                record[new_key] = geodata[i]
 
     def get_data_for_excel(self):
-        for d in self.get_list_of_parsed_instances():
-            for key in d.keys():
+        """
+        Parsed instances iterator for Excel data.
+        """
+        for record in self.get_list_of_parsed_instances():
+            for key in record.keys():
                 e = self.get_element(key)
-                self._expand_select_all_that_apply(d, key, e)
-                self._expand_geocodes(d, key, e)
-            yield d
+                _expand_select_all_that_apply(record, key, e)
+                self._expand_geocodes(record, key, e)
+            yield record
 
     def _mark_start_time_boolean(self):
         starttime_substring = 'jr:preloadParams="start"'
-        if self.xml.find(starttime_substring) != -1:
-            self.has_start_time = True
-        else:
-            self.has_start_time = False
+        self.has_start_time = self.xml.find(starttime_substring) != -1
 
     def get_survey_elements_of_type(self, element_type):
+        """
+        Returns survey elements where element.type matches given element_type.
+        """
         return [
             e for e in self.get_survey_elements() if e.type == element_type
         ]
 
-    def get_survey_elements_with_choices(self):
+    def get_survey_elements_with_choices(self):  # pylint: disable=invalid-name
+        """
+        Returns survey elements of type select one and select multiple.
+        """
         if not hasattr(self, '_survey_elements_with_choices'):
             choices_type = [
                 constants.SELECT_ONE, constants.SELECT_ALL_THAT_APPLY
@@ -610,6 +705,9 @@ class XFormMixin(object):
         return self._survey_elements_with_choices
 
     def get_media_survey_xpaths(self):
+        """
+        Returns survey elements xpaths of KNOWN_MEDIA_TYPES.
+        """
         return [
             e.get_abbreviated_xpath()
             for e in sum([
@@ -617,25 +715,11 @@ class XFormMixin(object):
             ], [])
         ]
 
-    def _check_version_set(self, survey):
-        """
-        Checks if the version has been set in the xls file and if not adds
-        the default version in this datetime (yyyymmddhhmm) format.
-        """
 
-        # get the json and check for the version key
-        survey_json = json.loads(survey.to_json())
-        if not survey_json.get("version"):
-            # set utc time as the default version
-            survey_json['version'] = \
-                datetime.utcnow().strftime("%Y%m%d%H%M")
-            builder = SurveyElementBuilder()
-            survey = builder.create_survey_element_from_json(
-                json.dumps(survey_json))
-        return survey
-
-
-class XForm(XFormMixin, BaseModel):
+class XForm(XFormMixin, BaseModel):  # pylint: disable=R0902
+    """
+    XForm survey forms model.
+    """
     CLONED_SUFFIX = '_cloned'
     MAX_ID_LENGTH = 100
 
@@ -716,9 +800,15 @@ class XForm(XFormMixin, BaseModel):
         )
 
     def file_name(self):
+        """
+        Concatenates the id_string into an XML filename.
+        """
         return self.id_string + ".xml"
 
     def url(self):
+        """
+        Returns the XForm XML download link.
+        """
         return reverse(
             "download_xform",
             kwargs={
@@ -728,6 +818,9 @@ class XForm(XFormMixin, BaseModel):
 
     @property
     def has_instances_with_geopoints(self):
+        """
+        Alternate instances_with_geopoints property.
+        """
         return self.instances_with_geopoints
 
     def _set_id_string(self):
@@ -738,7 +831,7 @@ class XForm(XFormMixin, BaseModel):
 
     def _set_title(self):
         text = re.sub(r"\s+", " ", self.xml)
-        matches = title_pattern.findall(text)
+        matches = TITLE_PATTERN.findall(text)
 
         if len(matches) != 1:
             raise XLSFormError(_("There should be a single title."), matches)
@@ -752,7 +845,7 @@ class XForm(XFormMixin, BaseModel):
             title_xml = self.title[:XFORM_TITLE_LENGTH]
             if isinstance(self.xml, str):
                 self.xml = self.xml.decode('utf-8')
-            self.xml = title_pattern.sub(u"<h:title>%s</h:title>" % title_xml,
+            self.xml = TITLE_PATTERN.sub(u"<h:title>%s</h:title>" % title_xml,
                                          self.xml)
             self._set_hash()
         if contains_xml_invalid_char(title_xml):
@@ -768,15 +861,16 @@ class XForm(XFormMixin, BaseModel):
     def _set_encrypted_field(self):
         if self.json and self.json != '':
             json_dict = json.loads(self.json)
-            if 'submission_url' in json_dict and 'public_key' in json_dict:
-                self.encrypted = True
-            else:
-                self.encrypted = False
+            self.encrypted = (
+                'submission_url' in json_dict and 'public_key' in json_dict)
 
     def update(self, *args, **kwargs):
+        """
+        Update the xform model, it bypasses the XForm.save() method.
+        """
         super(XForm, self).save(*args, **kwargs)
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs):  # pylint: disable=arguments-differ
         update_fields = kwargs.get('update_fields')
         if update_fields:
             kwargs['update_fields'] = list(
@@ -815,7 +909,7 @@ class XForm(XFormMixin, BaseModel):
                 # otherwise, use id_string to ensure uniqueness
                 self.sms_id_string = json.loads(self.json).get(
                     'sms_keyword', self.id_string)
-            except:
+            except ValueError:
                 self.sms_id_string = self.id_string
 
         if 'skip_xls_read' in kwargs:
@@ -846,6 +940,9 @@ class XForm(XFormMixin, BaseModel):
         ])
 
     def submission_count(self, force_update=False):
+        """
+        Get and/or set the form's number of submissions.
+        """
         if self.num_of_submissions == 0 or force_update:
             if self.is_merged_dataset:
                 count = self.mergedxform.xforms.aggregate(
@@ -867,6 +964,9 @@ class XForm(XFormMixin, BaseModel):
 
     @property
     def submission_count_for_today(self):
+        """
+        Get the form's number of submissions for the current day.
+        """
         current_timzone_name = timezone.get_current_timezone_name()
         current_timezone = pytz.timezone(current_timzone_name)
         today = datetime.today()
@@ -882,6 +982,9 @@ class XForm(XFormMixin, BaseModel):
             deleted_at__isnull=True, geom__isnull=False).count()
 
     def time_of_last_submission(self):
+        """
+        Get and/or set the form's last_submission_time.
+        """
         if self.last_submission_time is None and self.num_of_submissions > 0:
             try:
                 last_submission = self.instances.\
@@ -894,6 +997,9 @@ class XForm(XFormMixin, BaseModel):
         return self.last_submission_time
 
     def time_of_last_submission_update(self):
+        """
+        Get and/or set the form's last modified date.
+        """
         try:
             # we also consider deleted instances in this case
             return self.instances.latest("date_modified").date_modified
@@ -901,18 +1007,31 @@ class XForm(XFormMixin, BaseModel):
             pass
 
     def get_hash(self):
+        """
+        Return the MD5 hash of the XForm XML.
+        """
         return u'md5:%s' % md5(self.xml.encode('utf8')).hexdigest()
 
     @property
     def can_be_replaced(self):
+        """
+        Return True when num_of_submissions == 0.
+        """
         return self.num_of_submissions == 0
 
     @classmethod
     def public_forms(cls):
+        """
+        Returns forms where shared=True.
+        """
         return cls.objects.filter(shared=True)
 
 
+# pylint: disable=unused-argument
 def update_profile_num_submissions(sender, instance, **kwargs):
+    """
+    Update number of submission for the user profile.
+    """
     profile_qs = User.profile.get_queryset()
     try:
         profile = profile_qs.select_for_update()\
@@ -932,7 +1051,11 @@ post_delete.connect(
     dispatch_uid='update_profile_num_submissions')
 
 
+# pylint: disable=unused-argument
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
+    """
+    Set project permissions for a new XForm.
+    """
     # clear cache
     safe_delete('{}{}'.format(PROJ_FORMS_CACHE, instance.project.pk))
     safe_delete('{}{}'.format(PROJ_BASE_FORMS_CACHE, instance.project.pk))
@@ -955,14 +1078,22 @@ post_save.connect(
     dispatch_uid='xform_object_permissions')
 
 
-def save_project(sender, instance=None, created=False, **kwargs):
+# pylint: disable=unused-argument
+def save_project(sender, instance=None, **kwargs):
+    """
+    Update the date_modified field of the project on form changes.
+    """
     instance.project.save(update_fields=['date_modified'])
 
 
 pre_save.connect(save_project, sender=XForm, dispatch_uid='save_project_xform')
 
 
+# pylint: disable=unused-argument
 def xform_post_delete_callback(sender, instance, **kwargs):
+    """
+    Clear cache on form deletion.
+    """
     if instance.project_id:
         safe_delete('{}{}'.format(PROJ_FORMS_CACHE, instance.project_id))
         safe_delete('{}{}'.format(PROJ_BASE_FORMS_CACHE, instance.project.pk))
@@ -976,12 +1107,14 @@ post_delete.connect(
     dispatch_uid='xform_post_delete_callback')
 
 
+# pylint: disable=model-no-explicit-unicode
 class XFormUserObjectPermission(UserObjectPermissionBase):
     """Guardian model to create direct foreign keys."""
 
     content_object = models.ForeignKey(XForm)
 
 
+# pylint: disable=model-no-explicit-unicode
 class XFormGroupObjectPermission(GroupObjectPermissionBase):
     """Guardian model to create direct foreign keys."""
 
@@ -989,6 +1122,9 @@ class XFormGroupObjectPermission(GroupObjectPermissionBase):
 
 
 def update_xform_uuid(username, id_string, new_uuid):
+    """
+    Set new uuid to a form.
+    """
     xform = XForm.objects.get(user__username=username, id_string=id_string)
     # check for duplicate uuid
     count = XForm.objects.filter(uuid=new_uuid).count()

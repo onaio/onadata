@@ -1,13 +1,20 @@
+# -*- coding=utf-8 -*-
+"""
+DataDictionary module.
+"""
 import csv
 import io
+import json
 import os
 import xlrd
+from datetime import datetime
 from django.utils import timezone
 
 from cStringIO import StringIO
 from django.db.models.signals import post_save, pre_save
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.translation import ugettext as _
+from pyxform import SurveyElementBuilder
 from pyxform.builder import create_survey_element_from_dict
 from pyxform.utils import has_external_choices
 from pyxform.xls2json import parse_file_to_json
@@ -18,6 +25,24 @@ from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.cache_tools import (
     PROJ_FORMS_CACHE, PROJ_BASE_FORMS_CACHE, safe_delete)
 from onadata.libs.utils.model_tools import get_columns_with_hxl
+
+
+def check_or_set_survey_version(survey):
+    """
+    Checks if the version has been set in the xls file and if not adds
+    the default version in this datetime (yyyymmddhhmm) format.
+    """
+
+    # get the json and check for the version key
+    survey_json = json.loads(survey.to_json())
+    if not survey_json.get("version"):
+        # set utc time as the default version
+        survey_json['version'] = \
+            datetime.utcnow().strftime("%Y%m%d%H%M")
+        builder = SurveyElementBuilder()
+        survey = builder.create_survey_element_from_json(
+            json.dumps(survey_json))
+    return survey
 
 
 # adopted from pyxform.utils.sheet_to_csv
@@ -99,7 +124,7 @@ class DataDictionary(XForm):
                 self.survey_dict = survey_dict
                 self.has_external_choices = True
             survey = create_survey_element_from_dict(survey_dict)
-            survey = self._check_version_set(survey)
+            survey = check_or_set_survey_version(survey)
             if get_columns_with_hxl(survey.get('children')):
                 self.has_hxl_support = True
             # if form is being replaced, don't check for id_string uniqueness
