@@ -316,12 +316,12 @@ class FLOIPSubmissionSerializer(SubmissionSuccessMixin,
 
         if not isinstance(data, list):
             error_msg = u'Invalid format. Expecting a list.'
-        elif len(data) > 0:
-            for row_i in xrange(len(data)):
-                if len(data[row_i]) != 6:
-                    error_msg = _(u"All rows must have 6 values, "\
+        elif data:
+            for row_i, row in enumerate(data):
+                if len(row) != 6:
+                    error_msg = _(u"All rows must have 6 values, "
                                   u"row %(row)s does not." % {'row': row_i})
-                    break
+                break
 
         if error_msg:
             raise serializers.ValidationError(_(error_msg))
