@@ -443,7 +443,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         Test receiving a row of FLOIP submission.
         """
         # pylint: disable=C0301
-        data = '[["2017-05-23T13:35:37.119-04:00", 20394823948, 923842093, "ae54d3", "female", {"option_order": ["male", "female"]}]]'
+        data = '[["2017-05-23T13:35:37.119-04:00", 20394823948, 923842093, "ae54d3", "female", {"option_order": ["male", "female"]}]]'  # noqa
         request = self.factory.post(
             '/submission', data,
             content_type='application/vnd.org.flowinterop.results+json')
@@ -492,6 +492,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         request.META.update(auth(request.META, response))
         response = self.view(request, username=self.user.username,
                              xform_pk=self.xform.pk)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data, {u'non_field_errors': [
                          u'Invalid format. Expecting a list.']})
 

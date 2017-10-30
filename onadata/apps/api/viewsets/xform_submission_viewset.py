@@ -8,6 +8,7 @@ from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.authentication import (BasicAuthentication,
                                            TokenAuthentication)
 from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer
+from rest_framework.response import Response
 from onadata.apps.api.permissions import IsAuthenticatedSubmission
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import Instance
