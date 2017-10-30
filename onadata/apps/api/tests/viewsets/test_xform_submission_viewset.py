@@ -511,7 +511,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         response = self.view(request, username=self.user.username,
                              xform_pk=self.xform.pk)
         self.assertContains(response, "Extra data", status_code=400)
-    
+
     def test_floip_format_multiple_rows_submission(self):
         """
         Test FLOIP multiple rows submission
@@ -530,7 +530,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertContains(response, 'Successful submission', status_code=201)
         self.assertTrue(response.has_header('Date'))
         self.assertEqual(response['Location'], 'http://testserver/submission')
-    
+
     def test_floip_format_multiple_rows_instance(self):
         """
         Test data responses exist in instance values.
@@ -549,4 +549,4 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         instance_json = Instance.objects.last().json
         data_responses = [i[4] for i in json.loads(data)]
         self.assertTrue(any(i in data_responses
-                            for i in instance_json.values()))  
+                            for i in instance_json.values()))

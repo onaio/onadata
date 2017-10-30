@@ -311,6 +311,9 @@ class FLOIPSubmissionSerializer(SubmissionSuccessMixin,
     FLOIP SubmmissionSerializer - Handles a row of FLOIP specification format.
     """
     def validate(self, attrs):
+        """
+        Custom list data validator.
+        """
         data = self.context['request'].data
         error_msg = None
 
@@ -332,7 +335,8 @@ class FLOIPSubmissionSerializer(SubmissionSuccessMixin,
         """
         Overrides validating rows in list data.
         """
-        data = {data[1]: data}
+        if isinstance(data, list):
+            data = {data[1]: data}
 
         return data
 
