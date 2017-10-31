@@ -472,9 +472,8 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         request.META.update(auth(request.META, response))
         response = self.view(request, username=self.user.username,
                              xform_pk=self.xform.pk)
-        self.assertContains(response,
-                            "All rows must have 6 values, row 0 does not",
-                            status_code=400)
+        self.assertContains(response, "Wrong number of values (5) in row 0, "
+                            "expecting 6 values", status_code=400)
 
     def test_floip_format_submission_not_list(self):
         """
