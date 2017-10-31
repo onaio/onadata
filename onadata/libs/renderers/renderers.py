@@ -267,10 +267,7 @@ class DecimalJSONRenderer(JSONRenderer):
     encoder_class = DecimalEncoder
 
 
-class FLOIPRenderer(BaseRenderer):
+class FLOIPRenderer(JSONRenderer):
     media_type = 'application/vnd.org.flowinterop.results+json'
     format = 'json'
     charset = 'utf-8'
-
-    def render(self, data, media_type=None, renderer_context=None):
-        return data

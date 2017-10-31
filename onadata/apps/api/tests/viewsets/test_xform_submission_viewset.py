@@ -473,8 +473,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         response = self.view(request, username=self.user.username,
                              xform_pk=self.xform.pk)
         self.assertContains(response,
-                            "{u'non_field_errors': [u'All rows must have 6 "
-                            "values, row 0 does not.']}",
+                            "All rows must have 6 values, row 0 does not",
                             status_code=400)
 
     def test_floip_format_submission_not_list(self):
