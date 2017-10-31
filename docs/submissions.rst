@@ -67,6 +67,24 @@ Here is some example JSON, it would replace `[the JSON]` above:
            }
        }
 
+Submit a FLOIP XForm submission
+-------------------------------
+
+.. raw:: html
+
+    <pre class="prettyprint">
+    <b>POST</b> /api/v1/submissions</pre>
+
+Example
+^^^^^^^
+::
+
+    curl -X POST -d '{"id": "[id_string]", "submission": [the FLOIP data]} http://api.ona.io/api/v1/submissions -u user:pass 
+    -H "Content-Type: application/vnd.org.flowinterop.results+json"
+
+The FLOIP data format is specified here: https://github.com/FLOIP/flow-results/blob/master/specification.md#resource-data-found-at-external-path
+
+
 Edit an existing XForm submission
 ---------------------------------
 .. raw:: html
