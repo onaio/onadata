@@ -1,7 +1,7 @@
 Form Submissions
 ****************
 
-Implements OpenRosa Api |FormSubmissionAPI|
+Implements OpenRosa API |FormSubmissionAPI|
 
 .. |FormSubmissionAPI| raw:: html
 
@@ -82,7 +82,12 @@ Example
     curl -X POST -d '{"id": "[id_string]", "submission": [the FLOIP data]} http://api.ona.io/api/v1/submissions -u user:pass 
     -H "Content-Type: application/vnd.org.flowinterop.results+json"
 
-The FLOIP data format is specified here: https://github.com/FLOIP/flow-results/blob/master/specification.md#resource-data-found-at-external-path
+The FLOIP data format is specified |FLOIPSubmissionAPI|
+
+.. |FLOIPSubmissionAPI| raw:: html
+
+    <a href="https://github.com/FLOIP/flow-results/blob/master/specification.md#resource-data-found-at-external-path"
+    target="_blank">here</a>
 
 
 Edit an existing XForm submission
