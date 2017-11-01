@@ -18,6 +18,9 @@ from onadata.libs.utils.dict_tools import (dict_lists2strings, dict_paths2dict,
 from onadata.libs.utils.logger_tools import dict2xform, safe_create_instance
 
 
+NUM_FLOIP_COLUMNS = 6
+
+
 def get_request_and_username(context):
     """
     Returns request object and username
@@ -72,7 +75,7 @@ class JsonDataSerializer(serializers.Serializer):  # pylint: disable=W0223
 
 class InstanceHistorySerializer(serializers.ModelSerializer):
     """
-    InstanceHistorySerializer class - fo the json field data representation.
+    InstanceHistorySerializer class - for the json field data representation.
     """
     json = JsonField()
 
@@ -321,10 +324,12 @@ class FLOIPSubmissionSerializer(SubmissionSuccessMixin,
             error_msg = u'Invalid format. Expecting a list.'
         elif data:
             for row_i, row in enumerate(data):
-                if len(row) != 6:
-                    error_msg = _(u"Wrong number of values (%(values)d) in row "
-                                  "%(row)s, expecting 6 values"
-                                  % {'row': row_i, 'values': (len(row))})
+                if len(row) != NUM_FLOIP_COLUMNS:
+                    error_msg = _(u"Wrong number of values (%(values)d) in row"
+                                  " %(row)d, expecting %(expected)d values"
+                                  % {'row': row_i,
+                                     'values': (len(row)),
+                                     'expected': NUM_FLOIP_COLUMNS})
                 break
 
         if error_msg:
