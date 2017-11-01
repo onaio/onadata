@@ -308,6 +308,24 @@ class RapidProSubmissionSerializer(SubmissionSuccessMixin,
         return instance
 
 
+class FLOIPListSerializer(serializers.ListSerializer):
+    """
+    Custom ListSerializer for a FLOIP submission.
+    """
+    def create(self, validated_data):
+        """
+        Returns object instances based on the validated data.
+        """
+        request, username = get_request_and_username(self.context)
+        xform_pk = self.context['view'].kwargs['xform_pk']
+        xform = get_object_or_404(XForm, pk=xform_pk)
+        xform_headers = xform.get_keys()
+        flow_dict = floip_response_headers_dict(request.data, xform_headers)
+        instance = create_submission(request, username, flow_dict,
+                                     xform)
+        return [instance]
+
+
 class FLOIPSubmissionSerializer(SubmissionSuccessMixin,
                                 serializers.Serializer):
     """
@@ -346,15 +364,8 @@ class FLOIPSubmissionSerializer(SubmissionSuccessMixin,
 
         return data
 
-    def create(self, validated_data):
+    class Meta:
         """
-        Returns object instances based on the validated data.
+        Call the list serializer class to create an instance.
         """
-        request, username = get_request_and_username(self.context)
-        xform_pk = self.context['view'].kwargs['xform_pk']
-        xform = get_object_or_404(XForm, pk=xform_pk)
-        xform_headers = xform.get_keys()
-        flow_dict = floip_response_headers_dict(request.data, xform_headers)
-        instance = create_submission(request, username, flow_dict,
-                                     xform)
-        return instance
+        list_serializer_class = FLOIPListSerializer
