@@ -164,3 +164,14 @@ def query_list_to_dict(query_list_str):
         data_dict[value['label']] = value['text']
 
     return data_dict
+
+
+def floip_response_headers_dict(data, xform_headers):
+    """
+    Returns a dict from matching xform headers and floip responses.
+    """
+    headers = [i.split('/')[-1] for i in xform_headers]
+    data = [i[4] for i in data]
+    flow_dict = dict(zip(headers, data))
+
+    return flow_dict

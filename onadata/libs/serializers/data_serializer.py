@@ -13,8 +13,12 @@ from onadata.apps.logger.models.instance import Instance, InstanceHistory
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.dict_tools import (dict_lists2strings, dict_paths2dict,
-                                           query_list_to_dict)
+                                           query_list_to_dict,
+                                           floip_response_headers_dict)
 from onadata.libs.utils.logger_tools import dict2xform, safe_create_instance
+
+
+NUM_FLOIP_COLUMNS = 6
 
 
 def get_request_and_username(context):
@@ -71,7 +75,7 @@ class JsonDataSerializer(serializers.Serializer):  # pylint: disable=W0223
 
 class InstanceHistorySerializer(serializers.ModelSerializer):
     """
-    InstanceHistorySerializer class - fo the json field data representation.
+    InstanceHistorySerializer class - for the json field data representation.
     """
     json = JsonField()
 
@@ -273,7 +277,6 @@ class RapidProSubmissionSerializer(SubmissionSuccessMixin,
     """
     Rapidpro SubmissionSerializer - handles Rapidpro webhook post.
     """
-
     def validate(self, attrs):
         """
         Custom xform id validator in views kwargs.
@@ -302,4 +305,56 @@ class RapidProSubmissionSerializer(SubmissionSuccessMixin,
         instance = create_submission(request, username, rapidpro_dict,
                                      validated_data['id_string'])
 
+        return instance
+
+
+class FLOIPSubmissionSerializer(SubmissionSuccessMixin,
+                                serializers.Serializer):
+    """
+    FLOIP SubmmissionSerializer - Handles a row of FLOIP specification format.
+    """
+    def validate(self, attrs):
+        """
+        Custom list data validator.
+        """
+        data = self.context['request'].data
+        error_msg = None
+
+        if not isinstance(data, list):
+            error_msg = u'Invalid format. Expecting a list.'
+        elif data:
+            for row_i, row in enumerate(data):
+                if len(row) != NUM_FLOIP_COLUMNS:
+                    error_msg = _(u"Wrong number of values (%(values)d) in row"
+                                  " %(row)d, expecting %(expected)d values"
+                                  % {'row': row_i,
+                                     'values': (len(row)),
+                                     'expected': NUM_FLOIP_COLUMNS})
+                break
+
+        if error_msg:
+            raise serializers.ValidationError(_(error_msg))
+
+        return super(FLOIPSubmissionSerializer, self).validate(attrs)
+
+    def to_internal_value(self, data):
+        """
+        Overrides validating rows in list data.
+        """
+        if isinstance(data, list):
+            data = {data[1]: data}
+
+        return data
+
+    def create(self, validated_data):
+        """
+        Returns object instances based on the validated data.
+        """
+        request, username = get_request_and_username(self.context)
+        xform_pk = self.context['view'].kwargs['xform_pk']
+        xform = get_object_or_404(XForm, pk=xform_pk)
+        xform_headers = xform.get_keys()
+        flow_dict = floip_response_headers_dict(request.data, xform_headers)
+        instance = create_submission(request, username, flow_dict,
+                                     xform)
         return instance
