@@ -937,7 +937,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response = view(request, pk=form_id)
                 self.assertEqual(response.status_code, 200)
 
-            self.xform.reload()
+            self.xform.refresh_from_db()
             self.assertNotEquals(xform_old_hash, self.xform.hash)
 
     def test_hash_changes_after_update_xform_xls_file(self):
@@ -960,7 +960,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response = view(request, pk=form_id)
                 self.assertEqual(response.status_code, 200)
 
-            self.xform.reload()
+            self.xform.refresh_from_db()
             self.assertNotEquals(xform_old_hash, self.xform.hash)
 
     def test_login_enketo_no_redirect(self):
