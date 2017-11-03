@@ -20,6 +20,25 @@ from rest_framework_xml.renderers import XMLRenderer
 from onadata.libs.utils.osm import get_combined_osm
 
 
+def floip_rows_list(data):
+    """
+    Yields a row of FLOIP specification.
+    """
+    for key in data:
+        if '_' not in key[:1] and 'meta/instanceID' not in key:
+            yield [data['_submission_time'], data['_id'],
+                   data['_submitted_by'], key, data[key], 'null']
+
+
+def floip_list(data):
+    """
+    Yields FLOIP list generator.
+    """
+    for item in data:
+        for i in floip_rows_list(item):
+            yield i
+
+
 class DecimalEncoder(JSONEncoder):
     def default(self, obj):
         # Handle Decimal NaN values
@@ -271,3 +290,8 @@ class FLOIPRenderer(JSONRenderer):
     media_type = 'application/vnd.org.flowinterop.results+json'
     format = 'json'
     charset = 'utf-8'
+
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        return super(FLOIPRenderer, self).render(
+            [i for i in floip_list(data)], accepted_media_type,
+            renderer_context) if 'meta/instanceID' in data[0] else data
