@@ -4397,3 +4397,19 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.data.get('progress'), 4)
             self.assertIn('total', response.data)
             self.assertEqual(response.data.get('total'), 4)
+
+    def test_form_publishing_floip(self):
+        with HTTMock(enketo_mock):
+            xforms = XForm.objects.count()
+            view = XFormViewSet.as_view({
+                'post': 'create'
+            })
+            path = os.path.join(
+                os.path.dirname(__file__), "../", "fixtures",
+                "flow-results-example-1.json")
+            with open(path) as xls_file:
+                post_data = {'floip_file': xls_file}
+                request = self.factory.post('/', data=post_data, **self.extra)
+                response = view(request)
+                self.assertEqual(response.status_code, 201, response.data)
+                self.assertEqual(xforms + 1, XForm.objects.count())

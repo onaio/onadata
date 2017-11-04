@@ -93,3 +93,5 @@ google-api-python-client
 uwsgi
 flake8
 raven
+
+-e git+https://github.com/onaio/floip-py.git@master#egg=floip

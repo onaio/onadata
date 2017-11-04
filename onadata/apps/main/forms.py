@@ -330,9 +330,23 @@ class QuickConverterXmlFile(forms.Form):
         label=ugettext_lazy(u'XML File'), required=False)
 
 
+class QuickConverterFloipFile(forms.Form):
+    """
+    Uploads a FLOIP results data package descriptor file.
+    """
+    floip_file = forms.FileField(
+        label=ugettext_lazy(u'FlOIP results data packages descriptor File'),
+        required=False)
+
+
+# pylint: disable=too-many-ancestors
 class QuickConverter(QuickConverterFile, QuickConverterURL,
                      QuickConverterDropboxURL, QuickConverterTextXlsForm,
-                     QuickConverterCsvFile, QuickConverterXmlFile):
+                     QuickConverterCsvFile, QuickConverterXmlFile,
+                     QuickConverterFloipFile):
+    """
+    Publish XLSForm and convert to XForm.
+    """
     project = forms.IntegerField(required=False)
     validate = URLValidator()
 
@@ -376,6 +390,9 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
             if 'xls_file' in self.cleaned_data and\
                     self.cleaned_data['xls_file']:
                 cleaned_xls_file = self.cleaned_data['xls_file']
+            if 'floip_file' in self.cleaned_data and\
+                    self.cleaned_data['floip_file']:
+                cleaned_xls_file = self.cleaned_data['floip_file']
 
             cleaned_url = (
                 self.cleaned_data['xls_url'].strip() or
