@@ -1,9 +1,13 @@
+# -*- coding=utf-8 -*-
+"""
+forms module.
+"""
 import os
 import re
 import urllib2
-import requests
 from urlparse import urlparse
 
+import requests
 from django import forms
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -11,16 +15,17 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.validators import URLValidator
 from django.forms import ModelForm
-from django.utils.translation import ugettext as _, ugettext_lazy
-from recaptcha.client import captcha
+from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy
+from recaptcha.client import captcha  # pylint: disable=relative-import
 from registration.forms import RegistrationFormUniqueEmail
 
-from onadata.apps.main.models import UserProfile
+# pylint: disable=ungrouped-imports
 from onadata.apps.logger.models import Project
+from onadata.apps.main.models import UserProfile
 from onadata.apps.viewer.models.data_dictionary import upload_to
 from onadata.libs.utils.country_field import COUNTRIES
-from onadata.libs.utils.logger_tools import publish_xls_form
-from onadata.libs.utils.logger_tools import publish_xml_form
+from onadata.libs.utils.logger_tools import publish_xls_form, publish_xml_form
 from onadata.libs.utils.user_auth import get_user_default_project
 
 FORM_LICENSES_CHOICES = (
@@ -58,6 +63,10 @@ VALID_FILE_EXTENSIONS = ['.xls', '.xlsx', '.csv']
 
 
 def get_filename(response):
+    """
+    Get filename from a Content-Desposition header.
+    """
+    # pylint: disable=line-too-long
     # the value of 'content-disposition' contains the filename and has the
     # following format:
     # 'attachment; filename="ActApp_Survey_System.xlsx"; filename*=UTF-8\'\'ActApp_Survey_System.xlsx' # noqa
@@ -69,13 +78,16 @@ def get_filename(response):
         filename = filename_key_val.split('=')[1].replace("\"", "")
         name, extension = os.path.splitext(filename)
 
-        if extension in VALID_FILE_EXTENSIONS:
+        if extension in VALID_FILE_EXTENSIONS and name:
             cleaned_xls_file = filename
 
     return cleaned_xls_file
 
 
 class DataLicenseForm(forms.Form):
+    """"
+    Data license form.
+    """
     value = forms.ChoiceField(choices=DATA_LICENSES_CHOICES,
                               widget=forms.Select(
                                   attrs={'disabled': 'disabled',
@@ -83,6 +95,9 @@ class DataLicenseForm(forms.Form):
 
 
 class FormLicenseForm(forms.Form):
+    """
+    Form license form.
+    """
     value = forms.ChoiceField(choices=FORM_LICENSES_CHOICES,
                               widget=forms.Select(
                                   attrs={'disabled': 'disabled',
@@ -90,6 +105,9 @@ class FormLicenseForm(forms.Form):
 
 
 class PermissionForm(forms.Form):
+    """
+    Permission assignment form.
+    """
     for_user = forms.CharField(
         widget=forms.TextInput(
             attrs={
@@ -106,6 +124,9 @@ class PermissionForm(forms.Form):
 
 
 class UserProfileForm(ModelForm):
+    """
+    User profile form base class.
+    """
 
     class Meta:
         model = UserProfile
@@ -113,12 +134,18 @@ class UserProfileForm(ModelForm):
     email = forms.EmailField(widget=forms.TextInput())
 
     def clean_metadata(self):
+        """
+        Returns an empty dict if metadata is None.
+        """
         metadata = self.cleaned_data.get('metadata')
 
         return metadata if metadata is not None else dict()
 
 
 class UserProfileFormRegister(forms.Form):
+    """
+    User profile registration form.
+    """
 
     REGISTRATION_REQUIRE_CAPTCHA = settings.REGISTRATION_REQUIRE_CAPTCHA
     RECAPTCHA_PUBLIC_KEY = settings.RECAPTCHA_PUBLIC_KEY
@@ -145,6 +172,9 @@ class UserProfileFormRegister(forms.Form):
         max_length=100, required=settings.REGISTRATION_REQUIRE_CAPTCHA)
 
     def save_user_profile(self, new_user):
+        """
+        Creates and returns a new_user profile.
+        """
         new_profile = \
             UserProfile(user=new_user, name=self.cleaned_data['first_name'],
                         city=self.cleaned_data['city'],
@@ -156,16 +186,20 @@ class UserProfileFormRegister(forms.Form):
         return new_profile
 
 
+# pylint: disable=too-many-ancestors
 # order of inheritance control order of form display
 class RegistrationFormUserProfile(RegistrationFormUniqueEmail,
                                   UserProfileFormRegister):
+    """
+    User profile registration form.
+    """
     _reserved_usernames = settings.RESERVED_USERNAMES
     username = forms.CharField(widget=forms.TextInput(), max_length=30)
     email = forms.EmailField(widget=forms.TextInput())
-    legal_usernames_re = re.compile("^\w+$")
+    legal_usernames_re = re.compile(r"^\w+$")
 
     def clean(self):
-        cleaned_data = super(UserProfileFormRegister, self).clean()
+        cleaned_data = super(RegistrationFormUserProfile, self).clean()
 
         # don't check captcha if it's disabled
         if not self.REGISTRATION_REQUIRE_CAPTCHA:
@@ -185,6 +219,9 @@ class RegistrationFormUserProfile(RegistrationFormUniqueEmail,
         return cleaned_data
 
     def clean_username(self):
+        """
+        Validate a new user username.
+        """
         username = self.cleaned_data['username'].lower()
         if username in self._reserved_usernames:
             raise forms.ValidationError(
@@ -201,20 +238,32 @@ class RegistrationFormUserProfile(RegistrationFormUniqueEmail,
 
 
 class SourceForm(forms.Form):
+    """
+    Source document form.
+    """
     source = forms.FileField(label=ugettext_lazy(u"Source document"),
                              required=True)
 
 
 class SupportDocForm(forms.Form):
+    """
+    Supporting document.
+    """
     doc = forms.FileField(label=ugettext_lazy(u"Supporting document"),
                           required=True)
 
 
 class MediaForm(forms.Form):
+    """
+    Media file upload form.
+    """
     media = forms.FileField(label=ugettext_lazy(u"Media upload"),
                             required=True)
 
     def clean_media(self):
+        """
+        Validate media upload file.
+        """
         data_type = self.cleaned_data['media'].content_type
         if data_type not in ['image/jpeg', 'image/png', 'audio/mpeg']:
             raise forms.ValidationError('Only these media types are \
@@ -222,6 +271,9 @@ class MediaForm(forms.Form):
 
 
 class MapboxLayerForm(forms.Form):
+    """
+    Mapbox layers form.
+    """
     map_name = forms.CharField(widget=forms.TextInput(), required=True,
                                max_length=255)
     attribution = forms.CharField(widget=forms.TextInput(), required=False,
@@ -231,31 +283,49 @@ class MapboxLayerForm(forms.Form):
 
 
 class QuickConverterFile(forms.Form):
+    """
+    Uploads XLSForm form.
+    """
     xls_file = forms.FileField(
         label=ugettext_lazy(u'XLS File'), required=False)
 
 
 class QuickConverterURL(forms.Form):
+    """
+    Uploads XLSForm from a URL.
+    """
     xls_url = forms.URLField(label=ugettext_lazy('XLS URL'),
                              required=False)
 
 
 class QuickConverterDropboxURL(forms.Form):
+    """
+    Uploads XLSForm from Dropbox.
+    """
     dropbox_xls_url = forms.URLField(
         label=ugettext_lazy('XLS URL'), required=False)
 
 
 class QuickConverterCsvFile(forms.Form):
+    """
+    Uploads CSV XLSForm.
+    """
     csv_url = forms.URLField(
         label=ugettext_lazy('CSV URL'), required=False)
 
 
 class QuickConverterTextXlsForm(forms.Form):
+    """
+    Uploads Text XLSForm.
+    """
     text_xls_form = forms.CharField(
         label=ugettext_lazy('XLSForm Representation'), required=False)
 
 
 class QuickConverterXmlFile(forms.Form):
+    """
+    Uploads an XForm XML.
+    """
     xml_file = forms.FileField(
         label=ugettext_lazy(u'XML File'), required=False)
 
@@ -267,9 +337,13 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
     validate = URLValidator()
 
     def clean_project(self):
+        """
+        Project validation.
+        """
         project = self.cleaned_data['project']
         if project is not None:
             try:
+                # pylint: disable=attribute-defined-outside-init, no-member
                 self._project = Project.objects.get(pk=int(project))
             except (Project.DoesNotExist, ValueError):
                 raise forms.ValidationError(
@@ -278,6 +352,9 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
         return project
 
     def publish(self, user, id_string=None, created_by=None):
+        """
+        Publish XLSForm.
+        """
         if self.is_valid():
             # If a text (csv) representation of the xlsform is present,
             # this will save the file and pass it instead of the 'xls_file'
@@ -311,12 +388,12 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
                     '_'.join(cleaned_xls_file.path.split('/')[-2:])
                 name, extension = os.path.splitext(cleaned_xls_file)
 
-                if extension not in VALID_FILE_EXTENSIONS:
-                    r = requests.get(cleaned_url)
-                    if r.headers.get('content-type') in \
+                if extension not in VALID_FILE_EXTENSIONS and name:
+                    response = requests.get(cleaned_url)
+                    if response.headers.get('content-type') in \
                             VALID_XLSFORM_CONTENT_TYPES and \
-                            r.status_code < 400:
-                        cleaned_xls_file = get_filename(r)
+                            response.status_code < 400:
+                        cleaned_xls_file = get_filename(response)
 
                 cleaned_xls_file = \
                     upload_to(None, cleaned_xls_file, user.username)
@@ -341,13 +418,16 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
                 raise forms.ValidationError(
                     _(u"XLSForm not provided, expecting either of these"
                       " params: 'xml_file', 'xls_file', 'xls_url', 'csv_url',"
-                      " 'dropbox_xls_url', 'text_xls_form'"))
+                      " 'dropbox_xls_url', 'text_xls_form', 'floip_file'"))
             # publish the xls
             return publish_xls_form(cleaned_xls_file, user, project,
                                     id_string, created_by or user)
 
 
-class ActivateSMSSupportFom(forms.Form):
+class ActivateSMSSupportForm(forms.Form):
+    """
+    Enable SMS support form.
+    """
     enable_sms_support = forms.TypedChoiceField(coerce=lambda x: x == 'True',
                                                 choices=((False, 'No'),
                                                          (True, 'Yes')),
@@ -358,6 +438,9 @@ class ActivateSMSSupportFom(forms.Form):
                                     label=ugettext_lazy(u"SMS Keyword"))
 
     def clean_sms_id_string(self):
+        """
+        SMS id_string validation.
+        """
         sms_id_string = self.cleaned_data.get('sms_id_string', '').strip()
 
         if not re.match(r'^[a-z0-9\_\-]+$', sms_id_string):
@@ -368,5 +451,12 @@ class ActivateSMSSupportFom(forms.Form):
 
 
 class ExternalExportForm(forms.Form):
+    """
+    XLS reports form.
+    """
     template_name = forms.CharField(label='Template Name', max_length=20)
     template_token = forms.URLField(label='Template URL', max_length=100)
+
+
+# Deprecated
+ActivateSMSSupportFom = ActivateSMSSupportForm

@@ -1,3 +1,8 @@
+# -*- coding=utf-8 -*-
+# pylint: disable=too-many-lines
+"""
+Main views.
+"""
 import json
 import os
 from datetime import datetime
@@ -26,7 +31,7 @@ from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.logger.models.xform import get_forms_shared_with_user
 from onadata.apps.logger.views import enter_data
 from onadata.apps.logger.xform_instance_parser import XLSFormError
-from onadata.apps.main.forms import (ActivateSMSSupportFom, DataLicenseForm,
+from onadata.apps.main.forms import (ActivateSMSSupportForm, DataLicenseForm,
                                      ExternalExportForm, FormLicenseForm,
                                      MapboxLayerForm, MediaForm,
                                      PermissionForm, QuickConverter,
@@ -98,7 +103,7 @@ def clone_xlsform(request, username):
         if default_storage.exists(path):
             project = get_user_default_project(request.user)
             xls_file = upload_to(None, '%s%s.xls' % (
-                                 id_string, XForm.CLONED_SUFFIX), to_username)
+                id_string, XForm.CLONED_SUFFIX), to_username)
             xls_data = default_storage.open(path)
             xls_file = default_storage.save(xls_file, xls_data)
             survey = DataDictionary.objects.create(
@@ -120,15 +125,16 @@ def clone_xlsform(request, username):
                     'id_string': xform.id_string + XForm.CLONED_SUFFIX})
             return {
                 'type': 'alert-success',
-                'text': _(u'Successfully cloned to %(form_url)s into your '
-                          u'%(profile_url)s') %
-                {'form_url': u'<a href="%(url)s">%(id_string)s</a> ' % {
-                 'id_string': survey.id_string,
-                 'url': clone_form_url
-                 },
-                    'profile_url': u'<a href="%s">profile</a>.' %
-                    reverse(profile, kwargs={'username': to_username})}
-            }
+                'text': _(
+                    u'Successfully cloned to %(form_url)s into your '
+                    u'%(profile_url)s') % {
+                        'form_url': u'<a href="%(url)s">%(id_string)s</a> ' % {
+                            'id_string': survey.id_string,
+                            'url': clone_form_url
+                        },
+                        'profile_url': u'<a href="%s">profile</a>.' % reverse(
+                            profile, kwargs={'username': to_username})}}
+
     form_result = publish_form(set_form)
     if form_result['type'] == 'alert-success':
         # comment the following condition (and else)
@@ -187,9 +193,10 @@ def profile(request, username):
                 'text': _(u'Successfully published %(form_id)s.'
                           u' <a href="%(form_url)s">Enter Web Form</a>'
                           u' or <a href="#preview-modal" data-toggle="modal">'
-                          u'Preview Web Form</a>')
-                % {'form_id': survey.id_string,
-                    'form_url': enketo_webform_url},
+                          u'Preview Web Form</a>') % {
+                              'form_id': survey.id_string,
+                              'form_url': enketo_webform_url
+                          },
                 'form_o': survey
             }
         form_result = publish_form(set_form)
@@ -345,7 +352,7 @@ def redirect_to_public_link(request, uuid):
 
 
 def set_xform_owner_data(data, xform, request, username, id_string):
-    data['sms_support_form'] = ActivateSMSSupportFom(
+    data['sms_support_form'] = ActivateSMSSupportForm(
         initial={'enable_sms_support': xform.allows_sms,
                  'sms_id_string': xform.sms_id_string})
     if not xform.allows_sms:
@@ -542,17 +549,18 @@ def public_api(request, username, id_string):
     })
 
     _DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
-    exports = {'username': xform.user.username,
-               'id_string': xform.id_string,
-               'bamboo_dataset': xform.bamboo_dataset,
-               'shared': xform.shared,
-               'shared_data': xform.shared_data,
-               'downloadable': xform.downloadable,
-               'title': xform.title,
-               'date_created': xform.date_created.strftime(_DATETIME_FORMAT),
-               'date_modified': xform.date_modified.strftime(_DATETIME_FORMAT),
-               'uuid': xform.uuid,
-               }
+    exports = {
+        'username': xform.user.username,
+        'id_string': xform.id_string,
+        'bamboo_dataset': xform.bamboo_dataset,
+        'shared': xform.shared,
+        'shared_data': xform.shared_data,
+        'downloadable': xform.downloadable,
+        'title': xform.title,
+        'date_created': xform.date_created.strftime(_DATETIME_FORMAT),
+        'date_modified': xform.date_modified.strftime(_DATETIME_FORMAT),
+        'uuid': xform.uuid,
+    }
     response_text = json.dumps(exports)
 
     return HttpResponse(response_text, content_type='application/json')
@@ -575,7 +583,7 @@ def edit(request, username, id_string):
             audit_log(
                 Actions.FORM_UPDATED, request.user, owner,
                 _("Description for '%(id_string)s' updated from "
-                    "'%(old_description)s' to '%(new_description)s'.") %
+                  "'%(old_description)s' to '%(new_description)s'.") %
                 {
                     'id_string': xform.id_string,
                     'old_description': xform.description,
@@ -589,7 +597,7 @@ def edit(request, username, id_string):
             audit_log(
                 Actions.FORM_UPDATED, request.user, owner,
                 _("Title for '%(id_string)s' updated from "
-                    "'%(old_title)s' to '%(new_title)s'.") %
+                  "'%(old_title)s' to '%(new_title)s'.") %
                 {
                     'id_string': xform.id_string,
                     'old_title': xform.title,
@@ -604,12 +612,13 @@ def edit(request, username, id_string):
                 audit_log(
                     Actions.FORM_UPDATED, request.user, owner,
                     _("Data sharing updated for '%(id_string)s' from "
-                        "'%(old_shared)s' to '%(new_shared)s'.") %
+                      "'%(old_shared)s' to '%(new_shared)s'.") %
                     {
                         'id_string': xform.id_string,
-                        'old_shared': _("shared")
-                        if xform.shared_data else _("not shared"),
-                        'new_shared': _("shared")
+                        'old_shared':
+                        _("shared") if xform.shared_data else _("not shared"),
+                        'new_shared':
+                        _("shared")
                         if not xform.shared_data else _("not shared")
                     }, audit, request)
                 xform.shared_data = not xform.shared_data
@@ -620,13 +629,13 @@ def edit(request, username, id_string):
                 audit_log(
                     Actions.FORM_UPDATED, request.user, owner,
                     _("Form sharing for '%(id_string)s' updated "
-                        "from '%(old_shared)s' to '%(new_shared)s'.") %
+                      "from '%(old_shared)s' to '%(new_shared)s'.") %
                     {
                         'id_string': xform.id_string,
-                        'old_shared': _("shared")
-                        if xform.shared else _("not shared"),
-                        'new_shared': _("shared")
-                        if not xform.shared else _("not shared")
+                        'old_shared':
+                        _("shared") if xform.shared else _("not shared"),
+                        'new_shared':
+                        _("shared") if not xform.shared else _("not shared")
                     }, audit, request)
                 xform.shared = not xform.shared
             elif request.POST['toggle_shared'] == 'active':
@@ -636,12 +645,13 @@ def edit(request, username, id_string):
                 audit_log(
                     Actions.FORM_UPDATED, request.user, owner,
                     _("Active status for '%(id_string)s' updated from "
-                        "'%(old_shared)s' to '%(new_shared)s'.") %
+                      "'%(old_shared)s' to '%(new_shared)s'.") %
                     {
                         'id_string': xform.id_string,
-                        'old_shared': _("shared")
-                        if xform.downloadable else _("not shared"),
-                        'new_shared': _("shared")
+                        'old_shared':
+                        _("shared") if xform.downloadable else _("not shared"),
+                        'new_shared':
+                        _("shared")
                         if not xform.downloadable else _("not shared")
                     }, audit, request)
                 xform.downloadable = not xform.downloadable
@@ -652,7 +662,7 @@ def edit(request, username, id_string):
             audit_log(
                 Actions.FORM_UPDATED, request.user, owner,
                 _("Form License for '%(id_string)s' updated to "
-                    "'%(form_license)s'.") %
+                  "'%(form_license)s'.") %
                 {
                     'id_string': xform.id_string,
                     'form_license': request.POST['form-license'],
@@ -665,7 +675,7 @@ def edit(request, username, id_string):
             audit_log(
                 Actions.FORM_UPDATED, request.user, owner,
                 _("Data license for '%(id_string)s' updated to "
-                    "'%(data_license)s'.") %
+                  "'%(data_license)s'.") %
                 {
                     'id_string': xform.id_string,
                     'data_license': request.POST['data-license'],
@@ -685,7 +695,7 @@ def edit(request, username, id_string):
             MetaData.source(xform, request.POST.get('source'),
                             request.FILES.get('source'))
         elif request.POST.get('enable_sms_support_trigger') is not None:
-            sms_support_form = ActivateSMSSupportFom(request.POST)
+            sms_support_form = ActivateSMSSupportForm(request.POST)
             if sms_support_form.is_valid():
                 audit = {
                     'xform': xform.id_string
@@ -1006,7 +1016,7 @@ def download_media_data(request, username, id_string, data_id):
                 audit_log(
                     Actions.FORM_UPDATED, request.user, owner,
                     _("Media download '%(filename)s' deleted from "
-                        "'%(id_string)s'.") %
+                      "'%(id_string)s'.") %
                     {
                         'id_string': xform.id_string,
                         'filename': os.path.basename(data.data_file.name)
@@ -1031,9 +1041,8 @@ def download_media_data(request, username, id_string, data_id):
                 }
                 audit_log(
                     Actions.FORM_UPDATED, request.user, owner,
-                    _("Media '%(filename)s' downloaded from "
-                        "'%(id_string)s'.") %
-                    {
+                    _("Media '%(filename)s' downloaded from '%(id_string)s'.")
+                    % {
                         'id_string': xform.id_string,
                         'filename': os.path.basename(file_path)
                     }, audit, request)
@@ -1116,7 +1125,7 @@ def set_perm(request, username, id_string):
                 audit_log(
                     Actions.FORM_PERMISSIONS_UPDATED, request.user, owner,
                     _("Edit permissions on '%(id_string)s' assigned to "
-                        "'%(for_user)s'.") %
+                      "'%(for_user)s'.") %
                     {
                         'id_string': xform.id_string,
                         'for_user': for_user
@@ -1130,7 +1139,7 @@ def set_perm(request, username, id_string):
                 audit_log(
                     Actions.FORM_PERMISSIONS_UPDATED, request.user, owner,
                     _("View permissions on '%(id_string)s' "
-                        "assigned to '%(for_user)s'.") %
+                      "assigned to '%(for_user)s'.") %
                     {
                         'id_string': xform.id_string,
                         'for_user': for_user
@@ -1144,7 +1153,7 @@ def set_perm(request, username, id_string):
                 audit_log(
                     Actions.FORM_PERMISSIONS_UPDATED, request.user, owner,
                     _("Report permissions on '%(id_string)s' "
-                        "assigned to '%(for_user)s'.") %
+                      "assigned to '%(for_user)s'.") %
                     {
                         'id_string': xform.id_string,
                         'for_user': for_user
@@ -1157,7 +1166,7 @@ def set_perm(request, username, id_string):
                 audit_log(
                     Actions.FORM_PERMISSIONS_UPDATED, request.user, owner,
                     _("All permissions on '%(id_string)s' "
-                        "removed from '%(for_user)s'.") %
+                      "removed from '%(for_user)s'.") %
                     {
                         'id_string': xform.id_string,
                         'for_user': for_user
@@ -1181,8 +1190,8 @@ def set_perm(request, username, id_string):
             _("Public link on '%(id_string)s' %(action)s.") %
             {
                 'id_string': xform.id_string,
-                'action': "created"
-                if for_user == "all" or
+                'action':
+                "created" if for_user == "all" or
                 (for_user == "toggle" and not current) else "removed"
             }, audit, request)
 
@@ -1215,8 +1224,7 @@ def delete_data(request, username=None, id_string=None):
     }
     audit_log(
         Actions.SUBMISSION_DELETED, request.user, owner,
-        _("Deleted submission with id '%(record_id)s' "
-            "on '%(id_string)s'.") %
+        _("Deleted submission with id '%(record_id)s' on '%(id_string)s'.") %
         {
             'id_string': xform.id_string,
             'record_id': data_id
@@ -1326,14 +1334,14 @@ def activity_api(request, username):
             return obj.strftime(DATETIME_FORMAT)
         return None
     try:
+        fields = request.GET.get('fields')
+        query = request.GET.get('query')
+        sort = request.GET.get('sort')
         query_args = {
             'username': username,
-            'query': json.loads(request.GET.get('query'))
-            if request.GET.get('query') else {},
-            'fields': json.loads(request.GET.get('fields'))
-            if request.GET.get('fields') else [],
-            'sort': json.loads(request.GET.get('sort'))
-            if request.GET.get('sort') else {}
+            'query': json.loads(query) if query else {},
+            'fields': json.loads(fields) if fields else [],
+            'sort': json.loads(sort) if sort else [],
         }
         if 'start' in request.GET:
             query_args["start"] = int(request.GET.get('start'))
@@ -1364,7 +1372,7 @@ def qrcode(request, username, id_string):
     xform = get_form(xform_kwargs)
     try:
         formhub_url = "http://%s/" % request.META['HTTP_HOST']
-    except:
+    except KeyError:
         formhub_url = "http://formhub.org/"
     formhub_url = formhub_url + username + '/%s' % xform.pk
 
