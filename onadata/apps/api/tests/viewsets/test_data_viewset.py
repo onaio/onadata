@@ -2116,7 +2116,7 @@ class TestDataViewSet(TestBase):
             response.data[0]['_submission_time'], response.data[0]['_id'],
             u'bob',
             u'transport/available_transportation_types_to_referral_facility',
-            u'none', u'null'
+            u'none', None
         ]
         self.assertEqual(floip_list[0], data)
 
