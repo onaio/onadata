@@ -178,7 +178,7 @@ Provides a list of rows of submitted data for a specific form.
 .. raw:: html
 
   <pre class="prettyprint">
-  <b>GET</b> /api/v1/data/<code>{pk}</code>?content_type=application/vnd.org.flowinterop.results+json</pre>
+  <b>GET</b> /api/v1/data/<code>{pk}</code>Accept:"application/vnd.org.flowinterop.results+json"</pre>
 
 Example
 ^^^^^^^^^
@@ -202,7 +202,7 @@ Provides a list of rows of submitted data for a specific submission in a form.
 .. raw:: html
 
   <pre class="prettyprint">
-  <b>GET</b> /api/v1/data/<code>{pk}{submission_id}</code><?content_type=application/vnd.org.flowinterop.results+json</pre>
+  <b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>Accept:application/vnd.org.flowinterop.results+json</pre>
 
 Example
 ^^^^^^^^^
