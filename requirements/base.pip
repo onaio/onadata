@@ -8,6 +8,7 @@
 -e git+https://github.com/onaio/django-multidb-router.git@django-1.11#egg=django-multidb-router
 -e git+https://github.com/jbalogh/django-nose.git#egg=django-nose
 -e git+https://github.com/bfirsh/django-ordered-model.git@master#egg=django-ordered-model
+-e git+https://github.com/onaio/floip-py.git@master#egg=floip
 -e git+https://github.com/onaio/python-json2xlsclient.git#egg=python-json2xlsclient
 -e git+https://github.com/XLSForm/pyxform.git@master#egg=pyxform
 alabaster==0.7.10         # via sphinx
@@ -16,11 +17,14 @@ anyjson==0.3.3            # via kombu
 argparse==1.4.0           # via unittest2
 babel==2.4.0              # via sphinx
 billiard==3.3.0.23        # via celery
+cchardet==1.1.3           # via datapackage, tabulator
 celery==3.1.25
 certifi==2017.4.17        # via requests
 chardet==3.0.3            # via requests
+click==6.7                # via datapackage, tableschema, tabulator
 configparser==3.5.0       # via flake8
 contextlib2==0.5.5        # via raven
+datapackage==1.1.4
 defusedxml==0.5.0         # via djangorestframework-xml
 dict2xml==1.5
 django-braces==1.11.0     # via django-oauth-toolkit
@@ -51,18 +55,25 @@ flake8==3.3.0
 fleming==0.4.5            # via django-query-builder
 formencode==1.3.1
 funcsigs==1.0.2           # via mock
+functools32==3.2.3.post2  # via jsonschema
 geojson==1.3.5
 google-api-python-client==1.6.2
 httmock==1.2.6
 httplib2==0.10.3
 idna==2.5                 # via requests
+ijson==2.3                # via tabulator
 imagesize==0.7.1          # via sphinx
+isodate==0.6.0            # via tableschema
 jdcal==1.3                # via openpyxl
 jinja2==2.9.6             # via sphinx
 jsonfield==0.9.23
+jsonlines==1.2.0          # via tabulator
 jsonpickle==0.9.4
+jsonpointer==1.14         # via datapackage
+jsonschema==2.6.0         # via datapackage, tableschema
 kombu==3.0.37             # via celery
 librabbitmq==1.6.1
+linear-tsv==1.0.0         # via tabulator
 linecache2==1.0.0         # via traceback2
 lxml==3.7.3
 markdown==2.6.8
@@ -94,14 +105,18 @@ pytz==2017.2
 raven==6.1.0
 recaptcha-client==1.0.6
 requests==2.17.3
+rfc3986==1.1.0            # via tableschema
 rsa==3.4.2                # via oauth2client
 savreaderwriter==3.4.2
 simplejson==3.10.0
-six==1.10.0               # via dict2xml, django-guardian, django-oauth-toolkit, django-query-builder, django-templated-email, djangorestframework-csv, google-api-python-client, mock, oauth2client, python-dateutil, python-memcached, sphinx, unittest2
+six==1.10.0               # via datapackage, dict2xml, django-guardian, django-oauth-toolkit, django-query-builder, django-templated-email, djangorestframework-csv, google-api-python-client, isodate, jsonlines, linear-tsv, mock, oauth2client, python-dateutil, python-memcached, sphinx, tableschema, tabulator, unittest2
 snowballstemmer==1.2.1    # via sphinx
 sphinx==1.6.2
 sphinxcontrib-websupport==1.0.1  # via sphinx
+sqlalchemy==1.1.15        # via tabulator
 sqlparse==0.2.3           # via django-debug-toolbar
+tableschema==1.0.8        # via datapackage
+tabulator==1.11.1         # via datapackage, tableschema
 traceback2==1.4.0         # via unittest2
 typing==3.6.1             # via sphinx
 unicodecsv==0.14.1
@@ -109,5 +124,5 @@ unittest2==1.1.0
 uritemplate==3.0.0        # via google-api-python-client
 urllib3==1.21.1           # via requests
 uwsgi==2.0.15
-xlrd==1.0.0
+xlrd==1.1.0
 xlwt==1.2.0

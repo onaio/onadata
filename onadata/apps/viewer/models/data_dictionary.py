@@ -1,23 +1,23 @@
 import csv
 import io
 import os
-import xlrd
-from django.utils import timezone
-
 from cStringIO import StringIO
-from django.db.models.signals import post_save, pre_save
+
+import xlrd
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.db.models.signals import post_save, pre_save
+from django.utils import timezone
 from django.utils.translation import ugettext as _
+
+from floip import FloipSurvey
+from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.xform_instance_parser import XLSFormError
+from onadata.libs.utils.cache_tools import (PROJ_BASE_FORMS_CACHE,
+                                            PROJ_FORMS_CACHE, safe_delete)
+from onadata.libs.utils.model_tools import get_columns_with_hxl, set_uuid
 from pyxform.builder import create_survey_element_from_dict
 from pyxform.utils import has_external_choices
 from pyxform.xls2json import parse_file_to_json
-
-from onadata.apps.logger.models.xform import XForm
-from onadata.apps.logger.xform_instance_parser import XLSFormError
-from onadata.libs.utils.model_tools import set_uuid
-from onadata.libs.utils.cache_tools import (
-    PROJ_FORMS_CACHE, PROJ_BASE_FORMS_CACHE, safe_delete)
-from onadata.libs.utils.model_tools import get_columns_with_hxl
 
 
 # adopted from pyxform.utils.sheet_to_csv
@@ -80,8 +80,11 @@ class DataDictionary(XForm):
                     self.xls.seek(0)
                 else:
                     file_object = self.xls
-                survey_dict = parse_file_to_json(
-                    self.xls.name, file_object=file_object)
+                if self.xls.name.endswith('json'):
+                    survey_dict = FloipSurvey(self.xls).survey.to_json_dict()
+                else:
+                    survey_dict = parse_file_to_json(self.xls.name,
+                                                     file_object=file_object)
             except csv.Error as e:
                 newline_error = u'new-line character seen in unquoted field '\
                     u'- do you need to open the file in universal-newline '\

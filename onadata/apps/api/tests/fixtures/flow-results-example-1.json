@@ -1,0 +1,100 @@
+{
+  "profile":"tabular-data-resource",
+  "name":"flow-results-example-1",
+  "flow_results_specification_version":"1.0.0-rc1",
+  "created":"2017-06-30 15:35:27+00:00",
+  "modified":"2017-06-30 15:38:05+00:00",
+  "id":"b03ec84-77fd-4270-813b-0c698943f7ce",
+  "title":"A nice title",
+  "resources":[
+    {
+      "path":"data/flow-results-example-1-data.json",
+      "name":"flow-results-example-1-data",
+      "mediatype":"application/json",
+      "encoding":"utf-8",
+      "schema":{
+        "language":"eng",
+        "fields":[
+          {
+            "name":"timestamp",
+            "title":"Timestamp",
+            "type":"datetime"
+          },
+          {
+            "name":"row_id",
+            "title":"Row ID",
+            "type":"string"
+          },
+          {
+            "name":"contact_id",
+            "title":"Contact ID",
+            "type":"string"
+          },
+          {
+            "name":"question_id",
+            "title":"Question ID",
+            "type":"string"
+          },
+          {
+            "name":"response",
+            "title":"Response",
+            "type":"any"
+          },
+          {
+            "name":"response_metadata",
+            "title":"Response Metadata",
+            "type":"object"
+          }
+        ],
+        "questions":{
+          "ae54d3":{
+            "type":"multiple_choice",
+            "label":"Are you male or female?",
+            "type_options":{
+              "choices":[
+                "male",
+                "female",
+                "not identified"
+              ]
+            }
+          },
+          "ae54d7":{
+            "type":"multiple_choice",
+            "label":"Favorite ice cream flavor?",
+            "type_options":{
+              "choices":[
+                "chocolate",
+                "vanilla",
+                "strawberry"
+              ]
+            }
+          },
+          "ae54d8":{
+            "type":"numeric",
+            "label":"How much do you weigh, in lbs?",
+            "type_options":{
+              "range":[
+                1,
+                250
+              ]
+            }
+          },
+          "ae54da":{
+            "type":"open",
+            "label":"How are you feeling today?",
+            "type_options":{
+
+            }
+          },
+          "ae54db":{
+            "type":"geo_point",
+            "label":"Where are you?",
+            "type_options":{
+
+            }
+          }
+        }
+      }
+    }
+  ]
+}
