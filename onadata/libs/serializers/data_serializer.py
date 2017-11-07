@@ -359,7 +359,7 @@ class FLOIPSubmissionSerializer(SubmissionSuccessMixin,
         """
         Overrides validating rows in list data.
         """
-        if isinstance(data, list):
+        if isinstance(data, list) and len(data) == 6:
             data = {data[1]: data}
 
         return data
