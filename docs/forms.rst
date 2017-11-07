@@ -71,7 +71,7 @@ Response
 Publish FLOIP results data package
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To publish a FLOIP form, upload the flow results data package in the following format https://github.com/FLOIP/flow-results/blob/master/README.md#example.
+To publish a FLOIP form, upload the JSON flow results data package in the following format https://github.com/FLOIP/flow-results/blob/master/README.md#example.
 
 .. raw:: html
 
@@ -82,7 +82,7 @@ Example
 ^^^^^^^
 ::
 
-    curl -X POST -F xls_file=@/path/to/datapackage.json https://api.ona.io/api/v1/forms
+    curl -X POST -F floip_file=@/path/to/datapackage.json https://api.ona.io/api/v1/forms
 
 Get list of forms
 ------------------

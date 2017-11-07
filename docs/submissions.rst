@@ -69,11 +69,21 @@ Here is some example JSON, it would replace `[the JSON]` above:
 
 Submit a FLOIP XForm submission
 -------------------------------
+To make a FLOIP submission, specify the content type header as `"Content-Type: application/vnd.org.flowinterop.results+json"` and the `[FLOIP data]` in a list of rows format each row having 6 values.
 
+The values in each row should be:
+::
+      - ``Timestamp``
+      - ``Row ID``
+      - ``Contact ID``
+      - ``Question ID``
+      - ``Response``
+      - ``Response metadata``
+ 
 .. raw:: html
 
     <pre class="prettyprint">
-    <b>POST</b> /api/v1/submissions</pre>
+    <b>POST</b> /api/<code>{user}</code><code>{pk}</code>/submissions</pre>
 
 Example
 ^^^^^^^
