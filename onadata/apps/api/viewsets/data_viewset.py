@@ -271,10 +271,26 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         return Response(data=data)
 
     def destroy(self, request, *args, **kwargs):
+        instance_ids = request.data.get('instance_ids')
         self.object = self.get_object()
 
         if isinstance(self.object, XForm):
-            raise ParseError(_(u"Data id not provided."))
+            if not instance_ids:
+                raise ParseError(_(u"Data id(s) not provided."))
+            else:
+                instance_ids = filter(
+                    lambda x: x.isdigit(),
+                    instance_ids.split(',')
+                )
+
+                instances = Instance.objects.filter(
+                    id__in=instance_ids,
+                    xform=self.object
+                )
+
+                for instance in instances:
+                    instance.set_deleted()
+
         elif isinstance(self.object, Instance):
 
             if request.user.has_perm(
