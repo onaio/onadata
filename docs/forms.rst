@@ -69,9 +69,14 @@ Response
        }
 
 Publish FLOIP results data package
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------
 
-To publish a FLOIP form, upload the JSON flow results data package in the following format https://github.com/FLOIP/flow-results/blob/master/README.md#example.
+To publish a FLOIP form, upload the JSON flow results data package in the example format |FLOIPDataPackage|.
+
+.. |FLOIPDataPackage| raw:: html
+
+    <a href="https://github.com/FLOIP/flow-results/blob/master/README.md#example"
+    target="_blank">here</a>
 
 .. raw:: html
 
@@ -82,7 +87,50 @@ Example
 ^^^^^^^
 ::
 
-    curl -X POST -F floip_file=@/path/to/datapackage.json https://api.ona.io/api/v1/forms
+    curl -X POST -F floip_file=@/path/to/datapackage.json https://api.ona.io/api/v1/forms -u username:password
+
+Response
+^^^^^^^^^
+::
+
+       {
+           "url":"http://localhost:8000/api/v1/forms/21",
+           "formid":21,
+           "metadata":[],
+           "owner":"http://localhost:8000/api/v1/users/nate",
+           "created_by":"http://localhost:8000/api/v1/users/nate",
+           "public":false,"public_data":false,
+           "require_auth":false,
+           "submission_count_for_today":0,
+           "tags":[],
+           "title":"A nice title",
+           "users":[{"first_name":"","last_name":"","is_org":false,"role":"owner","user":"nate","metadata":{}}],
+           "enketo_url":"",
+           "enketo_preview_url":null,
+           "num_of_submissions":0,
+           "last_submission_time":null,
+           "form_versions":[],
+           "data_views":[],
+           "has_id_string_changed":false,
+           "description":"",
+           "downloadable":true,
+           "allows_sms":false,
+           "encrypted":false,
+           "sms_id_string":"flow-results-example-1",
+           "id_string":"flow-results-example-1",
+           "date_created":"2017-11-07T09:29:23.420592Z",
+           "date_modified":"2017-11-07T09:29:23.420616Z",
+           "uuid":"8cb95a6d3eea4e8c84e3ecf156836ec2",
+           "bamboo_dataset":"",
+           "instances_with_geopoints":false,
+           "instances_with_osm":false,
+           "version":"201711070929",
+           "has_hxl_support":false,
+           "last_updated_at":"2017-11-07T09:29:23.420698Z",
+           "hash":"md5:76d150daa39fe0214acab50bda64c90f",
+           "is_merged_dataset":false,
+           "project":"http://localhost:8000/api/v1/projects/1"
+       }
 
 Get list of forms
 ------------------

@@ -69,10 +69,15 @@ Here is some example JSON, it would replace `[the JSON]` above:
 
 Submit a FLOIP XForm submission
 -------------------------------
-To make a FLOIP submission, specify the content type header as `"Content-Type: application/vnd.org.flowinterop.results+json"` and the `[FLOIP data]` in a list of rows format each row having 6 values.
+To make a FLOIP submission, specify the content type header as ``"Content-Type: application/vnd.org.flowinterop.results+json"`` and the ``[FLOIP data]`` in a list of rows format each row having 6 values.
+The FLOIP data format is specified |FLOIPSubmissionAPI|.
 
-The values in each row should be:
-::
+.. |FLOIPSubmissionAPI| raw:: html
+
+    <a href="https://github.com/FLOIP/flow-results/blob/master/specification.md#resource-data-found-at-external-path"
+    target="_blank">here</a>
+
+The values in each row should be in the following order:
       - ``Timestamp``
       - ``Row ID``
       - ``Contact ID``
@@ -83,23 +88,21 @@ The values in each row should be:
 .. raw:: html
 
     <pre class="prettyprint">
-    <b>POST</b> /api/<code>{user}</code><code>{pk}</code>/submissions</pre>
+    <b>POST</b> /api/<code>{user}</code>/<code>{pk}</code>/submission</pre>
 
 Example
 ^^^^^^^
 ::
 
-    curl -X POST http://api.ona.io/[user]/[pk]/submission
-    -H "Content-Type: application/vnd.org.flowinterop.results+json"
-    -d '[FLOIP data]'
+    curl -X POST http://api.ona.io/[user]/[pk]/submission -H "Content-Type: application/vnd.org.flowinterop.results+json" -d '[FLOIP data]'
 
-The FLOIP data format is specified |FLOIPSubmissionAPI|
+Here is an example of what will replace ``[FLOIP data]``:
+::
 
-.. |FLOIPSubmissionAPI| raw:: html
-
-    <a href="https://github.com/FLOIP/flow-results/blob/master/specification.md#resource-data-found-at-external-path"
-    target="_blank">here</a>
-
+    [
+      [ "2017-05-23T13:35:37.356-04:00", 20394823948, 923842093, "ae54d3", "female", {"option_order": ["male","female"]} ],
+      [ "2017-05-23T13:35:47.012-04:00", 20394823950, 923842093, "ae54d7", "chocolate", {} ]
+    ]
 
 Edit an existing XForm submission
 ---------------------------------
