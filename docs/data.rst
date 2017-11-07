@@ -171,6 +171,63 @@ Response
             ....
         ]
 
+Get FLOIP flow results for a specific form
+------------------------------------------
+Provides a list of rows of submitted data for a specific form. Each row contains 6 values as specified in FLOIP resource data https://github.com/FLOIP/flow-results/blob/master/specification.md#resource-data-found-at-external-path.
+The data is accessed from the data endpoint by specifiying `Accept: "application/vnd.org.flowinterop.results+json"` header.
+
+The values are:
+::
+      - ``Timestamp`` - form submission timestamp
+      - ``Row ID`` - Submission id
+      - ``Contact ID`` - Name of the person who made the submission or null if unavailable
+      - ``Question ID`` - The question field name
+      - ``Response`` - The question response
+      - ``Response metadata`` - The question options or null if none
+
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/<code>{pk}</code> -H "Accept:application/vnd.org.flowinterop.results+json"</pre>
+
+Example
+^^^^^^^^^
+::
+      curl -X GET http://localhost:8000/api/v1/data/3 -H "Accept: application/vnd.org.flowinterop.results+json" -u username:password
+
+Response
+^^^^^^^^^
+::
+
+      [
+          [ "2017-05-23T13:35:37.119-04:00", 20394823948, 923842093, "ae54d3", "female", {"option_order": ["male","female"]} ],
+          [ "2017-05-23T13:35:47.822-04:00", 20394823950, 923842093, "ae54d7", "chocolate", null ]
+      ]
+
+Get FLOIP flow results for a specific submission
+------------------------------------------
+Provides a list of rows of submitted data for a specific submission in a form in FLOIP resource data format as specified in the flow results specification https://github.com/FLOIP/flow-results/blob/master/specification.md#resource-data-found-at-external-path.
+
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code> -H "Accept: application/vnd.org.flowinterop.results+json"</pre>
+
+Example
+^^^^^^^^^
+::
+      curl -X GET http://localhost:8000/api/v1/data/210902/19158892 -H "Accept: application/vnd.org.flowinterop.results+json" -u username:password
+
+Response
+^^^^^^^^^
+::
+
+      [
+          [ "2017-05-23T13:35:37.119-04:00", 20394823948, 923842093, "ae54d3", "female", {"option_order": ["male","female"]} ],
+          [ "2017-05-23T13:35:47.822-04:00", 20394823950, 923842093, "ae54d7", "chocolate", null ]
+      ]
+
+
 Paginate data of a specific form
 -------------------------------------------
 Returns a list of json submitted data for a specific form using page number and the number of items per page. Use the ``page`` parameter to specify page number and ``page_size`` parameter is used to set the custom page size.

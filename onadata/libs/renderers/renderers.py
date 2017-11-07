@@ -19,6 +19,27 @@ from rest_framework_xml.renderers import XMLRenderer
 
 from onadata.libs.utils.osm import get_combined_osm
 
+IGNORE_FIELDS = ['meta/instanceID', 'formhub/uuid']
+
+
+def floip_rows_list(data):
+    """
+    Yields a row of FLOIP results data from dict data.
+    """
+    for key in data:
+        if not (key.startswith('_') or key in IGNORE_FIELDS):
+            yield [data['_submission_time'], data['_id'],
+                   data['_submitted_by'], key, data[key], None]
+
+
+def floip_list(data):
+    """
+    Yields FLOIP results data row from list data.
+    """
+    for item in data:
+        for i in floip_rows_list(item):
+            yield i
+
 
 class DecimalEncoder(JSONEncoder):
     def default(self, obj):
@@ -268,6 +289,22 @@ class DecimalJSONRenderer(JSONRenderer):
 
 
 class FLOIPRenderer(JSONRenderer):
+    """
+    FLOIP Results data renderer.
+    """
     media_type = 'application/vnd.org.flowinterop.results+json'
     format = 'json'
     charset = 'utf-8'
+
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        request = renderer_context['request']
+        response = renderer_context['response']
+        results = data
+        if request.method == 'GET' and response.status_code == 200:
+            if isinstance(data, dict):
+                results = [i for i in floip_rows_list(data)]
+            else:
+                results = [i for i in floip_list(data)]
+
+        return super(FLOIPRenderer, self).render(results, accepted_media_type,
+                                                 renderer_context)

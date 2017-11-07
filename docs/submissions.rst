@@ -69,18 +69,29 @@ Here is some example JSON, it would replace `[the JSON]` above:
 
 Submit a FLOIP XForm submission
 -------------------------------
+To make a FLOIP submission, specify the content type header as `"Content-Type: application/vnd.org.flowinterop.results+json"` and the `[FLOIP data]` in a list of rows format each row having 6 values.
 
+The values in each row should be:
+::
+      - ``Timestamp``
+      - ``Row ID``
+      - ``Contact ID``
+      - ``Question ID``
+      - ``Response``
+      - ``Response metadata``
+ 
 .. raw:: html
 
     <pre class="prettyprint">
-    <b>POST</b> /api/v1/submissions</pre>
+    <b>POST</b> /api/<code>{user}</code><code>{pk}</code>/submissions</pre>
 
 Example
 ^^^^^^^
 ::
 
-    curl -X POST -d '{"id": "[id_string]", "submission": [the FLOIP data]} http://api.ona.io/api/v1/submissions -u user:pass 
+    curl -X POST http://api.ona.io/[user]/[pk]/submission
     -H "Content-Type: application/vnd.org.flowinterop.results+json"
+    -d '[FLOIP data]'
 
 The FLOIP data format is specified |FLOIPSubmissionAPI|
 

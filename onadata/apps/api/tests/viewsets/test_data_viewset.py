@@ -2096,9 +2096,32 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid, format='json')
         self.assertEqual(len(response.data), 1)
 
+    def test_floip_format(self):
+        """
+        Test FLOIP output results.
+        """
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+        request = self.factory.get(
+            '/',
+            HTTP_ACCEPT='application/vnd.org.flowinterop.results+json',
+            **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        response.render()
+        floip_list = json.loads(response.content)
+        self.assertTrue(isinstance(floip_list, list))
+        data = [
+            response.data[0]['_submission_time'], response.data[0]['_id'],
+            u'bob',
+            u'transport/available_transportation_types_to_referral_facility',
+            u'none', None
+        ]
+        self.assertEqual(floip_list[0], data)
+
 
 class TestOSM(TestAbstractViewSet):
-
     def setUp(self):
         super(self.__class__, self).setUp()
         self._login_user_and_profile()
