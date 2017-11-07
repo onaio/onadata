@@ -598,7 +598,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         data_value = 'xform {} transportation'.format(self.xform.pk)
         self._add_form_metadata(self.xform, data_type, data_value)
         self._make_submissions()
-        self.xform.reload()
+        self.xform.refresh_from_db()
 
         self.view = XFormListViewSet.as_view(
             {

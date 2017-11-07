@@ -175,7 +175,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         xml = '<data id="b"><fruit>mango</fruit></data>'
         instance = Instance(xform=form_b, xml=xml)
         instance.save()
-        form_b.reload()
+        form_b.refresh_from_db()
         form_b.last_submission_time = instance.date_created
         form_b.save()
         view = MergedXFormViewSet.as_view({'get': 'retrieve'})
