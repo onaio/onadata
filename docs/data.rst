@@ -173,17 +173,20 @@ Response
 
 Get FLOIP flow results for a specific form
 ------------------------------------------
-Provides a list of rows of submitted data for a specific form. Each row contains 6 values as specified in FLOIP resource data https://github.com/FLOIP/flow-results/blob/master/specification.md#resource-data-found-at-external-path.
-The data is accessed from the data endpoint by specifiying `Accept: "application/vnd.org.flowinterop.results+json"` header.
+Provides a list of rows of submitted data for a specific form. Each row contains 6 values as specified |FLOIPSubmissionAPI|. The data is accessed from the data endpoint by specifiying the header ``Accept: "application/vnd.org.flowinterop.results+json"``.
 
-The values are:
-::
-      - ``Timestamp`` - form submission timestamp
-      - ``Row ID`` - Submission id
-      - ``Contact ID`` - Name of the person who made the submission or null if unavailable
-      - ``Question ID`` - The question field name
-      - ``Response`` - The question response
-      - ``Response metadata`` - The question options or null if none
+.. |FLOIPSubmissionAPI| raw:: html
+
+    <a href="https://github.com/FLOIP/flow-results/blob/master/specification.md#resource-data-found-at-external-path"
+    target="_blank">here</a>
+
+The values in each row are:
+    - ``Timestamp`` - form submission timestamp
+    - ``Row ID`` - Submission id
+    - ``Contact ID`` - Name of the person who made the submission or null if unavailable
+    - ``Question ID`` - The question field name
+    - ``Response`` - The question response
+    - ``Response metadata`` - The question options or null if none
 
 .. raw:: html
 
@@ -193,7 +196,8 @@ The values are:
 Example
 ^^^^^^^^^
 ::
-      curl -X GET http://localhost:8000/api/v1/data/3 -H "Accept: application/vnd.org.flowinterop.results+json" -u username:password
+
+    curl -X GET http://localhost:8000/api/v1/data/3 -H "Accept: application/vnd.org.flowinterop.results+json" -u username:password
 
 Response
 ^^^^^^^^^
@@ -206,7 +210,12 @@ Response
 
 Get FLOIP flow results for a specific submission
 ------------------------------------------
-Provides a list of rows of submitted data for a specific submission in a form in FLOIP resource data format as specified in the flow results specification https://github.com/FLOIP/flow-results/blob/master/specification.md#resource-data-found-at-external-path.
+Provides a list of rows of submitted data for a specific submission in a form in FLOIP resource data format as specified |FLOIPResourceData|.
+
+.. |FLOIPResourceData| raw:: html
+
+    <a href="https://github.com/FLOIP/flow-results/blob/master/specification.md#resource-data-found-at-external-path"
+    target="_blank">here</a>
 
 .. raw:: html
 
@@ -216,7 +225,8 @@ Provides a list of rows of submitted data for a specific submission in a form in
 Example
 ^^^^^^^^^
 ::
-      curl -X GET http://localhost:8000/api/v1/data/210902/19158892 -H "Accept: application/vnd.org.flowinterop.results+json" -u username:password
+
+    curl -X GET http://localhost:8000/api/v1/data/210902/19158892 -H "Accept: application/vnd.org.flowinterop.results+json" -u username:password
 
 Response
 ^^^^^^^^^
