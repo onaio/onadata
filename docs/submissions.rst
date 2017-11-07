@@ -79,8 +79,9 @@ Example
 ^^^^^^^
 ::
 
-    curl -X POST -d '{"id": "[id_string]", "submission": [the FLOIP data]} http://api.ona.io/api/v1/submissions -u user:pass 
+    curl -X POST http://api.ona.io/[user]/[pk]/submission
     -H "Content-Type: application/vnd.org.flowinterop.results+json"
+    -d '[FLOIP data]'
 
 The FLOIP data format is specified |FLOIPSubmissionAPI|
 
