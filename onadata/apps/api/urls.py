@@ -41,13 +41,10 @@ from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
 admin.autodiscover()
 
 
-def make_routes(template_text):
+def make_routes(template_text, mapping):
     return routers.Route(
         url=r'^{prefix}/{%s}{trailing_slash}$' % template_text,
-        mapping={
-            'get': 'list',
-            'post': 'create'
-        },
+        mapping=mapping,
         name='{basename}-list',
         initkwargs={'suffix': 'List'})
 
@@ -55,6 +52,15 @@ def make_routes(template_text):
 class MultiLookupRouter(routers.DefaultRouter):
     def __init__(self, *args, **kwargs):
         super(MultiLookupRouter, self).__init__(*args, **kwargs)
+        lookup_mapping = {
+            'get': 'list',
+            'post': 'create',
+            'delete': 'destroy',
+        }
+        lookups_mapping = {
+            'get': 'list',
+            'post': 'create'
+        }
         self.lookups_routes = []
         self.lookups_routes.append(routers.Route(
             url=r'^{prefix}/{lookups}{trailing_slash}$',
@@ -67,8 +73,8 @@ class MultiLookupRouter(routers.DefaultRouter):
             name='{basename}-detail',
             initkwargs={'suffix': 'Instance'}
         ))
-        self.lookups_routes.append(make_routes('lookup'))
-        self.lookups_routes.append(make_routes('lookups'))
+        self.lookups_routes.append(make_routes('lookup', lookup_mapping))
+        self.lookups_routes.append(make_routes('lookups', lookups_mapping))
         # Dynamically generated routes.
         # Generated using @action or @link decorators on methods of the viewset
         self.lookups_routes.append(routers.Route(
