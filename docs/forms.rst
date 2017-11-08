@@ -78,6 +78,20 @@ To publish a FLOIP form, upload the JSON flow results data package in the exampl
     <a href="https://github.com/FLOIP/flow-results/blob/master/README.md#example"
     target="_blank">here</a>
 
+The following FLOIP question types are supported by Ona API:
+
+- ``select_one``
+- ``select_many``
+- ``numeric``
+- ``text``
+- ``image``
+- ``video``
+- ``audio``
+- ``geopoint``
+- ``datetime``
+- ``date``
+- ``time``
+
 .. raw:: html
 
     <pre class="prettyprint">
@@ -135,7 +149,6 @@ Response
 Get list of forms
 ------------------
 .. raw:: html
-
 
     <pre class="prettyprint">
     <b>GET</b> /api/v1/forms</pre>
@@ -255,7 +268,6 @@ Delete Form
 
 .. raw:: html
 
-
     <pre class="prettyprint">
     <b>DELETE</b> /api/v1/forms/<code>{pk}</code></pre>
 
@@ -275,6 +287,7 @@ Response
 List of form data exports
 -------------------------
 Get a list of exports
+
 .. raw:: html
 
     <pre class="prettyprint">
@@ -307,6 +320,7 @@ Response
     }]
 
 Get a list of exports on a form
+
 .. raw:: html
 
     <pre class="prettyprint">
