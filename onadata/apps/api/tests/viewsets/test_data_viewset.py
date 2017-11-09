@@ -1359,7 +1359,10 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, u"Invalid data ids were provided.")
+        self.assertEqual(
+            response.data.get('detail'),
+            u"Invalid data ids were provided."
+        )
         self.xform.refresh_from_db()
         current_count = self.xform.instances.filter(deleted_at=None).count()
         self.assertEqual(current_count, initial_count)
