@@ -1358,7 +1358,8 @@ class TestDataViewSet(TestBase):
         request = self.factory.delete('/', data=data, **self.extra)
         response = view(request, pk=formid)
 
-        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, u"Invalid data ids were provided.")
         self.xform.refresh_from_db()
         current_count = self.xform.instances.filter(deleted_at=None).count()
         self.assertEqual(current_count, initial_count)
@@ -1366,15 +1367,18 @@ class TestDataViewSet(TestBase):
         self.assertEqual(self.xform.num_of_submissions, 4)
 
         # test with valid instance id's
-        instance_ids = ','.join(
-            [str(i.pk) for i in self.xform.instances.all()[:2]]
-        )
+        records_to_be_deleted = self.xform.instances.all()[:2]
+        instance_ids = ','.join([str(i.pk) for i in records_to_be_deleted])
         data = {"instance_ids": instance_ids}
 
         request = self.factory.delete('/', data=data, **self.extra)
         response = view(request, pk=formid)
 
-        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data,
+            "%d records were deleted" % len(records_to_be_deleted)
+        )
         self.xform.refresh_from_db()
         current_count = self.xform.instances.filter(deleted_at=None).count()
         self.assertNotEqual(current_count, initial_count)
