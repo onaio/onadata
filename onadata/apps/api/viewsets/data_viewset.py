@@ -299,7 +299,10 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 number_of_records_deleted = initial_count - after_count
 
                 return Response(
-                    data="%d records were deleted" % number_of_records_deleted,
+                    data={
+                        "message":
+                        "%d records were deleted" % number_of_records_deleted
+                    },
                     status=status.HTTP_200_OK
                 )
 
