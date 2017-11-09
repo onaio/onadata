@@ -53,6 +53,7 @@ dict2xml
 lxml
 
 pyxform
+pyfloip>=0.0.1
 
 # spss
 #-e git+https://bitbucket.org/fomcl/savreaderwriter.git@v3.4.2#egg=savreaderwriter
