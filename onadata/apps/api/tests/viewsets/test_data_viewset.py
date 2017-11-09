@@ -1379,7 +1379,7 @@ class TestDataViewSet(TestBase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response.data,
+            response.data.get('message'),
             "%d records were deleted" % len(records_to_be_deleted)
         )
         self.xform.refresh_from_db()
