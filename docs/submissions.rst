@@ -84,11 +84,11 @@ The values in each row should be in the following order:
       - ``Question ID``
       - ``Response``
       - ``Response metadata``
- 
+
 .. raw:: html
 
     <pre class="prettyprint">
-    <b>POST</b> /api/<code>{user}</code>/<code>{pk}</code>/submission</pre>
+    <b>POST</b> /<code>{user}</code>/<code>{pk}</code>/submission</pre>
 
 Example
 ^^^^^^^
