@@ -271,10 +271,41 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         return Response(data=data)
 
     def destroy(self, request, *args, **kwargs):
+        instance_ids = request.data.get('instance_ids')
         self.object = self.get_object()
 
         if isinstance(self.object, XForm):
-            raise ParseError(_(u"Data id not provided."))
+            if not instance_ids:
+                raise ParseError(_(u"Data id(s) not provided."))
+            else:
+                instance_ids = filter(
+                    lambda x: x.isdigit(),
+                    instance_ids.split(',')
+                )
+
+                if not instance_ids:
+                    raise ParseError(_(u"Invalid data ids were provided."))
+
+                initial_count = self.object.submission_count()
+                Instance.objects.filter(
+                    id__in=instance_ids,
+                    xform=self.object,
+                    # do not update this timestamp when the record have
+                    # already been deleted.
+                    deleted_at__isnull=True
+                ).update(deleted_at=timezone.now())
+                # updates the num_of_submissions for the form.
+                after_count = self.object.submission_count(force_update=True)
+                number_of_records_deleted = initial_count - after_count
+
+                return Response(
+                    data={
+                        "message":
+                        "%d records were deleted" % number_of_records_deleted
+                    },
+                    status=status.HTTP_200_OK
+                )
+
         elif isinstance(self.object, Instance):
 
             if request.user.has_perm(

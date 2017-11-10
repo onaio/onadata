@@ -48,7 +48,7 @@
         ],
         "questions":{
           "ae54d3":{
-            "type":"multiple_choice",
+            "type":"select_one",
             "label":"Are you male or female?",
             "type_options":{
               "choices":[
@@ -59,7 +59,7 @@
             }
           },
           "ae54d7":{
-            "type":"multiple_choice",
+            "type":"select_many",
             "label":"Favorite ice cream flavor?",
             "type_options":{
               "choices":[
@@ -80,7 +80,7 @@
             }
           },
           "ae54da":{
-            "type":"open",
+            "type":"text",
             "label":"How are you feeling today?",
             "type_options":{
 

@@ -1343,6 +1343,51 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(len(response.data), 2)
 
+    def test_deletion_of_bulk_submissions(self):
+        self._make_submissions()
+        self.xform.refresh_from_db()
+        formid = self.xform.pk
+        initial_count = self.xform.instances.filter(deleted_at=None).count()
+        self.assertEqual(initial_count, 4)
+        self.assertEqual(self.xform.num_of_submissions, 4)
+
+        view = DataViewSet.as_view({'delete': 'destroy'})
+
+        # test with invalid instance id's
+        data = {"instance_ids": "john,doe"}
+        request = self.factory.delete('/', data=data, **self.extra)
+        response = view(request, pk=formid)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data.get('detail'),
+            u"Invalid data ids were provided."
+        )
+        self.xform.refresh_from_db()
+        current_count = self.xform.instances.filter(deleted_at=None).count()
+        self.assertEqual(current_count, initial_count)
+        self.assertEqual(current_count, 4)
+        self.assertEqual(self.xform.num_of_submissions, 4)
+
+        # test with valid instance id's
+        records_to_be_deleted = self.xform.instances.all()[:2]
+        instance_ids = ','.join([str(i.pk) for i in records_to_be_deleted])
+        data = {"instance_ids": instance_ids}
+
+        request = self.factory.delete('/', data=data, **self.extra)
+        response = view(request, pk=formid)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data.get('message'),
+            "%d records were deleted" % len(records_to_be_deleted)
+        )
+        self.xform.refresh_from_db()
+        current_count = self.xform.instances.filter(deleted_at=None).count()
+        self.assertNotEqual(current_count, initial_count)
+        self.assertEqual(current_count, 2)
+        self.assertEqual(self.xform.num_of_submissions, 2)
+
     def test_delete_submission_inactive_form(self):
         self._make_submissions()
         formid = self.xform.pk
