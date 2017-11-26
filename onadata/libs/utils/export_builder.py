@@ -884,7 +884,7 @@ class ExportBuilder(object):
         var_names = []
         fields_and_labels = []
         elements += [{'title': f, "label": f, "xpath": f, 'type': f}
-                     for f in self.EXTRA_FIELDS]
+                     for f in set(self.EXTRA_FIELDS)]
 
         for element in elements:
             title = element['title']
@@ -922,7 +922,7 @@ class ExportBuilder(object):
                 SAV_NUMERIC_TYPE if item in [
                     '_id', '_index', '_parent_index', SUBMISSION_TIME]
                 else SAV_255_BYTES_TYPE)
-                for item in self.EXTRA_FIELDS] +
+                for item in set(self.EXTRA_FIELDS)] +
             [(x[1],
               SAV_NUMERIC_TYPE if _is_numeric(
                 x[0],
@@ -1043,8 +1043,8 @@ class ExportBuilder(object):
         if dataview:
             return [element[key] for element in section['elements']
                     if element['title'] in dataview.columns]\
-                + self.EXTRA_FIELDS
+                + list(set(self.EXTRA_FIELDS))
 
         else:
             return [element[key] for element in
-                    section['elements']] + self.EXTRA_FIELDS
+                    section['elements']] + list(set(self.EXTRA_FIELDS))
