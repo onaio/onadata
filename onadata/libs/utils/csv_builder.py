@@ -341,12 +341,13 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
     @classmethod
     def _reindex(cls, key, value, ordered_columns, row, data_dictionary,
                  parent_prefix=None,
-                 include_images=True):
+                 include_images=True, split_select_multiples=True):
         """
         Flatten list columns by appending an index, otherwise return as is
         """
         def get_ordered_repeat_value(xpath, repeat_value):
-            children = data_dictionary.get_child_elements(xpath)
+            children = data_dictionary.get_child_elements(
+                xpath, split_select_multiples)
             item = OrderedDict()
 
             for elem in children:
@@ -392,7 +393,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                                 nested_key, nested_val,
                                 ordered_columns, row, data_dictionary,
                                 new_prefix,
-                                include_images=include_images))
+                                include_images=include_images,
+                                split_select_multiples=split_select_multiples))
                         else:
                             # it can only be a scalar
                             # collapse xpath
@@ -475,8 +477,10 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             self._tag_edit_string(record)
             # re index repeats
             for key, value in record.iteritems():
-                self._reindex(key, value, self.ordered_columns,
-                              record, self.dd, include_images=image_xpaths)
+                self._reindex(
+                    key, value, self.ordered_columns, record, self.dd,
+                    include_images=image_xpaths,
+                    split_select_multiples=self.split_select_multiples)
 
     def _format_for_dataframe(self, cursor):
         # TODO: check for and handle empty results
@@ -506,9 +510,10 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             flat_dict = {}
             # re index repeats
             for key, value in record.iteritems():
-                reindexed = self._reindex(key, value, self.ordered_columns,
-                                          record, self.dd,
-                                          include_images=image_xpaths)
+                reindexed = self._reindex(
+                    key, value, self.ordered_columns, record, self.dd,
+                    include_images=image_xpaths,
+                    split_select_multiples=self.split_select_multiples)
                 flat_dict.update(reindexed)
 
             yield flat_dict

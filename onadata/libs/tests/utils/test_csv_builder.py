@@ -4,6 +4,7 @@ Test CSVDataFrameBuilder
 """
 import csv
 import os
+from mock import patch
 from tempfile import NamedTemporaryFile
 
 from django.utils.dateparse import parse_datetime
@@ -635,3 +636,56 @@ class TestCSVDataFrameBuilder(TestBase):
         # close and delete file
         csv_file.close()
         os.unlink(temp_file.name)
+
+    @patch.object(CSVDataFrameBuilder, '_query_data')
+    def test_no_split_select_multiples(self, mock_query_data):
+        MD = """
+        | survey |
+        |        | type                     | name         | label        |
+        |        | text                     | name         | Name         |
+        |        | integer                  | age          | Age          |
+        |        | begin repeat             | browser_use  | Browser Use  |
+        |        | integer                  | year         | Year         |
+        |        | select_multiple browsers | browsers     | Browsers     |
+        |        | end repeat               |              |              |
+
+        | choices |
+        |         | list name | name    | label             |
+        |         | browsers  | firefox | Firefox           |
+        |         | browsers  | chrome  | Chrome            |
+        |         | browsers  | ie      | Internet Explorer |
+        |         | browsers  | safari  | Safari            |
+        """
+        self.xform = self._publish_markdown(MD, self.user, id_string='b')
+        # survey = self.md_to_pyxform_survey(md, {'name': 'repeats_w_multiples'})
+        data = [{
+            'name': 'Tom',
+            'age': 23,
+            'browser_use': [
+                {
+                    'browser_use/year': '2010',
+                    'browser_use/browsers': 'firefox safari'
+                },
+                {
+                    'browser_use/year': '2011',
+                    'browser_use/browsers': 'firefox chrome'
+                }
+            ]
+        }]
+        mock_query_data.return_value = data
+        csv_df_builder = CSVDataFrameBuilder(self.user.username,
+                                             self.xform.id_string,
+                                             split_select_multiples=False,
+                                             include_images=False)
+        cursor = [row for row in csv_df_builder._query_data()]
+        result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
+        expected_result = [{
+            'name': 'Tom',
+            'age': 23,
+            'browser_use[1]/year': '2010',
+            'browser_use[1]/browsers': 'firefox safari',
+            'browser_use[2]/year': '2011',
+            'browser_use[2]/browsers': 'firefox chrome'
+        }]
+        self.maxDiff = None
+        self.assertEqual(expected_result, result)
