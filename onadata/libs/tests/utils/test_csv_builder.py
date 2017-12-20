@@ -4,38 +4,37 @@ Test CSVDataFrameBuilder
 """
 import csv
 import os
-from mock import patch
 from tempfile import NamedTemporaryFile
 
 from django.utils.dateparse import parse_datetime
+from mock import patch
 
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import xform_instance_to_dict
-from onadata.libs.utils.csv_builder import AbstractDataFrameBuilder,\
-    CSVDataFrameBuilder, get_prefix_from_xpath,\
-    remove_dups_from_list_maintain_order, write_to_csv
+from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.common_tags import NA_REP
+from onadata.libs.utils.csv_builder import (
+    AbstractDataFrameBuilder, CSVDataFrameBuilder, get_prefix_from_xpath,
+    remove_dups_from_list_maintain_order, write_to_csv)
 
 
 def xls_filepath_from_fixture_name(fixture_name):
     """
     Return an xls file path at tests/fixtures/[fixture]/fixture.xls
     """
-    # TODO currently this only works for fixtures in this app because of
-    # __file__
     return os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        "fixtures", fixture_name, fixture_name + ".xls"
-    )
+        os.path.dirname(os.path.abspath(__file__)), "fixtures", fixture_name,
+        fixture_name + ".xls")
 
 
+# pylint: disable=invalid-name
 def xml_inst_filepath_from_fixture_name(fixture_name, instance_name):
+    """
+    Returns the path to a fixture given fixture_name and instance_name.
+    """
     return os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        "fixtures", fixture_name, "instances",
-        fixture_name + "_" + instance_name + ".xml"
-    )
+        os.path.dirname(os.path.abspath(__file__)), "fixtures", fixture_name,
+        "instances", fixture_name + "_" + instance_name + ".xml")
 
 
 class TestCSVDataFrameBuilder(TestBase):
@@ -55,10 +54,11 @@ class TestCSVDataFrameBuilder(TestBase):
         count = XForm.objects.count()
         self._publish_xls_file(xls_file_path)
         self.assertEqual(XForm.objects.count(), count + 1)
+        # pylint: disable=attribute-defined-outside-init
         self.xform = XForm.objects.all().reverse()[0]
 
-    def _submit_fixture_instance(
-            self, fixture, instance, submission_time=None):
+    def _submit_fixture_instance(self, fixture, instance,
+                                 submission_time=None):
         """
         Submit an instance at
         tests/fixtures/[fixture]/instances/[fixture]_[instance].xml
@@ -71,45 +71,53 @@ class TestCSVDataFrameBuilder(TestBase):
 
     def _publish_single_level_repeat_form(self):
         self._publish_xls_fixture_set_xform("new_repeats")
+        # pylint: disable=attribute-defined-outside-init
         self.survey_name = u"new_repeats"
 
     def _publish_nested_repeats_form(self):
         self._publish_xls_fixture_set_xform("nested_repeats")
+        # pylint: disable=attribute-defined-outside-init
         self.survey_name = u"nested_repeats"
 
     def _publish_grouped_gps_form(self):
         self._publish_xls_fixture_set_xform("grouped_gps")
+        # pylint: disable=attribute-defined-outside-init
         self.survey_name = u"grouped_gps"
 
     def _csv_data_for_dataframe(self):
-        csv_df_builder = CSVDataFrameBuilder(self.user.username,
-                                             self.xform.id_string,
-                                             include_images=False)
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username, self.xform.id_string, include_images=False)
+        # pylint: disable=protected-access
         cursor = csv_df_builder._query_data()
         return [d for d in csv_df_builder._format_for_dataframe(cursor)]
 
     def test_csv_dataframe_export_to(self):
+        """
+        Test CSVDataFrameBuilder.export_to().
+        """
         self._publish_nested_repeats_form()
         self._submit_fixture_instance(
             "nested_repeats", "01", submission_time=self._submission_time)
         self._submit_fixture_instance(
             "nested_repeats", "02", submission_time=self._submission_time)
 
-        csv_df_builder = CSVDataFrameBuilder(self.user.username,
-                                             self.xform.id_string,
-                                             include_images=False)
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username, self.xform.id_string, include_images=False)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
         csv_df_builder.export_to(temp_file.name)
         csv_fixture_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "fixtures", "nested_repeats", "nested_repeats.csv"
-        )
+            os.path.dirname(os.path.abspath(__file__)), "fixtures",
+            "nested_repeats", "nested_repeats.csv")
         temp_file.close()
         with open(temp_file.name) as csv_file:
             self._test_csv_files(csv_file, csv_fixture_path)
         os.unlink(temp_file.name)
 
+    # pylint: disable=invalid-name
     def test_csv_columns_for_gps_within_groups(self):
+        """
+        Test CSV columns for GPS fields within groups.
+        """
         self._publish_grouped_gps_form()
         self._submit_fixture_instance("grouped_gps", "01")
         data = self._csv_data_for_dataframe()
@@ -135,6 +143,9 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertEqual(sorted(expected_columns), sorted(columns))
 
     def test_format_mongo_data_for_csv(self):
+        """
+        Test format mongo data for CSV.
+        """
         self.maxDiff = None
         self._publish_single_level_repeat_form()
         self._submit_fixture_instance("new_repeats", "01")
@@ -168,17 +179,20 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertEqual(expected_data_0, data_0)
 
     def test_split_select_multiples(self):
+        """
+        Test select multiples choices are split.
+        """
         self._publish_nested_repeats_form()
         self._submit_fixture_instance("nested_repeats", "01")
-        csv_df_builder = CSVDataFrameBuilder(self.user.username,
-                                             self.xform.id_string,
-                                             include_images=False)
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username, self.xform.id_string, include_images=False)
+        # pylint: disable=protected-access
         cursor = [k for k in csv_df_builder._query_data()]
         record = cursor[0]
         select_multiples = \
             CSVDataFrameBuilder._collect_select_multiples(self.xform)
-        result = CSVDataFrameBuilder._split_select_multiples(record,
-                                                             select_multiples)
+        result = CSVDataFrameBuilder._split_select_multiples(
+            record, select_multiples)
         expected_result = {
             u'web_browsers/ie': True,
             u'web_browsers/safari': True,
@@ -187,14 +201,16 @@ class TestCSVDataFrameBuilder(TestBase):
         }
         # build a new dictionary only composed of the keys we want to use in
         # the comparison
-        result = dict([(key, result[key]) for key in result.keys() if key in
-                       expected_result.keys()])
+        result = dict([(key, result[key]) for key in result.keys()
+                       if key in expected_result.keys()])
         self.assertEqual(expected_result, result)
-        csv_df_builder = CSVDataFrameBuilder(self.user.username,
-                                             self.xform.id_string,
-                                             binary_select_multiples=True)
-        result = csv_df_builder._split_select_multiples(record,
-                                                        select_multiples)
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username,
+            self.xform.id_string,
+            binary_select_multiples=True)
+        # pylint: disable=protected-access
+        result = csv_df_builder._split_select_multiples(
+            record, select_multiples)
         expected_result = {
             u'web_browsers/ie': 1,
             u'web_browsers/safari': 1,
@@ -203,60 +219,61 @@ class TestCSVDataFrameBuilder(TestBase):
         }
         # build a new dictionary only composed of the keys we want to use in
         # the comparison
-        result = dict([(key, result[key]) for key in result.keys() if key in
-                       expected_result.keys()])
+        result = dict([(key, result[key]) for key in result.keys()
+                       if key in expected_result.keys()])
         self.assertEqual(expected_result, result)
 
+    # pylint: disable=invalid-name
     def test_split_select_multiples_within_repeats(self):
+        """
+        Test select multiples choices are split within repeats in CSV exports.
+        """
         self.maxDiff = None
         record = {
             'name': 'Tom',
             'age': 23,
-            'browser_use': [
-                {
-                    'browser_use/year': '2010',
-                    'browser_use/browsers': 'firefox safari'
-                },
-                {
-                    'browser_use/year': '2011',
-                    'browser_use/browsers': 'firefox chrome'
-                }
-            ]
-        }
+            'browser_use': [{
+                'browser_use/year': '2010',
+                'browser_use/browsers': 'firefox safari'
+            }, {
+                'browser_use/year': '2011',
+                'browser_use/browsers': 'firefox chrome'
+            }]
+        }  # yapf: disable
         expected_result = {
             'name': 'Tom',
             'age': 23,
-            'browser_use': [
-                {
-                    'browser_use/year': '2010',
-                    'browser_use/browsers/firefox': True,
-                    'browser_use/browsers/safari': True,
-                    'browser_use/browsers/ie': False,
-                    'browser_use/browsers/chrome': False
-                },
-                {
-                    'browser_use/year': '2011',
-                    'browser_use/browsers/firefox': True,
-                    'browser_use/browsers/safari': False,
-                    'browser_use/browsers/ie': False,
-                    'browser_use/browsers/chrome': True
-                }
-            ]
-        }
+            'browser_use': [{
+                'browser_use/year': '2010',
+                'browser_use/browsers/firefox': True,
+                'browser_use/browsers/safari': True,
+                'browser_use/browsers/ie': False,
+                'browser_use/browsers/chrome': False
+            }, {
+                'browser_use/year': '2011',
+                'browser_use/browsers/firefox': True,
+                'browser_use/browsers/safari': False,
+                'browser_use/browsers/ie': False,
+                'browser_use/browsers/chrome': True
+            }]
+        }  # yapf: disable
         select_multiples = {
             'browser_use/browsers': [
-                'browser_use/browsers/firefox',
-                'browser_use/browsers/safari',
-                'browser_use/browsers/ie',
-                'browser_use/browsers/chrome']}
-        result = CSVDataFrameBuilder._split_select_multiples(record,
-                                                             select_multiples)
+                'browser_use/browsers/firefox', 'browser_use/browsers/safari',
+                'browser_use/browsers/ie', 'browser_use/browsers/chrome'
+            ]
+        }
+        # pylint: disable=protected-access
+        result = CSVDataFrameBuilder._split_select_multiples(
+            record, select_multiples)
         self.assertEqual(expected_result, result)
 
     def test_split_gps_fields(self):
-        record = {
-            'gps': '5 6 7 8'
-        }
+        """
+        Test GPS fields data are split into latitude, longitude, altitude, and
+        precision segments.
+        """
+        record = {'gps': '5 6 7 8'}
         gps_fields = ['gps']
         expected_result = {
             'gps': '5 6 7 8',
@@ -265,43 +282,46 @@ class TestCSVDataFrameBuilder(TestBase):
             '_gps_altitude': '7',
             '_gps_precision': '8',
         }
+        # pylint: disable=protected-access
         AbstractDataFrameBuilder._split_gps_fields(record, gps_fields)
         self.assertEqual(expected_result, record)
 
+    # pylint: disable=invalid-name
     def test_split_gps_fields_within_repeats(self):
+        """
+        Test GPS fields data is split within repeats.
+        """
         record = {
-            'a_repeat': [
-                {
-                    'a_repeat/gps': '1 2 3 4'
-                },
-                {
-                    'a_repeat/gps': '5 6 7 8'
-                }
-            ]
+            'a_repeat': [{
+                'a_repeat/gps': '1 2 3 4'
+            }, {
+                'a_repeat/gps': '5 6 7 8'
+            }]
         }
         gps_fields = ['a_repeat/gps']
         expected_result = {
-            'a_repeat': [
-                {
-                    'a_repeat/gps': '1 2 3 4',
-                    'a_repeat/_gps_latitude': '1',
-                    'a_repeat/_gps_longitude': '2',
-                    'a_repeat/_gps_altitude': '3',
-                    'a_repeat/_gps_precision': '4',
-                },
-                {
-                    'a_repeat/gps': '5 6 7 8',
-                    'a_repeat/_gps_latitude': '5',
-                    'a_repeat/_gps_longitude': '6',
-                    'a_repeat/_gps_altitude': '7',
-                    'a_repeat/_gps_precision': '8',
-                }
-            ]
+            'a_repeat': [{
+                'a_repeat/gps': '1 2 3 4',
+                'a_repeat/_gps_latitude': '1',
+                'a_repeat/_gps_longitude': '2',
+                'a_repeat/_gps_altitude': '3',
+                'a_repeat/_gps_precision': '4',
+            }, {
+                'a_repeat/gps': '5 6 7 8',
+                'a_repeat/_gps_latitude': '5',
+                'a_repeat/_gps_longitude': '6',
+                'a_repeat/_gps_altitude': '7',
+                'a_repeat/_gps_precision': '8',
+            }]
         }
+        # pylint: disable=protected-access
         AbstractDataFrameBuilder._split_gps_fields(record, gps_fields)
         self.assertEqual(expected_result, record)
 
     def test_unicode_export(self):
+        """
+        Test write_to_csv() with unicode characters.
+        """
         unicode_char = unichr(40960)
         # fake data
         data = [{"key": unicode_char}]
@@ -320,6 +340,7 @@ class TestCSVDataFrameBuilder(TestBase):
         temp_file.close()
         self.assertTrue(passed)
 
+    # pylint: disable=invalid-name
     def test_repeat_child_name_matches_repeat(self):
         """
         ParsedInstance.to_dict creates a list within a repeat if a child has
@@ -330,39 +351,42 @@ class TestCSVDataFrameBuilder(TestBase):
         # publish form so we have a dd to pass to xform inst. parser
         self._publish_xls_fixture_set_xform(fixture)
         submission_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "fixtures", fixture, fixture + ".xml"
-        )
+            os.path.dirname(os.path.abspath(__file__)), "fixtures", fixture,
+            fixture + ".xml")
         # get submission xml str
         with open(submission_path, "r") as f:
             xml_str = f.read()
-        dict = xform_instance_to_dict(xml_str, self.xform)
+        xform_instance_dict = xform_instance_to_dict(xml_str, self.xform)
         expected_dict = {
             u'test_item_name_matches_repeat': {
                 u'formhub': {
                     u'uuid': u'c911d71ce1ac48478e5f8bac99addc4e'
                 },
-                u'gps': [
-                    {
-                        u'info': u'Yo',
-                        u'gps': u'-1.2625149 36.7924478 0.0 30.0'
-                    },
-                    {
-                        u'info': u'What',
-                        u'gps': u'-1.2625072 36.7924328 0.0 30.0'
-                    }
-                ]
+                u'gps': [{
+                    u'info': u'Yo',
+                    u'gps': u'-1.2625149 36.7924478 0.0 30.0'
+                }, {
+                    u'info': u'What',
+                    u'gps': u'-1.2625072 36.7924328 0.0 30.0'
+                }]
             }
         }
-        self.assertEqual(dict, expected_dict)
+        self.assertEqual(xform_instance_dict, expected_dict)
 
+    # pylint: disable=invalid-name
     def test_remove_dups_from_list_maintain_order(self):
+        """
+        Test remove_dups_from_list_maintain_order().
+        """
         list_with_dups = ["a", "z", "b", "y", "c", "b", "x"]
         result = remove_dups_from_list_maintain_order(list_with_dups)
         expected_result = ["a", "z", "b", "y", "c", "x"]
         self.assertEqual(result, expected_result)
 
-    def test_prefix_from_xpath(self):
+    def test_get_prefix_from_xpath(self):
+        """
+        Test get_prefix_from_xpath(xpath) function.
+        """
         xpath = "parent/child/grandhild"
         prefix = get_prefix_from_xpath(xpath)
         self.assertEqual(prefix, 'parent/child/')
@@ -374,16 +398,19 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertTrue(prefix is None)
 
     def test_csv_export(self):
+        """
+        Test CSV export.
+        """
         self._publish_single_level_repeat_form()
         # submit 7 instances
-        for i in range(4):
+        for _ in range(4):
             self._submit_fixture_instance("new_repeats", "01")
         self._submit_fixture_instance("new_repeats", "02")
-        for i in range(2):
+        for _ in range(2):
             self._submit_fixture_instance("new_repeats", "01")
-        csv_df_builder = CSVDataFrameBuilder(self.user.username,
-                                             self.xform.id_string,
-                                             include_images=False)
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username, self.xform.id_string, include_images=False)
+        # pylint: disable=protected-access
         record_count = csv_df_builder._query_data(count=True)
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
@@ -402,18 +429,23 @@ class TestCSVDataFrameBuilder(TestBase):
         csv_file.close()
 
     def test_windows_excel_compatible_csv_export(self):
+        """
+        Test window excel compatible CSV export.
+        """
         self._publish_single_level_repeat_form()
         # submit 7 instances
-        for i in range(4):
+        for _ in range(4):
             self._submit_fixture_instance("new_repeats", "01")
         self._submit_fixture_instance("new_repeats", "02")
-        for i in range(2):
+        for _ in range(2):
             self._submit_fixture_instance("new_repeats", "01")
-        csv_df_builder = CSVDataFrameBuilder(self.user.username,
-                                             self.xform.id_string,
-                                             remove_group_name=True,
-                                             include_images=False,
-                                             win_excel_utf8=True)
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username,
+            self.xform.id_string,
+            remove_group_name=True,
+            include_images=False,
+            win_excel_utf8=True)
+        # pylint: disable=protected-access
         record_count = csv_df_builder._query_data(count=True)
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
@@ -426,15 +458,15 @@ class TestCSVDataFrameBuilder(TestBase):
         expected_header = [
             '\xef\xbb\xbfname', '\xef\xbb\xbfage', '\xef\xbb\xbfhas_kids',
             '\xef\xbb\xbfkids_name', '\xef\xbb\xbfkids_age',
-            '\xef\xbb\xbfkids_name', '\xef\xbb\xbfkids_age',
-            '\xef\xbb\xbfgps', '\xef\xbb\xbf_gps_latitude',
-            '\xef\xbb\xbf_gps_longitude', '\xef\xbb\xbf_gps_altitude',
-            '\xef\xbb\xbf_gps_precision', '\xef\xbb\xbfweb_browsers/firefox',
+            '\xef\xbb\xbfkids_name', '\xef\xbb\xbfkids_age', '\xef\xbb\xbfgps',
+            '\xef\xbb\xbf_gps_latitude', '\xef\xbb\xbf_gps_longitude',
+            '\xef\xbb\xbf_gps_altitude', '\xef\xbb\xbf_gps_precision',
+            '\xef\xbb\xbfweb_browsers/firefox',
             '\xef\xbb\xbfweb_browsers/chrome', '\xef\xbb\xbfweb_browsers/ie',
             '\xef\xbb\xbfweb_browsers/safari', '\xef\xbb\xbfinstanceID',
             '\xef\xbb\xbf_id', '\xef\xbb\xbf_uuid',
-            '\xef\xbb\xbf_submission_time',
-            '\xef\xbb\xbf_tags', '\xef\xbb\xbf_notes', '\xef\xbb\xbf_version',
+            '\xef\xbb\xbf_submission_time', '\xef\xbb\xbf_tags',
+            '\xef\xbb\xbf_notes', '\xef\xbb\xbf_version',
             '\xef\xbb\xbf_duration', '\xef\xbb\xbf_submitted_by',
             '\xef\xbb\xbf_total_media', '\xef\xbb\xbf_media_count',
             '\xef\xbb\xbf_media_all_received'
@@ -445,6 +477,9 @@ class TestCSVDataFrameBuilder(TestBase):
         os.unlink(temp_file.name)
 
     def test_csv_column_indices_in_groups_within_repeats(self):
+        """
+        Test CSV column indices in groups within repeats.
+        """
         self._publish_xls_fixture_set_xform("groups_in_repeats")
         self._submit_fixture_instance("groups_in_repeats", "01")
         self.xform.get_keys()
@@ -452,7 +487,8 @@ class TestCSVDataFrameBuilder(TestBase):
         # remove dynamic fields
         ignore_list = [
             '_uuid', 'meta/instanceID', 'formhub/uuid', '_submission_time',
-            '_id', '_bamboo_dataset_id']
+            '_id', '_bamboo_dataset_id'
+        ]
         for item in ignore_list:
             data_0.pop(item)
         expected_data_0 = {
@@ -495,19 +531,22 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertEqual(data_0, expected_data_0)
 
     def test_csv_export_remove_group_name(self):
+        """
+        Test CSV export with remove_group_name option.
+        """
         self._publish_single_level_repeat_form()
         # submit 7 instances
-        for i in range(4):
+        for _ in range(4):
             self._submit_fixture_instance("new_repeats", "01")
         self._submit_fixture_instance("new_repeats", "02")
-        for i in range(2):
+        for _ in range(2):
             self._submit_fixture_instance("new_repeats", "01")
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username,
             self.xform.id_string,
             remove_group_name=True,
-            include_images=False
-        )
+            include_images=False)
+        # pylint: disable=protected-access
         record_count = csv_df_builder._query_data(count=True)
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
@@ -537,19 +576,22 @@ class TestCSVDataFrameBuilder(TestBase):
         os.unlink(temp_file.name)
 
     def test_csv_export_with_labels(self):
+        """
+        Test CSV export with labels.
+        """
         self._publish_single_level_repeat_form()
         # submit 7 instances
-        for i in range(4):
+        for _ in range(4):
             self._submit_fixture_instance("new_repeats", "01")
         self._submit_fixture_instance("new_repeats", "02")
-        for i in range(2):
+        for _ in range(2):
             self._submit_fixture_instance("new_repeats", "01")
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username,
             self.xform.id_string,
             remove_group_name=True,
-            include_labels=True
-        )
+            include_labels=True)
+        # pylint: disable=protected-access
         record_count = csv_df_builder._query_data(count=True)
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
@@ -575,13 +617,13 @@ class TestCSVDataFrameBuilder(TestBase):
         expected_labels = [
             'Name', 'age', 'Do you have kids?', 'Kids Name', 'Kids Age',
             'Kids Name', 'Kids Age', '5. Record your GPS coordinates.',
-            '_gps_latitude', '_gps_longitude',
-            '_gps_altitude', '_gps_precision', 'web_browsers/Mozilla Firefox',
+            '_gps_latitude', '_gps_longitude', '_gps_altitude',
+            '_gps_precision', 'web_browsers/Mozilla Firefox',
             'web_browsers/Google Chrome', 'web_browsers/Internet Explorer',
-            'web_browsers/Safari',
-            'instanceID', '_id', '_uuid', '_submission_time', '_tags',
-            '_notes', '_version', '_duration', '_submitted_by', '_total_media',
-            '_media_count', '_media_all_received'
+            'web_browsers/Safari', 'instanceID', '_id', '_uuid',
+            '_submission_time', '_tags', '_notes', '_version', '_duration',
+            '_submitted_by', '_total_media', '_media_count',
+            '_media_all_received'
         ]
         self.assertEqual(expected_labels, labels)
         rows = []
@@ -594,19 +636,22 @@ class TestCSVDataFrameBuilder(TestBase):
         os.unlink(temp_file.name)
 
     def test_csv_export_with_labels_only(self):
+        """
+        Test CSV export with labels only.
+        """
         self._publish_single_level_repeat_form()
         # submit 7 instances
-        for i in range(4):
+        for _ in range(4):
             self._submit_fixture_instance("new_repeats", "01")
         self._submit_fixture_instance("new_repeats", "02")
-        for i in range(2):
+        for _ in range(2):
             self._submit_fixture_instance("new_repeats", "01")
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username,
             self.xform.id_string,
             remove_group_name=True,
-            include_labels_only=True
-        )
+            include_labels_only=True)
+        # pylint: disable=protected-access
         record_count = csv_df_builder._query_data(count=True)
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
@@ -619,13 +664,13 @@ class TestCSVDataFrameBuilder(TestBase):
         expected_labels = [
             'Name', 'age', 'Do you have kids?', 'Kids Name', 'Kids Age',
             'Kids Name', 'Kids Age', '5. Record your GPS coordinates.',
-            '_gps_latitude', '_gps_longitude',
-            '_gps_altitude', '_gps_precision', 'web_browsers/Mozilla Firefox',
+            '_gps_latitude', '_gps_longitude', '_gps_altitude',
+            '_gps_precision', 'web_browsers/Mozilla Firefox',
             'web_browsers/Google Chrome', 'web_browsers/Internet Explorer',
-            'web_browsers/Safari',
-            'instanceID', '_id', '_uuid', '_submission_time', '_tags',
-            '_notes', '_version', '_duration', '_submitted_by', '_total_media',
-            '_media_count', '_media_all_received'
+            'web_browsers/Safari', 'instanceID', '_id', '_uuid',
+            '_submission_time', '_tags', '_notes', '_version', '_duration',
+            '_submitted_by', '_total_media', '_media_count',
+            '_media_all_received'
         ]
         self.assertEqual(expected_labels, labels)
         rows = []
@@ -639,7 +684,10 @@ class TestCSVDataFrameBuilder(TestBase):
 
     @patch.object(CSVDataFrameBuilder, '_query_data')
     def test_no_split_select_multiples(self, mock_query_data):
-        MD = """
+        """
+        Test selct multiples are not split within repeats.
+        """
+        md_xform = """
         | survey |
         |        | type                     | name         | label        |
         |        | text                     | name         | Name         |
@@ -656,27 +704,25 @@ class TestCSVDataFrameBuilder(TestBase):
         |         | browsers  | ie      | Internet Explorer |
         |         | browsers  | safari  | Safari            |
         """
-        self.xform = self._publish_markdown(MD, self.user, id_string='b')
-        # survey = self.md_to_pyxform_survey(md, {'name': 'repeats_w_multiples'})
+        xform = self._publish_markdown(md_xform, self.user, id_string='b')
         data = [{
             'name': 'Tom',
             'age': 23,
-            'browser_use': [
-                {
-                    'browser_use/year': '2010',
-                    'browser_use/browsers': 'firefox safari'
-                },
-                {
-                    'browser_use/year': '2011',
-                    'browser_use/browsers': 'firefox chrome'
-                }
-            ]
-        }]
+            'browser_use': [{
+                'browser_use/year': '2010',
+                'browser_use/browsers': 'firefox safari'
+            }, {
+                'browser_use/year': '2011',
+                'browser_use/browsers': 'firefox chrome'
+            }]
+        }]  # yapf: disable
         mock_query_data.return_value = data
-        csv_df_builder = CSVDataFrameBuilder(self.user.username,
-                                             self.xform.id_string,
-                                             split_select_multiples=False,
-                                             include_images=False)
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username,
+            xform.id_string,
+            split_select_multiples=False,
+            include_images=False)
+        # pylint: disable=protected-access
         cursor = [row for row in csv_df_builder._query_data()]
         result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
         expected_result = [{
