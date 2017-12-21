@@ -16,6 +16,31 @@ Installation
 
 See the `installation documentation <https://api.ona.io/static/docs/install.html>`_.
 
+Docker
+------
+
+Install `Docker <https://www.docker.com/get-docker>`_ and `Docker Compose <https://docs.docker.com/compose/>`_.
+
+.. code-block:: sh
+
+    docker-compose up
+
+    # create super user
+    # -----------------
+    docker exec -it onadata_web_1 bash
+
+    # activate virtual envirenment
+    source /srv/.virtualenv/bin/activate
+
+    python manage.py createsuperuser
+
+It should be accessible via http://localhost:8000. The settings are in
+`onadata/settings/docker.py <onadata/settings/docker.py>`_.
+
+On registration check the console for the activation links, the default email
+backend is ``django.core.mail.backends.console.EmailBackend``. See
+`Django Docs <https://docs.djangoproject.com/en/1.11/topics/email/>`_ for details.
+
 Contributing
 ------------
 
