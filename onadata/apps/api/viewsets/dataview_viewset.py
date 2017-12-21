@@ -24,7 +24,7 @@ from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.utils import common_tags
 from onadata.libs.utils.api_export_tools import custom_response_handler
-from onadata.libs.utils.api_export_tools import _export_async_export_response
+from onadata.libs.utils.api_export_tools import export_async_export_response
 from onadata.libs.utils.api_export_tools import process_async_export
 from onadata.libs.utils.api_export_tools import response_for_format
 from onadata.libs.utils.api_export_tools import include_hxl_row
@@ -141,8 +141,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
                 export_id = job.result
                 export = Export.objects.get(id=export_id)
 
-                resp = _export_async_export_response(request, xform, export,
-                                                     dataview_pk=dataview.pk)
+                resp = export_async_export_response(request, export)
             else:
                 resp = {
                     'job_status': job.state
