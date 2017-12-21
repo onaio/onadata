@@ -184,7 +184,7 @@ def get_sql_with_params(xform, query=None, fields=None, sort=None, start=None,
         fields = json.loads(fields)
 
     if fields:
-        field_list = [u"json->%s" for i in fields]
+        field_list = [u"json->%s" for _i in fields]
         sql = u"SELECT %s FROM logger_instance" % u",".join(field_list)
 
         sql_where = u""

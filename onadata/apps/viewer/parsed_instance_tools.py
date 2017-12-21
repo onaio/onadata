@@ -72,8 +72,8 @@ def get_where_clause(query, form_integer_fields=[]):
     where_params = []
 
     try:
-        if query and isinstance(query, six.string_types):
-            query = json.loads(query)
+        if query and isinstance(query, (dict, six.string_types)):
+            query = query if isinstance(query, dict) else json.loads(query)
             or_where = []
             or_params = []
             if isinstance(query, list):

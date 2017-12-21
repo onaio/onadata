@@ -478,9 +478,20 @@ class NoteFilter(filters.BaseFilterBackend):
 
 class ExportFilter(XFormPermissionFilterMixin,
                    filters.DjangoObjectPermissionsFilter):
+    """
+    ExportFilter class uses permissions on the related xform to filter Export
+    queryesets. Also filters submitted_by a specific user.
+    """
     def filter_queryset(self, request, queryset, view):
-        return self._xform_filter_queryset(
+        queryset = self._xform_filter_queryset(
             request, queryset, view, 'xform_id')
+        has_submitted_by_key = (Q(options__has_key='query') &
+                                Q(options__query__has_key='_submitted_by'),)
+        if request.user.is_anonymous():
+            return queryset.exclude(*has_submitted_by_key)
+        return (queryset.exclude(*has_submitted_by_key) |
+                queryset.filter(*has_submitted_by_key).filter(
+                    options__query___submitted_by=request.user.username))
 
 
 class PublicDatasetsFilter(object):
