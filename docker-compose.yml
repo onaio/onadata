@@ -4,6 +4,8 @@ services:
   db:
     build: ./docker/postgis
     image: postgis:9.6
+    volumes:
+      - .db:/var/lib/postgresql/data
   queue:
     image: rabbitmq
   web:
