@@ -299,3 +299,66 @@ class TestExportViewSet(TestBase):
             response = view(request)
             self.assertFalse(bool(response.data), response.data)
             self.assertEqual(status.HTTP_200_OK, response.status_code)
+
+    def test_export_async_with_meta_perms(self):
+        """
+        Test export list for forms with meta permissions on export_async.
+        """
+        with HTTMock(enketo_mock):
+            self._publish_transportation_form()
+
+            for survey in self.surveys:
+                self._make_submission(
+                    os.path.join(
+                        settings.PROJECT_ROOT, 'apps',
+                        'main', 'tests', 'fixtures', 'transportation',
+                        'instances', survey, survey + '.xml'),
+                    forced_submission_time=parse_datetime(
+                        '2013-02-18 15:54:01Z'))
+
+            alice = self._create_user('alice', 'alice', True)
+
+            MetaData.xform_meta_permission(self.xform,
+                                           data_value="editor|dataentry-minor")
+
+            DataEntryMinorRole.add(alice, self.xform)
+
+            for i in self.xform.instances.all()[:2]:
+                i.user = alice
+                i.save()
+
+            view = XFormViewSet.as_view({
+                'get': 'export_async',
+            })
+
+            alices_extra = {
+                'HTTP_AUTHORIZATION': 'Token %s' % alice.auth_token.key
+            }
+
+            # Alice creates an export with her own submissions
+            request = self.factory.get('/', data={"format": 'csv'},
+                                       **alices_extra)
+            response = view(request, pk=self.xform.pk)
+            self.assertEqual(response.status_code, 202)
+
+            exports = Export.objects.filter(xform=self.xform)
+            view = ExportViewSet.as_view({'get': 'list'})
+            request = self.factory.get('/export',
+                                       data={'xform': self.xform.id})
+            force_authenticate(request, user=alice)
+            response = view(request)
+            self.assertEqual(len(exports), len(response.data))
+
+            # Mary should not have access to the export with Alice's
+            # submissions.
+            self._create_user_and_login(username='mary', password='password1')
+            self.assertEqual(self.user.username, 'mary')
+
+            # Mary should only view their own submissions.
+            DataEntryMinorRole.add(self.user, self.xform)
+            request = self.factory.get('/export',
+                                       data={'xform': self.xform.id})
+            force_authenticate(request, user=self.user)
+            response = view(request)
+            self.assertFalse(bool(response.data), response.data)
+            self.assertEqual(status.HTTP_200_OK, response.status_code)

@@ -376,6 +376,8 @@ def process_async_export(request, xform, export_type, options=None):
             data=json.dumps(payload),
             status=status.HTTP_403_FORBIDDEN,
             content_type="application/json")
+    else:
+        options['query'] = query
 
     if export_type in EXTERNAL_EXPORT_TYPES and \
             (token is not None) or (meta is not None):

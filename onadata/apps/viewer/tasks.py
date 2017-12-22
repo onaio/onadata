@@ -50,6 +50,8 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
             for key, value in options.iteritems()
             if key in Export.EXPORT_OPTION_FIELDS
         }
+        if query and 'query' not in export_options:
+            export_options['query'] = query
 
         return Export.objects.create(
             xform=xform, export_type=export_type, options=export_options)
