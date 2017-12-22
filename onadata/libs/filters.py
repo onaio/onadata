@@ -495,7 +495,8 @@ class ExportFilter(XFormPermissionFilterMixin,
         # only if request.user has access to all data
         self.perm_format = old_perm_format + '_all'
         all_qs = self._xform_filter_queryset(request, queryset, view,
-                                             'xform_id')
+                                             'xform_id')\
+            .exclude(*has_submitted_by_key)
 
         # request.user has access to own submitted data
         self.perm_format = old_perm_format + '_data'

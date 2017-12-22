@@ -443,3 +443,11 @@ class TestExportViewSet(TestBase):
             self.assertEqual(len(response.data), 1)
             self.assertEqual(
                 Export.objects.filter(xform=self.xform).count(), 2)
+
+            # Alice does not have access to the submitter only export
+            request = self.factory.get('/export',
+                                       data={'xform': self.xform.id})
+            force_authenticate(request, user=alice)
+            response = view(request)
+            self.assertEqual(len(exports), len(response.data))
+            self.assertEqual(len(exports), 1)
