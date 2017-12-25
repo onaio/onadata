@@ -211,9 +211,10 @@ class ExportBuilder(object):
     IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION,
                        BAMBOO_DATASET_ID, DELETEDAT]
     # fields we export but are not within the form's structure
-    EXTRA_FIELDS = [ID, UUID, SUBMISSION_TIME, INDEX, PARENT_TABLE_NAME,
-                    PARENT_INDEX, TAGS, NOTES, VERSION, DURATION,
-                    SUBMITTED_BY] + getattr(settings, 'EXTRA_COLUMNS', [])
+    EXTRA_FIELDS = [
+        ID, UUID, SUBMISSION_TIME, INDEX, PARENT_TABLE_NAME, PARENT_INDEX,
+        TAGS, NOTES, VERSION, DURATION,
+        SUBMITTED_BY]
     SPLIT_SELECT_MULTIPLES = True
     BINARY_SELECT_MULTIPLES = False
     VALUE_SELECT_MULTIPLES = False
@@ -241,6 +242,10 @@ class ExportBuilder(object):
 
     XLS_SHEET_NAME_MAX_CHARS = 31
     url = None
+
+    def __init__(self):
+        self.extra_columns = (
+            self.EXTRA_FIELDS + getattr(settings, 'EXTRA_COLUMNS', []))
 
     @classmethod
     def string_to_date_with_xls_validation(cls, date_str):
@@ -884,7 +889,7 @@ class ExportBuilder(object):
         var_names = []
         fields_and_labels = []
         elements += [{'title': f, "label": f, "xpath": f, 'type': f}
-                     for f in self.EXTRA_FIELDS]
+                     for f in self.extra_columns]
 
         for element in elements:
             title = element['title']
@@ -922,7 +927,7 @@ class ExportBuilder(object):
                 SAV_NUMERIC_TYPE if item in [
                     '_id', '_index', '_parent_index', SUBMISSION_TIME]
                 else SAV_255_BYTES_TYPE)
-                for item in self.EXTRA_FIELDS] +
+                for item in self.extra_columns] +
             [(x[1],
               SAV_NUMERIC_TYPE if _is_numeric(
                 x[0],
@@ -1043,8 +1048,8 @@ class ExportBuilder(object):
         if dataview:
             return [element[key] for element in section['elements']
                     if element['title'] in dataview.columns]\
-                + self.EXTRA_FIELDS
+                + self.extra_columns
 
         else:
             return [element[key] for element in
-                    section['elements']] + self.EXTRA_FIELDS
+                    section['elements']] + self.extra_columns
