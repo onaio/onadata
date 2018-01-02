@@ -3,186 +3,56 @@ import csv
 import json
 import os
 import re
-import requests
-import jwt
-import mock
-
 from collections import OrderedDict
 from cStringIO import StringIO
-from django.db.models import Q
-from datetime import datetime
+from datetime import datetime, timedelta
+from xml.dom import Node, minidom
+
+import jwt
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.files.storage import default_storage
+from django.db.models import Q
+from django.http import HttpResponseRedirect
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import utc
 from django_digest.test import DigestAuth
-from httmock import urlmatch, HTTMock
-from mock import patch, Mock
+from httmock import HTTMock
+from mock import Mock, patch
 from rest_framework import status
 from rest_framework.viewsets import ModelViewSet
-from xml.dom import minidom, Node
-from datetime import timedelta
-from django.http import HttpResponseRedirect
 
-from onadata.apps.logger.models import Project
+from onadata.apps.api.tests.mocked_data import (
+    enketo_error_mock, enketo_mock, enketo_mock_with_form_defaults,
+    enketo_preview_url_mock, enketo_url_mock, external_mock,
+    external_mock_single_instance, external_mock_single_instance2,
+    xls_url_no_extension_mock,
+    xls_url_no_extension_mock_content_disposition_attr_jumbled_v1,
+    xls_url_no_extension_mock_content_disposition_attr_jumbled_v2)
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
-from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
+from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
+from onadata.apps.logger.models import Attachment, Instance, Project, XForm
 from onadata.apps.logger.xform_instance_parser import XLSFormError
-from onadata.apps.logger.models import Instance
-from onadata.apps.logger.models import XForm
-from onadata.apps.viewer.models import Export
-from onadata.apps.logger.models import Attachment
-from onadata.libs.permissions import (
-    OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole,
-    EditorMinorRole, ROLES_ORDERED, DataEntryMinorRole, DataEntryOnlyRole)
-from onadata.libs.serializers.xform_serializer import XFormSerializer
-from onadata.libs.serializers.xform_serializer import XFormBaseSerializer
 from onadata.apps.main.models import MetaData
-from onadata.libs.utils.common_tags import GROUPNAME_REMOVED_FLAG
-from onadata.libs.utils.cache_tools import (
-    safe_delete,
-    ENKETO_URL_CACHE,
-    PROJ_FORMS_CACHE, XFORM_DATA_VERSIONS)
-from onadata.libs.utils.cache_tools import XFORM_PERMISSIONS_CACHE
-from onadata.libs.utils.common_tags import MONGO_STRFTIME
-from onadata.libs.utils.common_tools import (
-    filename_from_disposition, get_response_content)
-
-
-@urlmatch(netloc=r'(.*\.)?ona\.io$', path=r'^/examples/forms/tutorial/form$')
-def xls_url_no_extension_mock(url, request):
-    response = requests.Response()
-    response.status_code = 200
-    response._content = "success"
-    response.headers['content-disposition'] = 'attachment; filename="transportation_different_id_string.xlsx"; filename*=UTF-8\'\'transportation_different_id_string.xlsx'  # noqa
-    response.headers['content-type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'  # noqa
-
-    return response
-
-
-@urlmatch(netloc=r'(.*\.)?ona\.io$', path=r'^/examples/forms/tutorial/form$')
-def xls_url_no_extension_mock_content_disposition_attr_jumbled_v1(
-        url, request):
-    response = requests.Response()
-    response.status_code = 200
-    response._content = "success"
-    response.headers['content-disposition'] = 'attachment; filename*=UTF-8\'\'transportation_different_id_string.xlsx; filename="transportation_different_id_string.xlsx"'  # noqa
-    response.headers['content-type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'  # noqa
-
-    return response
-
-
-@urlmatch(netloc=r'(.*\.)?ona\.io$', path=r'^/examples/forms/tutorial/form$')
-def xls_url_no_extension_mock_content_disposition_attr_jumbled_v2(
-        url, request):
-    response = requests.Response()
-    response.status_code = 200
-    response._content = "success"
-    response.headers['content-disposition'] = 'filename*=UTF-8\'\'transportation_different_id_string.xlsx; attachment; filename="transportation_different_id_string.xlsx"'  # noqa
-    response.headers['content-type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'  # noqa
-
-    return response
-
-
-@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
-def enketo_mock(url, request):
-    response = requests.Response()
-    response.status_code = 201
-    response._content = \
-        '{\n  "url": "https:\\/\\/dmfrm.enketo.org\\/webform",\n'\
-        '  "code": "200"\n}'
-    return response
-
-
-@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$', path=r'^/api_v1/survey/preview$')
-def enketo_preview_url_mock(url, request):
-    response = requests.Response()
-    response.status_code = 201
-    response._content = \
-        '{\n  "preview_url": "https:\\/\\/enketo.ona.io\\/preview/::YY8M",\n'\
-        '  "code": "201"\n}'
-    return response
-
-
-@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$', path=r'^/api_v1/survey$')
-def enketo_url_mock(url, request):
-    response = requests.Response()
-    response.status_code = 201
-    response._content = \
-        '{\n  "url": "https:\\/\\/enketo.ona.io\\/::YY8M",\n'\
-        '  "code": "200"\n}'
-    return response
-
-
-@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
-def enketo_error_mock(url, request):
-    response = requests.Response()
-    response.status_code = 400
-    response._content = \
-        '{\n  "message": "no account exists for this OpenRosa server",\n'\
-        '  "code": "200"\n}'
-    return response
-
-
-@urlmatch(netloc=r'(.*\.)?xls_server$')
-def external_mock(url, request):
-
-    assert 'transport_available_transportation_types_to_referral_facility'\
-           in request.body, ""
-    response = requests.Response()
-    response.status_code = 201
-    response._content = \
-        "/xls/ee3ff9d8f5184fc4a8fdebc2547cc059"
-    return response
-
-
-@urlmatch(netloc=r'(.*\.)?xls_server$')
-def external_mock_single_instance(url, request, uuid=None):
-    payload = json.loads(request.body)
-    assert payload
-    assert len(payload) == 1
-    assert '_id' in payload[0]
-    assert 'transport_loop_over_transport_types_frequency_ambulance_' \
-           'frequency_to_referral_facility' in payload[0]
-    assert payload[0].get('transport_available_transportation_types_to'
-                          '_referral_facility') == "ambulance bicycle"
-    response = requests.Response()
-    response.status_code = 201
-    response._content = \
-        "/xls/ee3ff9d8f5184fc4a8fdebc2547cc059"
-    return response
-
-
-@urlmatch(netloc=r'(.*\.)?xls_server$')
-def external_mock_single_instance2(url, request, uuid=None):
-    payload = json.loads(request.body)
-    assert payload
-    assert len(payload) == 1
-    assert '_id' in payload[0]
-    assert 'transport_loop_over_transport_types_frequency_ambulance_' \
-           'frequency_to_referral_facility' in payload[0]
-    assert payload[0].get('transport_available_transportation_types_to'
-                          '_referral_facility') == "ambulance bicycle"
-    response = requests.Response()
-    response.status_code = 201
-    response._content = \
-        "/xls/ee3ff9d8f5184fc4a8fdebc2547cc057"
-    return response
-
-
-@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
-def enketo_mock_with_form_defaults(url, request):
-    response = requests.Response()
-    response.status_code = 201
-    response._content = \
-        '{\n  "url": "https:\\/\\/dmfrm.enketo.org\\/webform?d[%2Fnum]=1",\n'\
-        '  "code": "200"\n}'
-    return response
+from onadata.apps.viewer.models import Export
+from onadata.libs.permissions import (ROLES_ORDERED, DataEntryMinorRole,
+                                      DataEntryOnlyRole, DataEntryRole,
+                                      EditorMinorRole, EditorRole, ManagerRole,
+                                      OwnerRole, ReadOnlyRole)
+from onadata.libs.serializers.xform_serializer import (XFormBaseSerializer,
+                                                       XFormSerializer)
+from onadata.libs.utils.cache_tools import (ENKETO_URL_CACHE, PROJ_FORMS_CACHE,
+                                            XFORM_DATA_VERSIONS,
+                                            XFORM_PERMISSIONS_CACHE,
+                                            safe_delete)
+from onadata.libs.utils.common_tags import (GROUPNAME_REMOVED_FLAG,
+                                            MONGO_STRFTIME)
+from onadata.libs.utils.common_tools import (filename_from_disposition,
+                                             get_response_content)
 
 
 def fixtures_path(filepath):
@@ -203,7 +73,7 @@ JWT_ALGORITHM = 'HS256'
 class TestXFormViewSet(TestAbstractViewSet):
 
     def setUp(self):
-        super(self.__class__, self).setUp()
+        super(TestXFormViewSet, self).setUp()
         self.view = XFormViewSet.as_view({
             'get': 'list',
         })
@@ -408,6 +278,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
             self.form_data['public'] = True
+            # pylint: disable=no-member
             resultset = MetaData.objects.filter(Q(object_id=self.xform.pk), Q(
                 data_type='enketo_url') | Q(data_type='enketo_preview_url'))
             url = resultset.get(data_type='enketo_url')
@@ -465,6 +336,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
 
+            # pylint: disable=no-member
             resultset = MetaData.objects.filter(Q(object_id=self.xform.pk), Q(
                 data_type='enketo_url') | Q(data_type='enketo_preview_url'))
             url = resultset.get(data_type='enketo_url')
@@ -617,6 +489,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=formid)
             self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
+            # pylint: disable=no-member
             resultset = MetaData.objects.filter(
                 Q(object_id=self.xform.pk),
                 Q(data_type='enketo_url') |
@@ -1119,6 +992,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertTrue(OwnerRole.user_has_role(self.user, xform))
                 self.assertEquals("owner", response.data['users'][0]['role'])
 
+                # pylint: disable=no-member
                 self.assertIsNotNone(
                     MetaData.objects.get(
                         object_id=xform.id, data_type="enketo_url"))
@@ -1164,6 +1038,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertTrue(OwnerRole.user_has_role(self.user, xform))
                 self.assertEquals("owner", response.data['users'][0]['role'])
 
+                # pylint: disable=no-member
                 self.assertIsNotNone(
                     MetaData.objects.get(object_id=xform.id,
                                          data_type="enketo_url"))
@@ -1194,6 +1069,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertTrue(OwnerRole.user_has_role(self.user, xform))
                 self.assertEquals("owner", response.data['users'][0]['role'])
 
+                # pylint: disable=no-member
                 self.assertIsNotNone(
                     MetaData.objects.get(object_id=xform.id,
                                          data_type="enketo_url"))
@@ -1341,6 +1217,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 settings.PROJECT_ROOT, "apps", "api", "tests", "fixtures",
                 "select_one_external.xlsx")
             with open(path) as xls_file:
+                # pylint: disable=no-member
                 meta_count = MetaData.objects.count()
                 post_data = {'xls_file': xls_file}
                 request = self.factory.post('/', data=post_data, **self.extra)
@@ -1416,7 +1293,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                         u"('>' '&' '<')"
             self.assertEqual(response.data.get('text'), error_msg)
 
-    @mock.patch.object(ModelViewSet, 'list')
+    @patch.object(ModelViewSet, 'list')
     def test_return_400_on_xlsform_error_on_list_action(self, mock_set_title):
         with HTTMock(enketo_mock):
             error_msg = u"Title shouldn't have an ampersand"
@@ -1756,6 +1633,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response.data['project'],
                 [u"invalid literal for int() with base 10: 'abc123'"])
 
+            # pylint: disable=no-member
             project = Project.objects.create(name=u"alice's other project",
                                              organization=alice_profile.user,
                                              created_by=alice_profile.user,
@@ -1851,6 +1729,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             data_value = 'template 1|http://xls_server'
             self._add_form_metadata(self.xform, 'external_export',
                                     data_value)
+            # pylint: disable=no-member
             metadata = MetaData.objects.get(object_id=self.xform.id,
                                             data_type='external_export')
             paths = [os.path.join(
@@ -1887,6 +1766,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             data_value = 'template 1|http://xls_server'
             self._add_form_metadata(self.xform, 'external_export',
                                     data_value)
+            # pylint: disable=no-member
             metadata = MetaData.objects.get(object_id=self.xform.id,
                                             data_type='external_export')
             paths = [os.path.join(
@@ -2309,6 +2189,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
     def test_id_strings_should_be_unique_in_each_account(self):
         with HTTMock(enketo_mock):
+            # pylint: disable=no-member
             project_count = Project.objects.count()
 
             self._project_create()
@@ -2960,6 +2841,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             data_value = 'template 1|http://xls_server'
             self._add_form_metadata(self.xform, 'external_export',
                                     data_value)
+            # pylint: disable=no-member
             metadata = MetaData.objects.get(object_id=self.xform.id,
                                             data_type='external_export')
             paths = [os.path.join(
@@ -3001,6 +2883,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             data_value = 'template 1|http://xls_server'
             self._add_form_metadata(self.xform, 'external_export',
                                     data_value)
+            # pylint: disable=no-member
             metadata = MetaData.objects.get(object_id=self.xform.id,
                                             data_type='external_export')
             paths = [os.path.join(
@@ -3060,6 +2943,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             data_value = 'template 1|http://xls_server'
             self._add_form_metadata(self.xform, 'external_export',
                                     data_value)
+            # pylint: disable=no-member
             metadata = MetaData.objects.get(object_id=self.xform.id,
                                             data_type='external_export')
             paths = [os.path.join(
@@ -3605,6 +3489,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                             data_value="http://localtest/enketo_url2")
             meta.save()
 
+            # pylint: disable=no-member
             count = MetaData.objects.filter(object_id=self.xform.id,
                                             data_type="enketo_url").count()
             self.assertEquals(2, count)

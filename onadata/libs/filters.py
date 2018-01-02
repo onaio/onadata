@@ -1,15 +1,15 @@
-from django.contrib.contenttypes.models import ContentType
-from django.db.models import Q
-from django.shortcuts import get_object_or_404
-from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
 from django.http import Http404
+from django.shortcuts import get_object_or_404
 from django.utils import six
-from rest_framework import filters
 from django_filters import rest_framework as django_filter_filters
+from rest_framework import filters
 
-from onadata.apps.api.models import Team, OrganizationProfile
-from onadata.apps.logger.models import Project, XForm, Instance
+from onadata.apps.api.models import OrganizationProfile, Team
+from onadata.apps.logger.models import Instance, Project, XForm
 from onadata.libs.utils.numeric import int_or_parse_error
 
 
@@ -209,8 +209,8 @@ class XFormPermissionFilterMixin(object):
         xform = request.query_params.get('xform')
         if xform:
             int_or_parse_error(xform, u"Invalid value for formid %s.")
-            xform = get_object_or_404(XForm, pk=xform)
-            xform_qs = XForm.objects.filter(pk=xform.pk)
+            self.xform = get_object_or_404(XForm, pk=xform)
+            xform_qs = XForm.objects.filter(pk=self.xform.pk)
         else:
             xform_qs = XForm.objects.all()
         xform_qs = xform_qs.filter(deleted_at=None)
@@ -478,9 +478,34 @@ class NoteFilter(filters.BaseFilterBackend):
 
 class ExportFilter(XFormPermissionFilterMixin,
                    filters.DjangoObjectPermissionsFilter):
+    """
+    ExportFilter class uses permissions on the related xform to filter Export
+    queryesets. Also filters submitted_by a specific user.
+    """
     def filter_queryset(self, request, queryset, view):
-        return self._xform_filter_queryset(
-            request, queryset, view, 'xform_id')
+        has_submitted_by_key = (Q(options__has_key='query') &
+                                Q(options__query__has_key='_submitted_by'),)
+        if request.user.is_anonymous():
+            return self._xform_filter_queryset(
+                request, queryset, view, 'xform_id')\
+                    .exclude(*has_submitted_by_key)
+
+        old_perm_format = self.perm_format
+
+        # only if request.user has access to all data
+        self.perm_format = old_perm_format + '_all'
+        all_qs = self._xform_filter_queryset(request, queryset, view,
+                                             'xform_id')\
+            .exclude(*has_submitted_by_key)
+
+        # request.user has access to own submitted data
+        self.perm_format = old_perm_format + '_data'
+        submitter_qs = self._xform_filter_queryset(request, queryset, view,
+                                                   'xform_id')\
+            .filter(*has_submitted_by_key)\
+            .filter(options__query___submitted_by=request.user.username)
+
+        return all_qs | submitter_qs
 
 
 class PublicDatasetsFilter(object):

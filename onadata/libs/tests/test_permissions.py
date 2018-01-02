@@ -171,11 +171,11 @@ class TestPermissions(TestBase):
 
         # meta perms test
         result = filter_queryset_xform_meta_perms_sql(self.xform, alice, query)
-        self.assertEqual(result, '{"_submitted_by": "alice", "_id": 1}')
+        self.assertEqual(result, {"_submitted_by": "alice", "_id": 1})
 
         query = '[{"_id": 1}]'
         result = filter_queryset_xform_meta_perms_sql(self.xform, alice, query)
-        self.assertEqual(result, '{"_submitted_by": "alice", "_id": 1}')
+        self.assertEqual(result, {"_submitted_by": "alice", "_id": 1})
 
         result = filter_queryset_xform_meta_perms_sql(self.xform, alice, None)
-        self.assertEqual(result, '{"_submitted_by": "alice"}')
+        self.assertEqual(result, {"_submitted_by": "alice"})

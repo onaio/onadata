@@ -469,7 +469,7 @@ def filter_queryset_xform_meta_perms_sql(xform, user, query):
         """
     if user.has_perm(CAN_VIEW_XFORM_ALL, xform) or xform.shared_data\
             or not _check_meta_perms_enabled(xform):
-        ret_query = query
+        return query
     elif user.has_perm(CAN_VIEW_XFORM_DATA, xform):
         try:
             if query and isinstance(query, six.string_types):
@@ -480,15 +480,11 @@ def filter_queryset_xform_meta_perms_sql(xform, user, query):
                 query = dict()
 
             query.update({"_submitted_by": user.username})
-            ret_query = json.dumps(query)
-
+            return query
         except (ValueError, AttributeError):
             query_list = list()
             query_list.append({"_submitted_by": user.username})
             query_list.append(query)
-
-            ret_query = json.dumps(query_list)
+            return query_list
     else:
         raise NoRecordsPermission()
-
-    return ret_query
