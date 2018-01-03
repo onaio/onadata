@@ -132,7 +132,8 @@ class AbstractDataFrameBuilder(object):
     # fields NOT within the form def that we want to include
     ADDITIONAL_COLUMNS = [
         ID, UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION, DURATION,
-        SUBMITTED_BY, TOTAL_MEDIA, MEDIA_COUNT, MEDIA_ALL_RECEIVED]
+        SUBMITTED_BY, TOTAL_MEDIA, MEDIA_COUNT,
+        MEDIA_ALL_RECEIVED]
     BINARY_SELECT_MULTIPLES = False
     """
     Group functionality used by any DataFrameBuilder i.e. XLS, CSV and KML
@@ -155,6 +156,8 @@ class AbstractDataFrameBuilder(object):
         self.start = start
         self.end = end
         self.remove_group_name = remove_group_name
+        self.extra_columns = (
+            self.ADDITIONAL_COLUMNS + getattr(settings, 'EXTRA_COLUMNS', []))
 
         if xform:
             self.xform = xform
@@ -168,7 +171,6 @@ class AbstractDataFrameBuilder(object):
         self.win_excel_utf8 = win_excel_utf8
         self._setup()
         self.total_records = total_records
-        self.ADDITIONAL_COLUMNS += getattr(settings, 'EXTRA_COLUMNS', [])
 
     def _setup(self):
         self.dd = self.xform
@@ -548,7 +550,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                  for xpath, cols in self.ordered_columns.iteritems()]))
 
             # add extra columns
-            columns += [col for col in self.ADDITIONAL_COLUMNS]
+            columns += [col for col in self.extra_columns]
             for field in self.dd.get_survey_elements_of_type('osm'):
                 columns += OsmData.get_tag_keys(self.xform,
                                                 field.get_abbreviated_xpath(),

@@ -52,9 +52,11 @@ if len(sys.argv) >= 2 and (sys.argv[1] == "test" or sys.argv[1] == "test_all"):
 else:
     TESTING_MODE = False
 
-BROKER_BACKEND = 'amqp:guest:@queue:5672'
+BROKER_URL = 'amqp://guest:@queue:5672//'
 BROKER_TRANSPORT = 'librabbitmq'
 CELERY_ALWAYS_EAGER = True
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
