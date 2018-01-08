@@ -14,7 +14,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.storage import default_storage
 
-from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models import Instance, XForm
 from onadata.libs.utils.async_status import (FAILED, async_status,
                                              celery_state_to_status)
 from onadata.libs.utils.common_tags import MULTIPLE_SELECT_TYPE
@@ -117,8 +117,16 @@ def dict_pathkeys_to_nested_dicts(dictionary):
 
 
 @task()
-def submit_csv_async(username, xform, file_path):
+def submit_csv_async(username, xform_id, file_path):
+    """
+    submit csv file async task function.
+    """
     with default_storage.open(file_path) as csv_file:
+        try:
+            xform = XForm.objects.get(pk=xform_id)
+        except XForm.DoesNotExist as e:
+            return async_status(FAILED, str(e))
+
         return submit_csv(username, xform, csv_file)
 
 

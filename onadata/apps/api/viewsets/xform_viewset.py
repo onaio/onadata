@@ -579,7 +579,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                                              'csv_imports', csv_file.name)
                     file_name = default_storage.save(upload_to, csv_file)
                     task = submit_csv_async.delay(request.user.username,
-                                                  self.object,
+                                                  self.object.id,
                                                   file_name)
                     if task is None:
                         raise ParseError('Task not found')
