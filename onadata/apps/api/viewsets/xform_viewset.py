@@ -608,11 +608,14 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             raise ParseError(str(e))
 
     @detail_route(methods=['DELETE', 'GET'])
-    def delete_async(self, request, *args, **kwargs):
+    def delete_async(self, request, *args, **kwargs):  # pylint: disable=W0613
+        """
+        /delete_async - Endpoint deletes a form asynchronously.
+        """
         if request.method == 'DELETE':
             xform = self.get_object()
             resp = {
-                u'job_uuid': tasks.delete_xform_async.delay(xform).task_id,
+                u'job_uuid': tasks.delete_xform_async.delay(xform.pk).task_id,
                 u'time_async_triggered': datetime.now()}
             resp_code = status.HTTP_202_ACCEPTED
 

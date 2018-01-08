@@ -2674,6 +2674,9 @@ class TestXFormViewSet(TestAbstractViewSet):
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.tasks.get_async_status')
     def test_delete_xform_async(self, mock_get_status):
+        """
+        Test deleting a form asynchronously.
+        """
         with HTTMock(enketo_mock):
             mock_get_status.return_value = {'job_status': 'PENDING'}
             self._publish_xls_form_to_project()
