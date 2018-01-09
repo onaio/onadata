@@ -49,8 +49,8 @@ def set_project_perms_to_xform(xform, project):
                 role.add(user, xform)
 
 
-@task
-def set_project_perms_to_xform_async(xform_id, project_id):
+@task(bind=True, max_retries=3)
+def set_project_perms_to_xform_async(self, xform_id, project_id):
 
     def _set_project_perms():
         try:
@@ -60,6 +60,7 @@ def set_project_perms_to_xform_async(xform_id, project_id):
             msg = '%s: Setting project %d permissions to form %d failed.' % (
                     type(e), project_id, xform_id)
             report_exception(msg, e, sys.exc_info())
+            self.retry(countdown=60, exc=e)
         else:
             set_project_perms_to_xform(xform, project)
 
