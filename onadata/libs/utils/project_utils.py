@@ -54,8 +54,11 @@ def set_project_perms_to_xform_async(xform_id, project_id):
     try:
         xform = XForm.objects.get(id=xform_id)
         project = Project.objects.get(id=project_id)
-    except (Project.DoesNotExist, XForm.DoesNotExist):
-        pass
+    except (Project.DoesNotExist, XForm.DoesNotExist) as e:
+        msg = '%s: Setting project %d permissions to form %d failed.' % (
+                type(e), project_id, xform_id)
+        report_exception(msg, e, sys.exc_info())
+        print(msg)
     else:
         try:
             if len(getattr(settings, 'SLAVE_DATABASES', [])):
