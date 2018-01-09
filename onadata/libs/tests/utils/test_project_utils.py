@@ -1,7 +1,12 @@
+from mock import patch
+
+from django.test.utils import override_settings
+
 from onadata.apps.logger.models import Project
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.permissions import DataEntryRole
 from onadata.libs.utils.project_utils import set_project_perms_to_xform
+from onadata.libs.utils.project_utils import set_project_perms_to_xform_async
 
 
 class TestProjectUtils(TestBase):
@@ -33,3 +38,16 @@ class TestProjectUtils(TestBase):
 
         # Alice should have no data entry role to transfered form
         self.assertFalse(DataEntryRole.user_has_role(alice, self.xform))
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch('onadata.libs.utils.project_utils.set_project_perms_to_xform')
+    def test_set_project_perms_to_xform_async(self, mock):
+        """
+        Test that the set_project_perms_to_xform_async task actually calls
+        the set_project_perms_to_xform function
+        """
+        set_project_perms_to_xform_async(self.xform.pk, self.project.pk)
+        self.assertTrue(mock.called)
+        args, kwargs = mock.call_args_list[0]
+        self.assertEqual(args[0], self.xform)
+        self.assertEqual(args[1], self.project)

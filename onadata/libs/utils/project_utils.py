@@ -49,22 +49,29 @@ def set_project_perms_to_xform(xform, project):
                 role.add(user, xform)
 
 
-@task
-def set_project_perms_to_xform_async(xform_id, project_id):
-    try:
-        xform = XForm.objects.get(id=xform_id)
-        project = Project.objects.get(id=project_id)
-    except (Project.DoesNotExist, XForm.DoesNotExist):
-        pass
-    else:
+@task(bind=True, max_retries=3)
+def set_project_perms_to_xform_async(self, xform_id, project_id):
+
+    def _set_project_perms():
         try:
-            if len(getattr(settings, 'SLAVE_DATABASES', [])):
-                from multidb.pinning import use_master
-                with use_master:
-                    set_project_perms_to_xform(xform, project)
-            else:
-                set_project_perms_to_xform(xform, project)
-        except Exception as e:
+            xform = XForm.objects.get(id=xform_id)
+            project = Project.objects.get(id=project_id)
+        except (Project.DoesNotExist, XForm.DoesNotExist) as e:
             msg = '%s: Setting project %d permissions to form %d failed.' % (
-                type(e), project_id, xform_id)
+                    type(e), project_id, xform_id)
             report_exception(msg, e, sys.exc_info())
+            self.retry(countdown=60, exc=e)
+        else:
+            set_project_perms_to_xform(xform, project)
+
+    try:
+        if len(getattr(settings, 'SLAVE_DATABASES', [])):
+            from multidb.pinning import use_master
+            with use_master:
+                _set_project_perms()
+        else:
+            _set_project_perms()
+    except Exception as e:
+        msg = '%s: Setting project %d permissions to form %d failed.' % (
+            type(e), project_id, xform_id)
+        report_exception(msg, e, sys.exc_info())
