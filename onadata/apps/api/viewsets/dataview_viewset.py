@@ -149,7 +149,9 @@ class DataViewViewSet(AuthenticateHeaderMixin,
 
         else:
             resp = process_async_export(request, xform, export_type,
-                                        options=options)
+                                        options=options, dataview=dataview)
+            if isinstance(resp, Response):
+                return resp
 
         return Response(data=resp,
                         status=status.HTTP_202_ACCEPTED,

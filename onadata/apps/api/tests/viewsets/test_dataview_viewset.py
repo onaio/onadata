@@ -10,7 +10,8 @@ from mock import patch
 import xlrd
 
 from onadata.libs.permissions import ReadOnlyRole
-from onadata.apps.logger.models.data_view import DataView
+from onadata.apps.logger.models import DataView, Project
+from onadata.apps.main.models import MetaData
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.viewer.models.export import Export
@@ -598,6 +599,57 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 202)
         self.assertTrue('job_uuid' in response.data)
+        task_id = response.data.get('job_uuid')
+
+        export_pk = Export.objects.all().order_by('pk').reverse()[0].pk
+
+        # metaclass for mocking results
+        job = type('AsyncResultMock', (),
+                   {'state': 'SUCCESS', 'result': export_pk})
+        async_result.return_value = job
+
+        get_data = {'job_uuid': task_id}
+        request = self.factory.get('/', data=get_data, **self.extra)
+        response = view(request, pk=self.data_view.pk)
+
+        self.assertIn('export_url', response.data)
+
+        self.assertTrue(async_result.called)
+        self.assertEqual(response.status_code, 202)
+        export = Export.objects.get(task_id=task_id)
+        self.assertTrue(export.is_successful)
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch('onadata.apps.api.viewsets.dataview_viewset.AsyncResult')
+    def test_export_csv_dataview_readonly_async(self, async_result):
+        """
+        Read only user can export CSV filtered dataset.
+        """
+        project = Project.objects.create(
+            name='Demo Project', organization=self.user, created_by=self.user,
+            metadata={'description': 'A different project'})
+        self._create_dataview(project=project)
+        self._publish_xls_form_to_project()
+        # apply meta permissions to xform
+        MetaData.xform_meta_permission(self.data_view.xform,
+                                       'editor|dataentry')
+
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        self._login_user_and_profile(alice_data)
+
+        ReadOnlyRole.add(self.user, project)
+
+        view = DataViewViewSet.as_view({
+            'get': 'export_async',
+        })
+
+        request = self.factory.get('/', data={"format": "csv"},
+                                   **self.extra)
+        response = view(request, pk=self.data_view.pk)
+        self.assertIsNotNone(response.data)
+
+        self.assertEqual(response.status_code, 202)
+        self.assertTrue('job_uuid' in response.data, response.data)
         task_id = response.data.get('job_uuid')
 
         export_pk = Export.objects.all().order_by('pk').reverse()[0].pk

@@ -341,7 +341,8 @@ def _format_date_for_mongo(x, datetime):  # pylint: disable=W0621, C0103
                              '%y_%m_%d_%H_%M_%S').strftime('%Y-%m-%dT%H:%M:%S')
 
 
-def process_async_export(request, xform, export_type, options=None):
+def process_async_export(request, xform, export_type, options=None,
+                         dataview=None):
     """
     Check if should generate export or just return the latest export.
     Rules for regenerating an export are:
@@ -358,6 +359,7 @@ def process_async_export(request, xform, export_type, options=None):
         token: template url for xls external reports
         meta: metadataid that contains the external xls report template url
         remove_group_name: Flag to determine if group names should appear
+    :param dataview:
     :return: response dictionary
     """
     # maintain the order of keys while processing the export
@@ -369,7 +371,7 @@ def process_async_export(request, xform, export_type, options=None):
 
     try:
         query = filter_queryset_xform_meta_perms_sql(xform, request.user,
-                                                     query)
+                                                     query, dataview=dataview)
     except NoRecordsPermission:
         payload = {"details": _("You don't have permission")}
         return Response(

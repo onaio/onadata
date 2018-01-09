@@ -456,7 +456,7 @@ def filter_queryset_xform_meta_perms(xform, user, instance_queryset):
         return instance_queryset.none()
 
 
-def filter_queryset_xform_meta_perms_sql(xform, user, query):
+def filter_queryset_xform_meta_perms_sql(xform, user, query, dataview=False):
     """
         Check for the specific perms if meta-perms have been enabled
         CAN_VIEW_XFORM_ALL ==> User should be able to view all the data
@@ -466,9 +466,9 @@ def filter_queryset_xform_meta_perms_sql(xform, user, query):
         :param user:
         :param instance_queryset:
         :return: data
-        """
+    """
     if user.has_perm(CAN_VIEW_XFORM_ALL, xform) or xform.shared_data\
-            or not _check_meta_perms_enabled(xform):
+            or not _check_meta_perms_enabled(xform) or dataview:
         return query
     elif user.has_perm(CAN_VIEW_XFORM_DATA, xform):
         try:
