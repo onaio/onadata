@@ -13,6 +13,8 @@ from onadata.libs.utils.country_field import COUNTRIES
 from onadata.libs.utils.gravatar import get_gravatar_img_link, gravatar_exists
 from onadata.apps.main.signals import set_api_permissions
 
+REQUIRE_AUTHENTICATION = 'REQUIRE_ODK_AUTHENTICATION'
+
 
 class UserProfile(models.Model):
     # This field is required.
@@ -52,6 +54,16 @@ class UserProfile(models.Model):
         if self.twitter.startswith("@"):
             return self.twitter[1:]
         return self.twitter
+
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+        # Override default save method to set settings configured require_auth
+        # value
+        if self.pk is None and hasattr(settings, REQUIRE_AUTHENTICATION):
+            self.require_auth = getattr(settings, REQUIRE_AUTHENTICATION)
+
+        super(UserProfile, self).save(force_insert, force_update, using,
+                                      update_fields)
 
     class Meta:
         app_label = 'main'
