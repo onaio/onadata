@@ -6,7 +6,7 @@ from celery import task
 from django.contrib.gis.geos import (GeometryCollection, LineString, Point,
                                      Polygon)
 from django.contrib.gis.geos.error import GEOSException
-from django.db import IntegrityError, models
+from django.db import IntegrityError, models, transaction
 from lxml import etree
 
 from onadata.apps.logger.models.attachment import Attachment
@@ -182,26 +182,30 @@ def save_osm_data(instance_id):
             osm_list = parse_osm(osm_xml, include_osm_id=True)
             for osmd in osm_list:
                 try:
-                    osm_data = OsmData(
-                        instance=instance,
-                        xml=osm_xml,
-                        osm_id=osmd['osm_id'],
-                        osm_type=osmd['osm_type'],
-                        tags=osmd['tags'],
-                        geom=GeometryCollection(osmd['geom']),
-                        filename=filename,
-                        field_name=field_name)
-                    osm_data.save()
+                    with transaction.atomic():
+                        osm_data = OsmData(
+                            instance=instance,
+                            xml=osm_xml,
+                            osm_id=osmd['osm_id'],
+                            osm_type=osmd['osm_type'],
+                            tags=osmd['tags'],
+                            geom=GeometryCollection(osmd['geom']),
+                            filename=filename,
+                            field_name=field_name)
+                        osm_data.save()
                 except IntegrityError:
-                    osm_data = OsmData.objects.get(
-                        instance=instance, field_name=field_name)
-                    osm_data.xml = osm_xml
-                    osm_data.osm_id = osmd['osm_id']
-                    osm_data.osm_type = osmd['osm_type']
-                    osm_data.tags = osmd['tags']
-                    osm_data.geom = GeometryCollection(osmd['geom'])
-                    osm_data.filename = filename
-                    osm_data.save()
+                    with transaction.atomic():
+                        osm_data = OsmData.objects.exclude(
+                            xml=osm_xml).filter(
+                            instance=instance, field_name=field_name).first()
+                        if osm_data:
+                            osm_data.xml = osm_xml
+                            osm_data.osm_id = osmd['osm_id']
+                            osm_data.osm_type = osmd['osm_type']
+                            osm_data.tags = osmd['tags']
+                            osm_data.geom = GeometryCollection(osmd['geom'])
+                            osm_data.filename = filename
+                            osm_data.save()
         instance.save()
         trigger_webhook.send(sender=instance.__class__, instance=instance)
 
