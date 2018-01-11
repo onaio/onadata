@@ -1,10 +1,12 @@
 import csv
 import os
-
 from cStringIO import StringIO
+from mock import patch
+
 from django.test import RequestFactory
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
+from django.db import IntegrityError, transaction
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
@@ -12,10 +14,12 @@ from onadata.apps.api.viewsets.osm_viewset import OsmViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.logger.models import Attachment
+from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import OsmData
 from onadata.apps.viewer.models import Export
 from onadata.libs.utils.common_tools import (
     filename_from_disposition, get_response_content)
+from onadata.libs.utils.osm import save_osm_data
 
 
 class TestOSMViewSet(TestAbstractViewSet):
@@ -154,3 +158,45 @@ class TestOSMViewSet(TestAbstractViewSet):
         response = view(request, pk=self.xform.pk, dataid=dataid, format='osm')
         self.assertContains(response, '<error>Not found.</error>',
                             status_code=404)
+
+    def test_save_osm_data_transaction_atomic(self):
+        """
+        Test that an IntegrityError within save_osm_data does not cause
+        a TransactionManagementError, which arises because of new queries
+        while inside a transaction.atomic() block
+        """
+
+        # first publish a form and make a submission with OSM data
+        self._publish_osm_with_submission()
+        # make sure we have a submission
+        submission = Instance.objects.first()
+        self.assertNotEqual(submission, None)
+
+        # mock the save method on OsmData and cause it to raise an
+        # IntegrityError on its first call only, so that we get into the
+        # catch inside save_osm_data
+        with patch('onadata.libs.utils.osm.OsmData.save') as mock:
+
+            def _side_effect(*args):
+                """
+                We want to raise an IntegrityError only on the first call
+                of our mock
+                """
+
+                def __second_side_effect(*args):
+                    return None
+
+                # change the side effect so that the next time we do not
+                # raise an IntegrityError
+                mock.side_effect = __second_side_effect
+                # we need to manually rollback the atomic transaction
+                # merely raising IntegrityError is not enough
+                # doing this means that a TransactionManagementError is raised
+                # if we do new queries inside the transaction.atomic block
+                transaction.set_rollback(True)
+                raise IntegrityError
+
+            # excplicity use an atomic block
+            with transaction.atomic():
+                mock.side_effect = _side_effect
+                save_osm_data(submission.id)
