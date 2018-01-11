@@ -7,6 +7,7 @@ from django.test import RequestFactory
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
 from django.db import IntegrityError, transaction
+from django.db.transaction import TransactionManagementError
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
@@ -199,4 +200,7 @@ class TestOSMViewSet(TestAbstractViewSet):
             # excplicity use an atomic block
             with transaction.atomic():
                 mock.side_effect = _side_effect
-                save_osm_data(submission.id)
+                try:
+                    save_osm_data(submission.id)
+                except TransactionManagementError:
+                    self.fail("TransactionManagementError was raised")
