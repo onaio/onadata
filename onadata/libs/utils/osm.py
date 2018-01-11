@@ -196,9 +196,8 @@ def save_osm_data(instance_id):
                 except IntegrityError:
                     with transaction.atomic():
                         osm_data = OsmData.objects.exclude(
-                                    xml=osm_xml).filter(
-                                        instance=instance,
-                                        field_name=field_name).first()
+                            xml=osm_xml).filter(
+                            instance=instance, field_name=field_name).first()
                         if osm_data:
                             osm_data.xml = osm_xml
                             osm_data.osm_id = osmd['osm_id']
