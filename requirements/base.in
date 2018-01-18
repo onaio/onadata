@@ -52,7 +52,7 @@ pymongo
 dict2xml
 lxml
 
-pyxform
+-e git+https://github.com/lindsay-stevens/pyxform.git@fancy-updater#egg=pyxform
 pyfloip>=0.0.1
 
 # spss
