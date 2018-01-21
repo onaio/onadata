@@ -481,7 +481,7 @@ class Instance(models.Model, InstanceBaseClass):
             if 'encryptedXmlFile' in data and self.xform.encrypted:
                 media_list.append(data['encryptedXmlFile'])
                 if 'media' in data:
-                    media_list.extend(data['media'])
+                    media_list.extend([i['media/file'] for i in data['media']])
             else:
                 media_xpaths = self.xform.get_media_survey_xpaths()
                 for media_xpath in media_xpaths:
