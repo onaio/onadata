@@ -1,8 +1,16 @@
+# -*- coding=utf-8 -*-
+"""
+Model utility functions.
+"""
+
 import gc
 import uuid
 
 
 def generate_uuid_for_form():
+    """
+    Returns the UUID4 hex value.
+    """
     return uuid.uuid4().hex
 
 
