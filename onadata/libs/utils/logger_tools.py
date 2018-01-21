@@ -39,7 +39,6 @@ from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.model_tools import set_uuid
-from onadata.libs.utils.dict_tools import get_values_matching_key
 from onadata.libs.utils.user_auth import get_user_default_project
 from pyxform.errors import PyXFormError
 from pyxform.xform2json import create_survey_element_from_xml
@@ -191,20 +190,9 @@ def update_attachment_tracking(instance):
     """
     Takes an Instance object and updates attachment tracking fields
     """
-    num_media = 0
-    if instance.xform.encrypted:
-        data = instance.get_dict()
-        if 'encryptedXmlFile' in data:
-            num_media += 1
-        if 'media' in data:
-            num_media += len(data['media'])
-    else:
-        media_xpaths = instance.xform.get_media_survey_xpaths()
-        for media_xpath in media_xpaths:
-            num_media += len([x for x in get_values_matching_key(
-                instance.get_dict(), media_xpath)])
-    instance.total_media = num_media
-    instance.media_count = instance.attachments.count()
+    instance.total_media = instance.num_of_media
+    instance.media_count = instance.attachments.distinct('name')\
+        .order_by('name').count()
     instance.media_all_received = instance.media_count == \
         instance.total_media
     instance.save(update_fields=['total_media',
@@ -239,6 +227,7 @@ def save_attachments(xform, instance, media_files):
             instance=instance,
             media_file=f,
             mimetype=content_type,
+            name=f.name,
             extension=extension)
     update_attachment_tracking(instance)
 

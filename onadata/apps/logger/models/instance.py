@@ -279,7 +279,7 @@ class InstanceBaseClass(object):
         doc = self.get_dict()
         points = []
 
-        if len(geo_xpaths):
+        if geo_xpaths:
             for xpath in geo_xpaths:
                 for gps in get_values_matching_key(doc, xpath):
                     try:
@@ -470,6 +470,38 @@ class Instance(models.Model, InstanceBaseClass):
         """
         if self.xform and self.xform.is_merged_dataset:
             raise FormIsMergedDatasetError()
+
+    def get_expected_media(self):
+        """
+        Returns a list of expected media files from the submission data.
+        """
+        if not hasattr(self, '_expected_media'):
+            data = self.get_dict()
+            media_list = []
+            if 'encryptedXmlFile' in data and self.xform.encrypted:
+                media_list.append(data['encryptedXmlFile'])
+                if 'media' in data:
+                    media_list.extend(data['media'])
+            else:
+                media_xpaths = self.xform.get_media_survey_xpaths()
+                for media_xpath in media_xpaths:
+                    media_list.extend(
+                        get_values_matching_key(data, media_xpath))
+            # pylint: disable=attribute-defined-outside-init
+            self._expected_media = list(set(media_list))
+
+        return self._expected_media
+
+    @property
+    def num_of_media(self):
+        """
+        Returns number of media attachments expected in the submission.
+        """
+        if not hasattr(self, '_num_of_media'):
+            # pylint: disable=attribute-defined-outside-init
+            self._num_of_media = len(self.get_expected_media())
+
+        return self._num_of_media
 
     def save(self, *args, **kwargs):
         force = kwargs.get('force')
