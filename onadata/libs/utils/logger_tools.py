@@ -223,12 +223,15 @@ def save_attachments(xform, instance, media_files):
         #         attachment.media_file = f
         #         attachment.save()
         # else:
-        Attachment.objects.get_or_create(
-            instance=instance,
-            media_file=f,
-            mimetype=content_type,
-            name=f.name,
-            extension=extension)
+        media_in_submission = (f.name in instance.get_expected_media() or
+                               instance.xml.find(f.name) != -1)
+        if media_in_submission:
+            Attachment.objects.get_or_create(
+                instance=instance,
+                media_file=f,
+                mimetype=content_type,
+                name=f.name,
+                extension=extension)
     update_attachment_tracking(instance)
 
 
