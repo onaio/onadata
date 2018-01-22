@@ -97,11 +97,16 @@ class Command(BaseCommand):
         """
         Process attachments for submissions where media_all_received is False.
         """
-        xforms = XForm.objects.filter(user=user, deleted_at__isnull=True)
+        xforms = XForm.objects.filter(user=user, deleted_at__isnull=True,
+                                      downloadable=True)
         for xform in queryset_iterator(xforms):
             submissions = xform.instances.filter(media_all_received=False)
-            if submissions.count():
-                self.stdout.write("%s to process %s submissions" % (
-                    xform, submissions.count()))
+            to_process = submissions.count()
+            if to_process:
                 for submission in queryset_iterator(submissions):
                     update_attachment_tracking(submission)
+                not_processed = xform.instances.filter(
+                    media_all_received=False).count()
+                self.stdout.write("%s to process %s - %s = %s processed" % (
+                    xform, to_process, not_processed,
+                    (to_process - not_processed)))
