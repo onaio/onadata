@@ -2,11 +2,13 @@
 """
 Fix submission media count command.
 """
+import os
 
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy
+from multidb.pinning import use_master
 
 from onadata.apps.logger.models.attachment import get_original_filename
 from onadata.apps.logger.models.xform import XForm
@@ -52,7 +54,8 @@ def update_attachment_tracking(instance):
     Takes an Instance object and updates attachment tracking fields
     """
     for attachment in instance.attachments.all():
-        attachment.name = get_original_filename(attachment.media_file.name)
+        attachment.name = os.path.basename(
+            get_original_filename(attachment.media_file.name))
         attachment.save()
 
     instance.total_media = num_of_media(instance)
@@ -87,10 +90,18 @@ class Command(BaseCommand):
         except User.DoesNotExist:
             raise CommandError(_("The user '%s' does not exist.") % username)
 
+        self.process_attachments(user)
+
+    @use_master
+    def process_attachments(self, user):
+        """
+        Process attachments for submissions where media_all_received is False.
+        """
         xforms = XForm.objects.filter(user=user, deleted_at__isnull=True)
         for xform in queryset_iterator(xforms):
             submissions = xform.instances.filter(media_all_received=False)
-            self.stdout.write("%s to process %s submissions" % (
-                xform, submissions.count()))
-            for submission in queryset_iterator(submissions):
-                update_attachment_tracking(submission)
+            if submissions.count():
+                self.stdout.write("%s to process %s submissions" % (
+                    xform, submissions.count()))
+                for submission in queryset_iterator(submissions):
+                    update_attachment_tracking(submission)

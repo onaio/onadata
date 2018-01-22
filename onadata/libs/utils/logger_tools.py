@@ -214,6 +214,7 @@ def save_attachments(xform, instance, media_files):
         if extension == Attachment.OSM and not xform.instances_with_osm:
             xform.instances_with_osm = True
             xform.save()
+        filename = os.path.basename(f.name)
         # filename = os.path.join(upload_path, f.name)
         # attachments = Attachment.objects.filter(instance=instance,
         #                                         media_file=filename)
@@ -223,14 +224,14 @@ def save_attachments(xform, instance, media_files):
         #         attachment.media_file = f
         #         attachment.save()
         # else:
-        media_in_submission = (f.name in instance.get_expected_media() or
-                               instance.xml.find(f.name) != -1)
+        media_in_submission = (filename in instance.get_expected_media() or
+                               instance.xml.find(filename) != -1)
         if media_in_submission:
             Attachment.objects.get_or_create(
                 instance=instance,
                 media_file=f,
                 mimetype=content_type,
-                name=f.name,
+                name=filename,
                 extension=extension)
     update_attachment_tracking(instance)
 
