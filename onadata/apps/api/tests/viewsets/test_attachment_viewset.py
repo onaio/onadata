@@ -1,4 +1,4 @@
-from os import path
+import os
 from django.utils import timezone
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
@@ -6,7 +6,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
 from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import get_attachment_url
-from onadata.apps.logger.models.instance import Instance
+from onadata.apps.logger.import_tools import django_file
 
 
 def attachment_url(attachment, suffix=None):
@@ -67,29 +67,22 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         response = self.retrieve_view(request, pk=pk)
         self.assertEqual(response.status_code, 404)
 
-    def test_attachments_added_on_duplicate_submission_has_start_time(self):
-        self.xform.has_start_time = True
-        self.xform.save()
-        count = Attachment.objects.count()
-        instance_count = Instance.objects.count()
-        self._submit_transport_instance_w_attachment()
-        self.assertEqual(self.response.status_code, 201)
-        self.assertEqual(Attachment.objects.count(), count + 1)
-        self.assertEqual(Instance.objects.count(), instance_count + 1)
-        self._submit_transport_instance_w_attachment(
-            media_file="1335783522564.JPG")
-        self.assertEqual(self.response.status_code, 202)
-        # change in number of attachments
-        self.assertEqual(Attachment.objects.count(), count + 2)
-        # no change in number of submissions
-        self.assertEqual(Instance.objects.count(), instance_count + 1)
-
     def test_attachment_pagination(self):
+        """
+        Test attachments endpoint pagination support.
+        """
         self._submit_transport_instance_w_attachment()
         self.assertEqual(self.response.status_code, 201)
-        self._submit_transport_instance_w_attachment(
-            media_file="1335783522564.JPG")
-        self.assertEqual(self.response.status_code, 202)
+        filename = "1335783522564.JPG"
+        path = os.path.join(self.main_directory, 'fixtures', 'transportation',
+                            'instances', self.surveys[0], filename)
+        media_file = django_file(path, 'image2', 'image/jpeg')
+        Attachment.objects.create(
+            instance=self.xform.instances.first(),
+            mimetype='image/jpeg',
+            extension='JPG',
+            name=filename,
+            media_file=media_file)
 
         # not using pagination params
         request = self.factory.get('/', **self.extra)
@@ -276,11 +269,16 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 404)
 
     def test_direct_image_link_uppercase(self):
-        self._submit_transport_instance_w_attachment(
-            media_file="1335783522564.JPG")
+        self._submit_transport_instance_w_attachment()
+        filename = "1335783522564.JPG"
+        path = os.path.join(self.main_directory, 'fixtures', 'transportation',
+                            'instances', self.surveys[0], filename)
+        self.attachment.media_file = django_file(path, 'image2', 'image/jpeg')
+        self.attachment.name = filename
+        self.attachment.save()
 
         filename = self.attachment.media_file.name
-        file_base, file_extension = path.splitext(filename)
+        file_base, file_extension = os.path.splitext(filename)
         data = {
             'filename': file_base + file_extension.upper()
         }

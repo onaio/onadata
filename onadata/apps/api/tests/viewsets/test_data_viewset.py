@@ -11,6 +11,7 @@ from django.test.utils import override_settings
 from django_digest.test import DigestAuth
 from django_digest.test import Client as DigestClient
 from httmock import urlmatch, HTTMock
+from tempfile import NamedTemporaryFile
 
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.main import tests as main_tests
@@ -1183,40 +1184,69 @@ class TestDataViewSet(TestBase):
         self.assertDictContainsSubset(data, sorted(response.data)[0])
 
     def test_same_submission_with_different_attachments(self):
-        self._submit_transport_instance_w_attachment()
-
+        """
+        Test same submission with different attachments on each request.
+        """
+        images_md = """
+        | survey |
+        |        | type  | name   | label |
+        |        | photo | image1 | Pic 1 |
+        |        | photo | image2 | Pic 2 |
+        """
+        xform = self._publish_markdown(images_md, self.user)
+        submission_file = NamedTemporaryFile(delete=False)
+        with open(submission_file.name, 'w') as xml_file:
+            xml_file.write(
+                "<?xml version='1.0'?><data id=\"%s\">"
+                "<image1>1335783522563.jpg</image1>"
+                "<image2>1442323232322.jpg</image2>"
+                "<meta><instanceID>uuid:729f173c688e482486a48661700455ff"
+                "</instanceID></meta></data>" %
+                (xform.id_string))
+        media_file = "1335783522563.jpg"
+        self._make_submission_w_attachment(
+            submission_file.name,
+            os.path.join(self.this_directory, 'fixtures', 'transportation',
+                         'instances', self.surveys[0], media_file))
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         response = view(request)
         self.assertEqual(response.status_code, 200)
-        formid = self.xform.pk
-        data = _data_list(formid)
-        self.assertEqual(response.data, data)
+        formid = xform.pk
+        data = {
+            u'id': formid,
+            u'id_string': xform.id_string,
+            u'title': xform.title,
+            u'description': '',
+            u'url': u'http://testserver/api/v1/data/%s' % formid
+        }
+        self.assertEqual(response.data[1], data)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
 
-        dataid = self.xform.instances.all().order_by('id')[0].pk
+        instance = xform.instances.all().order_by('id')[0]
+        dataid = instance.pk
+        attachment = instance.attachments.all().first()
 
         data = {
             u'_bamboo_dataset_id': u'',
             u'_attachments': [{
-                'download_url': get_attachment_url(self.attachment),
-                'small_download_url':
-                get_attachment_url(self.attachment, 'small'),
-                'medium_download_url':
-                get_attachment_url(self.attachment, 'medium'),
-                u'mimetype': self.attachment.mimetype,
-                u'instance': self.attachment.instance.pk,
-                u'filename': self.attachment.media_file.name,
-                u'id': self.attachment.pk,
-                u'xform': self.xform.id}
+                u'download_url': get_attachment_url(attachment),
+                u'small_download_url':
+                get_attachment_url(attachment, 'small'),
+                u'medium_download_url':
+                get_attachment_url(attachment, 'medium'),
+                u'mimetype': attachment.mimetype,
+                u'instance': attachment.instance.pk,
+                u'filename': attachment.media_file.name,
+                u'id': attachment.pk,
+                u'xform': xform.id}
             ],
             u'_geolocation': [None, None],
-            u'_xform_id_string': u'transportation_2011_07_25',
-            u'transport/available_transportation_types_to_referral_facility':
-            u'none',
+            u'_xform_id_string': xform.id_string,
             u'_status': u'submitted_via_web',
-            u'_id': dataid
+            u'_id': dataid,
+            u'image1': u'1335783522563.jpg'
         }
         self.assertDictContainsSubset(data, sorted(response.data)[0])
 
@@ -1224,32 +1254,32 @@ class TestDataViewSet(TestBase):
         with patch(patch_value) as get_filtered_instances:
             get_filtered_instances.return_value = Instance.objects.filter(
                 uuid='#doesnotexist')
-            s = self.surveys[0]
             media_file = "1442323232322.jpg"
-            self._make_submission_w_attachment(os.path.join(
-                self.this_directory, 'fixtures',
-                'transportation', 'instances', s, s + '.xml'),
-                os.path.join(self.this_directory, 'fixtures',
-                             'transportation', 'instances', s, media_file))
-            self.attachment = Attachment.objects.last()
-            self.attachment_media_file = self.attachment.media_file
+            self._make_submission_w_attachment(
+                submission_file.name,
+                os.path.join(self.this_directory, 'fixtures', 'transportation',
+                             'instances', self.surveys[0], media_file))
+            attachment = Attachment.objects.get(name=media_file)
 
             data['_attachments'] = data.get('_attachments') + [{
-                'download_url': get_attachment_url(self.attachment),
-                'small_download_url':
-                get_attachment_url(self.attachment, 'small'),
-                'medium_download_url':
-                get_attachment_url(self.attachment, 'medium'),
-                u'mimetype': self.attachment.mimetype,
-                u'instance': self.attachment.instance.pk,
-                u'filename': self.attachment.media_file.name,
-                u'id': self.attachment.pk,
-                u'xform': self.xform.id
+                u'download_url': get_attachment_url(attachment),
+                u'small_download_url':
+                get_attachment_url(attachment, 'small'),
+                u'medium_download_url':
+                get_attachment_url(attachment, 'medium'),
+                u'mimetype': attachment.mimetype,
+                u'instance': attachment.instance.pk,
+                u'filename': attachment.media_file.name,
+                u'id': attachment.pk,
+                u'xform': xform.id
             }]
+            self.maxDiff = None
             response = view(request, pk=formid)
-
-            self.assertDictContainsSubset(data, sorted(response.data)[0])
+            self.assertDictContainsSubset(sorted([data])[0],
+                                          sorted(response.data)[0])
             self.assertEqual(response.status_code, 200)
+        submission_file.close()
+        os.unlink(submission_file.name)
 
     def test_data_w_attachment(self):
         self._submit_transport_instance_w_attachment()
@@ -2130,7 +2160,7 @@ class TestDataViewSet(TestBase):
                                    **self.extra)
         view = DataViewSet.as_view({'get': 'list'})
         response = view(request, pk=formid, format='json')
-        self.assertEqual(len(response.data), 0)
+        self.assertEqual(len(response.data), 1)
         # we set one to False and filter for it
         instance.media_all_received = False
         instance.save()
@@ -2139,7 +2169,7 @@ class TestDataViewSet(TestBase):
                                    **self.extra)
         view = DataViewSet.as_view({'get': 'list'})
         response = view(request, pk=formid, format='json')
-        self.assertEqual(len(response.data), 1)
+        self.assertEqual(len(response.data), 2)
 
     def test_floip_format(self):
         """
