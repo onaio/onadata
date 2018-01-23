@@ -503,6 +503,12 @@ class Instance(models.Model, InstanceBaseClass):
 
         return self._num_of_media
 
+    @property
+    def attachments_count(self):
+        return self.attachments.filter(
+            name__in=self.get_expected_media()
+        ).distinct('name').order_by('name').count()
+
     def save(self, *args, **kwargs):
         force = kwargs.get('force')
 

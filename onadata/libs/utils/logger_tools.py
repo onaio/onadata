@@ -191,12 +191,9 @@ def update_attachment_tracking(instance):
     Takes an Instance object and updates attachment tracking fields
     """
     instance.total_media = instance.num_of_media
-    instance.media_count = instance.attachments.distinct('name')\
-        .order_by('name').count()
-    instance.media_all_received = instance.media_count == \
-        instance.total_media
-    instance.save(update_fields=['total_media',
-                                 'media_count',
+    instance.media_count = instance.attachments_count
+    instance.media_all_received = instance.media_count == instance.total_media
+    instance.save(update_fields=['total_media', 'media_count',
                                  'media_all_received'])
 
 
