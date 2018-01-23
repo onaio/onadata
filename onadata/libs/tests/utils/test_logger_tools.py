@@ -95,6 +95,20 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         self.assertEquals(instance2.json[MEDIA_COUNT], instance2.media_count)
         self.assertEquals(instance2.json[MEDIA_ALL_RECEIVED],
                           instance2.media_all_received)
+        media2_file = django_file(path=file2_path,
+                                  field_name="image2",
+                                  content_type="image/jpeg")
+        create_instance(self.user.username,
+                        StringIO(xml_string.strip()),
+                        media_files=[media2_file])
+        instance3 = Instance.objects.get(pk=instance.pk)
+        self.assertTrue(instance3.json[MEDIA_ALL_RECEIVED])
+        self.assertEquals(instance3.json[TOTAL_MEDIA], 2)
+        self.assertEquals(instance3.json[MEDIA_COUNT], 2)
+        self.assertEquals(instance3.json[TOTAL_MEDIA], instance2.total_media)
+        self.assertEquals(instance3.json[MEDIA_COUNT], instance2.media_count)
+        self.assertEquals(instance3.json[MEDIA_ALL_RECEIVED],
+                          instance3.media_all_received)
 
     def test_attachment_tracking_for_repeats(self):
         """
@@ -221,3 +235,101 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         self.assertEquals(instance2.json[MEDIA_COUNT], instance2.media_count)
         self.assertEquals(instance2.json[MEDIA_ALL_RECEIVED],
                           instance2.media_all_received)
+
+    def test_attachment_tracking_duplicate(self):
+        """
+        Test that duplicate attachments does not affect if all attachments were
+        received.
+        """
+        md = """
+        | survey |       |        |       |
+        |        | type  | name   | label |
+        |        | image | image1 | Photo |
+        |        | image | image2 | Photo |
+        """
+        self._create_user_and_login()
+        self.xform = self._publish_markdown(md, self.user)
+
+        xml_string = """
+        <data id="{}">
+            <meta>
+                <instanceID>uuid:UJ5jSMAJ1Jz4EszdgHy8n851AsKaqBPO5</instanceID>
+            </meta>
+            <image1>1300221157303.jpg</image1>
+            <image2>1300375832136.jpg</image2>
+        </data>
+        """.format(self.xform.id_string)
+        file_path = "{}/apps/logger/tests/Health_2011_03_13."\
+                    "xml_2011-03-15_20-30-28/1300221157303"\
+                    ".jpg".format(settings.PROJECT_ROOT)
+        media_file = django_file(path=file_path,
+                                 field_name="image1",
+                                 content_type="image/jpeg")
+        instance = create_instance(self.user.username,
+                                   StringIO(xml_string.strip()),
+                                   media_files=[media_file])
+        self.assertFalse(instance.json[MEDIA_ALL_RECEIVED])
+        self.assertEquals(instance.json[TOTAL_MEDIA], 2)
+        self.assertEquals(instance.json[MEDIA_COUNT], 1)
+        self.assertEquals(instance.json[TOTAL_MEDIA], instance.total_media)
+        self.assertEquals(instance.json[MEDIA_COUNT], instance.media_count)
+        self.assertEquals(instance.json[MEDIA_ALL_RECEIVED],
+                          instance.media_all_received)
+        media2_file = django_file(path=file_path,
+                                  field_name="image1",
+                                  content_type="image/jpeg")
+        create_instance(self.user.username,
+                        StringIO(xml_string.strip()),
+                        media_files=[media2_file])
+        instance2 = Instance.objects.get(pk=instance.pk)
+        self.assertFalse(instance2.json[MEDIA_ALL_RECEIVED])
+        self.assertEquals(instance2.json[TOTAL_MEDIA], 2)
+        self.assertEquals(instance2.json[MEDIA_COUNT], 1)
+        self.assertEquals(instance2.json[TOTAL_MEDIA], instance2.total_media)
+        self.assertEquals(instance2.json[MEDIA_COUNT], instance2.media_count)
+        self.assertEquals(instance2.json[MEDIA_ALL_RECEIVED],
+                          instance2.media_all_received)
+
+    def test_attachment_tracking_not_in_submission(self):
+        """
+        Test attachment not in submission is not saved.
+        """
+        md = """
+        | survey |       |        |       |
+        |        | type  | name   | label |
+        |        | image | image1 | Photo |
+        |        | image | image2 | Photo |
+        """
+        self._create_user_and_login()
+        self.xform = self._publish_markdown(md, self.user)
+
+        xml_string = """
+        <data id="{}">
+            <meta>
+                <instanceID>uuid:UJ5jSMAJ1Jz4EszdgHy8n851AsKaqBPO5</instanceID>
+            </meta>
+            <image1>1300221157303.jpg</image1>
+            <image2>1300375832136.jpg</image2>
+        </data>
+        """.format(self.xform.id_string)
+        file_path = "{}/apps/logger/tests/Health_2011_03_13."\
+                    "xml_2011-03-15_20-30-28/1300221157303"\
+                    ".jpg".format(settings.PROJECT_ROOT)
+        file2_path = "{}/libs/tests/utils/fixtures/tutorial/instances/uuid1/"\
+                     "1442323232322.jpg".format(settings.PROJECT_ROOT)
+        media_file = django_file(path=file_path,
+                                 field_name="image1",
+                                 content_type="image/jpeg")
+        media2_file = django_file(path=file2_path,
+                                  field_name="image1",
+                                  content_type="image/jpeg")
+        instance = create_instance(self.user.username,
+                                   StringIO(xml_string.strip()),
+                                   media_files=[media_file, media2_file])
+        self.assertFalse(instance.json[MEDIA_ALL_RECEIVED])
+        self.assertEquals(instance.json[TOTAL_MEDIA], 2)
+        self.assertEquals(instance.json[MEDIA_COUNT], 1)
+        self.assertEquals(instance.json[TOTAL_MEDIA], instance.total_media)
+        self.assertEquals(instance.json[MEDIA_COUNT], instance.media_count)
+        self.assertEquals(instance.json[MEDIA_ALL_RECEIVED],
+                          instance.media_all_received)

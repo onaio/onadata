@@ -305,7 +305,7 @@ class TestProcess(TestBase):
         for d_from_db in self.data_dictionary.get_data_for_excel():
             for k, v in d_from_db.items():
                 if (k not in [u'_xform_id_string', u'meta/instanceID',
-                              '_version', '_id']) and v:
+                              '_version', '_id', 'image1']) and v:
                     new_key = k[len('transport/'):]
                     d_from_db[new_key] = d_from_db[k]
                 del d_from_db[k]
@@ -377,12 +377,12 @@ class TestProcess(TestBase):
         actual_csv = csv.reader(actual_lines)
         headers = actual_csv.next()
         data = [
-            {'meta/instanceID': 'uuid:5b2cc313-fc09-437e-8149-fcd32f695d41',
+            {"image1": "1335783522563.jpg",
+             'meta/instanceID': 'uuid:5b2cc313-fc09-437e-8149-fcd32f695d41',
              '_uuid': '5b2cc313-fc09-437e-8149-fcd32f695d41',
              '_submission_time': '2013-02-14T15:37:21',
              '_tags': '', '_notes': '', '_version': '2014111', '_duration': '',
-             '_submitted_by': 'bob', '_total_media': '0', '_media_count': '0',
-             '_media_all_received': 'True'
+             '_submitted_by': 'bob', '_total_media': '1', '_media_count': '0',
              },
             {"available_transportation_types_to_referral_facility/ambulance":
              "True",
@@ -432,7 +432,7 @@ class TestProcess(TestBase):
                     del d[k]
             this_list = []
             for k, v in expected_dict.items():
-                if k == 'meta/instanceID' or k.startswith("_"):
+                if k in ['image1', 'meta/instanceID'] or k.startswith("_"):
                     this_list.append((k, v))
                 else:
                     this_list.append(("transport/" + k, v))
@@ -469,8 +469,8 @@ class TestProcess(TestBase):
             expected_row = expected_sheet.row_values(i)
 
             # remove _id from result set, varies depending on the database
-            del actual_row[22]
-            del expected_row[22]
+            del actual_row[23]
+            del expected_row[23]
             self.assertEqual(actual_row, expected_row)
 
     def _check_delete(self):

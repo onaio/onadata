@@ -34,6 +34,9 @@ def upload_to(instance, filename):
 
 
 class Attachment(models.Model):
+    """
+    Attachment model.
+    """
     OSM = 'osm'
     instance = models.ForeignKey(Instance, related_name="attachments")
     media_file = models.FileField(max_length=255, upload_to=upload_to)
@@ -45,6 +48,7 @@ class Attachment(models.Model):
     date_modified = models.DateTimeField(null=True, auto_now=True)
     deleted_at = models.DateTimeField(null=True, default=None)
     file_size = models.PositiveIntegerField(default=0)
+    name = models.CharField(max_length=100, null=True, blank=True)
 
     class Meta:
         app_label = 'logger'
@@ -79,7 +83,3 @@ class Attachment(models.Model):
     def filename(self):
         if self.media_file:
             return os.path.basename(self.media_file.name)
-
-    @property
-    def name(self):
-        return get_original_filename(self.filename)

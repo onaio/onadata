@@ -39,7 +39,6 @@ from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.model_tools import set_uuid
-from onadata.libs.utils.dict_tools import get_values_matching_key
 from onadata.libs.utils.user_auth import get_user_default_project
 from pyxform.errors import PyXFormError
 from pyxform.xform2json import create_survey_element_from_xml
@@ -191,24 +190,10 @@ def update_attachment_tracking(instance):
     """
     Takes an Instance object and updates attachment tracking fields
     """
-    num_media = 0
-    if instance.xform.encrypted:
-        data = instance.get_dict()
-        if 'encryptedXmlFile' in data:
-            num_media += 1
-        if 'media' in data:
-            num_media += len(data['media'])
-    else:
-        media_xpaths = instance.xform.get_media_survey_xpaths()
-        for media_xpath in media_xpaths:
-            num_media += len([x for x in get_values_matching_key(
-                instance.get_dict(), media_xpath)])
-    instance.total_media = num_media
-    instance.media_count = instance.attachments.count()
-    instance.media_all_received = instance.media_count == \
-        instance.total_media
-    instance.save(update_fields=['total_media',
-                                 'media_count',
+    instance.total_media = instance.num_of_media
+    instance.media_count = instance.attachments_count
+    instance.media_all_received = instance.media_count == instance.total_media
+    instance.save(update_fields=['total_media', 'media_count',
                                  'media_all_received'])
 
 
@@ -226,6 +211,7 @@ def save_attachments(xform, instance, media_files):
         if extension == Attachment.OSM and not xform.instances_with_osm:
             xform.instances_with_osm = True
             xform.save()
+        filename = os.path.basename(f.name)
         # filename = os.path.join(upload_path, f.name)
         # attachments = Attachment.objects.filter(instance=instance,
         #                                         media_file=filename)
@@ -235,11 +221,15 @@ def save_attachments(xform, instance, media_files):
         #         attachment.media_file = f
         #         attachment.save()
         # else:
-        Attachment.objects.get_or_create(
-            instance=instance,
-            media_file=f,
-            mimetype=content_type,
-            extension=extension)
+        media_in_submission = (filename in instance.get_expected_media() or
+                               instance.xml.find(filename) != -1)
+        if media_in_submission:
+            Attachment.objects.get_or_create(
+                instance=instance,
+                media_file=f,
+                mimetype=content_type,
+                name=filename,
+                extension=extension)
     update_attachment_tracking(instance)
 
 

@@ -41,6 +41,7 @@
               </taxi>
             </loop_over_transport_types_frequency>
           </transport>
+          <image1/>
           <meta>
             <instanceID/>
           </meta>
@@ -57,6 +58,7 @@
       <bind nodeset="/transportation/transport/loop_over_transport_types_frequency/lorry/frequency_to_referral_facility" relevant="selected( /transportation/transport/available_transportation_types_to_referral_facility , 'lorry')" type="select1"/>
       <bind nodeset="/transportation/transport/loop_over_transport_types_frequency/motorbike/frequency_to_referral_facility" relevant="selected( /transportation/transport/available_transportation_types_to_referral_facility , 'motorbike')" type="select1"/>
       <bind nodeset="/transportation/transport/loop_over_transport_types_frequency/taxi/frequency_to_referral_facility" relevant="selected( /transportation/transport/available_transportation_types_to_referral_facility , 'taxi')" type="select1"/>
+      <bind nodeset="/transportation/image1" type="binary"/>
       <bind calculate="concat('uuid:', uuid())" nodeset="/transportation/meta/instanceID" readonly="true()" type="string"/>
       <bind calculate="''" nodeset="/transportation/formhub/uuid" type="string" />
     </model>
@@ -311,5 +313,8 @@
         </group>
       </group>
     </group>
+    <upload mediatype="image/*" ref="/transportation/image1">
+      <label>Photo</label>
+    </upload>
   </h:body>
 </h:html>
