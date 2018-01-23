@@ -620,6 +620,14 @@ class XFormMixin(object):
             ], [])
         ]
 
+    def get_osm_survey_xpaths(self):
+        """
+        Returns abbreviated_xpath for OSM question types in the survey.
+        """
+        return [
+            elem.get_abbreviated_xpath()
+            for elem in self.get_survey_elements_of_type('osm')]
+
     def _check_version_set(self, survey):
         """
         Checks if the version has been set in the xls file and if not adds

@@ -483,7 +483,8 @@ class Instance(models.Model, InstanceBaseClass):
                 if 'media' in data:
                     media_list.extend([i['media/file'] for i in data['media']])
             else:
-                media_xpaths = self.xform.get_media_survey_xpaths()
+                media_xpaths = (self.xform.get_media_survey_xpaths() +
+                                self.xform.get_osm_survey_xpaths())
                 for media_xpath in media_xpaths:
                     media_list.extend(
                         get_values_matching_key(data, media_xpath))
