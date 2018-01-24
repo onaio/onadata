@@ -107,6 +107,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
         include_hxl = params.get('include_hxl', False)
         include_labels = params.get('include_labels', False)
         include_labels_only = params.get('include_labels_only', False)
+        query = params.get("query")
         dataview = self.get_object()
         xform = dataview.xform
 
@@ -134,6 +135,8 @@ class DataViewViewSet(AuthenticateHeaderMixin,
             'include_labels': include_labels,
             'include_labels_only': include_labels_only
         }
+        if query:
+            options.update({'query': query})
 
         if job_uuid:
             job = AsyncResult(job_uuid)

@@ -2,10 +2,12 @@ import json
 import os
 import csv
 
+from datetime import datetime, timedelta
 from django.conf import settings
 from django.test.utils import override_settings
 from django.core.cache import cache
 from django.core.files.storage import default_storage
+from django.utils.timezone import utc
 from mock import patch
 import xlrd
 
@@ -22,7 +24,7 @@ from onadata.libs.utils.cache_tools import (
     DATAVIEW_COUNT,
     DATAVIEW_LAST_SUBMISSION_TIME,
     PROJECT_LINKED_DATAVIEWS)
-from onadata.libs.utils.common_tags import EDITED
+from onadata.libs.utils.common_tags import EDITED, MONGO_STRFTIME
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.libs.utils.common_tools import (
     filename_from_disposition, get_response_content)
@@ -31,7 +33,7 @@ from onadata.libs.utils.common_tools import (
 class TestDataViewViewSet(TestAbstractViewSet):
 
     def setUp(self):
-        super(self.__class__, self).setUp()
+        super(TestDataViewViewSet, self).setUp()
         xlsform_path = os.path.join(
             settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
             "tutorial.xls")
@@ -703,9 +705,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
         workbook = xlrd.open_workbook(export.full_filepath)
         main_sheet = workbook.sheets()[0]
         labels = main_sheet.row_values(1)
-        self.assertIn(
-            'Gender', labels
-        )
+        self.assertIn('Gender', labels)
+        self.assertEqual(main_sheet.nrows, 5)
 
     def _test_csv_export_with_hxl_support(self, columns, expected_output):
         data = {
@@ -1328,3 +1329,56 @@ class TestDataViewViewSet(TestAbstractViewSet):
     def test_invalid_url_parameters(self):
         response = self.client.get('/api/v1/dataviews/css/ona.css/')
         self.assertEquals(response.status_code, 404)
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch('onadata.apps.api.viewsets.dataview_viewset.AsyncResult')
+    def test_export_xls_dataview_with_date_filter(self, async_result):
+        """
+        Test dataview export with a date filter.
+        """
+        self._create_dataview()
+        self._publish_xls_form_to_project()
+        start_date = datetime(2014, 9, 12, tzinfo=utc)
+        first_datetime = start_date.strftime(MONGO_STRFTIME)
+        second_datetime = start_date + timedelta(days=1, hours=20)
+        query_str = '{"_submission_time": {"$gte": "'\
+                    + first_datetime + '", "$lte": "'\
+                    + second_datetime.strftime(MONGO_STRFTIME) + '"}}'
+
+        view = DataViewViewSet.as_view({
+            'get': 'export_async',
+        })
+
+        request = self.factory.get('/', data={"format": "xls",
+                                              'include_labels': 'true',
+                                              'query': query_str},
+                                   **self.extra)
+        response = view(request, pk=self.data_view.pk)
+        self.assertIsNotNone(response.data)
+
+        self.assertEqual(response.status_code, 202)
+        self.assertTrue('job_uuid' in response.data)
+        task_id = response.data.get('job_uuid')
+
+        export_pk = Export.objects.all().order_by('pk').reverse()[0].pk
+
+        # metaclass for mocking results
+        job = type('AsyncResultMock', (),
+                   {'state': 'SUCCESS', 'result': export_pk})
+        async_result.return_value = job
+
+        get_data = {'job_uuid': task_id}
+        request = self.factory.get('/', data=get_data, **self.extra)
+        response = view(request, pk=self.data_view.pk)
+
+        self.assertIn('export_url', response.data)
+
+        self.assertTrue(async_result.called)
+        self.assertEqual(response.status_code, 202)
+        export = Export.objects.get(task_id=task_id)
+        self.assertTrue(export.is_successful)
+        workbook = xlrd.open_workbook(export.full_filepath)
+        main_sheet = workbook.sheets()[0]
+        labels = main_sheet.row_values(1)
+        self.assertIn('Gender', labels)
+        self.assertEqual(main_sheet.nrows, 3)
