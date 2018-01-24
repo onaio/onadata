@@ -95,7 +95,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
             return Response(serializer.data)
 
         else:
-            return custom_response_handler(request, self.object.xform, None,
+            return custom_response_handler(request, self.object.xform, query,
                                            export_type,
                                            dataview=self.object)
 
