@@ -525,7 +525,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         self._build_ordered_columns(self.dd.survey, self.ordered_columns)
 
         if dataview:
-            cursor = dataview.query_data(dataview, all_data=True)
+            cursor = dataview.query_data(dataview, all_data=True,
+                                         filter_query=self.filter_query)
             if isinstance(cursor, QuerySet):
                 cursor = cursor.iterator()
             self._update_columns_from_data(cursor)
@@ -535,7 +536,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                  for xpath, cols in self.ordered_columns.iteritems()
                  if [c for c in dataview.columns if xpath.startswith(c)]]
             ))
-            cursor = dataview.query_data(dataview, all_data=True)
+            cursor = dataview.query_data(dataview, all_data=True,
+                                         filter_query=self.filter_query)
             if isinstance(cursor, QuerySet):
                 cursor = cursor.iterator()
             data = self._format_for_dataframe(cursor)
