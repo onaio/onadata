@@ -165,7 +165,8 @@ def generate_export(export_type, xform, export_id=None, options=None,
     dataview = None
     if options.get("dataview_pk"):
         dataview = DataView.objects.get(pk=options.get("dataview_pk"))
-        records = dataview.query_data(dataview, all_data=True)
+        records = dataview.query_data(dataview, all_data=True,
+                                      filter_query=filter_query)
         total_records = dataview.query_data(dataview,
                                             count=True)[0].get('count')
     else:
