@@ -1382,3 +1382,90 @@ class TestDataViewViewSet(TestAbstractViewSet):
         labels = main_sheet.row_values(1)
         self.assertIn('Gender', labels)
         self.assertEqual(main_sheet.nrows, 3)
+
+    def test_csv_export_dataview_date_filter(self):
+        """
+        Test dataview csv export with a date filter.
+        """
+        self._create_dataview()
+        self._publish_xls_form_to_project()
+        start_date = datetime(2014, 9, 12, tzinfo=utc)
+        first_datetime = start_date.strftime(MONGO_STRFTIME)
+        second_datetime = start_date + timedelta(days=1, hours=20)
+        query_str = '{"_submission_time": {"$gte": "'\
+                    + first_datetime + '", "$lte": "'\
+                    + second_datetime.strftime(MONGO_STRFTIME) + '"}}'
+        count = Export.objects.all().count()
+
+        view = DataViewViewSet.as_view({
+            'get': 'data',
+        })
+
+        request = self.factory.get('/', data={'query': query_str},
+                                   **self.extra)
+        response = view(request, pk=self.data_view.pk, format='csv')
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEquals(count + 1, Export.objects.all().count())
+
+        headers = dict(response.items())
+        self.assertEqual(headers['Content-Type'], 'application/csv')
+        content_disposition = headers['Content-Disposition']
+        filename = filename_from_disposition(content_disposition)
+        basename, ext = os.path.splitext(filename)
+        self.assertEqual(ext, '.csv')
+
+        content = get_response_content(response)
+        self.assertEqual(content, 'name,age,gender\nDennis Wambua,28,male\n')
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch('onadata.apps.api.viewsets.dataview_viewset.AsyncResult')
+    def test_csv_export_async_dataview_date_filter(self, async_result):
+        """
+        Test dataview csv export async with a date filter.
+        """
+        self._create_dataview()
+        self._publish_xls_form_to_project()
+        start_date = datetime(2014, 9, 12, tzinfo=utc)
+        first_datetime = start_date.strftime(MONGO_STRFTIME)
+        second_datetime = start_date + timedelta(days=1, hours=20)
+        query_str = '{"_submission_time": {"$gte": "'\
+                    + first_datetime + '", "$lte": "'\
+                    + second_datetime.strftime(MONGO_STRFTIME) + '"}}'
+        count = Export.objects.all().count()
+
+        view = DataViewViewSet.as_view({
+            'get': 'export_async',
+        })
+
+        request = self.factory.get('/', data={"format": "csv",
+                                              'query': query_str},
+                                   **self.extra)
+        response = view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 202)
+        self.assertIsNotNone(response.data)
+        self.assertTrue('job_uuid' in response.data)
+        task_id = response.data.get('job_uuid')
+        self.assertEquals(count + 1, Export.objects.all().count())
+
+        export_pk = Export.objects.all().order_by('pk').reverse()[0].pk
+
+        # metaclass for mocking results
+        job = type('AsyncResultMock', (),
+                   {'state': 'SUCCESS', 'result': export_pk})
+        async_result.return_value = job
+
+        get_data = {'job_uuid': task_id}
+        request = self.factory.get('/', data=get_data, **self.extra)
+        response = view(request, pk=self.data_view.pk)
+
+        self.assertIn('export_url', response.data)
+
+        self.assertTrue(async_result.called)
+        self.assertEqual(response.status_code, 202)
+        export = Export.objects.get(task_id=task_id)
+        self.assertTrue(export.is_successful)
+        with open(export.full_filepath) as csv_file:
+            self.assertEqual(
+                csv_file.read(),
+                'name,age,gender\nDennis Wambua,28,male\n')
