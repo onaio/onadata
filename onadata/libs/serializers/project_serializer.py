@@ -216,7 +216,10 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Project
-        exclude = ('shared', 'organization', 'user_stars')
+        fields = ['url', 'projectid', 'owner', 'created_by', 'metadata',
+                  'starred', 'users', 'forms', 'public', 'tags',
+                  'num_datasets', 'last_submission_date', 'teams', 'name',
+                  'date_created', 'date_modified', 'deleted_at']
 
     def get_starred(self, obj):
         return get_starred(obj, self.context['request'])
