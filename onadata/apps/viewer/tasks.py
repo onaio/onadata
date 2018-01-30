@@ -2,7 +2,6 @@ import sys
 from datetime import timedelta
 
 from celery import task
-from celery.task.schedules import crontab
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -355,10 +354,7 @@ def delete_export(export_id):
     return False
 
 
-@task.periodic_task(
-    run_every=(crontab(hour='*/7')),
-    ignore_result=True
-)
+@task(ignore_result=True)
 def mark_expired_pending_exports_as_failed():
     """
     Exports that have not completed within a set time should be marked as
@@ -371,10 +367,7 @@ def mark_expired_pending_exports_as_failed():
     exports.update(internal_status=Export.FAILED)
 
 
-@task.periodic_task(
-    run_every=(crontab(hour='*/7')),
-    ignore_result=True
-)
+@task(ignore_result=True)
 def delete_expired_failed_exports():
     """
     Delete old failed exports
