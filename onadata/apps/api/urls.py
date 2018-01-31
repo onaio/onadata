@@ -19,6 +19,7 @@ from onadata.apps.api.viewsets.data_viewset import (AuthenticatedDataViewSet,
                                                     DataViewSet)
 from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
 from onadata.apps.api.viewsets.export_viewset import ExportViewSet
+from onadata.apps.api.viewsets.floip_viewset import FloipViewSet
 from onadata.apps.api.viewsets.media_viewset import MediaViewSet
 from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
 from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
@@ -256,6 +257,8 @@ router.register(r'data', DataViewSet, base_name='data')
 router.register(r'dataviews', DataViewViewSet, base_name='dataviews')
 router.register(r'export', ExportViewSet, base_name='export')
 router.register(r'files', MediaViewSet, base_name='files')
+router.register(r'flow-results/packages',
+                FloipViewSet, base_name='flow-results')
 router.register(r'formlist', XFormListViewSet, base_name='formlist')
 router.register(r'forms', XFormViewSet)
 router.register(r'media', AttachmentViewSet, base_name='attachment')

@@ -36,6 +36,7 @@ recaptcha-client
 djangorestframework
 djangorestframework-csv
 djangorestframework-gis
+djangorestframework-jsonapi
 djangorestframework-jsonp
 djangorestframework-xml
 
@@ -96,5 +97,3 @@ google-api-python-client
 uwsgi
 flake8
 raven
-
--e git+https://github.com/onaio/floip-py.git@master#egg=floip
