@@ -213,7 +213,8 @@ class XFormPermissionFilterMixin(object):
             int_or_parse_error(xform, u"Invalid value for formid %s.")
             self.xform = get_object_or_404(XForm, pk=xform)
             xform_qs = XForm.objects.filter(pk=self.xform.pk)
-            public_forms = XForm.objects.filter(shared_data=True)
+            public_forms = XForm.objects.filter(pk=self.xform.pk,
+                                                shared_data=True)
         else:
             xform_qs = XForm.objects.all()
         xform_qs = xform_qs.filter(deleted_at=None)
