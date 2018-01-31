@@ -113,7 +113,6 @@ class TestExportViewSet(TestBase):
         """
         Test ExportViewSet list endpoint for a single public form.
         """
-        # self._create_user_and_login()
         user_mosh = self._create_user('mosh', 'mosh')
         self._publish_transportation_form()
         self.xform.shared_data = True
@@ -130,7 +129,6 @@ class TestExportViewSet(TestBase):
         request = self.factory.get('/export', {'xform': self.xform.pk})
         force_authenticate(request, user=user_mosh)
         response = view(request)
-        # import ipdb; ipdb.set_trace()
         self.assertTrue(bool(response.data))
         self.assertEqual(status.HTTP_200_OK, response.status_code)
 
