@@ -13,6 +13,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.translation import ugettext_lazy as _
 from floip import survey_to_floip_package
+from rest_framework.reverse import reverse
 from rest_framework_json_api import serializers
 
 from onadata.apps.api.tools import do_publish_xlsform
@@ -124,7 +125,11 @@ class FloipSerializer(serializers.HyperlinkedModelSerializer):
         raise ValidationError(instance)
 
     def to_representation(self, instance):
+        request = self.context['request']
+        data_url = request.build_absolute_uri(
+            reverse('flow-results-responses', kwargs={'uuid': instance.uuid}))
         package = survey_to_floip_package(
             json.loads(instance.json), instance.uuid, instance.date_created,
-            instance.date_modified, None)
+            instance.date_modified, None, data_url)
+
         return package.descriptor
