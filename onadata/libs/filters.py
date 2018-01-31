@@ -24,17 +24,18 @@ class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
         if request.user.is_anonymous():
             return queryset
 
-        if form_id:
+        if form_id and view.lookup_field == 'pk':
             int_or_parse_error(form_id, u'Invalid form ID: %s')
-
+        if form_id:
+            xform_kwargs = {view.lookup_field: form_id}
             # check if form is public and return it
             try:
-                form = queryset.get(id=form_id)
+                form = queryset.get(**xform_kwargs)
             except ObjectDoesNotExist:
                 raise Http404
 
             if form.shared:
-                return queryset.filter(Q(id=form_id))
+                return queryset.filter(Q(**xform_kwargs))
 
         return super(AnonDjangoObjectPermissionFilter, self)\
             .filter_queryset(request, queryset, view)
