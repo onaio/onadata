@@ -8,7 +8,7 @@
 -e git+https://github.com/onaio/django-multidb-router.git@django-1.11#egg=django-multidb-router
 -e git+https://github.com/jbalogh/django-nose.git#egg=django-nose
 -e git+https://github.com/bfirsh/django-ordered-model.git@master#egg=django-ordered-model
--e git+https://github.com/onaio/floip-py.git@master#egg=floip
+-e git+https://github.com/onaio/floip-py.git@xform-to-flow-results#egg=floip
 -e git+https://github.com/onaio/python-json2xlsclient.git#egg=python-json2xlsclient
 alabaster==0.7.10         # via sphinx
 amqp==1.4.9               # via kombu, librabbitmq
@@ -108,7 +108,6 @@ pyasn1-modules==0.0.8     # via oauth2client
 pyasn1==0.2.3             # via oauth2client, pyasn1-modules, rsa
 pycodestyle==2.3.1        # via flake8
 pyflakes==1.5.0           # via flake8
-pyfloip==0.0.1
 pygments==2.2.0           # via ipython, sphinx
 pyjwt==1.5.0
 pylibmc==1.5.2
