@@ -1,47 +1,88 @@
-from django.conf.urls import url
+# -*- coding=utf-8 -*-
+"""
+Custom rest_framework Router - MultiLookupRouter.
+"""
 from django.conf import settings
+from django.conf.urls import url
 from django.contrib import admin
+from rest_framework import routers
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
-from rest_framework import routers
 from rest_framework.urlpatterns import format_suffix_patterns
 from rest_framework.views import APIView
 
+from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
+from onadata.apps.api.viewsets.briefcase_viewset import BriefcaseViewset
 from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
-from onadata.apps.api.viewsets.data_viewset import DataViewSet
-from onadata.apps.api.viewsets.open_data_viewset import OpenDataViewSet
-from onadata.apps.api.viewsets.data_viewset import AuthenticatedDataViewSet
+from onadata.apps.api.viewsets.data_viewset import (AuthenticatedDataViewSet,
+                                                    DataViewSet)
 from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
 from onadata.apps.api.viewsets.export_viewset import ExportViewSet
+from onadata.apps.api.viewsets.floip_viewset import FloipViewSet
+from onadata.apps.api.viewsets.media_viewset import MediaViewSet
+from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
 from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
 from onadata.apps.api.viewsets.note_viewset import NoteViewSet
-from onadata.apps.api.viewsets.organization_profile_viewset import\
+from onadata.apps.api.viewsets.open_data_viewset import OpenDataViewSet
+from onadata.apps.api.viewsets.organization_profile_viewset import \
     OrganizationProfileViewSet
+from onadata.apps.api.viewsets.osm_viewset import OsmViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.stats_viewset import StatsViewSet
+from onadata.apps.api.viewsets.submissionstats_viewset import \
+    SubmissionStatsViewSet
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
-from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.api.viewsets.user_viewset import UserViewSet
-from onadata.apps.api.viewsets.submissionstats_viewset import\
-    SubmissionStatsViewSet
-from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
+from onadata.apps.api.viewsets.widget_viewset import WidgetViewSet
 from onadata.apps.api.viewsets.xform_list_viewset import XFormListViewSet
-from onadata.apps.api.viewsets.xform_submission_viewset import\
+from onadata.apps.api.viewsets.xform_submission_viewset import \
     XFormSubmissionViewSet
-from onadata.apps.api.viewsets.briefcase_viewset import BriefcaseViewset
-from onadata.apps.api.viewsets.osm_viewset import OsmViewSet
+from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.restservice.viewsets.restservices_viewset import \
     RestServicesViewSet
-from onadata.apps.api.viewsets.media_viewset import MediaViewSet
-from onadata.apps.api.viewsets.widget_viewset import WidgetViewSet
-from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
 
 admin.autodiscover()
 
 
+def get_extra_lookup_regexes(route):
+    """
+    Given a route, return the portion of URL regex that adds an additoional
+    lookup field in the URL regex.
+    """
+    ret = []
+    base_regex = '(?P<{lookup_field}>[^/]+)'
+    if 'extra_lookup_fields' in route.initkwargs:
+        for lookup_field in route.initkwargs['extra_lookup_fields']:
+            ret.append(base_regex.format(lookup_field=lookup_field))
+    return '/'.join(ret)
+
+
+def get_lookup_regexes(viewset):
+    """
+    Given a viewset, returns a list containing a portion of URL regex that
+    is used to match against a single instance.
+    """
+    ret = []
+    lookup_fields = getattr(viewset, 'lookup_fields', None)
+    if lookup_fields:
+        for i in range(1, len(lookup_fields)):
+            tmp = []
+            for lookup_field in lookup_fields[:i + 1]:
+                if lookup_field == lookup_fields[i]:
+                    base_regex = '(?P<{lookup_field}>[^/.]+)'
+                else:
+                    base_regex = '(?P<{lookup_field}>[^/]+)'
+                tmp.append(base_regex.format(lookup_field=lookup_field))
+            ret.append(tmp)
+    return ret
+
+
 def make_routes(template_text, mapping):
+    """
+    Return a Route that substitutes the given template_text in the URL regex.
+    """
     return routers.Route(
         url=r'^{prefix}/{%s}{trailing_slash}$' % template_text,
         mapping=mapping,
@@ -50,6 +91,9 @@ def make_routes(template_text, mapping):
 
 
 class MultiLookupRouter(routers.DefaultRouter):
+    """
+    MultiLookupRouter - adds extra lookup field to the URL regex of viewsets.
+    """
     def __init__(self, *args, **kwargs):
         super(MultiLookupRouter, self).__init__(*args, **kwargs)
         lookup_mapping = {
@@ -88,30 +132,10 @@ class MultiLookupRouter(routers.DefaultRouter):
             initkwargs={}
         ))
 
-    def get_extra_lookup_regexes(self, route):
-        ret = []
-        base_regex = '(?P<{lookup_field}>[^/]+)'
-        if 'extra_lookup_fields' in route.initkwargs:
-            for lookup_field in route.initkwargs['extra_lookup_fields']:
-                ret.append(base_regex.format(lookup_field=lookup_field))
-        return '/'.join(ret)
-
-    def get_lookup_regexes(self, viewset):
-        ret = []
-        lookup_fields = getattr(viewset, 'lookup_fields', None)
-        if lookup_fields:
-            for i in range(1, len(lookup_fields)):
-                tmp = []
-                for lookup_field in lookup_fields[:i + 1]:
-                    if lookup_field == lookup_fields[i]:
-                        base_regex = '(?P<{lookup_field}>[^/.]+)'
-                    else:
-                        base_regex = '(?P<{lookup_field}>[^/]+)'
-                    tmp.append(base_regex.format(lookup_field=lookup_field))
-                ret.append(tmp)
-        return ret
-
     def get_lookup_routes(self, viewset):
+        """
+        Given a viewset, returns a list of routes for the viewset.
+        """
         ret = [self.routes[0]]
         # Determine any `@action` or `@link` decorated methods on the viewset
         dynamic_routes = []
@@ -157,23 +181,25 @@ class MultiLookupRouter(routers.DefaultRouter):
             ret = super(MultiLookupRouter, self).get_routes(viewset)
         return ret
 
-    def get_api_root_view(self):
+    def get_api_root_view(self, api_urls=None):
         """
         Return a view to use as the API root.
         """
         api_root_dict = {}
         list_name = self.routes[0].name
-        for prefix, viewset, basename in self.registry:
+        for prefix, _viewset, basename in self.registry:
             api_root_dict[prefix] = list_name.format(basename=basename)
 
         class OnaApi(APIView):
             """
-## Ona JSON Rest API endpoints:
-
-"""
+            ## Ona JSON Rest API endpoints:
+            """
             _ignore_model_permissions = True
 
-            def get(self, request, format=None):
+            def get(self, request, format=None):  # pylint: disable=W0622,R0201
+                """
+                Return the list of implemented API endpoints.
+                """
                 ret = {}
                 for key, url_name in api_root_dict.items():
                     ret[key] = reverse(
@@ -187,15 +213,17 @@ class MultiLookupRouter(routers.DefaultRouter):
         return OnaApi.as_view()
 
     def get_urls(self):
+        """
+        Returns a list of url patterns.
+        """
         ret = []
 
         if self.include_root_view:
-            root_url = url(r'^$', self.get_api_root_view(),
-                           name=self.root_view_name)
-            ret.append(root_url)
+            ret.append(url(r'^$', self.get_api_root_view(),
+                           name=self.root_view_name))
         for prefix, viewset, basename in self.registry:
             lookup = self.get_lookup_regex(viewset)
-            lookup_list = self.get_lookup_regexes(viewset)
+            lookup_list = get_lookup_regexes(viewset)
             if lookup_list:
                 # lookup = lookups[0]
                 lookup_list = [u'/'.join(k) for k in lookup_list]
@@ -212,7 +240,7 @@ class MultiLookupRouter(routers.DefaultRouter):
                         lookup=lookup,
                         lookups=lookups,
                         trailing_slash=self.trailing_slash,
-                        extra=self.get_extra_lookup_regexes(route)
+                        extra=get_extra_lookup_regexes(route)
                     )
                     view = viewset.as_view(mapping, **route.initkwargs)
                     name = route.name.format(basename=basename)
@@ -222,34 +250,36 @@ class MultiLookupRouter(routers.DefaultRouter):
         return ret
 
 
-router = MultiLookupRouter(trailing_slash=False)
-router.register(r'users', UserViewSet)
-router.register(r'user', ConnectViewSet)
-router.register(r'profiles', UserProfileViewSet)
-router.register(r'orgs', OrganizationProfileViewSet)
-router.register(r'forms', XFormViewSet)
-router.register(r'projects', ProjectViewSet)
-router.register(r'teams', TeamViewSet)
-router.register(r'notes', NoteViewSet)
+router = MultiLookupRouter(trailing_slash=False)  # pylint: disable=c0103
+router.register(r'briefcase', BriefcaseViewset, base_name='briefcase')
+router.register(r'charts', ChartsViewSet, base_name='chart')
 router.register(r'data', DataViewSet, base_name='data')
+router.register(r'dataviews', DataViewViewSet, base_name='dataviews')
+router.register(r'export', ExportViewSet, base_name='export')
+router.register(r'files', MediaViewSet, base_name='files')
+router.register(r'flow-results/packages',
+                FloipViewSet, base_name='flow-results')
+router.register(r'formlist', XFormListViewSet, base_name='formlist')
+router.register(r'forms', XFormViewSet)
+router.register(r'media', AttachmentViewSet, base_name='attachment')
+router.register(r'merged-datasets', MergedXFormViewSet,
+                base_name='merged-xform')
+router.register(r'metadata', MetaDataViewSet, base_name='metadata')
+router.register(r'notes', NoteViewSet)
 router.register(r'open-data', OpenDataViewSet, base_name='open-data')
+router.register(r'orgs', OrganizationProfileViewSet)
+router.register(r'osm', OsmViewSet, base_name='osm')
 router.register(r'private-data', AuthenticatedDataViewSet,
                 base_name='private-data')
+router.register(r'profiles', UserProfileViewSet)
+router.register(r'projects', ProjectViewSet)
+router.register(r'restservices', RestServicesViewSet, base_name='restservices')
 router.register(r'stats', StatsViewSet, base_name='stats')
 router.register(r'stats/submissions', SubmissionStatsViewSet,
                 base_name='submissionstats')
-router.register(r'charts', ChartsViewSet, base_name='chart')
-router.register(r'metadata', MetaDataViewSet, base_name='metadata')
-router.register(r'media', AttachmentViewSet, base_name='attachment')
-router.register(r'formlist', XFormListViewSet, base_name='formlist')
 router.register(r'submissions', XFormSubmissionViewSet,
                 base_name='submissions')
-router.register(r'briefcase', BriefcaseViewset, base_name='briefcase')
-router.register(r'osm', OsmViewSet, base_name='osm')
-router.register(r'restservices', RestServicesViewSet, base_name='restservices')
-router.register(r'files', MediaViewSet, base_name='files')
-router.register(r'dataviews', DataViewViewSet, base_name='dataviews')
+router.register(r'teams', TeamViewSet)
+router.register(r'user', ConnectViewSet)
+router.register(r'users', UserViewSet)
 router.register(r'widgets', WidgetViewSet, base_name='widgets')
-router.register(r'export', ExportViewSet, base_name='export')
-router.register(r'merged-datasets', MergedXFormViewSet,
-                base_name='merged-xform')

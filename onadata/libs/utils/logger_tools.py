@@ -97,9 +97,11 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum):
     return instance
 
 
-def dict2xform(jsform, form_id):
-    return u"<?xml version='1.0' ?><{0} id='{0}'>{1}</{0}>".format(
-        form_id, dict2xml(jsform))
+def dict2xform(jsform, form_id, root=None):
+    if not root:
+        root = form_id
+    return u"<?xml version='1.0' ?><{0} id='{1}'>{2}</{0}>".format(
+        root, form_id, dict2xml(jsform))
 
 
 def get_uuid_from_submission(xml):

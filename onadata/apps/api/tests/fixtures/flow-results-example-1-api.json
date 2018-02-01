@@ -1,0 +1,101 @@
+{
+  "data": {
+    "type": "packages",
+    "attributes": {
+      "profile": "tabular-data-resource",
+      "name": "flow-results-example-1",
+      "created": "2017-06-30 15:35:27+00:00",
+      "title": "A nice title",
+      "modified": "2017-06-30 15:38:05+00:00",
+      "flow_results_specification_version": "1.0.0-rc1",
+      "id": "b03ec84-77fd-4270-813b-0c698943f7ce",
+      "resources": [
+        {
+          "path": "data/flow-results-example-1-data.json",
+          "schema": {
+            "fields": [
+              {
+                "type": "datetime",
+                "name": "timestamp",
+                "title": "Timestamp"
+              },
+              {
+                "type": "string",
+                "name": "row_id",
+                "title": "Row ID"
+              },
+              {
+                "type": "string",
+                "name": "contact_id",
+                "title": "Contact ID"
+              },
+              {
+                "type": "string",
+                "name": "question_id",
+                "title": "Question ID"
+              },
+              {
+                "type": "any",
+                "name": "response",
+                "title": "Response"
+              },
+              {
+                "type": "object",
+                "name": "response_metadata",
+                "title": "Response Metadata"
+              }
+            ],
+            "questions": {
+              "ae54d3": {
+                "type_options": {
+                  "choices": [
+                    "male",
+                    "female",
+                    "not identified"
+                  ]
+                },
+                "type": "select_one",
+                "label": "Are you male or female?"
+              },
+              "ae54db": {
+                "type_options": {},
+                "type": "geo_point",
+                "label": "Where are you?"
+              },
+              "ae54da": {
+                "type_options": {},
+                "type": "text",
+                "label": "How are you feeling today?"
+              },
+              "ae54d8": {
+                "type_options": {
+                  "range": [
+                    1,
+                    250
+                  ]
+                },
+                "type": "numeric",
+                "label": "How much do you weigh, in lbs?"
+              },
+              "ae54d7": {
+                "type_options": {
+                  "choices": [
+                    "chocolate",
+                    "vanilla",
+                    "strawberry"
+                  ]
+                },
+                "type": "select_many",
+                "label": "Favorite ice cream flavor?"
+              }
+            },
+            "language": "eng"
+          },
+          "encoding": "utf-8",
+          "name": "flow-results-example-1-data",
+          "mediatype": "application/json"
+        }
+      ]
+    }
+  }
+}

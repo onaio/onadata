@@ -64,13 +64,13 @@ Users and Organizations
    user
    users
 
-Modules
------------
+Flow Results Packages
+---------------------
 
 .. toctree::
-   :maxdepth: 2
+    :maxdepth: 2
 
-   modules
+  flow-results
 
 Ona Tagging API
 ~~~~~~~~~~~~~~~
@@ -96,6 +96,15 @@ Running your own server
    :maxdepth: 2
 
    install
+
+
+Modules
+-----------
+
+.. toctree::
+   :maxdepth: 2
+
+   modules
 
 
 Indices and tables
