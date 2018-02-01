@@ -5,6 +5,7 @@ FloipSerializer module.
 """
 import json
 import os
+from copy import deepcopy
 from cStringIO import StringIO
 
 import six
@@ -108,7 +109,10 @@ class FloipSerializer(serializers.HyperlinkedModelSerializer):
 
     def create(self, validated_data):
         request = self.context['request']
-        descriptor = StringIO(json.dumps(request.data))
+        data = deepcopy(request.data)
+        if 'profile' in data and data['profile'] == 'flow-results-package':
+            data['profile'] = 'data-package'
+        descriptor = StringIO(json.dumps(data))
         descriptor.seek(0, os.SEEK_END)
         floip_file = InMemoryUploadedFile(
             descriptor,
@@ -130,6 +134,10 @@ class FloipSerializer(serializers.HyperlinkedModelSerializer):
             reverse('flow-results-responses', kwargs={'uuid': instance.uuid}))
         package = survey_to_floip_package(
             json.loads(instance.json), instance.uuid, instance.date_created,
-            instance.date_modified, None, data_url)
+            instance.date_modified, data_url)
 
-        return package.descriptor
+        data = package.descriptor
+        if data['profile'] != 'flow-results-package':
+            data['profile'] = 'flow-results-package'
+
+        return data

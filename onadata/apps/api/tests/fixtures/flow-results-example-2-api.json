@@ -2,7 +2,7 @@
    "data":{
       "type":"packages",
       "attributes":{
-         "profile":"data-package",
+         "profile":"flow-results-package",
          "name":"standard_test_survey",
          "flow-results-specification":"1.0.0-rc1",
          "created":"2015-11-26 02:59:24+00:00",

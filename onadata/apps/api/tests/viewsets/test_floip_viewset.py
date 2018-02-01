@@ -43,6 +43,7 @@ class TestFloipViewSet(TestAbstractViewSet):
             self.assertEqual(response['Location'],
                              'http://testserver/api/v1/flow-results/packages/'
                              + response.data['id'])
+            self.assertEqual(response.data['profile'], 'flow-results-package')
             return response.data
 
     def test_publishing_responses(self):
