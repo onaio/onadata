@@ -109,6 +109,29 @@ class TestExportViewSet(TestBase):
         self.assertTrue(bool(response.data))
         self.assertEqual(status.HTTP_200_OK, response.status_code)
 
+    def test_export_list_public_form(self):
+        """
+        Test ExportViewSet list endpoint for a single public form.
+        """
+        user_mosh = self._create_user('mosh', 'mosh')
+        self._publish_transportation_form()
+        self.xform.shared_data = True
+        self.xform.save()
+        temp_dir = settings.MEDIA_ROOT
+        dummy_export_file = NamedTemporaryFile(suffix='.xlsx', dir=temp_dir)
+        filename = os.path.basename(dummy_export_file.name)
+        filedir = os.path.dirname(dummy_export_file.name)
+        export = Export.objects.create(xform=self.xform,
+                                       filename=filename,
+                                       filedir=filedir)
+        export.save()
+        view = ExportViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/export', {'xform': self.xform.pk})
+        force_authenticate(request, user=user_mosh)
+        response = view(request)
+        self.assertTrue(bool(response.data))
+        self.assertEqual(status.HTTP_200_OK, response.status_code)
+
     def test_export_public_project(self):
         """
         Test export of a public form for anonymous users.

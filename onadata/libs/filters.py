@@ -206,19 +206,24 @@ class XFormPermissionFilterMixin(object):
 
     def _xform_filter(self, request, view, keyword):
         """Use XForm permissions"""
+
         xform = request.query_params.get('xform')
+        public_forms = XForm.objects.none()
         if xform:
             int_or_parse_error(xform, u"Invalid value for formid %s.")
             self.xform = get_object_or_404(XForm, pk=xform)
             xform_qs = XForm.objects.filter(pk=self.xform.pk)
+            public_forms = XForm.objects.filter(pk=self.xform.pk,
+                                                shared_data=True)
         else:
             xform_qs = XForm.objects.all()
         xform_qs = xform_qs.filter(deleted_at=None)
+
         if request.user.is_anonymous():
             xforms = xform_qs.filter(shared_data=True)
         else:
             xforms = super(XFormPermissionFilterMixin, self).filter_queryset(
-                request, xform_qs, view)
+                request, xform_qs, view) | public_forms
         return {"%s__in" % keyword: xforms}
 
     def _xform_filter_queryset(self, request, queryset, view, keyword):
