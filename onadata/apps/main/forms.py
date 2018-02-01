@@ -193,7 +193,7 @@ class RegistrationFormUserProfile(RegistrationFormUniqueEmail,
     """
     User profile registration form.
     """
-    _reserved_usernames = settings.RESERVED_USERNAMES
+    RESERVED_USERNAMES = settings.RESERVED_USERNAMES
     username = forms.CharField(widget=forms.TextInput(), max_length=30)
     email = forms.EmailField(widget=forms.TextInput())
     legal_usernames_re = re.compile(r"^\w+$")
@@ -223,7 +223,7 @@ class RegistrationFormUserProfile(RegistrationFormUniqueEmail,
         Validate a new user username.
         """
         username = self.cleaned_data['username'].lower()
-        if username in self._reserved_usernames:
+        if username in self.RESERVED_USERNAMES:
             raise forms.ValidationError(
                 _(u'%s is a reserved name, please choose another') % username)
         elif not self.legal_usernames_re.search(username):

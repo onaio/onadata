@@ -62,7 +62,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
     def validate_org(self, value):
         org = value.lower() if isinstance(value, basestring) else value
 
-        if org in RegistrationFormUserProfile._reserved_usernames:
+        if org in RegistrationFormUserProfile.RESERVED_USERNAMES:
             raise serializers.ValidationError(_(
                 u"%s is a reserved name, please choose another" % org
             ))

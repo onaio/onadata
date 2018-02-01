@@ -4,6 +4,7 @@ import requests
 from mock import patch
 from django_digest.test import DigestAuth
 from django.db.models import signals
+from django.test.utils import override_settings
 
 from httmock import all_requests, HTTMock
 
@@ -225,6 +226,24 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         user = User.objects.get(username='deno')
         self.assertTrue(user.is_active)
         self.assertTrue(user.check_password(password), password)
+
+    @override_settings(REQUIRE_ODK_AUTHENTICATION=True)
+    def test_profile_require_auth(self):
+        """
+        Test profile require_auth is True when REQUIRE_ODK_AUTHENTICATION is
+        set to True.
+        """
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        data = _profile_data()
+        del data['name']
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.data.get('require_auth'))
 
     def test_profile_create_without_last_name(self):
         data = {

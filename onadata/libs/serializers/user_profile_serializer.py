@@ -1,26 +1,30 @@
+# -*- coding=utf-8 -*-
+"""
+UserProfile Serializers.
+"""
 import copy
-import six
 import re
 
+import six
 from django.conf import settings
-from django.core.cache import cache
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
+from django.core.cache import cache
+from django.db import IntegrityError, transaction
 from django.utils.translation import ugettext as _
 from django_digest.backend.db import update_partial_digests
-from django.db import IntegrityError, transaction
 from registration.models import RegistrationProfile
 from rest_framework import serializers
-from onadata.apps.api.models.temp_token import TempToken
 
+from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models import UserProfile
-from onadata.libs.serializers.fields.json_field import JsonField
-from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
 from onadata.libs.authentication import expired
+from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
+from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.cache_tools import IS_ORG
 
-RESERVED_NAMES = RegistrationFormUserProfile._reserved_usernames
+RESERVED_NAMES = RegistrationFormUserProfile.RESERVED_USERNAMES
 LEGAL_USERNAMES_REGEX = RegistrationFormUserProfile.legal_usernames_re
 
 
@@ -45,7 +49,45 @@ def _get_first_last_names(name, limit=30):
     return first_name, last_name
 
 
+def _get_registration_params(attrs):
+    params = copy.deepcopy(attrs)
+    name = params.get('name', None)
+    user = params.pop('user', None)
+    if user:
+        username = user.pop('username', None)
+        password = user.pop('password', None)
+        first_name = user.pop('first_name', None)
+        last_name = user.pop('last_name', None)
+        email = user.pop('email', None)
+
+        if username:
+            params['username'] = username
+
+        if email:
+            params['email'] = email
+
+        if password:
+            params.update({'password1': password, 'password2': password})
+
+        if first_name:
+            params['first_name'] = first_name
+
+        params['last_name'] = last_name or ''
+
+    # For backward compatibility, Users who still use only name
+    if name:
+        first_name, last_name = \
+            _get_first_last_names(name)
+        params['first_name'] = first_name
+        params['last_name'] = last_name
+
+    return params
+
+
 class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
+    """
+    UserProfile serializer.
+    """
     url = serializers.HyperlinkedIdentityField(
         view_name='userprofile-detail', lookup_field='user')
     is_org = serializers.SerializerMethodField()
@@ -68,7 +110,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
     user = serializers.HyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username', read_only=True)
     metadata = JsonField(required=False)
-    id = serializers.ReadOnlyField(source='user.id')
+    id = serializers.ReadOnlyField(source='user.id')  # pylint: disable=C0103
     joined_on = serializers.ReadOnlyField(source='user.date_joined')
 
     class Meta:
@@ -78,7 +120,10 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                   'website', 'twitter', 'gravatar', 'require_auth', 'user',
                   'metadata', 'joined_on', 'name')
 
-    def get_is_org(self, obj):
+    def get_is_org(self, obj):  # pylint: disable=no-self-use
+        """
+        Returns True if it is an organization profile.
+        """
         if obj:
             is_org = cache.get('{}{}'.format(IS_ORG, obj.pk))
             if is_org:
@@ -88,11 +133,11 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         cache.set('{}{}'.format(IS_ORG, obj.pk), is_org)
         return is_org
 
-    def to_representation(self, obj):
+    def to_representation(self, instance):
         """
         Serialize objects -> primitives.
         """
-        ret = super(UserProfileSerializer, self).to_representation(obj)
+        ret = super(UserProfileSerializer, self).to_representation(instance)
         if 'password' in ret:
             del ret['password']
 
@@ -100,7 +145,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             if 'request' in self.context else None
 
         if 'email' in ret and request is None or request.user \
-                and not request.user.has_perm(CAN_VIEW_PROFILE, obj):
+                and not request.user.has_perm(CAN_VIEW_PROFILE, instance):
             del ret['email']
 
         if 'first_name' in ret:
@@ -109,40 +154,6 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             ret['name'] = ret['name'].strip()
 
         return ret
-
-    def _get_params(self, attrs):
-        params = copy.deepcopy(attrs)
-        name = params.get('name', None)
-        user = params.pop('user', None)
-        if user:
-            username = user.pop('username', None)
-            password = user.pop('password', None)
-            first_name = user.pop('first_name', None)
-            last_name = user.pop('last_name', None)
-            email = user.pop('email', None)
-
-            if username:
-                params['username'] = username
-
-            if email:
-                params['email'] = email
-
-            if password:
-                params.update({'password1': password, 'password2': password})
-
-            if first_name:
-                params['first_name'] = first_name
-
-            params['last_name'] = last_name or ''
-
-        # For backward compatibility, Users who still use only name
-        if name:
-            first_name, last_name = \
-                _get_first_last_names(name)
-            params['first_name'] = first_name
-            params['last_name'] = last_name
-
-        return params
 
     def update(self, instance, validated_data):
         params = validated_data
@@ -207,6 +218,9 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         return profile
 
     def validate_username(self, value):
+        """
+        Validate username.
+        """
         username = value.lower() if isinstance(value, basestring) else value
 
         if username in RESERVED_NAMES:
@@ -233,6 +247,9 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         return username
 
     def validate_email(self, value):
+        """
+        Checks if user with the same email has already been registered.
+        """
         users = User.objects.filter(email=value)
         if self.instance:
             users = users.exclude(pk=self.instance.user.pk)
@@ -244,8 +261,11 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
         return value
 
-    def validate_twitter(self, value):
-        if isinstance(value, basestring) and len(value) > 0:
+    def validate_twitter(self, value):  # pylint: disable=no-self-use
+        """
+        Checks if the twitter handle is valid.
+        """
+        if isinstance(value, basestring) and value:
             match = re.search(r"^[A-Za-z0-9_]{1,15}$", value)
             if not match:
                 raise serializers.ValidationError(_(
@@ -255,7 +275,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         return value
 
     def validate(self, attrs):
-        params = self._get_params(attrs)
+        params = _get_registration_params(attrs)
         if not self.instance and params.get('name') is None and \
                 params.get('first_name') is None:
             raise serializers.ValidationError({
@@ -266,6 +286,9 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class UserProfileWithTokenSerializer(serializers.HyperlinkedModelSerializer):
+    """
+    User Profile Serializer that includes the users API Tokens.
+    """
     url = serializers.HyperlinkedIdentityField(
         view_name='userprofile-detail',
         lookup_field='user')
@@ -284,11 +307,16 @@ class UserProfileWithTokenSerializer(serializers.HyperlinkedModelSerializer):
                   'country', 'organization', 'website', 'twitter', 'gravatar',
                   'require_auth', 'user', 'api_token', 'temp_token')
 
-    def get_api_token(self, object):
+    def get_api_token(self, object):  # pylint: disable=R0201,W0622
+        """
+        Returns user's API Token.
+        """
         return object.user.auth_token.key
 
-    def get_temp_token(self, object):
-        """This should return a valid temp token for this user profile."""
+    def get_temp_token(self, object):  # pylint: disable=R0201,W0622
+        """
+        This should return a valid temp token for this user profile.
+        """
         token, created = TempToken.objects.get_or_create(user=object.user)
         check_expired = getattr(settings, 'CHECK_EXPIRED_TEMP_TOKEN', True)
 
