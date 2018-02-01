@@ -2,13 +2,12 @@
 """
 FloipViewSet: API endpoint for /api/floip
 """
-from cStringIO import StringIO
 
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import detail_route
-from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
+from rest_framework_json_api.pagination import PageNumberPagination
 from rest_framework_json_api.parsers import JSONParser
 from rest_framework_json_api.renderers import JSONRenderer
 
@@ -16,28 +15,8 @@ from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models import XForm
 from onadata.libs import filters
 from onadata.libs.renderers.renderers import floip_list
-from onadata.libs.serializers.floip_serializer import (FloipListSerializer,
-                                                       FloipSerializer)
-from onadata.libs.utils.logger_tools import dict2xform, safe_create_instance
-
-
-def parse_responses(responses):
-    """
-    Returns individual submission for all responses in a flow-results responses
-    package.
-    """
-    submission = {}
-    current_key = None
-    for row in responses:
-        if current_key is None:
-            current_key = row[1]
-        if current_key != row[1]:
-            yield submission
-            submission = {}
-            current_key = row[1]
-        submission[row[3]] = row[4]
-
-    yield submission
+from onadata.libs.serializers.floip_serializer import (
+    FloipListSerializer, FloipSerializer, FlowResultsResponseSerializer)
 
 
 # pylint: disable=too-many-ancestors
@@ -54,6 +33,7 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
     queryset = XForm.objects.filter(deleted_at__isnull=True)
     serializer_class = FloipSerializer
 
+    pagination_class = PageNumberPagination
     parser_classes = (JSONParser, )
     renderer_classes = (JSONRenderer, )
     resource_name = ['packages', 'responses']
@@ -80,27 +60,33 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
         """
         status_code = status.HTTP_200_OK
         xform = self.get_object()
-        if request.method == 'POST':
-            responses = request.data.get('responses', [])
-            for submission in parse_responses(responses):
-                xml_string = dict2xform(submission, xform.id_string, 'data')
-                xml_file = StringIO(xml_string)
-
-                error, _instance = safe_create_instance(
-                    request.user.username, xml_file, [], None, request)
-                if error:
-                    raise ParseError(error)
-            status_code = status.HTTP_201_CREATED
+        data = {
+            "id": uuid or xform.uuid,
+            "type": "flow-results-data",
+        }
         headers = {
             'Content-Type': 'application/vnd.api+json',
             'Location': self.request.build_absolute_uri(
                 reverse('flow-results-responses', kwargs={'uuid': xform.uuid}))
         }  # yapf: disable
+        if request.method == 'POST':
+            serializer = FlowResultsResponseSerializer(
+                data=request.data, context={'request': request})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            data['response'] = serializer.data['responses']
+            status_code = status.HTTP_201_CREATED
+        else:
+            queryset = xform.instances.values_list('json', flat=True)
+            paginate_queryset = self.paginate_queryset(queryset)
+            if paginate_queryset:
+                data['responses'] = floip_list(paginate_queryset)
+                response = self.get_paginated_response(data)
+                for key, value in headers.items():
+                    response[key] = value
 
-        return Response(
-            {
-                "id": uuid,
-                "type": "flow-results-data",
-                "responses":
-                floip_list(xform.instances.values_list('json', flat=True))
-            }, headers=headers, status=status_code)  # yapf: disable
+                return response
+
+            data['responses'] = floip_list(queryset)
+
+        return Response(data, headers=headers, status=status_code)

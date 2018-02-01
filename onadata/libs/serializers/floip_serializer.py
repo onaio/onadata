@@ -12,6 +12,7 @@ import six
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext_lazy as _
 from floip import survey_to_floip_package
 from rest_framework.reverse import reverse
@@ -19,6 +20,7 @@ from rest_framework_json_api import serializers
 
 from onadata.apps.api.tools import do_publish_xlsform
 from onadata.apps.logger.models import XForm
+from onadata.libs.utils.logger_tools import dict2xform, safe_create_instance
 
 
 def _get_user(username):
@@ -38,6 +40,25 @@ def _get_owner(request):
                 _(u"User with username %s does not exist." % owner))
         return owner_obj
     return owner
+
+
+def parse_responses(responses):
+    """
+    Returns individual submission for all responses in a flow-results responses
+    package.
+    """
+    submission = {}
+    current_key = None
+    for row in responses:
+        if current_key is None:
+            current_key = row[1]
+        if current_key != row[1]:
+            yield submission
+            submission = {}
+            current_key = row[1]
+        submission[row[3]] = row[4]
+
+    yield submission
 
 
 # pylint: disable=too-many-ancestors
@@ -141,3 +162,44 @@ class FloipSerializer(serializers.HyperlinkedModelSerializer):
             data['profile'] = 'flow-results-package'
 
         return data
+
+
+class FlowResultsResponse(object):
+    """
+    FLowResultsResponse class to hold a list of submission ids.
+    """
+    id = None  # pylint: disable=invalid-name
+    responses = []
+
+    def __init__(self, uuid, responses):
+        self.id = uuid
+        self.responses = responses
+
+
+class FlowResultsResponseSerializer(serializers.Serializer):
+    """
+    FlowResultsResponseSerializer for handling publishing of Flow Results
+    Response package.
+    """
+    id = serializers.CharField()  # pylint: disable=invalid-name
+    responses = serializers.ListField()
+
+    def create(self, validated_data):
+        request = self.context['request']
+        responses = validated_data['responses']
+        xform = get_object_or_404(XForm, uuid=validated_data['id'])
+        processed = []
+        for submission in parse_responses(responses):
+            xml_file = StringIO(
+                dict2xform(submission, xform.id_string, 'data'))
+
+            error, instance = safe_create_instance(
+                request.user.username, xml_file, [], None, request)
+            processed.append(instance.pk)
+            if error:
+                raise serializers.ValidationError(error)
+
+        return FlowResultsResponse(xform.uuid, responses)
+
+    def update(self, instance, validated_data):
+        pass

@@ -57,7 +57,7 @@ class TestFloipViewSet(TestAbstractViewSet):
             "flow-results-example-2-api-data.json")
         with open(path) as json_file:
             descriptor = json.load(json_file)
-            descriptor['id'] = floip_data['id']
+            descriptor['data']['id'] = floip_data['id']
             request = self.factory.post(
                 '/',
                 data=json.dumps(descriptor),
