@@ -1850,7 +1850,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.data.get('updates'), 0)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
-    @override_settings(CSV_ROW_IMPORT_ASYNC_THRESHOLD=5)
+    @override_settings(CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD=20)
     def test_csv_import_async(self):
         with HTTMock(enketo_mock):
             xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
@@ -1902,7 +1902,7 @@ class TestXFormViewSet(TestAbstractViewSet):
     @patch('onadata.apps.api.viewsets.xform_viewset.submit_csv_async')
     def test_raise_error_when_task_is_none(self, mock_submit_csv_async):
         with HTTMock(enketo_mock):
-            settings.CSV_ROW_IMPORT_ASYNC_THRESHOLD = 5
+            settings.CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD = 20
             mock_submit_csv_async.delay.return_value = None
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({'post': 'csv_import'})
@@ -1917,7 +1917,7 @@ class TestXFormViewSet(TestAbstractViewSet):
     @patch('onadata.apps.api.viewsets.xform_viewset.submit_csv_async')
     def test_import_csv_asynchronously(self, mock_submit_csv_async):
         with HTTMock(enketo_mock):
-            settings.CSV_ROW_IMPORT_ASYNC_THRESHOLD = 5
+            settings.CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD = 20
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({'post': 'csv_import'})
             csv_import = fixtures_path('good.csv')
