@@ -569,8 +569,8 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             if csv_file is None:
                 resp.update({u'error': u'csv_file field empty'})
             else:
-                num_rows = sum(1 for row in csv_file) - 1
-                if num_rows < settings.CSV_ROW_IMPORT_ASYNC_THRESHOLD:
+                size_threshold = settings.CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD
+                if csv_file.size < size_threshold:
                     resp.update(submit_csv(request.user.username,
                                            self.object, csv_file))
                 else:
