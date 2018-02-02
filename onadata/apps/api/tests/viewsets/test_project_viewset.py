@@ -888,7 +888,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                       'first_name': 'Alice', 'last_name': 'Alice'}
         self._login_user_and_profile(alice_data)
 
-        ReadOnlyRole.add(self.user, self.project)
+        ShareProject(self.project, self.user.username, 'readonly').save()
 
         view = ProjectViewSet.as_view({
             'get': 'retrieve'
