@@ -1,33 +1,36 @@
-import os
+# -*- coding=utf-8 -*-
+"""
+Test ProjectViewSet module.
+"""
 import json
-import requests
-from mock import patch
-from mock import MagicMock
+import os
 from operator import itemgetter
-from httmock import urlmatch, HTTMock
 
+import requests
 from django.conf import settings
+from django.db.models import Q
+from httmock import HTTMock, urlmatch
+from mock import MagicMock, patch
 
-from onadata.apps.logger.models import Project
-from onadata.apps.logger.models import XForm
-from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
+from onadata.apps.api import tools
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
+from onadata.apps.api.tools import get_organization_owners_team
+from onadata.apps.api.viewsets.organization_profile_viewset import \
+    OrganizationProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
-from onadata.libs.permissions import (
-    OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorMinorRole,
-    EditorRole, ReadOnlyRoleNoDownload, DataEntryMinorRole, DataEntryOnlyRole,
-    ROLES_ORDERED)
-from onadata.libs.serializers.project_serializer import ProjectSerializer,\
-    BaseProjectSerializer
+from onadata.apps.api.viewsets.team_viewset import TeamViewSet
+from onadata.apps.logger.models import Project, XForm
+from onadata.apps.main.models import MetaData
 from onadata.libs import permissions as role
 from onadata.libs.models.share_project import ShareProject
-from django.db.models import Q
-from onadata.apps.main.models import MetaData
-from onadata.apps.api.viewsets.team_viewset import TeamViewSet
-from onadata.apps.api import tools
-from onadata.apps.api.viewsets.organization_profile_viewset import\
-    OrganizationProfileViewSet
-from onadata.apps.api.tools import get_organization_owners_team
+from onadata.libs.permissions import (ROLES_ORDERED, DataEntryMinorRole,
+                                      DataEntryOnlyRole, DataEntryRole,
+                                      EditorMinorRole, EditorRole, ManagerRole,
+                                      OwnerRole, ReadOnlyRole,
+                                      ReadOnlyRoleNoDownload)
+from onadata.libs.serializers.project_serializer import (BaseProjectSerializer,
+                                                         ProjectSerializer)
 
 ROLES = [ReadOnlyRoleNoDownload,
          ReadOnlyRole,
@@ -877,11 +880,15 @@ class TestProjectViewSet(TestAbstractViewSet):
                                                   self.project))
 
     def test_project_filter_by_owner(self):
+        """
+        Test projects endpoint filter by owner.
+        """
         self._project_create()
-        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com',
+                      'first_name': 'Alice', 'last_name': 'Alice'}
         self._login_user_and_profile(alice_data)
 
-        ReadOnlyRole.add(self.user, self.project)
+        ShareProject(self.project, self.user.username, 'readonly').save()
 
         view = ProjectViewSet.as_view({
             'get': 'retrieve'
@@ -890,9 +897,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=self.project.pk)
         request.user = self.user
         self.project.refresh_from_db()
-        self.project_data = BaseProjectSerializer(
+        bobs_project_data = BaseProjectSerializer(
             self.project, context={'request': request}).data
-        updated_project_data = self.project_data
 
         self._project_create({'name': 'another project'})
 
@@ -902,14 +908,14 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         request = self.factory.get('/', {'owner': 'alice'}, **self.extra)
         request.user = self.user
-        self.project_data = BaseProjectSerializer(
+        alice_project_data = BaseProjectSerializer(
             self.project, context={'request': request}).data
         result = [{'owner': p.get('owner'),
                   'projectid': p.get('projectid')} for p in response.data]
         bob_data = {'owner': 'http://testserver/api/v1/users/bob',
-                    'projectid': updated_project_data.get('projectid')}
+                    'projectid': bobs_project_data.get('projectid')}
         alice_data = {'owner': 'http://testserver/api/v1/users/alice',
-                      'projectid': self.project_data.get('projectid')}
+                      'projectid': alice_project_data.get('projectid')}
         self.assertIn(bob_data, result)
         self.assertIn(alice_data, result)
 
@@ -917,15 +923,15 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.get('/', {'owner': 'bob'}, **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertIn(updated_project_data, response.data)
-        self.assertNotIn(self.project_data, response.data)
+        self.assertIn(bobs_project_data, response.data)
+        self.assertNotIn(alice_project_data, response.data)
 
         # only alice's project
         request = self.factory.get('/', {'owner': 'alice'}, **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertNotIn(updated_project_data, response.data)
-        self.assertIn(self.project_data, response.data)
+        self.assertNotIn(bobs_project_data, response.data)
+        self.assertIn(alice_project_data, response.data)
 
         # none existent user
         request = self.factory.get('/', {'owner': 'noone'}, **self.extra)
@@ -941,20 +947,20 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.get('/', {'owner': 'alice'}, **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertNotIn(updated_project_data, response.data)
-        self.assertNotIn(self.project_data, response.data)
+        self.assertNotIn(bobs_project_data, response.data)
+        self.assertNotIn(alice_project_data, response.data)
 
         # should show public project when filtered by owner
         self.project.shared = True
         self.project.save()
         request.user = self.user
-        self.project_data = BaseProjectSerializer(
+        alice_project_data = BaseProjectSerializer(
             self.project, context={'request': request}).data
 
         request = self.factory.get('/', {'owner': 'alice'}, **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertIn(self.project_data, response.data)
+        self.assertIn(alice_project_data, response.data)
 
         # should show deleted project public project when filtered by owner
         self.project.soft_delete()
