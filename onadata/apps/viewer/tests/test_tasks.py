@@ -9,6 +9,8 @@ from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.tasks import create_async_export
 from onadata.apps.viewer.tasks import mark_expired_pending_exports_as_failed
 from onadata.apps.viewer.tasks import delete_expired_failed_exports
+from onadata.apps.viewer.models import DataDictionary
+from onadata.libs.utils.user_auth import get_user_default_project
 
 
 class TestExportTasks(TestBase):
@@ -42,6 +44,34 @@ class TestExportTasks(TestBase):
             self.assertTrue(export.id)
             self.assertIn("username", options)
             self.assertEquals(options.get("id_string"), self.xform.id_string)
+
+    def test_zipped_sav_export_with_duplicate_column_name(self):
+        """
+        Test that SAV  exports with duplicate column names actually fail
+        """
+        md = """
+        | survey |              |          |                 |
+        |        | type         | name     | label           |
+        |        | text         | Sport    | Which Sport     |
+        |        | text         | sport    | Which sport     |
+        """
+        survey = self.md_to_pyxform_survey(md, {'name': 'sports'})
+
+        project = get_user_default_project(self.user)
+        xform = DataDictionary(created_by=self.user, user=self.user,
+                               xml=survey.to_xml(), json=survey.to_json(),
+                               project=project)
+        xform.save()
+
+        export_type = Export.SAV_ZIP_EXPORT
+
+        options = {"group_delimiter": "/",
+                   "remove_group_name": False,
+                   "split_select_multiples": True}
+
+        result = create_async_export(xform, export_type, None, False, options)
+        export = result[0]
+        self.assertEquals(export.internal_status, Export.FAILED)
 
     def test_mark_expired_pending_exports_as_failed(self):
         self._publish_transportation_form_and_submit_instance()
