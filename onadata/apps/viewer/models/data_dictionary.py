@@ -1,3 +1,8 @@
+# -*- coding=utf-8 -*-
+"""
+DataDictionary model.
+"""
+
 import csv
 import io
 import os
@@ -8,16 +13,52 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
 from django.utils.translation import ugettext as _
-
 from floip import FloipSurvey
+from pyxform.builder import create_survey_element_from_dict
+from pyxform.utils import has_external_choices
+from pyxform.xls2json import parse_file_to_json
+
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.libs.utils.cache_tools import (PROJ_BASE_FORMS_CACHE,
                                             PROJ_FORMS_CACHE, safe_delete)
 from onadata.libs.utils.model_tools import get_columns_with_hxl, set_uuid
-from pyxform.builder import create_survey_element_from_dict
-from pyxform.utils import has_external_choices
-from pyxform.xls2json import parse_file_to_json
+
+
+def _process_xlsform(xls, default_name):
+    """
+    Process XLSForm xls and return the survey dictionary for the XLSForm.
+    """
+    try:
+        if xls.name.endswith('csv'):
+            # csv file gets closed in pyxform, make a copy
+            xls.seek(0)
+            file_object = io.BytesIO()
+            file_object.write(xls.read())
+            file_object.seek(0)
+            xls.seek(0)
+        else:
+            file_object = xls
+        if xls.name.endswith('json'):
+            survey_dict = FloipSurvey(xls).survey.to_json_dict()
+        else:
+            survey_dict = parse_file_to_json(xls.name,
+                                             file_object=file_object)
+    except csv.Error as e:
+        newline_error = u'new-line character seen in unquoted field '\
+            u'- do you need to open the file in universal-newline '\
+            u'mode?'
+        if newline_error == unicode(e):
+            xls.seek(0)
+            file_obj = StringIO(
+                u'\n'.join(xls.read().splitlines()))
+            survey_dict = parse_file_to_json(
+                xls.name, default_name=default_name,
+                file_object=file_obj)
+        else:
+            raise e
+
+    return survey_dict
 
 
 # adopted from pyxform.utils.sheet_to_csv
@@ -29,9 +70,9 @@ def sheet_to_csv(xls_content, sheet_name):
 
     :returns: a (StrionIO) csv file object
     """
-    wb = xlrd.open_workbook(file_contents=xls_content)
+    workbook = xlrd.open_workbook(file_contents=xls_content)
 
-    sheet = wb.sheet_by_name(sheet_name)
+    sheet = workbook.sheet_by_name(sheet_name)
 
     if not sheet or sheet.nrows < 2:
         raise Exception(_(u"Sheet <'%(sheet_name)s'> has no data." %
@@ -42,13 +83,16 @@ def sheet_to_csv(xls_content, sheet_name):
     writer = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
     mask = [v and len(v.strip()) > 0 for v in sheet.row_values(0)]
 
-    for r in range(sheet.nrows):
-        writer.writerow([v for v, m in zip(sheet.row_values(r), mask) if m])
+    for row in range(sheet.nrows):
+        writer.writerow([v for v, m in zip(sheet.row_values(row), mask) if m])
 
     return csv_file
 
 
 def upload_to(instance, filename, username=None):
+    """
+    Return XLSForm file upload path.
+    """
     if instance:
         username = instance.xform.user.username
     return os.path.join(
@@ -58,11 +102,19 @@ def upload_to(instance, filename, username=None):
     )
 
 
-class DataDictionary(XForm):
+class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
+    """
+    DataDictionary model class.
+    """
 
     def __init__(self, *args, **kwargs):
         self.instances_for_export = lambda d: d.instances.all()
+        self.has_external_choices = False
+        self._id_string_changed = False
         super(DataDictionary, self).__init__(*args, **kwargs)
+
+    def __unicode__(self):
+        return getattr(self, "id_string", "")
 
     def save(self, *args, **kwargs):
         skip_xls_read = kwargs.get('skip_xls_read')
@@ -70,36 +122,8 @@ class DataDictionary(XForm):
         if self.xls and not skip_xls_read:
             default_name = None \
                 if not self.pk else self.survey.xml_instance().tagName
-            try:
-                if self.xls.name.endswith('csv'):
-                    # csv file gets closed in pyxform, make a copy
-                    self.xls.seek(0)
-                    file_object = io.BytesIO()
-                    file_object.write(self.xls.read())
-                    file_object.seek(0)
-                    self.xls.seek(0)
-                else:
-                    file_object = self.xls
-                if self.xls.name.endswith('json'):
-                    survey_dict = FloipSurvey(self.xls).survey.to_json_dict()
-                else:
-                    survey_dict = parse_file_to_json(self.xls.name,
-                                                     file_object=file_object)
-            except csv.Error as e:
-                newline_error = u'new-line character seen in unquoted field '\
-                    u'- do you need to open the file in universal-newline '\
-                    u'mode?'
-                if newline_error == unicode(e):
-                    self.xls.seek(0)
-                    file_obj = StringIO(
-                        u'\n'.join(self.xls.read().splitlines()))
-                    survey_dict = parse_file_to_json(
-                        self.xls.name, default_name=default_name,
-                        file_object=file_obj)
-                else:
-                    raise e
+            survey_dict = self._process_xlsform(self.xls, default_name)
             if has_external_choices(survey_dict):
-                self.survey_dict = survey_dict
                 self.has_external_choices = True
             survey = create_survey_element_from_dict(survey_dict)
             survey = self._check_version_set(survey)
@@ -141,7 +165,12 @@ class DataDictionary(XForm):
         return os.path.split(self.xls.name)[-1]
 
 
+# pylint: disable=unused-argument
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
+    """
+    Apply the relevant object permissions for the form to all users who should
+    have access to it.
+    """
     if instance.project:
         # clear cache
         safe_delete('{}{}'.format(PROJ_FORMS_CACHE, instance.project.pk))
@@ -186,7 +215,12 @@ post_save.connect(set_object_permissions, sender=DataDictionary,
                   dispatch_uid='xform_object_permissions')
 
 
+# pylint: disable=unused-argument
 def save_project(sender, instance=None, created=False, **kwargs):
+    """
+    Receive XForm project to update date_modified field of the project and on
+    the next XHR request the form will be included in the project data.
+    """
     instance.project.save()
 
 
