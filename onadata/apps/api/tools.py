@@ -1,59 +1,57 @@
-import os
+# -*- coding=utf-8 -*-
+"""
+API util functions.
+"""
 import importlib
+import os
 import tempfile
-
 from datetime import datetime
 
-from guardian.shortcuts import assign_perm, remove_perm
-from guardian.shortcuts import get_perms_for_model
+import librabbitmq
 from django import forms
 from django.conf import settings
-from django.core.files.storage import get_storage_class
-from django.contrib.auth.models import Permission
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Permission, User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.sites.models import Site
+from django.core.files.storage import get_storage_class
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.core.validators import URLValidator, ValidationError
+from django.db import transaction
 from django.db.models import Q
 from django.db.utils import IntegrityError
-from django.db import transaction
-from django.http import HttpResponseNotFound
-from django.http import HttpResponseRedirect
-from django.utils.translation import ugettext as _
+from django.http import HttpResponseNotFound, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
-from django.core.validators import URLValidator
-from django.core.validators import ValidationError
-from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.utils.translation import ugettext as _
+from guardian.shortcuts import assign_perm, get_perms_for_model, remove_perm
 from registration.models import RegistrationProfile
 from rest_framework import exceptions
 from taggit.forms import TagField
 
-from onadata.libs.models.share_project import ShareProject
-from onadata.libs.permissions import get_role
-from onadata.libs.permissions import is_organization
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.models.team import Team
-from onadata.apps.main.forms import QuickConverter
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.main.forms import QuickConverter
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import datetime_from_str
-from onadata.libs.utils.api_export_tools import custom_response_handler
-from onadata.libs.utils.cache_tools import (
-    safe_delete, PROJ_FORMS_CACHE, PROJ_BASE_FORMS_CACHE)
-from onadata.libs.utils.logger_tools import publish_form
-from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
-from onadata.libs.utils.project_utils import set_project_perms_to_xform_async
-from onadata.libs.utils.user_auth import check_and_set_form_by_id
-from onadata.libs.utils.user_auth import check_and_set_form_by_id_string
-from onadata.libs.permissions import ROLES
-from onadata.libs.permissions import ManagerRole, EditorRole, EditorMinorRole
-from onadata.libs.permissions import DataEntryRole, DataEntryMinorRole,\
-    DataEntryOnlyRole
-from onadata.libs.permissions import get_role_in_org, OwnerRole
 from onadata.libs.baseviewset import DefaultBaseViewset
-from onadata.apps.main.models.meta_data import MetaData
-
+from onadata.libs.models.share_project import ShareProject
+from onadata.libs.permissions import (ROLES, DataEntryMinorRole,
+                                      DataEntryOnlyRole, DataEntryRole,
+                                      EditorMinorRole, EditorRole, ManagerRole,
+                                      OwnerRole, get_role, get_role_in_org,
+                                      is_organization)
+from onadata.libs.utils.api_export_tools import custom_response_handler
+from onadata.libs.utils.cache_tools import (PROJ_BASE_FORMS_CACHE,
+                                            PROJ_FORMS_CACHE, safe_delete)
+from onadata.libs.utils.logger_tools import (publish_form,
+                                             response_with_mimetype_and_name)
+from onadata.libs.utils.project_utils import (set_project_perms_to_xform,
+                                              set_project_perms_to_xform_async)
+from onadata.libs.utils.user_auth import (check_and_set_form_by_id,
+                                          check_and_set_form_by_id_string)
 
 DECIMAL_PRECISION = 2
 
@@ -76,6 +74,13 @@ def _get_id_for_type(record, mongo_field):
 
 
 def get_accessible_forms(owner=None, shared_form=False, shared_data=False):
+    """
+    Returns XForm queryset of the forms based on the arguments owner,
+    shared_form and shared_data.
+
+    Returns only public forms if owner is 'public' otherwise returns forms
+    belonging to owner.
+    """
     xforms = XForm.objects.filter()
 
     if shared_form and not shared_data:
@@ -99,17 +104,18 @@ def create_organization(name, creator):
     - Team(name='Owners', organization=organization).save()
 
     """
-    organization, created = User.objects.get_or_create(username__iexact=name)
+    organization, _created = User.objects.get_or_create(username__iexact=name)
     organization_profile = OrganizationProfile.objects.create(
         user=organization, creator=creator)
     return organization_profile
 
 
-def create_organization_object(org_name, creator, attrs={}):
+def create_organization_object(org_name, creator, attrs=None):
     '''Creates an OrganizationProfile object without saving to the database'''
-    name = attrs.get('name', org_name)
+    attrs = attrs if attrs else {}
+    name = attrs.get('name', org_name) if attrs else org_name
     first_name, last_name = _get_first_last_names(name)
-    email = attrs.get('email', u'')
+    email = attrs.get('email', u'') if attrs else u''
     new_user = User(username=org_name, first_name=first_name,
                     last_name=last_name, email=email, is_active=True)
     new_user.save()
@@ -128,7 +134,11 @@ def create_organization_object(org_name, creator, attrs={}):
     return profile
 
 
-def create_organization_team(organization, name, permission_names=[]):
+def create_organization_team(organization, name, permission_names=None):
+    """
+    Creates an organization team with the given permissions as defined in
+    permission_names.
+    """
     organization = organization.user \
         if isinstance(organization, OrganizationProfile) else organization
     team = Team.objects.create(organization=organization, name=name)
@@ -182,6 +192,10 @@ def remove_user_from_organization(organization, user):
 
 
 def remove_user_from_team(team, user):
+    """
+    Removes given user from the team and also removes team permissions from the
+    user.
+    """
     user.groups.remove(team)
 
     # remove the permission
@@ -204,6 +218,9 @@ def add_user_to_organization(organization, user):
 
 
 def add_user_to_team(team, user):
+    """
+    Adds a user to a team and assigns them team permissions.
+    """
     user.groups.add(team)
 
     # give the user perms to view the team
@@ -277,12 +294,19 @@ def add_team_to_project(team, project):
 
 
 def publish_xlsform(request, owner, id_string=None, project=None):
+    """
+    Publishes XLSForm given a request.
+    """
     return do_publish_xlsform(
         request.user, request.data, request.FILES, owner, id_string,
         project)
 
 
+# pylint: disable=too-many-arguments
 def do_publish_xlsform(user, post, files, owner, id_string=None, project=None):
+    """
+    Publishes XLSForm.
+    """
     if id_string and project:
         xform = get_object_or_404(XForm, user=owner, id_string=id_string,
                                   project=project)
@@ -297,13 +321,16 @@ def do_publish_xlsform(user, post, files, owner, id_string=None, project=None):
                                               'account': owner.username}))
 
     def set_form():
+        """
+        Instantiates QuickConverter form to publish a form.
+        """
 
         if project:
             args = dict({'project': project.pk}.items() + post.items())
         else:
             args = post
 
-        form = QuickConverter(args,  files)
+        form = QuickConverter(args, files)
 
         return form.publish(owner, id_string=id_string, created_by=user)
 
@@ -311,8 +338,14 @@ def do_publish_xlsform(user, post, files, owner, id_string=None, project=None):
 
 
 def publish_project_xform(request, project):
+    """
+    Publish XLSForm to a project given a request.
+    """
 
     def set_form():
+        """
+        Instantiates QuickConverter form to publish a form.
+        """
         props = {
             'project': project.pk,
             'dropbox_xls_url': request.data.get('dropbox_xls_url'),
@@ -328,6 +361,10 @@ def publish_project_xform(request, project):
     xform = None
 
     def id_string_exists_in_account():
+        """
+        Checks if an id_string exists in an account, returns True if it exists
+        otherwise returns False.
+        """
         try:
             XForm.objects.get(
                 user=project.organization, id_string=xform.id_string)
@@ -362,8 +399,12 @@ def publish_project_xform(request, project):
         else:
             # First assign permissions to the person who uploaded the form
             OwnerRole.add(request.user, xform)
-            # Next run async task to apply all other perms
-            set_project_perms_to_xform_async.delay(xform.pk, project.pk)
+            try:
+                # Next run async task to apply all other perms
+                set_project_perms_to_xform_async.delay(xform.pk, project.pk)
+            except librabbitmq.ConnectionError:
+                # Apply permissions synchrounously
+                set_project_perms_to_xform(xform, project)
     else:
         xform = publish_form(set_form)
 
@@ -371,6 +412,10 @@ def publish_project_xform(request, project):
 
 
 def get_xform(formid, request, username=None):
+    """
+    Returns XForm instance if request.user has permissions to it otherwise it
+    raises PermissionDenied() exception.
+    """
     try:
         formid = int(formid)
     except ValueError:
@@ -387,6 +432,9 @@ def get_xform(formid, request, username=None):
 
 
 def get_user_profile_or_none(username):
+    """
+    Returns a UserProfile instance if the user exists otherwise returns None.
+    """
     profile = None
 
     try:
@@ -400,7 +448,13 @@ def get_user_profile_or_none(username):
 
 
 def add_tags_to_instance(request, instance):
+    """
+    Add tags to an instance.
+    """
     class TagForm(forms.Form):
+        """
+        Simple TagForm class to validate tags in a request.
+        """
         tags = TagField()
 
     form = TagForm(request.data)
@@ -416,8 +470,20 @@ def add_tags_to_instance(request, instance):
 
 
 def get_media_file_response(metadata, request=None):
+    """
+    Returns a HTTP response for media files.
+
+    HttpResponse 200 if it represents a file on disk.
+    HttpResponseRedirect 302 incase the metadata represents a url.
+    HttpResponseNotFound 404 if the metadata file cannot be found.
+    """
 
     def get_data_value_objects(value):
+        """
+        Returns a tuple of a DataView or XForm and the name of the media file.
+
+        Looks for 'dataview 123 fruits.csv' or 'xform 345 fruits.csv'.
+        """
         model = None
         if value.startswith('dataview'):
             model = DataView
@@ -446,26 +512,30 @@ def get_media_file_response(metadata, request=None):
                 file_path=file_path, full_mime=True)
 
             return response
-        else:
-            return HttpResponseNotFound()
-    else:
-        try:
-            URLValidator()(metadata.data_value)
-        except ValidationError:
-            obj, filename = get_data_value_objects(metadata.data_value)
-            if obj:
-                dataview = obj if isinstance(obj, DataView) else False
-                xform = obj.xform if isinstance(obj, DataView) else obj
+        return HttpResponseNotFound()
+    try:
+        URLValidator()(metadata.data_value)
+    except ValidationError:
+        obj, filename = get_data_value_objects(metadata.data_value)
+        if obj:
+            dataview = obj if isinstance(obj, DataView) else False
+            xform = obj.xform if isinstance(obj, DataView) else obj
 
-                return custom_response_handler(
-                    request, xform, {}, Export.CSV_EXPORT, filename=filename,
-                    dataview=dataview
-                )
+            return custom_response_handler(
+                request, xform, {}, Export.CSV_EXPORT, filename=filename,
+                dataview=dataview
+            )
 
-        return HttpResponseRedirect(metadata.data_value)
+    return HttpResponseRedirect(metadata.data_value)
 
 
+# pylint: disable=invalid-name
 def check_inherit_permission_from_project(xform_id, user):
+    """
+    Checks if a user has the same project permissions for the given xform_id,
+    if there is a difference applies the project permissions to the user for
+    the given xform_id.
+    """
     if xform_id == 'public':
         return
 
@@ -568,15 +638,18 @@ def get_xform_users(xform):
                 perm.permission.codename
             )
 
-    for k in data.keys():
+    for k in data:
         data[k]['permissions'].sort()
         data[k]['role'] = get_role(data[k]['permissions'], xform)
-        del (data[k]['permissions'])
+        del data[k]['permissions']
 
     return data
 
 
 def update_role_by_meta_xform_perms(xform):
+    """
+    Updates users role in a xform based on meta permissions set on the form.
+    """
     # load meta xform perms
     metadata = MetaData.xform_meta_permission(xform)
     editor_role_list = [EditorRole, EditorMinorRole]
@@ -592,14 +665,12 @@ def update_role_by_meta_xform_perms(xform):
         # update roles
         users = get_xform_users(xform)
 
-        for user in users.keys():
+        for user in users:
             role = users.get(user).get('role')
             if role in editor_role:
                 role = ROLES.get(meta_perms[0])
-
                 role.add(user, xform)
 
             if role in dataentry_role:
                 role = ROLES.get(meta_perms[1])
-
                 role.add(user, xform)

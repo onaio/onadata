@@ -8,6 +8,7 @@ import io
 import os
 from cStringIO import StringIO
 
+import librabbitmq
 import xlrd
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models.signals import post_save, pre_save
@@ -122,7 +123,7 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
         if self.xls and not skip_xls_read:
             default_name = None \
                 if not self.pk else self.survey.xml_instance().tagName
-            survey_dict = self._process_xlsform(self.xls, default_name)
+            survey_dict = _process_xlsform(self.xls, default_name)
             if has_external_choices(survey_dict):
                 self.has_external_choices = True
             survey = create_survey_element_from_dict(survey_dict)
@@ -188,7 +189,12 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
             OwnerRole.add(instance.created_by, xform)
 
         from onadata.libs.utils.project_utils import set_project_perms_to_xform_async  # noqa
-        set_project_perms_to_xform_async.delay(xform.pk, instance.project.pk)
+        try:
+            set_project_perms_to_xform_async.delay(xform.pk,
+                                                   instance.project.pk)
+        except librabbitmq.ConnectionError:
+            from onadata.libs.utils.project_utils import set_project_perms_to_xform  # noqa
+            set_project_perms_to_xform(xform, instance.project)
 
     if hasattr(instance, 'has_external_choices') \
             and instance.has_external_choices:
