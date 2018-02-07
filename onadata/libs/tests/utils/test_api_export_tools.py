@@ -5,6 +5,7 @@ Test api_export_tools module.
 from collections import OrderedDict, defaultdict
 
 import mock
+import librabbitmq
 from celery import current_app
 from celery.backends.amqp import BacklogLimitExceeded
 from django.conf import settings
@@ -14,16 +15,17 @@ from rest_framework.request import Request
 from onadata.apps.logger.models import XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
-from onadata.libs.utils.api_export_tools import (get_async_response,
-                                                 process_async_export,
-                                                 response_for_format)
+from onadata.libs.utils.api_export_tools import (
+    get_async_response, process_async_export, response_for_format)
 from onadata.libs.utils.async_status import SUCCESSFUL, status_msg
+from onadata.libs.exceptions import ServiceUnavailable
 
 
 class TestApiExportTools(TestBase):
     """
     Test api_export_tools.
     """
+
     def _create_old_export(self, xform, export_type, options, filename=None):
         options = OrderedDict(sorted(options.items()))
         Export(
@@ -86,8 +88,10 @@ class TestApiExportTools(TestBase):
         """
         Test get_async_response export does not exist.
         """
+
         class MockAsyncResult(object):  # pylint: disable=R0903
             """Mock AsyncResult"""
+
             def __init__(self):
                 self.state = 'SUCCESS'
                 self.result = 1
@@ -108,8 +112,10 @@ class TestApiExportTools(TestBase):
         """
         Test get_async_response export backlog limit exceeded.
         """
+
         class MockAsyncResult(object):  # pylint: disable=R0903
             """Mock AsyncResult"""
+
             def __init__(self):
                 pass
 
@@ -137,9 +143,43 @@ class TestApiExportTools(TestBase):
         self.assertIsNotNone(xform)
         self.assertIsInstance(response_for_format(xform).data, dict)
         self.assertIsInstance(response_for_format(xform, 'json').data, dict)
-        self.assertTrue(hasattr(response_for_format(xform, 'xls').data,
-                                'file'))
+        self.assertTrue(
+            hasattr(response_for_format(xform, 'xls').data, 'file'))
 
         xform.xls.storage.delete(xform.xls.name)
         with self.assertRaises(Http404):
             response_for_format(xform, 'xls')
+
+    # pylint: disable=invalid-name
+    @mock.patch(
+        'onadata.libs.utils.api_export_tools.viewer_task.create_async_export')
+    def test_process_async_export_connection_error(self, mock_task):
+        """
+        Test process_async_export creates a new export.
+        """
+        mock_task.side_effect = Export.ExportConnectionError
+        self._publish_transportation_form_and_submit_instance()
+        request = self.factory.post('/')
+        request.user = self.user
+        export_type = "csv"
+        options = defaultdict(dict)
+
+        with self.assertRaises(ServiceUnavailable):
+            process_async_export(
+                request, self.xform, export_type, options=options)
+
+    # pylint: disable=invalid-name
+    @mock.patch('onadata.libs.utils.api_export_tools.AsyncResult')
+    def test_get_async_response_connection_error(self, AsyncResult):
+        """
+        Test get_async_response connection error.
+        """
+        AsyncResult.side_effect = librabbitmq.ConnectionError
+        settings.CELERY_ALWAYS_EAGER = True
+        current_app.conf.CELERY_ALWAYS_EAGER = True
+        self._publish_transportation_form_and_submit_instance()
+        request = self.factory.post('/')
+        request.user = self.user
+
+        with self.assertRaises(ServiceUnavailable):
+            get_async_response('job_uuid', request, self.xform)

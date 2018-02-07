@@ -5,6 +5,7 @@ Export tasks.
 import sys
 from datetime import timedelta
 
+import librabbitmq
 from celery import task
 from django.conf import settings
 from django.shortcuts import get_object_or_404
@@ -46,6 +47,9 @@ def _get_export_details(username, id_string, export_id):
 def create_async_export(xform, export_type, query, force_xlsx, options=None):
     """
     Starts asynchronous export tasks and returns an export object.
+
+    Throws Export.ExportTypeError if export_type is not in EXPORT_TYPES.
+    Throws Export.ExportConnectionError if rabbitmq broker is down.
     """
     username = xform.user.username
     id_string = xform.id_string
@@ -89,7 +93,12 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
 
     # start async export
     if export_type in export_types:
-        result = export_types[export_type].apply_async((), kwargs=options)
+        try:
+            result = export_types[export_type].apply_async((), kwargs=options)
+        except librabbitmq.ConnectionError as e:
+            export.delete()
+            report_exception("Error connecting to broker", e, sys.exc_info())
+            raise Export.ExportConnectionError
     else:
         raise Export.ExportTypeError
 

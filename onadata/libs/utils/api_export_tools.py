@@ -4,9 +4,11 @@ API export util functions.
 """
 import json
 import os
+import sys
 from datetime import datetime
 
 import httplib2
+import librabbitmq
 from celery.backends.amqp import BacklogLimitExceeded
 from celery.result import AsyncResult
 from django.conf import settings
@@ -17,8 +19,8 @@ from django.utils.translation import ugettext as _
 from oauth2client import client as google_client
 from oauth2client.client import (HttpAccessTokenRefreshError,
                                  OAuth2WebServerFlow, TokenRevokeError)
-from oauth2client.contrib.django_util.storage import (
-    DjangoORMStorage as Storage)
+from oauth2client.contrib.django_util.storage import \
+    DjangoORMStorage as Storage
 from requests import ConnectionError
 from rest_framework import exceptions, status
 from rest_framework.response import Response
@@ -36,6 +38,7 @@ from onadata.libs.utils.async_status import (
     FAILED, PENDING, SUCCESSFUL, async_status, celery_state_to_status)
 from onadata.libs.utils.common_tags import (
     DATAVIEW_EXPORT, GROUPNAME_REMOVED_FLAG, OSM, SUBMISSION_TIME)
+from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.export_tools import (
     check_pending_export, generate_attachments_zip_export, generate_export,
     generate_external_export, generate_kml_export, generate_osm_export,
@@ -86,8 +89,14 @@ def _get_export_type(export_type):
 
 
 # pylint: disable=too-many-arguments, too-many-locals, too-many-branches
-def custom_response_handler(request, xform, query, export_type, token=None,
-                            meta=None, dataview=False, filename=None):
+def custom_response_handler(request,
+                            xform,
+                            query,
+                            export_type,
+                            token=None,
+                            meta=None,
+                            dataview=False,
+                            filename=None):
     """
     Returns a HTTP response with export file for download.
     """
@@ -112,7 +121,9 @@ def custom_response_handler(request, xform, query, export_type, token=None,
                                                      query)
     except NoRecordsPermission:
         return Response(
-            data=json.dumps({"details": _("You don't have permission")}),
+            data=json.dumps({
+                "details": _("You don't have permission")
+            }),
             status=status.HTTP_403_FORBIDDEN,
             content_type="application/json")
 
@@ -130,7 +141,7 @@ def custom_response_handler(request, xform, query, export_type, token=None,
 
             return Response(
                 data=json.dumps({
-                    "details": _("Sheets export only supported in async mode")
+                    "details":  _("Sheets export only supported in async mode")
                 }),
                 status=status.HTTP_403_FORBIDDEN,
                 content_type="application/json")
@@ -399,6 +410,7 @@ def process_async_export(request, xform, export_type, options=None):
                 xform, export_type, query, False, options=options)
         }
     else:
+        print "Do not create a new export."
         export = newest_export_for(xform, export_type, options)
 
         if not export.filename:
@@ -434,9 +446,12 @@ def _create_export_async(xform,
     if export:
         return export.task_id
 
-    export, async_result \
-        = viewer_task.create_async_export(xform, export_type, query,
-                                          force_xlsx, options=options)
+    try:
+        export, async_result = viewer_task.create_async_export(
+            xform, export_type, query, force_xlsx, options=options)
+    except Export.ExportConnectionError:
+        raise ServiceUnavailable
+
     return async_result.task_id
 
 
@@ -485,9 +500,10 @@ def get_async_response(job_uuid, request, xform, count=0):
                     resp.update(job.result)
                 else:
                     resp.update({'progress': str(job.result)})
-    except ConnectionError as e:
+    except (librabbitmq.ConnectionError, ConnectionError) as e:
+        report_exception("Connection Error", e, sys.exc_info())
         if count > 0:
-            raise ServiceUnavailable(unicode(e))
+            raise ServiceUnavailable
 
         return get_async_response(job_uuid, request, xform, count + 1)
     except BacklogLimitExceeded:

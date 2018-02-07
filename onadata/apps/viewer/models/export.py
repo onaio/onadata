@@ -59,6 +59,16 @@ class Export(models.Model):
         def __str__(self):
             return unicode(self).encode('utf-8')
 
+    class ExportConnectionError(Exception):
+        """
+        ExportConnectionError exception class.
+        """
+        def __unicode__(self):
+            return _(u"Export server is down.")
+
+        def __str__(self):
+            return unicode(self).encode('utf-8')
+
     XLS_EXPORT = 'xls'
     CSV_EXPORT = 'csv'
     KML_EXPORT = 'kml'
