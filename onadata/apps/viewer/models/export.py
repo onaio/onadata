@@ -1,5 +1,8 @@
+# -*- coding=utf-8 -*-
+"""
+Export model.
+"""
 import os
-import hashlib
 from tempfile import NamedTemporaryFile
 
 from django.core.files.storage import get_storage_class
@@ -15,15 +18,15 @@ from onadata.libs.utils import async_status
 EXPORT_QUERY_KEY = 'query'
 
 
+# pylint: disable=unused-argument
 def export_delete_callback(sender, **kwargs):
+    """
+    Delete export file when an export object is deleted.
+    """
     export = kwargs['instance']
     storage = get_storage_class()()
     if export.filepath and storage.exists(export.filepath):
         storage.delete(export.filepath)
-
-
-def md5hash(string):
-    return hashlib.md5(string).hexdigest()
 
 
 def get_export_options_query_kwargs(options):
@@ -47,6 +50,9 @@ class Export(models.Model):
     """
 
     class ExportTypeError(Exception):
+        """
+        ExportTypeError exception class.
+        """
         def __unicode__(self):
             return _(u"Invalid export type specified")
 
@@ -141,11 +147,13 @@ class Export(models.Model):
         app_label = "viewer"
         unique_together = (("xform", "filename"),)
 
-    def save(self, *args, **kwargs):
+    def __unicode__(self):
+        return u'%s - %s (%s)' % (self.export_type, self.xform, self.filename)
+
+    def save(self, *args, **kwargs):  # pylint: disable=arguments-differ
         if not self.pk and self.xform:
             # if new, check if we've hit our limit for exports for this form,
             # if so, delete oldest
-            # TODO: let user know that last export will be deleted
             num_existing_exports = Export.objects.filter(
                 xform=self.xform, export_type=self.export_type).count()
 
@@ -168,49 +176,70 @@ class Export(models.Model):
 
     @property
     def is_pending(self):
+        """
+        Return True if an export status is pending.
+        """
         return self.status == Export.PENDING
 
     @property
     def is_successful(self):
+        """
+        Return True if an export status successful.
+        """
         return self.status == Export.SUCCESSFUL
 
     @property
     def status(self):
+        """
+        Return the status [FAILED|PENDING|SUCCESSFUL] of an export.
+        """
         if self.filename:
             # need to have this since existing models will have their
             # internal_status set to PENDING - the default
             return Export.SUCCESSFUL
         elif self.internal_status == Export.FAILED:
             return Export.FAILED
-        else:
-            return Export.PENDING
+
+        return Export.PENDING
 
     def set_filename(self, filename):
+        """
+        Set the filename of an export and mark internal_status as
+        Export.SUCCESSFUL.
+        """
         self.filename = filename
         self.internal_status = Export.SUCCESSFUL
         self._update_filedir()
 
     def _update_filedir(self):
-        assert(self.filename)
+        assert self.filename
         self.filedir = os.path.join(self.xform.user.username,
                                     'exports', self.xform.id_string,
                                     self.export_type)
 
     @property
     def filepath(self):
+        """
+        Return the file path of an export file, None if the file does not
+        exist.
+        """
         if self.filedir and self.filename:
             return os.path.join(self.filedir, self.filename)
         return None
 
     @property
     def full_filepath(self):
+        """
+        Return the full filepath of an export file, None if the file does not
+        exist.
+        """
         if self.filepath:
             default_storage = get_storage_class()()
             try:
                 return default_storage.path(self.filepath)
             except NotImplementedError:
                 # read file from s3
-                name, ext = os.path.splitext(self.filepath)
+                _name, ext = os.path.splitext(self.filepath)
                 tmp = NamedTemporaryFile(suffix=ext, delete=False)
                 f = default_storage.open(self.filepath)
                 tmp.write(f.read())
@@ -219,7 +248,13 @@ class Export(models.Model):
         return None
 
     @classmethod
-    def exports_outdated(cls, xform, export_type, options={}):
+    def exports_outdated(cls, xform, export_type, options=None):
+        """
+        Return True if export is outdated or there is no export matching the
+        export_type with the specified options.
+        """
+        if options is None:
+            options = {}
         # get newest export for xform
         try:
             export_options = get_export_options_query_kwargs(options)
@@ -234,13 +269,16 @@ class Export(models.Model):
                     and xform.time_of_last_submission_update() is not None:
                 return latest_export.time_of_last_submission <\
                     xform.time_of_last_submission_update()
-            else:
-                # return true if we can't determine the status, to force
-                # auto-generation
-                return True
+
+            # return true if we can't determine the status, to force
+            # auto-generation
+            return True
 
     @classmethod
     def is_filename_unique(cls, xform, filename):
+        """
+        Return True if the filename is unique.
+        """
         return Export.objects.filter(
             xform=xform, filename=filename).count() == 0
 

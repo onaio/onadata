@@ -1,3 +1,7 @@
+# -*- coding=utf-8 -*-
+"""
+Test api_export_tools module.
+"""
 from collections import OrderedDict, defaultdict
 
 import mock
@@ -17,6 +21,9 @@ from onadata.libs.utils.async_status import SUCCESSFUL, status_msg
 
 
 class TestApiExportTools(TestBase):
+    """
+    Test api_export_tools.
+    """
     def _create_old_export(self, xform, export_type, options, filename=None):
         options = OrderedDict(sorted(options.items()))
         Export(
@@ -25,10 +32,15 @@ class TestApiExportTools(TestBase):
             options=options,
             filename=filename,
             internal_status=Export.SUCCESSFUL).save()
+        # pylint: disable=attribute-defined-outside-init
         self.export = Export.objects.filter(
             xform=xform, export_type=export_type)[0]
 
+    # pylint: disable=invalid-name
     def test_process_async_export_creates_new_export(self):
+        """
+        Test process_async_export creates a new export.
+        """
         self._publish_transportation_form_and_submit_instance()
         request = self.factory.post('/')
         request.user = self.user
@@ -40,7 +52,11 @@ class TestApiExportTools(TestBase):
 
         self.assertIn('job_uuid', resp)
 
+    # pylint: disable=invalid-name
     def test_process_async_export_returns_existing_export(self):
+        """
+        Test process_async_export returns existing export.
+        """
         settings.CELERY_ALWAYS_EAGER = True
         current_app.conf.CELERY_ALWAYS_EAGER = True
 
@@ -64,9 +80,14 @@ class TestApiExportTools(TestBase):
         self.assertEquals(resp['job_status'], status_msg[SUCCESSFUL])
         self.assertIn("export_url", resp)
 
+    # pylint: disable=invalid-name
     @mock.patch('onadata.libs.utils.api_export_tools.AsyncResult')
     def test_get_async_response_export_does_not_exist(self, AsyncResult):
-        class MockAsyncResult(object):
+        """
+        Test get_async_response export does not exist.
+        """
+        class MockAsyncResult(object):  # pylint: disable=R0903
+            """Mock AsyncResult"""
             def __init__(self):
                 self.state = 'SUCCESS'
                 self.result = 1
@@ -81,14 +102,20 @@ class TestApiExportTools(TestBase):
         with self.assertRaises(Http404):
             get_async_response('job_uuid', request, self.xform)
 
+    # pylint: disable=invalid-name
     @mock.patch('onadata.libs.utils.api_export_tools.AsyncResult')
-    def test_get_async_response_export_blacklog_limit(self, AsyncResult):
-        class MockAsyncResult(object):
+    def test_get_async_response_export_backlog_limit(self, AsyncResult):
+        """
+        Test get_async_response export backlog limit exceeded.
+        """
+        class MockAsyncResult(object):  # pylint: disable=R0903
+            """Mock AsyncResult"""
             def __init__(self):
                 pass
 
             @property
             def state(self):
+                """Raise BacklogLimitExceeded"""
                 raise BacklogLimitExceeded()
 
         AsyncResult.return_value = MockAsyncResult()
@@ -102,6 +129,9 @@ class TestApiExportTools(TestBase):
         self.assertEqual(result, {'job_status': 'PENDING'})
 
     def test_response_for_format(self):
+        """
+        Test response format type.
+        """
         self._publish_xlsx_file()
         xform = XForm.objects.filter().last()
         self.assertIsNotNone(xform)

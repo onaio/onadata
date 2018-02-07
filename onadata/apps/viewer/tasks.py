@@ -1,3 +1,7 @@
+# -*- coding=utf-8 -*-
+"""
+Export tasks.
+"""
 import sys
 from datetime import timedelta
 
@@ -17,15 +21,15 @@ from onadata.libs.utils.export_tools import (
 EXPORT_QUERY_KEY = 'query'
 
 
-def _get_export_object(id):
+def _get_export_object(export_id):
     try:
-        return Export.objects.get(id=id)
+        return Export.objects.get(id=export_id)
     except Export.DoesNotExist:
-        if len(getattr(settings, 'SLAVE_DATABASES', [])):
+        if getattr(settings, 'SLAVE_DATABASES', []):
             from multidb.pinning import use_master
 
             with use_master:
-                return Export.objects.get(id=id)
+                return Export.objects.get(id=export_id)
 
     raise Export.DoesNotExist
 
@@ -40,6 +44,9 @@ def _get_export_details(username, id_string, export_id):
 
 
 def create_async_export(xform, export_type, query, force_xlsx, options=None):
+    """
+    Starts asynchronous export tasks and returns an export object.
+    """
     username = xform.user.username
     id_string = xform.id_string
 
@@ -100,13 +107,16 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
 
 @task(track_started=True)
 def create_xls_export(username, id_string, export_id, **options):
+    """
+    XLS export task.
+    """
     # we re-query the db instead of passing model objects according to
     # http://docs.celeryproject.org/en/latest/userguide/tasks.html#state
     force_xlsx = options.get("force_xlsx", True)
     options["extension"] = 'xlsx' if force_xlsx else 'xls'
 
     try:
-        export = _get_export_object(id=export_id)
+        export = _get_export_object(export_id)
     except Export.DoesNotExist:
         # no export for this ID return None.
         return None
@@ -122,9 +132,10 @@ def create_xls_export(username, id_string, export_id, **options):
         # mail admins
         details = _get_export_details(username, id_string, export_id)
 
-        report_exception("XLS Export Exception: Export ID - "
-                         "%(export_id)s, /%(username)s/%(id_string)s" %
-                         details, e, sys.exc_info())
+        report_exception(
+            "XLS Export Exception: Export ID - "
+            "%(export_id)s, /%(username)s/%(id_string)s" % details, e,
+            sys.exc_info())
         # Raise for now to let celery know we failed
         # - doesnt seem to break celery`
         raise
@@ -134,9 +145,12 @@ def create_xls_export(username, id_string, export_id, **options):
 
 @task(track_started=True)
 def create_csv_export(username, id_string, export_id, **options):
+    """
+    CSV export task.
+    """
     # we re-query the db instead of passing model objects according to
     # http://docs.celeryproject.org/en/latest/userguide/tasks.html#state
-    export = _get_export_object(id=export_id)
+    export = _get_export_object(export_id)
 
     try:
         # though export is not available when for has 0 submissions, we
@@ -154,9 +168,10 @@ def create_csv_export(username, id_string, export_id, **options):
         # mail admins
         details = _get_export_details(username, id_string, export_id)
 
-        report_exception("CSV Export Exception: Export ID - "
-                         "%(export_id)s, /%(username)s/%(id_string)s" %
-                         details, e, sys.exc_info())
+        report_exception(
+            "CSV Export Exception: Export ID - "
+            "%(export_id)s, /%(username)s/%(id_string)s" % details, e,
+            sys.exc_info())
         raise
     else:
         return gen_export.id
@@ -164,10 +179,13 @@ def create_csv_export(username, id_string, export_id, **options):
 
 @task(track_started=True)
 def create_kml_export(username, id_string, export_id, **options):
+    """
+    KML export task.
+    """
     # we re-query the db instead of passing model objects according to
     # http://docs.celeryproject.org/en/latest/userguide/tasks.html#state
 
-    export = _get_export_object(id=export_id)
+    export = _get_export_object(export_id)
     try:
         # though export is not available when for has 0 submissions, we
         # catch this since it potentially stops celery
@@ -183,9 +201,10 @@ def create_kml_export(username, id_string, export_id, **options):
         export.save()
         # mail admins
         details = _get_export_details(username, id_string, export_id)
-        report_exception("KML Export Exception: Export ID - "
-                         "%(export_id)s, /%(username)s/%(id_string)s" %
-                         details, e, sys.exc_info())
+        report_exception(
+            "KML Export Exception: Export ID - "
+            "%(export_id)s, /%(username)s/%(id_string)s" % details, e,
+            sys.exc_info())
         raise
     else:
         return gen_export.id
@@ -193,10 +212,13 @@ def create_kml_export(username, id_string, export_id, **options):
 
 @task(track_started=True)
 def create_osm_export(username, id_string, export_id, **options):
+    """
+    OSM export task.
+    """
     # we re-query the db instead of passing model objects according to
     # http://docs.celeryproject.org/en/latest/userguide/tasks.html#state
 
-    export = _get_export_object(id=export_id)
+    export = _get_export_object(export_id)
     try:
         # though export is not available when for has 0 submissions, we
         # catch this since it potentially stops celery
@@ -212,9 +234,10 @@ def create_osm_export(username, id_string, export_id, **options):
         export.save()
         # mail admins
         details = _get_export_details(username, id_string, export_id)
-        report_exception("OSM Export Exception: Export ID - "
-                         "%(export_id)s, /%(username)s/%(id_string)s" %
-                         details, e, sys.exc_info())
+        report_exception(
+            "OSM Export Exception: Export ID - "
+            "%(export_id)s, /%(username)s/%(id_string)s" % details, e,
+            sys.exc_info())
         raise
     else:
         return gen_export.id
@@ -222,7 +245,10 @@ def create_osm_export(username, id_string, export_id, **options):
 
 @task(track_started=True)
 def create_zip_export(username, id_string, export_id, **options):
-    export = _get_export_object(id=export_id)
+    """
+    Attachments zip export task.
+    """
+    export = _get_export_object(export_id)
     try:
         gen_export = generate_attachments_zip_export(
             Export.ZIP_EXPORT,
@@ -236,9 +262,9 @@ def create_zip_export(username, id_string, export_id, **options):
         export.save()
         # mail admins
         details = _get_export_details(username, id_string, export_id)
-        report_exception("Zip Export Exception: Export ID - "
-                         "%(export_id)s, /%(username)s/%(id_string)s" %
-                         details, e)
+        report_exception(
+            "Zip Export Exception: Export ID - "
+            "%(export_id)s, /%(username)s/%(id_string)s" % details, e)
         raise
     else:
         if not settings.TESTING_MODE:
@@ -250,7 +276,10 @@ def create_zip_export(username, id_string, export_id, **options):
 
 @task(track_started=True)
 def create_csv_zip_export(username, id_string, export_id, **options):
-    export = _get_export_object(id=export_id)
+    """
+    CSV zip export task.
+    """
+    export = _get_export_object(export_id)
     options["extension"] = Export.ZIP_EXPORT
     try:
         # though export is not available when for has 0 submissions, we
@@ -262,9 +291,10 @@ def create_csv_zip_export(username, id_string, export_id, **options):
         export.save()
         # mail admins
         details = _get_export_details(username, id_string, export_id)
-        report_exception("CSV ZIP Export Exception: Export ID - "
-                         "%(export_id)s, /%(username)s/%(id_string)s" %
-                         details, e, sys.exc_info())
+        report_exception(
+            "CSV ZIP Export Exception: Export ID - "
+            "%(export_id)s, /%(username)s/%(id_string)s" % details, e,
+            sys.exc_info())
         raise
     else:
         return gen_export.id
@@ -272,7 +302,10 @@ def create_csv_zip_export(username, id_string, export_id, **options):
 
 @task(track_started=True)
 def create_sav_zip_export(username, id_string, export_id, **options):
-    export = _get_export_object(id=export_id)
+    """
+    SPSS sav export task.
+    """
+    export = _get_export_object(export_id)
     options["extension"] = Export.ZIP_EXPORT
     try:
         # though export is not available when for has 0 submissions, we
@@ -284,9 +317,10 @@ def create_sav_zip_export(username, id_string, export_id, **options):
         export.save()
         # mail admins
         details = _get_export_details(username, id_string, export_id)
-        report_exception("SAV ZIP Export Exception: Export ID - "
-                         "%(export_id)s, /%(username)s/%(id_string)s" %
-                         details, e, sys.exc_info())
+        report_exception(
+            "SAV ZIP Export Exception: Export ID - "
+            "%(export_id)s, /%(username)s/%(id_string)s" % details, e,
+            sys.exc_info())
         raise
     else:
         return gen_export.id
@@ -294,6 +328,9 @@ def create_sav_zip_export(username, id_string, export_id, **options):
 
 @task(track_started=True)
 def create_external_export(username, id_string, export_id, **options):
+    """
+    XLSReport export task.
+    """
     export = get_object_or_404(Export, id=export_id)
 
     try:
@@ -311,9 +348,10 @@ def create_external_export(username, id_string, export_id, **options):
         export.save()
         # mail admins
         details = _get_export_details(username, id_string, export_id)
-        report_exception("External Export Exception: Export ID - "
-                         "%(export_id)s, /%(username)s/%(id_string)s" %
-                         details, e, sys.exc_info())
+        report_exception(
+            "External Export Exception: Export ID - "
+            "%(export_id)s, /%(username)s/%(id_string)s" % details, e,
+            sys.exc_info())
         raise
     else:
         return gen_export.id
@@ -321,10 +359,13 @@ def create_external_export(username, id_string, export_id, **options):
 
 @task(track_started=True)
 def create_google_sheet_export(username, id_string, export_id, **options):
+    """
+    Google Sheets export task.
+    """
     # we re-query the db instead of passing model objects according to
     # http://docs.celeryproject.org/en/latest/userguide/tasks.html#state
     try:
-        export = _get_export_object(id=export_id)
+        export = _get_export_object(export_id)
         # though export is not available when for has 0 submissions, we
         # catch this since it potentially stops celery
         gen_export = generate_export(Export.GOOGLE_SHEETS_EXPORT, export.xform,
@@ -334,9 +375,10 @@ def create_google_sheet_export(username, id_string, export_id, **options):
         export.save()
         # mail admins
         details = _get_export_details(username, id_string, export_id)
-        report_exception("Google Export Exception: Export ID - "
-                         "%(export_id)s, /%(username)s/%(id_string)s" %
-                         details, e, sys.exc_info())
+        report_exception(
+            "Google Export Exception: Export ID - "
+            "%(export_id)s, /%(username)s/%(id_string)s" % details, e,
+            sys.exc_info())
         raise
     else:
         return gen_export.id
@@ -344,8 +386,11 @@ def create_google_sheet_export(username, id_string, export_id, **options):
 
 @task(track_started=True)
 def delete_export(export_id):
+    """
+    Delete export task with id export_id.
+    """
     try:
-        export = _get_export_object(id=export_id)
+        export = _get_export_object(export_id)
     except Export.DoesNotExist:
         pass
     else:
@@ -355,15 +400,15 @@ def delete_export(export_id):
 
 
 @task(ignore_result=True)
-def mark_expired_pending_exports_as_failed():
+def mark_expired_pending_exports_as_failed():  # pylint: disable=invalid-name
     """
     Exports that have not completed within a set time should be marked as
     failed
     """
     task_lifespan = settings.EXPORT_TASK_LIFESPAN
     time_threshold = timezone.now() - timedelta(hours=task_lifespan)
-    exports = Export.objects.filter(internal_status=Export.PENDING,
-                                    created_on__lt=time_threshold)
+    exports = Export.objects.filter(
+        internal_status=Export.PENDING, created_on__lt=time_threshold)
     exports.update(internal_status=Export.FAILED)
 
 
@@ -374,6 +419,6 @@ def delete_expired_failed_exports():
     """
     task_lifespan = settings.EXPORT_TASK_LIFESPAN
     time_threshold = timezone.now() - timedelta(hours=task_lifespan)
-    exports = Export.objects.filter(internal_status=Export.FAILED,
-                                    created_on__lt=time_threshold)
+    exports = Export.objects.filter(
+        internal_status=Export.FAILED, created_on__lt=time_threshold)
     exports.delete()
