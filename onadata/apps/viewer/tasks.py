@@ -96,8 +96,10 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
         try:
             result = export_types[export_type].apply_async((), kwargs=options)
         except librabbitmq.ConnectionError as e:
-            export.delete()
-            report_exception("Error connecting to broker", e, sys.exc_info())
+            export.internal_status = Export.FAILED
+            export.error_message = "Error connecting to broker."
+            export.save()
+            report_exception(export.error_message, e, sys.exc_info())
             raise Export.ExportConnectionError
     else:
         raise Export.ExportTypeError
