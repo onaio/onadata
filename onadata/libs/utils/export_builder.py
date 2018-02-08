@@ -961,7 +961,7 @@ class ExportBuilder(object):
             col_len_diff = len(column) - 64
             column = column[:-col_len_diff]
 
-        if column in columns:
+        if column.lower() in (t.lower() for t in columns):
             if len(column) > 59:
                 column = column[:-5]
             column = column + "@" + str(uuid.uuid4()).split("-")[1]

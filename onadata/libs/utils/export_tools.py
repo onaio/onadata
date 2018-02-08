@@ -3,6 +3,7 @@ import json
 import math
 import os
 import re
+import sys
 import time
 from datetime import datetime
 from datetime import timedelta
@@ -29,7 +30,7 @@ from onadata.apps.viewer.models.parsed_instance import query_data
 from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 from onadata.libs.utils.common_tags import (DATAVIEW_EXPORT,
                                             GROUPNAME_REMOVED_FLAG)
-from onadata.libs.utils.common_tools import str_to_bool
+from onadata.libs.utils.common_tools import str_to_bool, report_exception
 from onadata.libs.utils.export_builder import ExportBuilder
 from onadata.libs.utils.model_tools import (get_columns_with_hxl,
                                             queryset_iterator)
@@ -233,7 +234,7 @@ def generate_export(export_type, xform, export_id=None, options=None,
         export.error_message = str(e)
         export.internal_status = Export.FAILED
         export.save()
-
+        report_exception("SAV Export Failure", e, sys.exc_info())
         return export
 
     # generate filename

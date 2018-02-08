@@ -738,6 +738,46 @@ class TestExportBuilder(TestBase):
             os.path.exists(
                 os.path.join(temp_dir, "exp.sav")))
 
+    def test_zipped_sav_export_with_duplicate_column_name(self):
+        """
+        Test that SAV  exports with duplicate column names
+        """
+        md = """
+        | survey |              |          |                 |
+        |        | type         | name     | label           |
+        |        | text         | Sport    | Which sport     |
+        |        | text         | sport    | Which fun sports|
+        """
+        survey = self.md_to_pyxform_survey(md, {'name': 'sports'})
+        data = [{"Sport": "Basketball", "sport": "Soccer",
+                '_submission_time': u'2016-11-21T03:43:43.000-08:00'}]
+
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        export_builder.to_zipped_sav(temp_zip_file.name, data)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+        # check that the children's file (which has the unicode header) exists
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "sports.sav")))
+        # check file's contents
+
+        with SavReader(os.path.join(temp_dir, "sports.sav"),
+                       returnHeader=True) as reader:
+            rows = [r for r in reader]
+
+            # Check that columns are present
+            self.assertIn("Sport", rows[0])
+            # Check for sport in first 5 characters
+            # because rows contains 'sport@d4b6'
+            self.assertIn("sport", [x[0:5] for x in rows[0]])
+
     def test_xls_export_works_with_unicode(self):
         survey = create_survey_from_xls(_logger_fixture_path(
             'childrens_survey_unicode.xls'))
