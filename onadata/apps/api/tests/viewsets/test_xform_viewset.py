@@ -2826,8 +2826,9 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 503)
             self.assertEqual(response.status_text.upper(),
                              u'SERVICE UNAVAILABLE')
-            self.assertEqual(response.data['detail'],
-                             u'Error opening socket: a socket error occurred')
+            self.assertEqual(
+                response.data['detail'],
+                u'Service temporarily unavailable, try again later.')
             export = Export.objects.get(task_id=task_id)
             self.assertTrue(export.is_successful)
 
