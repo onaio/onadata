@@ -223,6 +223,7 @@ class TestExportTools(TestBase):
                 u'medium_download_url': u'%s&suffix=medium' % download_url,
                 u'download_url': download_url,
                 u'filename': filename,
+                u'name': '123.jpg',
                 u'instance': 1,
                 u'small_download_url': u'%s&suffix=small' % download_url,
                 u'id': 1,
@@ -260,6 +261,44 @@ class TestExportTools(TestBase):
                                                  media_xpaths, attachment_list)
         self.assertTrue(val_or_url)
         self.assertEqual(value, val_or_url)
+
+    def test_get_attachment_uri_for_filename_with_space(self):
+        path = os.path.join(
+            os.path.dirname(__file__), 'fixtures',
+            'photo_type_in_repeat_group.xlsx')
+        self._publish_xls_file_and_set_xform(path)
+
+        filename = u'bob/attachments/1 2 3.jpg'
+        download_url = u'/api/v1/files/1?filename=%s' % filename
+
+        # used a smaller version of row because we only using _attachmets key
+        row = {
+            u'_attachments': [{
+                u'mimetype': u'image/jpeg',
+                u'medium_download_url': u'%s&suffix=medium' % download_url,
+                u'download_url': download_url,
+                u'filename': filename,
+                u'name': '1 2 3.jpg',
+                u'instance': 1,
+                u'small_download_url': u'%s&suffix=small' % download_url,
+                u'id': 1,
+                u'xform': 1
+            }]
+        }  # yapf: disable
+
+        # when include_images is True, you get the attachment url
+        media_xpaths = ['photo']
+        attachment_list = None
+        key = 'photo'
+        value = u'1 2 3.jpg'
+        val_or_url = get_value_or_attachment_uri(key, value, row, self.xform,
+                                                 media_xpaths, attachment_list)
+
+        self.assertTrue(val_or_url)
+
+        current_site = Site.objects.get_current()
+        url = 'http://%s%s' % (current_site.domain, download_url)
+        self.assertNotEqual(url, val_or_url)
 
     def test_parse_request_export_options(self):
         request = self.factory.get(

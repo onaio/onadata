@@ -77,10 +77,8 @@ def get_value_or_attachment_uri(
             if a.get('filename') and a.get('filename').endswith(value)
         ]
         if attachments:
-            value = current_site_url(
-                attachments[0].get('download_url', '')
-            )
-
+            value = current_site_url(attachments[0].get('download_url', ''))
+            value = value.replace(" ", "_")
     return value
 
 
