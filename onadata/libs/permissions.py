@@ -336,19 +336,24 @@ class OwnerRole(Role):
         (CAN_VIEW_MERGED_XFORM, MergedXForm))
 
 
-ROLES_ORDERED = [
+def _memoize_role_to_permissions(roles):
+    # Memoize a class to permissions dict.
+    for role in roles:
+        role.class_to_permissions = defaultdict(list)
+        for permission, k in role.permissions:
+            role.class_to_permissions[k].append(permission)
+
+    return roles
+
+
+ROLES_ORDERED = _memoize_role_to_permissions([
     ReadOnlyRoleNoDownload, ReadOnlyRole, DataEntryOnlyRole,
     DataEntryMinorRole, DataEntryRole, EditorMinorRole, EditorRole,
     ManagerRole, OwnerRole
-]
+])
+
 
 ROLES = {role.name: role for role in ROLES_ORDERED}
-
-# Memoize a class to permissions dict.
-for role in ROLES.values():
-    role.class_to_permissions = defaultdict(list)
-    for p, k in role.permissions:
-        role.class_to_permissions[k].append(p)
 
 
 def is_organization(obj):
@@ -367,9 +372,9 @@ def get_role(permissions, obj):
     """
     Return the user role for the given obj permissions.
     """
-    for _role in reversed(ROLES_ORDERED):
-        if _role.has_role(permissions, obj):
-            return _role.name
+    for role in reversed(ROLES_ORDERED):
+        if role.has_role(permissions, obj):
+            return role.name
     return None
 
 
@@ -385,17 +390,32 @@ def get_role_in_org(user, organization):
     return get_role(perms, organization) or MemberRole.name
 
 
+def get_user_perms(obj):
+    """
+    Return XFormUserObjectPermission or ProjectUserObjectPermission queryset.
+    """
+    model = XFormUserObjectPermission if isinstance(obj, XForm) else None
+    model = ProjectUserObjectPermission if isinstance(obj, Project) else model
+
+    return model.objects.filter(content_object_id=obj.pk) if model else None
+
+
+def get_group_perms(obj):
+    """
+    Return XFormGroupObjectPermission or ProjectGroupObjectPermission queryset.
+    """
+    model = XFormGroupObjectPermission if isinstance(obj, XForm) else None
+    model = ProjectGroupObjectPermission if isinstance(obj, Project) else model
+
+    return model.objects.filter(content_object_id=obj.pk) if model else None
+
+
 def _get_group_users_with_perms(obj, attach_perms=False, user_perms=None):
     """
     Returns a list of users in the groups with permissions on the object obj.
     """
-    if isinstance(obj, XForm):
-        group_obj_perms = XFormGroupObjectPermission.objects.filter(
-            content_object_id=obj.pk)
-    elif isinstance(obj, Project):
-        group_obj_perms = ProjectGroupObjectPermission.objects.filter(
-            content_object_id=obj.pk)
-    else:
+    group_obj_perms = get_group_perms(obj)
+    if group_obj_perms is None:
         return get_users_with_perms(obj, attach_perms=attach_perms,
                                     with_group_users=True)
     group_users = {}
@@ -425,13 +445,8 @@ def _get_users_with_perms(obj, attach_perms=False, with_group_users=None):
     """
     Returns a list of users with their permissions on an object obj.
     """
-    if isinstance(obj, XForm):
-        user_obj_perms = XFormUserObjectPermission.objects.filter(
-            content_object_id=obj.pk)
-    elif isinstance(obj, Project):
-        user_obj_perms = ProjectUserObjectPermission.objects.filter(
-            content_object_id=obj.pk)
-    else:
+    user_obj_perms = get_user_perms(obj)
+    if user_obj_perms is None:
         return get_users_with_perms(obj, attach_perms=attach_perms,
                                     with_group_users=with_group_users)
     user_perms = {}
