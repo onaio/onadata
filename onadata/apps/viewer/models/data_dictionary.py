@@ -26,40 +26,36 @@ from onadata.libs.utils.cache_tools import (PROJ_BASE_FORMS_CACHE,
 from onadata.libs.utils.model_tools import get_columns_with_hxl, set_uuid
 
 
-def _process_xlsform(xls, default_name):
+def process_xlsform(xls, default_name):
     """
-    Process XLSForm xls and return the survey dictionary for the XLSForm.
+    Process XLSForm file and return the survey dictionary for the XLSForm.
     """
+    # FLOW Results package is a JSON file.
+    if xls.name.endswith('json'):
+        return FloipSurvey(xls).survey.to_json_dict()
+
+    file_object = None
+    if xls.name.endswith('csv'):
+        # a csv file gets closed in pyxform, make a copy
+        xls.seek(0)
+        file_object = io.BytesIO()
+        file_object.write(xls.read())
+        file_object.seek(0)
+        xls.seek(0)
+
     try:
-        if xls.name.endswith('csv'):
-            # csv file gets closed in pyxform, make a copy
-            xls.seek(0)
-            file_object = io.BytesIO()
-            file_object.write(xls.read())
-            file_object.seek(0)
-            xls.seek(0)
-        else:
-            file_object = xls
-        if xls.name.endswith('json'):
-            survey_dict = FloipSurvey(xls).survey.to_json_dict()
-        else:
-            survey_dict = parse_file_to_json(xls.name,
-                                             file_object=file_object)
+        return parse_file_to_json(xls.name, file_object=file_object or xls)
     except csv.Error as e:
         newline_error = u'new-line character seen in unquoted field '\
             u'- do you need to open the file in universal-newline '\
             u'mode?'
         if newline_error == unicode(e):
             xls.seek(0)
-            file_obj = StringIO(
+            file_object = StringIO(
                 u'\n'.join(xls.read().splitlines()))
-            survey_dict = parse_file_to_json(
-                xls.name, default_name=default_name,
-                file_object=file_obj)
-        else:
-            raise e
-
-    return survey_dict
+            return parse_file_to_json(
+                xls.name, default_name=default_name, file_object=file_object)
+        raise e
 
 
 # adopted from pyxform.utils.sheet_to_csv
@@ -123,7 +119,7 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
         if self.xls and not skip_xls_read:
             default_name = None \
                 if not self.pk else self.survey.xml_instance().tagName
-            survey_dict = _process_xlsform(self.xls, default_name)
+            survey_dict = process_xlsform(self.xls, default_name)
             if has_external_choices(survey_dict):
                 self.has_external_choices = True
             survey = create_survey_element_from_dict(survey_dict)
