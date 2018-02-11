@@ -94,7 +94,8 @@ def set_project_perms_to_xform_async(self, xform_id, project_id):
         # let's retry if the record may still not be available in read replica.
         self.retry(countdown=60 * self.request.retries)
     except IntegrityError:
-        # nothing to do, fail silently.
+        # Nothing to do, fail silently, permissions seems to have been applied
+        # already.
         pass
     except Exception as e:  # pylint: disable=broad-except
         msg = '%s: Setting project %d permissions to form %d failed.' % (
