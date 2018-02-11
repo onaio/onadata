@@ -18,10 +18,12 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.files.storage import FileSystemStorage, get_storage_class
 from django.core.urlresolvers import reverse
+from django.db import OperationalError
 from django.http import (HttpResponse, HttpResponseBadRequest,
                          HttpResponseForbidden, HttpResponseNotFound,
                          HttpResponseRedirect)
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import (
+    get_list_or_404, get_object_or_404, redirect, render)
 from django.template import loader
 from django.utils.translation import ugettext as _
 from django.views.decorators.http import require_POST
@@ -31,7 +33,7 @@ from oauth2client.contrib.django_util.storage import \
     DjangoORMStorage as Storage
 from savReaderWriter import SPSSIOError
 
-from onadata.apps.logger.models import Attachment
+from onadata.apps.logger.models import Attachment, XForm
 from onadata.apps.logger.views import download_jsonform
 from onadata.apps.main.models import MetaData, TokenStorageModel, UserProfile
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
@@ -793,10 +795,15 @@ def attachment_url(request, size='medium'):
     if not media_file:
         return HttpResponseNotFound(_(u'Attachment not found'))
 
-    result = Attachment.objects.filter(media_file=media_file)[0:1]
-    if result.count() == 0:
-        return HttpResponseNotFound(_(u'Attachment not found'))
-    attachment = result[0]
+    try:
+        attachment = get_list_or_404(Attachment, media_file=media_file)[0]
+    except OperationalError as e:
+        if getattr(settings, 'SLAVE_DATABASES', []):
+            attachment = XForm.objects.using('default').filter(
+                media_file=media_file).first()
+            if not attachment:
+                return HttpResponseNotFound(_(u'Attachment not found'))
+        raise e
 
     if size == 'original' and no_redirect == 'true':
         response = response_with_mimetype_and_name(
