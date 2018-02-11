@@ -1263,8 +1263,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                     object_id=xform.id, data_value='itemsets.csv')
                 self.assertIsNotNone(metadata)
                 self.assertTrue(OwnerRole.user_has_role(self.user, xform))
-                self.assertTrue(OwnerRole.user_has_role(self.user, metadata))
-                self.assertEquals("owner", response.data['users'][0]['role'])
+                self.assertEquals("owner", response.data['users'][0]['role'],
+                                  self.user)
 
     def test_publish_csv_with_universal_newline_xlsform(self):
         with HTTMock(enketo_mock):
