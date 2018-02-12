@@ -1239,6 +1239,7 @@ class TestDataViewSet(TestBase):
                 u'mimetype': attachment.mimetype,
                 u'instance': attachment.instance.pk,
                 u'filename': attachment.media_file.name,
+                u'name': attachment.name,
                 u'id': attachment.pk,
                 u'xform': xform.id}
             ],
@@ -1270,6 +1271,7 @@ class TestDataViewSet(TestBase):
                 u'mimetype': attachment.mimetype,
                 u'instance': attachment.instance.pk,
                 u'filename': attachment.media_file.name,
+                u'name': attachment.name,
                 u'id': attachment.pk,
                 u'xform': xform.id
             }]
@@ -1308,6 +1310,7 @@ class TestDataViewSet(TestBase):
                 u'mimetype': self.attachment.mimetype,
                 u'instance': self.attachment.instance.pk,
                 u'filename': self.attachment.media_file.name,
+                u'name': self.attachment.name,
                 u'id': self.attachment.pk,
                 u'xform': self.xform.id}
             ],

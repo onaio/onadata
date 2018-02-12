@@ -74,11 +74,11 @@ def get_value_or_attachment_uri(
         attachments = [
             a
             for a in row.get(ATTACHMENTS, attachment_list or [])
-            if a.get('filename') and a.get('filename').endswith(value)
+            if a.get('name') == value
         ]
         if attachments:
             value = current_site_url(attachments[0].get('download_url', ''))
-            value = value.replace(" ", "_")
+
     return value
 
 

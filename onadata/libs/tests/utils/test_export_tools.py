@@ -268,7 +268,7 @@ class TestExportTools(TestBase):
             'photo_type_in_repeat_group.xlsx')
         self._publish_xls_file_and_set_xform(path)
 
-        filename = u'bob/attachments/1 2 3.jpg'
+        filename = u'bob/attachments/1_2_3.jpg'
         download_url = u'/api/v1/files/1?filename=%s' % filename
 
         # used a smaller version of row because we only using _attachmets key
@@ -298,7 +298,7 @@ class TestExportTools(TestBase):
 
         current_site = Site.objects.get_current()
         url = 'http://%s%s' % (current_site.domain, download_url)
-        self.assertNotEqual(url, val_or_url)
+        self.assertEqual(url, val_or_url)
 
     def test_parse_request_export_options(self):
         request = self.factory.get(
