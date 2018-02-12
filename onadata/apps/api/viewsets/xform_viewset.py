@@ -66,6 +66,7 @@ from onadata.libs.utils.csv_import import (get_async_csv_submission_status,
                                            submit_csv, submit_csv_async)
 from onadata.libs.utils.export_tools import parse_request_export_options
 from onadata.libs.utils.logger_tools import publish_form
+from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.string import str2bool
 from onadata.libs.utils.viewer_tools import (enketo_url,
                                              generate_enketo_form_defaults,
@@ -687,8 +688,11 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             """Generator function to stream JSON data"""
             yield u"["
             start = 1
-
-            for xform in self.object_list.iterator():
+            # use queryset_iterator.  Will need to change this to the Django
+            # native .iterator() method when we upgrade to django version 2
+            # because in Django 2 .iterator() has support for chunk size
+            queryset = queryset_iterator(self.object_list, chunksize=2000)
+            for xform in queryset:
                 yield json.dumps(XFormBaseSerializer(
                     instance=xform,
                     context={'request': self.request}
