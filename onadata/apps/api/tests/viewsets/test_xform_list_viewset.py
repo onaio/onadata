@@ -34,10 +34,8 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         request.META.update(auth(request.META, response))
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
-
         path = os.path.join(
             os.path.dirname(__file__), '..', 'fixtures', 'formList.xml')
-
         with open(path) as f:
             form_list_xml = f.read().strip()
             data = {"hash": self.xform.hash, "pk": self.xform.pk}
@@ -735,3 +733,39 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         response = self.view(request, username='bob', pk=self.xform.pk)
         # success with authentication
         self.assertEqual(response.status_code, 200)
+
+    def test_manifest_url_tag_is_empty_when_no_media(self):
+        """
+        Test that content contains an empty tag for manifest url
+        only when the form has no media
+        """
+        request = self.factory.get('/')
+        response = self.view(request, username='bob', pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        content = response.render().content
+        manifest_url = ('<manifestUrl></manifestUrl>')
+        self.assertTrue(manifest_url in content)
+
+        data_type = 'media'
+        data_value = 'xform {} transportation'.format(self.xform.pk)
+        self._add_form_metadata(self.xform, data_type, data_value)
+        self._make_submissions()
+        self.xform.refresh_from_db()
+
+        self.view = XFormListViewSet.as_view(
+            {
+                "get": "manifest",
+                "head": "manifest"
+            }
+        )
+
+        request = self.factory.head('/')
+        response = self.view(request, pk=self.xform.pk)
+        auth = DigestAuth('bob', 'bobbob')
+        request = self.factory.get('/')
+        request.META.update(auth(request.META, response))
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        content = response.render().content
+        manifest_url = ('<manifestUrl></manifestUrl>')
+        self.assertFalse(manifest_url in content)
