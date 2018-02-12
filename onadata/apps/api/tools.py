@@ -50,7 +50,7 @@ from onadata.libs.permissions import ROLES
 from onadata.libs.permissions import ManagerRole, EditorRole, EditorMinorRole
 from onadata.libs.permissions import DataEntryRole, DataEntryMinorRole,\
     DataEntryOnlyRole
-from onadata.libs.permissions import get_role_in_org
+from onadata.libs.permissions import get_role_in_org, OwnerRole
 from onadata.libs.baseviewset import DefaultBaseViewset
 from onadata.apps.main.models.meta_data import MetaData
 
@@ -333,7 +333,6 @@ def publish_project_xform(request, project):
                 user=project.organization, id_string=xform.id_string)
         except XForm.DoesNotExist:
             return False
-
         return True
 
     if 'formid' in request.data:
@@ -360,7 +359,11 @@ def publish_project_xform(request, project):
                 xform.save()
         except IntegrityError:
             raise exceptions.ParseError(_(msg))
-        set_project_perms_to_xform_async.delay(xform.pk, project.pk)
+        else:
+            # First assign permissions to the person who uploaded the form
+            OwnerRole.add(request.user, xform)
+            # Next run async task to apply all other perms
+            set_project_perms_to_xform_async.delay(xform.pk, project.pk)
     else:
         xform = publish_form(set_form)
 
