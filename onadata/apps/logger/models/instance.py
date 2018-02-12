@@ -62,6 +62,7 @@ def _get_attachments_from_instance(instance):
         attachment['medium_download_url'] = get_attachment_url(a, 'medium')
         attachment['mimetype'] = a.mimetype
         attachment['filename'] = a.media_file.name
+        attachment['name'] = a.name
         attachment['instance'] = a.instance.pk
         attachment['xform'] = instance.xform.id
         attachment['id'] = a.id

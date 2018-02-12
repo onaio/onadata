@@ -196,7 +196,7 @@ def update_attachment_tracking(instance):
     instance.media_count = instance.attachments_count
     instance.media_all_received = instance.media_count == instance.total_media
     instance.save(update_fields=['total_media', 'media_count',
-                                 'media_all_received'])
+                                 'media_all_received', 'json'])
 
 
 def save_attachments(xform, instance, media_files):
