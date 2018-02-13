@@ -540,6 +540,47 @@ class TestExportBuilder(TestBase):
             self.assertEqual(rows[0][5], '@_submission_time')
             self.assertEqual(rows[1][5], '2016-11-21 03:43:43')
 
+    def test_zipped_sav_export_with_duplicate_field_different_groups(self):
+        """
+        Test SAV exports duplicate fields, same group - one field in repeat
+
+        This is to test the fixing of a curious bug which happens when:
+            1. YOu have duplicate fields in the same group
+            2. One of those fields is in a repeat
+            3. export_builder.TRUNCATE_GROUP_TITLE = True
+        """
+        md = """
+        | survey |                     |          |           |           |
+        |        | type                | name     | label     | required  |
+        |        | text                | name     | Name      |           |
+        |        | begin group         | A        | A         |           |
+        |        | begin repeat        | rep      | B         |           |
+        |        | select_one y_n      | allaite  | One       | yes       |
+        |        | end repeat          | rep      |           |           |
+        |        | select_multiple x_y | allaite  | Two       | yes       |
+        |        | end group           | A        |           |           |
+
+        | choices |           |      |       |
+        |         | list name | name | label |
+        |         | y_n       | 1    | Yes   |
+        |         | y_n       | 2    | No    |
+        |         |           |      |       |
+        |         | x_y       | 1    | Oui   |
+        |         | x_y       | 2    | Non   |
+
+        """
+        survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
+        data = [
+            {"name": "Mosh",
+             'A/rep': [{"A/rep/allaite": "1"}, {"A/rep/allaite": "2"}],
+             "A/allaite": "1",
+             '_submission_time': u'2016-11-21T03:43:43.000-08:00'}]
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.set_survey(survey)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        export_builder.to_zipped_sav(temp_zip_file.name, data)
+
     def test_zipped_sav_export_with_numeric_select_multiple_field(self):
         md = """
         | survey |                     |          |           |               |
