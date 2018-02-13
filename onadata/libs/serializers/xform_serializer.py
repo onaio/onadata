@@ -348,8 +348,7 @@ class XFormListSerializer(serializers.Serializer):
                                               object_id=obj.pk)
         if object_list:
             return reverse('manifest-url', kwargs=kwargs, request=request)
-        else:
-            return None
+        return None
 
 
 class XFormManifestSerializer(serializers.Serializer):
