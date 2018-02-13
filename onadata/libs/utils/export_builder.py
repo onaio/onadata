@@ -792,7 +792,7 @@ class ExportBuilder(object):
             }
         """
         choice_questions = self.dd.get_survey_elements_with_choices()
-        self._sav_value_labels = {}
+        sav_value_labels = {}
 
         for q in choice_questions:
             if (xpath_var_names and
@@ -820,9 +820,9 @@ class ExportBuilder(object):
                         pass
                 label = self.get_choice_label_from_dict(choice['label'])
                 _value_labels[name] = label.strip()
-            self._sav_value_labels[var_name or q['name']] = _value_labels
+            sav_value_labels[var_name or q['name']] = _value_labels
 
-        return self._sav_value_labels
+        return sav_value_labels
 
     def _get_var_name(self, title, var_names):
         """GET valid SPSS varName.
