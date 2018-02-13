@@ -736,32 +736,21 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         only when the form has no media
         """
         request = self.factory.get('/')
-        response = self.view(request, username='bob', pk=self.xform.pk)
+        view = XFormListViewSet.as_view({"get": "list"})
+        response = view(request, username='bob', pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
         content = response.render().content
         manifest_url = ('<manifestUrl></manifestUrl>')
         self.assertTrue(manifest_url in content)
 
+        # Add media and test that manifest url exists
         data_type = 'media'
         data_value = 'xform {} transportation'.format(self.xform.pk)
         self._add_form_metadata(self.xform, data_type, data_value)
-        self._make_submissions()
-        self.xform.refresh_from_db()
-
-        self.view = XFormListViewSet.as_view(
-            {
-                "get": "manifest",
-                "head": "manifest"
-            }
-        )
-
-        request = self.factory.head('/')
-        response = self.view(request, pk=self.xform.pk)
-        auth = DigestAuth('bob', 'bobbob')
-        request = self.factory.get('/')
-        request.META.update(auth(request.META, response))
-        response = self.view(request, pk=self.xform.pk)
+        response = view(request, username='bob', pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
         content = response.render().content
-        manifest_url = ('<manifestUrl></manifestUrl>')
-        self.assertFalse(manifest_url in content)
+        manifest_url = (
+            '<manifestUrl>http://testserver/%s/xformsManifest'
+            '/%s</manifestUrl>') % (self.user.username, self.xform.id)
+        self.assertTrue(manifest_url in content)
