@@ -7,6 +7,7 @@ import xlrd
 import zipfile
 
 from collections import OrderedDict
+from ctypes import ArgumentError
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
 from openpyxl import load_workbook
@@ -545,7 +546,7 @@ class TestExportBuilder(TestBase):
         Test SAV exports duplicate fields, same group - one field in repeat
 
         This is to test the fixing of a curious bug which happens when:
-            1. YOu have duplicate fields in the same group
+            1. You have duplicate fields in the same group
             2. One of those fields is in a repeat
             3. export_builder.TRUNCATE_GROUP_TITLE = True
         """
@@ -570,16 +571,24 @@ class TestExportBuilder(TestBase):
 
         """
         survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
-        data = [
-            {"name": "Mosh",
-             'A/rep': [{"A/rep/allaite": "1"}, {"A/rep/allaite": "2"}],
-             "A/allaite": "1",
-             '_submission_time': u'2016-11-21T03:43:43.000-08:00'}]
         export_builder = ExportBuilder()
         export_builder.TRUNCATE_GROUP_TITLE = True
         export_builder.set_survey(survey)
+
+        labels = export_builder._get_sav_value_labels({'A/allaite': 'allaite'})
+        self.assertEqual(labels, {'allaite': {'1': 'Oui', '2': 'Non'}})
+
+        repeat_group_labels = export_builder._get_sav_value_labels(
+                                {'A/rep/allaite': 'allaite'})
+        self.assertEqual(repeat_group_labels,
+                         {'allaite': {1: 'Yes', 2: 'No'}})
+
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
-        export_builder.to_zipped_sav(temp_zip_file.name, data)
+
+        try:
+            export_builder.to_zipped_sav(temp_zip_file.name, [])
+        except ArgumentError as e:
+            self.fail(e)
 
     def test_zipped_sav_export_with_numeric_select_multiple_field(self):
         md = """
