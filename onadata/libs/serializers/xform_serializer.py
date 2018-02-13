@@ -344,8 +344,11 @@ class XFormListSerializer(serializers.Serializer):
     def get_manifest_url(self, obj):
         kwargs = {'pk': obj.pk, 'username': obj.user.username}
         request = self.context.get('request')
-
-        return reverse('manifest-url', kwargs=kwargs, request=request)
+        object_list = MetaData.objects.filter(data_type='media',
+                                              object_id=obj.pk)
+        if object_list:
+            return reverse('manifest-url', kwargs=kwargs, request=request)
+        return None
 
 
 class XFormManifestSerializer(serializers.Serializer):

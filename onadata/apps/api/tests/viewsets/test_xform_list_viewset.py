@@ -34,10 +34,8 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         request.META.update(auth(request.META, response))
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
-
         path = os.path.join(
             os.path.dirname(__file__), '..', 'fixtures', 'formList.xml')
-
         with open(path) as f:
             form_list_xml = f.read().strip()
             data = {"hash": self.xform.hash, "pk": self.xform.pk}
@@ -295,12 +293,8 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             download_url = ('<downloadUrl>http://testserver/%s/'
                             'forms/%s/form.xml</downloadUrl>') % (
                                 self.user.username, self.xform.id)
-            manifest_url = (
-                '<manifestUrl>http://testserver/%s/xformsManifest'
-                '/%s</manifestUrl>') % (self.user.username, self.xform.id)
             # check that bob's form exists in alice's formList
             self.assertTrue(download_url in content)
-            self.assertTrue(manifest_url in content)
             self.assertTrue(response.has_header('X-OpenRosa-Version'))
             self.assertTrue(
                 response.has_header('X-OpenRosa-Accept-Content-Length'))
@@ -735,3 +729,28 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         response = self.view(request, username='bob', pk=self.xform.pk)
         # success with authentication
         self.assertEqual(response.status_code, 200)
+
+    def test_manifest_url_tag_is_empty_when_no_media(self):
+        """
+        Test that content contains an empty tag for manifest url
+        only when the form has no media
+        """
+        request = self.factory.get('/')
+        view = XFormListViewSet.as_view({"get": "list"})
+        response = view(request, username='bob', pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        content = response.render().content
+        manifest_url = ('<manifestUrl></manifestUrl>')
+        self.assertTrue(manifest_url in content)
+
+        # Add media and test that manifest url exists
+        data_type = 'media'
+        data_value = 'xform {} transportation'.format(self.xform.pk)
+        self._add_form_metadata(self.xform, data_type, data_value)
+        response = view(request, username='bob', pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        content = response.render().content
+        manifest_url = (
+            '<manifestUrl>http://testserver/%s/xformsManifest'
+            '/%s</manifestUrl>') % (self.user.username, self.xform.id)
+        self.assertTrue(manifest_url in content)
