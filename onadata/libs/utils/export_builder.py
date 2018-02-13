@@ -795,7 +795,8 @@ class ExportBuilder(object):
         self._sav_value_labels = {}
 
         for q in choice_questions:
-            if q.get_abbreviated_xpath() not in xpath_var_names:
+            if (xpath_var_names and
+                    q.get_abbreviated_xpath() not in xpath_var_names):
                 continue
             var_name = xpath_var_names.get(q.get_abbreviated_xpath()) if \
                 xpath_var_names else q['name']
