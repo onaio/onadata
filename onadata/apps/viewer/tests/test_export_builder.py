@@ -838,7 +838,7 @@ class TestExportBuilder(TestBase):
         temp_xls_file.seek(0)
         # check that values for red\'s and blue\'s are set to true
         wb = load_workbook(temp_xls_file.name)
-        children_sheet = wb.get_sheet_by_name("children.info")
+        children_sheet = wb["children.info"]
         data = dict([(r[0].value, r[1].value) for r in children_sheet.columns])
         self.assertTrue(data[u'children.info/fav_colors/red\'s'])
         self.assertTrue(data[u'children.info/fav_colors/blue\'s'])
@@ -871,7 +871,7 @@ class TestExportBuilder(TestBase):
             columns_with_hxl=columns_with_hxl)
         temp_xls_file.seek(0)
         wb = load_workbook(temp_xls_file.name)
-        children_sheet = wb.get_sheet_by_name("hxl_example")
+        children_sheet = wb["hxl_example"]
         self.assertTrue(children_sheet)
 
         # we pick the second row because the first row has xform fieldnames
@@ -1331,7 +1331,7 @@ class TestExportBuilder(TestBase):
         wb = load_workbook(filename)
 
         # get the children's sheet
-        ws1 = wb.get_sheet_by_name('childrens_survey_with_a_very_l1')
+        ws1 = wb['childrens_survey_with_a_very_l1']
 
         # parent_table is in cell K2
         parent_table_name = ws1['K2'].value
@@ -1339,7 +1339,7 @@ class TestExportBuilder(TestBase):
         self.assertEqual(parent_table_name, expected_parent_table_name)
 
         # get cartoons sheet
-        ws2 = wb.get_sheet_by_name('childrens_survey_with_a_very_l2')
+        ws2 = wb['childrens_survey_with_a_very_l2']
         parent_table_name = ws2['G2'].value
         expected_parent_table_name = 'childrens_survey_with_a_very_l1'
         self.assertEqual(parent_table_name, expected_parent_table_name)
@@ -1587,7 +1587,7 @@ class TestExportBuilder(TestBase):
         temp_xls_file.seek(0)
         # check that values for red\'s and blue\'s are set to true
         wb = load_workbook(temp_xls_file.name)
-        children_sheet = wb.get_sheet_by_name("children.info")
+        children_sheet = wb["children.info"]
         data = dict([(r[0].value, r[1].value) for r in children_sheet.columns])
         self.assertTrue(data[u"fav_colors/red's"])
         self.assertTrue(data[u"fav_colors/blue's"])
@@ -1660,7 +1660,7 @@ class TestExportBuilder(TestBase):
         temp_xls_file.seek(0)
         # check that values for red\'s and blue\'s are set to true
         wb = load_workbook(temp_xls_file.name)
-        children_sheet = wb.get_sheet_by_name("children.info")
+        children_sheet = wb["children.info"]
         labels = dict([(r[0].value, r[1].value)
                        for r in children_sheet.columns])
         self.assertEqual(labels[u'name.first'], '3.1 Childs name')
@@ -1689,7 +1689,7 @@ class TestExportBuilder(TestBase):
         temp_xls_file.seek(0)
         # check that values for red\'s and blue\'s are set to true
         wb = load_workbook(temp_xls_file.name)
-        children_sheet = wb.get_sheet_by_name("children.info")
+        children_sheet = wb["children.info"]
         data = dict([(r[0].value, r[1].value) for r in children_sheet.columns])
         self.assertEqual(data['3.1 Childs name'], 'Mike')
         self.assertEqual(data['3.2 Child age'], 5)
@@ -1912,13 +1912,13 @@ class TestExportBuilder(TestBase):
         export_builder.to_xls_export(temp_xls_file.name, self.data)
         temp_xls_file.seek(0)
         wb = load_workbook(temp_xls_file.name)
-        childrens_survey_sheet = wb.get_sheet_by_name("childrens_survey_en")
+        childrens_survey_sheet = wb["childrens_survey_en"]
         labels = dict([(r[0].value, r[1].value)
                        for r in childrens_survey_sheet.columns])
         self.assertEqual(labels[u'name'], '1. What is your name?')
         self.assertEqual(labels[u'age'], '2. How old are you?')
 
-        children_sheet = wb.get_sheet_by_name("children")
+        children_sheet = wb["children"]
         labels = dict([(r[0].value, r[1].value)
                        for r in children_sheet.columns])
         self.assertEqual(labels['fav_colors/red'], 'fav_colors/Red')
@@ -1940,13 +1940,13 @@ class TestExportBuilder(TestBase):
         export_builder.to_xls_export(temp_xls_file.name, self.data)
         temp_xls_file.seek(0)
         wb = load_workbook(temp_xls_file.name)
-        childrens_survey_sheet = wb.get_sheet_by_name("childrens_survey_sw")
+        childrens_survey_sheet = wb["childrens_survey_sw"]
         labels = dict([(r[0].value, r[1].value)
                        for r in childrens_survey_sheet.columns])
         self.assertEqual(labels[u'name'], '1. Jina lako ni?')
         self.assertEqual(labels[u'age'], '2. Umri wako ni?')
 
-        children_sheet = wb.get_sheet_by_name("children")
+        children_sheet = wb["children"]
         labels = dict([(r[0].value, r[1].value)
                        for r in children_sheet.columns])
         self.assertEqual(labels['fav_colors/red'], 'fav_colors/Nyekundu')
