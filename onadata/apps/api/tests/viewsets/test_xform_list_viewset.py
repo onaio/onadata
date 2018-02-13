@@ -293,12 +293,8 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             download_url = ('<downloadUrl>http://testserver/%s/'
                             'forms/%s/form.xml</downloadUrl>') % (
                                 self.user.username, self.xform.id)
-            manifest_url = (
-                '<manifestUrl>http://testserver/%s/xformsManifest'
-                '/%s</manifestUrl>') % (self.user.username, self.xform.id)
             # check that bob's form exists in alice's formList
             self.assertTrue(download_url in content)
-            self.assertTrue(manifest_url in content)
             self.assertTrue(response.has_header('X-OpenRosa-Version'))
             self.assertTrue(
                 response.has_header('X-OpenRosa-Accept-Content-Length'))
