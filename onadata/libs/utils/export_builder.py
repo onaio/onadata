@@ -814,8 +814,7 @@ class ExportBuilder(object):
                 if q.type != u'select all that apply' and is_numeric:
                     try:
                         name = float(name) \
-                            if (not name.startswith('0') and
-                                float(name) > int(name)) else int(name)
+                            if (float(name) > int(name)) else int(name)
                     except ValueError:
                         pass
                 label = self.get_choice_label_from_dict(choice['label'])
