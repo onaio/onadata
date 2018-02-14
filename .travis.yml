@@ -46,6 +46,4 @@ install:
 script:
   - python manage.py test $TESTFOLDER --noinput --settings=onadata.settings.travis_test --parallel 4
 notifications:
-  email:
-    - tech+travis@ona.io
   slack: onaio:snkNXgprD498qQv4DgRREKJF
