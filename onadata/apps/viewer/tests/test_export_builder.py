@@ -7,6 +7,7 @@ import xlrd
 import zipfile
 
 from collections import OrderedDict
+from ctypes import ArgumentError
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
 from openpyxl import load_workbook
@@ -540,6 +541,55 @@ class TestExportBuilder(TestBase):
             self.assertEqual(rows[0][5], '@_submission_time')
             self.assertEqual(rows[1][5], '2016-11-21 03:43:43')
 
+    def test_zipped_sav_export_with_duplicate_field_different_groups(self):
+        """
+        Test SAV exports duplicate fields, same group - one field in repeat
+
+        This is to test the fixing of a curious bug which happens when:
+            1. You have duplicate fields in the same group
+            2. One of those fields is in a repeat
+            3. export_builder.TRUNCATE_GROUP_TITLE = True
+        """
+        md = """
+        | survey |                     |          |           |           |
+        |        | type                | name     | label     | required  |
+        |        | text                | name     | Name      |           |
+        |        | begin group         | A        | A         |           |
+        |        | begin repeat        | rep      | B         |           |
+        |        | select_one y_n      | allaite  | One       | yes       |
+        |        | end repeat          | rep      |           |           |
+        |        | select_multiple x_y | allaite  | Two       | yes       |
+        |        | end group           | A        |           |           |
+
+        | choices |           |      |       |
+        |         | list name | name | label |
+        |         | y_n       | 1    | Yes   |
+        |         | y_n       | 2    | No    |
+        |         |           |      |       |
+        |         | x_y       | 1    | Oui   |
+        |         | x_y       | 2    | Non   |
+
+        """
+        survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.set_survey(survey)
+
+        labels = export_builder._get_sav_value_labels({'A/allaite': 'allaite'})
+        self.assertEqual(labels, {'allaite': {'1': 'Oui', '2': 'Non'}})
+
+        repeat_group_labels = export_builder._get_sav_value_labels(
+                                {'A/rep/allaite': 'allaite'})
+        self.assertEqual(repeat_group_labels,
+                         {'allaite': {1: 'Yes', 2: 'No'}})
+
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+
+        try:
+            export_builder.to_zipped_sav(temp_zip_file.name, [])
+        except ArgumentError as e:
+            self.fail(e)
+
     def test_zipped_sav_export_with_numeric_select_multiple_field(self):
         md = """
         | survey |                     |          |           |               |
@@ -788,7 +838,7 @@ class TestExportBuilder(TestBase):
         temp_xls_file.seek(0)
         # check that values for red\'s and blue\'s are set to true
         wb = load_workbook(temp_xls_file.name)
-        children_sheet = wb.get_sheet_by_name("children.info")
+        children_sheet = wb["children.info"]
         data = dict([(r[0].value, r[1].value) for r in children_sheet.columns])
         self.assertTrue(data[u'children.info/fav_colors/red\'s'])
         self.assertTrue(data[u'children.info/fav_colors/blue\'s'])
@@ -821,7 +871,7 @@ class TestExportBuilder(TestBase):
             columns_with_hxl=columns_with_hxl)
         temp_xls_file.seek(0)
         wb = load_workbook(temp_xls_file.name)
-        children_sheet = wb.get_sheet_by_name("hxl_example")
+        children_sheet = wb["hxl_example"]
         self.assertTrue(children_sheet)
 
         # we pick the second row because the first row has xform fieldnames
@@ -1281,7 +1331,7 @@ class TestExportBuilder(TestBase):
         wb = load_workbook(filename)
 
         # get the children's sheet
-        ws1 = wb.get_sheet_by_name('childrens_survey_with_a_very_l1')
+        ws1 = wb['childrens_survey_with_a_very_l1']
 
         # parent_table is in cell K2
         parent_table_name = ws1['K2'].value
@@ -1289,7 +1339,7 @@ class TestExportBuilder(TestBase):
         self.assertEqual(parent_table_name, expected_parent_table_name)
 
         # get cartoons sheet
-        ws2 = wb.get_sheet_by_name('childrens_survey_with_a_very_l2')
+        ws2 = wb['childrens_survey_with_a_very_l2']
         parent_table_name = ws2['G2'].value
         expected_parent_table_name = 'childrens_survey_with_a_very_l1'
         self.assertEqual(parent_table_name, expected_parent_table_name)
@@ -1537,7 +1587,7 @@ class TestExportBuilder(TestBase):
         temp_xls_file.seek(0)
         # check that values for red\'s and blue\'s are set to true
         wb = load_workbook(temp_xls_file.name)
-        children_sheet = wb.get_sheet_by_name("children.info")
+        children_sheet = wb["children.info"]
         data = dict([(r[0].value, r[1].value) for r in children_sheet.columns])
         self.assertTrue(data[u"fav_colors/red's"])
         self.assertTrue(data[u"fav_colors/blue's"])
@@ -1610,7 +1660,7 @@ class TestExportBuilder(TestBase):
         temp_xls_file.seek(0)
         # check that values for red\'s and blue\'s are set to true
         wb = load_workbook(temp_xls_file.name)
-        children_sheet = wb.get_sheet_by_name("children.info")
+        children_sheet = wb["children.info"]
         labels = dict([(r[0].value, r[1].value)
                        for r in children_sheet.columns])
         self.assertEqual(labels[u'name.first'], '3.1 Childs name')
@@ -1639,7 +1689,7 @@ class TestExportBuilder(TestBase):
         temp_xls_file.seek(0)
         # check that values for red\'s and blue\'s are set to true
         wb = load_workbook(temp_xls_file.name)
-        children_sheet = wb.get_sheet_by_name("children.info")
+        children_sheet = wb["children.info"]
         data = dict([(r[0].value, r[1].value) for r in children_sheet.columns])
         self.assertEqual(data['3.1 Childs name'], 'Mike')
         self.assertEqual(data['3.2 Child age'], 5)
@@ -1862,13 +1912,13 @@ class TestExportBuilder(TestBase):
         export_builder.to_xls_export(temp_xls_file.name, self.data)
         temp_xls_file.seek(0)
         wb = load_workbook(temp_xls_file.name)
-        childrens_survey_sheet = wb.get_sheet_by_name("childrens_survey_en")
+        childrens_survey_sheet = wb["childrens_survey_en"]
         labels = dict([(r[0].value, r[1].value)
                        for r in childrens_survey_sheet.columns])
         self.assertEqual(labels[u'name'], '1. What is your name?')
         self.assertEqual(labels[u'age'], '2. How old are you?')
 
-        children_sheet = wb.get_sheet_by_name("children")
+        children_sheet = wb["children"]
         labels = dict([(r[0].value, r[1].value)
                        for r in children_sheet.columns])
         self.assertEqual(labels['fav_colors/red'], 'fav_colors/Red')
@@ -1890,13 +1940,13 @@ class TestExportBuilder(TestBase):
         export_builder.to_xls_export(temp_xls_file.name, self.data)
         temp_xls_file.seek(0)
         wb = load_workbook(temp_xls_file.name)
-        childrens_survey_sheet = wb.get_sheet_by_name("childrens_survey_sw")
+        childrens_survey_sheet = wb["childrens_survey_sw"]
         labels = dict([(r[0].value, r[1].value)
                        for r in childrens_survey_sheet.columns])
         self.assertEqual(labels[u'name'], '1. Jina lako ni?')
         self.assertEqual(labels[u'age'], '2. Umri wako ni?')
 
-        children_sheet = wb.get_sheet_by_name("children")
+        children_sheet = wb["children"]
         labels = dict([(r[0].value, r[1].value)
                        for r in children_sheet.columns])
         self.assertEqual(labels['fav_colors/red'], 'fav_colors/Nyekundu')

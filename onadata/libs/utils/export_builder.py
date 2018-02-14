@@ -791,36 +791,37 @@ class ExportBuilder(object):
                 'available': {0: 'No', 1: 'Yes'}
             }
         """
-        if not hasattr(self, '_sav_value_labels'):
-            choice_questions = self.dd.get_survey_elements_with_choices()
-            self._sav_value_labels = {}
+        choice_questions = self.dd.get_survey_elements_with_choices()
+        sav_value_labels = {}
 
-            for q in choice_questions:
-                var_name = xpath_var_names.get(q.get_abbreviated_xpath()) if \
-                    xpath_var_names else q['name']
-                choices = q.to_json_dict().get('children')
-                if choices is None:
-                    choices = self.survey.get('choices')
-                    if choices is not None and q.get('itemset'):
-                        choices = choices.get(q.get('itemset'))
-                _value_labels = {}
-                is_numeric = is_all_numeric([c['name'] for c in choices])
-                for choice in choices:
-                    name = choice['name'].strip()
-                    # should skip select multiple and zero padded numbers e.g
-                    # 009 or 09, they should be treated as strings
-                    if q.type != u'select all that apply' and is_numeric:
-                        try:
-                            name = float(name) \
-                                if (not name.startswith('0') and
-                                    float(name) > int(name)) else int(name)
-                        except ValueError:
-                            pass
-                    label = self.get_choice_label_from_dict(choice['label'])
-                    _value_labels[name] = label.strip()
-                self._sav_value_labels[var_name or q['name']] = _value_labels
+        for q in choice_questions:
+            if (xpath_var_names and
+                    q.get_abbreviated_xpath() not in xpath_var_names):
+                continue
+            var_name = xpath_var_names.get(q.get_abbreviated_xpath()) if \
+                xpath_var_names else q['name']
+            choices = q.to_json_dict().get('children')
+            if choices is None:
+                choices = self.survey.get('choices')
+                if choices is not None and q.get('itemset'):
+                    choices = choices.get(q.get('itemset'))
+            _value_labels = {}
+            is_numeric = is_all_numeric([c['name'] for c in choices])
+            for choice in choices:
+                name = choice['name'].strip()
+                # should skip select multiple and zero padded numbers e.g
+                # 009 or 09, they should be treated as strings
+                if q.type != u'select all that apply' and is_numeric:
+                    try:
+                        name = float(name) \
+                            if (float(name) > int(name)) else int(name)
+                    except ValueError:
+                        pass
+                label = self.get_choice_label_from_dict(choice['label'])
+                _value_labels[name] = label.strip()
+            sav_value_labels[var_name or q['name']] = _value_labels
 
-        return self._sav_value_labels
+        return sav_value_labels
 
     def _get_var_name(self, title, var_names):
         """GET valid SPSS varName.
@@ -899,6 +900,7 @@ class ExportBuilder(object):
         xpath_var_names = dict([(xpath, var_name)
                                 for field, label, xpath, var_name
                                 in fields_and_labels])
+
         all_value_labels = self._get_sav_value_labels(xpath_var_names)
 
         duplicate_names = []  # list of (xpath, var_name)
