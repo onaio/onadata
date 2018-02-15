@@ -28,7 +28,7 @@ from onadata.apps.api.tests.mocked_data import (
     enketo_error_mock, enketo_mock, enketo_mock_with_form_defaults,
     enketo_preview_url_mock, enketo_url_mock, external_mock,
     external_mock_single_instance, external_mock_single_instance2,
-    xls_url_no_extension_mock,
+    xls_url_no_extension_mock, enketo_error500_mock, enketo_error502_mock,
     xls_url_no_extension_mock_content_disposition_attr_jumbled_v1,
     xls_url_no_extension_mock_content_disposition_attr_jumbled_v2)
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
@@ -684,6 +684,34 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertEqual(
                     response.status_code, status.HTTP_400_BAD_REQUEST)
                 self.assertEqual(response.data, data)
+
+    def test_enketo_url_error500(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({
+                'get': 'enketo'
+            })
+            formid = self.xform.pk
+            # no tags
+            request = self.factory.get('/', **self.extra)
+            with HTTMock(enketo_error500_mock):
+                response = view(request, pk=formid)
+                self.assertEqual(
+                    response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_enketo_url_error502(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({
+                'get': 'enketo'
+            })
+            formid = self.xform.pk
+            # no tags
+            request = self.factory.get('/', **self.extra)
+            with HTTMock(enketo_error502_mock):
+                response = view(request, pk=formid)
+                self.assertEqual(
+                    response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_enketo_url(self):
         with HTTMock(enketo_preview_url_mock, enketo_url_mock):

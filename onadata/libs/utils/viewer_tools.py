@@ -205,8 +205,8 @@ def enketo_url(form_url,
         except ValueError:
             pass
         else:
-            url = (data.get('edit_url') or data.get('offline_url')
-                   or data.get('url'))
+            url = (data.get('edit_url') or data.get('offline_url') or
+                   data.get('url'))
             if url:
                 return url
     else:
