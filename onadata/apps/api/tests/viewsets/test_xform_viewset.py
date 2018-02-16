@@ -710,8 +710,14 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get('/', **self.extra)
             with HTTMock(enketo_error502_mock):
                 response = view(request, pk=formid)
+                data = {
+                    'message':
+                    u"Enketo error: Sorry, we cannot load your form right "
+                    "now.  Please try again later."
+                }
                 self.assertEqual(
                     response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertEqual(response.data, data)
 
     def test_enketo_url(self):
         with HTTMock(enketo_preview_url_mock, enketo_url_mock):

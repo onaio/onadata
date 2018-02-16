@@ -215,6 +215,10 @@ def enketo_url(form_url,
         except ValueError:
             report_exception("HTTP Error {}".format(response.status_code),
                              response.text, sys.exc_info())
+            if response.status_code == 502:
+                raise EnketoError(
+                    u"Sorry, we cannot load your form right now.  Please try "
+                    "again later.")
             raise EnketoError()
         else:
             if 'message' in data:
