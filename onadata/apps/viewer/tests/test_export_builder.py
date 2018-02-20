@@ -924,9 +924,10 @@ class TestExportBuilder(TestBase):
         children_sheet = wb.get_sheet_by_name("exp")
         self.assertTrue(children_sheet)
         rows = [row for row in children_sheet.rows]
-        hxl_row = [a.value for a in rows[1]]
-        attachment_url = "http://example.com/api/v1/files/1?filename=bob/attachments/1300221157303.jpg"  # noqa
-        self.assertIn(attachment_url, hxl_row)
+        row = [a.value for a in rows[1]]
+        attachment_id = xdata[0]['_attachments'][0]['id']
+        attachment_url = 'http://example.com/api/v1/files/{}?filename=bob/attachments/1300221157303.jpg'.format(attachment_id) # noqa
+        self.assertEqual(attachment_url, str(row[0]))
         temp_xls_file.close()
 
     def test_generation_of_multi_selects_works(self):
