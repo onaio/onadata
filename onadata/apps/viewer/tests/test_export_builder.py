@@ -5,6 +5,7 @@ import shutil
 import tempfile
 import xlrd
 import zipfile
+from cStringIO import StringIO
 
 from collections import OrderedDict
 from ctypes import ArgumentError
@@ -18,11 +19,14 @@ from savReaderWriter import SavHeaderReader
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import _encode_for_mongo
+from onadata.apps.viewer.models.parsed_instance import query_data
 from onadata.apps.viewer.tests.export_helpers import viewer_fixture_path
+from onadata.apps.logger.import_tools import django_file
 from onadata.libs.utils.export_builder import dict_to_joined_export
 from onadata.libs.utils.export_tools import ExportBuilder, get_columns_with_hxl
 from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
 from onadata.libs.utils.csv_builder import get_labels_from_columns
+from onadata.libs.utils.logger_tools import create_instance
 
 
 def _logger_fixture_path(*args):
@@ -878,6 +882,52 @@ class TestExportBuilder(TestBase):
         rows = [row for row in children_sheet.rows]
         hxl_row = [a.value for a in rows[1]]
         self.assertIn(u'#age', hxl_row)
+
+    def test_export_with_image_attachments(self):
+        """
+        Test that the url for images is displayed correctly in exports
+        """
+        md = """
+        | survey |       |        |       |
+        |        | type  | name   | label |
+        |        | image | image1 | Photo |
+        """
+        self._create_user_and_login()
+        self.xform = self._publish_markdown(md, self.user)
+
+        xml_string = """
+        <data id="{}">
+            <meta>
+                <instanceID>uuid:UJ6jSMAJ1Jz4EszdgHy8n852AsKaqBPO5</instanceID>
+            </meta>
+            <image1>1300221157303.jpg</image1>
+        </data>
+        """.format(self.xform.id_string)
+
+        file_path = "{}/apps/logger/tests/Health_2011_03_13."\
+                    "xml_2011-03-15_20-30-28/1300221157303"\
+                    ".jpg".format(settings.PROJECT_ROOT)
+        media_file = django_file(path=file_path,
+                                 field_name="image1",
+                                 content_type="image/jpeg")
+        create_instance(self.user.username, StringIO(xml_string.strip()),
+                        media_files=[media_file])
+
+        xdata = query_data(self.xform)
+        survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+        export_builder.to_xls_export(temp_xls_file, xdata)
+        temp_xls_file.seek(0)
+        wb = load_workbook(temp_xls_file)
+        children_sheet = wb.get_sheet_by_name("exp")
+        self.assertTrue(children_sheet)
+        rows = [row for row in children_sheet.rows]
+        hxl_row = [a.value for a in rows[1]]
+        attachment_url = "http://example.com/api/v1/files/1?filename=bob/attachments/1300221157303.jpg"  # noqa
+        self.assertIn(attachment_url, hxl_row)
+        temp_xls_file.close()
 
     def test_generation_of_multi_selects_works(self):
         survey = self._create_childrens_survey()
