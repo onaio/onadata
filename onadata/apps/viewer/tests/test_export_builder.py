@@ -927,7 +927,7 @@ class TestExportBuilder(TestBase):
         row = [a.value for a in rows[1]]
         attachment_id = xdata[0]['_attachments'][0]['id']
         attachment_url = 'http://example.com/api/v1/files/{}?filename=bob/attachments/1300221157303.jpg'.format(attachment_id) # noqa
-        self.assertEqual(attachment_url, str(row[0]))
+        self.assertIn(attachment_url, row)
         temp_xls_file.close()
 
     def test_generation_of_multi_selects_works(self):
