@@ -236,7 +236,7 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
                             'encrypted', 'bamboo_dataset',
                             'last_submission_time', 'is_merged_dataset')
         exclude = ('json', 'xml', 'xls', 'user', 'has_start_time', 'shared',
-                   'shared_data', 'deleted_at')
+                   'shared_data', 'deleted_at', 'users')
 
 
 class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
