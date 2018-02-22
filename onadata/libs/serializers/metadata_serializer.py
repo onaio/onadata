@@ -4,6 +4,7 @@ MetaData Serializer
 """
 
 import os
+import mimetypes
 from urlparse import urlparse
 
 from django.contrib.contenttypes.models import ContentType
@@ -12,6 +13,7 @@ from django.core.validators import URLValidator
 from django.db.utils import IntegrityError
 from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
+from django.conf import settings
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
@@ -142,6 +144,19 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                   "field is required.")
             })
 
+        if data_file:
+            allowed_types = settings.SUPPORTED_MEDIA_UPLOAD_TYPES
+            data_content_type = data_file.content_type \
+                if data_file.content_type in allowed_types else \
+                mimetypes.guess_type(data_file.name)[0]
+            if data_content_type not in allowed_types:
+                raise serializers.ValidationError({
+                    'data_file':
+                    _('Unsupported media file type %s' % data_content_type)
+                    })
+            else:
+                attrs['data_file_type'] = data_content_type
+
         if data_type == 'media' and data_file is None:
             try:
                 URLValidator()(value)
@@ -205,11 +220,11 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
     def create(self, validated_data):
         data_type = validated_data.get('data_type')
         data_file = validated_data.get('data_file')
+        data_file_type = validated_data.get('data_file_type')
 
         content_object = self.get_content_object(validated_data)
         data_value = data_file.name \
             if data_file else validated_data.get('data_value')
-        data_file_type = data_file.content_type if data_file else None
 
         # not exactly sure what changed in the requests.FILES for django 1.7
         # csv files uploaded in windows do not have the text/csv content_type

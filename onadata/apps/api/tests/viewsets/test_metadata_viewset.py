@@ -49,9 +49,9 @@ class TestMetaDataViewSet(TestAbstractViewSet):
                 data.update({
                     'data_file': media_file,
                 })
-                self._post_metadata(data)
+                return self._post_metadata(data)
         else:
-            self._post_metadata(data)
+            return self._post_metadata(data)
 
     def _add_instance_metadata(self,
                                data_type,
@@ -358,11 +358,13 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         MetaData.objects.all().delete()
         expected_metadata_count = 2
 
-        self._add_project_metadata(
+        response2 = self._add_project_metadata(
             self.project, 'media', "check.png", self.path)
+        self.assertTrue("image/png" in response2.data['data_file_type'])
 
-        self._add_form_metadata(
+        response = self._add_form_metadata(
             self.xform, 'supporting_doc', "bla.png", self.path)
+        self.assertTrue("image/png" in response.data['data_file_type'])
 
         view = MetaDataViewSet.as_view({'get': 'list'})
         request = self.factory.get("/", **self.extra)

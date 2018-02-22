@@ -477,16 +477,27 @@ if isinstance(TEMPLATE_OVERRIDE_ROOT_DIR, basestring):
 os.environ['wsgi.url_scheme'] = 'https'
 
 SUPPORTED_MEDIA_UPLOAD_TYPES = [
-    'image/jpeg',
-    'image/png',
+    'audio/mp3',
     'audio/mpeg',
-    'video/3gpp',
     'audio/wav',
     'audio/x-m4a',
-    'audio/mp3',
+    'image/jpeg',
+    'image/png',
+    'image/svg+xml',
     'text/csv',
-    'application/zip',
+    'video/3gpp',
     'video/mp4',
+    'application/pdf',
+    'application/msword',
+    'application/vnd.ms-excel',
+    'application/vnd.ms-powerpoint'
+    'application/vnd.oasis.opendocument.text',
+    'application/vnd.oasis.opendocument.spreadsheet',
+    'application/vnd.oasis.opendocument.presentation',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/zip',
 
 ]
 
