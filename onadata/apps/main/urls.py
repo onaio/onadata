@@ -291,7 +291,7 @@ urlpatterns = [
 ]
 
 
-settings.PRICING and urlpatterns.append(
+getattr(settings, "PRICING", False) and urlpatterns.append(
     url(r'^pricing/', include('pricing.urls'))
 )
 
