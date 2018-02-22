@@ -290,6 +290,11 @@ urlpatterns = [
     url(r'^static/(?P<path>.*)$', staticfiles_views.serve)
 ]
 
+
+settings.PRICING and urlpatterns.append(
+    url(r'^pricing/', include('pricing.urls'))
+)
+
 custom_urls = getattr(settings, 'CUSTOM_MAIN_URLS', None)
 
 if custom_urls:
