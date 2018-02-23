@@ -290,12 +290,6 @@ urlpatterns = [
     url(r'^static/(?P<path>.*)$', staticfiles_views.serve)
 ]
 
-
-apps_urls = getattr(settings, "APPS_URLS", None)
-if apps_urls:
-    for route, url_module in apps_urls.iteritems():
-        urlpatterns.append(url(route, include(url_module)))
-
 custom_urls = getattr(settings, 'CUSTOM_MAIN_URLS', None)
 
 if custom_urls:
