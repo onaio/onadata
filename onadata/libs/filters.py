@@ -62,6 +62,15 @@ class XFormListXFormPKFilter(object):
         return queryset
 
 
+class FormIDFilter(django_filter_filters.FilterSet):
+    formID = django_filter_filters.CharFilter(name="id_string",
+                                              lookup_expr='exact')
+
+    class Meta:
+        model = XForm
+        fields = ['formID']
+
+
 class OrganizationPermissionFilter(filters.DjangoObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):
