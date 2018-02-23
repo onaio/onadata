@@ -86,6 +86,14 @@ class TestUserProfileViewSet(TestAbstractViewSet):
                          sorted([self.user_profile_data(), deno_profile_data]))
         self.assertEqual(len(response.data), 2)
 
+        # Inactive user not in list
+        user_deno.is_active = False
+        user_deno.save()
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertNotIn(user_deno.pk, [user['id'] for user in response.data])
+
     def test_user_profile_list_with_and_without_users_param(self):
         request = self.factory.post(
             '/api/v1/profiles', data=json.dumps(_profile_data()),

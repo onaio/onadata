@@ -79,13 +79,14 @@ class OrganizationPermissionFilter(filters.DjangoObjectPermissionsFilter):
         if view.action == 'retrieve' and request.method == 'GET':
             return queryset.model.objects.all()
 
-        filtered_queryset = super(self.__class__, self).filter_queryset(
-            request, queryset, view)
+        filtered_queryset = super(OrganizationPermissionFilter, self)\
+            .filter_queryset(request, queryset, view)
         org_users = set([group.team.organization
                          for group in request.user.groups.all()] + [
             o.user for o in filtered_queryset])
 
-        return queryset.model.objects.filter(user__in=org_users)
+        return queryset.model.objects.filter(user__in=org_users,
+                                             user__is_active=True)
 
 
 class XFormOwnerFilter(filters.BaseFilterBackend):

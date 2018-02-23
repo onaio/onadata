@@ -55,6 +55,14 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.company_data])
 
+        # inactive organization
+        self.organization.user.is_active = False
+        self.organization.user.save()
+
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
     def test_orgs_list_for_anonymous_user(self):
         self._org_create()
         request = self.factory.get('/')
