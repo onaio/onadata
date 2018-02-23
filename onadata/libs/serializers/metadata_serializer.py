@@ -152,8 +152,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             if data_content_type not in allowed_types:
                 raise serializers.ValidationError({
                     'data_file':
-                    _('Unsupported media file type %s' % data_content_type)
-                    })
+                    _('Unsupported media file type %s' % data_content_type)})
             else:
                 attrs['data_file_type'] = data_content_type
 
@@ -213,9 +212,9 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         """
 
         if validated_data:
-            return (validated_data.get('xform')
-                    or validated_data.get('project')
-                    or validated_data.get('instance'))
+            return (validated_data.get('xform') or
+                    validated_data.get('project') or
+                    validated_data.get('instance'))
 
     def create(self, validated_data):
         data_type = validated_data.get('data_type')

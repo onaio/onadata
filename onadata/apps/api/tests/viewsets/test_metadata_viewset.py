@@ -14,7 +14,7 @@ from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.serializers.metadata_serializer import UNIQUE_TOGETHER_ERROR
 from onadata.libs.utils.common_tags import XFORM_META_PERMS
 from onadata.libs.permissions import (EditorRole, EditorMinorRole,
-                                      DataEntryRole,  DataEntryOnlyRole)
+                                      DataEntryRole, DataEntryOnlyRole)
 
 
 class TestMetaDataViewSet(TestAbstractViewSet):
@@ -358,13 +358,13 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         MetaData.objects.all().delete()
         expected_metadata_count = 2
 
-        response2 = self._add_project_metadata(
+        project_response = self._add_project_metadata(
             self.project, 'media', "check.png", self.path)
-        self.assertTrue("image/png" in response2.data['data_file_type'])
+        self.assertTrue("image/png" in project_response.data['data_file_type'])
 
-        response = self._add_form_metadata(
+        form_response = self._add_form_metadata(
             self.xform, 'supporting_doc', "bla.png", self.path)
-        self.assertTrue("image/png" in response.data['data_file_type'])
+        self.assertTrue("image/png" in form_response.data['data_file_type'])
 
         view = MetaDataViewSet.as_view({'get': 'list'})
         request = self.factory.get("/", **self.extra)

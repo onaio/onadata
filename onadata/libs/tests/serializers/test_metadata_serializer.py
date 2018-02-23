@@ -15,6 +15,7 @@ class TestMetaDataViewSerializer(TestAbstractViewSet):
     """
     Test MetaDataSerializer
     """
+
     def test_data_value_is_required(self):
         """
         Test media `data_value` is required.
@@ -51,7 +52,8 @@ class TestMetaDataViewSerializer(TestAbstractViewSet):
         self._login_user_and_profile()
         self._publish_form_with_hxl_support()
         data_value = 'sample.svg'
-        path = os.path.join(os.path.dirname( __file__), 'fixtures', 'sample.svg')
+        path = os.path.join(os.path.dirname(__file__), 'fixtures',
+                            'sample.svg')
         with open(path) as f:
             f = InMemoryUploadedFile(
                 f, 'media', data_value, 'application/octet-stream', 2324, None)
@@ -63,9 +65,8 @@ class TestMetaDataViewSerializer(TestAbstractViewSet):
             }
             serializer = MetaDataSerializer(data=data)
             self.assertFalse(serializer.is_valid())
-            self.assertEqual(
-            serializer.errors['data_file'],
-            [("Unsupported media file type image/svg+xml")])
+            self.assertEqual(serializer.errors['data_file'],
+                             [("Unsupported media file type image/svg+xml")])
 
     def test_svg_media_files(self):
         """
@@ -74,7 +75,8 @@ class TestMetaDataViewSerializer(TestAbstractViewSet):
         self._login_user_and_profile()
         self._publish_form_with_hxl_support()
         data_value = 'sample.svg'
-        path = os.path.join(os.path.dirname( __file__), 'fixtures', 'sample.svg')
+        path = os.path.join(os.path.dirname(__file__), 'fixtures',
+                            'sample.svg')
         with open(path) as f:
             f = InMemoryUploadedFile(
                 f, 'media', data_value, 'application/octet-stream', 2324, None)
@@ -87,4 +89,4 @@ class TestMetaDataViewSerializer(TestAbstractViewSet):
             serializer = MetaDataSerializer(data=data)
             self.assertTrue(serializer.is_valid())
             self.assertEquals(serializer.validated_data['data_file_type'],
-                'image/svg+xml')
+                              'image/svg+xml')

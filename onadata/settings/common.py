@@ -495,7 +495,8 @@ SUPPORTED_MEDIA_UPLOAD_TYPES = [
     'application/vnd.oasis.opendocument.spreadsheet',
     'application/vnd.oasis.opendocument.presentation',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'application/vnd.openxmlformats-officedocument.presentationml.\
+     presentation',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/zip',
 
