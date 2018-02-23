@@ -43,7 +43,7 @@ class OrganizationProfileViewSet(AuthenticateHeaderMixin,
     """
     List, Retrieve, Update, Create/Register Organizations.
     """
-    queryset = OrganizationProfile.objects.all()
+    queryset = OrganizationProfile.objects.filter(user__is_active=True)
     serializer_class = serializer_from_settings()
     lookup_field = 'user'
     permission_classes = [permissions.OrganizationProfilePermissions]

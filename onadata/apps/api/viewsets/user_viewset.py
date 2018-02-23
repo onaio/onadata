@@ -1,3 +1,7 @@
+# -*- coding=utf-8 -*-
+"""
+Users /users API endpoint.
+"""
 from django.conf import settings
 from django.contrib.auth.models import User
 from rest_framework.generics import get_object_or_404
@@ -13,43 +17,40 @@ from onadata.libs.serializers.user_serializer import UserSerializer
 from onadata.apps.api import permissions
 from onadata.apps.api.tools import get_baseviewset_class
 
+BaseViewset = get_baseviewset_class()  # pylint: disable=invalid-name
 
-BaseViewset = get_baseviewset_class()
 
-
-class UserViewSet(AuthenticateHeaderMixin,
-                  CacheControlMixin, ETagsMixin, BaseViewset,
-                  ReadOnlyModelViewSet):
+# pylint: disable=too-many-ancestors
+class UserViewSet(AuthenticateHeaderMixin, BaseViewset, CacheControlMixin,
+                  ETagsMixin, ReadOnlyModelViewSet):
     """
     This endpoint allows you to list and retrieve user's first and last names.
     """
-    queryset = User.objects.exclude(
-        username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
-    )
+    queryset = User.objects.filter(is_active=True).exclude(
+        username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME, )
     serializer_class = UserSerializer
     lookup_field = 'username'
     permission_classes = [permissions.UserViewSetPermissions]
-    filter_backends = (filters.SearchFilter, UserNoOrganizationsFilter,)
-    search_fields = ('=email',)
+    filter_backends = (filters.SearchFilter, UserNoOrganizationsFilter, )
+    search_fields = ('=email', )
 
-    def get_object(self, queryset=None):
+    def get_object(self):
         """Lookup a  username by pk else use lookup_field"""
-        if queryset is None:
-            queryset = self.filter_queryset(self.get_queryset())
+        queryset = self.filter_queryset(self.get_queryset())
 
-        lookup = self.kwargs.get(self.lookup_field)
-        filter_kwargs = {self.lookup_field: lookup}
+        username = self.kwargs.get(self.lookup_field)
+        filter_kwargs = {self.lookup_field: username}
 
         try:
-            pk = int(lookup)
+            user_id = int(username)
         except ValueError:
-            filter_kwargs = {'%s__iexact' % self.lookup_field: lookup}
+            filter_kwargs = {'%s__iexact' % self.lookup_field: username}
         else:
-            filter_kwargs = {'pk': pk}
+            filter_kwargs = {'pk': user_id}
 
-        obj = get_object_or_404(queryset, **filter_kwargs)
+        user = get_object_or_404(queryset, **filter_kwargs)
 
         # May raise a permission denied
-        self.check_object_permissions(self.request, obj)
+        self.check_object_permissions(self.request, user)
 
-        return obj
+        return user

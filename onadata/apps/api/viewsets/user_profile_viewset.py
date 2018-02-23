@@ -65,9 +65,9 @@ class UserProfileViewSet(AuthenticateHeaderMixin,
     """
     List, Retrieve, Update, Create/Register users.
     """
-    queryset = UserProfile.objects.select_related().exclude(
-        user__username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
-    )
+    queryset = UserProfile.objects.select_related().filter(
+        user__is_active=True).exclude(
+        user__username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME)
     serializer_class = serializer_from_settings()
     lookup_field = 'user'
     permission_classes = [UserProfilePermissions]

@@ -35,6 +35,14 @@ class TestUserViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data, self.data)
 
+        # user bob is_active = False
+        self.user.is_active = False
+        self.user.save()
+
+        view = UserViewSet.as_view({'get': 'retrieve'})
+        response = view(request, username='BoB')
+        self.assertEqual(response.status_code, 404)
+
     def test_user_anon(self):
         """Test anonymous user can access user info"""
         request = self.factory.get('/')
