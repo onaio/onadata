@@ -291,9 +291,10 @@ urlpatterns = [
 ]
 
 
-getattr(settings, "PRICING", False) and urlpatterns.append(
-    url(r'^pricing/', include('pricing.urls'))
-)
+apps_urls = getattr(settings, "APPS_URLS", None)
+if apps_urls:
+    for route, url_module in apps_urls.iteritems():
+        urlpatterns.append(url(route, include(url_module)))
 
 custom_urls = getattr(settings, 'CUSTOM_MAIN_URLS', None)
 
