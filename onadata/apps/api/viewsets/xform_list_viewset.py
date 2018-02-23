@@ -2,6 +2,7 @@ from django.conf import settings
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.views.decorators.cache import never_cache
+from django_filters import rest_framework as django_filter_filters
 
 from rest_framework import viewsets
 from rest_framework import permissions
@@ -39,8 +40,10 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
     authentication_classes = (DigestAuthentication,
                               EnketoTokenAuthentication,)
     content_negotiation_class = MediaFileContentNegotiation
+    filter_class = filters.FormIDFilter
     filter_backends = (filters.XFormListObjectPermissionFilter,
-                       filters.XFormListXFormPKFilter)
+                       filters.XFormListXFormPKFilter,
+                       django_filter_filters.DjangoFilterBackend)
     queryset = XForm.objects.filter(
         downloadable=True, deleted_at=None,
         is_merged_dataset=False).only('id_string', 'title', 'version', 'uuid',
