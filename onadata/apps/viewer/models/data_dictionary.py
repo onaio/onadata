@@ -26,6 +26,16 @@ from onadata.libs.utils.cache_tools import (PROJ_BASE_FORMS_CACHE,
 from onadata.libs.utils.model_tools import get_columns_with_hxl, set_uuid
 
 
+def is_newline_error(e):
+    """
+    Return True is e is a new line error based on the error text.
+    Otherwise return False.
+    """
+    newline_error = u'new-line character seen in unquoted field - do you need'\
+        u' to open the file in universal-newline mode?'
+    return newline_error == unicode(e)
+
+
 def process_xlsform(xls, default_name):
     """
     Process XLSForm file and return the survey dictionary for the XLSForm.
@@ -46,10 +56,7 @@ def process_xlsform(xls, default_name):
     try:
         return parse_file_to_json(xls.name, file_object=file_object or xls)
     except csv.Error as e:
-        newline_error = u'new-line character seen in unquoted field '\
-            u'- do you need to open the file in universal-newline '\
-            u'mode?'
-        if newline_error == unicode(e):
+        if is_newline_error(e):
             xls.seek(0)
             file_object = StringIO(
                 u'\n'.join(xls.read().splitlines()))
