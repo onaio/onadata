@@ -177,7 +177,10 @@ class XFormMixin(object):
             count = cache.get(key)
             if count:
                 return count
-            count = obj.submission_count()
+
+            force_update = True if obj.is_merged_dataset else False
+            count = obj.submission_count(force_update)
+
             cache.set(key, count)
             return count
 
