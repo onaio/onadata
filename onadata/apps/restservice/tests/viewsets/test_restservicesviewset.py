@@ -76,7 +76,9 @@ class TestRestServicesViewSet(TestAbstractViewSet):
             'flow_uuid': u'sdfskhfskdjhfs',
             'service_url': u'https://textit.io',
             'id': rs.pk,
-            'xform': self.xform.pk
+            'xform': self.xform.pk,
+            'active': True,
+            'inactive_reason': ''
         }
         response.data.pop('date_modified')
         response.data.pop('date_created')
@@ -102,7 +104,9 @@ class TestRestServicesViewSet(TestAbstractViewSet):
             'flow_uuid': u'sdfskhfskdjhfs',
             'service_url': u'https://textit.io',
             'id': _id,
-            'xform': self.xform.pk
+            'xform': self.xform.pk,
+            'active': True,
+            'inactive_reason': ''
         }
         response.data.pop('date_modified')
         response.data.pop('date_created')
@@ -201,7 +205,9 @@ class TestRestServicesViewSet(TestAbstractViewSet):
             'id': rest.pk,
             'xform': self.xform.pk,
             'name': u'testservice',
-            'service_url': u'http://serviec.io'
+            'service_url': u'http://serviec.io',
+            'active': True,
+            'inactive_reason': ''
         }
         response.data.pop('date_modified')
         response.data.pop('date_created')

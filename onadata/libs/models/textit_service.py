@@ -33,6 +33,8 @@ class TextItService(object):
         self.service_url = service_url
         self.date_created = None
         self.date_modified = None
+        self.active = True
+        self.inactive_reason = ""
 
     def save(self):
         """
@@ -58,6 +60,8 @@ class TextItService(object):
         self.pk = service.pk
         self.date_created = service.date_created
         self.date_modified = service.date_modified
+        self.active = service.active
+        self.inactive_reason = service.inactive_reason
 
         data_value = '{}|{}|{}'.format(self.auth_token,
                                        self.flow_uuid,
