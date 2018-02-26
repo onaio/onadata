@@ -921,7 +921,7 @@ class TestExportBuilder(TestBase):
         export_builder.to_xls_export(temp_xls_file, xdata)
         temp_xls_file.seek(0)
         wb = load_workbook(temp_xls_file)
-        children_sheet = wb.get_sheet_by_name("exp")
+        children_sheet = wb["exp"]
         self.assertTrue(children_sheet)
         rows = [row for row in children_sheet.rows]
         row = [a.value for a in rows[1]]
