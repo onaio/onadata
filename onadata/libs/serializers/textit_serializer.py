@@ -16,6 +16,8 @@ class TextItSerializer(serializers.Serializer):
     service_url = serializers.URLField(required=True)
     date_created = serializers.DateTimeField(read_only=True)
     date_modified = serializers.DateTimeField(read_only=True)
+    active = serializers.BooleanField(read_only=True)
+    inactive_reason = serializers.CharField(read_only=True)
 
     def to_representation(self, instance):
         text_it = TextItService(pk=instance.pk, xform=instance.xform,
@@ -23,6 +25,8 @@ class TextItSerializer(serializers.Serializer):
                                 name=instance.name)
         text_it.date_modified = instance.date_modified
         text_it.date_created = instance.date_created
+        text_it.active = instance.active
+        text_it.inactive_reason = instance.inactive_reason
         text_it.retrieve()
         return super(TextItSerializer, self).to_representation(text_it)
 
