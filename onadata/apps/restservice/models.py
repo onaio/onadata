@@ -32,6 +32,8 @@ class RestService(models.Model):
     date_modified = models.DateTimeField(auto_now=True, null=True, blank=True)
     active = models.BooleanField(ugettext_lazy("Active"), default=True,
                                  blank=False, null=False)
+    inactive_reason = models.TextField(ugettext_lazy("Inactive reason"),
+                                       blank=True, default="")
 
     def __unicode__(self):
         return u"%s:%s - %s" % (self.xform, self.long_name, self.service_url)
