@@ -95,3 +95,28 @@ class TestFloipViewSet(TestAbstractViewSet):
                 response.data['text'],
                 "The data resource 'standard_test_survey-data'"
                 " is not defined.")
+
+    def test_publish_number_question_names(self):  # pylint: disable=C0103
+        """
+        Test publishing a descriptor with question identifiers that start with
+        a number.
+        """
+        view = FloipViewSet.as_view({'post': 'create'})
+        path = os.path.join(
+            os.path.dirname(__file__), "../", "fixtures",
+            "flow-results-number-question-names.json")
+        with open(path) as json_file:
+            post_data = json_file.read()
+            request = self.factory.post(
+                '/',
+                data=post_data,
+                content_type='application/vnd.api+json',
+                **self.extra)
+            response = view(request)
+            response.render()
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response['Content-Type'],
+                             'application/vnd.api+json')
+            self.assertIn(
+                u"The name '1448506769745_42' is an invalid xml tag",
+                response.data['text'])
