@@ -54,7 +54,7 @@ else:
 
 BROKER_URL = 'amqp://guest:@queue:5672//'
 BROKER_TRANSPORT = 'librabbitmq'
-CELERY_ALWAYS_EAGER = True
+CELERY_ALWAYS_EAGER = False
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 

@@ -1,17 +1,23 @@
+# -*- coding=utf-8 -*-
+"""
+Permissions module.
+"""
 import json
 from collections import defaultdict
 
 import six
-from guardian.shortcuts import (assign_perm, get_perms, remove_perm,
-                                get_users_with_perms)
+from django.db.models.base import ModelBase
+from guardian.shortcuts import (assign_perm, get_perms, get_users_with_perms,
+                                remove_perm)
 
 from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.logger.models import MergedXForm, Project, XForm
-from onadata.apps.logger.models.project import (ProjectUserObjectPermission,
-                                                ProjectGroupObjectPermission)
-from onadata.apps.logger.models.xform import (XFormUserObjectPermission,
-                                              XFormGroupObjectPermission)
+from onadata.apps.logger.models.project import (ProjectGroupObjectPermission,
+                                                ProjectUserObjectPermission)
+from onadata.apps.logger.models.xform import (XFormGroupObjectPermission,
+                                              XFormUserObjectPermission)
 from onadata.apps.main.models.user_profile import UserProfile
+from onadata.apps.viewer.models import DataDictionary
 from onadata.libs.exceptions import NoRecordsPermission
 from onadata.libs.utils.common_tags import XFORM_META_PERMS
 
@@ -65,8 +71,10 @@ CAN_DELETE_DATADICTIONARY = 'delete_datadictionary'
 
 
 class Role(object):
-    class_to_permissions = None
-    permissions = None
+    """
+    Base Role class.
+    """
+    class_to_permissions = defaultdict(list)
     name = None
 
     @classmethod
@@ -75,20 +83,33 @@ class Role(object):
             remove_perm(perm, user, obj)
 
     @classmethod
-    def add(cls, user, obj):
+    def remove_obj_permissions(cls, user, obj):
+        """
+        Remove all permissions the user has on the obj.
+        """
         cls._remove_obj_permissions(user, obj)
-        for codename, klass in cls.permissions:
-            if type(obj) == klass:
-                assign_perm(codename, user, obj)
+
+    @classmethod
+    def add(cls, user, obj):
+        """
+        Add obj permissions to the a user.
+        """
+        cls._remove_obj_permissions(user, obj)
+        for codename in cls.class_to_permissions.get(obj.__class__, []):
+            assign_perm(codename, user, obj)
 
     @classmethod
     def has_role(cls, permissions, obj):
         """Check that permission correspond to this role for this object.
 
         :param permissions: A list of permissions.
-        :param obj: An object to get the permissions of.
+        :param obj: An object or class to get the permissions of.
         """
-        perms_for_role = set(cls.class_to_permissions[type(obj)])
+        klass = obj if isinstance(obj, ModelBase) else type(obj)
+        try:
+            perms_for_role = set(cls.class_to_permissions[klass])
+        except KeyError:
+            return False
 
         return perms_for_role.issubset(set(permissions))
 
@@ -99,194 +120,207 @@ class Role(object):
         :param user: A user object.
         :param obj: An object to get the permissions of.
         """
-        return user.has_perms(cls.class_to_permissions[type(obj)], obj)
+        try:
+            return user.has_perms(cls.class_to_permissions[type(obj)], obj)
+        except KeyError:
+            return False
 
 
 class ReadOnlyRoleNoDownload(Role):
+    """
+    Read-only no download Role class.
+    """
     name = 'readonly-no-download'
-    permissions = (
-        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
-        (CAN_VIEW_XFORM, XForm),
-        (CAN_VIEW_PROJECT, Project),
-        (CAN_VIEW_XFORM_ALL, XForm),
-        (CAN_VIEW_PROJECT_ALL, Project),
-        (CAN_VIEW_MERGED_XFORM, MergedXForm), )
+    permissions = ((CAN_VIEW_ORGANIZATION_PROFILE,
+                    OrganizationProfile), (CAN_VIEW_XFORM, XForm),
+                   (CAN_VIEW_PROJECT, Project), (CAN_VIEW_XFORM_ALL, XForm),
+                   (CAN_VIEW_PROJECT_ALL, Project), (CAN_VIEW_MERGED_XFORM,
+                                                     MergedXForm), )
+
+    class_to_permissions = {
+        MergedXForm: [CAN_VIEW_MERGED_XFORM],
+        Project: [CAN_VIEW_PROJECT, CAN_VIEW_PROJECT_ALL],
+        XForm: [CAN_VIEW_XFORM, CAN_VIEW_XFORM_ALL],
+    }
 
 
 class ReadOnlyRole(Role):
+    """
+    Read-only Role class.
+    """
     name = 'readonly'
-    permissions = (
-        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
-        (CAN_VIEW_XFORM, XForm),
-        (CAN_VIEW_PROJECT, Project),
-        (CAN_EXPORT_XFORM, XForm),
-        (CAN_EXPORT_PROJECT, Project),
-        (CAN_VIEW_XFORM_ALL, XForm),
-        (CAN_VIEW_PROJECT_ALL, Project),
-        (CAN_VIEW_MERGED_XFORM, MergedXForm), )
+
+    class_to_permissions = {
+        MergedXForm: [CAN_VIEW_MERGED_XFORM],
+        OrganizationProfile: [CAN_VIEW_ORGANIZATION_PROFILE],
+        Project: [CAN_EXPORT_PROJECT, CAN_VIEW_PROJECT, CAN_VIEW_PROJECT_ALL],
+        XForm: [CAN_EXPORT_XFORM, CAN_VIEW_XFORM, CAN_VIEW_XFORM_ALL],
+    }
 
 
 class DataEntryOnlyRole(Role):
+    """
+    Data-Entry only Role class.
+    """
     name = 'dataentry-only'
-    permissions = (
-        (CAN_ADD_SUBMISSIONS, XForm),
-        (CAN_VIEW_XFORM, XForm),
-        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
-        (CAN_VIEW_PROJECT, Project),
-        (CAN_ADD_SUBMISSIONS_PROJECT, Project),
-        (CAN_EXPORT_XFORM, XForm),
-        (CAN_EXPORT_PROJECT, Project),
-        (CAN_VIEW_MERGED_XFORM, MergedXForm), )
+
+    class_to_permissions = {
+        MergedXForm: [CAN_VIEW_MERGED_XFORM],
+        OrganizationProfile: [CAN_VIEW_ORGANIZATION_PROFILE],
+        Project:
+        [CAN_ADD_SUBMISSIONS_PROJECT, CAN_EXPORT_PROJECT, CAN_VIEW_PROJECT],
+        XForm: [CAN_ADD_SUBMISSIONS, CAN_EXPORT_XFORM, CAN_VIEW_XFORM],
+    }
 
 
 class DataEntryMinorRole(Role):
+    """
+    Data-Entry minor Role class - user can submit and  has readonly access to
+                                  data they submitted.
+    """
     name = 'dataentry-minor'
-    permissions = (
-        (CAN_ADD_SUBMISSIONS, XForm),
-        (CAN_VIEW_XFORM, XForm),
-        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
-        (CAN_VIEW_PROJECT, Project),
-        (CAN_ADD_SUBMISSIONS_PROJECT, Project),
-        (CAN_EXPORT_XFORM, XForm),
-        (CAN_EXPORT_PROJECT, Project),
-        (CAN_VIEW_XFORM_DATA, XForm),
-        (CAN_VIEW_PROJECT_DATA, Project),
-        (CAN_VIEW_MERGED_XFORM, MergedXForm), )
+    class_to_permissions = {
+        MergedXForm: [CAN_VIEW_MERGED_XFORM],
+        OrganizationProfile: [CAN_VIEW_ORGANIZATION_PROFILE],
+        Project: [
+            CAN_ADD_SUBMISSIONS_PROJECT, CAN_EXPORT_PROJECT, CAN_VIEW_PROJECT,
+            CAN_VIEW_PROJECT_DATA
+        ],
+        XForm: [
+            CAN_ADD_SUBMISSIONS, CAN_EXPORT_XFORM, CAN_VIEW_XFORM,
+            CAN_VIEW_XFORM_DATA
+        ],
+    }
 
 
 class DataEntryRole(Role):
+    """
+    Data-Entry Role class - user can submit data and has readonly permissions
+                            to all the data including data submitted by others.
+    """
     name = 'dataentry'
-    permissions = (
-        (CAN_ADD_SUBMISSIONS, XForm),
-        (CAN_VIEW_XFORM, XForm),
-        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
-        (CAN_VIEW_PROJECT, Project),
-        (CAN_ADD_SUBMISSIONS_PROJECT, Project),
-        (CAN_EXPORT_XFORM, XForm),
-        (CAN_EXPORT_PROJECT, Project),
-        (CAN_VIEW_XFORM_ALL, XForm),
-        (CAN_VIEW_XFORM_DATA, XForm),
-        (CAN_VIEW_PROJECT_DATA, Project),
-        (CAN_VIEW_PROJECT_ALL, Project),
-        (CAN_VIEW_MERGED_XFORM, MergedXForm), )
+    class_to_permissions = {
+        MergedXForm: [CAN_VIEW_MERGED_XFORM],
+        OrganizationProfile: [CAN_VIEW_ORGANIZATION_PROFILE],
+        Project: [
+            CAN_ADD_SUBMISSIONS_PROJECT, CAN_EXPORT_PROJECT, CAN_VIEW_PROJECT,
+            CAN_VIEW_PROJECT_ALL, CAN_VIEW_PROJECT_DATA
+        ],
+        XForm: [
+            CAN_ADD_SUBMISSIONS, CAN_EXPORT_XFORM, CAN_VIEW_XFORM,
+            CAN_VIEW_XFORM_ALL, CAN_VIEW_XFORM_DATA
+        ],
+    }
 
 
 class EditorMinorRole(Role):
+    """
+    Editor-Minor Role class - user can submit data, read and edit only the data
+                              they submitted.
+    """
     name = 'editor-minor'
-    permissions = (
-        (CAN_ADD_SUBMISSIONS, XForm),
-        (CAN_CHANGE_XFORM, XForm),
-        (CAN_VIEW_XFORM, XForm),
-        (CAN_DELETE_SUBMISSION, XForm),
-        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
-        (CAN_CHANGE_PROJECT, Project),
-        (CAN_VIEW_PROJECT, Project),
-        (CAN_ADD_SUBMISSIONS_PROJECT, Project),
-        (CAN_EXPORT_XFORM, XForm),
-        (CAN_EXPORT_PROJECT, Project),
-        (CAN_VIEW_XFORM_DATA, XForm),
-        (CAN_VIEW_PROJECT_DATA, Project),
-        (CAN_VIEW_MERGED_XFORM, MergedXForm), )
+    class_to_permissions = {
+        MergedXForm: [CAN_VIEW_MERGED_XFORM],
+        OrganizationProfile: [CAN_VIEW_ORGANIZATION_PROFILE],
+        Project: [
+            CAN_ADD_SUBMISSIONS_PROJECT, CAN_CHANGE_PROJECT,
+            CAN_EXPORT_PROJECT, CAN_VIEW_PROJECT, CAN_VIEW_PROJECT_DATA
+        ],
+        XForm: [
+            CAN_ADD_SUBMISSIONS, CAN_CHANGE_XFORM, CAN_DELETE_SUBMISSION,
+            CAN_EXPORT_XFORM, CAN_VIEW_XFORM, CAN_VIEW_XFORM_DATA
+        ],
+    }
 
 
 class EditorRole(Role):
+    """
+    Editor Role class - user can submit, read and edit any submitted data.
+    """
     name = 'editor'
-    permissions = (
-        (CAN_ADD_SUBMISSIONS, XForm),
-        (CAN_CHANGE_XFORM, XForm),
-        (CAN_VIEW_XFORM, XForm),
-        (CAN_DELETE_SUBMISSION, XForm),
-        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
-        (CAN_CHANGE_PROJECT, Project),
-        (CAN_VIEW_PROJECT, Project),
-        (CAN_ADD_SUBMISSIONS_PROJECT, Project),
-        (CAN_EXPORT_XFORM, XForm),
-        (CAN_EXPORT_PROJECT, Project),
-        (CAN_VIEW_XFORM_ALL, XForm),
-        (CAN_VIEW_XFORM_DATA, XForm),
-        (CAN_VIEW_PROJECT_DATA, Project),
-        (CAN_VIEW_PROJECT_ALL, Project),
-        (CAN_VIEW_MERGED_XFORM, MergedXForm), )
+    class_to_permissions = {
+        MergedXForm: [CAN_VIEW_MERGED_XFORM],
+        OrganizationProfile: [CAN_VIEW_ORGANIZATION_PROFILE],
+        Project: [
+            CAN_ADD_SUBMISSIONS_PROJECT, CAN_CHANGE_PROJECT,
+            CAN_EXPORT_PROJECT, CAN_VIEW_PROJECT, CAN_VIEW_PROJECT_ALL,
+            CAN_VIEW_PROJECT_DATA
+        ],
+        XForm: [
+            CAN_ADD_SUBMISSIONS, CAN_CHANGE_XFORM, CAN_DELETE_SUBMISSION,
+            CAN_EXPORT_XFORM, CAN_VIEW_XFORM, CAN_VIEW_XFORM_ALL,
+            CAN_VIEW_XFORM_DATA
+        ],
+    }
 
 
 class ManagerRole(Role):
+    """
+    Manager Role class - user can add,delete,edit forms and data as well as
+                         control access to data, forms and projects.
+    """
     name = 'manager'
-    permissions = (
-        (CAN_ADD_SUBMISSIONS, XForm),
-        (CAN_ADD_XFORM, XForm),
-        (CAN_CHANGE_XFORM, XForm),
-        (CAN_VIEW_XFORM, XForm),
-        (CAN_DELETE_SUBMISSION, XForm),
-        (CAN_DELETE_XFORM, XForm),
-        (CAN_ADD_XFORM_TO_PROFILE, OrganizationProfile),
-        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
-        (CAN_ADD_XFORM_TO_PROFILE, UserProfile),
-        (CAN_VIEW_PROFILE, UserProfile),
-        (CAN_ADD_PROJECT, Project),
-        (CAN_ADD_PROJECT_XFORM, Project),
-        (CAN_CHANGE_PROJECT, Project),
-        (CAN_VIEW_PROJECT, Project),
-        (CAN_ADD_SUBMISSIONS_PROJECT, Project),
-        (CAN_EXPORT_XFORM, XForm),
-        (CAN_EXPORT_PROJECT, Project),
-        (CAN_VIEW_XFORM_ALL, XForm),
-        (CAN_VIEW_XFORM_DATA, XForm),
-        (CAN_VIEW_PROJECT_DATA, Project),
-        (CAN_VIEW_PROJECT_ALL, Project),
-        (CAN_VIEW_MERGED_XFORM, MergedXForm), )
+    class_to_permissions = {
+        MergedXForm: [CAN_VIEW_MERGED_XFORM],
+        OrganizationProfile:
+        [CAN_ADD_XFORM_TO_PROFILE, CAN_VIEW_ORGANIZATION_PROFILE],
+        Project: [
+            CAN_ADD_PROJECT, CAN_ADD_PROJECT_XFORM,
+            CAN_ADD_SUBMISSIONS_PROJECT, CAN_CHANGE_PROJECT,
+            CAN_EXPORT_PROJECT, CAN_VIEW_PROJECT, CAN_VIEW_PROJECT_ALL,
+            CAN_VIEW_PROJECT_DATA
+        ],
+        UserProfile: [CAN_ADD_XFORM_TO_PROFILE, CAN_VIEW_PROFILE],
+        XForm: [
+            CAN_ADD_SUBMISSIONS, CAN_ADD_XFORM, CAN_CHANGE_XFORM,
+            CAN_DELETE_SUBMISSION, CAN_DELETE_XFORM, CAN_EXPORT_XFORM,
+            CAN_VIEW_XFORM, CAN_VIEW_XFORM_ALL, CAN_VIEW_XFORM_DATA
+        ],
+    }
 
 
 class MemberRole(Role):
-    """This is a role for a member of an organization.
+    """
+    This is a role for a member of an organization.
     """
     name = 'member'
 
 
 class OwnerRole(Role):
-    """This is a role for an owner of a dataset, organization, or project.
+    """
+    This is a role for an owner of a dataset, organization, or project.
     """
     name = 'owner'
-    permissions = (
-        (CAN_ADD_SUBMISSIONS, XForm),
-        (CAN_DELETE_SUBMISSION, XForm),
-        (CAN_ADD_XFORM, XForm),
-        (CAN_VIEW_XFORM, XForm),
-        (CAN_ADD_DATADICTIONARY, XForm),
-        (CAN_CHANGE_DATADICTIONARY, XForm),
-        (CAN_DELETE_DATADICTIONARY, XForm),
-        (CAN_ADD_SUBMISSIONS, XForm),
-        (CAN_DELETE_XFORM, XForm),
-        (CAN_MOVE_TO_FOLDER, XForm),
-        (CAN_TRANSFER_OWNERSHIP, XForm),
-        (CAN_CHANGE_XFORM, XForm),
-        (CAN_ADD_XFORM_TO_PROFILE, UserProfile),
-        (CAN_ADD_USERPROFILE, UserProfile),
-        (CAN_CHANGE_USERPROFILE, UserProfile),
-        (CAN_DELETE_USERPROFILE, UserProfile),
-        (CAN_ADD_XFORM_TO_PROFILE, UserProfile),
-        (CAN_VIEW_PROFILE, UserProfile),
-        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
-        (CAN_ADD_ORGANIZATION_PROFILE, OrganizationProfile),
-        (CAN_ADD_ORGANIZATION_XFORM, OrganizationProfile),
-        (CAN_CHANGE_ORGANIZATION_PROFILE, OrganizationProfile),
-        (CAN_DELETE_ORGANIZATION_PROFILE, OrganizationProfile),
-        (IS_ORGANIZATION_OWNER, OrganizationProfile),
-        (CAN_ADD_XFORM_TO_PROFILE, OrganizationProfile),
-        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
-        (CAN_ADD_PROJECT, Project),
-        (CAN_ADD_PROJECT_XFORM, Project),
-        (CAN_CHANGE_PROJECT, Project),
-        (CAN_DELETE_PROJECT, Project),
-        (CAN_TRANSFER_PROJECT_OWNERSHIP, Project),
-        (CAN_VIEW_PROJECT, Project),
-        (CAN_ADD_SUBMISSIONS_PROJECT, Project),
-        (CAN_EXPORT_XFORM, XForm),
-        (CAN_EXPORT_PROJECT, Project),
-        (CAN_VIEW_XFORM_ALL, XForm),
-        (CAN_VIEW_XFORM_DATA, XForm),
-        (CAN_VIEW_PROJECT_DATA, Project),
-        (CAN_VIEW_PROJECT_ALL, Project),
-        (CAN_VIEW_MERGED_XFORM, MergedXForm))
+    class_to_permissions = {
+        DataDictionary: [
+            CAN_ADD_DATADICTIONARY, CAN_CHANGE_DATADICTIONARY,
+            CAN_DELETE_DATADICTIONARY
+        ],
+        MergedXForm: [CAN_VIEW_MERGED_XFORM],
+        OrganizationProfile: [
+            CAN_ADD_XFORM_TO_PROFILE, CAN_ADD_ORGANIZATION_PROFILE,
+            CAN_ADD_ORGANIZATION_XFORM, CAN_CHANGE_ORGANIZATION_PROFILE,
+            CAN_DELETE_ORGANIZATION_PROFILE, CAN_VIEW_ORGANIZATION_PROFILE,
+            IS_ORGANIZATION_OWNER
+        ],
+        Project: [
+            CAN_ADD_PROJECT, CAN_ADD_PROJECT_XFORM,
+            CAN_ADD_SUBMISSIONS_PROJECT, CAN_CHANGE_PROJECT,
+            CAN_DELETE_PROJECT, CAN_EXPORT_PROJECT,
+            CAN_TRANSFER_PROJECT_OWNERSHIP, CAN_VIEW_PROJECT,
+            CAN_VIEW_PROJECT_ALL, CAN_VIEW_PROJECT_DATA
+        ],
+        UserProfile: [
+            CAN_ADD_XFORM_TO_PROFILE, CAN_ADD_USERPROFILE,
+            CAN_CHANGE_USERPROFILE, CAN_DELETE_USERPROFILE, CAN_VIEW_PROFILE
+        ],
+        XForm: [
+            CAN_ADD_SUBMISSIONS, CAN_ADD_XFORM, CAN_CHANGE_XFORM,
+            CAN_DELETE_SUBMISSION, CAN_DELETE_XFORM, CAN_EXPORT_XFORM,
+            CAN_VIEW_XFORM, CAN_VIEW_XFORM_ALL, CAN_VIEW_XFORM_DATA,
+            CAN_MOVE_TO_FOLDER, CAN_TRANSFER_OWNERSHIP
+        ],
+    }
 
 
 ROLES_ORDERED = [
@@ -297,50 +331,69 @@ ROLES_ORDERED = [
 
 ROLES = {role.name: role for role in ROLES_ORDERED}
 
-# Memoize a class to permissions dict.
-for role in ROLES.values():
-    role.class_to_permissions = defaultdict(list)
-    [role.class_to_permissions[k].append(p) for p, k in role.permissions]
-
 
 def is_organization(obj):
-    """Some OrganizationProfiles have a pointer to the UserProfile, but no
+    """
+    Some OrganizationProfiles have a pointer to the UserProfile, but no
     UserProfiles do. Check for that first since it avoids a database hit.
     """
     try:
-        hasattr(obj, 'userprofile_ptr') or obj.organizationprofile
-        return True
+        return (hasattr(obj, 'userprofile_ptr')
+                or obj.organizationprofile is not None)
     except OrganizationProfile.DoesNotExist:
         return False
 
 
 def get_role(permissions, obj):
+    """
+    Return the user role for the given obj permissions.
+    """
     for role in reversed(ROLES_ORDERED):
         if role.has_role(permissions, obj):
             return role.name
+    return None
 
 
 def get_role_in_org(user, organization):
+    """
+    Return the user role in the organization.
+    """
     perms = get_perms(user, organization)
 
     if 'is_org_owner' in perms:
         return OwnerRole.name
-    else:
-        return get_role(perms, organization) or MemberRole.name
+
+    return get_role(perms, organization) or MemberRole.name
+
+
+def get_user_perms(obj):
+    """
+    Return XFormUserObjectPermission or ProjectUserObjectPermission queryset.
+    """
+    model = XFormUserObjectPermission if isinstance(obj, XForm) else None
+    model = ProjectUserObjectPermission if isinstance(obj, Project) else model
+
+    return model.objects.filter(content_object_id=obj.pk) if model else None
+
+
+def get_group_perms(obj):
+    """
+    Return XFormGroupObjectPermission or ProjectGroupObjectPermission queryset.
+    """
+    model = XFormGroupObjectPermission if isinstance(obj, XForm) else None
+    model = ProjectGroupObjectPermission if isinstance(obj, Project) else model
+
+    return model.objects.filter(content_object_id=obj.pk) if model else None
 
 
 def _get_group_users_with_perms(obj, attach_perms=False, user_perms=None):
     """
     Returns a list of users in the groups with permissions on the object obj.
     """
-    if isinstance(obj, XForm):
-        Klass = XFormGroupObjectPermission  # pylint: disable=C0103
-    elif isinstance(obj, Project):
-        Klass = ProjectGroupObjectPermission  # pylint: disable=C0103
-    else:
-        return get_users_with_perms(obj, attach_perms=attach_perms,
-                                    with_group_users=True)
-    group_obj_perms = Klass.objects.filter(content_object_id=obj.pk)
+    group_obj_perms = get_group_perms(obj)
+    if group_obj_perms is None:
+        return get_users_with_perms(
+            obj, attach_perms=attach_perms, with_group_users=True)
     group_users = {}
     if attach_perms:
         if user_perms:
@@ -357,8 +410,8 @@ def _get_group_users_with_perms(obj, attach_perms=False, user_perms=None):
     else:
         group_users = set() if not user_perms else set(user_perms)
         for perm in group_obj_perms.distinct('group'):
-            group_users.union(set([user for user in
-                                   perm.group.user_set.all()]))
+            group_users.union(
+                set([user for user in perm.group.user_set.all()]))
         group_users = list(group_obj_perms)
 
     return group_users
@@ -368,14 +421,10 @@ def _get_users_with_perms(obj, attach_perms=False, with_group_users=None):
     """
     Returns a list of users with their permissions on an object obj.
     """
-    if isinstance(obj, XForm):
-        Klass = XFormUserObjectPermission  # pylint: disable=C0103
-    elif isinstance(obj, Project):
-        Klass = ProjectUserObjectPermission  # pylint: disable=C0103
-    else:
-        return get_users_with_perms(obj, attach_perms=attach_perms,
-                                    with_group_users=with_group_users)
-    user_obj_perms = Klass.objects.filter(content_object_id=obj.pk)
+    user_obj_perms = get_user_perms(obj)
+    if user_obj_perms is None:
+        return get_users_with_perms(
+            obj, attach_perms=attach_perms, with_group_users=with_group_users)
     user_perms = {}
     if attach_perms:
         for perm in user_obj_perms:
@@ -385,7 +434,8 @@ def _get_users_with_perms(obj, attach_perms=False, with_group_users=None):
                 user_perms[perm.user] = set([perm.permission.codename])
     else:
         user_perms = [
-            perm.user for perm in user_obj_perms.only('user').distinct('user')]
+            perm.user for perm in user_obj_perms.only('user').distinct('user')
+        ]
 
     if with_group_users:
         user_perms = _get_group_users_with_perms(obj, attach_perms, user_perms)
@@ -393,7 +443,7 @@ def _get_users_with_perms(obj, attach_perms=False, with_group_users=None):
     return user_perms
 
 
-def get_object_users_with_permissions(obj,
+def get_object_users_with_permissions(obj,  # pylint: disable=invalid-name
                                       username=False,
                                       with_group_users=False):
     """
@@ -421,7 +471,11 @@ def get_object_users_with_permissions(obj,
     return result
 
 
+# pylint: disable=invalid-name
 def get_team_project_default_permissions(team, project):
+    """
+    Return team role for given project.
+    """
     perms = get_perms(team, project)
 
     return get_role(perms, project) or ""
@@ -452,8 +506,8 @@ def filter_queryset_xform_meta_perms(xform, user, instance_queryset):
         return instance_queryset
     elif user.has_perm(CAN_VIEW_XFORM_DATA, xform):
         return instance_queryset.filter(user=user)
-    else:
-        return instance_queryset.none()
+
+    return instance_queryset.none()
 
 
 def filter_queryset_xform_meta_perms_sql(xform, user, query):

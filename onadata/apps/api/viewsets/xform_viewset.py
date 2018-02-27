@@ -289,6 +289,8 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         survey = utils.publish_xlsform(request, owner)
         if isinstance(survey, XForm):
+            # survey is a DataDictionary we need an XForm to return the correct
+            # role for the user after form publishing.
             serializer = XFormCreateSerializer(
                 survey, context={'request': request})
             headers = self.get_success_headers(serializer.data)
