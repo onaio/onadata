@@ -14,7 +14,6 @@ from django.db import IntegrityError
 from django.db.models import Prefetch
 from django.http import (HttpResponseBadRequest, HttpResponseForbidden,
                          HttpResponseRedirect, StreamingHttpResponse)
-from django.shortcuts import get_object_or_404
 from django.utils import six, timezone
 from django.utils.http import urlencode
 from django.utils.translation import ugettext as _
@@ -293,8 +292,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             # survey is a DataDictionary we need an XForm to return the correct
             # role for the user after form publishing.
             serializer = XFormCreateSerializer(
-                get_object_or_404(XForm, pk=survey.pk),
-                context={'request': request})
+                survey, context={'request': request})
             headers = self.get_success_headers(serializer.data)
 
             return Response(serializer.data, status=status.HTTP_201_CREATED,

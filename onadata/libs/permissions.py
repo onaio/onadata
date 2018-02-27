@@ -6,6 +6,7 @@ import json
 from collections import defaultdict
 
 import six
+from django.db.models.base import ModelBase
 from guardian.shortcuts import (assign_perm, get_perms, get_users_with_perms,
                                 remove_perm)
 
@@ -102,10 +103,11 @@ class Role(object):
         """Check that permission correspond to this role for this object.
 
         :param permissions: A list of permissions.
-        :param obj: An object to get the permissions of.
+        :param obj: An object or class to get the permissions of.
         """
+        klass = obj if isinstance(obj, ModelBase) else type(obj)
         try:
-            perms_for_role = set(cls.class_to_permissions[type(obj)])
+            perms_for_role = set(cls.class_to_permissions[klass])
         except KeyError:
             return False
 

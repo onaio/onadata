@@ -111,7 +111,7 @@ class XFormMixin(object):
 
         for k in data.keys():
             data[k]['permissions'].sort()
-            data[k]['role'] = get_role(data[k]['permissions'], obj)
+            data[k]['role'] = get_role(data[k]['permissions'], XForm)
             del (data[k]['permissions'])
 
         xform_perms = data.values()

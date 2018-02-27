@@ -1080,6 +1080,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                     MetaData.objects.get(
                         object_id=xform.id, data_type="enketo_preview_url"))
 
+            self.assertEqual(counter + 1, XForm.objects.count())
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_copy.xls")
