@@ -147,7 +147,7 @@ class FloipSerializer(serializers.HyperlinkedModelSerializer):
         if isinstance(instance, XForm):
             return instance
 
-        raise ValidationError(instance)
+        raise serializers.ValidationError(instance)
 
     def to_representation(self, instance):
         request = self.context['request']

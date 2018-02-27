@@ -70,3 +70,28 @@ class TestFloipViewSet(TestAbstractViewSet):
             self.assertEqual(response['Location'],
                              'http://testserver/api/v1/flow-results/packages/'
                              + floip_data['id'] + '/responses')
+
+    def test_publish_missing_resource_name(self):  # pylint: disable=C0103
+        """
+        Test publishing a descriptor with missing resource name.
+        """
+        view = FloipViewSet.as_view({'post': 'create'})
+        path = os.path.join(
+            os.path.dirname(__file__), "../", "fixtures",
+            "flow-results-missing-resource-name.json")
+        with open(path) as json_file:
+            post_data = json_file.read()
+            request = self.factory.post(
+                '/',
+                data=post_data,
+                content_type='application/vnd.api+json',
+                **self.extra)
+            response = view(request)
+            response.render()
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response['Content-Type'],
+                             'application/vnd.api+json')
+            self.assertEqual(
+                response.data['text'],
+                "The data resource 'standard_test_survey-data'"
+                " is not defined.")
