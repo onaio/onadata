@@ -464,16 +464,14 @@ def store_temp_file(data):
 
 
 def publish_form(callback):
+    """
+    Calls the callback function to publish a XLSForm and returns appropriate
+    message depending on exception throw during publishing of a XLSForm.
+    """
     try:
         return callback()
     except (PyXFormError, XLSFormError) as e:
-        msg = unicode(e)
-
-        if 'invalid xml tag' in msg:
-            msg = _(u"Invalid file name; Names must begin with a letter, "
-                    u"colon, or underscore, subsequent characters can include"
-                    u" numbers, dashes,periods and with no spacing.")
-        return {'type': 'alert-error', 'text': msg}
+        return {'type': 'alert-error', 'text': unicode(e)}
     except IntegrityError as e:
         return {
             'type': 'alert-error',
