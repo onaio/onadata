@@ -328,7 +328,6 @@ class AbstractDataFrameBuilder(object):
 
 
 class CSVDataFrameBuilder(AbstractDataFrameBuilder):
-    # index tags
 
     def __init__(self, username, id_string, filter_query=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER,

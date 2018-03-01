@@ -16,8 +16,6 @@ from onadata.apps.api.viewsets.xform_list_viewset import (
     PreviewXFormListViewSet, XFormListViewSet)
 from onadata.apps.main.models import MetaData
 from onadata.libs.permissions import DataEntryRole, ReadOnlyRole
-from onadata.libs.utils.common_tags import GROUP_DELIMETER_TAG
-from onadata.libs.utils.export_tools import ExportBuilder
 
 
 class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
