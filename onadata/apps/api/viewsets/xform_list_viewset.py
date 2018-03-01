@@ -127,7 +127,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
                                               object_id=self.object.pk)
         context = self.get_serializer_context()
         context[GROUP_DELIMETER_TAG] = ExportBuilder.GROUP_DELIMITER_DOT
-        context[REPEAT_INDEX_TAGS] = ExportBuilder.REPEAT_INDEX_UNDERSCORES
+        context[REPEAT_INDEX_TAGS] = ExportBuilder.REPEAT_INDEX_TAGS
         serializer = XFormManifestSerializer(object_list, many=True,
                                              context=context)
 

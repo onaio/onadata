@@ -685,9 +685,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         response = self.view(request, pk=self.xform.pk, format='csv')
 
         # test
-        manifest_media_url = "%s?%s=%s" % (media.data['media_url'],
-                                           GROUP_DELIMETER_TAG,
-                                           ExportBuilder.GROUP_DELIMITER_DOT)
+        manifest_media_url = media.data['media_url']
         download_url = response.data[0]['downloadUrl']
         self.assertEqual(manifest_media_url, download_url)
 

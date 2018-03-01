@@ -794,7 +794,7 @@ class TestCSVDataFrameBuilder(TestBase):
 
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username, self.xform.id_string, include_images=False,
-            index_tag=CSVDataFrameBuilder.REPEAT_INDEX_TAGS)
+            index_tag="['_', '_']")
         cursor = csv_df_builder._query_data()
         result = [d for d in csv_df_builder._format_for_dataframe(cursor)][0]
         # remove dynamic fields

@@ -94,7 +94,8 @@ def write_to_csv(path, rows, columns, columns_with_hxl=None,
                  remove_group_name=False, dd=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER, include_labels=False,
                  include_labels_only=False, include_hxl=False,
-                 win_excel_utf8=False, total_records=None):
+                 win_excel_utf8=False, total_records=None,
+                 index_tag=DEFAULT_INDEX_TAGS):
     na_rep = getattr(settings, 'NA_REP', NA_REP)
     encoding = 'utf-8-sig' if win_excel_utf8 else 'utf-8'
     with open(path, 'wb') as csvfile:
@@ -328,8 +329,6 @@ class AbstractDataFrameBuilder(object):
 
 class CSVDataFrameBuilder(AbstractDataFrameBuilder):
     # index tags
-    REPEAT_INDEX_UNDERSCORES = ['_', '_']
-    REPEAT_INDEX_TAGS = REPEAT_INDEX_UNDERSCORES
 
     def __init__(self, username, id_string, filter_query=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
@@ -347,6 +346,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             index_tag
 
         )
+
         self.ordered_columns = OrderedDict()
 
     def _setup(self):
@@ -597,4 +597,5 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                      include_labels_only=self.include_labels_only,
                      include_hxl=self.include_hxl,
                      win_excel_utf8=self.win_excel_utf8,
-                     total_records=self.total_records)
+                     total_records=self.total_records,
+                     index_tag=self.index_tag)

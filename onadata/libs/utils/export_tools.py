@@ -39,6 +39,7 @@ from onadata.libs.utils.viewer_tools import (create_attachments_zipfile,
                                              image_urls)
 
 DEFAULT_GROUP_DELIMITER = '/'
+DEFAULT_INDEX_TAGS = ['[', ']']
 EXPORT_QUERY_KEY = 'query'
 MAX_RETRIES = 3
 
@@ -142,6 +143,7 @@ def generate_export(export_type, xform, export_id=None, options=None,
         query: filter_query for custom queries
         remove_group_name: boolean flag
         split_select_multiples: boolean flag
+        index_tag: "['[', ']']" or "['_', '_']"
     """
     username = xform.user.username
     id_string = xform.id_string
@@ -206,6 +208,10 @@ def generate_export(export_type, xform, export_id=None, options=None,
 
     export_builder.VALUE_SELECT_MULTIPLES = options.get(
         'value_select_multiples', False)
+
+    export_builder.REPEAT_INDEX_TAGS = options.get(
+        "repeat_index_tags", DEFAULT_INDEX_TAGS
+    )
 
     # 'win_excel_utf8' is only relevant for CSV exports
     if 'win_excel_utf8' in options and export_type != Export.CSV_EXPORT:
@@ -329,6 +335,7 @@ def should_create_new_export(xform,
         group_delimiter: "/" or "." with "/" as the default
         split_select_multiples: boolean flag
         binary_select_multiples: boolean flag
+        index_tag: "['[', ']']" or "['_', '_']"
     params: request: Get params are used to determine if new export is required
     """
     split_select_multiples = options.get('split_select_multiples', True)
@@ -368,6 +375,7 @@ def newest_export_for(xform, export_type, options):
         group_delimiter: "/" or "." with "/" as the default
         split_select_multiples: boolean flag
         binary_select_multiples: boolean flag
+        index_tag: "['[', ']']" or "['_', '_']"
     """
 
     export_options_kwargs = get_export_options_query_kwargs(options)
@@ -863,5 +871,10 @@ def parse_request_export_options(params):
 
     if value_select_multiples and value_select_multiples in boolean_list:
         options['value_select_multiples'] = str_to_bool(value_select_multiples)
+
+    if params.get("repeat_index_tags") == DEFAULT_INDEX_TAGS:
+        options['repeat_index_tags'] = params.get("repeat_index_tags")
+    else:
+        options['repeat_index_tags'] = DEFAULT_INDEX_TAGS
 
     return options
