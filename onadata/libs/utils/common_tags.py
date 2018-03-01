@@ -99,6 +99,9 @@ USER_ID = u'USER_ID'
 GROUP_DELIMETER_TAG = 'group_delimiter'
 XFORM_META_PERMS = u'xform_meta_perms'
 
+# index tag
+REPEAT_INDEX_TAGS = 'repeat_index_tags'
+
 # SAV
 # VarTyoes: 0 means 'numeric', and varType > 0 means 'character' of that length
 # (in bytes)

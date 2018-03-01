@@ -223,6 +223,10 @@ class ExportBuilder(object):
     GROUP_DELIMITER = GROUP_DELIMITER_SLASH
     GROUP_DELIMITERS = [GROUP_DELIMITER_SLASH, GROUP_DELIMITER_DOT]
 
+    # index tags
+    REPEAT_INDEX_UNDERSCORES = ['_', '_']
+    REPEAT_INDEX_TAGS = REPEAT_INDEX_UNDERSCORES
+
     INCLUDE_LABELS = False
     INCLUDE_LABELS_ONLY = False
     INCLUDE_HXL = False
@@ -766,7 +770,7 @@ class ExportBuilder(object):
             start, end, self.TRUNCATE_GROUP_TITLE, xform,
             self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY, self.INCLUDE_IMAGES,
             self.INCLUDE_HXL, win_excel_utf8=win_excel_utf8,
-            total_records=total_records
+            total_records=total_records, index_tag=self.REPEAT_INDEX_TAGS
         )
 
         csv_builder.export_to(path, dataview=dataview)

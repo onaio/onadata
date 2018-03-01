@@ -24,7 +24,6 @@ from onadata.libs.utils.cache_tools import (
     ENKETO_PREVIEW_URL_CACHE, ENKETO_URL_CACHE, XFORM_DATA_VERSIONS,
     XFORM_LINKED_DATAVIEWS, XFORM_METADATA_CACHE, XFORM_PERMISSIONS_CACHE,
     XFORM_COUNT)
-from onadata.libs.utils.common_tags import GROUP_DELIMETER_TAG
 from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.viewer_tools import (
     enketo_url, get_enketo_preview_url, get_form_url)
@@ -372,11 +371,8 @@ class XFormManifestSerializer(serializers.Serializer):
         except ValueError:
             fmt = 'csv'
 
-        group_delimiter = self.context.get(GROUP_DELIMETER_TAG)
-        url = reverse(
+        return reverse(
             'xform-media', kwargs=kwargs, request=request, format=fmt.lower())
-        return (url+"?%s=%s" % (GROUP_DELIMETER_TAG, group_delimiter)) if \
-            group_delimiter and fmt == 'csv' else url
 
     @check_obj
     def get_hash(self, obj):

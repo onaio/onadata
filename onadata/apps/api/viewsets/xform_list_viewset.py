@@ -25,7 +25,8 @@ from onadata.libs.serializers.xform_serializer import XFormListSerializer
 from onadata.libs.serializers.xform_serializer import XFormManifestSerializer
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.libs.utils.export_tools import ExportBuilder
-from onadata.libs.utils.common_tags import GROUP_DELIMETER_TAG
+from onadata.libs.utils.common_tags import (GROUP_DELIMETER_TAG,
+                                            REPEAT_INDEX_TAGS)
 
 
 BaseViewset = get_baseviewset_class()
@@ -126,6 +127,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
                                               object_id=self.object.pk)
         context = self.get_serializer_context()
         context[GROUP_DELIMETER_TAG] = ExportBuilder.GROUP_DELIMITER_DOT
+        context[REPEAT_INDEX_TAGS] = ExportBuilder.REPEAT_INDEX_UNDERSCORES
         serializer = XFormManifestSerializer(object_list, many=True,
                                              context=context)
 

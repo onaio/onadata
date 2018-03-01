@@ -782,3 +782,64 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertEqual(expected_header, header)
         csv_file.close()
         os.unlink(temp_file.name)
+
+    def test_index_tag_replacement(self):
+        """
+        Test that the default index tags are correctly replaced by an
+        underscore
+        """
+        self._publish_xls_fixture_set_xform("groups_in_repeats")
+        self._submit_fixture_instance("groups_in_repeats", "01")
+        self.xform.get_keys()
+
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username, self.xform.id_string, include_images=False,
+            index_tag=CSVDataFrameBuilder.REPEAT_INDEX_TAGS)
+        cursor = csv_df_builder._query_data()
+        result = [d for d in csv_df_builder._format_for_dataframe(cursor)][0]
+        # remove dynamic fields
+        ignore_list = [
+            '_uuid', 'meta/instanceID', 'formhub/uuid', '_submission_time',
+            '_id', '_bamboo_dataset_id'
+        ]
+        for item in ignore_list:
+            result.pop(item)
+        expected_result = {
+            u'_xform_id_string': u'groups_in_repeats',
+            u'_xform_id': self.xform.pk,
+            u'_status': u'submitted_via_web',
+            u'_tags': u'',
+            u'_notes': u'',
+            u'_version': self.xform.version,
+            u"_submitted_by": u'bob',
+            u'name': u'Abe',
+            u'age': 88,
+            u'has_children': u'1',
+            u'children_1_/childs_info/name': u'Cain',
+            u'children_2_/childs_info/name': u'Abel',
+            u'children_1_/childs_info/age': 56,
+            u'children_2_/childs_info/age': 48,
+            u'children_1_/immunization/immunization_received/polio_1': True,
+            u'children_1_/immunization/immunization_received/polio_2': False,
+            u'children_2_/immunization/immunization_received/polio_1': True,
+            u'children_2_/immunization/immunization_received/polio_2': True,
+            u'web_browsers/chrome': True,
+            u'web_browsers/firefox': False,
+            u'web_browsers/ie': False,
+            u'web_browsers/safari': False,
+            u'gps': u'-1.2626156 36.7923571 0.0 30.0',
+            u'_geolocation': [-1.2626156, 36.7923571],
+            u'_duration': '',
+            u'_edited': False,
+            u'_gps_latitude': u'-1.2626156',
+            u'_gps_longitude': u'36.7923571',
+            u'_gps_altitude': u'0.0',
+            u'_gps_precision': u'30.0',
+            u'_attachments': [],
+            u'_total_media': 0,
+            u'_media_count': 0,
+            u'_media_all_received': True
+        }
+
+        self.maxDiff = None
+        self.assertEqual(expected_result, result)
