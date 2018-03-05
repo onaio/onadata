@@ -485,12 +485,14 @@ SUPPORTED_MEDIA_UPLOAD_TYPES = [
     'image/png',
     'image/svg+xml',
     'text/csv',
+    'text/json',
     'video/3gpp',
     'video/mp4',
+    'application/json',
     'application/pdf',
     'application/msword',
     'application/vnd.ms-excel',
-    'application/vnd.ms-powerpoint'
+    'application/vnd.ms-powerpoint',
     'application/vnd.oasis.opendocument.text',
     'application/vnd.oasis.opendocument.spreadsheet',
     'application/vnd.oasis.opendocument.presentation',
@@ -499,7 +501,6 @@ SUPPORTED_MEDIA_UPLOAD_TYPES = [
      presentation',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/zip',
-
 ]
 
 CELERY_IMPORTS = ('onadata.libs.utils.csv_import',)
