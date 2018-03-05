@@ -8,6 +8,7 @@ import os
 from copy import deepcopy
 from cStringIO import StringIO
 
+from django.conf import settings
 import six
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -21,6 +22,10 @@ from rest_framework_json_api import serializers
 from onadata.apps.api.tools import do_publish_xlsform
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.logger_tools import dict2xform, safe_create_instance
+
+SESSION_ID_INDEX = getattr(settings, 'FLOW_RESULTS_SESSION_ID_INDEX', 3)
+QUESTION_INDEX = getattr(settings, 'FLOW_RESULTS_QUESTION_INDEX', 4)
+ANSWER_INDEX = getattr(settings, 'FLOW_RESULTS_ANSWER_INDEX', 5)
 
 
 def _get_user(username):
@@ -42,8 +47,8 @@ def _get_owner(request):
     return owner
 
 
-def parse_responses(responses, session_id_index=3, question_index=4,
-                    answer_index=5):
+def parse_responses(responses, session_id_index=SESSION_ID_INDEX,
+                    question_index=QUESTION_INDEX, answer_index=ANSWER_INDEX):
     """
     Returns individual submission for all responses in a flow-results responses
     package.
