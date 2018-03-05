@@ -99,6 +99,107 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             content = response.render().content
             self.assertEqual(content, form_list_xml % data)
 
+    def test_form_id_filter_for_require_auth_account(self):
+        """
+        Test formList formID filter for account that requires authentication
+        """
+        # Submit forms
+        xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main", "tests",
+                                "fixtures", "tutorial.xls")
+        self._publish_xls_form_to_project(xlsform_path=xls_path)
+
+        xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "logger",
+                                     "fixtures",
+                                     "external_choice_form_v1.xlsx")
+        self._publish_xls_form_to_project(xlsform_path=xls_file_path)
+
+        # Set require auth to true
+        self.user.profile.require_auth = True
+        self.user.profile.save()
+        request = self.factory.get('/', {'formID': self.xform.id_string})
+        response = self.view(request, username=self.user.username)
+        self.assertEqual(response.status_code, 401)
+
+        # Test for authenticated user but unrecognized formID
+        auth = DigestAuth('bob', 'bobbob')
+        request = self.factory.get('/', {'formID': 'unrecognizedID'})
+        request.META.update(auth(request.META, response))
+        response = self.view(request, username=self.user.username)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+        # Test for authenticated user and valid formID
+        request = self.factory.get('/', {'formID': self.xform.id_string})
+        self.assertTrue(self.user.profile.require_auth)
+        response = self.view(request, username=self.user.username)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth('bob', 'bobbob')
+        request.META.update(auth(request.META, response))
+        response = self.view(request, username=self.user.username)
+        self.assertEqual(response.status_code, 200)
+
+        path = os.path.join(
+            os.path.dirname(__file__), '..', 'fixtures', 'formList2.xml')
+
+        with open(path) as f:
+            form_list = f.read().strip()
+            data = {"hash": self.xform.hash, "pk": self.xform.pk}
+            content = response.render().content
+            self.assertEqual(content, form_list % data)
+
+        # Test for shared forms
+        # Create user Alice
+        alice_data = {
+            'username': 'alice',
+            'email': 'alice@localhost.com',
+            'password1': 'alice',
+            'password2': 'alice'
+        }
+        alice_profile = self._create_user_profile(alice_data)
+
+        # check that she can authenticate successfully
+        request = self.factory.get('/')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth('alice', 'alice')
+        request.META.update(auth(request.META, response))
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+
+        self.assertFalse(
+            ReadOnlyRole.user_has_role(alice_profile.user, self.project))
+
+        # share bob's project with Alice
+        data = {
+            'username': 'alice',
+            'role': ReadOnlyRole.name
+        }
+        request = self.factory.post('/', data=data, **self.extra)
+        share_view = ProjectViewSet.as_view({'post': 'share'})
+        projectid = self.project.pk
+        response = share_view(request, pk=projectid)
+        self.assertEqual(response.status_code, 204)
+        self.assertTrue(
+            ReadOnlyRole.user_has_role(alice_profile.user, self.project))
+
+        request = self.factory.get('/', {'formID': self.xform.id_string})
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth('alice', 'alice')
+        request.META.update(auth(request.META, response))
+        response = self.view(request, username='alice')
+        self.assertEqual(response.status_code, 200)
+
+        path = os.path.join(
+            os.path.dirname(__file__), '..', 'fixtures', 'formList2.xml')
+
+        with open(path) as f:
+            form_list = f.read().strip()
+            data = {"hash": self.xform.hash, "pk": self.xform.pk}
+            content = response.render().content
+            self.assertEqual(content, form_list % data)
+
+
     def test_get_xform_list_xform_pk_filter(self):
         """
         Test formList xform_pk filter for authenticated user.
