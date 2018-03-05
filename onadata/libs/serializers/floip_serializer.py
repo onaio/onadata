@@ -42,7 +42,8 @@ def _get_owner(request):
     return owner
 
 
-def parse_responses(responses):
+def parse_responses(responses, session_id_index=3, question_index=4,
+                    answer_index=5):
     """
     Returns individual submission for all responses in a flow-results responses
     package.
@@ -50,13 +51,15 @@ def parse_responses(responses):
     submission = {}
     current_key = None
     for row in responses:
+        if len(row) < 6:
+            continue
         if current_key is None:
-            current_key = row[1]
-        if current_key != row[1]:
+            current_key = row[session_id_index]
+        if current_key != row[session_id_index]:
             yield submission
             submission = {}
-            current_key = row[1]
-        submission[row[3]] = row[4]
+            current_key = row[session_id_index]
+        submission[row[question_index]] = row[answer_index]
 
     yield submission
 
@@ -164,7 +167,7 @@ class FloipSerializer(serializers.HyperlinkedModelSerializer):
         return data
 
 
-class FlowResultsResponse(object):
+class FlowResultsResponse(object):  # pylint: disable=too-few-public-methods
     """
     FLowResultsResponse class to hold a list of submission ids.
     """
@@ -172,7 +175,7 @@ class FlowResultsResponse(object):
     responses = []
 
     def __init__(self, uuid, responses):
-        self.id = uuid
+        self.id = uuid  # pylint: disable=invalid-name
         self.responses = responses
 
 

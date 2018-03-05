@@ -8,7 +8,7 @@ import os
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.floip_viewset import FloipViewSet
-from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models import Instance, XForm
 
 
 class TestFloipViewSet(TestAbstractViewSet):
@@ -50,6 +50,7 @@ class TestFloipViewSet(TestAbstractViewSet):
         """
         Test publishing Flow results.
         """
+        count = Instance.objects.count()
         floip_data = self._publish_floip()
         view = FloipViewSet.as_view({'post': 'responses'})
         path = os.path.join(
@@ -70,6 +71,7 @@ class TestFloipViewSet(TestAbstractViewSet):
             self.assertEqual(response['Location'],
                              'http://testserver/api/v1/flow-results/packages/'
                              + floip_data['id'] + '/responses')
+            self.assertEqual(count + 2, Instance.objects.count())
 
     def test_publish_missing_resource_name(self):  # pylint: disable=C0103
         """
