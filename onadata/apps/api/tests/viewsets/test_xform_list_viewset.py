@@ -97,7 +97,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             form_list_xml = f.read().strip()
             data = {"hash": self.xform.hash, "pk": self.xform.pk}
             content = response.render().content
-            self.assertEqual(content, form_list_xml % data) 
+            self.assertEqual(content, form_list_xml % data)
 
     def test_form_id_filter_for_require_auth_account(self):
         """
