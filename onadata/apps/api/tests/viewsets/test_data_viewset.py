@@ -2191,12 +2191,16 @@ class TestDataViewSet(TestBase):
         floip_list = json.loads(response.content)
         self.assertTrue(isinstance(floip_list, list))
         data = [
-            response.data[0]['_submission_time'], response.data[0]['_id'],
-            u'bob',
+            response.data[0]['_submission_time'], None,
+            u'bob', response.data[0]['_id'],
             u'transport/available_transportation_types_to_referral_facility',
             u'none', None
         ]
-        self.assertEqual(floip_list[0], data)
+        self.assertEqual(floip_list[0][0], data[0])
+        self.assertEqual(floip_list[0][2], data[2])
+        self.assertEqual(floip_list[0][3], data[3])
+        self.assertEqual(floip_list[0][4], data[4])
+        self.assertEqual(floip_list[0][5], data[5])
 
 
 class TestOSM(TestAbstractViewSet):

@@ -8,6 +8,7 @@ import os
 from copy import deepcopy
 from cStringIO import StringIO
 
+from django.conf import settings
 import six
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -21,6 +22,10 @@ from rest_framework_json_api import serializers
 from onadata.apps.api.tools import do_publish_xlsform
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.logger_tools import dict2xform, safe_create_instance
+
+SESSION_ID_INDEX = getattr(settings, 'FLOW_RESULTS_SESSION_ID_INDEX', 3)
+QUESTION_INDEX = getattr(settings, 'FLOW_RESULTS_QUESTION_INDEX', 4)
+ANSWER_INDEX = getattr(settings, 'FLOW_RESULTS_ANSWER_INDEX', 5)
 
 
 def _get_user(username):
@@ -42,7 +47,8 @@ def _get_owner(request):
     return owner
 
 
-def parse_responses(responses):
+def parse_responses(responses, session_id_index=SESSION_ID_INDEX,
+                    question_index=QUESTION_INDEX, answer_index=ANSWER_INDEX):
     """
     Returns individual submission for all responses in a flow-results responses
     package.
@@ -50,13 +56,15 @@ def parse_responses(responses):
     submission = {}
     current_key = None
     for row in responses:
+        if len(row) < 6:
+            continue
         if current_key is None:
-            current_key = row[1]
-        if current_key != row[1]:
+            current_key = row[session_id_index]
+        if current_key != row[session_id_index]:
             yield submission
             submission = {}
-            current_key = row[1]
-        submission[row[3]] = row[4]
+            current_key = row[session_id_index]
+        submission[row[question_index]] = row[answer_index]
 
     yield submission
 
@@ -164,7 +172,7 @@ class FloipSerializer(serializers.HyperlinkedModelSerializer):
         return data
 
 
-class FlowResultsResponse(object):
+class FlowResultsResponse(object):  # pylint: disable=too-few-public-methods
     """
     FLowResultsResponse class to hold a list of submission ids.
     """
@@ -172,7 +180,7 @@ class FlowResultsResponse(object):
     responses = []
 
     def __init__(self, uuid, responses):
-        self.id = uuid
+        self.id = uuid  # pylint: disable=invalid-name
         self.responses = responses
 
 

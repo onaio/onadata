@@ -55,7 +55,7 @@ lxml
 
 pyxform
 #pyfloip>=0.0.1
--e git+https://github.com/onaio/floip-py.git@xform-to-flow-results#egg=floip
+-e git+https://github.com/onaio/floip-py.git@master#egg=floip
 
 # spss
 #-e git+https://bitbucket.org/fomcl/savreaderwriter.git@v3.4.2#egg=savreaderwriter

@@ -22,14 +22,25 @@ from onadata.libs.utils.osm import get_combined_osm
 IGNORE_FIELDS = ['meta/instanceID', 'formhub/uuid']
 
 
+def pairing(val1, val2):
+    """
+    Pairing function, encodes two natural numbers into a single natural number.
+
+    Reference: https://en.wikipedia.org/wiki/Pairing_function
+    """
+    return ((val1 + val2) * (val1 + val2 + 1) >> 1) + val2
+
+
 def floip_rows_list(data):
     """
     Yields a row of FLOIP results data from dict data.
     """
-    for key in data:
+    for i, key in enumerate(data, 1):
         if not (key.startswith('_') or key in IGNORE_FIELDS):
-            yield [data['_submission_time'], data['_id'],
-                   data['_submitted_by'], key, data[key], None]
+            session_id = data['_id']
+            yield [data['_submission_time'], long(pairing(session_id, i)),
+                   data.get('_submitted_by'), data['_id'], key, data[key],
+                   None]
 
 
 def floip_list(data):
