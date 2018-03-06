@@ -15,7 +15,7 @@ from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_list_viewset import (
     PreviewXFormListViewSet, XFormListViewSet)
 from onadata.apps.main.models import MetaData
-from onadata.libs.permissions import DataEntryRole, ReadOnlyRole
+from onadata.libs.permissions import DataEntryRole, ReadOnlyRole, OwnerRole
 
 
 class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
@@ -103,7 +103,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         """
         Test formList formID filter for account that requires authentication
         """
-        # Submit forms
+        # Bob submit forms
         xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main", "tests",
                                 "fixtures", "tutorial.xls")
         self._publish_xls_form_to_project(xlsform_path=xls_path)
@@ -169,15 +169,15 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertFalse(
             ReadOnlyRole.user_has_role(alice_profile.user, self.project))
 
-        # share bob's project with Alice
+        # share Bob's project with Alice
         data = {
             'username': 'alice',
             'role': ReadOnlyRole.name
         }
         request = self.factory.post('/', data=data, **self.extra)
         share_view = ProjectViewSet.as_view({'post': 'share'})
-        projectid = self.project.pk
-        response = share_view(request, pk=projectid)
+        project_id = self.project.pk
+        response = share_view(request, pk=project_id)
         self.assertEqual(response.status_code, 204)
         self.assertTrue(
             ReadOnlyRole.user_has_role(alice_profile.user, self.project))
@@ -198,6 +198,45 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             data = {"hash": self.xform.hash, "pk": self.xform.pk}
             content = response.render().content
             self.assertEqual(content, form_list % data)
+
+        # Bob's profile
+        bob_profile = self.user
+
+        # Submit form as Alice
+        self._login_user_and_profile(extra_post_data=alice_data)
+        self.assertEqual(self.user.username, 'alice')
+
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "good_eats_multilang", "good_eats_multilang.xls")
+        self._publish_xls_form_to_project(xlsform_path=path)
+        self.assertTrue(OwnerRole.user_has_role(alice_profile.user,
+                                                self.xform))
+
+        # Share Alice's form with Bob
+        ReadOnlyRole.add(bob_profile, self.xform)
+        self.assertTrue(ReadOnlyRole.user_has_role(bob_profile, self.xform))
+
+        # Get unrecognized formID as bob
+        request = self.factory.get('/', {'formID': 'unrecognizedID'})
+        response = self.view(request, username=bob_profile.username)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth('bob', 'bobbob')
+        request.META.update(auth(request.META, response))
+        response = self.view(request, username=bob_profile.username)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+        # Get Alice's form as Bob
+        request = self.factory.get('/', {'formID': 'good_eats_multilang'})
+        response = self.view(request, username=bob_profile.username)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth('bob', 'bobbob')
+        request.META.update(auth(request.META, response))
+        response = self.view(request, username=bob_profile.username)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['formID'], 'good_eats_multilang')
 
     def test_get_xform_list_xform_pk_filter(self):
         """
