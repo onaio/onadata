@@ -95,9 +95,10 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
             if self.action == 'list' and profile and xform_pk is None:
                 forms_shared_with_user = get_forms_shared_with_user(
                     profile.user)
-                if self.request.query_params.get('formID'):
-                    forms_shared_with_user = forms_shared_with_user.filter(
-                        id_string=self.request.query_params.get('formID'))
+                id_string = self.request.query_params.get('formID')
+                forms_shared_with_user = forms_shared_with_user.filter(
+                        id_string=id_string) if id_string else \
+                    forms_shared_with_user
                 queryset = queryset | forms_shared_with_user
                 if self.request.user != profile.user:
                     public_forms = profile.user.xforms.filter(
