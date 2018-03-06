@@ -384,7 +384,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                     .values_list('xforms', flat=True)
                 pks = [pk for pk in xforms if pk] or [xform_id]
             self.object_list = Instance.objects.filter(
-                xform_id__in=pks, deleted_at=None).only('json').order_by('id')
+                xform_id__in=pks, deleted_at=None).only('json')
             xform = self.get_object()
             self.object_list = \
                 filter_queryset_xform_meta_perms(xform, request.user,
@@ -452,9 +452,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 limit = limit if start is None or start == 0 else start + limit
                 self.object_list = filter_queryset_xform_meta_perms(
                     self.get_object(), self.request.user, self.object_list)
-                self.object_list = \
-                    self.object_list.order_by('pk')[start: limit]
-                self.total_count = self.object_list.count()
+                self.object_list = self.object_list[start: limit]
+                self.total_count = xform.submission_count()
             elif (sort or limit or start or fields) and not is_public_request:
                 try:
                     query = \
@@ -464,10 +463,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                     self.object_list = query_data(xform, query=query,
                                                   sort=sort, start_index=start,
                                                   limit=limit, fields=fields)
-                    self.total_count = query_data(
-                        xform, query=query, sort=sort, start_index=start,
-                        limit=limit, fields=fields, count=True
-                    )[0].get('count')
+                    self.total_count = xform.submission_count()
 
                 except NoRecordsPermission:
                     self.object_list = []
