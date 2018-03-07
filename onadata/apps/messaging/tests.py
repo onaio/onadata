@@ -31,7 +31,7 @@ class TestMessagingViewSet(TestCase):
         view = MessagingViewSet.as_view({'post': 'create'})
         data = {
             "message": "Hello World!",
-            "target_id": self.user.pk,
+            "target_id": 16,
             "target_type": 'user',
         }  # yapf: disable
         request = self.factory.post('/messaging', data)
