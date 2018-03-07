@@ -206,6 +206,7 @@ INSTALLED_APPS = (
     'onadata.libs',
     'reversion',
     'actstream',
+    'onadata.apps.messaging.apps.MessagingConfig',
 )
 
 OAUTH2_PROVIDER = {
