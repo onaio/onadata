@@ -30,6 +30,7 @@ datapackage==1.1.4
 decorator==4.0.11         # via ipython, traitlets
 defusedxml==0.5.0         # via djangorestframework-xml
 dict2xml==1.5
+django-activity-stream==0.6.5
 django-braces==1.11.0     # via django-oauth-toolkit
 django-celery==3.2.1
 django-cors-headers==2.1.0
@@ -44,7 +45,7 @@ django-render-block==0.5  # via django-templated-email
 django-reversion==2.0.8
 django-taggit==0.22.1
 django-templated-email==2.2.0
-django==1.11.1
+django==1.11.11
 djangorestframework-csv==2.0.0
 djangorestframework-gis==0.11.2
 djangorestframework-jsonapi==2.4.0

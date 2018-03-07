@@ -205,6 +205,7 @@ INSTALLED_APPS = (
     'onadata.apps.sms_support',
     'onadata.libs',
     'reversion',
+    'actstream',
 )
 
 OAUTH2_PROVIDER = {
