@@ -52,12 +52,8 @@ class MessageSerializer(serializers.ModelSerializer):
         else:
             target_object = content_type.get_object_for_this_type(pk=target_id)
 
-            # self.context.get('request').user
-            from django.contrib.auth.models import User
-            user = User.objects.get(pk=target_id)
-
             results = action.send(
-                user,
+                self.context.get('request').user,
                 verb='message',
                 target=target_object,
                 description=validated_data.get("description"))
