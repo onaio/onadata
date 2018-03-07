@@ -50,17 +50,24 @@ class MessageSerializer(serializers.ModelSerializer):
                 'Unknown target type'
             })
         else:
-            target_object = content_type.get_object_for_this_type(pk=target_id)
+            try:
+                target_object = content_type.get_object_for_this_type(
+                                    pk=target_id)
+            except content_type.model_class().DoesNotExist:
+                raise serializers.ValidationError({
+                    'target_id':
+                    'target_id not found'
+                })
+            else:
+                results = action.send(
+                    self.context.get('request').user,
+                    verb='message',
+                    target=target_object,
+                    description=validated_data.get("description"))
 
-            results = action.send(
-                self.context.get('request').user,
-                verb='message',
-                target=target_object,
-                description=validated_data.get("description"))
+                results = [x for x in results if x[0] == action_handler]
+                if not results:
+                    raise serializers.ValidationError(
+                        "Message not created. Please retry.")
 
-            results = [x for x in results if x[0] == action_handler]
-            if not results:
-                raise serializers.ValidationError(
-                    "Message not created. Please retry.")
-
-            return results[0][1]
+                return results[0][1]
