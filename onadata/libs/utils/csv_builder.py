@@ -4,6 +4,7 @@ from itertools import chain
 import unicodecsv as csv
 from django.conf import settings
 from django.db.models.query import QuerySet
+from django.utils.translation import ugettext as _
 from pyxform.question import Question
 from pyxform.section import RepeatingSection, Section
 
@@ -34,6 +35,11 @@ GROUP_DELIMITER_DOT = '.'
 DEFAULT_GROUP_DELIMITER = GROUP_DELIMITER_SLASH
 GROUP_DELIMITERS = [GROUP_DELIMITER_SLASH, GROUP_DELIMITER_DOT]
 DEFAULT_NA_REP = getattr(settings, 'NA_REP', NA_REP)
+
+# index tags
+DEFAULT_OPEN_TAG = '['
+DEFAULT_CLOSE_TAG = ']'
+DEFAULT_INDEX_TAGS = (DEFAULT_OPEN_TAG, DEFAULT_CLOSE_TAG)
 
 
 def remove_dups_from_list_maintain_order(l):
@@ -89,7 +95,8 @@ def write_to_csv(path, rows, columns, columns_with_hxl=None,
                  remove_group_name=False, dd=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER, include_labels=False,
                  include_labels_only=False, include_hxl=False,
-                 win_excel_utf8=False, total_records=None):
+                 win_excel_utf8=False, total_records=None,
+                 index_tags=DEFAULT_INDEX_TAGS):
     na_rep = getattr(settings, 'NA_REP', NA_REP)
     encoding = 'utf-8-sig' if win_excel_utf8 else 'utf-8'
     with open(path, 'wb') as csvfile:
@@ -145,7 +152,8 @@ class AbstractDataFrameBuilder(object):
                  start=None, end=None, remove_group_name=False, xform=None,
                  include_labels=False, include_labels_only=False,
                  include_images=True, include_hxl=False,
-                 win_excel_utf8=False, total_records=None):
+                 win_excel_utf8=False, total_records=None,
+                 index_tags=DEFAULT_INDEX_TAGS):
 
         self.username = username
         self.id_string = id_string
@@ -171,6 +179,13 @@ class AbstractDataFrameBuilder(object):
         self.win_excel_utf8 = win_excel_utf8
         self._setup()
         self.total_records = total_records
+        if index_tags != DEFAULT_INDEX_TAGS and \
+                not isinstance(index_tags, (tuple, list)):
+            raise ValueError(_(
+                "Invalid option for repeat_index_tags: %s "
+                "expecting a tuple with opening and closing tags "
+                "e.g repeat_index_tags=('[', ']')" % index_tags))
+        self.index_tags = index_tags
 
     def _setup(self):
         self.dd = self.xform
@@ -327,14 +342,17 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                  start=None, end=None, remove_group_name=False, xform=None,
                  include_labels=False, include_labels_only=False,
                  include_images=False, include_hxl=False,
-                 win_excel_utf8=False, total_records=None):
+                 win_excel_utf8=False, total_records=None,
+                 index_tags=DEFAULT_INDEX_TAGS):
         super(CSVDataFrameBuilder, self).__init__(
             username, id_string, filter_query, group_delimiter,
             split_select_multiples, binary_select_multiples, start, end,
             remove_group_name, xform, include_labels, include_labels_only,
-            include_images, include_hxl, win_excel_utf8, total_records
+            include_images, include_hxl, win_excel_utf8, total_records,
+            index_tags
 
         )
+
         self.ordered_columns = OrderedDict()
 
     def _setup(self):
@@ -343,7 +361,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
     @classmethod
     def _reindex(cls, key, value, ordered_columns, row, data_dictionary,
                  parent_prefix=None,
-                 include_images=True, split_select_multiples=True):
+                 include_images=True, split_select_multiples=True,
+                 index_tags=DEFAULT_INDEX_TAGS):
         """
         Flatten list columns by appending an index, otherwise return as is
         """
@@ -381,10 +400,18 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                             _key = '/'.join(
                                 parent_prefix +
                                 key.split('/')[len(parent_prefix):])
-                            xpaths = ['%s[%d]' % (_key, index)] + \
+                            xpaths = ['{key}{open_tag}{index}{close_tag}'
+                                      .format(key=_key,
+                                              open_tag=index_tags[0],
+                                              index=index,
+                                              close_tag=index_tags[1])] + \
                                 nested_key.split('/')[len(_key.split('/')):]
                         else:
-                            xpaths = ['%s[%d]' % (key, index)] + \
+                            xpaths = ['{key}{open_tag}{index}{close_tag}'
+                                      .format(key=key,
+                                              open_tag=index_tags[0],
+                                              index=index,
+                                              close_tag=index_tags[1])] + \
                                 nested_key.split('/')[len(key.split('/')):]
                         # re-create xpath the split on /
                         xpaths = "/".join(xpaths).split("/")
@@ -396,7 +423,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                                 ordered_columns, row, data_dictionary,
                                 new_prefix,
                                 include_images=include_images,
-                                split_select_multiples=split_select_multiples))
+                                split_select_multiples=split_select_multiples,
+                                index_tags=index_tags))
                         else:
                             # it can only be a scalar
                             # collapse xpath
@@ -482,7 +510,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 self._reindex(
                     key, value, self.ordered_columns, record, self.dd,
                     include_images=image_xpaths,
-                    split_select_multiples=self.split_select_multiples)
+                    split_select_multiples=self.split_select_multiples,
+                    index_tags=self.index_tags)
 
     def _format_for_dataframe(self, cursor):
         # TODO: check for and handle empty results
@@ -515,7 +544,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 reindexed = self._reindex(
                     key, value, self.ordered_columns, record, self.dd,
                     include_images=image_xpaths,
-                    split_select_multiples=self.split_select_multiples)
+                    split_select_multiples=self.split_select_multiples,
+                    index_tags=self.index_tags)
                 flat_dict.update(reindexed)
 
             yield flat_dict
@@ -573,4 +603,5 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                      include_labels_only=self.include_labels_only,
                      include_hxl=self.include_hxl,
                      win_excel_utf8=self.win_excel_utf8,
-                     total_records=self.total_records)
+                     total_records=self.total_records,
+                     index_tags=self.index_tags)

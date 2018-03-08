@@ -16,8 +16,6 @@ from onadata.apps.api.viewsets.xform_list_viewset import (
     PreviewXFormListViewSet, XFormListViewSet)
 from onadata.apps.main.models import MetaData
 from onadata.libs.permissions import DataEntryRole, ReadOnlyRole
-from onadata.libs.utils.common_tags import GROUP_DELIMETER_TAG
-from onadata.libs.utils.export_tools import ExportBuilder
 
 
 class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
@@ -685,9 +683,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         response = self.view(request, pk=self.xform.pk, format='csv')
 
         # test
-        manifest_media_url = "%s?%s=%s" % (media.data['media_url'],
-                                           GROUP_DELIMETER_TAG,
-                                           ExportBuilder.GROUP_DELIMITER_DOT)
+        manifest_media_url = media.data['media_url']
         download_url = response.data[0]['downloadUrl']
         self.assertEqual(manifest_media_url, download_url)
 

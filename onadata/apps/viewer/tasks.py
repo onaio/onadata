@@ -175,6 +175,7 @@ def create_csv_export(username, id_string, export_id, **options):
         export.save()
     except Exception as e:
         export.internal_status = Export.FAILED
+        export.error_message = str(e)
         export.save()
         # mail admins
         details = _get_export_details(username, id_string, export_id)
@@ -242,6 +243,7 @@ def create_osm_export(username, id_string, export_id, **options):
             xform=export.xform)
     except (Exception, NoRecordsFoundError) as e:
         export.internal_status = Export.FAILED
+        export.error_message = str(e)
         export.save()
         # mail admins
         details = _get_export_details(username, id_string, export_id)
@@ -270,6 +272,7 @@ def create_zip_export(username, id_string, export_id, **options):
             xform=export.xform)
     except (Exception, NoRecordsFoundError) as e:
         export.internal_status = Export.FAILED
+        export.error_message = str(e)
         export.save()
         # mail admins
         details = _get_export_details(username, id_string, export_id)
@@ -299,6 +302,7 @@ def create_csv_zip_export(username, id_string, export_id, **options):
                                      export_id, options)
     except (Exception, NoRecordsFoundError) as e:
         export.internal_status = Export.FAILED
+        export.error_message = str(e)
         export.save()
         # mail admins
         details = _get_export_details(username, id_string, export_id)

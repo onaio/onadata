@@ -21,10 +21,10 @@ from onadata.apps.logger.models.xform import _encode_for_mongo,\
     QUESTION_TYPES_TO_EXCLUDE
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.common_tags import (
-    ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION, BAMBOO_DATASET_ID,
-    DELETEDAT, INDEX, PARENT_INDEX, PARENT_TABLE_NAME, MULTIPLE_SELECT_TYPE,
-    SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION,
-    SAV_255_BYTES_TYPE, SAV_NUMERIC_TYPE)
+    ATTACHMENTS, BAMBOO_DATASET_ID, DELETEDAT, DURATION, GEOLOCATION, ID,
+    INDEX, MULTIPLE_SELECT_TYPE, NOTES, PARENT_INDEX, PARENT_TABLE_NAME,
+    REPEAT_INDEX_TAGS, SAV_255_BYTES_TYPE, SAV_NUMERIC_TYPE, STATUS,
+    SUBMISSION_TIME, SUBMITTED_BY, TAGS, UUID, VERSION, XFORM_ID_STRING)
 from onadata.libs.utils.mongo import _is_invalid_for_mongo,\
     _decode_from_mongo
 
@@ -222,6 +222,9 @@ class ExportBuilder(object):
     GROUP_DELIMITER_DOT = '.'
     GROUP_DELIMITER = GROUP_DELIMITER_SLASH
     GROUP_DELIMITERS = [GROUP_DELIMITER_SLASH, GROUP_DELIMITER_DOT]
+
+    # index tags
+    REPEAT_INDEX_TAGS = ('[', ']')
 
     INCLUDE_LABELS = False
     INCLUDE_LABELS_ONLY = False
@@ -748,8 +751,11 @@ class ExportBuilder(object):
 
         wb.save(filename=path)
 
-    def to_flat_csv_export(
-            self, path, data, username, id_string, filter_query, **kwargs):
+    def to_flat_csv_export(self, path, data, username, id_string,
+                           filter_query, **kwargs):
+        """
+        Generates a flattened CSV file for submitted data.
+        """
         # TODO resolve circular import
         from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
         start = kwargs.get('start')
@@ -759,6 +765,7 @@ class ExportBuilder(object):
         options = kwargs.get('options')
         total_records = kwargs.get('total_records')
         win_excel_utf8 = options.get('win_excel_utf8') if options else False
+        index_tags = options.get(REPEAT_INDEX_TAGS, self.REPEAT_INDEX_TAGS)
 
         csv_builder = CSVDataFrameBuilder(
             username, id_string, filter_query, self.GROUP_DELIMITER,
@@ -766,7 +773,7 @@ class ExportBuilder(object):
             start, end, self.TRUNCATE_GROUP_TITLE, xform,
             self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY, self.INCLUDE_IMAGES,
             self.INCLUDE_HXL, win_excel_utf8=win_excel_utf8,
-            total_records=total_records
+            total_records=total_records, index_tags=index_tags
         )
 
         csv_builder.export_to(path, dataview=dataview)
