@@ -2,7 +2,6 @@
 """
 Test export_tools module
 """
-
 import os
 import shutil
 import tempfile
@@ -15,6 +14,8 @@ from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
 from django.test.utils import override_settings
 from django.utils import timezone
+from pyxform.builder import create_survey_from_xls
+from rest_framework import exceptions
 from savReaderWriter import SavWriter
 
 from onadata.apps.api import tests as api_tests
@@ -27,9 +28,9 @@ from onadata.libs.utils.export_builder import (encode_if_str,
                                                get_value_or_attachment_uri)
 from onadata.libs.utils.export_tools import (
     ExportBuilder, check_pending_export, generate_attachments_zip_export,
-    generate_export, generate_kml_export, generate_osm_export, kml_export_data,
-    parse_request_export_options, should_create_new_export, str_to_bool)
-from pyxform.builder import create_survey_from_xls
+    generate_export, generate_kml_export, generate_osm_export,
+    get_repeat_index_tags, kml_export_data, parse_request_export_options,
+    should_create_new_export, str_to_bool)
 
 
 def _logger_fixture_path(*args):
@@ -613,3 +614,15 @@ class TestExportTools(TestBase):
         test_export = check_pending_export(self.xform, Export.CSV_EXPORT, {})
 
         self.assertIsNone(test_export)
+
+    def test_get_repeat_index_tags(self):
+        """
+        Test get_repeat_index_tags(index_tags) function.
+        """
+        self.assertIsNone(get_repeat_index_tags(None))
+
+        self.assertEqual(get_repeat_index_tags('.'), ('.', '.'))
+        self.assertEqual(get_repeat_index_tags('{,}'), ('{', '}'))
+
+        with self.assertRaises(exceptions.ParseError):
+            get_repeat_index_tags('p')

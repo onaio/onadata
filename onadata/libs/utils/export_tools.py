@@ -3,6 +3,7 @@ import json
 import math
 import os
 import re
+import six
 import sys
 import time
 from datetime import datetime
@@ -18,7 +19,9 @@ from django.db import OperationalError
 from django.db.models.query import QuerySet
 from django.shortcuts import render_to_response
 from django.utils import timezone
+from django.utils.translation import ugettext as _
 from json2xlsclient.client import Client
+from rest_framework import exceptions
 from savReaderWriter import SPSSIOError
 
 from onadata.apps.logger.models import Attachment, Instance, OsmData, XForm
@@ -40,6 +43,7 @@ from onadata.libs.utils.viewer_tools import (create_attachments_zipfile,
 
 DEFAULT_GROUP_DELIMITER = '/'
 DEFAULT_INDEX_TAGS = ('[', ']')
+SUPPORTED_INDEX_TAGS = ('[', ']', '(', ')', '{', '}', '.', '_')
 EXPORT_QUERY_KEY = 'query'
 MAX_RETRIES = 3
 
@@ -821,7 +825,7 @@ def upload_template_for_external_export(server, file_obj):
     return str(status_code) + '|' + response
 
 
-def parse_request_export_options(params):
+def parse_request_export_options(params):  # pylint: disable=too-many-branches
     """
     Parse export options in the request object into values returned in a
     list. The list represents a boolean for whether the group name should be
@@ -872,9 +876,33 @@ def parse_request_export_options(params):
     if value_select_multiples and value_select_multiples in boolean_list:
         options['value_select_multiples'] = str_to_bool(value_select_multiples)
 
-    if params.get("repeat_index_tags") is not None:
-        options['repeat_index_tags'] = params.get("repeat_index_tags")
-    else:
-        options['repeat_index_tags'] = DEFAULT_INDEX_TAGS
+    index_tags = get_repeat_index_tags(params.get("repeat_index_tags"))
+    if index_tags:
+        options['repeat_index_tags'] = index_tags
 
     return options
+
+
+def get_repeat_index_tags(index_tags):
+    """
+    Gets a comma separated string `index_tags`
+
+    Retuns a tuple of two strings with  SUPPORTED_INDEX_TAGS,
+    """
+    if isinstance(index_tags, six.string_types):
+        index_tags = tuple(index_tags.split(','))
+        length = len(index_tags)
+        if length == 1:
+            index_tags = (index_tags[0], index_tags[0])
+        elif length > 1:
+            index_tags = index_tags[:2]
+        else:
+            index_tags = DEFAULT_INDEX_TAGS
+
+        for tag in index_tags:
+            if tag not in SUPPORTED_INDEX_TAGS:
+                raise exceptions.ParseError(_(
+                    "The tag %s is not supported, supported tags are %s" %
+                    (tag, SUPPORTED_INDEX_TAGS)))
+
+    return index_tags
