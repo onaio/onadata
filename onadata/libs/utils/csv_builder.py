@@ -4,6 +4,7 @@ from itertools import chain
 import unicodecsv as csv
 from django.conf import settings
 from django.db.models.query import QuerySet
+from django.utils.translation import ugettext as _
 from pyxform.question import Question
 from pyxform.section import RepeatingSection, Section
 
@@ -38,7 +39,7 @@ DEFAULT_NA_REP = getattr(settings, 'NA_REP', NA_REP)
 # index tags
 DEFAULT_OPEN_TAG = '['
 DEFAULT_CLOSE_TAG = ']'
-DEFAULT_INDEX_TAGS = [DEFAULT_OPEN_TAG, DEFAULT_CLOSE_TAG]
+DEFAULT_INDEX_TAGS = (DEFAULT_OPEN_TAG, DEFAULT_CLOSE_TAG)
 
 
 def remove_dups_from_list_maintain_order(l):
@@ -178,6 +179,12 @@ class AbstractDataFrameBuilder(object):
         self.win_excel_utf8 = win_excel_utf8
         self._setup()
         self.total_records = total_records
+        if index_tags != DEFAULT_INDEX_TAGS and \
+                not isinstance(index_tags, (tuple, list)):
+            raise ValueError(_(
+                "Invalid option for repeat_index_tags: %s "
+                "expecting a tuple with opening and closing tags "
+                "e.g repeat_index_tags=('[', ']')" % index_tags))
         self.index_tags = index_tags
 
     def _setup(self):
