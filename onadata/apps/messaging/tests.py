@@ -76,7 +76,12 @@ class TestMessagingViewSet(TestCase):
         """
         Test GET /messaging listing of messages for specific forms.
         """
-        self.fail("Implement listing messages for a single form")
+        message_data = self._create_message()
+        view = MessagingViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/messaging')
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [message_data])
 
     def test_retrieve_message(self):
         """
