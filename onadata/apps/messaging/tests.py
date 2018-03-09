@@ -7,8 +7,8 @@ from __future__ import unicode_literals
 from actstream.models import Action
 from django.contrib.auth.models import User
 from django.test import TestCase
-from rest_framework.test import APIRequestFactory, force_authenticate
 from guardian.shortcuts import assign_perm
+from rest_framework.test import APIRequestFactory, force_authenticate
 
 from onadata.apps.messaging.viewsets import MessagingViewSet
 
@@ -25,11 +25,12 @@ class TestMessagingViewSet(TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
 
-    def _create_message(self):
+    def _create_message(self, user=None):
         """
         Helper to create a single message
         """
-        user = _create_user()
+        if not user:
+            user = _create_user()
         assign_perm('auth.change_user', user, user)
         view = MessagingViewSet.as_view({'post': 'create'})
         data = {
@@ -73,9 +74,11 @@ class TestMessagingViewSet(TestCase):
         """
         Test DELETE /messaging/[pk] deleting a message.
         """
-        message_data = self._create_message()
+        user = _create_user()
+        message_data = self._create_message(user)
         view = MessagingViewSet.as_view({'delete': 'destroy'})
         request = self.factory.delete('/messaging/%s' % message_data['id'])
+        force_authenticate(request, user=user)
         response = view(request=request, pk=message_data['id'])
         self.assertEqual(response.status_code, 204)
         self.assertFalse(Action.objects.filter(pk=message_data['id']).exists())
@@ -84,13 +87,15 @@ class TestMessagingViewSet(TestCase):
         """
         Test GET /messaging listing of messages for specific forms.
         """
-        message_data = self._create_message()
+        user = _create_user()
+        message_data = self._create_message(user)
         target_id = message_data['target_id']
         view = MessagingViewSet.as_view({'get': 'list'})
 
         # return data only when a target_type is provided
         request = self.factory.get('/messaging', {'target_type': 'user',
                                                   'target_id': target_id})
+        force_authenticate(request, user=user)
         response = view(request=request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [message_data])
@@ -98,17 +103,20 @@ class TestMessagingViewSet(TestCase):
         # returns empty list when a target type does not have any records
         request = self.factory.get('/messaging', {'target_type': 'xform',
                                                   'target_id': target_id})
+        force_authenticate(request, user=user)
         response = view(request=request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
         # return status 400 if both target_type and target_id are misssing
         request = self.factory.get('/messaging')
+        force_authenticate(request, user=user)
         response = view(request=request)
         self.assertEqual(response.status_code, 400)
 
         # returns 400 status when a target_id is missing
         request = self.factory.get('/messaging', {'target_type': 'user'})
+        force_authenticate(request, user=user)
         response = view(request=request)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data,
@@ -116,6 +124,7 @@ class TestMessagingViewSet(TestCase):
 
         # returns 400 status when a target_type is missing
         request = self.factory.get('/messaging', {'target_id': target_id})
+        force_authenticate(request, user=user)
         response = view(request=request)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data,
@@ -124,6 +133,7 @@ class TestMessagingViewSet(TestCase):
         # returns 400 status when a target type is not known
         request = self.factory.get('/messaging', {'target_type': 'xyz',
                                                   'target_id': target_id})
+        force_authenticate(request, user=user)
         response = view(request=request)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data,
@@ -133,9 +143,11 @@ class TestMessagingViewSet(TestCase):
         """
         Test GET /messaging/[pk] return a message matching pk.
         """
-        message_data = self._create_message()
+        user = _create_user()
+        message_data = self._create_message(user)
         view = MessagingViewSet.as_view({'get': 'retrieve'})
         request = self.factory.get('/messaging/{}'.format(message_data['id']))
+        force_authenticate(request, user=user)
         response = view(request=request, pk=message_data['id'])
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.data, message_data)
