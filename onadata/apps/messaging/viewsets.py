@@ -12,6 +12,7 @@ from onadata.apps.messaging.constants import MESSAGE
 from onadata.apps.messaging.filters import (TargetIDFilterBackend,
                                             TargetTypeFilterBackend)
 from onadata.apps.messaging.serializers import MessageSerializer
+from onadata.apps.messaging.permissions import TargetObjectPermissions
 
 
 # pylint: disable=too-many-ancestors
@@ -24,5 +25,5 @@ class MessagingViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
 
     serializer_class = MessageSerializer
     queryset = Action.objects.filter(verb=MESSAGE)
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, TargetObjectPermissions]
     filter_backends = (TargetTypeFilterBackend, TargetIDFilterBackend)

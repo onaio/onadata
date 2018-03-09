@@ -200,7 +200,7 @@ class TestMessagingViewSet(TestCase):
 
     def test_create_permissions(self):
         """
-        Test that correct permissions are required to publish a form..
+        Test that correct permissions are required to create a message.
         """
         user = _create_user()
         data = {
@@ -222,3 +222,21 @@ class TestMessagingViewSet(TestCase):
         force_authenticate(request, user=user)
         response = view(request=request)
         self.assertEqual(response.status_code, 201)
+
+    def test_retrieve_permissions(self):
+        """
+        Test that correct permissions are required when retrieving a message
+        """
+        user = _create_user()
+        other_user = _create_user('anotheruser')
+        message_data = self._create_message(user)
+        view = MessagingViewSet.as_view({'get': 'retrieve'})
+        request = self.factory.get('/messaging/{}'.format(message_data['id']))
+        force_authenticate(request, user=other_user)
+        response = view(request=request, pk=message_data['id'])
+        self.assertEqual(response.status_code, 403)
+
+        request = self.factory.get('/messaging/{}'.format(message_data['id']))
+        force_authenticate(request, user=user)
+        response = view(request=request, pk=message_data['id'])
+        self.assertEqual(response.status_code, 200)
