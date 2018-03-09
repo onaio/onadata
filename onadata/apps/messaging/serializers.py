@@ -8,24 +8,17 @@ from __future__ import unicode_literals
 from actstream.actions import action_handler
 from actstream.models import Action
 from actstream.signals import action
-from django.contrib.contenttypes.models import ContentType
 from rest_framework import serializers
 
 from onadata.apps.messaging.constants import MESSAGE
-
-
-APP_LABEL_MAPPING = {
-    'xform': 'logger',
-    'projects': 'logger',
-    'user': 'auth',
-}
+from onadata.apps.messaging.utils import TargetDoesNotExist, get_target
 
 
 class MessageSerializer(serializers.ModelSerializer):
     """
     Serializer class for Message objects
     """
-    TARGET_CHOICES = (('xform', 'XForm'),  ('project', 'Project'),
+    TARGET_CHOICES = (('xform', 'XForm'), ('project', 'Project'),
                       ('user', 'User'))  # yapf: disable
 
     message = serializers.CharField(source='description', allow_blank=False)
@@ -43,24 +36,20 @@ class MessageSerializer(serializers.ModelSerializer):
         """
         target_type = validated_data.get("target_content_type")
         target_id = validated_data.get("target_object_id")
-        app_label = APP_LABEL_MAPPING[target_type]
         try:
-            content_type = ContentType.objects.get(
-                app_label=app_label, model=target_type)
-        except ContentType.DoesNotExist:
+            content_type = get_target(target_type)
+        except TargetDoesNotExist:
             raise serializers.ValidationError({
-                'target_type':
-                'Unknown target type'
-            })
+                'target_type': 'Unknown target type'
+            })  # yapf: disable
         else:
             try:
-                target_object = content_type.get_object_for_this_type(
-                                    pk=target_id)
+                target_object = \
+                    content_type.get_object_for_this_type(pk=target_id)
             except content_type.model_class().DoesNotExist:
                 raise serializers.ValidationError({
-                    'target_id':
-                    'target_id not found'
-                })
+                    'target_id': 'target_id not found'
+                })  # yapf: disable
             else:
                 results = action.send(
                     self.context.get('request').user,
