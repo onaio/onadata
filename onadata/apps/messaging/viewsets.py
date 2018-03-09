@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 from actstream.models import Action
 from rest_framework import mixins, viewsets
+from rest_framework.permissions import IsAuthenticated
 
 from onadata.apps.messaging.constants import MESSAGE
 from onadata.apps.messaging.filters import (TargetIDFilterBackend,
@@ -23,4 +24,5 @@ class MessagingViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
 
     serializer_class = MessageSerializer
     queryset = Action.objects.filter(verb=MESSAGE)
+    permission_classes = [IsAuthenticated]
     filter_backends = (TargetTypeFilterBackend, TargetIDFilterBackend)

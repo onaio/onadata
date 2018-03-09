@@ -142,4 +142,44 @@ class TestMessagingViewSet(TestCase):
         """
         Test that authentication is required at all endpoints.
         """
-        self.fail('Implement authentication required.')
+        # Test that the list endpoint requires authentication
+        view1 = MessagingViewSet.as_view({'get': 'list'})
+        request1 = self.factory.get('/messaging', {'target_type': 'xform',
+                                                   'target_id': 1})
+        response1 = view1(request=request1)
+        self.assertEqual(response1.status_code, 401)
+        self.assertEqual(
+            response1.data,
+            {u'detail': u"Authentication credentials were not provided."})
+
+        # Test that retrieve requires authentication
+        view2 = MessagingViewSet.as_view({'get': 'retrieve'})
+        request2 = self.factory.get('/messaging/1')
+        response2 = view2(request=request2, pk=1)
+        self.assertEqual(response2.status_code, 401)
+        self.assertEqual(
+            response2.data,
+            {u'detail': u"Authentication credentials were not provided."})
+
+        # Test that delete requires authentication
+        view3 = MessagingViewSet.as_view({'delete': 'destroy'})
+        request3 = self.factory.delete('/messaging/5')
+        response3 = view3(request=request3, pk=5)
+        self.assertEqual(response3.status_code, 401)
+        self.assertEqual(
+            response3.data,
+            {u'detail': u"Authentication credentials were not provided."})
+
+        # Test that create requires authentication
+        view4 = MessagingViewSet.as_view({'post': 'create'})
+        data = {
+            "message": "Hello World!",
+            "target_id": 1,
+            "target_type": 'user',
+        }  # yapf: disable
+        request4 = self.factory.post('/messaging', data)
+        response4 = view4(request=request4)
+        self.assertEqual(response4.status_code, 401)
+        self.assertEqual(
+            response4.data,
+            {u'detail': u"Authentication credentials were not provided."})
