@@ -1,10 +1,16 @@
 # -*- coding: utf-8 -*-
+"""
+Messaging AppsConfig module
+"""
 from __future__ import unicode_literals
 
 from django.apps import AppConfig, apps
 
 
 class MessagingConfig(AppConfig):
+    """
+    Messaging AppsConfig class.
+    """
     name = 'onadata.apps.messaging'
     verbose_name = 'Messaging'
 
