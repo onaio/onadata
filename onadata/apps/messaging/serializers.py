@@ -11,6 +11,9 @@ from actstream.signals import action
 from django.contrib.contenttypes.models import ContentType
 from rest_framework import serializers
 
+from onadata.apps.messaging.constants import MESSAGE
+
+
 APP_LABEL_MAPPING = {
     'xform': 'logger',
     'projects': 'logger',
@@ -61,7 +64,7 @@ class MessageSerializer(serializers.ModelSerializer):
             else:
                 results = action.send(
                     self.context.get('request').user,
-                    verb='message',
+                    verb=MESSAGE,
                     target=target_object,
                     description=validated_data.get("description"))
 

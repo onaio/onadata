@@ -23,9 +23,9 @@ class TestMessagingViewSet(TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
 
-    def test_create_message(self):
+    def _create_message(self):
         """
-        Test POST /messaging adding a new message for a specific form.
+        Helper to create a single message
         """
         user = _create_user()
         view = MessagingViewSet.as_view({'post': 'create'})
@@ -39,6 +39,14 @@ class TestMessagingViewSet(TestCase):
         response = view(request=request)
         self.assertEqual(response.status_code, 201, response.data)
         self.assertDictContainsSubset(data, response.data)
+
+        return response.data
+
+    def test_create_message(self):
+        """
+        Test POST /messaging adding a new message for a specific form.
+        """
+        self._create_message()
 
     def test_target_does_not_exist(self):
         """
@@ -70,11 +78,16 @@ class TestMessagingViewSet(TestCase):
         """
         self.fail("Implement listing messages for a single form")
 
-    def test_retrieve_messages(self):
+    def test_retrieve_message(self):
         """
         Test GET /messaging/[pk] return a message matching pk.
         """
-        self.fail("Implement listing messages for a single form")
+        message_data = self._create_message()
+        view = MessagingViewSet.as_view({'get': 'retrieve'})
+        request = self.factory.get('/messaging/{}'.format(message_data['id']))
+        response = view(request=request, pk=message_data['id'])
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.data, message_data)
 
     def test_authentication_required(self):
         """
