@@ -4,11 +4,13 @@ Messaging /messaging viewsets.
 """
 from __future__ import unicode_literals
 
-from rest_framework import mixins, viewsets
 from actstream.models import Action
+from rest_framework import mixins, viewsets
 
-from onadata.apps.messaging.serializers import MessageSerializer
 from onadata.apps.messaging.constants import MESSAGE
+from onadata.apps.messaging.filters import (TargetIDFilterBackend,
+                                            TargetTypeFilterBackend)
+from onadata.apps.messaging.serializers import MessageSerializer
 
 
 # pylint: disable=too-many-ancestors
@@ -21,3 +23,4 @@ class MessagingViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
 
     serializer_class = MessageSerializer
     queryset = Action.objects.filter(verb=MESSAGE)
+    filter_backends = (TargetTypeFilterBackend, TargetIDFilterBackend)

@@ -6,7 +6,7 @@ Adds support to create and view messages via an API.
 API Endpoints
 -------------
 
-GET /api/messaging - returns an empty list, will return a list of messages given `xform` or `project` or `user` query parameters.
+GET /api/messaging - returns an empty list, will return a list of messages given `target_type` and `target_id` query parameters. The `target_type` has `xform` or `project` or `user` as the value and `target_id` is the target identifier.
 
 GET /api/messaging/[pk] - returns a specific message with matching pk.
 
