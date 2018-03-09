@@ -13,7 +13,8 @@ from onadata.apps.messaging.constants import MESSAGE
 
 # pylint: disable=too-many-ancestors
 class MessagingViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
-                       mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+                       mixins.RetrieveModelMixin, mixins.DestroyModelMixin,
+                       viewsets.GenericViewSet):
     """
     ViewSet for the Messaging app - implements /messaging API endpoint
     """

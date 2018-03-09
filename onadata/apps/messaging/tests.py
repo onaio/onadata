@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 from django.test import TestCase
 from django.contrib.auth.models import User
 from rest_framework.test import APIRequestFactory, force_authenticate
+from actstream.models import Action
 
 from onadata.apps.messaging.viewsets import MessagingViewSet
 
@@ -70,7 +71,12 @@ class TestMessagingViewSet(TestCase):
         """
         Test DELETE /messaging/[pk] deleting a message.
         """
-        self.fail("Implement deleting a message")
+        message_data = self._create_message()
+        view = MessagingViewSet.as_view({'delete': 'destroy'})
+        request = self.factory.delete('/messaging/%s' % message_data['id'])
+        response = view(request=request, pk=message_data['id'])
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Action.objects.filter(pk=message_data['id']).exists())
 
     def test_list_messages(self):
         """
