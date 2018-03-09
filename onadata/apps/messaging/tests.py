@@ -11,6 +11,10 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 from onadata.apps.messaging.viewsets import MessagingViewSet
 
 
+def _create_user(username='testuser'):
+    return User.objects.create(username=username)
+
+
 class TestMessagingViewSet(TestCase):
     """
     Test MessagingViewSet class.
@@ -19,26 +23,40 @@ class TestMessagingViewSet(TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
 
-    def _create_user(self):
-        self.user = User.objects.create(username='testuser')
-        return self.user
-
     def test_create_message(self):
         """
         Test POST /messaging adding a new message for a specific form.
         """
-        self._create_user()
+        user = _create_user()
         view = MessagingViewSet.as_view({'post': 'create'})
         data = {
             "message": "Hello World!",
-            "target_id": self.user.pk,
+            "target_id": user.pk,
             "target_type": 'user',
         }  # yapf: disable
         request = self.factory.post('/messaging', data)
-        force_authenticate(request, user=self.user)
+        force_authenticate(request, user=user)
         response = view(request=request)
         self.assertEqual(response.status_code, 201, response.data)
         self.assertDictContainsSubset(data, response.data)
+
+    def test_target_does_not_exist(self):
+        """
+        Test POST /messaging adding a new message for a specific form with a
+        target that does not exist.
+        """
+        user = _create_user()
+        view = MessagingViewSet.as_view({'post': 'create'})
+        data = {
+            "message": "Hello World!",
+            "target_id": 1000000000,
+            "target_type": 'user',
+        }  # yapf: disable
+        request = self.factory.post('/messaging', data)
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertEqual(response.data['target_id'], 'target_id not found')
 
     def test_delete_message(self):
         """
