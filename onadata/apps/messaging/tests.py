@@ -8,6 +8,7 @@ from actstream.models import Action
 from django.contrib.auth.models import User
 from django.test import TestCase
 from rest_framework.test import APIRequestFactory, force_authenticate
+from guardian.shortcuts import assign_perm
 
 from onadata.apps.messaging.viewsets import MessagingViewSet
 
@@ -29,6 +30,7 @@ class TestMessagingViewSet(TestCase):
         Helper to create a single message
         """
         user = _create_user()
+        assign_perm('auth.change_user', user, user)
         view = MessagingViewSet.as_view({'post': 'create'})
         data = {
             "message": "Hello World!",
@@ -183,3 +185,28 @@ class TestMessagingViewSet(TestCase):
         self.assertEqual(
             response4.data,
             {u'detail': u"Authentication credentials were not provided."})
+
+    def test_create_permissions(self):
+        """
+        Test that correct permissions are required to publish a form..
+        """
+        user = _create_user()
+        data = {
+            "message": "Hello World!",
+            "target_id": user.pk,
+            "target_type": 'user',
+        }  # yapf: disable
+        view = MessagingViewSet.as_view({'post': 'create'})
+
+        request = self.factory.post('/messaging', data)
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 403)
+        self.assertIn(u'You do not have permission', response.data['detail'])
+
+        # assign add_user permissions
+        assign_perm('auth.change_user', user, user)
+        request = self.factory.post('/messaging', data)
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 201)

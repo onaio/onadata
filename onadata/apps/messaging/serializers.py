@@ -8,7 +8,7 @@ from __future__ import unicode_literals
 from actstream.actions import action_handler
 from actstream.models import Action
 from actstream.signals import action
-from rest_framework import serializers
+from rest_framework import exceptions, serializers
 
 from onadata.apps.messaging.constants import MESSAGE
 from onadata.apps.messaging.utils import TargetDoesNotExist, get_target
@@ -34,6 +34,7 @@ class MessageSerializer(serializers.ModelSerializer):
         """
         Creates the Message in the Action model
         """
+        request = self.context['request']
         target_type = validated_data.get("target_content_type")
         target_id = validated_data.get("target_object_id")
         try:
@@ -51,8 +52,16 @@ class MessageSerializer(serializers.ModelSerializer):
                     'target_id': 'target_id not found'
                 })  # yapf: disable
             else:
+                # check if request.user has permission to the target_object
+                permission = '{}.change_{}'.format(
+                    target_object._meta.app_label,
+                    target_object._meta.model_name)
+                if not request.user.has_perm(permission, target_object):
+                    message = ("You do not have permission to add messages "
+                               "to target_id %s." % target_object)
+                    raise exceptions.PermissionDenied(detail=message)
                 results = action.send(
-                    self.context.get('request').user,
+                    request.user,
                     verb=MESSAGE,
                     target=target_object,
                     description=validated_data.get("description"))
