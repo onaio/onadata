@@ -453,7 +453,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 self.object_list = filter_queryset_xform_meta_perms(
                     self.get_object(), self.request.user, self.object_list)
                 self.object_list = self.object_list[start: limit]
-                self.total_count = xform.submission_count()
+                self.total_count = self.object_list.count()
             elif (sort or limit or start or fields) and not is_public_request:
                 try:
                     query = \
@@ -463,7 +463,10 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                     self.object_list = query_data(xform, query=query,
                                                   sort=sort, start_index=start,
                                                   limit=limit, fields=fields)
-                    self.total_count = xform.submission_count()
+                    self.total_count = query_data(
+                        xform, query=query, sort=sort, start_index=start,
+                        limit=limit, fields=fields, count=True
+                    )[0].get('count')
 
                 except NoRecordsPermission:
                     self.object_list = []
@@ -499,34 +502,39 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
         STREAM_DATA = getattr(settings, 'STREAM_DATA', False)
         if STREAM_DATA:
-            length = self.total_count
-            if should_paginate and \
-                    not isinstance(self.object_list, types.GeneratorType):
-                length = len(self.object_list)
-            response = self._get_streaming_response(length)
+            response = self._get_streaming_response()
         else:
             serializer = self.get_serializer(self.object_list, many=True)
             response = Response(serializer.data)
 
         return response
 
-    def _get_streaming_response(self, length):
+    def _get_streaming_response(self):
         """Get a StreamingHttpResponse response object
 
         @param length ensures a valid JSON is generated, avoid a trailing comma
         """
-        def stream_json(data, length):
-            """Generator function to stream JSON data"""
+        def json_stream(data):
             yield u"["
 
-            for i, d in enumerate(data, start=1):
-                yield json.dumps(d.json if isinstance(d, Instance) else d)
-                yield "" if i == length else ","
+            data_iter = data.__iter__()
+            item = data_iter.next()
+            while True:
+                try:
+                    next_item = data_iter.next()
+                    yield json.dumps(
+                        item.json if isinstance(item, Instance) else item)
+                    yield ","
+                    item = next_item
+                except StopIteration:
+                    yield json.dumps(
+                        item.json if isinstance(item, Instance) else item)
+                    break
 
             yield u"]"
 
         response = StreamingHttpResponse(
-            stream_json(self.object_list, length),
+            json_stream(self.object_list),
             content_type="application/json"
         )
 
