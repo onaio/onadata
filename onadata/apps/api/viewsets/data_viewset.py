@@ -384,7 +384,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                     .values_list('xforms', flat=True)
                 pks = [pk for pk in xforms if pk] or [xform_id]
             self.object_list = Instance.objects.filter(
-                xform_id__in=pks, deleted_at=None).only('json')
+                xform_id__in=pks, deleted_at=None).only('json').order_by('id')
             xform = self.get_object()
             self.object_list = \
                 filter_queryset_xform_meta_perms(xform, request.user,
