@@ -69,9 +69,12 @@ class MessageSerializer(serializers.ModelSerializer):
                 # tuple being the signal handler function and the second
                 # being the object.  We want to get the object of the first
                 # element in the list whose function is 'action_handler'
-                results = [x for x in results if x[0] == action_handler]
-                if not results:
+                instances = [instance for (receiver, instance) in results
+                             if receiver == action_handler]
+
+                try:
+                    return instances[0]
+                except IndexError:
+                    # if you get here it means we have no instances
                     raise serializers.ValidationError(
                         "Message not created. Please retry.")
-
-                return results[0][1]
