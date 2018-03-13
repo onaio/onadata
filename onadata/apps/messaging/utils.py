@@ -6,15 +6,14 @@ Messaging util functions.
 from __future__ import unicode_literals
 
 from django.contrib.contenttypes.models import ContentType
-
-from onadata.apps.messaging.constants import APP_LABEL_MAPPING
+from onadata.apps.messaging.constants import APP_LABEL_MAPPING, UNKNOWN_TARGET
 
 
 class TargetDoesNotExist(Exception):
     """
     Target does not Exist exception class.
     """
-    message = "Unknown target."
+    message = UNKNOWN_TARGET
 
 
 def get_target(target_type):

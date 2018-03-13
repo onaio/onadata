@@ -15,6 +15,8 @@ class MessagingConfig(AppConfig):
     verbose_name = 'Messaging'
 
     def ready(self):
+        # this needs to be imported inline because otherwise we get
+        # django.core.exceptions.AppRegistryNotReady: Apps aren't loaded yet.
         from actstream import registry
         registry.register(apps.get_model(model_name='User', app_label='auth'))
         registry.register(

@@ -12,3 +12,4 @@ APP_LABEL_MAPPING = {
 }
 
 MESSAGE = 'message'
+UNKNOWN_TARGET = "Unknown target."

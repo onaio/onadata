@@ -8,10 +8,9 @@ from __future__ import unicode_literals
 from actstream.actions import action_handler
 from actstream.models import Action
 from actstream.signals import action
-from rest_framework import exceptions, serializers
-
 from onadata.apps.messaging.constants import MESSAGE
 from onadata.apps.messaging.utils import TargetDoesNotExist, get_target
+from rest_framework import exceptions, serializers
 
 
 class MessageSerializer(serializers.ModelSerializer):
@@ -66,6 +65,10 @@ class MessageSerializer(serializers.ModelSerializer):
                     target=target_object,
                     description=validated_data.get("description"))
 
+                # results will be a list of tuples with the first item in the
+                # tuple being the signal handler function and the second
+                # being the object.  We want to get the object of the first
+                # element in the list whose function is 'action_handler'
                 results = [x for x in results if x[0] == action_handler]
                 if not results:
                     raise serializers.ValidationError(
