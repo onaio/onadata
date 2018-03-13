@@ -510,9 +510,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         return response
 
     def _get_streaming_response(self):
-        """Get a StreamingHttpResponse response object
-
-        @param length ensures a valid JSON is generated, avoid a trailing comma
+        """
+        Get a StreamingHttpResponse response object
         """
         def json_stream(data):
             yield u"["
