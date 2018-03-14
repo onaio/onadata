@@ -14,6 +14,18 @@ from onadata.apps.messaging.constants import MESSAGE
 from onadata.apps.messaging.utils import TargetDoesNotExist, get_target
 
 
+class ContentTypeChoiceField(serializers.ChoiceField):
+    """
+    Custom ChoiceField that gets the model name from a ContentType object
+    """
+
+    def to_representation(self, value):
+        """
+        Get the model from ContentType object
+        """
+        return value.model
+
+
 class MessageSerializer(serializers.ModelSerializer):
     """
     Serializer class for Message objects
@@ -23,7 +35,7 @@ class MessageSerializer(serializers.ModelSerializer):
 
     message = serializers.CharField(source='description', allow_blank=False)
     target_id = serializers.IntegerField(source='target_object_id')
-    target_type = serializers.ChoiceField(
+    target_type = ContentTypeChoiceField(
         TARGET_CHOICES, source='target_content_type')
 
     class Meta:
