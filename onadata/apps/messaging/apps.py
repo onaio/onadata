@@ -15,6 +15,8 @@ class MessagingConfig(AppConfig):
     verbose_name = 'Messaging'
 
     def ready(self):
+        from onadata.apps.messaging import signals  # noqa pylint: disable=W0612
+
         # this needs to be imported inline because otherwise we get
         # django.core.exceptions.AppRegistryNotReady: Apps aren't loaded yet.
         from actstream import registry
