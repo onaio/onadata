@@ -22,6 +22,7 @@ from onadata.libs.mixins.total_header_mixin import TotalHeaderMixin
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.data_serializer import DataInstanceSerializer
 from onadata.libs.serializers.open_data_serializer import OpenDataSerializer
+from onadata.libs.utils.common_tools import json_stream
 from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
 
 BaseViewset = get_baseviewset_class()
@@ -152,28 +153,14 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, TotalHeaderMixin,
     def _get_streaming_response(self, data):
         """Get a StreamingHttpResponse response object"""
 
-        def stream_json(streaming_data):
-            """Generator function to stream JSON data"""
-            yield u"["
-
-            data_iter = streaming_data.__iter__()
-            item = data_iter.next()
-            while True:
-                try:
-                    next_item = data_iter.next()
-                    yield json.dumps({
-                        re.sub(r"\W", r"_", a): b for a, b in item.items()})
-                    yield ","
-                    item = next_item
-                except StopIteration:
-                    yield json.dumps({
-                        re.sub(r"\W", r"_", a): b for a, b in item.items()})
-                    break
-
-            yield u"]"
+        def get_json_string(item):
+            return json.dumps({
+                re.sub(r"\W", r"_", a): b for a, b in item.items()})
 
         response = StreamingHttpResponse(
-            stream_json(data), content_type="application/json")
+            json_stream(data, get_json_string),
+            content_type="application/json"
+        )
 
         # set headers on streaming response
         for k, v in self.headers.items():
