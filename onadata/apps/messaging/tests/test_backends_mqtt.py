@@ -25,7 +25,7 @@ class TestMQTTBackend(TestCase):
         from_user = _create_user('Bob')
         to_user = _create_user('Alice')
         instance = _create_message(from_user, to_user, 'I love oov')
-        mqtt = MQTTBackend(host='localhost')
+        mqtt = MQTTBackend(options={'HOST': 'localhost'})
         expected = (
             "/{topic_root}/{target_name}/{target_id}/messages/publish".format(
                 topic_root='onadata', target_name='user',
@@ -39,7 +39,7 @@ class TestMQTTBackend(TestCase):
         from_user = _create_user('Bob')
         to_user = _create_user('Alice')
         instance = _create_message(from_user, to_user, 'I love oov')
-        mqtt = MQTTBackend(host='localhost')
+        mqtt = MQTTBackend(options={'HOST': 'localhost'})
         payload = {
             'id': instance.id,
             'time': instance.timestamp.isoformat(),
@@ -63,6 +63,6 @@ class TestMQTTBackend(TestCase):
         from_user = _create_user('Bob')
         to_user = _create_user('Alice')
         instance = _create_message(from_user, to_user, 'I love oov')
-        mqtt = MQTTBackend(host='localhost')
+        mqtt = MQTTBackend(options={'HOST': 'localhost'})
         result = mqtt.send(instance=instance)
         self.assertTrue(result.is_published())

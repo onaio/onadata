@@ -26,4 +26,4 @@ class TestBackendsBase(TestCase):
 
         with self.assertRaises(NotImplementedError):
             call_backend('onadata.apps.messaging.backends.base.BaseBackend',
-                         instance.id)
+                         instance.id, {'HOST': 'localhost'})

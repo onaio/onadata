@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import json
 
 import paho.mqtt.client as paho
-from django.conf import settings
 
 from onadata.apps.messaging.backends.base import BaseBackend
 
@@ -16,17 +15,21 @@ class MQTTBackend(BaseBackend):
     """
     Notification backend for MQTT
     """
-    host = getattr(settings, 'MESSAGING_MQTT_IP_ADDRESS', None)
 
-    def __init__(self, host=None, qos=0, retain=False):
-        if not self.host and not host:
+    def __init__(self, options=None):
+        super(MQTTBackend, self).__init__()
+        if not options:
+            raise Exception("MQTT Backend expects configuration options.")
+
+        host = options.get('HOST')
+        if not host:
             raise Exception("An MQTT host is required.")
+        self.qos = options.get('QOS', 0)
+        self.retain = options.get('RETAIN', False)
+        self.topic_base = options.get('TOPIC_BASE', 'onadata')
 
         self.client = paho.Client()
-        self.client.connect(host or self.host)
-        self.qos = qos
-        self.retain = retain
-        self.topic_root = 'onadata'
+        self.client.connect(host)
 
     def get_topic(self, instance):
         """
@@ -40,10 +43,10 @@ class MQTTBackend(BaseBackend):
         kwargs = {
             'target_id': instance.target_object_id,
             'target_name': instance.target._meta.model_name,
-            'topic_root': self.topic_root
+            'topic_base': self.topic_base
         }
         return (
-            '/{topic_root}/{target_name}/{target_id}/messages/publish'.format(
+            '/{topic_base}/{target_name}/{target_id}/messages/publish'.format(
                 **kwargs))
 
     def get_payload(self, instance):  # pylint: disable=no-self-use

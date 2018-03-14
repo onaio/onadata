@@ -29,4 +29,5 @@ class TestTasks(TestCase):
         with self.assertRaises(NotImplementedError):
             call_backend_async.delay(
                 backend='onadata.apps.messaging.backends.base.BaseBackend',
-                instance_id=instance.id).get()
+                instance_id=instance.id,
+                backend_options=None).get()

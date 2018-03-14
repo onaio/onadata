@@ -2,8 +2,9 @@
 """
 Messaging urls module.
 """
-from django.conf.urls import url, include
+from django.conf.urls import include, url
 from rest_framework import routers
+
 from onadata.apps.messaging.viewsets import MessagingViewSet
 
 router = routers.DefaultRouter(trailing_slash=False)  # pylint: disable=C0103
