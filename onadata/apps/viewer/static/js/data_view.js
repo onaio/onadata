@@ -31,7 +31,9 @@
             pageSize: "limit"
         },
         parseState: function (resp, queryParams, state, options) {
-            return {totalRecords: parseInt(options.xhr.getResponseHeader("X-total"))};
+            // Removing X-total
+            // {totalRecords: parseInt(options.xhr.getResponseHeader("X-total"))};
+            return 0;
         },
         initialize: function (models, options) {
             // set the url

@@ -18,7 +18,6 @@ from onadata.apps.logger.models.open_data import OpenData
 from onadata.libs.data import parse_int
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
-from onadata.libs.mixins.total_header_mixin import TotalHeaderMixin
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.data_serializer import DataInstanceSerializer
 from onadata.libs.serializers.open_data_serializer import OpenDataSerializer
@@ -33,7 +32,7 @@ def replace_special_characters_with_underscores(data):
     return [re.sub(r"\W", r"_", a) for a in data]
 
 
-class OpenDataViewSet(ETagsMixin, CacheControlMixin, TotalHeaderMixin,
+class OpenDataViewSet(ETagsMixin, CacheControlMixin,
                       BaseViewset, ModelViewSet):
     permission_classes = (OpenDataViewSetPermissions, )
     queryset = OpenData.objects.filter()
