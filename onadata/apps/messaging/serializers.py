@@ -8,9 +8,10 @@ from __future__ import unicode_literals
 from actstream.actions import action_handler
 from actstream.models import Action
 from actstream.signals import action
+from rest_framework import exceptions, serializers
+
 from onadata.apps.messaging.constants import MESSAGE
 from onadata.apps.messaging.utils import TargetDoesNotExist, get_target
-from rest_framework import exceptions, serializers
 
 
 class MessageSerializer(serializers.ModelSerializer):

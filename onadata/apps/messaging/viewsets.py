@@ -11,8 +11,8 @@ from rest_framework.permissions import IsAuthenticated
 from onadata.apps.messaging.constants import MESSAGE
 from onadata.apps.messaging.filters import (TargetIDFilterBackend,
                                             TargetTypeFilterBackend)
-from onadata.apps.messaging.serializers import MessageSerializer
 from onadata.apps.messaging.permissions import TargetObjectPermissions
+from onadata.apps.messaging.serializers import MessageSerializer
 
 
 # pylint: disable=too-many-ancestors

@@ -6,6 +6,7 @@ Messaging util functions.
 from __future__ import unicode_literals
 
 from django.contrib.contenttypes.models import ContentType
+
 from onadata.apps.messaging.constants import APP_LABEL_MAPPING, UNKNOWN_TARGET
 
 

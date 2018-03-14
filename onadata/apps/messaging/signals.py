@@ -11,18 +11,17 @@ from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-BACKENDS = getattr(settings, 'NOTIFICATION_BACKENDS', [])
-
 
 @receiver(post_save, sender=Action, dispatch_uid='messaging_backends_handler')
 def messaging_backends_handler(sender, **kwargs):  # pylint: disable=W0613
     """
     Handler to send messages to notification backends e.g MQTT.
     """
+    backend_classes = getattr(settings, 'NOTIFICATION_BACKENDS', [])
     created = kwargs.get('created')
     instance = kwargs.get('instance')
     if instance and created:
-        for backend in BACKENDS:
+        for backend in backend_classes:
             backend_module = '.'.join(backend.split('.')[:-1])
             backend_class = backend.split('.')[-1:].pop()
             backend_module = import_module(backend_module)

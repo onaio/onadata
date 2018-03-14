@@ -7,11 +7,9 @@ from __future__ import unicode_literals
 from actstream.models import Action
 from django.contrib.auth.models import User
 from django.test import TestCase
-from django.test.utils import override_settings
 from guardian.shortcuts import assign_perm
 from rest_framework.test import APIRequestFactory, force_authenticate
 
-from onadata.apps.messaging.signals import messaging_backends_handler
 from onadata.apps.messaging.viewsets import MessagingViewSet
 
 
@@ -242,18 +240,3 @@ class TestMessagingViewSet(TestCase):
         force_authenticate(request, user=user)
         response = view(request=request, pk=message_data['id'])
         self.assertEqual(response.status_code, 200)
-
-
-class TestMessagingSignals(TestCase):
-    """
-    Test messaging signals.
-    """
-
-    @override_settings(NOTIFICATION_BACKENDS=[
-        'onadata.apps.messaging.backens.base.BaseBackend'])
-    def test_messaging_backends_handler(self):
-        """
-        Test messaging backends handler function.
-        """
-        with self.assertRaises(NotImplementedError):
-            messaging_backends_handler(Action, instance=Action(), created=True)
