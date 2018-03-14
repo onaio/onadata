@@ -16,19 +16,9 @@ class TestFloipViewSet(TestAbstractViewSet):
     Test FloipViewSet class.
     """
 
-    def test_publishing_descriptor(self):
-        """
-        Tests publishing a Flow results descriptor file creates a form.
-        """
-        xforms = XForm.objects.count()
-        self._publish_floip()
-        self.assertEqual(xforms + 1, XForm.objects.count())
-
-    def _publish_floip(self):
+    def _publish_floip(self, path='flow-results-example-2-api.json'):
         view = FloipViewSet.as_view({'post': 'create'})
-        path = os.path.join(
-            os.path.dirname(__file__), "../", "fixtures",
-            "flow-results-example-2-api.json")
+        path = os.path.join(os.path.dirname(__file__), "../", "fixtures", path)
         with open(path) as json_file:
             post_data = json_file.read()
             request = self.factory.post(
@@ -45,6 +35,30 @@ class TestFloipViewSet(TestAbstractViewSet):
                              + response.data['id'])
             self.assertEqual(response.data['profile'], 'flow-results-package')
             return response.data
+
+    def test_publishing_descriptor(self):
+        """
+        Tests publishing a Flow results descriptor file creates a form.
+        """
+        xforms = XForm.objects.count()
+        self._publish_floip()
+        self.assertEqual(xforms + 1, XForm.objects.count())
+
+    def test_publishing_descriptor_w_id(self):
+        """
+        Tests publishing a Flow results descriptor file creates a form and
+        maintains user defined id.
+        """
+        xforms = XForm.objects.count()
+        data = self._publish_floip(path='flow-results-example-w-uuid.json')
+        self.assertEqual(data['id'], 'ee21fa6f-3027-4bdd-a534-1bb324782b6f')
+        with self.assertRaises(AssertionError) as assert_error:
+            self._publish_floip(path='flow-results-example-w-uuid.json')
+        self.assertEqual(
+            assert_error.exception.message.get('text'),
+            'An xform with uuid: ee21fa6f-3027-4bdd-a534-1bb324782b6f already'
+            ' exists')
+        self.assertEqual(xforms + 1, XForm.objects.count())
 
     def test_publishing_responses(self):
         """

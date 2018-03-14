@@ -679,7 +679,7 @@ class XForm(XFormMixin, BaseModel):
     deleted_at = models.DateTimeField(blank=True, null=True)
     last_submission_time = models.DateTimeField(blank=True, null=True)
     has_start_time = models.BooleanField(default=False)
-    uuid = models.CharField(max_length=32, default=u'')
+    uuid = models.CharField(max_length=36, default=u'')
 
     uuid_regex = re.compile(r'(<instance>.*?id="[^"]+">)(.*</instance>)(.*)',
                             re.DOTALL)
@@ -999,14 +999,25 @@ class XFormGroupObjectPermission(GroupObjectPermissionBase):
     content_object = models.ForeignKey(XForm)
 
 
-def update_xform_uuid(username, id_string, new_uuid):
-    xform = XForm.objects.get(user__username=username, id_string=id_string)
-    # check for duplicate uuid
+def check_xform_uuid(new_uuid):
+    """
+    Checks if a new_uuid has already been used, if it has it raises the
+    exception DuplicateUUIDError.
+    """
     count = XForm.objects.filter(uuid=new_uuid).count()
 
     if count > 0:
         raise DuplicateUUIDError(
             "An xform with uuid: %s already exists" % new_uuid)
+
+
+def update_xform_uuid(username, id_string, new_uuid):
+    """
+    Updates an XForm with the new_uuid.
+    """
+    xform = XForm.objects.get(user__username=username, id_string=id_string)
+    # check for duplicate uuid
+    check_xform_uuid(new_uuid)
 
     xform.uuid = new_uuid
     xform.save()
