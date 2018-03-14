@@ -62,6 +62,7 @@ from onadata.libs.utils.api_export_tools import (custom_response_handler,
                                                  get_async_response,
                                                  process_async_export,
                                                  response_for_format)
+from onadata.libs.utils.common_tools import json_stream
 from onadata.libs.utils.csv_import import (get_async_csv_submission_status,
                                            submit_csv, submit_csv_async)
 from onadata.libs.utils.export_tools import parse_request_export_options
@@ -685,36 +686,19 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         """
         Get a StreamingHttpResponse response object
         """
-        def stream_json(data):
-            """Generator function to stream JSON data"""
-            yield u"["
+        # use queryset_iterator.  Will need to change this to the Django
+        # native .iterator() method when we upgrade to django version 2
+        # because in Django 2 .iterator() has support for chunk size
+        queryset = queryset_iterator(self.object_list, chunksize=2000)
 
-            # use queryset_iterator.  Will need to change this to the Django
-            # native .iterator() method when we upgrade to django version 2
-            # because in Django 2 .iterator() has support for chunk size
-            queryset = queryset_iterator(self.object_list, chunksize=2000)
-            data_iter = queryset.__iter__()
-            item = data_iter.next()
-            while True:
-                try:
-                    next_item = data_iter.next()
-                    yield json.dumps(XFormBaseSerializer(
-                        instance=item,
-                        context={'request': self.request}
-                    ).data)
-                    yield ","
-                    item = next_item
-                except StopIteration:
-                    yield json.dumps(XFormBaseSerializer(
-                        instance=item,
-                        context={'request': self.request}
-                    ).data)
-                    break
-
-            yield u"]"
+        def get_json_string(item):
+            return json.dumps(XFormBaseSerializer(
+                instance=item,
+                context={'request': self.request}
+                ).data)
 
         response = StreamingHttpResponse(
-            stream_json(self.object_list),
+            json_stream(queryset, get_json_string),
             content_type="application/json"
         )
 

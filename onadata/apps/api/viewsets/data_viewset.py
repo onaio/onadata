@@ -54,6 +54,7 @@ from onadata.libs.exceptions import EnketoError
 from onadata.libs.utils.viewer_tools import get_enketo_edit_url
 from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.data import parse_int
+from onadata.libs.utils.common_tools import json_stream
 from onadata.apps.api.permissions import ConnectViewsetPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.instance import FormInactiveError
@@ -452,7 +453,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 limit = limit if start is None or start == 0 else start + limit
                 self.object_list = filter_queryset_xform_meta_perms(
                     self.get_object(), self.request.user, self.object_list)
-                self.object_list = self.object_list[start: limit]
+                self.object_list = self.object_list[start:limit]
                 self.total_count = self.object_list.count()
             elif (sort or limit or start or fields) and not is_public_request:
                 try:
@@ -513,27 +514,12 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         """
         Get a StreamingHttpResponse response object
         """
-        def json_stream(data):
-            yield u"["
-
-            data_iter = data.__iter__()
-            item = data_iter.next()
-            while True:
-                try:
-                    next_item = data_iter.next()
-                    yield json.dumps(
-                        item.json if isinstance(item, Instance) else item)
-                    yield ","
-                    item = next_item
-                except StopIteration:
-                    yield json.dumps(
-                        item.json if isinstance(item, Instance) else item)
-                    break
-
-            yield u"]"
+        def get_json_string(item):
+            return json.dumps(
+                item.json if isinstance(item, Instance) else item)
 
         response = StreamingHttpResponse(
-            json_stream(self.object_list),
+            json_stream(self.object_list, get_json_string),
             content_type="application/json"
         )
 

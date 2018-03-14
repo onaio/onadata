@@ -104,3 +104,28 @@ def get_response_content(response):
         contents = response.content
 
     return contents
+
+
+def json_stream(data, json_string):
+    """
+    Generator function to stream JSON data
+    """
+
+    yield u"["
+
+    try:
+        data = data.__iter__()
+        item = data.next()
+        while item:
+            try:
+                next_item = data.next()
+                yield json_string(item)
+                yield ","
+                item = next_item
+            except StopIteration:
+                yield json_string(item)
+                break
+    except AttributeError:
+        pass
+
+    yield u"]"
