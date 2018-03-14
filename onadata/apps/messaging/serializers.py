@@ -68,7 +68,7 @@ class MessageSerializer(serializers.ModelSerializer):
                 # results will be a list of tuples with the first item in the
                 # tuple being the signal handler function and the second
                 # being the object.  We want to get the object of the first
-                # element in the list whose function is 'action_handler'
+                # element in the list whose function is `action_handler`
 
                 try:
                     instance = [instance for (receiver, instance) in results

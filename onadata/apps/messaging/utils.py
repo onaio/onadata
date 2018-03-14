@@ -23,11 +23,8 @@ def get_target(target_type):
     """
     try:
         app_label = APP_LABEL_MAPPING[target_type]
-    except KeyError:
+
+        return ContentType.objects.get(app_label=app_label,
+                                       model=target_type)
+    except (KeyError, ContentType.DoesNotExist):
         raise TargetDoesNotExist()
-    else:
-        try:
-            return ContentType.objects.get(app_label=app_label,
-                                           model=target_type)
-        except ContentType.DoesNotExist:
-            raise TargetDoesNotExist()
