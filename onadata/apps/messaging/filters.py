@@ -13,6 +13,7 @@ class TargetTypeFilterBackend(filters.BaseFilterBackend):
     """
     A filter backend that filters by target type.
     """
+
     def filter_queryset(self, request, queryset, view):
         if view.action == 'list':
             target_type = request.query_params.get('target_type')
@@ -35,6 +36,7 @@ class TargetIDFilterBackend(filters.BaseFilterBackend):
     """
     A filter backend that filters by target id.
     """
+
     def filter_queryset(self, request, queryset, view):
         if view.action == 'list':
             target_id = request.query_params.get('target_id')

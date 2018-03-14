@@ -4,12 +4,13 @@ Messaging signal handlers
 """
 from __future__ import unicode_literals
 
-from importlib import import_module
-
 from actstream.models import Action
 from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+
+from onadata.apps.messaging.backends.base import call_backend
+from onadata.apps.messaging.tasks import call_backend_async
 
 
 @receiver(post_save, sender=Action, dispatch_uid='messaging_backends_handler')
@@ -18,12 +19,12 @@ def messaging_backends_handler(sender, **kwargs):  # pylint: disable=W0613
     Handler to send messages to notification backends e.g MQTT.
     """
     backend_classes = getattr(settings, 'NOTIFICATION_BACKENDS', [])
+    as_task = getattr(settings, 'MESSAGING_ASYNC_NOTIFICATION', False)
     created = kwargs.get('created')
     instance = kwargs.get('instance')
     if instance and created:
         for backend in backend_classes:
-            backend_module = '.'.join(backend.split('.')[:-1])
-            backend_class = backend.split('.')[-1:].pop()
-            backend_module = import_module(backend_module)
-            backend_class = getattr(backend_module, backend_class)
-            backend_class().send(instance)
+            if as_task:
+                call_backend_async.delay(backend, instance.id)
+            else:
+                call_backend(backend, instance.id)

@@ -99,3 +99,4 @@ flake8
 raven
 
 django-activity-stream
+paho-mqtt

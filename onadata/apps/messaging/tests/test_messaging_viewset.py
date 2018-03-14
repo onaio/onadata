@@ -1,20 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Tests Messaging app implementation.
+Tests Messaging app viewsets.
 """
 from __future__ import unicode_literals
 
 from actstream.models import Action
-from django.contrib.auth.models import User
 from django.test import TestCase
 from guardian.shortcuts import assign_perm
 from rest_framework.test import APIRequestFactory, force_authenticate
 
+from onadata.apps.messaging.tests.test_base import _create_user
 from onadata.apps.messaging.viewsets import MessagingViewSet
-
-
-def _create_user(username='testuser'):
-    return User.objects.create(username=username)
 
 
 class TestMessagingViewSet(TestCase):
@@ -93,16 +89,18 @@ class TestMessagingViewSet(TestCase):
         view = MessagingViewSet.as_view({'get': 'list'})
 
         # return data only when a target_type is provided
-        request = self.factory.get('/messaging', {'target_type': 'user',
-                                                  'target_id': target_id})
+        request = self.factory.get(
+            '/messaging', {'target_type': 'user',
+                           'target_id': target_id})
         force_authenticate(request, user=user)
         response = view(request=request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [message_data])
 
         # returns empty list when a target type does not have any records
-        request = self.factory.get('/messaging', {'target_type': 'xform',
-                                                  'target_id': target_id})
+        request = self.factory.get(
+            '/messaging', {'target_type': 'xform',
+                           'target_id': target_id})
         force_authenticate(request, user=user)
         response = view(request=request)
         self.assertEqual(response.status_code, 200)
@@ -131,8 +129,9 @@ class TestMessagingViewSet(TestCase):
                          {u'detail': u"Parameter 'target_type' is missing."})
 
         # returns 400 status when a target type is not known
-        request = self.factory.get('/messaging', {'target_type': 'xyz',
-                                                  'target_id': target_id})
+        request = self.factory.get(
+            '/messaging', {'target_type': 'xyz',
+                           'target_id': target_id})
         force_authenticate(request, user=user)
         response = view(request=request)
         self.assertEqual(response.status_code, 400)
@@ -158,31 +157,35 @@ class TestMessagingViewSet(TestCase):
         """
         # Test that the list endpoint requires authentication
         view1 = MessagingViewSet.as_view({'get': 'list'})
-        request1 = self.factory.get('/messaging', {'target_type': 'xform',
-                                                   'target_id': 1})
+        request1 = self.factory.get('/messaging',
+                                    {'target_type': 'xform',
+                                     'target_id': 1})
         response1 = view1(request=request1)
         self.assertEqual(response1.status_code, 401)
-        self.assertEqual(
-            response1.data,
-            {u'detail': u"Authentication credentials were not provided."})
+        self.assertEqual(response1.data, {
+            u'detail':
+            u"Authentication credentials were not provided."
+        })
 
         # Test that retrieve requires authentication
         view2 = MessagingViewSet.as_view({'get': 'retrieve'})
         request2 = self.factory.get('/messaging/1')
         response2 = view2(request=request2, pk=1)
         self.assertEqual(response2.status_code, 401)
-        self.assertEqual(
-            response2.data,
-            {u'detail': u"Authentication credentials were not provided."})
+        self.assertEqual(response2.data, {
+            u'detail':
+            u"Authentication credentials were not provided."
+        })
 
         # Test that delete requires authentication
         view3 = MessagingViewSet.as_view({'delete': 'destroy'})
         request3 = self.factory.delete('/messaging/5')
         response3 = view3(request=request3, pk=5)
         self.assertEqual(response3.status_code, 401)
-        self.assertEqual(
-            response3.data,
-            {u'detail': u"Authentication credentials were not provided."})
+        self.assertEqual(response3.data, {
+            u'detail':
+            u"Authentication credentials were not provided."
+        })
 
         # Test that create requires authentication
         view4 = MessagingViewSet.as_view({'post': 'create'})
@@ -194,9 +197,10 @@ class TestMessagingViewSet(TestCase):
         request4 = self.factory.post('/messaging', data)
         response4 = view4(request=request4)
         self.assertEqual(response4.status_code, 401)
-        self.assertEqual(
-            response4.data,
-            {u'detail': u"Authentication credentials were not provided."})
+        self.assertEqual(response4.data, {
+            u'detail':
+            u"Authentication credentials were not provided."
+        })
 
     def test_create_permissions(self):
         """

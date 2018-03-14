@@ -72,8 +72,10 @@ class MessageSerializer(serializers.ModelSerializer):
                 # element in the list whose function is `action_handler`
 
                 try:
-                    instance = [instance for (receiver, instance) in results
-                                if receiver == action_handler].pop()
+                    instance = [
+                        instance for (receiver, instance) in results
+                        if receiver == action_handler
+                    ].pop()
                 except IndexError:
                     # if you get here it means we have no instances
                     raise serializers.ValidationError(
