@@ -1,4 +1,3 @@
-import json
 import types
 
 from django.db.models import Q
@@ -514,12 +513,11 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         """
         Get a StreamingHttpResponse response object
         """
-        def get_json_string(item):
-            return json.dumps(
-                item.json if isinstance(item, Instance) else item)
+        def get_instance_json(item):
+            return item.json if isinstance(item, Instance) else item
 
         response = StreamingHttpResponse(
-            json_stream(self.object_list, get_json_string),
+            json_stream(self.object_list, get_instance_json),
             content_type="application/json"
         )
 

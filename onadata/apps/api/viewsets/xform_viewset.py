@@ -1,4 +1,3 @@
-import json
 import os
 import random
 from datetime import datetime
@@ -691,14 +690,14 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         # because in Django 2 .iterator() has support for chunk size
         queryset = queryset_iterator(self.object_list, chunksize=2000)
 
-        def get_json_string(item):
-            return json.dumps(XFormBaseSerializer(
+        def get_serialized_xform_instance(item):
+            return XFormBaseSerializer(
                 instance=item,
                 context={'request': self.request}
-                ).data)
+                ).data
 
         response = StreamingHttpResponse(
-            json_stream(queryset, get_json_string),
+            json_stream(queryset, get_serialized_xform_instance),
             content_type="application/json"
         )
 

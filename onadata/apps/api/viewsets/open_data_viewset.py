@@ -153,12 +153,11 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, TotalHeaderMixin,
     def _get_streaming_response(self, data):
         """Get a StreamingHttpResponse response object"""
 
-        def get_json_string(item):
-            return json.dumps({
-                re.sub(r"\W", r"_", a): b for a, b in item.items()})
+        def get_data_items(item):
+            return {re.sub(r"\W", r"_", a): b for a, b in item.items()}
 
         response = StreamingHttpResponse(
-            json_stream(data, get_json_string),
+            json_stream(data, get_data_items),
             content_type="application/json"
         )
 
