@@ -76,6 +76,7 @@ class FloipListSerializer(serializers.HyperlinkedModelSerializer):
     """
     url = serializers.HyperlinkedIdentityField(
         view_name='flow-results-detail', lookup_field='uuid')
+    id = serializers.ReadOnlyField(source='uuid')  # pylint: disable=C0103
     name = serializers.ReadOnlyField(source='id_string')
     created = serializers.ReadOnlyField(source='date_created')
     modified = serializers.ReadOnlyField(source='date_modified')
@@ -84,7 +85,7 @@ class FloipListSerializer(serializers.HyperlinkedModelSerializer):
         """
         JSON API metaclass.
         """
-        resource_name = 'package'
+        resource_name = 'packages'
 
     class Meta:
         model = XForm
@@ -108,7 +109,7 @@ class FloipSerializer(serializers.HyperlinkedModelSerializer):
         """
         JSON API metaclass.
         """
-        resource_name = 'package'
+        resource_name = 'packages'
 
     class Meta:
         model = XForm
@@ -191,6 +192,12 @@ class FlowResultsResponseSerializer(serializers.Serializer):
     """
     id = serializers.CharField()  # pylint: disable=invalid-name
     responses = serializers.ListField()
+
+    class JSONAPIMeta:  # pylint: disable=old-style-class,no-init,R0903
+        """
+        JSON API metaclass.
+        """
+        resource_name = 'flow-results-data'
 
     def create(self, validated_data):
         request = self.context['request']

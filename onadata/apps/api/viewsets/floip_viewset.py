@@ -57,13 +57,16 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
     pagination_class = PageNumberPagination
     parser_classes = (JSONParser, )
     renderer_classes = (FlowResultsJSONRenderer, )
-    resource_name = ['packages', 'responses']
 
     lookup_field = 'uuid'
 
     def get_serializer_class(self):
         if self.action == 'list':
             return FloipListSerializer
+
+        if self.action == 'responses':
+            return FlowResultsResponseSerializer
+
         return super(FloipViewSet, self).get_serializer_class()
 
     def get_success_headers(self, data):
@@ -77,7 +80,7 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
     @detail_route(methods=['get', 'post'])
     def responses(self, request, uuid=None):
         """
-        FlOIP results.
+        Flow Results Responses endpoint.
         """
         status_code = status.HTTP_200_OK
         xform = self.get_object()

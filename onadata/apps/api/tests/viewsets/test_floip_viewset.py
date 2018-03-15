@@ -60,6 +60,29 @@ class TestFloipViewSet(TestAbstractViewSet):
             ' exists')
         self.assertEqual(xforms + 1, XForm.objects.count())
 
+    def test_list_package(self):
+        """
+        Test retrieving a specific package.
+        """
+        view = FloipViewSet.as_view({'get': 'list'})
+        data = self._publish_floip(path='flow-results-example-w-uuid.json')
+        request = self.factory.get(
+            '/flow-results/responses',
+            content_type='application/vnd.api+json', **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('created', response.data[0])
+        self.assertIn('modified', response.data[0])
+        self.assertEqual(response.data[0]['name'], data['name'])
+        self.assertEqual(response.data[0]['title'], data['title'])
+        self.assertEqual(response.data[0]['id'], data['id'])
+
+        # render and change that JSON API returns the same id/uuid
+        response.render()
+        rendered_data = json.loads(response.rendered_content)
+        self.assertEqual(rendered_data['data'][0]['id'], data['id'])
+        self.assertEqual(rendered_data['data'][0]['type'], 'packages')
+
     def test_retrieve_package(self):
         """
         Test retrieving a specific package.
@@ -67,7 +90,8 @@ class TestFloipViewSet(TestAbstractViewSet):
         view = FloipViewSet.as_view({'get': 'retrieve'})
         data = self._publish_floip(path='flow-results-example-w-uuid.json')
         request = self.factory.get(
-            '/', content_type='application/vnd.api+json', **self.extra)
+            '/flow-results/responses/' + data['id'],
+            content_type='application/vnd.api+json', **self.extra)
         response = view(request, uuid=data['id'])
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
