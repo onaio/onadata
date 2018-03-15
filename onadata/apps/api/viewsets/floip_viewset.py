@@ -19,6 +19,27 @@ from onadata.libs.serializers.floip_serializer import (
     FloipListSerializer, FloipSerializer, FlowResultsResponseSerializer)
 
 
+class FlowResultsJSONRenderer(JSONRenderer):
+    """
+    Render JSON API format with uuid.
+    """
+
+    # pylint: disable=too-many-arguments
+    @classmethod
+    def build_json_resource_obj(cls, fields, resource, resource_instance,
+                                resource_name, force_type_resolution=False):
+        """
+        Build a JSON resource object using the id as it appears in the
+        resource.
+        """
+        obj = super(FlowResultsJSONRenderer, cls).build_json_resource_obj(
+            fields, resource, resource_instance, resource_name,
+            force_type_resolution)
+        obj['id'] = resource['id']
+
+        return obj
+
+
 # pylint: disable=too-many-ancestors
 class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
                    mixins.ListModelMixin, mixins.RetrieveModelMixin,
@@ -35,7 +56,7 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
 
     pagination_class = PageNumberPagination
     parser_classes = (JSONParser, )
-    renderer_classes = (JSONRenderer, )
+    renderer_classes = (FlowResultsJSONRenderer, )
     resource_name = ['packages', 'responses']
 
     lookup_field = 'uuid'
