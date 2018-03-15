@@ -62,12 +62,12 @@ class TestFloipViewSet(TestAbstractViewSet):
 
     def test_list_package(self):
         """
-        Test retrieving a specific package.
+        Test list endpoint for packages.
         """
         view = FloipViewSet.as_view({'get': 'list'})
         data = self._publish_floip(path='flow-results-example-w-uuid.json')
         request = self.factory.get(
-            '/flow-results/responses',
+            '/flow-results/packages',
             content_type='application/vnd.api+json', **self.extra)
         response = view(request)
         self.assertEqual(response.status_code, 200)
@@ -90,7 +90,7 @@ class TestFloipViewSet(TestAbstractViewSet):
         view = FloipViewSet.as_view({'get': 'retrieve'})
         data = self._publish_floip(path='flow-results-example-w-uuid.json')
         request = self.factory.get(
-            '/flow-results/responses/' + data['id'],
+            '/flow-results/packages/' + data['id'],
             content_type='application/vnd.api+json', **self.extra)
         response = view(request, uuid=data['id'])
         self.assertEqual(response.status_code, 200)
@@ -100,6 +100,31 @@ class TestFloipViewSet(TestAbstractViewSet):
         response.render()
         rendered_data = json.loads(response.rendered_content)
         self.assertEqual(rendered_data['data']['id'], data['id'])
+
+    def test_update_package(self):
+        """
+        Test updating a specific package.
+        """
+        view = FloipViewSet.as_view({'put': 'update'})
+        data = self._publish_floip(path='flow-results-example-w-uuid.json')
+        question = 'f1448506774982_01'
+        self.assertNotIn(question, data['resources'][0]['schema']['questions'])
+        path = os.path.join(os.path.dirname(__file__), "../", "fixtures",
+                            'flow-results-example-w-uuid-update.json')
+        with open(path) as json_file:
+            post_data = json_file.read()
+            request = self.factory.put(
+                '/flow-results/packages/' + data['id'],
+                data=post_data, content_type='application/vnd.api+json',
+                **self.extra)
+            response = view(request, uuid=data['id'])
+            self.assertEqual(response.status_code, 200, response.data)
+            response.render()
+            self.assertEqual(response['Content-Type'],
+                             'application/vnd.api+json')
+            self.assertEqual(response.data['profile'], 'flow-results-package')
+            self.assertIn(question,
+                          response.data['resources'][0]['schema']['questions'])
 
     def test_publishing_responses(self):
         """

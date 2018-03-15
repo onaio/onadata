@@ -43,7 +43,7 @@ class FlowResultsJSONRenderer(JSONRenderer):
 # pylint: disable=too-many-ancestors
 class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
                    mixins.ListModelMixin, mixins.RetrieveModelMixin,
-                   viewsets.GenericViewSet):
+                   mixins.UpdateModelMixin, viewsets.GenericViewSet):
     """
     FloipViewSet: create, list, retrieve, destroy
     """

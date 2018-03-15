@@ -326,7 +326,8 @@ def do_publish_xlsform(user, post, files, owner, id_string=None, project=None):
         """
 
         if project:
-            args = dict({'project': project.pk}.items() + post.items())
+            args = dict(
+                {'project': project.pk}.items() + post.items() if post else [])
         else:
             args = post
 

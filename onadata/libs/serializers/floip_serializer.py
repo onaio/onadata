@@ -137,8 +137,7 @@ class FloipSerializer(serializers.HyperlinkedModelSerializer):
         """
         return {}
 
-    def create(self, validated_data):
-        request = self.context['request']
+    def _process_request(self, request, update_instance=None):
         data = deepcopy(request.data)
         if 'profile' in data and data['profile'] == 'flow-results-package':
             data['profile'] = 'data-package'
@@ -151,12 +150,30 @@ class FloipSerializer(serializers.HyperlinkedModelSerializer):
             'application/json',
             descriptor.tell(),
             charset=None)
-        files = {'floip_file': floip_file}
-        instance = do_publish_xlsform(request.user, None, files, request.user)
+        kwargs = {
+            'user': request.user,
+            'post': None,
+            'files': {'floip_file': floip_file},
+            'owner': request.user,
+        }
+        if update_instance:
+            kwargs['id_string'] = update_instance.id_string
+            kwargs['project'] = update_instance.project
+        instance = do_publish_xlsform(**kwargs)
         if isinstance(instance, XForm):
             return instance
 
         raise serializers.ValidationError(instance)
+
+    def create(self, validated_data):
+        request = self.context['request']
+
+        return self._process_request(request)
+
+    def update(self, instance, validated_data):
+        request = self.context['request']
+
+        return self._process_request(request, instance)
 
     def to_representation(self, instance):
         request = self.context['request']
