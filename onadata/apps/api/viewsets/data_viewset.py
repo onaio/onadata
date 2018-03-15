@@ -514,6 +514,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         Get a StreamingHttpResponse response object
         """
         def get_instance_json(item):
+            """Returns the json data of an instance"""
             return item.json if isinstance(item, Instance) else item
 
         response = StreamingHttpResponse(

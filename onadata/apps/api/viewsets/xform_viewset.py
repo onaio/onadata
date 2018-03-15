@@ -691,6 +691,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         queryset = queryset_iterator(self.object_list, chunksize=2000)
 
         def get_serialized_xform_instance(item):
+            """Returns a serialized xform instance"""
             return XFormBaseSerializer(
                 instance=item,
                 context={'request': self.request}

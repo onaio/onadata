@@ -154,6 +154,7 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, TotalHeaderMixin,
         """Get a StreamingHttpResponse response object"""
 
         def get_data_items(item):
+            """Replaces special characters with underscores"""
             return {re.sub(r"\W", r"_", a): b for a, b in item.items()}
 
         response = StreamingHttpResponse(
