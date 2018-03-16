@@ -6,6 +6,7 @@ import cStringIO
 import sys
 import traceback
 import uuid
+import json
 
 import six
 from django.conf import settings
@@ -104,3 +105,32 @@ def get_response_content(response):
         contents = response.content
 
     return contents
+
+
+def json_stream(data_object, item_transform_fn):
+    """
+    Generator function to stream JSON data
+    :params data_object: an iterable object
+    :param item_transform_fn: takes an argument 'item' and returns a
+    transformed version which can be passed to the json_dump_fn
+    """
+    def json_dumps_fn(item): return json.dumps(item_transform_fn(item))
+
+    yield u"["
+
+    iterator = data_object.__iter__()
+    try:
+        item = iterator.next()
+        while item:
+            try:
+                next_item = iterator.next()
+                yield json_dumps_fn(item)
+                yield ","
+                item = next_item
+            except StopIteration:
+                yield json_dumps_fn(item)
+                break
+    except StopIteration:
+        pass
+
+    yield u"]"

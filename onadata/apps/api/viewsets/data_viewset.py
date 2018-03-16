@@ -1,4 +1,3 @@
-import json
 import types
 
 from django.db.models import Q
@@ -54,6 +53,7 @@ from onadata.libs.exceptions import EnketoError
 from onadata.libs.utils.viewer_tools import get_enketo_edit_url
 from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.data import parse_int
+from onadata.libs.utils.common_tools import json_stream
 from onadata.apps.api.permissions import ConnectViewsetPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.instance import FormInactiveError
@@ -452,8 +452,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 limit = limit if start is None or start == 0 else start + limit
                 self.object_list = filter_queryset_xform_meta_perms(
                     self.get_object(), self.request.user, self.object_list)
-                self.object_list = \
-                    self.object_list.order_by('pk')[start: limit]
+                self.object_list = self.object_list[start:limit]
                 self.total_count = self.object_list.count()
             elif (sort or limit or start or fields) and not is_public_request:
                 try:
@@ -503,34 +502,23 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
         STREAM_DATA = getattr(settings, 'STREAM_DATA', False)
         if STREAM_DATA:
-            length = self.total_count
-            if should_paginate and \
-                    not isinstance(self.object_list, types.GeneratorType):
-                length = len(self.object_list)
-            response = self._get_streaming_response(length)
+            response = self._get_streaming_response()
         else:
             serializer = self.get_serializer(self.object_list, many=True)
             response = Response(serializer.data)
 
         return response
 
-    def _get_streaming_response(self, length):
-        """Get a StreamingHttpResponse response object
-
-        @param length ensures a valid JSON is generated, avoid a trailing comma
+    def _get_streaming_response(self):
         """
-        def stream_json(data, length):
-            """Generator function to stream JSON data"""
-            yield u"["
-
-            for i, d in enumerate(data, start=1):
-                yield json.dumps(d.json if isinstance(d, Instance) else d)
-                yield "" if i == length else ","
-
-            yield u"]"
+        Get a StreamingHttpResponse response object
+        """
+        def get_instance_json(item):
+            """Returns the json data of an instance"""
+            return item.json if isinstance(item, Instance) else item
 
         response = StreamingHttpResponse(
-            stream_json(self.object_list, length),
+            json_stream(self.object_list, get_instance_json),
             content_type="application/json"
         )
 

@@ -1,4 +1,3 @@
-import json
 import os
 import random
 from datetime import datetime
@@ -62,6 +61,7 @@ from onadata.libs.utils.api_export_tools import (custom_response_handler,
                                                  get_async_response,
                                                  process_async_export,
                                                  response_for_format)
+from onadata.libs.utils.common_tools import json_stream
 from onadata.libs.utils.csv_import import (get_async_csv_submission_status,
                                            submit_csv, submit_csv_async)
 from onadata.libs.utils.export_tools import parse_request_export_options
@@ -681,31 +681,24 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                         status=status.HTTP_202_ACCEPTED,
                         content_type="application/json")
 
-    def _get_streaming_response(self, length):
-        """Get a StreamingHttpResponse response object
-
-        @param length ensures a valid JSON is generated, avoid a trailing comma
+    def _get_streaming_response(self):
         """
-        def stream_json(data, length):
-            """Generator function to stream JSON data"""
-            yield u"["
-            start = 1
-            # use queryset_iterator.  Will need to change this to the Django
-            # native .iterator() method when we upgrade to django version 2
-            # because in Django 2 .iterator() has support for chunk size
-            queryset = queryset_iterator(self.object_list, chunksize=2000)
-            for xform in queryset:
-                yield json.dumps(XFormBaseSerializer(
-                    instance=xform,
-                    context={'request': self.request}
-                ).data)
-                yield "" if start == length else ","
-                start += 1
+        Get a StreamingHttpResponse response object
+        """
+        # use queryset_iterator.  Will need to change this to the Django
+        # native .iterator() method when we upgrade to django version 2
+        # because in Django 2 .iterator() has support for chunk size
+        queryset = queryset_iterator(self.object_list, chunksize=2000)
 
-            yield u"]"
+        def get_serialized_xform_instance(item):
+            """Returns a serialized xform instance"""
+            return XFormBaseSerializer(
+                instance=item,
+                context={'request': self.request}
+                ).data
 
         response = StreamingHttpResponse(
-            stream_json(self.object_list, length),
+            json_stream(queryset, get_serialized_xform_instance),
             content_type="application/json"
         )
 
@@ -731,7 +724,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                 self.etag_data = last_modified[0].isoformat()
             if STREAM_DATA:
                 self.object_list = queryset
-                resp = self._get_streaming_response(length=queryset.count())
+                resp = self._get_streaming_response()
             else:
                 resp = super(XFormViewSet, self).list(request, *args, **kwargs)
         except XLSFormError, e:
