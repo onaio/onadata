@@ -19,10 +19,31 @@ from onadata.libs.serializers.floip_serializer import (
     FloipListSerializer, FloipSerializer, FlowResultsResponseSerializer)
 
 
+class FlowResultsJSONRenderer(JSONRenderer):
+    """
+    Render JSON API format with uuid.
+    """
+
+    # pylint: disable=too-many-arguments
+    @classmethod
+    def build_json_resource_obj(cls, fields, resource, resource_instance,
+                                resource_name, force_type_resolution=False):
+        """
+        Build a JSON resource object using the id as it appears in the
+        resource.
+        """
+        obj = super(FlowResultsJSONRenderer, cls).build_json_resource_obj(
+            fields, resource, resource_instance, resource_name,
+            force_type_resolution)
+        obj['id'] = resource['id']
+
+        return obj
+
+
 # pylint: disable=too-many-ancestors
 class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
                    mixins.ListModelMixin, mixins.RetrieveModelMixin,
-                   viewsets.GenericViewSet):
+                   mixins.UpdateModelMixin, viewsets.GenericViewSet):
     """
     FloipViewSet: create, list, retrieve, destroy
     """
@@ -35,14 +56,17 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
 
     pagination_class = PageNumberPagination
     parser_classes = (JSONParser, )
-    renderer_classes = (JSONRenderer, )
-    resource_name = ['packages', 'responses']
+    renderer_classes = (FlowResultsJSONRenderer, )
 
     lookup_field = 'uuid'
 
     def get_serializer_class(self):
         if self.action == 'list':
             return FloipListSerializer
+
+        if self.action == 'responses':
+            return FlowResultsResponseSerializer
+
         return super(FloipViewSet, self).get_serializer_class()
 
     def get_success_headers(self, data):
@@ -56,7 +80,7 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
     @detail_route(methods=['get', 'post'])
     def responses(self, request, uuid=None):
         """
-        FlOIP results.
+        Flow Results Responses endpoint.
         """
         status_code = status.HTTP_200_OK
         xform = self.get_object()

@@ -76,6 +76,7 @@ class FloipListSerializer(serializers.HyperlinkedModelSerializer):
     """
     url = serializers.HyperlinkedIdentityField(
         view_name='flow-results-detail', lookup_field='uuid')
+    id = serializers.ReadOnlyField(source='uuid')  # pylint: disable=C0103
     name = serializers.ReadOnlyField(source='id_string')
     created = serializers.ReadOnlyField(source='date_created')
     modified = serializers.ReadOnlyField(source='date_modified')
@@ -84,7 +85,7 @@ class FloipListSerializer(serializers.HyperlinkedModelSerializer):
         """
         JSON API metaclass.
         """
-        resource_name = 'package'
+        resource_name = 'packages'
 
     class Meta:
         model = XForm
@@ -108,7 +109,7 @@ class FloipSerializer(serializers.HyperlinkedModelSerializer):
         """
         JSON API metaclass.
         """
-        resource_name = 'package'
+        resource_name = 'packages'
 
     class Meta:
         model = XForm
@@ -136,8 +137,7 @@ class FloipSerializer(serializers.HyperlinkedModelSerializer):
         """
         return {}
 
-    def create(self, validated_data):
-        request = self.context['request']
+    def _process_request(self, request, update_instance=None):
         data = deepcopy(request.data)
         if 'profile' in data and data['profile'] == 'flow-results-package':
             data['profile'] = 'data-package'
@@ -150,12 +150,30 @@ class FloipSerializer(serializers.HyperlinkedModelSerializer):
             'application/json',
             descriptor.tell(),
             charset=None)
-        files = {'floip_file': floip_file}
-        instance = do_publish_xlsform(request.user, None, files, request.user)
+        kwargs = {
+            'user': request.user,
+            'post': None,
+            'files': {'floip_file': floip_file},
+            'owner': request.user,
+        }
+        if update_instance:
+            kwargs['id_string'] = update_instance.id_string
+            kwargs['project'] = update_instance.project
+        instance = do_publish_xlsform(**kwargs)
         if isinstance(instance, XForm):
             return instance
 
         raise serializers.ValidationError(instance)
+
+    def create(self, validated_data):
+        request = self.context['request']
+
+        return self._process_request(request)
+
+    def update(self, instance, validated_data):
+        request = self.context['request']
+
+        return self._process_request(request, instance)
 
     def to_representation(self, instance):
         request = self.context['request']
@@ -191,6 +209,12 @@ class FlowResultsResponseSerializer(serializers.Serializer):
     """
     id = serializers.CharField()  # pylint: disable=invalid-name
     responses = serializers.ListField()
+
+    class JSONAPIMeta:  # pylint: disable=old-style-class,no-init,R0903
+        """
+        JSON API metaclass.
+        """
+        resource_name = 'flow-results-data'
 
     def create(self, validated_data):
         request = self.context['request']

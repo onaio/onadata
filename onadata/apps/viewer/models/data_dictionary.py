@@ -19,7 +19,7 @@ from pyxform.builder import create_survey_element_from_dict
 from pyxform.utils import has_external_choices
 from pyxform.xls2json import parse_file_to_json
 
-from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.models.xform import XForm, check_xform_uuid
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.libs.utils.cache_tools import (PROJ_BASE_FORMS_CACHE,
                                             PROJ_FORMS_CACHE, safe_delete)
@@ -140,6 +140,11 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
                 self._id_string_changed = \
                     new_id_string != survey.get('id_string')
                 survey['id_string'] = new_id_string
+                # For flow results packages use the user defined id/uuid
+                if self.xls.name.endswith('json'):
+                    self.uuid = FloipSurvey(self.xls).descriptor.get('id')
+                    if self.uuid:
+                        check_xform_uuid(self.uuid)
             elif self.id_string != survey.get('id_string'):
                 raise XLSFormError(_(
                     (u"Your updated form's id_string '%(new_id)s' must match "
