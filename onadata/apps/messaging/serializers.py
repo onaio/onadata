@@ -5,6 +5,7 @@ Message serializers
 
 from __future__ import unicode_literals
 
+from django.utils.translation import ugettext as _
 from actstream.actions import action_handler
 from actstream.models import Action
 from actstream.signals import action
@@ -19,6 +20,7 @@ class ContentTypeChoiceField(serializers.ChoiceField):
     Custom ChoiceField that gets the model name from a ContentType object
     """
 
+    # pylint: disable=no-self-use
     def to_representation(self, value):
         """
         Get the model from ContentType object
@@ -39,6 +41,9 @@ class MessageSerializer(serializers.ModelSerializer):
         TARGET_CHOICES, source='target_content_type')
 
     class Meta:
+        """
+        MessageSerializer metadata
+        """
         model = Action
         fields = ['id', 'message', 'target_id', 'target_type']
 
@@ -53,7 +58,7 @@ class MessageSerializer(serializers.ModelSerializer):
             content_type = get_target(target_type)
         except TargetDoesNotExist:
             raise serializers.ValidationError({
-                'target_type': 'Unknown target type'
+                'target_type': _('Unknown target type')
             })  # yapf: disable
         else:
             try:
@@ -61,7 +66,7 @@ class MessageSerializer(serializers.ModelSerializer):
                     content_type.get_object_for_this_type(pk=target_id)
             except content_type.model_class().DoesNotExist:
                 raise serializers.ValidationError({
-                    'target_id': 'target_id not found'
+                    'target_id': _('target_id not found')
                 })  # yapf: disable
             else:
                 # check if request.user has permission to the target_object
@@ -69,8 +74,8 @@ class MessageSerializer(serializers.ModelSerializer):
                     target_object._meta.app_label,
                     target_object._meta.model_name)
                 if not request.user.has_perm(permission, target_object):
-                    message = ("You do not have permission to add messages "
-                               "to target_id %s." % target_object)
+                    message = (_("You do not have permission to add messages "
+                               "to target_id %s.") % target_object)
                     raise exceptions.PermissionDenied(detail=message)
                 results = action.send(
                     request.user,

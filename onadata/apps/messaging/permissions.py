@@ -26,6 +26,7 @@ class TargetObjectPermissions(permissions.BasePermission):
         """
         Return required object permissions for given request method.
         """
+
         kwargs = {
             'app_label': model_cls._meta.app_label,
             'model_name': model_cls._meta.model_name
@@ -36,11 +37,13 @@ class TargetObjectPermissions(permissions.BasePermission):
 
         return [perm % kwargs for perm in self.perms_map[method]]
 
+    # pylint: disable=unused-variable
     def has_object_permission(self, request, view, obj):
         """
         Check the target object's permissions
         """
-        # the 'can_view' permission is needed for the target object
+
+        # the `can_view`` permission is needed for the target object
         target = obj.target
         if isinstance(target, User):
             return request.user == target
