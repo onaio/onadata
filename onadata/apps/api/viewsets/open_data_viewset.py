@@ -134,8 +134,7 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
             instances = Instance.objects.filter(**qs_kwargs).order_by('pk')
 
             if count:
-                self.total_count = instances.count()
-                return Response({'count': self.total_count})
+                return Response({'count': instances.count()})
 
             if should_paginate:
                 instances = self.paginate_queryset(instances)
