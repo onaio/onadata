@@ -415,7 +415,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
         if export_type == Attachment.OSM:
             if request.GET:
-                self.set_object_list_and_total_count(
+                self.set_object_list(
                     query, fields, sort, start, limit, is_public_request)
                 kwargs = {'instance__in': self.object_list}
             osm_list = OsmData.objects.filter(**kwargs)
@@ -435,7 +435,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
         return custom_response_handler(request, xform, query, export_type)
 
-    def set_object_list_and_total_count(
+    def set_object_list(
             self, query, fields, sort, start, limit, is_public_request):
         try:
             if not is_public_request:
@@ -452,7 +452,6 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 self.object_list = filter_queryset_xform_meta_perms(
                     self.get_object(), self.request.user, self.object_list)
                 self.object_list = self.object_list[start:limit]
-                self.total_count = self.object_list.count()
             elif (sort or limit or start or fields) and not is_public_request:
                 try:
                     query = \
@@ -462,21 +461,12 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                     self.object_list = query_data(xform, query=query,
                                                   sort=sort, start_index=start,
                                                   limit=limit, fields=fields)
-                    self.total_count = query_data(
-                        xform, query=query, sort=sort, start_index=start,
-                        limit=limit, fields=fields, count=True
-                    )[0].get('count')
-
                 except NoRecordsPermission:
                     self.object_list = []
-                    self.total_count = 0
 
-            else:
-                self.total_count = self.object_list.count()
-
-            if self.total_count and isinstance(self.object_list, QuerySet):
+            if isinstance(self.object_list, QuerySet):
                 self.etag_hash = get_etag_hash_from_query(self.object_list)
-            elif self.total_count:
+            else:
                 sql, params, records = get_sql_with_params(
                     xform, query=query, sort=sort, start_index=start,
                     limit=limit, fields=fields
@@ -488,7 +478,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             raise ParseError(unicode(e))
 
     def _get_data(self, query, fields, sort, start, limit, is_public_request):
-        self.set_object_list_and_total_count(
+        self.set_object_list(
             query, fields, sort, start, limit, is_public_request)
 
         pagination_keys = [self.paginator.page_query_param,
