@@ -822,7 +822,9 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         response = self.view(request, pk=self.xform.pk, format='csv')
 
         # test
-        manifest_media_url = media.data['media_url']
+        manifest_media_url = '{}{}'.format(
+            media.data['media_url'],
+            '?group_delimiter=.&repeat_index_tags=_,_')
         download_url = response.data[0]['downloadUrl']
         self.assertEqual(manifest_media_url, download_url)
 
