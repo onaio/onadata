@@ -28,6 +28,8 @@ from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.viewer_tools import (
     enketo_url, get_enketo_preview_url, get_form_url)
 from onadata.libs.exceptions import EnketoError
+from onadata.libs.utils.common_tags import (GROUP_DELIMETER_TAG,
+                                            REPEAT_INDEX_TAGS)
 
 
 def _create_enketo_url(request, xform):
@@ -370,9 +372,17 @@ class XFormManifestSerializer(serializers.Serializer):
             fmt = obj.data_value[obj.data_value.rindex('.') + 1:]
         except ValueError:
             fmt = 'csv'
-
-        return reverse(
+        url = reverse(
             'xform-media', kwargs=kwargs, request=request, format=fmt.lower())
+
+        group_delimiter = self.context.get(GROUP_DELIMETER_TAG)
+        repeat_index_tags = self.context.get(REPEAT_INDEX_TAGS)
+        if group_delimiter and repeat_index_tags and fmt == 'csv':
+            return (url+"?%s=%s&%s=%s" % (
+                GROUP_DELIMETER_TAG, group_delimiter, REPEAT_INDEX_TAGS,
+                repeat_index_tags))
+
+        return url
 
     @check_obj
     def get_hash(self, obj):
