@@ -177,8 +177,8 @@ USE_TZ = True
 ANONYMOUS_DEFAULT_USERNAME = 'AnonymousUser'
 
 INSTALLED_APPS = (
-    'django.contrib.auth',
     'django.contrib.contenttypes',
+    'django.contrib.auth',
     'django.contrib.sessions',
     'django.contrib.sites',
     'django.contrib.messages',
@@ -205,6 +205,8 @@ INSTALLED_APPS = (
     'onadata.apps.sms_support',
     'onadata.libs',
     'reversion',
+    'actstream',
+    'onadata.apps.messaging.apps.MessagingConfig',
 )
 
 OAUTH2_PROVIDER = {

@@ -290,10 +290,13 @@ urlpatterns = [
     url(r'^static/(?P<path>.*)$', staticfiles_views.serve)
 ]
 
-custom_urls = getattr(settings, 'CUSTOM_MAIN_URLS', None)
+# messaging urls
+urlpatterns.append(url('^', include('onadata.apps.messaging.urls')))
 
-if custom_urls:
-    for url_module in custom_urls:
+CUSTOM_URLS = getattr(settings, 'CUSTOM_MAIN_URLS', None)
+
+if CUSTOM_URLS:
+    for url_module in CUSTOM_URLS:
         urlpatterns.append(url(r'^', include(url_module)))
 
 if (settings.DEBUG or TESTING) and 'debug_toolbar' in settings.INSTALLED_APPS:
