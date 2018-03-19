@@ -3,8 +3,9 @@
 Messaging app base tests module.
 """
 
-from actstream.signals import action
 from django.contrib.auth.models import User
+
+from actstream.signals import action
 
 from onadata.apps.messaging.constants import MESSAGE
 

@@ -4,9 +4,10 @@ Tests Messaging app signals.
 """
 from __future__ import unicode_literals
 
-from actstream.models import Action
 from django.test import TestCase
 from django.test.utils import override_settings
+
+from actstream.models import Action
 from mock import patch
 
 from onadata.apps.messaging.signals import messaging_backends_handler

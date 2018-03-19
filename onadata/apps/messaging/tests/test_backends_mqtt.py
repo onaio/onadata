@@ -8,7 +8,7 @@ import json
 
 from django.test import TestCase
 
-from onadata.apps.messaging.backends.mqtt import MQTTBackend
+from onadata.apps.messaging.backends.mqtt import MQTTBackend, get_payload
 from onadata.apps.messaging.tests.test_base import (_create_message,
                                                     _create_user)
 
@@ -34,12 +34,12 @@ class TestMQTTBackend(TestCase):
 
     def test_mqtt_get_payload(self):
         """
-        Test MQTT backend get_payload method
+        Test MQTT backend get_payload function
         """
         from_user = _create_user('Bob')
         to_user = _create_user('Alice')
         instance = _create_message(from_user, to_user, 'I love oov')
-        mqtt = MQTTBackend(options={'HOST': 'localhost'})
+
         payload = {
             'id': instance.id,
             'time': instance.timestamp.isoformat(),
@@ -54,7 +54,7 @@ class TestMQTTBackend(TestCase):
                 'message': "I love oov"
             }
         }
-        self.assertEqual(json.dumps(payload), mqtt.get_payload(instance))
+        self.assertEqual(json.dumps(payload), get_payload(instance))
 
     def test_mqqt_send(self):
         """

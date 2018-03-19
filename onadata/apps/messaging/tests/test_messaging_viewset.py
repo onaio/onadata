@@ -4,8 +4,9 @@ Tests Messaging app viewsets.
 """
 from __future__ import unicode_literals
 
-from actstream.models import Action
 from django.test import TestCase
+
+from actstream.models import Action
 from guardian.shortcuts import assign_perm
 from rest_framework.test import APIRequestFactory, force_authenticate
 
