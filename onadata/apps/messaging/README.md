@@ -12,7 +12,7 @@ Once created, messages are stored in the database and can be retrieved via the A
 
 ### POST /api/messaging
 
-Create a new message, requires an xform or a project and the message.
+Create a new message, requires an `xform`, a `project`, or a `user` and the `message`.
 
 ```console
 curl -X POST -d '{"target_type": "xform", "target_id": "1337", "message": "Hello, World!"}' https://api.ona.io/api/v1/messaging
