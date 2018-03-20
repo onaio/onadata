@@ -125,4 +125,5 @@ def json_stream(data, json_string):
                 break
     except AttributeError:
         pass
-    yield u"]"
+    finally:
+        yield u"]"
