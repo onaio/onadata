@@ -6,14 +6,16 @@ import os
 import sys
 import zipfile
 from tempfile import NamedTemporaryFile
-from future.moves.urllib.parse import urljoin
 from xml.dom import minidom
 
-import requests
+from future.moves.urllib.parse import urljoin
+
 from django.conf import settings
 from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.translation import ugettext as _
+
+import requests
 
 from onadata.libs.exceptions import EnketoError
 from onadata.libs.utils import common_tags

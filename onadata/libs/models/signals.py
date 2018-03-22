@@ -1,5 +1,7 @@
-import django.dispatch
 from past.builtins import basestring
+
+import django.dispatch
+
 from onadata.apps.logger.models import XForm
 
 xform_tags_add = django.dispatch.Signal(providing_args=['xform', 'tags'])

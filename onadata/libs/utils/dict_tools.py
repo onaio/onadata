@@ -3,6 +3,7 @@
 Dict utility functions module.
 """
 import json
+
 from past.builtins import basestring
 
 

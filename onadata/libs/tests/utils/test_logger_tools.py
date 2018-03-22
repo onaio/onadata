@@ -1,19 +1,18 @@
 import re
-try:
-    from io import StringIO
-except ImportError:
-    from StringIO import StringIO
+from io import StringIO
 
-from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
 from django.conf import settings
 
-from onadata.libs.utils.logger_tools import generate_content_disposition_header
-from onadata.libs.utils.logger_tools import create_instance
+from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
+
 from onadata.apps.logger.import_tools import django_file
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import Instance
-from onadata.libs.utils.common_tags import MEDIA_ALL_RECEIVED, TOTAL_MEDIA,\
-    MEDIA_COUNT
+from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.utils.common_tags import MEDIA_ALL_RECEIVED
+from onadata.libs.utils.common_tags import MEDIA_COUNT
+from onadata.libs.utils.common_tags import TOTAL_MEDIA
+from onadata.libs.utils.logger_tools import create_instance
+from onadata.libs.utils.logger_tools import generate_content_disposition_header
 
 
 class TestLoggerTools(PyxformTestCase, TestBase):

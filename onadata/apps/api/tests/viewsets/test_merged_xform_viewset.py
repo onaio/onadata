@@ -25,6 +25,7 @@ from onadata.apps.restservice.viewsets.restservices_viewset import \
 from onadata.libs.utils.export_tools import get_osm_data_kwargs
 from onadata.libs.utils.user_auth import get_user_default_project
 
+
 MD = """
 | survey  |
 |         | type              | name  | label   |

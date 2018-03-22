@@ -9,12 +9,13 @@ from copy import deepcopy
 from io import StringIO
 
 from django.conf import settings
-import six
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext_lazy as _
+
+import six
 from floip import survey_to_floip_package
 from rest_framework.reverse import reverse
 from rest_framework_json_api import serializers
