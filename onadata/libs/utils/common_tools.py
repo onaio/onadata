@@ -2,7 +2,7 @@
 """
 Common helper functions
 """
-import cStringIO
+from io import StringIO
 import sys
 import traceback
 import uuid
@@ -95,7 +95,7 @@ def get_response_content(response):
     """
     contents = u''
     if response.streaming:
-        actual_content = cStringIO.StringIO()
+        actual_content = StringIO()
         for content in response.streaming_content:
             actual_content.write(content)
         contents = actual_content.getvalue()
