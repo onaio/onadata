@@ -15,6 +15,7 @@ import subprocess  # noqa, used by included files
 import sys
 import socket
 from future.moves.urllib.parse import urljoin
+from imp import reload
 
 from celery.signals import after_setup_logger
 from django.core.exceptions import SuspiciousOperation
@@ -24,8 +25,9 @@ import djcelery
 djcelery.setup_loader()
 
 # setting default encoding to utf-8
-reload(sys)
-sys.setdefaultencoding('utf-8')
+if sys.version[0] == '2':
+    reload(sys)
+    sys.setdefaultencoding("utf-8")
 
 CURRENT_FILE = os.path.abspath(__file__)
 PROJECT_ROOT = os.path.realpath(
