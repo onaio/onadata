@@ -23,7 +23,7 @@ def set_uuid(obj):
 
 
 def queryset_iterator(queryset, chunksize=100):
-    '''''
+    '''
     Iterate over a Django Queryset.
 
     This method loads a maximum of chunksize (default: 100) rows in
