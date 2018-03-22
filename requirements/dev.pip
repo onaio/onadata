@@ -4,14 +4,20 @@
 #
 #    pip-compile --output-file requirements/dev.pip requirements/dev.in
 #
+#
+# -e git+https://github.com/matusvalo/librabbitmq.git@pip_build#egg=pip_build 
+# manually editted to git+https://github.com/matusvalo/librabbitmq.git@pip_build 
+# so that the install works
+#
 -e git+https://github.com/onaio/django-digest.git@django-1.9-fixes#egg=django-digest
 -e git+https://github.com/onaio/django-multidb-router.git@django-1.11#egg=django-multidb-router
 -e git+https://github.com/jbalogh/django-nose.git#egg=django-nose
 -e git+https://github.com/bfirsh/django-ordered-model.git@master#egg=django-ordered-model
+git+https://github.com/matusvalo/librabbitmq.git@pip_build
 -e git+https://github.com/onaio/floip-py.git@master#egg=floip
 -e git+https://github.com/onaio/python-json2xlsclient.git#egg=python-json2xlsclient
 alabaster==0.7.10         # via sphinx
-amqp==1.4.9               # via kombu, librabbitmq
+amqp==1.4.9               # via kombu
 anyjson==0.3.3            # via kombu
 argparse==1.4.0           # via unittest2
 astroid==1.5.3            # via pylint, pylint-celery, pylint-plugin-utils
@@ -85,7 +91,6 @@ jsonpointer==1.14         # via datapackage
 jsonschema==2.6.0         # via datapackage, tableschema
 kombu==3.0.37             # via celery
 lazy-object-proxy==1.3.1  # via astroid
-librabbitmq==1.6.1
 linear-tsv==1.0.0         # via tabulator
 linecache2==1.0.0         # via traceback2
 lxml==3.7.3
