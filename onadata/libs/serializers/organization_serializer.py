@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
-
+from past.builtins import basestring
 from onadata.apps.api import tools
 from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.api.tools import get_organization_members

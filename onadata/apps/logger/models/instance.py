@@ -1,5 +1,5 @@
 import math
-
+from past.builtins import basestring
 from celery import task
 from datetime import datetime
 

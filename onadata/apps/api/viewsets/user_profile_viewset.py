@@ -1,5 +1,5 @@
 import json
-
+from past.builtins import basestring
 from django.conf import settings
 
 from rest_framework import serializers

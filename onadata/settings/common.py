@@ -15,6 +15,7 @@ import subprocess  # noqa, used by included files
 import sys
 import socket
 from future.moves.urllib.parse import urljoin
+from past.builtins import basestring
 from imp import reload
 
 from celery.signals import after_setup_logger
