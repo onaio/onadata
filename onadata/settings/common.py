@@ -14,7 +14,7 @@ import os
 import subprocess  # noqa, used by included files
 import sys
 import socket
-from urlparse import urljoin
+from future.moves.urllib.parse import urljoin
 
 from celery.signals import after_setup_logger
 from django.core.exceptions import SuspiciousOperation

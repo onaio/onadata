@@ -6,7 +6,7 @@ import os
 import sys
 import zipfile
 from tempfile import NamedTemporaryFile
-from urlparse import urljoin
+from future.moves.urllib.parse import urljoin
 from xml.dom import minidom
 
 import requests
