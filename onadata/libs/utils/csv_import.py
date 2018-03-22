@@ -1,4 +1,4 @@
-import cStringIO
+from io import StringIO
 import json
 import sys
 import uuid
@@ -136,7 +136,7 @@ def submit_csv(username, xform, csv_file):
     :rtype: Dict
     """
     if isinstance(csv_file, unicode):
-        csv_file = cStringIO.StringIO(csv_file)
+        csv_file = StringIO(csv_file)
     elif csv_file is None or not hasattr(csv_file, 'read'):
         return async_status(FAILED, (u'Invalid param type for `csv_file`. '
                                      'Expected utf-8 encoded file or unicode'
@@ -258,7 +258,7 @@ def submit_csv(username, xform, csv_file):
             row_uuid = row.get('meta').get('instanceID')
             rollback_uuids.append(row_uuid.replace('uuid:', ''))
 
-            xml_file = cStringIO.StringIO(
+            xml_file = StringIO(
                 dict2xmlsubmission(row, xform, row_uuid, submission_date))
 
             try:
