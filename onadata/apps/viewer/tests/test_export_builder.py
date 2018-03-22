@@ -13,6 +13,7 @@ import zipfile
 from collections import OrderedDict
 from ctypes import ArgumentError
 from io import StringIO
+from past.builtins import basestring
 
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile

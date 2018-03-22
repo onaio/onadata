@@ -1,4 +1,5 @@
 import os
+from past.builtins import basestring
 from django.utils import timezone
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \

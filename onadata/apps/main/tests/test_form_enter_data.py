@@ -1,7 +1,7 @@
 import os
 import re
 import requests
-
+from past.builtins import basestring
 from urlparse import urlparse
 from time import time
 from httmock import urlmatch, HTTMock

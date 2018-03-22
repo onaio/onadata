@@ -3,6 +3,7 @@
 Dict utility functions module.
 """
 import json
+from past.builtins import basestring
 
 
 def get_values_matching_key(doc, key):

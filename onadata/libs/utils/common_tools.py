@@ -6,7 +6,7 @@ import cStringIO
 import sys
 import traceback
 import uuid
-
+from past.builtins import basestring
 import six
 from django.conf import settings
 from django.core.mail import mail_admins
