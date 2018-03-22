@@ -76,7 +76,7 @@ Topics for sending messages are constructed like so:
 
 ```text
 
-/onadata/user/[pk]/messages/publish
+/[topic root]/user/[pk]/messages/publish
 
 ```
 
@@ -84,7 +84,7 @@ Topics for sending messages are constructed like so:
 
 ```text
 
-/onadata/xform/[pk]/messages/publish
+/[topic root]/xform/[pk]/messages/publish
 
 ```
 
@@ -92,7 +92,7 @@ Topics for sending messages are constructed like so:
 
 ```text
 
-/onadata/project/[pk]/messages/publish
+/[topic root]/project/[pk]/messages/publish
 
 ```
 
