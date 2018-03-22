@@ -1,6 +1,6 @@
 import csv
 import os
-from cStringIO import StringIO
+from io import StringIO
 from mock import patch
 
 from django.test import RequestFactory
