@@ -1,23 +1,24 @@
-import shutil
 import os.path
-import requests
-
+import shutil
 from io import StringIO
+
 from future.moves.urllib.parse import urljoin
-from httmock import urlmatch, HTTMock
 
 from django.contrib.auth import authenticate
 from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import UploadedFile
 from django.core.urlresolvers import reverse
 from django.test import RequestFactory
-from django_digest.test import Client as DigestClient
 
+import requests
+from django_digest.test import Client as DigestClient
+from httmock import HTTMock, urlmatch
+
+from onadata.apps.logger.models import Instance, XForm
+from onadata.apps.logger.views import download_xform, formList, xformsManifest
 from onadata.apps.main.models import MetaData
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.main.views import profile, download_media_data
-from onadata.apps.logger.models import Instance, XForm
-from onadata.apps.logger.views import formList, download_xform, xformsManifest
+from onadata.apps.main.views import download_media_data, profile
 from onadata.libs.utils.briefcase_client import BriefcaseClient
 
 storage = get_storage_class()()

@@ -3,29 +3,31 @@ import datetime
 import os
 import shutil
 import tempfile
-import xlrd
 import zipfile
-from io import StringIO
-from past.builtins import basestring
 from collections import OrderedDict
 from ctypes import ArgumentError
+from io import StringIO
+
+from past.builtins import basestring
+
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
+
+import xlrd
 from openpyxl import load_workbook
 from pyxform.builder import create_survey_from_xls
-from savReaderWriter import SavReader
-from savReaderWriter import SavHeaderReader
+from savReaderWriter import SavHeaderReader, SavReader
 
+from onadata.apps.logger.import_tools import django_file
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
-from onadata.apps.viewer.models.parsed_instance import _encode_for_mongo
-from onadata.apps.viewer.models.parsed_instance import query_data
+from onadata.apps.viewer.models.parsed_instance import (_encode_for_mongo,
+                                                        query_data)
 from onadata.apps.viewer.tests.export_helpers import viewer_fixture_path
-from onadata.apps.logger.import_tools import django_file
+from onadata.libs.utils.csv_builder import (CSVDataFrameBuilder,
+                                            get_labels_from_columns)
 from onadata.libs.utils.export_builder import dict_to_joined_export
 from onadata.libs.utils.export_tools import ExportBuilder, get_columns_with_hxl
-from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
-from onadata.libs.utils.csv_builder import get_labels_from_columns
 from onadata.libs.utils.logger_tools import create_instance
 
 

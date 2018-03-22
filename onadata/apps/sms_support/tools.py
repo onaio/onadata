@@ -2,23 +2,26 @@
 # -*- coding: utf-8 -*-
 # vim: ai ts=4 sts=4 et sw=4 nu
 
-import mimetypes
-import io
 import copy
+import io
+import mimetypes
 from xml.parsers.expat import ExpatError
+
 from past.builtins import basestring
-from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.utils.translation import ugettext as _
+
 from django.contrib.auth.models import User
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.http import HttpRequest
+from django.utils.translation import ugettext as _
 
-from onadata.apps.logger.xform_instance_parser import InstanceEmptyError,\
-    InstanceInvalidUserError, DuplicateInstance
-from onadata.apps.logger.models.instance import FormInactiveError
 from onadata.apps.logger.models import XForm
-from onadata.libs.utils.log import audit_log, Actions
+from onadata.apps.logger.models.instance import FormInactiveError
+from onadata.apps.logger.xform_instance_parser import DuplicateInstance
+from onadata.apps.logger.xform_instance_parser import InstanceEmptyError
+from onadata.apps.logger.xform_instance_parser import InstanceInvalidUserError
+from onadata.libs.utils.log import Actions
+from onadata.libs.utils.log import audit_log
 from onadata.libs.utils.logger_tools import create_instance
-
 
 SMS_API_ERROR = 'SMS_API_ERROR'
 SMS_PARSING_ERROR = 'SMS_PARSING_ERROR'
