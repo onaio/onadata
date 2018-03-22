@@ -41,3 +41,53 @@ Deletes a specific message with matching pk.
 ```console
 curl -X DELETE https://api.ona.io/api/v1/messaging/1337
 ```
+
+## Messaging Backends
+
+### MQTT
+
+One of the backends that is supported is [MQTT](http://mqtt.org/).
+
+#### Settings
+
+To activate the MQTT backend, you need to add this to your Django settings file.
+
+```python
+
+NOTIFICATION_BACKENDS = {
+    'mqtt': {
+        'BACKEND': 'onadata.apps.messaging.backends.mqtt.MQTTBackend',
+        'OPTIONS': {
+            'HOST': 'localhost',  # the MQTT host
+            'QOS': 0,  # the MQTT QoS level
+            'RETAIN': False,  # MQTT retain messages option
+            'TOPIC_BASE': 'onadata'  # the topic root
+        }
+    },
+}
+
+```
+
+#### Topics
+
+Topics for sending messages are constructed like so:
+
+##### Users
+
+```text
+/[topic root]/user/[pk]/messages/publish
+```
+
+##### Forms
+
+```text
+/[topic root]/xform/[pk]/messages/publish
+```
+
+##### Projects
+
+```text
+/[topic root]/project/[pk]/messages/publish
+```
+
+These are the topics that an MQTT client would subscribe to in order to receive messages for that particular user/xform/project.
