@@ -11,8 +11,8 @@ import shutil
 import tempfile
 import zipfile
 from collections import OrderedDict
-from cStringIO import StringIO
 from ctypes import ArgumentError
+from io import StringIO
 
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
