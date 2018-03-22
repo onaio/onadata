@@ -1,3 +1,4 @@
+from past.builtins import basestring
 from django.http import Http404
 from rest_framework import serializers
 
