@@ -75,25 +75,19 @@ Topics for sending messages are constructed like so:
 ##### Users
 
 ```text
-
 /[topic root]/user/[pk]/messages/publish
-
 ```
 
 ##### Forms
 
 ```text
-
 /[topic root]/xform/[pk]/messages/publish
-
 ```
 
 ##### Projects
 
 ```text
-
 /[topic root]/project/[pk]/messages/publish
-
 ```
 
 These are the topics that an MQTT client would subscribe to in order to receive messages for that particular user/xform/project.
