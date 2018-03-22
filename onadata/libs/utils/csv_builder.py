@@ -1,10 +1,13 @@
 from collections import OrderedDict
 from itertools import chain
+
 from past.builtins import basestring
-import unicodecsv as csv
+
 from django.conf import settings
 from django.db.models.query import QuerySet
 from django.utils.translation import ugettext as _
+
+import unicodecsv as csv
 from pyxform.question import Question
 from pyxform.section import RepeatingSection, Section
 
@@ -16,13 +19,14 @@ from onadata.apps.viewer.models.parsed_instance import (ParsedInstance,
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID,
                                             DELETEDAT, DURATION, EDITED,
-                                            GEOLOCATION, ID, NA_REP, NOTES,
-                                            STATUS, SUBMISSION_TIME,
-                                            SUBMITTED_BY, TAGS, UUID, VERSION,
-                                            XFORM_ID_STRING, MEDIA_COUNT,
-                                            TOTAL_MEDIA, MEDIA_ALL_RECEIVED)
-from onadata.libs.utils.export_builder import get_value_or_attachment_uri
-from onadata.libs.utils.export_builder import track_task_progress
+                                            GEOLOCATION, ID,
+                                            MEDIA_ALL_RECEIVED, MEDIA_COUNT,
+                                            NA_REP, NOTES, STATUS,
+                                            SUBMISSION_TIME, SUBMITTED_BY,
+                                            TAGS, TOTAL_MEDIA, UUID, VERSION,
+                                            XFORM_ID_STRING)
+from onadata.libs.utils.export_builder import (get_value_or_attachment_uri,
+                                               track_task_progress)
 from onadata.libs.utils.model_tools import get_columns_with_hxl
 
 # the bind type of select multiples that we use to compare

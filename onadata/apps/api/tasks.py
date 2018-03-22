@@ -1,14 +1,18 @@
 import os
 import sys
-from celery import task
-from celery.result import AsyncResult
+from io import BytesIO
+
+from past.builtins import basestring
+
 from django.core.files.uploadedfile import (InMemoryUploadedFile,
                                             TemporaryUploadedFile)
 from django.utils.datastructures import MultiValueDict
-from io import BytesIO
+
+from celery import task
+from celery.result import AsyncResult
+
 from onadata.apps.api import tools
 from onadata.apps.logger.models.xform import XForm
-from past.builtins import basestring
 
 
 def recreate_tmp_file(name, path, mime_type):

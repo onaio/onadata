@@ -4,30 +4,29 @@ import os
 import re
 import socket
 import urllib2
+from io import StringIO
 from tempfile import NamedTemporaryFile
 
-from io import StringIO
-
 from django.conf import settings
+from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from django.test import TransactionTestCase
-from django.test import RequestFactory
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.test import RequestFactory, TransactionTestCase
 from django.test.client import Client
+from django.utils import timezone
+
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
-from django.contrib.auth import authenticate
-from django.utils import timezone
-from django.core.files.uploadedfile import InMemoryUploadedFile
 from pyxform.tests_v1.pyxform_test_case import PyxformMarkdown
 from rest_framework.test import APIRequestFactory
 
-from onadata.apps.logger.models import XForm, Instance, Attachment
+from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
+from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.logger.views import submission
 from onadata.apps.main.models import UserProfile
-from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.viewer.models import DataDictionary
-from onadata.libs.utils.common_tools import (
-    filename_from_disposition, get_response_content)
+from onadata.libs.utils.common_tools import (filename_from_disposition,
+                                             get_response_content)
 from onadata.libs.utils.user_auth import get_user_default_project
 
 
