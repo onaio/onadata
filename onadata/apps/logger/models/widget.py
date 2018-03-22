@@ -5,7 +5,7 @@ from django.contrib.postgres.fields import JSONField
 from ordered_model.models import OrderedModel
 from querybuilder.fields import AvgField, CountField, SimpleField, SumField
 from querybuilder.query import Query
-
+from past.builtins import basestring
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.xform import XForm

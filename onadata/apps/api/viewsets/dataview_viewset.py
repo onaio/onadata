@@ -1,6 +1,6 @@
 from django.http import HttpResponseBadRequest, Http404
 from django.db.models.signals import post_save, post_delete
-
+from past.builtins import basestring
 from celery.result import AsyncResult
 
 from rest_framework import status

@@ -6,7 +6,7 @@ import mimetypes
 import io
 import copy
 from xml.parsers.expat import ExpatError
-
+from past.builtins import basestring
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.translation import ugettext as _
 from django.contrib.auth.models import User

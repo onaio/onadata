@@ -2,7 +2,7 @@ import mimetypes
 import os
 import requests
 import logging
-
+from past.builtins import basestring
 from contextlib import closing
 from django.db.models.signals import post_save, post_delete
 from django.contrib.contenttypes.fields import GenericForeignKey

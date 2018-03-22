@@ -6,7 +6,7 @@ import tempfile
 import xlrd
 import zipfile
 from io import StringIO
-
+from past.builtins import basestring
 from collections import OrderedDict
 from ctypes import ArgumentError
 from django.conf import settings
