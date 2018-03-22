@@ -1,16 +1,19 @@
 import re
 
-import six
+from past.builtins import basestring
+
 from django.db.utils import DataError
 from django.http import Http404
+
+import six
 from rest_framework.exceptions import ParseError
-from past.builtins import basestring
+
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.xform import XForm
-from onadata.libs.data.query import (
-    get_form_submissions_aggregated_by_select_one,
-    get_form_submissions_grouped_by_field,
-    get_form_submissions_grouped_by_select_one)
+from onadata.libs.data.query import \
+    get_form_submissions_aggregated_by_select_one
+from onadata.libs.data.query import get_form_submissions_grouped_by_field
+from onadata.libs.data.query import get_form_submissions_grouped_by_select_one
 from onadata.libs.utils import common_tags
 
 # list of fields we can chart

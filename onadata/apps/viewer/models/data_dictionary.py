@@ -8,12 +8,13 @@ import io
 import os
 from io import StringIO
 
-import librabbitmq
-import xlrd
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
 from django.utils.translation import ugettext as _
+
+import librabbitmq
+import xlrd
 from floip import FloipSurvey
 from pyxform.builder import create_survey_element_from_dict
 from pyxform.utils import has_external_choices

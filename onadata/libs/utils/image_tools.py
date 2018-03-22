@@ -1,13 +1,12 @@
-import requests
-
 from io import StringIO
-from PIL import Image
+from tempfile import NamedTemporaryFile
 
 from django.conf import settings
-from django.core.files.storage import get_storage_class
 from django.core.files.base import ContentFile
+from django.core.files.storage import get_storage_class
 
-from tempfile import NamedTemporaryFile
+import requests
+from PIL import Image
 
 from onadata.libs.utils.viewer_tools import get_path
 

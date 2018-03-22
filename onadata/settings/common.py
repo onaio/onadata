@@ -11,17 +11,20 @@
 # environment variable as needed.
 import logging
 import os
+import socket
 import subprocess  # noqa, used by included files
 import sys
-import socket
-from future.moves.urllib.parse import urljoin
-from past.builtins import basestring
 from imp import reload
 
-from celery.signals import after_setup_logger
+from future.moves.urllib.parse import urljoin
+
+from past.builtins import basestring
+
 from django.core.exceptions import SuspiciousOperation
 from django.utils.log import AdminEmailHandler
+
 import djcelery
+from celery.signals import after_setup_logger
 
 djcelery.setup_loader()
 

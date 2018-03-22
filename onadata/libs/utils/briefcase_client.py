@@ -1,24 +1,24 @@
+import logging
+import math
+import mimetypes
 import os
 import time
-import math
-import logging
-import mimetypes
-import requests
-from requests.auth import HTTPDigestAuth
-from future.moves.urllib.parse import urljoin
+from io import StringIO
 from xml.parsers.expat import ExpatError
 
-from io import StringIO
+from future.moves.urllib.parse import urljoin
 
-from django.db import transaction
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.db import transaction
+
+import requests
+from requests.auth import HTTPDigestAuth
 
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
-from onadata.libs.utils.logger_tools import create_instance
-from onadata.libs.utils.logger_tools import publish_form
-from onadata.libs.utils.logger_tools import PublishXForm
+from onadata.libs.utils.logger_tools import (PublishXForm, create_instance,
+                                             publish_form)
 
 NUM_RETRIES = 3
 

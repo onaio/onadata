@@ -1,40 +1,43 @@
 import math
-from past.builtins import basestring
-from celery import task
 from datetime import datetime
 
-from django.contrib.gis.db import models
-from django.db import connection
-from django.db import transaction
-from django.db.models.signals import post_save
-from django.db.models.signals import post_delete
+from past.builtins import basestring
+
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.contrib.gis.db import models
 from django.contrib.gis.geos import GeometryCollection, Point
 from django.contrib.postgres.fields import JSONField
 from django.core.urlresolvers import reverse
+from django.db import connection, transaction
+from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from django.utils.translation import ugettext as _
+
+from celery import task
 from taggit.managers import TaggableManager
 
 from onadata.apps.logger.models.survey_type import SurveyType
-from onadata.apps.logger.models.xform import XForm
-from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
-from onadata.apps.logger.xform_instance_parser import XFormInstanceParser,\
-    clean_and_parse_xml, get_uuid_from_xml
-from onadata.libs.utils.common_tags import ATTACHMENTS, BAMBOO_DATASET_ID,\
-    DELETEDAT, EDITED, GEOLOCATION, ID, MONGO_STRFTIME, NOTES, \
-    SUBMISSION_TIME, TAGS, UUID, XFORM_ID_STRING, SUBMITTED_BY, VERSION, \
-    STATUS, DURATION, START, END, LAST_EDITED, MEDIA_ALL_RECEIVED, \
-    TOTAL_MEDIA, MEDIA_COUNT, XFORM_ID
-from onadata.libs.utils.model_tools import set_uuid
+from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH, XForm
+from onadata.apps.logger.xform_instance_parser import (XFormInstanceParser,
+                                                       clean_and_parse_xml,
+                                                       get_uuid_from_xml)
 from onadata.libs.data.query import get_numeric_fields
-from onadata.libs.utils.cache_tools import safe_delete
-from onadata.libs.utils.cache_tools import IS_ORG
-from onadata.libs.utils.cache_tools import PROJ_SUB_DATE_CACHE
-from onadata.libs.utils.cache_tools import PROJ_NUM_DATASET_CACHE,\
-    XFORM_DATA_VERSIONS, DATAVIEW_COUNT, XFORM_COUNT
+from onadata.libs.utils.cache_tools import (DATAVIEW_COUNT, IS_ORG,
+                                            PROJ_NUM_DATASET_CACHE,
+                                            PROJ_SUB_DATE_CACHE, XFORM_COUNT,
+                                            XFORM_DATA_VERSIONS, safe_delete)
+from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID,
+                                            DELETEDAT, DURATION, EDITED, END,
+                                            GEOLOCATION, ID, LAST_EDITED,
+                                            MEDIA_ALL_RECEIVED, MEDIA_COUNT,
+                                            MONGO_STRFTIME, NOTES, START,
+                                            STATUS, SUBMISSION_TIME,
+                                            SUBMITTED_BY, TAGS, TOTAL_MEDIA,
+                                            UUID, VERSION, XFORM_ID,
+                                            XFORM_ID_STRING)
 from onadata.libs.utils.dict_tools import get_values_matching_key
+from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.timing import calculate_duration
 
 ASYNC_POST_SUBMISSION_PROCESSING_ENABLED = \

@@ -1,13 +1,15 @@
 import os
+
 from past.builtins import basestring
+
 from django.utils import timezone
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
+from onadata.apps.logger.import_tools import django_file
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import get_attachment_url
-from onadata.apps.logger.import_tools import django_file
 
 
 def attachment_url(attachment, suffix=None):
