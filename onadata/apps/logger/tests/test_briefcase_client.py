@@ -3,7 +3,7 @@ import os.path
 import requests
 
 from cStringIO import StringIO
-from urlparse import urljoin
+from future.moves.urllib.parse import urljoin
 from httmock import urlmatch, HTTMock
 
 from django.contrib.auth import authenticate
