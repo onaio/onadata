@@ -4,7 +4,7 @@ UserProfile Serializers.
 """
 import copy
 import re
-
+from past.builtins import basestring
 import six
 from django.conf import settings
 from django.contrib.auth.models import User

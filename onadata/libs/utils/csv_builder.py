@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from itertools import chain
-
+from past.builtins import basestring
 import unicodecsv as csv
 from django.conf import settings
 from django.db.models.query import QuerySet

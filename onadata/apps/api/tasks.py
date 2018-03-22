@@ -8,6 +8,7 @@ from django.utils.datastructures import MultiValueDict
 from io import BytesIO
 from onadata.apps.api import tools
 from onadata.apps.logger.models.xform import XForm
+from past.builtins import basestring
 
 
 def recreate_tmp_file(name, path, mime_type):

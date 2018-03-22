@@ -4,7 +4,7 @@ import six
 from django.db.utils import DataError
 from django.http import Http404
 from rest_framework.exceptions import ParseError
-
+from past.builtins import basestring
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.data.query import (
