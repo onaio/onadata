@@ -8,7 +8,7 @@ from requests.auth import HTTPDigestAuth
 from future.moves.urllib.parse import urljoin
 from xml.parsers.expat import ExpatError
 
-from cStringIO import StringIO
+from io import StringIO
 
 from django.db import transaction
 from django.core.files.base import ContentFile

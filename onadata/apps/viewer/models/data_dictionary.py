@@ -6,7 +6,7 @@ DataDictionary model.
 import csv
 import io
 import os
-from cStringIO import StringIO
+from io import StringIO
 
 import librabbitmq
 import xlrd
