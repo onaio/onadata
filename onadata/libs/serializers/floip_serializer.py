@@ -6,7 +6,7 @@ FloipSerializer module.
 import json
 import os
 from copy import deepcopy
-from cStringIO import StringIO
+from io import StringIO
 
 from django.conf import settings
 import six
