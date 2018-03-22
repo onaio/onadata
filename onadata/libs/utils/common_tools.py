@@ -2,15 +2,18 @@
 """
 Common helper functions
 """
-from io import StringIO
 import sys
 import traceback
 import uuid
+from io import StringIO
+
 from past.builtins import basestring
-import six
+
 from django.conf import settings
 from django.core.mail import mail_admins
 from django.utils.translation import ugettext as _
+
+import six
 from raven.contrib.django.raven_compat.models import client
 
 TRUE_VALUES = ['TRUE', 'T', '1', 1]

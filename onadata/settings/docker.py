@@ -16,7 +16,7 @@ import subprocess
 import sys
 
 from future.moves.urllib.parse import urljoin
-# pylint: disable=wildcard-import,unused-wildcard-import
+
 from onadata.settings.common import *  # noqa
 
 # # # now override the settings which came from staging # # # #

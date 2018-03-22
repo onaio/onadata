@@ -1,23 +1,26 @@
+import logging
 import mimetypes
 import os
-import requests
-import logging
-from past.builtins import basestring
 from contextlib import closing
-from django.db.models.signals import post_save, post_delete
+from hashlib import md5
+
+from past.builtins import basestring
+
+from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.files.temp import NamedTemporaryFile
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.validators import URLValidator
-from django.db import models, IntegrityError
-from django.conf import settings
-from hashlib import md5
+from django.db import IntegrityError, models
+from django.db.models.signals import post_delete, post_save
 
-from onadata.libs.utils.cache_tools import safe_delete, XFORM_METADATA_CACHE
-from onadata.libs.utils.common_tags import TEXTIT, GOOGLE_SHEET_DATA_TYPE, \
-    XFORM_META_PERMS
+import requests
+
+from onadata.libs.utils.cache_tools import XFORM_METADATA_CACHE, safe_delete
+from onadata.libs.utils.common_tags import (GOOGLE_SHEET_DATA_TYPE, TEXTIT,
+                                            XFORM_META_PERMS)
 
 CHUNK_SIZE = 1024
 INSTANCE_MODEL_NAME = "instance"

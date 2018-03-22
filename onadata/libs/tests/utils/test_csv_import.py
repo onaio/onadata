@@ -2,9 +2,10 @@ import os
 import re
 from io import StringIO
 
+from django.conf import settings
+
 import mock
 from celery.backends.amqp import BacklogLimitExceeded
-from django.conf import settings
 
 from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.main.tests.test_base import TestBase

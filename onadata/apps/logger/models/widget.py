@@ -1,18 +1,23 @@
+from past.builtins import basestring
+
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import JSONField
+
 from ordered_model.models import OrderedModel
 from querybuilder.fields import AvgField, CountField, SimpleField, SumField
 from querybuilder.query import Query
-from past.builtins import basestring
+
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.xform import XForm
-from onadata.libs.utils.chart_tools import (
-    DATA_TYPE_MAP, _flatten_multiple_dict_into_one,
-    _use_labels_from_group_by_name, get_field_choices,
-    get_field_from_field_xpath, get_field_label)
+from onadata.libs.utils.chart_tools import (DATA_TYPE_MAP,
+                                            _flatten_multiple_dict_into_one,
+                                            _use_labels_from_group_by_name,
+                                            get_field_choices,
+                                            get_field_from_field_xpath,
+                                            get_field_label)
 from onadata.libs.utils.common_tags import (NUMERIC_LIST, SELECT_ONE,
                                             SUBMISSION_TIME)
 from onadata.libs.utils.model_tools import generate_uuid_for_form

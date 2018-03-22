@@ -1,26 +1,27 @@
-from io import StringIO
 import json
 import sys
 import uuid
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
+from io import StringIO
+
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.core.files.storage import default_storage
 
 import unicodecsv as ucsv
 from celery import current_task, task
 from celery.backends.amqp import BacklogLimitExceeded
 from celery.result import AsyncResult
-from django.conf import settings
-from django.contrib.auth.models import User
-from django.core.files.storage import default_storage
 
 from onadata.apps.logger.models import Instance
 from onadata.libs.utils.async_status import (FAILED, async_status,
                                              celery_state_to_status)
 from onadata.libs.utils.common_tags import MULTIPLE_SELECT_TYPE
+from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
 from onadata.libs.utils.logger_tools import dict2xml, safe_create_instance
-from onadata.libs.utils.common_tools import report_exception
 
 DEFAULT_UPDATE_BATCH = 100
 PROGRESS_BATCH_UPDATE = getattr(settings, 'EXPORT_TASK_PROGRESS_UPDATE_BATCH',
