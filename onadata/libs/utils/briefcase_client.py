@@ -5,7 +5,7 @@ import logging
 import mimetypes
 import requests
 from requests.auth import HTTPDigestAuth
-from urlparse import urljoin
+from future.moves.urllib.parse import urljoin
 from xml.parsers.expat import ExpatError
 
 from cStringIO import StringIO
