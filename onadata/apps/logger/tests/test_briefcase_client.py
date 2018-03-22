@@ -2,7 +2,7 @@ import shutil
 import os.path
 import requests
 
-from cStringIO import StringIO
+from io import StringIO
 from future.moves.urllib.parse import urljoin
 from httmock import urlmatch, HTTMock
 

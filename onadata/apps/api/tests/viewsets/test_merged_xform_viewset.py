@@ -5,7 +5,7 @@ Test merged dataset functionality.
 
 import csv
 import json
-from cStringIO import StringIO
+from io import StringIO
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet

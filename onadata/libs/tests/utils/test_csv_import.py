@@ -1,6 +1,6 @@
 import os
 import re
-from cStringIO import StringIO
+from io import StringIO
 
 import mock
 from celery.backends.amqp import BacklogLimitExceeded

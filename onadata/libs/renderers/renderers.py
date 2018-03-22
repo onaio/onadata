@@ -2,7 +2,7 @@ import json
 import decimal
 import math
 
-from cStringIO import StringIO
+from io import StringIO
 from django.utils.encoding import smart_text
 from django.utils.xmlutils import SimplerXMLGenerator
 

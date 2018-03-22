@@ -6,7 +6,7 @@ import socket
 import urllib2
 from tempfile import NamedTemporaryFile
 
-from cStringIO import StringIO
+from io import StringIO
 
 from django.conf import settings
 from django.contrib.auth.models import User

@@ -8,7 +8,7 @@ import json
 import os
 import re
 from collections import OrderedDict
-from cStringIO import StringIO
+from io import StringIO
 from datetime import datetime, timedelta
 from xml.dom import Node, minidom
 
