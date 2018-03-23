@@ -1,6 +1,6 @@
 import os
 import re
-from io import StringIO
+from io import BytesIO
 
 from django.conf import settings
 
@@ -37,7 +37,7 @@ class CSVImportTestCase(TestBase):
         safe_create_instance.return_value = {}
         single_csv = open(os.path.join(self.fixtures_dir, 'single.csv'))
         csv_import.submit_csv(self.user.username, self.xform, single_csv)
-        xml_file_param = StringIO(
+        xml_file_param = BytesIO(
             open(os.path.join(self.fixtures_dir, 'single.xml')).read())
         safe_create_args = list(safe_create_instance.call_args[0])
 
@@ -111,7 +111,7 @@ class CSVImportTestCase(TestBase):
         edit_csv = open(os.path.join(self.fixtures_dir, 'edit.csv'))
         edit_csv_str = edit_csv.read()
 
-        edit_csv = StringIO(
+        edit_csv = BytesIO(
             edit_csv_str.format(
                 * [x.get('uuid') for x in Instance.objects.values('uuid')]))
 

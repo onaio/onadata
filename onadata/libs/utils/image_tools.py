@@ -1,4 +1,4 @@
-from io import StringIO
+from io import BytesIO
 from tempfile import NamedTemporaryFile
 
 from django.conf import settings
@@ -54,7 +54,7 @@ def resize(filename):
     req = requests.get(path)
     if req.status_code == 200:
         try:
-            im = StringIO(req.content)
+            im = BytesIO(req.content)
             image = Image.open(im)
             conf = settings.THUMB_CONF
             [_save_thumbnails(
