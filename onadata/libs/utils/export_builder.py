@@ -17,6 +17,7 @@ from pyxform.section import Section, RepeatingSection
 
 from savReaderWriter import SavWriter
 
+from onadata.apps.logger.models.osmdata import OsmData
 from onadata.apps.logger.models.xform import _encode_for_mongo,\
     QUESTION_TYPES_TO_EXCLUDE
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
@@ -247,6 +248,7 @@ class ExportBuilder(object):
     def __init__(self):
         self.extra_columns = (
             self.EXTRA_FIELDS + getattr(settings, 'EXTRA_COLUMNS', []))
+        self.osm_columns = []
 
     @classmethod
     def string_to_date_with_xls_validation(cls, date_str):
@@ -428,6 +430,14 @@ class ExportBuilder(object):
             main_section, self.survey, self.sections,
             self.select_multiples, self.gps_fields, self.encoded_fields,
             self.GROUP_DELIMITER, self.TRUNCATE_GROUP_TITLE)
+
+    def set_osm_columns(self, xform):
+        osm_fields = self.dd.get_survey_elements_of_type('osm')
+        if osm_fields:
+            for field in osm_fields:
+                self.osm_columns += OsmData.get_tag_keys(
+                    xform, field.get_abbreviated_xpath(),
+                    include_prefix=True)
 
     def section_by_name(self, name):
         matches = filter(lambda s: s['name'] == name, self.sections)
@@ -894,8 +904,12 @@ class ExportBuilder(object):
         var_labels = {}
         var_names = []
         fields_and_labels = []
+        osm_columns = [column.replace(':', '_') for column in self.osm_columns]
+
         elements += [{'title': f, "label": f, "xpath": f, 'type': f}
-                     for f in self.extra_columns]
+                     for f in self.extra_columns] + [
+                    {'title': f, "label": f, "xpath": f, 'type': f}
+                    for f in osm_columns]
 
         for element in elements:
             title = element['title']
@@ -1055,8 +1069,9 @@ class ExportBuilder(object):
         if dataview:
             return [element[key] for element in section['elements']
                     if element['title'] in dataview.columns]\
-                + self.extra_columns
+                + self.extra_columns + self.osm_columns
 
         else:
             return [element[key] for element in
-                    section['elements']] + self.extra_columns
+                    section['elements']] + self.extra_columns\
+                    + self.osm_columns

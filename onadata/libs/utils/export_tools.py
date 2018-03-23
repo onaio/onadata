@@ -222,6 +222,7 @@ def generate_export(export_type, xform, export_id=None, options=None,
         del options['win_excel_utf8']
 
     export_builder.set_survey(xform.survey)
+    export_builder.set_osm_columns(xform)
 
     temp_file = NamedTemporaryFile(suffix=("." + extension))
 
