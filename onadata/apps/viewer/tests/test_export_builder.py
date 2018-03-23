@@ -1,31 +1,37 @@
+# -*- coding: utf-8 -*-
+"""
+Tests Export Builder Functionality
+"""
+from __future__ import unicode_literals
+
 import csv
 import datetime
 import os
 import shutil
 import tempfile
-import xlrd
 import zipfile
-from cStringIO import StringIO
-
 from collections import OrderedDict
+from cStringIO import StringIO
 from ctypes import ArgumentError
+
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
+
+import xlrd
 from openpyxl import load_workbook
 from pyxform.builder import create_survey_from_xls
-from savReaderWriter import SavReader
-from savReaderWriter import SavHeaderReader
+from savReaderWriter import SavHeaderReader, SavReader
 
+from onadata.apps.logger.import_tools import django_file
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
-from onadata.apps.viewer.models.parsed_instance import _encode_for_mongo
-from onadata.apps.viewer.models.parsed_instance import query_data
+from onadata.apps.viewer.models.parsed_instance import (_encode_for_mongo,
+                                                        query_data)
 from onadata.apps.viewer.tests.export_helpers import viewer_fixture_path
-from onadata.apps.logger.import_tools import django_file
+from onadata.libs.utils.csv_builder import (CSVDataFrameBuilder,
+                                            get_labels_from_columns)
 from onadata.libs.utils.export_builder import dict_to_joined_export
 from onadata.libs.utils.export_tools import ExportBuilder, get_columns_with_hxl
-from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
-from onadata.libs.utils.csv_builder import get_labels_from_columns
 from onadata.libs.utils.logger_tools import create_instance
 
 
@@ -2153,6 +2159,9 @@ class TestExportBuilder(TestBase):
         self.assertEqual(val, 0.4)
 
     def _create_osm_survey(self):
+        """
+        Creates survey for osm tests
+        """
         # publish form
         osm_fixtures_dir = os.path.join(settings.PROJECT_ROOT, 'apps', 'api',
                                         'tests', 'fixtures', 'osm')
@@ -2172,6 +2181,9 @@ class TestExportBuilder(TestBase):
         return survey
 
     def test_xls_export_with_osm_data(self):
+        """
+        Tests that osm data is included in xls export
+        """
         survey = self._create_osm_survey()
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
@@ -2207,6 +2219,9 @@ class TestExportBuilder(TestBase):
         self.assertEqual(submission[27], u'kol')
 
     def test_zipped_csv_export_with_osm_data(self):
+        """
+        Tests that osm data is included in zipped csv export
+        """
         survey = self._create_osm_survey()
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
@@ -2245,6 +2260,9 @@ class TestExportBuilder(TestBase):
             self.assertEqual(rows[1][27], 'kol')
 
     def test_zipped_sav_export_with_osm_data(self):
+        """
+        Test that osm data is included in zipped sav export
+        """
         survey = self._create_osm_survey()
         osm_data = [{
             'photo': '1424308569120.jpg',

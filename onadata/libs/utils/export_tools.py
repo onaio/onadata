@@ -1,13 +1,17 @@
+# -*- coding: utf-8 -*-
+"""
+Export tools
+"""
+from __future__ import unicode_literals
+
 import hashlib
 import json
 import math
 import os
 import re
-import six
 import sys
 import time
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from urlparse import urlparse
 
 from django.conf import settings
@@ -20,6 +24,8 @@ from django.db.models.query import QuerySet
 from django.shortcuts import render_to_response
 from django.utils import timezone
 from django.utils.translation import ugettext as _
+
+import six
 from json2xlsclient.client import Client
 from rest_framework import exceptions
 from savReaderWriter import SPSSIOError
@@ -33,7 +39,7 @@ from onadata.apps.viewer.models.parsed_instance import query_data
 from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 from onadata.libs.utils.common_tags import (DATAVIEW_EXPORT,
                                             GROUPNAME_REMOVED_FLAG)
-from onadata.libs.utils.common_tools import str_to_bool, report_exception
+from onadata.libs.utils.common_tools import report_exception, str_to_bool
 from onadata.libs.utils.export_builder import ExportBuilder
 from onadata.libs.utils.model_tools import (get_columns_with_hxl,
                                             queryset_iterator)

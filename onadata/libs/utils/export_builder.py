@@ -1,34 +1,36 @@
-import csv
-import six
-import uuid
+# -*- coding: utf-8 -*-
+"""
+Export Builder
+"""
+from __future__ import unicode_literals
 
-from celery import current_task
-from datetime import datetime, date
-from zipfile import ZipFile, ZIP_DEFLATED
+import csv
+import uuid
+from datetime import date, datetime
+from zipfile import ZIP_DEFLATED, ZipFile
 
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
 
+import six
+from celery import current_task
 from openpyxl.utils.datetime import to_excel
 from openpyxl.workbook import Workbook
-
 from pyxform.question import Question
-from pyxform.section import Section, RepeatingSection
-
+from pyxform.section import RepeatingSection, Section
 from savReaderWriter import SavWriter
 
 from onadata.apps.logger.models.osmdata import OsmData
-from onadata.apps.logger.models.xform import _encode_for_mongo,\
-    QUESTION_TYPES_TO_EXCLUDE
+from onadata.apps.logger.models.xform import (QUESTION_TYPES_TO_EXCLUDE,
+                                              _encode_for_mongo)
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.common_tags import (
-    ATTACHMENTS, BAMBOO_DATASET_ID, DELETEDAT, DURATION, GEOLOCATION, ID,
-    INDEX, MULTIPLE_SELECT_TYPE, NOTES, PARENT_INDEX, PARENT_TABLE_NAME,
-    REPEAT_INDEX_TAGS, SAV_255_BYTES_TYPE, SAV_NUMERIC_TYPE, STATUS,
-    SUBMISSION_TIME, SUBMITTED_BY, TAGS, UUID, VERSION, XFORM_ID_STRING)
-from onadata.libs.utils.mongo import _is_invalid_for_mongo,\
-    _decode_from_mongo
-
+    ATTACHMENTS, BAMBOO_DATASET_ID, DELETEDAT, DURATION, GEOLOCATION,
+    ID, INDEX, MULTIPLE_SELECT_TYPE, NOTES, PARENT_INDEX,
+    PARENT_TABLE_NAME, REPEAT_INDEX_TAGS, SAV_255_BYTES_TYPE,
+    SAV_NUMERIC_TYPE, STATUS, SUBMISSION_TIME, SUBMITTED_BY, TAGS, UUID,
+    VERSION, XFORM_ID_STRING)
+from onadata.libs.utils.mongo import _decode_from_mongo, _is_invalid_for_mongo
 
 # the bind type of select multiples that we use to compare
 MULTIPLE_SELECT_BIND_TYPE = u"select"
@@ -432,6 +434,10 @@ class ExportBuilder(object):
             self.GROUP_DELIMITER, self.TRUNCATE_GROUP_TITLE)
 
     def set_osm_columns(self, xform):
+        """
+        Get osm tag keys from OsmData and make them available for the export
+        builder. They are used as column headers.
+        """
         osm_fields = self.dd.get_survey_elements_of_type('osm')
         if osm_fields:
             for field in osm_fields:
