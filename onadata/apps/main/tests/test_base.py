@@ -4,7 +4,7 @@ import os
 import re
 import socket
 import urllib2
-from io import StringIO
+from io import BytesIO
 from tempfile import NamedTemporaryFile
 
 from django.conf import settings
@@ -294,7 +294,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
     def _get_response_content(self, response):
         contents = u''
         if response.streaming:
-            actual_content = StringIO()
+            actual_content = BytesIO()
             for content in response.streaming_content:
                 actual_content.write(content)
             contents = actual_content.getvalue()
@@ -360,7 +360,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         self.assertEqual(ext, '.csv')
 
         data = get_response_content(response)
-        reader = csv.DictReader(StringIO(data))
+        reader = csv.DictReader(BytesIO(data))
         data = [_ for _ in reader]
         with open(csv_file_path, 'r') as test_file:
             expected_csv_reader = csv.DictReader(test_file)
