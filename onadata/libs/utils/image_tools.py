@@ -57,10 +57,11 @@ def resize(filename):
             im = BytesIO(req.content)
             image = Image.open(im)
             conf = settings.THUMB_CONF
-            [_save_thumbnails(
-                image, filename,
-                conf[key]['size'],
-                conf[key]['suffix']) for key in settings.THUMB_ORDER]
+            for key in settings.THUMB_ORDER:
+                _save_thumbnails(
+                    image, filename,
+                    conf[key]['size'],
+                    conf[key]['suffix'])
         except IOError:
             raise Exception("The image file couldn't be identified")
 
