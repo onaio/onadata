@@ -11,7 +11,7 @@ import re
 import sys
 import time
 from datetime import datetime, timedelta
-from urlparse import urlparse
+from future.moves.urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -54,17 +54,17 @@ MAX_RETRIES = 3
 
 
 def export_retry(tries, delay=3, backoff=2):
-    '''
+    """
     Adapted from code found here:
         http://wiki.python.org/moin/PythonDecoratorLibrary#Retry
 
     Retries a function or method until it returns True.
 
-    *delay* sets the initial delay in seconds, and *backoff* sets the
+    :param delay: sets the initial delay in seconds, and *backoff* sets the
     factor by which the delay should lengthen after each failure.
-    *backoff* must be greater than 1, or else it isn't really a backoff.
-    *tries* must be at least 0, and *delay* greater than 0.
-    '''
+    :param backoff: must be greater than 1, or else it isn't really a backoff.
+    :param tries: must be at least 0, and *delay* greater than 0.
+    """
 
     if backoff <= 1:  # pragma: no cover
         raise ValueError("backoff must be greater than 1")
@@ -487,6 +487,44 @@ def generate_attachments_zip_export(export_type, username, id_string,
     return export
 
 
+def write_temp_file_to_path(suffix, content, file_path):
+    """ Write a temp file and return the name of the file.
+    :param suffix: The file suffix
+    :param content: The content to write
+    :param file_path: The path to write the temp file to
+    :return: The filename written to
+    """
+    temp_file = NamedTemporaryFile(suffix=suffix)
+    temp_file.write(content)
+    temp_file.seek(0)
+    export_filename = default_storage.save(
+        file_path,
+        File(temp_file, file_path))
+    temp_file.close()
+
+    return export_filename
+
+
+def get_or_create_export_object(export_id, options, xform, export_type):
+    """ Get or create export object.
+
+    :param export_id: Export ID
+    :param options: Options to convert to export options
+    :param xform: XForm to export
+    :param export_type: The type of export
+    :return: A new or found export object
+    """
+    if export_id and Export.objects.filter(pk=export_id).exists():
+        export = Export.objects.get(id=export_id)
+    else:
+        export_options = get_export_options(options)
+        export = Export.objects.create(xform=xform,
+                                       export_type=export_type,
+                                       options=export_options)
+
+    return export
+
+
 # pylint: disable=R0913
 def generate_kml_export(export_type, username, id_string, export_id=None,
                         options=None, xform=None):
@@ -518,22 +556,11 @@ def generate_kml_export(export_type, username, id_string, export_id=None,
         export_type,
         filename)
 
-    temp_file = NamedTemporaryFile(suffix=export_type.lower())
-    temp_file.write(response.content)
-    temp_file.seek(0)
-    export_filename = default_storage.save(
-        file_path,
-        File(temp_file, file_path))
-    temp_file.close()
+    export_filename = write_temp_file_to_path(
+        export_type.lower(), response.content, file_path)
 
-    # get or create export object
-    if export_id and Export.objects.filter(pk=export_id).exists():
-        export = Export.objects.get(id=export_id)
-    else:
-        export_options = get_export_options(options)
-        export = Export.objects.create(xform=xform,
-                                       export_type=export_type,
-                                       options=export_options)
+    export = get_or_create_export_object(
+        export_id, options, xform, export_type)
 
     export.filedir, export.filename = os.path.split(export_filename)
     export.internal_status = Export.SUCCESSFUL
@@ -643,25 +670,12 @@ def generate_osm_export(export_type, username, id_string, export_id=None,
         export_type,
         filename)
 
-    temp_file = NamedTemporaryFile(suffix=extension)
-    temp_file.write(content)
-    temp_file.seek(0)
-    export_filename = default_storage.save(
-        file_path,
-        File(temp_file, file_path))
-    temp_file.close()
+    export_filename = write_temp_file_to_path(extension, content, file_path)
+
+    export = get_or_create_export_object(
+        export_id, options, xform, export_type)
 
     dir_name, basename = os.path.split(export_filename)
-
-    # get or create export object
-    if export_id and Export.objects.filter(pk=export_id).exists():
-        export = Export.objects.get(id=export_id)
-    else:
-        export_options = get_export_options(options)
-        export = Export.objects.create(xform=xform,
-                                       export_type=export_type,
-                                       options=export_options)
-
     export.filedir = dir_name
     export.filename = basename
     export.internal_status = Export.SUCCESSFUL
