@@ -1,7 +1,7 @@
 import decimal
 import json
 import math
-from io import StringIO
+from io import BytesIO
 
 from django.utils.encoding import smart_text
 from django.utils.xmlutils import SimplerXMLGenerator
@@ -162,7 +162,7 @@ class XFormListRenderer(BaseRenderer):
         elif isinstance(data, six.string_types):
             return data
 
-        stream = StringIO()
+        stream = BytesIO()
 
         xml = SimplerXMLGenerator(stream, self.charset)
         xml.startDocument()
