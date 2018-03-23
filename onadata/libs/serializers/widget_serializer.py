@@ -1,7 +1,7 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import resolve, get_script_prefix, Resolver404
 from django.utils.translation import ugettext as _
-from django.utils.six.moves.urllib import parse as urlparse
+from future.moves.urllib.parse import urlparse
 from django.http import Http404
 
 from guardian.shortcuts import get_users_with_perms
@@ -58,7 +58,7 @@ class GenericRelatedField(serializers.HyperlinkedRelatedField):
         input_data = data
         if http_prefix:
             # If needed convert absolute URLs to relative path
-            data = urlparse.urlparse(data).path
+            data = urlparse(data).path
             prefix = get_script_prefix()
             if data.startswith(prefix):
                 data = '/' + data[len(prefix):]

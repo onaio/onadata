@@ -1,7 +1,7 @@
 import os
 import re
 from time import time
-from urlparse import urlparse
+from future.moves.urllib.parse import urlparse
 
 from past.builtins import basestring
 

@@ -1,7 +1,7 @@
 import os
 import logging
 from hashlib import md5
-from urlparse import urlparse
+from future.moves.urllib.parse import urlparse
 
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator

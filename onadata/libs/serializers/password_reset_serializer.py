@@ -8,7 +8,7 @@ from django.utils.http import urlsafe_base64_encode
 from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import serializers
-from urlparse import urlparse
+from future.moves.urllib.parse import urlparse
 
 
 def get_password_reset_email(user, reset_url,
