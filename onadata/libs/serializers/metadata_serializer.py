@@ -5,7 +5,7 @@ MetaData Serializer
 
 import os
 import mimetypes
-from urlparse import urlparse
+from future.moves.urllib.parse import urlparse
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
