@@ -1,5 +1,7 @@
 import json
+import logging
 import sys
+import unicodecsv as ucsv
 import uuid
 from collections import defaultdict
 from copy import deepcopy
@@ -10,7 +12,6 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.storage import default_storage
 
-import unicodecsv as ucsv
 from celery import current_task, task
 from celery.backends.amqp import BacklogLimitExceeded
 from celery.result import AsyncResult
@@ -121,6 +122,21 @@ def dict_pathkeys_to_nested_dicts(dictionary):
 def submit_csv_async(username, xform, file_path):
     with default_storage.open(file_path) as csv_file:
         return submit_csv(username, xform, csv_file)
+
+
+def failed_import(rollback_uuids, xform, exception, status_message):
+    """ Report a failed import.
+    :param rollback_uuids: The rollback UUIDs
+    :param xform: The XForm that failed to import to
+    :param exception: The exception object
+    :return: The async_status result
+    """
+    Instance.objects.filter(uuid__in=rollback_uuids, xform=xform).delete()
+    report_exception('CSV Import Failed : %d - %s - %s' %
+                     (xform.pk, xform.id_string, xform.title),
+                     exception,
+                     sys.exc_info())
+    return async_status(FAILED, status_message)
 
 
 def submit_csv(username, xform, csv_file):
@@ -284,7 +300,8 @@ def submit_csv(username, xform, csv_file):
                                 'info': addition_col
                             })
                     except Exception:
-                        pass
+                        logging.exception("Could not update state of import "
+                                          "CSV batch process.")
                     finally:
                         xform.submission_count(True)
 
@@ -295,17 +312,10 @@ def submit_csv(username, xform, csv_file):
                     instance.save()
 
     except UnicodeDecodeError as e:
-        Instance.objects.filter(uuid__in=rollback_uuids, xform=xform).delete()
-        report_exception('CSV Import Failed : %d - %s - %s' %
-                         (xform.pk, xform.id_string, xform.title), e,
-                         sys.exc_info())
-        return async_status(FAILED, u'CSV file must be utf-8 encoded')
+        return failed_import(
+            rollback_uuids, xform, e, u'CSV file must be utf-8 encoded')
     except Exception as e:
-        Instance.objects.filter(uuid__in=rollback_uuids, xform=xform).delete()
-        report_exception('CSV Import Failed : %d - %s - %s' %
-                         (xform.pk, xform.id_string, xform.title), e,
-                         sys.exc_info())
-        return async_status(FAILED, str(e))
+        return failed_import(rollback_uuids, xform, e, str(e))
     finally:
         xform.submission_count(True)
 
