@@ -5,10 +5,11 @@ Common helper functions
 import sys
 import traceback
 import uuid
-from io import StringIO
+from io import BytesIO
 
 from past.builtins import basestring
 
+import logging
 from django.conf import settings
 from django.core.mail import mail_admins
 from django.utils.translation import ugettext as _
@@ -52,11 +53,12 @@ def get_uuid():
 
 def report_exception(subject, info, exc_info=None):
     """
-    Formats an exception and sends email to mail_admins.
+    Formats an exception then posts it to sentry and if not in debug or
+    testing sends email to mail_admins.
     """
     # Add hostname to subject mail
-
     subject = "{0} - {1}".format(subject, settings.HOSTNAME)
+
     if exc_info:
         cls, err = exc_info[:2]
         message = _(u"Exception in request:"
@@ -68,8 +70,7 @@ def report_exception(subject, info, exc_info=None):
         try:
             client.captureException(exc_info)
         except Exception:  # pylint: disable=broad-except
-            # fail silently
-            pass
+            logging.exception("Sending to Sentry failed.")
     else:
         message = u"%s" % info
 
@@ -85,7 +86,9 @@ def filename_from_disposition(content_disposition):
     Gets a filename from the given content disposition header.
     """
     filename_pos = content_disposition.index('filename=')
-    assert filename_pos != -1
+
+    if filename_pos == -1:
+        raise Exception('"filename=" not found in content disposition file')
 
     return content_disposition[filename_pos + len('filename='):]
 
@@ -98,7 +101,7 @@ def get_response_content(response):
     """
     contents = u''
     if response.streaming:
-        actual_content = StringIO()
+        actual_content = BytesIO()
         for content in response.streaming_content:
             actual_content.write(content)
         contents = actual_content.getvalue()
