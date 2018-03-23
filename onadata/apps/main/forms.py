@@ -4,8 +4,8 @@ forms module.
 """
 import os
 import re
-import urllib2
-from urlparse import urlparse
+from future.moves.urllib.parse import urlparse
+from future.moves.urllib.request import urlopen
 
 import requests
 from django import forms
@@ -415,7 +415,7 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
                 cleaned_xls_file = \
                     upload_to(None, cleaned_xls_file, user.username)
                 self.validate(cleaned_url)
-                xls_data = ContentFile(urllib2.urlopen(cleaned_url).read())
+                xls_data = ContentFile(urlopen(cleaned_url).read())
                 cleaned_xls_file = \
                     default_storage.save(cleaned_xls_file, xls_data)
 
