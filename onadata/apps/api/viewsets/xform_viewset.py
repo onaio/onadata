@@ -2,7 +2,7 @@ import json
 import os
 import random
 from datetime import datetime
-from urlparse import urlparse
+from future.moves.urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.auth.models import User
