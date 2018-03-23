@@ -856,6 +856,9 @@ class XForm(XFormMixin, BaseModel):
             'downloadable'
         ])
 
+        for dataview in self.dataview_set.all():
+            dataview.delete()
+
     def submission_count(self, force_update=False):
         if self.num_of_submissions == 0 or force_update:
             if self.is_merged_dataset:
