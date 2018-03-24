@@ -49,7 +49,7 @@ def dict_for_mongo(d):
     for key, value in d.items():
         if isinstance(value, list):
             value = [dict_for_mongo(e)
-                     if type(e) == dict else e for e in value]
+                     if isinstance(e, dict) else e for e in value]
         elif isinstance(value, dict):
             value = dict_for_mongo(value)
         elif key == '_id':
@@ -321,7 +321,7 @@ class ParsedInstance(models.Model):
         """
         datadict = json.loads(self.instance.xform.json)
         for item in datadict['children']:
-            if type(item) == dict and item.get(u'type') == type_value:
+            if isinstance(item, dict) and item.get(u'type') == type_value:
                 return item['name']
 
     # TODO: figure out how much of this code should be here versus

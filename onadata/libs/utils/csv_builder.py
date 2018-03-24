@@ -251,9 +251,9 @@ class AbstractDataFrameBuilder(object):
 
             # recurs into repeats
             for record_key, record_item in record.items():
-                if type(record_item) == list:
+                if isinstance(record_item, list):
                     for list_item in record_item:
-                        if type(list_item) == dict:
+                        if isinstance(list_item, dict):
                             cls._split_select_multiples(
                                 list_item, select_multiples)
         return record
@@ -293,9 +293,9 @@ class AbstractDataFrameBuilder(object):
                     gps_parts = dict(zip(gps_xpaths, parts))
                 updated_gps_fields.update(gps_parts)
             # check for repeats within record i.e. in value
-            elif type(value) == list:
+            elif isinstance(value, list):
                 for list_item in value:
-                    if type(list_item) == dict:
+                    if isinstance(list_item, dict):
                         cls._split_gps_fields(list_item, gps_fields)
         record.update(updated_gps_fields)
 
@@ -335,6 +335,7 @@ class AbstractDataFrameBuilder(object):
                 'count': False
             }
             cursor = query_data(**query_args)
+
             return cursor
 
 
@@ -384,14 +385,14 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         d = {}
 
         # check for lists
-        if type(value) is list and len(value) > 0 \
+        if isinstance(value, list) and len(value) > 0 \
                 and key not in [ATTACHMENTS, NOTES]:
             for index, item in enumerate(value):
                 # start at 1
                 index += 1
                 # for each list check for dict, we want to transform the key of
                 # this dict
-                if type(item) is dict:
+                if isinstance(item, dict):
                     # order repeat according to xform order
                     item = get_ordered_repeat_value(key, item)
 
@@ -420,7 +421,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                         # re-create xpath the split on /
                         xpaths = "/".join(xpaths).split("/")
                         new_prefix = xpaths[:-1]
-                        if type(nested_val) is list:
+                        if isinstance(nested_val, list):
                             # if nested_value is a list, rinse and repeat
                             d.update(cls._reindex(
                                 nested_key, nested_val,
