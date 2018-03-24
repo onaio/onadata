@@ -137,7 +137,6 @@ def clean_and_parse_xml(xml_string):
 
 
 def _xml_node_to_dict(node, repeats=[], encrypted=False):
-    assert isinstance(node, minidom.Node)
     if len(node.childNodes) == 0:
         # there's no data for this leaf node
         return None
@@ -148,15 +147,17 @@ def _xml_node_to_dict(node, repeats=[], encrypted=False):
     else:
         # this is an internal node
         value = {}
-        for child in node.childNodes:
 
+        for child in node.childNodes:
             # handle CDATA text section
             if child.nodeType == child.CDATA_SECTION_NODE:
                 return {child.parentNode.nodeName: child.nodeValue}
 
             d = _xml_node_to_dict(child, repeats)
+
             if d is None:
                 continue
+
             child_name = child.nodeName
             child_xpath = xpath_from_xml_node(child)
             assert d.keys() == [child_name]
@@ -194,16 +195,17 @@ def _xml_node_to_dict(node, repeats=[], encrypted=False):
 def _flatten_dict(d, prefix):
     """
     Return a list of XPath, value pairs.
-    """
-    assert type(d) == dict
-    assert type(prefix) == list
 
+    :param d: A dictionary
+    :param prefix: A list of prefixes
+    """
     for key, value in d.items():
         new_prefix = prefix + [key]
-        if type(value) == dict:
+
+        if isinstance(value, dict):
             for pair in _flatten_dict(value, new_prefix):
                 yield pair
-        elif type(value) == list:
+        elif isinstance(value, list):
             for i, item in enumerate(value):
                 item_prefix = list(new_prefix)  # make a copy
                 # note on indexing xpaths: IE5 and later has
@@ -215,7 +217,8 @@ def _flatten_dict(d, prefix):
                     # surveys that have a single repitition of the
                     # loop versus mutliple.
                     item_prefix[-1] += u"[%s]" % unicode(i + 1)
-                if type(item) == dict:
+
+                if isinstance(item, dict):
                     for pair in _flatten_dict(item, item_prefix):
                         yield pair
                 else:
@@ -227,23 +230,25 @@ def _flatten_dict(d, prefix):
 def _flatten_dict_nest_repeats(d, prefix):
     """
     Return a list of XPath, value pairs.
-    """
-    assert type(d) == dict
-    assert type(prefix) == list
 
+    :param d: A dictionary
+    :param prefix: A list of prefixes
+    """
     for key, value in d.items():
         new_prefix = prefix + [key]
-        if type(value) == dict:
+        if isinstance(value, dict):
             for pair in _flatten_dict_nest_repeats(value, new_prefix):
                 yield pair
         elif type(value) == list:
             repeats = []
+
             for i, item in enumerate(value):
                 item_prefix = list(new_prefix)  # make a copy
-                if type(item) == dict:
+                if isinstance(item, dict):
                     repeat = {}
-                    for path, value in \
-                            _flatten_dict_nest_repeats(item, item_prefix):
+
+                    for path, value in _flatten_dict_nest_repeats(
+                            item, item_prefix):
                         # TODO: this only considers the first level of repeats
                         repeat.update({u"/".join(path[1:]): value})
                     repeats.append(repeat)
@@ -256,15 +261,19 @@ def _flatten_dict_nest_repeats(d, prefix):
 
 def _gather_parent_node_list(node):
     node_names = []
+
     # also check for grand-parent node to skip document element
     if node.parentNode and node.parentNode.parentNode:
         node_names.extend(_gather_parent_node_list(node.parentNode))
+
     node_names.extend([node.nodeName])
+
     return node_names
 
 
 def xpath_from_xml_node(node):
     node_names = _gather_parent_node_list(node)
+
     return "/".join(node_names[1:])
 
 
@@ -275,6 +284,7 @@ def _get_all_attributes(node):
     if hasattr(node, "hasAttributes") and node.hasAttributes():
         for key in node.attributes.keys():
             yield key, node.getAttribute(key)
+
     for child in node.childNodes:
         for pair in _get_all_attributes(child):
             yield pair
@@ -295,8 +305,10 @@ class XFormInstanceParser(object):
         self._dict = _xml_node_to_dict(self._root_node, repeats,
                                        self.dd.encrypted)
         self._flat_dict = {}
+
         if self._dict is None:
             raise InstanceEmptyError
+
         for path, value in _flatten_dict_nest_repeats(self._dict, []):
             self._flat_dict[u"/".join(path[1:])] = value
         self._set_attributes()
