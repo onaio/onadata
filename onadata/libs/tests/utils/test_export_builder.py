@@ -33,7 +33,10 @@ from onadata.apps.viewer.tests.export_helpers import viewer_fixture_path
 from onadata.libs.utils.csv_builder import (CSVDataFrameBuilder,
                                             get_labels_from_columns)
 from onadata.libs.utils.export_builder import dict_to_joined_export
-from onadata.libs.utils.export_tools import ExportBuilder, get_columns_with_hxl
+from onadata.libs.utils.export_tools import (
+    ExportBuilder,
+    get_columns_with_hxl,
+    string_to_date_with_xls_validation)
 from onadata.libs.utils.logger_tools import create_instance
 
 
@@ -2150,14 +2153,14 @@ class TestExportBuilder(TestBase):
 
     def test_string_to_date_with_xls_validation(self):
         # test "2016-11-02"
-        val = ExportBuilder.string_to_date_with_xls_validation("2016-11-02")
+        val = string_to_date_with_xls_validation("2016-11-02")
         self.assertEqual(val, datetime.date(2016, 11, 2))
 
         # test random string
-        val = ExportBuilder.string_to_date_with_xls_validation("random")
+        val = string_to_date_with_xls_validation("random")
         self.assertEqual(val, "random")
 
-        val = ExportBuilder.string_to_date_with_xls_validation(0.4)
+        val = string_to_date_with_xls_validation(0.4)
         self.assertEqual(val, 0.4)
 
     def _create_osm_survey(self):
