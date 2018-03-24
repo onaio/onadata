@@ -85,7 +85,7 @@ class TestProcess(TestBase):
     def test_publish_xlsx_file(self):
         self._publish_xlsx_file()
 
-    @patch('urllib2.urlopen')
+    @patch('onadata.apps.main.forms.urlopen')
     def test_google_url_upload(self, mock_urlopen):
         if self._internet_on(url="http://google.com"):
             xls_url = "https://docs.google.com/spreadsheet/pub?"\
@@ -101,6 +101,7 @@ class TestProcess(TestBase):
 
             response = self.client.post('/%s/' % self.user.username,
                                         {'xls_url': xls_url})
+
             mock_urlopen.assert_called_with(xls_url)
             # cleanup the resources
             xls_file.close()
@@ -108,7 +109,7 @@ class TestProcess(TestBase):
             self.assertEqual(response.status_code, 200)
             self.assertEqual(XForm.objects.count(), pre_count + 1)
 
-    @patch('urllib2.urlopen')
+    @patch('onadata.apps.main.forms.urlopen')
     def test_url_upload(self, mock_urlopen):
         if self._internet_on(url="http://google.com"):
             xls_url = 'https://ona.io/examples/forms/tutorial/form.xls'
