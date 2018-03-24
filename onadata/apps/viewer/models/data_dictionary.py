@@ -20,7 +20,9 @@ from pyxform.builder import create_survey_element_from_dict
 from pyxform.utils import has_external_choices
 from pyxform.xls2json import parse_file_to_json
 
-from onadata.apps.logger.models.xform import XForm, check_xform_uuid
+from onadata.apps.logger.models.xform import (XForm,
+                                              check_xform_uuid,
+                                              check_version_set)
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.libs.utils.cache_tools import (PROJ_BASE_FORMS_CACHE,
                                             PROJ_FORMS_CACHE, safe_delete)
@@ -131,7 +133,7 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
             if has_external_choices(survey_dict):
                 self.has_external_choices = True
             survey = create_survey_element_from_dict(survey_dict)
-            survey = self._check_version_set(survey)
+            survey = check_version_set(survey)
             if get_columns_with_hxl(survey.get('children')):
                 self.has_hxl_support = True
             # if form is being replaced, don't check for id_string uniqueness
