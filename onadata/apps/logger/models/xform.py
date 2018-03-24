@@ -141,6 +141,34 @@ def get_forms_shared_with_user(user):
     return xforms.exclude(user=user).select_related('user')
 
 
+def check_version_set(survey):
+    """
+    Checks if the version has been set in the xls file and if not adds
+    the default version in this datetime (yyyymmddhhmm) format.
+    """
+
+    # get the json and check for the version key
+    survey_json = json.loads(survey.to_json())
+    if not survey_json.get("version"):
+        # set utc time as the default version
+        survey_json['version'] = \
+            datetime.utcnow().strftime("%Y%m%d%H%M")
+        builder = SurveyElementBuilder()
+        survey = builder.create_survey_element_from_json(
+            json.dumps(survey_json))
+    return survey
+
+
+def __expand_select_all_that_apply(d, key, e):
+    if e and e.bind.get(u"type") == u"select":
+        options_selected = d[key].split()
+        for child in e.children:
+            new_key = child.get_abbreviated_xpath()
+            d[new_key] = child.name in options_selected
+
+        del d[key]
+
+
 class XFormMixin(object):
 
     GEODATA_SUFFIXES = ['latitude', 'longitude', 'altitude', 'precision']
@@ -564,15 +592,6 @@ class XFormMixin(object):
         d[new_key] = d[old_key]
         del d[old_key]
 
-    def _expand_select_all_that_apply(self, d, key, e):
-        if e and e.bind.get(u"type") == u"select":
-            options_selected = d[key].split()
-            for child in e.children:
-                new_key = child.get_abbreviated_xpath()
-                d[new_key] = child.name in options_selected
-
-            del d[key]
-
     def _expand_geocodes(self, d, key, e):
         if e and e.bind.get(u"type") == u"geopoint":
             geodata = d[key].split()
@@ -584,7 +603,7 @@ class XFormMixin(object):
         for d in self.get_list_of_parsed_instances():
             for key in d.keys():
                 e = self.get_element(key)
-                self._expand_select_all_that_apply(d, key, e)
+                __expand_select_all_that_apply(d, key, e)
                 self._expand_geocodes(d, key, e)
             yield d
 
@@ -627,23 +646,6 @@ class XFormMixin(object):
         return [
             elem.get_abbreviated_xpath()
             for elem in self.get_survey_elements_of_type('osm')]
-
-    def _check_version_set(self, survey):
-        """
-        Checks if the version has been set in the xls file and if not adds
-        the default version in this datetime (yyyymmddhhmm) format.
-        """
-
-        # get the json and check for the version key
-        survey_json = json.loads(survey.to_json())
-        if not survey_json.get("version"):
-            # set utc time as the default version
-            survey_json['version'] = \
-                datetime.utcnow().strftime("%Y%m%d%H%M")
-            builder = SurveyElementBuilder()
-            survey = builder.create_survey_element_from_json(
-                json.dumps(survey_json))
-        return survey
 
 
 class XForm(XFormMixin, BaseModel):
