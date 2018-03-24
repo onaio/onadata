@@ -436,8 +436,9 @@ class ExportBuilder(object):
             self.GROUP_DELIMITER, self.TRUNCATE_GROUP_TITLE)
 
     def section_by_name(self, name):
-        matches = filter(lambda s: s['name'] == name, self.sections)
+        matches = [s for s in self.sections if s['name'] == name]
         assert(len(matches) == 1)
+
         return matches[0]
 
     @classmethod
