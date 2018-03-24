@@ -90,7 +90,7 @@ class DictOrganizer(object):
         obs[table_name][-1][u"_index"] = this_index
 
         for k, v in d.items():
-            if type(v) == dict:
+            if isinstance(v, dict):
                 kwargs = {
                     "d": v,
                     "obs": obs,
@@ -99,7 +99,7 @@ class DictOrganizer(object):
                     "parent_index": this_index
                 }
                 self._build_obs_from_dict(**kwargs)
-            elif type(v) == list:
+            elif isinstance(v, list):
                 for item in v:
                     kwargs = {
                         "d": item,
