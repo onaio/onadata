@@ -1125,7 +1125,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertIsInstance(xform, XForm)
             self.assertEqual(counter + 2, XForm.objects.count())
 
-    @patch('urllib2.urlopen')
+    @patch('onadata.apps.main.forms.urlopen')
     def test_publish_xlsform_using_url_upload(self, mock_urlopen):
         with HTTMock(enketo_mock):
             view = XFormViewSet.as_view({
@@ -1151,7 +1151,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 201)
             self.assertEqual(XForm.objects.count(), pre_count + 1)
 
-    @patch('urllib2.urlopen')
+    @patch('onadata.apps.main.forms.urlopen')
     def test_publish_xlsform_using_url_with_no_extension(self, mock_urlopen):
         with HTTMock(enketo_mock, xls_url_no_extension_mock):
             view = XFormViewSet.as_view({
@@ -1174,7 +1174,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 201)
             self.assertEqual(XForm.objects.count(), pre_count + 1)
 
-    @patch('urllib2.urlopen')
+    @patch('onadata.apps.main.forms.urlopen')
     def test_publish_xlsform_using_url_content_disposition_attr_jumbled_v1(
             self, mock_urlopen):
         with HTTMock(
@@ -1200,7 +1200,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 201)
             self.assertEqual(XForm.objects.count(), pre_count + 1)
 
-    @patch('urllib2.urlopen')
+    @patch('onadata.apps.main.forms.urlopen')
     def test_publish_xlsform_using_url_content_disposition_attr_jumbled_v2(
             self, mock_urlopen):
         with HTTMock(
@@ -1226,7 +1226,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 201)
             self.assertEqual(XForm.objects.count(), pre_count + 1)
 
-    @patch('urllib2.urlopen')
+    @patch('onadata.apps.main.forms.urlopen')
     def test_publish_csvform_using_url_upload(self, mock_urlopen):
         with HTTMock(enketo_mock):
             view = XFormViewSet.as_view({
@@ -2400,7 +2400,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEquals(self.xform.version, u"212121211")
             self.assertEquals(form_id, self.xform.pk)
 
-    @patch('urllib2.urlopen')
+    @patch('onadata.apps.main.forms.urlopen')
     def test_update_xform_xls_url(self, mock_urlopen):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
@@ -2434,7 +2434,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEquals(self.xform.version, u"212121211")
             self.assertEquals(form_id, self.xform.pk)
 
-    @patch('urllib2.urlopen')
+    @patch('onadata.apps.main.forms.urlopen')
     def test_update_xform_dropbox_url(self, mock_urlopen):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
