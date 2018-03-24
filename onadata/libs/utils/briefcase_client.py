@@ -39,7 +39,7 @@ def node_value(node, tag_name):
     return tag.childNodes[0].nodeValue
 
 
-def __get_form_list(xml_text):
+def _get_form_list(xml_text):
     xml_doc = clean_and_parse_xml(xml_text)
     forms = []
 
@@ -55,7 +55,7 @@ def __get_form_list(xml_text):
     return forms
 
 
-def __get_instances_uuids(xml_doc):
+def _get_instances_uuids(xml_doc):
     uuids = []
 
     for child_node in xml_doc.childNodes:
@@ -107,7 +107,7 @@ class BriefcaseClient(object):
             return
 
         response = self._current_response
-        forms = __get_form_list(response.content)
+        forms = _get_form_list(response.content)
 
         self.logger.debug('Successfull fetched %s.' % self.form_list_url)
 
@@ -197,7 +197,7 @@ class BriefcaseClient(object):
         except ExpatError:
             return
 
-        instances = __get_instances_uuids(xml_doc)
+        instances = _get_instances_uuids(xml_doc)
         path = os.path.join(self.forms_path, form_id, 'instances')
 
         for uuid in instances:
