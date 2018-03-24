@@ -208,6 +208,24 @@ def track_task_progress(additions, total=None):
         pass
 
 
+def string_to_date_with_xls_validation(date_str):
+    """ Try to convert a string to a date object.
+
+    :param date_str: string to convert
+    :returns: object if converted, otherwise date string
+    """
+    if not isinstance(date_str, six.string_types):
+        return date_str
+
+    try:
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+        to_excel(date_obj)
+    except ValueError:
+        return date_str
+    else:
+        return date_obj
+
+
 class ExportBuilder(object):
     IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION,
                        BAMBOO_DATASET_ID, DELETEDAT]
@@ -236,9 +254,9 @@ class ExportBuilder(object):
 
     TYPES_TO_CONVERT = ['int', 'decimal', 'date']  # , 'dateTime']
     CONVERT_FUNCS = {
-        'int': lambda x: int(x),
-        'decimal': lambda x: float(x),
-        'date': lambda x: ExportBuilder.string_to_date_with_xls_validation(x),
+        'int': int,
+        'decimal': float,
+        'date': string_to_date_with_xls_validation,
         'dateTime': lambda x: datetime.strptime(x[:19], '%Y-%m-%dT%H:%M:%S')
     }
 
@@ -251,18 +269,6 @@ class ExportBuilder(object):
         self.extra_columns = (
             self.EXTRA_FIELDS + getattr(settings, 'EXTRA_COLUMNS', []))
         self.osm_columns = []
-
-    @classmethod
-    def string_to_date_with_xls_validation(cls, date_str):
-        if not isinstance(date_str, six.string_types):
-            return date_str
-        try:
-            date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
-            to_excel(date_obj)
-        except ValueError:
-            return date_str
-        else:
-            return date_obj
 
     @classmethod
     def format_field_title(cls, abbreviated_xpath, field_delimiter,
