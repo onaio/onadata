@@ -3,7 +3,8 @@ import csv
 import os
 import re
 import socket
-import urllib2
+from future.moves.urllib.error import URLError
+from future.moves.urllib.request import urlopen
 from io import BytesIO
 from tempfile import NamedTemporaryFile
 
@@ -265,9 +266,9 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
 
     def _check_url(self, url, timeout=1):
         try:
-            urllib2.urlopen(url, timeout=timeout)
+            urlopen(url, timeout=timeout)
             return True
-        except (urllib2.URLError, socket.timeout):
+        except (URLError, socket.timeout):
             pass
         return False
 
