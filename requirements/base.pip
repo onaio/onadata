@@ -9,7 +9,7 @@
 # manually editted to git+https://github.com/matusvalo/librabbitmq.git@pip_build 
 # so that the install works
 #
--e git+https://github.com/onaio/django-digest.git@django-1.9-fixes#egg=django-digest
+-e git+https://github.com/onaio/django-digest.git@master#egg=django-digest
 -e git+https://github.com/onaio/django-multidb-router.git@django-1.11#egg=django-multidb-router
 -e git+https://github.com/jbalogh/django-nose.git#egg=django-nose
 -e git+https://github.com/bfirsh/django-ordered-model.git@master#egg=django-ordered-model
