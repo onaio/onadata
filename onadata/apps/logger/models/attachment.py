@@ -4,7 +4,7 @@ import mimetypes
 from hashlib import md5
 from django.db import models
 
-from instance import Instance
+from .instance import Instance
 
 
 def get_original_filename(filename):
