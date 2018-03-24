@@ -38,7 +38,7 @@ class Command(BaseCommand):
                         print "line %d is in an invalid format" % (i + 1)
                     except XForm.DoesNotExist:
                         print "XForm with username: %s and id string: %s does"\
-                              " not exist" % (username, id_string, uuid)
+                              " not exist" % (username, id_string)
                     except DuplicateUUIDError:
                         print "An xform with uuid: %s already exists" % uuid
                     else:
