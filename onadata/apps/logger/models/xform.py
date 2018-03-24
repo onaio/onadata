@@ -159,7 +159,7 @@ def check_version_set(survey):
     return survey
 
 
-def __expand_select_all_that_apply(d, key, e):
+def _expand_select_all_that_apply(d, key, e):
     if e and e.bind.get(u"type") == u"select":
         options_selected = d[key].split()
         for child in e.children:
@@ -603,7 +603,7 @@ class XFormMixin(object):
         for d in self.get_list_of_parsed_instances():
             for key in d.keys():
                 e = self.get_element(key)
-                __expand_select_all_that_apply(d, key, e)
+                _expand_select_all_that_apply(d, key, e)
                 self._expand_geocodes(d, key, e)
             yield d
 
