@@ -64,7 +64,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             'post': 'create'
         })
 
-    @patch('urllib2.urlopen')
+    @patch('onadata.apps.main.forms.urlopen')
     def test_publish_xlsform_using_url_upload(self, mock_urlopen):
         with HTTMock(enketo_mock):
             self._project_create()
