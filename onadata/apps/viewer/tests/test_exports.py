@@ -597,7 +597,7 @@ class TestExports(TestBase):
                                   "id_string": self.xform.id_string})
         response = self.client.get(csv_export_url)
         self.assertEqual(response.status_code, 200)
-        f = BytesIO.StringIO(self._get_response_content(response))
+        f = BytesIO(self._get_response_content(response))
         csv_reader = csv.reader(f)
         num_rows = len([row for row in csv_reader])
         f.close()
