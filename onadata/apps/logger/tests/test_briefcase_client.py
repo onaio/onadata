@@ -1,6 +1,6 @@
 import os.path
 import shutil
-from io import StringIO
+from io import BytesIO
 
 from future.moves.urllib.parse import urljoin
 
@@ -53,7 +53,7 @@ def form_list_xml(url, request, **kwargs):
 
 
 def get_streaming_content(res):
-    tmp = StringIO()
+    tmp = BytesIO()
     for chunk in res.streaming_content:
         tmp.write(chunk)
     content = tmp.getvalue()
