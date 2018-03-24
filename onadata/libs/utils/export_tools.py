@@ -5,11 +5,9 @@ Export tools
 
 import hashlib
 import json
-import math
 import os
 import re
 import sys
-import time
 from datetime import datetime, timedelta
 from future.moves.urllib.parse import urlparse
 
@@ -18,7 +16,6 @@ from django.contrib.auth.models import User
 from django.core.files.base import File
 from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
-from django.db import OperationalError
 from django.db.models.query import QuerySet
 from django.shortcuts import render_to_response
 from django.utils import timezone
@@ -38,7 +35,9 @@ from onadata.apps.viewer.models.parsed_instance import query_data
 from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 from onadata.libs.utils.common_tags import (DATAVIEW_EXPORT,
                                             GROUPNAME_REMOVED_FLAG)
-from onadata.libs.utils.common_tools import report_exception, str_to_bool
+from onadata.libs.utils.common_tools import (str_to_bool,
+                                             report_exception,
+                                             retry)
 from onadata.libs.utils.export_builder import ExportBuilder
 from onadata.libs.utils.model_tools import (get_columns_with_hxl,
                                             queryset_iterator)
@@ -51,54 +50,6 @@ DEFAULT_INDEX_TAGS = ('[', ']')
 SUPPORTED_INDEX_TAGS = ('[', ']', '(', ')', '{', '}', '.', '_')
 EXPORT_QUERY_KEY = 'query'
 MAX_RETRIES = 3
-
-
-def export_retry(tries, delay=3, backoff=2):
-    """
-    Adapted from code found here:
-        http://wiki.python.org/moin/PythonDecoratorLibrary#Retry
-
-    Retries a function or method until it returns True.
-
-    :param delay: sets the initial delay in seconds, and *backoff* sets the
-    factor by which the delay should lengthen after each failure.
-    :param backoff: must be greater than 1, or else it isn't really a backoff.
-    :param tries: must be at least 0, and *delay* greater than 0.
-    """
-
-    if backoff <= 1:  # pragma: no cover
-        raise ValueError("backoff must be greater than 1")
-
-    tries = math.floor(tries)
-    if tries < 0:  # pragma: no cover
-        raise ValueError("tries must be 0 or greater")
-
-    if delay <= 0:  # pragma: no cover
-        raise ValueError("delay must be greater than 0")
-
-    def decorator_retry(func):
-        def function_retry(self, *args, **kwargs):
-            mtries, mdelay = tries, delay
-            while mtries > 0:
-                try:
-                    result = func(self, *args, **kwargs)
-                except OperationalError:
-                    mtries -= 1
-                    time.sleep(mdelay)
-                    mdelay *= backoff
-                else:
-                    return result
-            # Last ditch effort run against master database
-            if len(getattr(settings, 'SLAVE_DATABASES', [])):
-                from multidb.pinning import use_master
-                with use_master:
-                    return func(self, *args, **kwargs)
-
-            # last attempt, exception raised from function is propagated
-            return func(self, *args, **kwargs)
-
-        return function_retry
-    return decorator_retry
 
 
 def dict_to_flat_export(d, parent_index=0):
@@ -134,7 +85,7 @@ def get_or_create_export(export_id, xform, export_type, options):
     return create_export_object(xform, export_type, options)
 
 
-@export_retry(MAX_RETRIES)
+@retry(MAX_RETRIES)
 def generate_export(export_type, xform, export_id=None, options=None,
                     retries=0):
     """
