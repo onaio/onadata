@@ -178,9 +178,7 @@ def parse_webform_return_url(return_url, request):
     url = urlparse(return_url)
     try:
         # get jwt from url - probably zebra via enketo
-        jwt_param = filter(
-            lambda p: p.startswith('jwt'),
-            url.query.split('&'))
+        jwt_param = [p for p in url.query.split('&') if p.startswith('jwt')]
         jwt_param = jwt_param and jwt_param[0].split('=')[1]
 
         if not jwt_param:
