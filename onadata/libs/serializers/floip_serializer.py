@@ -6,7 +6,7 @@ FloipSerializer module.
 import json
 import os
 from copy import deepcopy
-from io import StringIO
+from io import BytesIO
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -142,7 +142,7 @@ class FloipSerializer(serializers.HyperlinkedModelSerializer):
         data = deepcopy(request.data)
         if 'profile' in data and data['profile'] == 'flow-results-package':
             data['profile'] = 'data-package'
-        descriptor = StringIO(json.dumps(data))
+        descriptor = BytesIO(json.dumps(data))
         descriptor.seek(0, os.SEEK_END)
         floip_file = InMemoryUploadedFile(
             descriptor,
@@ -223,7 +223,7 @@ class FlowResultsResponseSerializer(serializers.Serializer):
         xform = get_object_or_404(XForm, uuid=validated_data['id'])
         processed = []
         for submission in parse_responses(responses):
-            xml_file = StringIO(
+            xml_file = BytesIO(
                 dict2xform(submission, xform.id_string, 'data'))
 
             error, instance = safe_create_instance(
