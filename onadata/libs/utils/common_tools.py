@@ -2,7 +2,9 @@
 """
 Common helper functions
 """
+import math
 import sys
+import time
 import traceback
 import uuid
 from io import BytesIO
@@ -12,6 +14,7 @@ from past.builtins import basestring
 import logging
 from django.conf import settings
 from django.core.mail import mail_admins
+from django.db import OperationalError
 from django.utils.translation import ugettext as _
 
 import six
@@ -133,3 +136,51 @@ def json_stream(data, json_string):
         pass
     finally:
         yield u"]"
+
+
+def retry(tries, delay=3, backoff=2):
+    """
+    Adapted from code found here:
+        http://wiki.python.org/moin/PythonDecoratorLibrary#Retry
+
+    Retries a function or method until it returns True.
+
+    :param delay: sets the initial delay in seconds, and *backoff* sets the
+    factor by which the delay should lengthen after each failure.
+    :param backoff: must be greater than 1, or else it isn't really a backoff.
+    :param tries: must be at least 0, and *delay* greater than 0.
+    """
+
+    if backoff <= 1:  # pragma: no cover
+        raise ValueError("backoff must be greater than 1")
+
+    tries = math.floor(tries)
+    if tries < 0:  # pragma: no cover
+        raise ValueError("tries must be 0 or greater")
+
+    if delay <= 0:  # pragma: no cover
+        raise ValueError("delay must be greater than 0")
+
+    def decorator_retry(func):
+        def function_retry(self, *args, **kwargs):
+            mtries, mdelay = tries, delay
+            while mtries > 0:
+                try:
+                    result = func(self, *args, **kwargs)
+                except OperationalError:
+                    mtries -= 1
+                    time.sleep(mdelay)
+                    mdelay *= backoff
+                else:
+                    return result
+            # Last ditch effort run against master database
+            if len(getattr(settings, 'SLAVE_DATABASES', [])):
+                from multidb.pinning import use_master
+                with use_master:
+                    return func(self, *args, **kwargs)
+
+            # last attempt, exception raised from function is propagated
+            return func(self, *args, **kwargs)
+
+        return function_retry
+    return decorator_retry

@@ -1,8 +1,6 @@
 import logging
-import math
 import mimetypes
 import os
-import time
 from io import StringIO
 from xml.parsers.expat import ExpatError
 
@@ -17,6 +15,7 @@ import requests
 from requests.auth import HTTPDigestAuth
 
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
+from onadata.libs.utils.common_tools import retry
 from onadata.libs.utils.logger_tools import (PublishXForm, create_instance,
                                              publish_form)
 
@@ -34,50 +33,39 @@ def django_file(file_obj, field_name, content_type):
     )
 
 
-def retry(tries, delay=3, backoff=2):
-    '''
-    Adapted from code found here:
-        http://wiki.python.org/moin/PythonDecoratorLibrary#Retry
-
-    Retries a function or method until it returns True.
-
-    *delay* sets the initial delay in seconds, and *backoff* sets the
-    factor by which the delay should lengthen after each failure.
-    *backoff* must be greater than 1, or else it isn't really a backoff.
-    *tries* must be at least 0, and *delay* greater than 0.
-    '''
-
-    if backoff <= 1:  # pragma: no cover
-        raise ValueError("backoff must be greater than 1")
-
-    tries = math.floor(tries)
-    if tries < 0:  # pragma: no cover
-        raise ValueError("tries must be 0 or greater")
-
-    if delay <= 0:  # pragma: no cover
-        raise ValueError("delay must be greater than 0")
-
-    def decorator_retry(func):
-        def function_retry(self, *args, **kwargs):
-            mtries, mdelay = tries, delay
-            result = func(self, *args, **kwargs)
-            while mtries > 0:
-                if result:
-                    return result
-                mtries -= 1
-                time.sleep(mdelay)
-                mdelay *= backoff
-                result = func(self, *args, **kwargs)
-            return False
-
-        return function_retry
-    return decorator_retry
-
-
 def node_value(node, tag_name):
     tag = node.getElementsByTagName(tag_name)[0]
 
     return tag.childNodes[0].nodeValue
+
+
+def __get_form_list(xml_text):
+    xml_doc = clean_and_parse_xml(xml_text)
+    forms = []
+
+    for childNode in xml_doc.childNodes:
+        if childNode.nodeName == 'xforms':
+            for xformNode in childNode.childNodes:
+                if xformNode.nodeName == 'xform':
+                    id_string = node_value(xformNode, 'formID')
+                    download_url = node_value(xformNode, 'downloadUrl')
+                    manifest_url = node_value(xformNode, 'manifestUrl')
+                    forms.append((id_string, download_url, manifest_url))
+
+    return forms
+
+
+def __get_instances_uuids(xml_doc):
+    uuids = []
+
+    for child_node in xml_doc.childNodes:
+        if child_node.nodeName == 'idChunk':
+            for id_node in child_node.getElementsByTagName('id'):
+                if id_node.childNodes:
+                    uuid = id_node.childNodes[0].nodeValue
+                    uuids.append(uuid)
+
+    return uuids
 
 
 class BriefcaseClient(object):
@@ -93,21 +81,6 @@ class BriefcaseClient(object):
             self.user.username, 'briefcase', 'forms')
         self.resumption_cursor = 0
         self.logger = logging.getLogger('console_logger')
-
-    def _get_form_list(self, xml_text):
-        xml_doc = clean_and_parse_xml(xml_text)
-        forms = []
-
-        for childNode in xml_doc.childNodes:
-            if childNode.nodeName == 'xforms':
-                for xformNode in childNode.childNodes:
-                    if xformNode.nodeName == 'xform':
-                        id_string = node_value(xformNode, 'formID')
-                        download_url = node_value(xformNode, 'downloadUrl')
-                        manifest_url = node_value(xformNode, 'manifestUrl')
-                        forms.append((id_string, download_url, manifest_url))
-
-        return forms
 
     def download_manifest(self, manifest_url, id_string):
         if self._get_response(manifest_url):
@@ -134,7 +107,7 @@ class BriefcaseClient(object):
             return
 
         response = self._current_response
-        forms = self._get_form_list(response.content)
+        forms = __get_form_list(response.content)
 
         self.logger.debug('Successfull fetched %s.' % self.form_list_url)
 
@@ -206,18 +179,6 @@ class BriefcaseClient(object):
                 else:
                     self.logger.error("Failed to fetch %s." % filename)
 
-    def get_instances_uuids(self, xml_doc):
-        uuids = []
-
-        for child_node in xml_doc.childNodes:
-            if child_node.nodeName == 'idChunk':
-                for id_node in child_node.getElementsByTagName('id'):
-                    if id_node.childNodes:
-                        uuid = id_node.childNodes[0].nodeValue
-                        uuids.append(uuid)
-
-        return uuids
-
     def download_instances(self, form_id, cursor=0, num_entries=100):
         self.logger.debug("Starting submissions download for %s" % form_id)
         if not self._get_response(self.submission_list_url,
@@ -236,7 +197,7 @@ class BriefcaseClient(object):
         except ExpatError:
             return
 
-        instances = self.get_instances_uuids(xml_doc)
+        instances = __get_instances_uuids(xml_doc)
         path = os.path.join(self.forms_path, form_id, 'instances')
 
         for uuid in instances:
@@ -328,7 +289,8 @@ class BriefcaseClient(object):
                 except ExpatError:
                     continue
                 except Exception:
-                    pass
+                    logging.exception('Processing XML submission raised '
+                                      'exception, ignoring submission.')
                 else:
                     instances_count += 1
 
