@@ -614,11 +614,11 @@ class ExportBuilder(object):
                 # section name might not exist within the output, e.g. data was
                 # not provided for said repeat - write test to check this
                 row = output.get(section_name, None)
-                if type(row) == dict:
+                if isinstance(row, dict):
                     write_row(
                         self.pre_process_row(row, section),
                         csv_writer, fields)
-                elif type(row) == list:
+                elif isinstance(row, list):
                     for child_row in row:
                         write_row(
                             self.pre_process_row(child_row, section),

@@ -239,7 +239,7 @@ def _flatten_dict_nest_repeats(d, prefix):
         if isinstance(value, dict):
             for pair in _flatten_dict_nest_repeats(value, new_prefix):
                 yield pair
-        elif type(value) == list:
+        elif isinstance(value, list):
             repeats = []
 
             for i, item in enumerate(value):

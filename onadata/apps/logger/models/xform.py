@@ -84,7 +84,7 @@ class DictOrganizer(object):
             u"_parent_index": parent_index,
         })
         for k, v in d.items():
-            if type(v) != dict and type(v) != list:
+            if isinstance(v, dict) and isinstance(v, list):
                 assert k not in obs[table_name][-1]
                 obs[table_name][-1][k] = v
         obs[table_name][-1][u"_index"] = this_index
@@ -421,7 +421,8 @@ class XFormMixin(object):
 
         if survey_element.children is not None:
             # add xpaths to result for each child
-            indices = [''] if type(survey_element) != RepeatingSection else \
+            indices = [''] if not isinstance(survey_element,
+                                             RepeatingSection) else \
                 ['[%d]' % (i + 1) for i in range(repeat_iterations)]
             for i in indices:
                 for e in survey_element.children:
@@ -575,7 +576,7 @@ class XFormMixin(object):
             from onadata.apps.viewer.models.column_rename import ColumnRename
 
             self._variable_names = ColumnRename.get_dict()
-            assert type(self._variable_names) == dict
+            assert isinstance(self._variable_names, dict)
 
         if header in self._variable_names and self._variable_names[header]:
             return self._variable_names[header]
