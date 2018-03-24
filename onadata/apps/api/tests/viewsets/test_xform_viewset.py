@@ -10,7 +10,7 @@ import re
 from collections import OrderedDict
 from datetime import datetime
 from datetime import timedelta
-from io import StringIO
+from io import BytesIO
 from xml.dom import Node
 from xml.dom import minidom
 
@@ -3636,7 +3636,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         content = get_response_content(response)
 
         if test_data and field:
-            reader = csv.DictReader(StringIO(content))
+            reader = csv.DictReader(BytesIO(content))
             self.assertEqual([i[field] for i in reader], test_data)
         else:
             with open(test_file_path, 'r') as test_file:
@@ -3868,7 +3868,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                                            data={'include_labels': 'true'},
                                            **self.extra)
                 response = form_view(request, pk=formid, format=export_format)
-                f = StringIO(u''.join(response.streaming_content))
+                f = BytesIO(u''.join(response.streaming_content))
                 csv_reader = csv.reader(f)
                 # jump over headers first
                 csv_reader.next()
@@ -3921,7 +3921,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                     **self.extra
                 )
                 response = form_view(request, pk=formid, format=export_format)
-                f = StringIO(u''.join(response.streaming_content))
+                f = BytesIO(u''.join(response.streaming_content))
                 csv_reader = csv.reader(f)
                 headers = csv_reader.next()
                 self.assertIn(
