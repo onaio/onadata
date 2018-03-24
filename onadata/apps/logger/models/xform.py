@@ -576,7 +576,6 @@ class XFormMixin(object):
             from onadata.apps.viewer.models.column_rename import ColumnRename
 
             self._variable_names = ColumnRename.get_dict()
-            assert isinstance(self._variable_names, dict)
 
         if header in self._variable_names and self._variable_names[header]:
             return self._variable_names[header]
