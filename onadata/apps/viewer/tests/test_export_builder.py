@@ -12,7 +12,8 @@ import tempfile
 import zipfile
 from collections import OrderedDict
 from ctypes import ArgumentError
-from io import StringIO
+from io import BytesIO
+
 from past.builtins import basestring
 
 from django.conf import settings
@@ -608,7 +609,7 @@ class TestExportBuilder(TestBase):
         self.assertEqual(labels, {'allaite': {'1': 'Oui', '2': 'Non'}})
 
         repeat_group_labels = export_builder._get_sav_value_labels(
-                                {'A/rep/allaite': 'allaite'})
+            {'A/rep/allaite': 'allaite'})
         self.assertEqual(repeat_group_labels,
                          {'allaite': {1: 'Yes', 2: 'No'}})
 
@@ -935,7 +936,7 @@ class TestExportBuilder(TestBase):
         media_file = django_file(path=file_path,
                                  field_name="image1",
                                  content_type="image/jpeg")
-        create_instance(self.user.username, StringIO(xml_string.strip()),
+        create_instance(self.user.username, BytesIO(xml_string.strip()),
                         media_files=[media_file])
 
         xdata = query_data(self.xform)
@@ -951,7 +952,7 @@ class TestExportBuilder(TestBase):
         rows = [row for row in children_sheet.rows]
         row = [a.value for a in rows[1]]
         attachment_id = xdata[0]['_attachments'][0]['id']
-        attachment_url = 'http://example.com/api/v1/files/{}?filename=bob/attachments/1300221157303.jpg'.format(attachment_id) # noqa
+        attachment_url = 'http://example.com/api/v1/files/{}?filename=bob/attachments/1300221157303.jpg'.format(attachment_id)  # noqa
         self.assertIn(attachment_url, row)
         temp_xls_file.close()
 
