@@ -2,7 +2,7 @@
 """
 Submission data serializers module.
 """
-import StringIO
+from io import StringIO
 
 from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
@@ -41,7 +41,7 @@ def create_submission(request, username, data_dict, xform_id):
     Returns validated data object instances
     """
     xml_string = dict2xform(data_dict, xform_id)
-    xml_file = StringIO.StringIO(xml_string)
+    xml_file = StringIO(xml_string)
 
     error, instance = safe_create_instance(username, xml_file, [], None,
                                            request)
