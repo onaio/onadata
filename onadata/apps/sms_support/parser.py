@@ -1,8 +1,9 @@
 import base64
 from datetime import datetime, date
 import json
+import logging
 import re
-import StringIO
+from io import StringIO
 
 from django.utils.translation import ugettext as _
 
@@ -35,11 +36,7 @@ def parse_sms_text(xform, identity, text):
     separator = json_survey.get('sms_separator', DEFAULT_SEPARATOR) \
         or DEFAULT_SEPARATOR
 
-    try:
-        allow_media = bool(json_survey.get('sms_allow_media', False))
-    except:
-        raise
-        allow_media = False
+    allow_media = bool(json_survey.get('sms_allow_media', False))
 
     xlsf_date_fmt = json_survey.get('sms_date_format', DEFAULT_DATE_FORMAT) \
         or DEFAULT_DATE_FORMAT
@@ -339,11 +336,12 @@ def process_incoming_smses(username, incomings,
         for idx, note in enumerate(notes):
             try:
                 notes[idx] = note.replace('${', '{').format(**data)
-            except:
-                pass
+            except Exception as e:
+                logging.exception(_(u'Updating note threw exception: %s'
+                                  % str(e)))
 
         # process_incoming expectes submission to be a file-like object
-        xforms.append(StringIO.StringIO(xml_submission))
+        xforms.append(StringIO(xml_submission))
         medias.append(medias_submission)
         json_submissions.append(json_submission)
         xforms_notes.append(notes)

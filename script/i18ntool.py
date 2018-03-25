@@ -203,7 +203,7 @@ def main():
 
     try:
         command = COMMANDS.get(args.all.pop(0).lower(), usage)
-    except:
+    except Exception:
         command = usage
 
     # fallback to usage.
@@ -224,12 +224,8 @@ def main():
     # update cmd requires more args.
     if command is update:
         # extract user & password
-        try:
-            user = args.grouped.get('--user', []).pop(0)
-            password = args.grouped.get('--password', []).pop(0)
-        except:
-            raise
-            user = password = None
+        user = args.grouped.get('--user', []).pop(0)
+        password = args.grouped.get('--password', []).pop(0)
 
         if not user or not password:
             print(colored.red(
