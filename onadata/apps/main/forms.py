@@ -17,7 +17,6 @@ from django.core.validators import URLValidator
 from django.forms import ModelForm
 from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy
-from recaptcha.client import captcha  # pylint: disable=relative-import
 from registration.forms import RegistrationFormUniqueEmail
 
 # pylint: disable=ungrouped-imports
@@ -146,12 +145,6 @@ class UserProfileFormRegister(forms.Form):
     """
     User profile registration form.
     """
-
-    REGISTRATION_REQUIRE_CAPTCHA = settings.REGISTRATION_REQUIRE_CAPTCHA
-    RECAPTCHA_PUBLIC_KEY = settings.RECAPTCHA_PUBLIC_KEY
-    RECAPTCHA_HTML = captcha.displayhtml(settings.RECAPTCHA_PUBLIC_KEY,
-                                         use_ssl=settings.RECAPTCHA_USE_SSL)
-
     first_name = forms.CharField(widget=forms.TextInput(), required=True,
                                  max_length=255)
     last_name = forms.CharField(widget=forms.TextInput(), required=False,
@@ -166,10 +159,6 @@ class UserProfileFormRegister(forms.Form):
                                 max_length=255)
     twitter = forms.CharField(widget=forms.TextInput(), required=False,
                               max_length=255)
-
-    recaptcha_challenge_field = forms.CharField(required=False, max_length=512)
-    recaptcha_response_field = forms.CharField(
-        max_length=100, required=settings.REGISTRATION_REQUIRE_CAPTCHA)
 
     def save_user_profile(self, new_user):
         """
@@ -198,31 +187,12 @@ class RegistrationFormUserProfile(RegistrationFormUniqueEmail,
     email = forms.EmailField(widget=forms.TextInput())
     legal_usernames_re = re.compile(r"^\w+$")
 
-    def clean(self):
-        cleaned_data = super(RegistrationFormUserProfile, self).clean()
-
-        # don't check captcha if it's disabled
-        if not self.REGISTRATION_REQUIRE_CAPTCHA:
-            if 'recaptcha_response_field' in self._errors:
-                del self._errors['recaptcha_response_field']
-            return cleaned_data
-
-        response = captcha.submit(
-            cleaned_data.get('recaptcha_challenge_field'),
-            cleaned_data.get('recaptcha_response_field'),
-            settings.RECAPTCHA_PRIVATE_KEY,
-            None)
-
-        if not response.is_valid:
-            raise forms.ValidationError(_(u"The Captcha is invalid. "
-                                          u"Please, try again."))
-        return cleaned_data
-
     def clean_username(self):
         """
         Validate a new user username.
         """
         username = self.cleaned_data['username'].lower()
+
         if username in self.RESERVED_USERNAMES:
             raise forms.ValidationError(
                 _(u'%s is a reserved name, please choose another') % username)
@@ -234,6 +204,7 @@ class RegistrationFormUserProfile(RegistrationFormUniqueEmail,
             User.objects.get(username=username)
         except User.DoesNotExist:
             return username
+
         raise forms.ValidationError(_(u'%s already exists') % username)
 
 
