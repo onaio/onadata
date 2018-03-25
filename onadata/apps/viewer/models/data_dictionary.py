@@ -4,9 +4,8 @@ DataDictionary model.
 """
 
 import csv
-import io
 import os
-from io import StringIO
+from io import BytesIO, StringIO
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models.signals import post_save, pre_save
@@ -51,7 +50,7 @@ def process_xlsform(xls, default_name):
     if xls.name.endswith('csv'):
         # a csv file gets closed in pyxform, make a copy
         xls.seek(0)
-        file_object = io.BytesIO()
+        file_object = BytesIO()
         file_object.write(xls.read())
         file_object.seek(0)
         xls.seek(0)
