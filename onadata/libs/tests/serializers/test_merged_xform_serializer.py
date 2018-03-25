@@ -177,7 +177,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
         """
         Test get_merged_xform_survey()
         """
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(serializers.ValidationError):
             get_merged_xform_survey([])
 
         self.project = get_user_default_project(self.user)
@@ -223,7 +223,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
             }]
         }  # yapf: disable
 
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(serializers.ValidationError):
             get_merged_xform_survey([xform1])
 
         survey = get_merged_xform_survey([xform1, xform2])
