@@ -58,7 +58,7 @@ class MediaViewSet(AuthenticateHeaderMixin,
                     if suffix in settings.THUMB_CONF.keys():
                         try:
                             url = image_url(obj, suffix)
-                        except Exception, e:
+                        except Exception as e:
                             raise ParseError(e.message)
                     else:
                         raise Http404()
