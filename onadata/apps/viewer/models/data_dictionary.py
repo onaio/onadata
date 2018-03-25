@@ -84,7 +84,7 @@ def sheet_to_csv(xls_content, sheet_name):
         raise Exception(_(u"Sheet <'%(sheet_name)s'> has no data." %
                           {'sheet_name': sheet_name}))
 
-    csv_file = StringIO()
+    csv_file = BytesIO()
 
     writer = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
     mask = [v and len(v.strip()) > 0 for v in sheet.row_values(0)]
