@@ -4,9 +4,9 @@ import time
 from django.conf import settings
 import tempfile
 
-try:
+if hasattr(settings, 'PROFILE_LOG_BASE'):
     PROFILE_LOG_BASE = settings.PROFILE_LOG_BASE
-except:
+else:
     PROFILE_LOG_BASE = tempfile.gettempdir()
 
 

@@ -4,14 +4,16 @@ Export Builder
 """
 
 import csv
+import logging
+import six
 import uuid
 from datetime import date, datetime
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
+from django.utils.translation import ugettext as _
 
-import six
 from celery import current_task
 from openpyxl.utils.datetime import to_excel
 from openpyxl.workbook import Workbook
@@ -204,8 +206,9 @@ def track_task_progress(additions, total=None):
             if total:
                 meta.update({'total': total})
             current_task.update_state(state='PROGRESS', meta=meta)
-    except:
-        pass
+    except Exception as e:
+        logging.exception(
+            _(u'Track task progress threw exception: %s' % str(e)))
 
 
 def string_to_date_with_xls_validation(date_str):

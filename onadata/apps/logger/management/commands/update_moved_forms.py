@@ -22,7 +22,7 @@ class Command(BaseCommand):
                         )
                         xform.user = project.organization
                         xform.save()
-                except:
+                except Exception:
                     self.stdout.write(
                         "Error processing: {} - {}".format(xform.id_string,
                                                            xform.user.username)

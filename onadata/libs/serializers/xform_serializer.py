@@ -148,7 +148,7 @@ class XFormMixin(object):
                     url = get_enketo_preview_url(
                         self.context.get('request'), obj.user.username,
                         obj.id_string, xform_pk=obj.pk)
-                except:
+                except Exception:
                     return url
                 else:
                     MetaData.enketo_preview_url(obj, url)
