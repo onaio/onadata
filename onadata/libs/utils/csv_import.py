@@ -11,6 +11,7 @@ from io import BytesIO
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.storage import default_storage
+from django.utils.translation import ugettext as _
 
 from celery import current_task, task
 from celery.backends.amqp import BacklogLimitExceeded
@@ -300,8 +301,8 @@ def submit_csv(username, xform, csv_file):
                                 'info': addition_col
                             })
                     except Exception:
-                        logging.exception("Could not update state of import "
-                                          "CSV batch process.")
+                        logging.exception(_(u'Could not update state of '
+                                            'import CSV batch process.'))
                     finally:
                         xform.submission_count(True)
 

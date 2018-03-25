@@ -10,6 +10,7 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import transaction
+from django.utils.translation import ugettext as _
 
 import requests
 from requests.auth import HTTPDigestAuth
@@ -288,9 +289,10 @@ class BriefcaseClient(object):
                     self._upload_instance(xml_file, instance_dir_path, files)
                 except ExpatError:
                     continue
-                except Exception:
-                    logging.exception('Processing XML submission raised '
-                                      'exception, ignoring submission.')
+                except Exception as e:
+                    logging.exception(_(
+                        u'Ignoring exception, processing XML submission '
+                        'raised exception: %s' % str(e)))
                 else:
                     instances_count += 1
 

@@ -2,16 +2,15 @@
 """
 Common helper functions
 """
+import logging
 import math
 import sys
 import time
 import traceback
 import uuid
 from io import BytesIO
-
 from past.builtins import basestring
 
-import logging
 from django.conf import settings
 from django.core.mail import mail_admins
 from django.db import OperationalError
@@ -73,7 +72,7 @@ def report_exception(subject, info, exc_info=None):
         try:
             client.captureException(exc_info)
         except Exception:  # pylint: disable=broad-except
-            logging.exception("Sending to Sentry failed.")
+            logging.exception(_(u'Sending to Sentry failed.'))
     else:
         message = u"%s" % info
 

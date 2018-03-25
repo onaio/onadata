@@ -1,9 +1,11 @@
+import logging
 import traceback
 
 from django.db import connection
 from django.http import HttpResponseNotAllowed
 from django.template import loader
 from django.middleware.locale import LocaleMiddleware
+from django.utils.translation import ugettext as _
 from django.utils.translation.trans_real import parse_accept_lang_header
 
 
@@ -41,9 +43,10 @@ class LocaleMiddlewareWithTweaks(LocaleMiddleware):
             if 'km' in codes and 'km-kh' not in codes:
                 request.META['HTTP_ACCEPT_LANGUAGE'] = accept.replace('km',
                                                                       'km-kh')
-        except:
+        except Exception as e:
             # this might fail if i18n is disabled.
-            pass
+            logging.exception(_(u'Settings request META HTTP accept language '
+                                'threw exceptions: %s' % str(e)))
 
         super(LocaleMiddlewareWithTweaks, self).process_request(request)
 
