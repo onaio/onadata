@@ -1,3 +1,7 @@
+import logging
+
+from django.utils.translation import ugettext as _
+
 from onadata.apps.restservice.models import RestService
 from onadata.libs.utils.common_tags import GOOGLE_SHEET
 
@@ -12,6 +16,6 @@ def call_service(submission_instance):
         try:
             service = sv.get_service_definition()()
             service.send(sv.service_url, submission_instance)
-        except:
+        except Exception as e:
             # TODO: Handle gracefully | requeue/resend
-            pass
+            logging.exception(_(u'Service threw exception: %s' % str(e)))

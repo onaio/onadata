@@ -831,7 +831,7 @@ class XForm(XFormMixin, BaseModel):
                 # otherwise, use id_string to ensure uniqueness
                 self.sms_id_string = json.loads(self.json).get(
                     'sms_keyword', self.id_string)
-            except:
+            except Exception:
                 self.sms_id_string = self.id_string
 
         if 'skip_xls_read' in kwargs:
