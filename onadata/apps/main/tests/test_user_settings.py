@@ -45,7 +45,7 @@ class TestUserSettings(TestBase):
         for key, value in post_data.iteritems():
             try:
                 self.assertEqual(self.user.profile.__dict__[key], value)
-            except KeyError, e:
+            except KeyError as e:
                 if key == 'email':
                     self.assertEqual(self.user.__dict__[key], value)
                 else:

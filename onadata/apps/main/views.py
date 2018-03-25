@@ -422,7 +422,7 @@ def show(request, username=None, id_string=None, uuid=None):
         data['media_upload'] = MetaData.media_upload(xform)
         data['mapbox_layer'] = MetaData.mapbox_layer_upload(xform)
         data['external_export'] = MetaData.external_export(xform)
-    except XLSFormError, e:
+    except XLSFormError as e:
         return HttpResponseBadRequest(e.__str__())
 
     if is_owner:

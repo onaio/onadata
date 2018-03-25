@@ -410,7 +410,7 @@ def process_async_export(request, xform, export_type, options=None):
                 xform, export_type, query, False, options=options)
         }
     else:
-        print "Do not create a new export."
+        print('Do not create a new export.')
         export = newest_export_for(xform, export_type, options)
 
         if not export.filename:
