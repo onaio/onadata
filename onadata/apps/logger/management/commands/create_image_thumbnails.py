@@ -80,6 +80,6 @@ class Command(BaseCommand):
                         print(
                             _(u'Problem with the file %(file)s') %
                             {'file': filename})
-                except (IOError, OSError), e:
+                except (IOError, OSError) as e:
                     print _(u'Error on %(filename)s: %(error)s') \
                         % {'filename': filename, 'error': e}
