@@ -266,7 +266,7 @@ def profile(request, username):
 
     try:
         resp = render(request, "profile.html", data)
-    except XLSFormError, e:
+    except XLSFormError as e:
         resp = HttpResponseBadRequest(e.__str__())
 
     return resp
