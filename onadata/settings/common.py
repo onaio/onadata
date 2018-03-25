@@ -455,12 +455,6 @@ NOSE_ARGS = ['--with-fixture-bundling', '--nologcapture', '--nocapture']
 TEST_HTTP_HOST = 'testserver.com'
 TEST_USERNAME = 'bob'
 
-# re-captcha in registrations
-REGISTRATION_REQUIRE_CAPTCHA = False
-RECAPTCHA_USE_SSL = False
-RECAPTCHA_PRIVATE_KEY = ''
-RECAPTCHA_PUBLIC_KEY = '6Ld52OMSAAAAAJJ4W-0TFDTgbznnWWFf0XuOSaB6'
-
 # specify the root folder which may contain a templates folder and a static
 # folder used to override templates for site specific details
 TEMPLATE_OVERRIDE_ROOT_DIR = None
@@ -538,7 +532,7 @@ STATIC_DOC = '/static/docs/index.html'
 
 try:
     HOSTNAME = socket.gethostname()
-except:
+except Exception:
     HOSTNAME = 'localhost'
 
 CACHE_MIXIN_SECONDS = 60
