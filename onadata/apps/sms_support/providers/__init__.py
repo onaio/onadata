@@ -5,18 +5,18 @@
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from smssync import (import_submission as imp_sub_smssync,
-                     import_submission_for_form as imp_sub_form_smssync,
-                     autodoc as autodoc_smssync)
-from telerivet import (import_submission as imp_sub_telerivet,
-                       import_submission_for_form as imp_sub_form_telerivet,
-                       autodoc as autodoc_telerivet)
-from twilio import (import_submission as imp_sub_twilio,
-                    import_submission_for_form as imp_sub_form_twilio,
-                    autodoc as autodoc_twilio)
-from textit import (import_submission as imp_sub_textit,
-                    import_submission_for_form as imp_sub_form_textit,
-                    autodoc as autodoc_textit)
+from .smssync import (import_submission as imp_sub_smssync,
+                      import_submission_for_form as imp_sub_form_smssync,
+                      autodoc as autodoc_smssync)
+from .telerivet import (import_submission as imp_sub_telerivet,
+                        import_submission_for_form as imp_sub_form_telerivet,
+                        autodoc as autodoc_telerivet)
+from .twilio import (import_submission as imp_sub_twilio,
+                     import_submission_for_form as imp_sub_form_twilio,
+                     autodoc as autodoc_twilio)
+from .textit import (import_submission as imp_sub_textit,
+                     import_submission_for_form as imp_sub_form_textit,
+                     autodoc as autodoc_textit)
 
 SMSSYNC = 'smssync'
 TELERIVET = 'telerivet'

@@ -114,7 +114,6 @@ python-memcached==1.58
 pytz==2017.2              # via babel, celery, django, django-query-builder, fleming
 pyxform==0.10.0
 raven==6.1.0
-recaptcha-client==1.0.6
 requests==2.17.3          # via datapackage, httmock, sphinx, tableschema, tabulator
 rfc3986==1.1.0            # via tableschema
 rsa==3.4.2                # via oauth2client
