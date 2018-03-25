@@ -14,7 +14,6 @@
         <p>{% trans "Fields marked wth an asterisk (*) are required." %}</p>
         <table>
         {% for field in form %}
-        	{% if not field.name == "recaptcha_challenge_field" and not field.name == "recaptcha_response_field" %}
             <tr>
                 <td>
                     {{ field.label_tag }}
@@ -25,15 +24,8 @@
                     {% if field.field.required %}*{% endif %}
                 </td>
             </tr>
-            {% endif %}
         {% endfor %}
         </table>
-        {% if form.REGISTRATION_REQUIRE_CAPTCHA %}
-	        {% if form.non_field_errors %}
-	        <p class="alert alert-warning">{{ form.non_field_errors.0 }}</p>
-	        {% endif %}
-			{{ form.RECAPTCHA_HTML|safe }}
-		{% endif %}
                 <p>{% blocktrans %}By clicking the button, you agree to our <a href="/privacy">privacy policy</a> and <a href="/tos">terms of service</a>.{% endblocktrans %}</p>
         <input type="submit" class="btn large btn-primary" value="{% trans 'Register' %}" />
       </form>
