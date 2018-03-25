@@ -1,7 +1,7 @@
 import re
 import dateutil.parser
 from xml.dom import minidom, Node
-from django.utils.encoding import smart_unicode, smart_str
+from django.utils.encoding import smart_text, smart_str
 from django.utils.translation import ugettext as _
 
 from onadata.libs.utils.common_tags import XFORM_ID_STRING, VERSION
@@ -131,7 +131,7 @@ def get_deprecated_uuid_from_xml(xml):
 
 def clean_and_parse_xml(xml_string):
     clean_xml_str = xml_string.strip()
-    clean_xml_str = re.sub(ur">\s+<", u"><", smart_unicode(clean_xml_str))
+    clean_xml_str = re.sub(r">\s+<", u"><", smart_text(clean_xml_str))
     xml_obj = minidom.parseString(smart_str(clean_xml_str))
     return xml_obj
 
