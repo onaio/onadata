@@ -30,6 +30,7 @@ from onadata.apps.main import tests as main_tests
 from onadata.apps.main.models import MetaData, UserProfile
 from onadata.apps.viewer.models import DataDictionary
 from onadata.libs.serializers.project_serializer import ProjectSerializer
+from onadata.libs.utils.common_tools import merge_dicts
 from onadata.libs.utils.user_auth import get_user_default_project
 
 
@@ -110,8 +111,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         user.user_permissions.add(add_userprofile)
 
     def _create_user_profile(self, extra_post_data={}):
-        self.profile_data = dict(
-            self.profile_data.items() + extra_post_data.items())
+        self.profile_data = merge_dicts(self.profile_data, extra_post_data)
         user, created = User.objects.get_or_create(
             username=self.profile_data['username'],
             first_name=self.profile_data['first_name'],
