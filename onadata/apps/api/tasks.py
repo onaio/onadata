@@ -42,7 +42,7 @@ def publish_xlsform_async(self, user, post_data, owner, file_data):
             return {"pk": survey.pk}
 
         return survey
-    except Exception, exc:
+    except Exception as exc:
         if isinstance(exc, MemoryError):
             if self.request.retries < 3:
                 self.retry(exc=exc, countdown=1)
