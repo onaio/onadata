@@ -160,7 +160,7 @@ class TestProcess(TestBase):
                         if self.xform:
                             self.xform.delete()
                             self.xform = None
-                print ('finished sub-folder %s' % root)
+                print('finished sub-folder %s' % root)
             self.assertEqual(success, True)
 
     def test_url_upload_non_dot_xls_path(self):
@@ -190,8 +190,7 @@ class TestProcess(TestBase):
         TestBase._publish_xls_file(self, xls_path)
         # make sure publishing the survey worked
         if XForm.objects.count() != pre_count + 1:
-            # print file location
-            print ('\nPublish Failure for file: %s' % xls_path)
+            print('\nPublish Failure for file: %s' % xls_path)
             if strict:
                 self.assertEqual(XForm.objects.count(), pre_count + 1)
             else:

@@ -73,13 +73,14 @@ class Command(BaseCommand):
                     path = get_path(
                         filename, '%s' % THUMB_CONF['small']['suffix'])
                     if default_storage.exists(path):
-                        print(
+                        self.stdout.write(
                             _(u'Thumbnails created for %(file)s') %
                             {'file': filename})
                     else:
-                        print(
+                        self.stdout.write(
                             _(u'Problem with the file %(file)s') %
                             {'file': filename})
                 except (IOError, OSError) as e:
-                    print _(u'Error on %(filename)s: %(error)s') \
-                        % {'filename': filename, 'error': e}
+                    self.stderr.write(_(
+                        u'Error on %(filename)s: %(error)s')
+                        % {'filename': filename, 'error': e})
