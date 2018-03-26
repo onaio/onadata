@@ -3,6 +3,7 @@ import logging
 import sys
 import unicodecsv as ucsv
 import uuid
+from builtins import str
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
@@ -154,7 +155,7 @@ def submit_csv(username, xform, csv_file):
     :return: If sucessful, a dict with import summary else dict with error str.
     :rtype: Dict
     """
-    if isinstance(csv_file, unicode):
+    if isinstance(csv_file, str):
         csv_file = BytesIO(csv_file)
     elif csv_file is None or not hasattr(csv_file, 'read'):
         return async_status(FAILED, (u'Invalid param type for `csv_file`. '
