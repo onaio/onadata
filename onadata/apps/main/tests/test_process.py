@@ -1,13 +1,13 @@
 import csv
 import fnmatch
-from hashlib import md5
 import json
-from mock import patch
 import os
 import re
 import pytz
-
 from datetime import datetime
+from future.utils import iteritems
+from hashlib import md5
+from mock import patch
 
 from django.core.urlresolvers import reverse
 from django.conf import settings
@@ -64,7 +64,8 @@ class TestProcess(TestBase):
         """
         Update stuff like submission time so we can compare within out fixtures
         """
-        for uuid, submission_time in self.uuid_to_submission_times.iteritems():
+        for (uuid, submission_time) in iteritems(
+                self.uuid_to_submission_times):
             i = self.xform.instances.get(uuid=uuid)
             i.date_created = pytz.timezone('UTC').localize(
                 datetime.strptime(submission_time, MONGO_STRFTIME))

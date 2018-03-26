@@ -10,6 +10,7 @@ import re
 import sys
 from datetime import datetime, timedelta
 from future.moves.urllib.parse import urlparse
+from future.utils import iteritems
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -62,7 +63,7 @@ def md5hash(string):
 
 def get_export_options(options):
     export_options = {
-        key: value for key, value in options.iteritems()
+        key: value for (key, value) in iteritems(options)
         if key in Export.EXPORT_OPTION_FIELDS}
 
     return export_options
