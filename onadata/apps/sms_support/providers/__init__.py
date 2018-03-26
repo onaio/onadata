@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # vim: ai ts=4 sts=4 et sw=4 nu
-
+from __future__ import absolute_import
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
