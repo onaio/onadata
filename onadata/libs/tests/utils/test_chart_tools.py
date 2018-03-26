@@ -64,7 +64,7 @@ class TestChartTools(TestBase):
             '_submitted_by':
             u'bob',
             'items': [{
-                'count': 2L,
+                'count': 2,
                 u'pizza_fan': [u'No']
             }]
         }])
@@ -172,13 +172,13 @@ class TestChartTools(TestBase):
         self.assertEqual(data['data'], [{
             u'gender': [u'Male'],
             'items': [{
-                'count': 1L,
+                'count': 1,
                 u'pizza_fan': [u'No']
             }]
         }, {
             u'gender': [u'Female'],
             'items': [{
-                'count': 1L,
+                'count': 1,
                 u'pizza_fan': [u'No']
             }]
         }])
@@ -198,13 +198,13 @@ class TestChartTools(TestBase):
             u'gender': [u'Male'],
             'items': [{
                 u'a_group/grouped': [u'Yes'],
-                'count': 1L
+                'count': 1
             }]
         }, {
             u'gender': [u'Female'],
             'items': [{
                 u'a_group/grouped': [u'Yes'],
-                'count': 1L
+                'count': 1
             }]
         }])
 
@@ -411,7 +411,7 @@ class TestChartTools(TestBase):
 
         self.assertEqual(get_choice_label(choices, string), [])
 
-        string = long(200)
+        string = int(200)
 
         self.assertEqual(get_choice_label(choices, string), [])
 
@@ -438,7 +438,7 @@ class TestChartTools(TestBase):
             'data_type': 'categorized',
             'field_xpath': u'name_I',
             'data': [{
-                'count': 1L,
+                'count': 1,
                 'name_I': [u'Aynalem Tenaw']
             }],
             'grouped_by': None,
@@ -503,11 +503,11 @@ class TestChartTools(TestBase):
         self.assertEqual(data['grouped_by'], u'_submitted_by')
         self.assertEqual(data['data'], [{
             '_submitted_by': u'bob',
-            'count': 1L,
+            'count': 1,
             u'gender': [u'Female']
         }, {
             '_submitted_by': u'bob',
-            'count': 1L,
+            'count': 1,
             u'gender': [u'Male']
         }])
 
@@ -592,7 +592,7 @@ class TestChartUtilFunctions(unittest.TestCase):
     def test_flatten_multiple_dict_into_one(self):
         input_data = [{
             'count':
-            1L,
+            1,
             'a_var':
             u'female',
             'a_super_group_name/extra_long_variable_name_to_see_if_postgresq':
@@ -601,7 +601,7 @@ class TestChartUtilFunctions(unittest.TestCase):
         expected_data = [{
             'items': [{
                 'count':
-                1L,
+                1,
                 'a_super_group_name/extra_long_variable_name_to_see_if_postgresq': u'melon'  # noqa
             }],
             'a_var':
