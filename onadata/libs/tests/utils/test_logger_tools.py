@@ -1,5 +1,5 @@
 import re
-from io import BytesIO
+from io import StringIO
 
 from django.conf import settings
 
@@ -69,7 +69,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                                  field_name="image1",
                                  content_type="image/jpeg")
         instance = create_instance(self.user.username,
-                                   BytesIO(xml_string.strip()),
+                                   StringIO(xml_string.strip()),
                                    media_files=[media_file])
         self.assertFalse(instance.json[MEDIA_ALL_RECEIVED])
         self.assertEquals(instance.json[TOTAL_MEDIA], 2)
@@ -84,7 +84,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                                   field_name="image2",
                                   content_type="image/jpeg")
         create_instance(self.user.username,
-                        BytesIO(xml_string.strip()),
+                        StringIO(xml_string.strip()),
                         media_files=[media2_file])
         instance2 = Instance.objects.get(pk=instance.pk)
         self.assertTrue(instance2.json[MEDIA_ALL_RECEIVED])
@@ -98,7 +98,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                                   field_name="image2",
                                   content_type="image/jpeg")
         create_instance(self.user.username,
-                        BytesIO(xml_string.strip()),
+                        StringIO(xml_string.strip()),
                         media_files=[media2_file])
         instance3 = Instance.objects.get(pk=instance.pk)
         self.assertTrue(instance3.json[MEDIA_ALL_RECEIVED])
@@ -145,7 +145,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                                  field_name="image1",
                                  content_type="image/jpeg")
         instance = create_instance(self.user.username,
-                                   BytesIO(xml_string.strip()),
+                                   StringIO(xml_string.strip()),
                                    media_files=[media_file])
         self.assertFalse(instance.json[MEDIA_ALL_RECEIVED])
         self.assertEquals(instance.json[TOTAL_MEDIA], 2)
@@ -160,7 +160,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                                   field_name="image1",
                                   content_type="image/jpeg")
         create_instance(self.user.username,
-                        BytesIO(xml_string.strip()),
+                        StringIO(xml_string.strip()),
                         media_files=[media2_file])
         instance2 = Instance.objects.get(pk=instance.pk)
         self.assertTrue(instance2.json[MEDIA_ALL_RECEIVED])
@@ -209,7 +209,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                                  field_name="image1",
                                  content_type="image/jpeg")
         instance = create_instance(self.user.username,
-                                   BytesIO(xml_string.strip()),
+                                   StringIO(xml_string.strip()),
                                    media_files=[media_file])
         self.assertFalse(instance.json[MEDIA_ALL_RECEIVED])
         self.assertEquals(instance.json[TOTAL_MEDIA], 2)
@@ -224,7 +224,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                                   field_name="image1",
                                   content_type="image/jpeg")
         create_instance(self.user.username,
-                        BytesIO(xml_string.strip()),
+                        StringIO(xml_string.strip()),
                         media_files=[media2_file])
         instance2 = Instance.objects.get(pk=instance.pk)
         self.assertTrue(instance2.json[MEDIA_ALL_RECEIVED])
@@ -265,7 +265,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                                  field_name="image1",
                                  content_type="image/jpeg")
         instance = create_instance(self.user.username,
-                                   BytesIO(xml_string.strip()),
+                                   StringIO(xml_string.strip()),
                                    media_files=[media_file])
         self.assertFalse(instance.json[MEDIA_ALL_RECEIVED])
         self.assertEquals(instance.json[TOTAL_MEDIA], 2)
@@ -278,7 +278,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                                   field_name="image1",
                                   content_type="image/jpeg")
         create_instance(self.user.username,
-                        BytesIO(xml_string.strip()),
+                        StringIO(xml_string.strip()),
                         media_files=[media2_file])
         instance2 = Instance.objects.get(pk=instance.pk)
         self.assertFalse(instance2.json[MEDIA_ALL_RECEIVED])
@@ -323,7 +323,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                                   field_name="image1",
                                   content_type="image/jpeg")
         instance = create_instance(self.user.username,
-                                   BytesIO(xml_string.strip()),
+                                   StringIO(xml_string.strip()),
                                    media_files=[media_file, media2_file])
         self.assertFalse(instance.json[MEDIA_ALL_RECEIVED])
         self.assertEquals(instance.json[TOTAL_MEDIA], 2)
