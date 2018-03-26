@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from .test_base_sms import TestBaseSMS
 from onadata.apps.sms_support.tools import SMS_SUBMISSION_REFUSED
 
