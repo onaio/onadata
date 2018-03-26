@@ -4,13 +4,13 @@
 from __future__ import absolute_import
 
 import json
-from parser import process_incoming_smses
 
 from django.http import HttpResponse
 from django.utils.translation import ugettext as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
+from .parser import process_incoming_smses
 from .tools import SMS_API_ERROR
 
 
