@@ -7,8 +7,10 @@ import csv
 import logging
 import six
 import uuid
-from datetime import date, datetime
-from zipfile import ZIP_DEFLATED, ZipFile
+
+from builtins import str
+from datetime import datetime, date
+from zipfile import ZipFile, ZIP_DEFLATED
 
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
@@ -486,7 +488,7 @@ class ExportBuilder(object):
         # for each select_multiple, get the associated data and split it
         for xpath, choices in select_multiples.iteritems():
             # get the data matching this xpath
-            data = row.get(xpath) and unicode(row.get(xpath))
+            data = row.get(xpath) and str(row.get(xpath))
             selections = []
             if data:
                 selections = [

@@ -1,3 +1,4 @@
+from builtins import str
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
@@ -18,6 +19,6 @@ class OrganizationField(serializers.Field):
                     {"value": data}
                 ))
             except ValueError as e:
-                raise serializers.ValidationError(unicode(e))
+                raise serializers.ValidationError(str(e))
 
             return organization
