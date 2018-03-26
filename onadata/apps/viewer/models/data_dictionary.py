@@ -5,6 +5,7 @@ DataDictionary model.
 
 import csv
 import os
+from builtins import str
 from io import BytesIO, StringIO
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -35,7 +36,7 @@ def is_newline_error(e):
     """
     newline_error = u'new-line character seen in unquoted field - do you need'\
         u' to open the file in universal-newline mode?'
-    return newline_error == unicode(e)
+    return newline_error == str(e)
 
 
 def process_xlsform(xls, default_name):

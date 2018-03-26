@@ -1,6 +1,7 @@
 import os
 import re
 import tempfile
+from builtins import str
 from datetime import datetime
 from wsgiref.util import FileWrapper
 from xml.dom import Node
@@ -471,7 +472,7 @@ def publish_form(callback):
     try:
         return callback()
     except (PyXFormError, XLSFormError) as e:
-        return {'type': 'alert-error', 'text': unicode(e)}
+        return {'type': 'alert-error', 'text': str(e)}
     except IntegrityError as e:
         return {
             'type': 'alert-error',
@@ -490,7 +491,7 @@ def publish_form(callback):
                        'Please try again.')),
         }
     except (AttributeError, Exception, ValidationError) as e:
-        return {'type': 'alert-error', 'text': unicode(e)}
+        return {'type': 'alert-error', 'text': str(e)}
 
 
 @transaction.atomic()

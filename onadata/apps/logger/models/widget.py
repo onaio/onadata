@@ -1,10 +1,10 @@
+from builtins import str
 from past.builtins import basestring
 
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import JSONField
-
 from ordered_model.models import OrderedModel
 from querybuilder.fields import AvgField, CountField, SimpleField, SumField
 from querybuilder.query import Query
@@ -90,27 +90,27 @@ class Widget(OrderedModel):
 
         columns = [
             SimpleField(
-                field="json->>'%s'" % unicode(column),
+                field="json->>'%s'" % str(column),
                 alias='{}'.format(column)),
             CountField(
-                field="json->>'%s'" % unicode(column),
+                field="json->>'%s'" % str(column),
                 alias='count')
         ]
 
         if group_by:
             if field_type in NUMERIC_LIST:
                 column_field = SimpleField(
-                    field="json->>'%s'" % unicode(column),
+                    field="json->>'%s'" % str(column),
                     cast="float",
                     alias=column)
             else:
                 column_field = SimpleField(
-                    field="json->>'%s'" % unicode(column), alias=column)
+                    field="json->>'%s'" % str(column), alias=column)
 
             # build inner query
             inner_query_columns = \
                 [column_field,
-                 SimpleField(field="json->>'%s'" % unicode(group_by),
+                 SimpleField(field="json->>'%s'" % str(group_by),
                              alias=group_by),
                  SimpleField(field="xform_id"),
                  SimpleField(field="deleted_at")]
@@ -141,7 +141,7 @@ class Widget(OrderedModel):
         else:
             query = Query().from_table(Instance, columns).\
                 where(xform_id=xform.pk, deleted_at=None)
-            query.group_by("json->>'%s'" % unicode(column))
+            query.group_by("json->>'%s'" % str(column))
 
         # run query
         records = query.select()

@@ -1,15 +1,14 @@
 import os
 import sys
+from builtins import str
 from io import BytesIO
-
 from past.builtins import basestring
-
-from django.core.files.uploadedfile import (InMemoryUploadedFile,
-                                            TemporaryUploadedFile)
-from django.utils.datastructures import MultiValueDict
 
 from celery import task
 from celery.result import AsyncResult
+from django.core.files.uploadedfile import (InMemoryUploadedFile,
+                                            TemporaryUploadedFile)
+from django.utils.datastructures import MultiValueDict
 
 from onadata.apps.api import tools
 from onadata.apps.logger.models.xform import XForm
@@ -52,7 +51,7 @@ def publish_xlsform_async(self, user, post_data, owner, file_data):
                     'publish the form again'
                 )
         else:
-            error_message = unicode(sys.exc_info()[1])
+            error_message = str(sys.exc_info()[1])
 
         return {u'error': error_message}
 

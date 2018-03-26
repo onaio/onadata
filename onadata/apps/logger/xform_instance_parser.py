@@ -1,5 +1,6 @@
 import re
 import dateutil.parser
+from builtins import str
 from xml.dom import minidom, Node
 from django.utils.encoding import smart_text, smart_str
 from django.utils.translation import ugettext as _
@@ -16,7 +17,7 @@ class DuplicateInstance(Exception):
         return _("Duplicate Instance")
 
     def __str__(self):
-        return unicode(self).encode('utf-8')
+        return str(self).encode('utf-8')
 
 
 class InstanceInvalidUserError(Exception):
@@ -24,7 +25,7 @@ class InstanceInvalidUserError(Exception):
         return _("Could not determine the user.")
 
     def __str__(self):
-        return unicode(self).encode('utf-8')
+        return str(self).encode('utf-8')
 
 
 class InstanceParseError(Exception):
@@ -32,7 +33,7 @@ class InstanceParseError(Exception):
         return _("The instance could not be parsed.")
 
     def __str__(self):
-        return unicode(self).encode('utf-8')
+        return str(self).encode('utf-8')
 
 
 class InstanceEmptyError(InstanceParseError):
@@ -40,7 +41,7 @@ class InstanceEmptyError(InstanceParseError):
         return _("Empty instance")
 
     def __str__(self):
-        return unicode(self).encode('utf-8')
+        return str(self).encode('utf-8')
 
 
 class InstanceMultipleNodeError(Exception):
@@ -216,7 +217,7 @@ def _flatten_dict(d, prefix):
                     # hack: removing [1] index to be consistent across
                     # surveys that have a single repitition of the
                     # loop versus mutliple.
-                    item_prefix[-1] += u"[%s]" % unicode(i + 1)
+                    item_prefix[-1] += u"[%s]" % str(i + 1)
 
                 if isinstance(item, dict):
                     for pair in _flatten_dict(item, item_prefix):
