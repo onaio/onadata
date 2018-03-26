@@ -7,7 +7,7 @@ from templated_email import send_templated_mail
 
 
 class Command(BaseCommand):
-    help = ugettext_lazy("Send an email to all formhub users")
+    help = ugettext_lazy("Send an email to all onadata users")
 
     def add_arguments(self, parser):
         parser.add_argument("-m", "--message", dest="message", default=False)
@@ -25,12 +25,13 @@ class Command(BaseCommand):
             if not name or len(name) == 0:
                 name = user.email
             if verbosity:
-                print _('Emailing name: %(name)s, email: %(email)s')\
-                    % {'name': name, 'email': user.email}
+                self.stdout.write(_(
+                    'Emailing name: %(name)s, email: %(email)s')
+                    % {'name': name, 'email': user.email})
             # send each email separately so users cannot see eachother
             send_templated_mail(
                 template_name='notice',
-                from_email='noreply@formhub.org',
+                from_email='noreply@ona.io',
                 recipient_list=[user.email],
                 context={
                     'username': user.username,

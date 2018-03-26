@@ -43,7 +43,7 @@ class Command(BaseCommand):
         with use_master:
             for xform in queryset_iterator(xforms):
                 set_project_perms_to_xform(xform, xform.project)
-                print(gc.collect())
+                self.stdout.write(gc.collect())
 
     def add_arguments(self, parser):
         parser.add_argument('--days', dest='days', type=int, default=0,

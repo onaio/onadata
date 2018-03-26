@@ -20,12 +20,14 @@ class Command(BaseCommand):
         xforms = XForm.objects.filter(pk__in=pks)
         total = xforms.count()
         count = 0
+
         for xform in queryset_iterator(xforms):
             try:
                 xform.instances_with_osm = True
                 xform.save()
             except Exception as e:
-                print e
+                self.stderr.write(e)
             else:
                 count += 1
-        print "%d of %d forms processed." % (count, total)
+
+        self.stdout.write("%d of %d forms processed." % (count, total))

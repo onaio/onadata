@@ -15,7 +15,7 @@ class Command(BaseCommand):
              u" and move them to the default project")
 
     def handle(self, *args, **options):
-        print "Task started ..."
+        self.stdout.write("Task started ...")
         users = User.objects.exclude(
             username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
         )
@@ -24,7 +24,7 @@ class Command(BaseCommand):
         for user in queryset_iterator(users):
             self.set_project_to_user_forms(user)
 
-        print "Task completed ..."
+        self.stdout.write("Task completed ...")
 
     def set_project_to_user_forms(self, user):
         default_project_name = user.username + '\'s Project'
@@ -36,7 +36,7 @@ class Command(BaseCommand):
                                              organization=user,
                                              created_by=user,
                                              metadata=metadata)
-            print "Created project " + project.name
+            self.stdout.write("Created project %s" % project.name)
         finally:
             xforms = user.xforms.filter(project=XFORM_DEFAULT_PROJECT_ID)
 
