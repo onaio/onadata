@@ -1,8 +1,9 @@
 import base64
-from datetime import datetime, date
 import json
 import logging
 import re
+from builtins import str
+from datetime import datetime, date
 from io import StringIO
 
 from django.utils.translation import ugettext as _
@@ -89,7 +90,7 @@ def parse_sms_text(xform, identity, text):
                                       % {'except': e}, xlsf_name)
 
         if xlsf_type == 'text':
-            return safe_wrap(lambda: unicode(value))
+            return safe_wrap(lambda: str(value))
         elif xlsf_type == 'integer':
             return safe_wrap(lambda: int(value))
         elif xlsf_type == 'decimal':
@@ -137,7 +138,7 @@ def parse_sms_text(xform, identity, text):
             # Example: hello.jpg;dGhpcyBpcyBteSBwaWN0dXJlIQ==
             return media_value(value, medias)
         elif xlsf_type == 'barcode':
-            return safe_wrap(lambda: unicode(value))
+            return safe_wrap(lambda: str(value))
         elif xlsf_type == 'date':
             return safe_wrap(lambda: datetime.strptime(value,
                                                        xlsf_date_fmt).date())

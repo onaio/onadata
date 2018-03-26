@@ -1,8 +1,10 @@
 import math
 from datetime import datetime
 
+from builtins import str
 from past.builtins import basestring
 
+from celery import task
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
@@ -13,8 +15,6 @@ from django.db import connection, transaction
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from django.utils.translation import ugettext as _
-
-from celery import task
 from taggit.managers import TaggableManager
 
 from onadata.apps.logger.models.survey_type import SurveyType
@@ -87,7 +87,7 @@ class FormInactiveError(Exception):
         return _("Form is inactive")
 
     def __str__(self):
-        return unicode(self).encode('utf-8')
+        return str(self).encode('utf-8')
 
 
 class FormIsMergedDatasetError(Exception):
@@ -97,7 +97,7 @@ class FormIsMergedDatasetError(Exception):
         return _("Submissions are not allowed on merged datasets.")
 
     def __str__(self):
-        return unicode(self).encode('utf-8')
+        return str(self).encode('utf-8')
 
 
 def numeric_checker(string_value):

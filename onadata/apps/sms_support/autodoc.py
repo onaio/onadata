@@ -15,6 +15,7 @@ from __future__ import absolute_import
 
 import datetime
 import json
+from builtins import str
 
 from .tools import (DEFAULT_ALLOW_MEDIA, DEFAULT_DATE_FORMAT,
                     DEFAULT_DATETIME_FORMAT, DEFAULT_SEPARATOR, MEDIA_TYPES)
@@ -37,7 +38,7 @@ def get_sample_data_for(question, json_survey, as_names=False):
         or DEFAULT_DATETIME_FORMAT
 
     def safe_wrap(value):
-        return unicode(value)
+        return str(value)
 
     if as_names:
         return xlsf_name
@@ -92,7 +93,7 @@ def get_helper_text(question, json_survey):
         value = (u'<span class="sms_autodoc_helper_type">%(type)s</span> '
                  u'<span class="sms_autodoc_helper_message">%(text)s</span>'
                  % {'type': xlsf_type, 'text': value})
-        return unicode(value)
+        return str(value)
 
     if xlsf_type == 'text':
         return safe_wrap(u'Any string (excluding “%s”)' % separator)

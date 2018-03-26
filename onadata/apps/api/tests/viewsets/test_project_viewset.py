@@ -4,13 +4,14 @@ Test ProjectViewSet module.
 """
 import json
 import os
+from builtins import str
 from operator import itemgetter
 
-import requests
 from django.conf import settings
 from django.db.models import Q
 from httmock import HTTMock, urlmatch
 from mock import MagicMock, patch
+import requests
 
 from onadata.apps.api import tools
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
@@ -1736,7 +1737,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEquals(3, len(response.data['teams']))
         self.assertEquals(response.data['teams'][2]['role'], 'editor')
         self.assertEquals(response.data['teams'][2]['users'][0],
-                          unicode(chuck_profile.user.username))
+                          str(chuck_profile.user.username))
 
     def test_project_accesible_by_admin_created_by_diff_admin(self):
         self._org_create()
