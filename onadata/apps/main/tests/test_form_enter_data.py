@@ -2,7 +2,6 @@ import os
 import re
 from time import time
 from future.moves.urllib.parse import urlparse
-
 from past.builtins import basestring
 
 from django.conf import settings
@@ -14,11 +13,11 @@ from django.test import RequestFactory
 import requests
 from httmock import HTTMock, urlmatch
 from nose import SkipTest
-from test_base import TestBase
 
 from onadata.apps.logger.views import enter_data
 from onadata.apps.main.models import MetaData
 from onadata.apps.main.views import qrcode, set_perm, show
+from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.viewer_tools import enketo_url
 
 

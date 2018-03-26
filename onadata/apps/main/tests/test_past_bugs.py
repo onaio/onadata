@@ -3,7 +3,7 @@ from builtins import str
 from pyxform.errors import PyXFormError
 
 from onadata.apps.logger.models import XForm, Instance
-from test_base import TestBase
+from onadata.apps.main.tests.test_base import TestBase
 
 
 class TestInputs(TestBase):
