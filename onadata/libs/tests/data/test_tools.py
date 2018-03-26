@@ -37,7 +37,7 @@ class TestTools(TestBase):
     @patch('onadata.apps.logger.models.instance.submission_time')
     def test_get_form_submissions_grouped_by_field_datetime_to_date(
             self, mock_time):
-        now = datetime(2014, 01, 01, tzinfo=utc)
+        now = datetime(2014, 1, 1, tzinfo=utc)
         times = [now, now + timedelta(seconds=1), now + timedelta(seconds=2),
                  now + timedelta(seconds=3)]
         mock_time.side_effect = times
