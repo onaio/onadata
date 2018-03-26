@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from itertools import chain
-
+from future.utils import iteritems
 from past.builtins import basestring
 
 from django.conf import settings
@@ -280,7 +280,7 @@ class AbstractDataFrameBuilder(object):
     @classmethod
     def _split_gps_fields(cls, record, gps_fields):
         updated_gps_fields = {}
-        for key, value in record.iteritems():
+        for (key, value) in iteritems(record):
             if key in gps_fields and isinstance(value, basestring):
                 gps_xpaths = DataDictionary.get_additional_geopoint_xpaths(key)
                 gps_parts = dict([(xpath, None) for xpath in gps_xpaths])
@@ -396,7 +396,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                     # order repeat according to xform order
                     item = get_ordered_repeat_value(key, item)
 
-                    for nested_key, nested_val in item.iteritems():
+                    for (nested_key, nested_val) in iteritems(item):
                         # given the key "children/details" and nested_key/
                         # abbreviated xpath
                         # "children/details/immunization/polio_1",
@@ -511,7 +511,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             self._split_gps_fields(record, self.gps_fields)
             self._tag_edit_string(record)
             # re index repeats
-            for key, value in record.iteritems():
+            for (key, value) in iteritems(record):
                 self._reindex(
                     key, value, self.ordered_columns, record, self.dd,
                     include_images=image_xpaths,
@@ -522,7 +522,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         # TODO: check for and handle empty results
         # add ordered columns for select multiples
         if self.split_select_multiples:
-            for key, choices in self.select_multiples.items():
+            for (key, choices) in iteritems(self.select_multiples):
                 # HACK to ensure choices are NOT duplicated
                 self.ordered_columns[key] = \
                     remove_dups_from_list_maintain_order(choices)
@@ -545,7 +545,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             self._tag_edit_string(record)
             flat_dict = {}
             # re index repeats
-            for key, value in record.iteritems():
+            for (key, value) in iteritems(record):
                 reindexed = self._reindex(
                     key, value, self.ordered_columns, record, self.dd,
                     include_images=image_xpaths,
@@ -568,7 +568,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
             columns = list(chain.from_iterable(
                 [[xpath] if cols is None else cols
-                 for xpath, cols in self.ordered_columns.iteritems()
+                 for (xpath, cols) in iteritems(self.ordered_columns)
                  if [c for c in dataview.columns if xpath.startswith(c)]]
             ))
             cursor = dataview.query_data(dataview, all_data=True,
@@ -584,7 +584,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
             columns = list(chain.from_iterable(
                 [[xpath] if cols is None else cols
-                 for xpath, cols in self.ordered_columns.iteritems()]))
+                 for (xpath, cols) in iteritems(self.ordered_columns)]))
 
             # add extra columns
             columns += [col for col in self.extra_columns]

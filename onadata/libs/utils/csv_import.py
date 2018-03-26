@@ -8,6 +8,7 @@ from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
 from functools import reduce
+from future.utils import iteritems
 from io import BytesIO
 
 from django.conf import settings
@@ -93,7 +94,7 @@ def dict_merge(a, b):
     if not isinstance(b, dict):
         return b
     result = deepcopy(a)
-    for k, v in b.iteritems():
+    for (k, v) in iteritems(b):
         if k in result and isinstance(result[k], dict):
             result[k] = dict_merge(result[k], v)
         else:
