@@ -34,7 +34,7 @@ def floip_rows_list(data):
     for i, key in enumerate(data, 1):
         if not (key.startswith('_') or key in IGNORE_FIELDS):
             session_id = data['_id']
-            yield [data['_submission_time'], long(pairing(session_id, i)),
+            yield [data['_submission_time'], int(pairing(session_id, i)),
                    data.get('_submitted_by'), data['_id'], key, data[key],
                    None]
 

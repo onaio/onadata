@@ -783,7 +783,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
                 'grouped_by': None,
                 'field_label': u'Pepperoni',
                 'data': [{''
-                          'count': 0L,
+                          'count': 0,
                           'favorite_toppings/pepperoni': None
                           }]
                 },
