@@ -1,8 +1,9 @@
 from __future__ import absolute_import
-from django.db import models
-from .instance import Instance
 
 from django.contrib.auth.models import User
+from django.db import models
+
+from .instance import Instance
 
 
 class Note(models.Model):
