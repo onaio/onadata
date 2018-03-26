@@ -54,5 +54,5 @@ class Command(BaseCommand):
                                           "provided have been updated")
 
         else:
-            print "This command takes at least one argument with the " \
-                  "'--users' or '-u' option e.g -u <username>"
+            self.stdout.write("This command takes at least one argument with "
+                              "the '--users' or '-u' option e.g -u <username>")

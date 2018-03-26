@@ -30,17 +30,17 @@ class Command(BaseCommand):
             raise CommandError(_(u"Invalid username %s") % username)
         debug = False
         if debug:
-            print (_(u"[Importing XForm Instances from %(path)s]\n")
-                   % {'path': path})
+            self.stdout.write(_(u"[Importing XForm Instances from %(path)s]\n")
+                              % {'path': path})
             im_count = len(glob.glob(os.path.join(IMAGES_DIR, '*')))
-            print _(u"Before Parse:")
-            print _(u" --> Images:    %(nb)d") % {'nb': im_count}
-            print (_(u" --> Instances: %(nb)d")
-                   % {'nb': Instance.objects.count()})
+            self.stdout.write(_(u"Before Parse:"))
+            self.stdout.write(_(u" --> Images:    %(nb)d") % {'nb': im_count})
+            self.stdout.write((_(u" --> Instances: %(nb)d")
+                              % {'nb': Instance.objects.count()}))
         import_instances_from_zip(path, user)
         if debug:
             im_count2 = len(glob.glob(os.path.join(IMAGES_DIR, '*')))
-            print _(u"After Parse:")
-            print _(u" --> Images:    %(nb)d") % {'nb': im_count2}
-            print (_(u" --> Instances: %(nb)d")
-                   % {'nb': Instance.objects.count()})
+            self.stdout.write(_(u"After Parse:"))
+            self.stdout.write(_(u" --> Images:    %(nb)d") % {'nb': im_count2})
+            self.stdout.write((_(u" --> Instances: %(nb)d")
+                              % {'nb': Instance.objects.count()}))

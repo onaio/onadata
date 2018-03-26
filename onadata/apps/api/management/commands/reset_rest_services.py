@@ -10,7 +10,7 @@ class Command(BaseCommand):
              u"not null")
 
     def handle(self, *args, **options):
-        print "Task started ..."
+        self.stdout.write("Task started ...")
 
         # Delete old bamboo rest service
         RestService.objects.filter(name='bamboo').delete()
@@ -19,4 +19,4 @@ class Command(BaseCommand):
         for rest in queryset_iterator(RestService.objects.all()):
             rest.save()
 
-        print "Task ended ..."
+        self.stdout.write("Task ended ...")
