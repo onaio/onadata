@@ -5,6 +5,7 @@ Test ProjectViewSet module.
 import json
 import os
 from builtins import str
+from future.utils import iteritems
 from operator import itemgetter
 
 from django.conf import settings
@@ -1312,7 +1313,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         })
 
         data = {'username': 'alice', 'remove': True}
-        for role_name, role_class in role.ROLES.iteritems():
+        for (role_name, role_class) in iteritems(role.ROLES):
 
             ShareProject(self.project, 'alice', role_name).save()
 
@@ -1855,7 +1856,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         view = ProjectViewSet.as_view({'put': 'share'})
 
         data = {'username': 'alice', 'remove': True}
-        for role_name, role_class in role.ROLES.iteritems():
+        for (role_name, role_class) in iteritems(role.ROLES):
 
             ShareProject(self.project, 'alice', role_name).save()
 
@@ -1907,7 +1908,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         view = ProjectViewSet.as_view({'put': 'share'})
 
         data = {'username': 'alice', 'remove': True}
-        for role_name, role_class in role.ROLES.iteritems():
+        for (role_name, role_class) in iteritems(role.ROLES):
 
             ShareProject(self.project, 'alice', role_name).save()
 

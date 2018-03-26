@@ -2,6 +2,7 @@ import json
 import six
 import datetime
 from builtins import str
+from future.utils import iteritems
 
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
 
@@ -35,14 +36,14 @@ def _parse_where(query, known_integers, or_where, or_params):
         '$lte': '<=',
         '$i': '~*'
     }
-    for field_key, field_value in query.iteritems():
+    for (field_key, field_value) in iteritems(query):
         if isinstance(field_value, dict):
             if field_key in NONE_JSON_FIELDS:
                 json_str = NONE_JSON_FIELDS.get(field_key)
             else:
                 json_str = _json_sql_str(
                     field_key, known_integers, KNOWN_DATES)
-            for key, value in field_value.iteritems():
+            for (key, value) in iteritems(field_value):
                 _v = None
                 if key in OPERANDS:
                     where.append(
