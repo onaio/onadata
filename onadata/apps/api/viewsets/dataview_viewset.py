@@ -245,6 +245,12 @@ class DataViewViewSet(AuthenticateHeaderMixin,
                                        meta,
                                        dataview)
 
+    def destroy(self, request, *args, **kwargs):
+        dataview = self.get_object()
+        dataview.soft_delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 def dataview_post_save_callback(sender, instance=None, created=False,
                                 **kwargs):

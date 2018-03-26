@@ -1,30 +1,24 @@
 import datetime
 
-from django.utils.translation import ugettext as _
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import JSONField
 from django.db import connection
 from django.db.models.signals import post_delete, post_save
+from django.utils import timezone
+from django.utils.translation import ugettext as _
 
-from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.project import Project
+from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.parsed_instance_tools import get_where_clause
-from onadata.libs.models.sorting import (
-    json_order_by, json_order_by_params, sort_from_mongo_sort_str)
-from onadata.libs.utils.common_tags import (
-    ATTACHMENTS,
-    EDITED,
-    LAST_EDITED,
-    MONGO_STRFTIME,
-    NOTES,
-    ID,
-    GEOLOCATION,
-    SUBMISSION_TIME)
-from onadata.libs.utils.cache_tools import (
-    safe_delete,
-    DATAVIEW_COUNT,
-    DATAVIEW_LAST_SUBMISSION_TIME,
-    XFORM_LINKED_DATAVIEWS)
+from onadata.libs.models.sorting import (json_order_by, json_order_by_params,
+                                         sort_from_mongo_sort_str)
+from onadata.libs.utils.cache_tools import (DATAVIEW_COUNT,
+                                            DATAVIEW_LAST_SUBMISSION_TIME,
+                                            XFORM_LINKED_DATAVIEWS,
+                                            safe_delete)
+from onadata.libs.utils.common_tags import (ATTACHMENTS, EDITED, GEOLOCATION,
+                                            ID, LAST_EDITED, MONGO_STRFTIME,
+                                            NOTES, SUBMISSION_TIME)
 
 SUPPORTED_FILTERS = ['=', '>', '<', '>=', '<=', '<>', '!=']
 ATTACHMENT_TYPES = ['photo', 'audio', 'video']
@@ -99,6 +93,7 @@ class DataView(models.Model):
     matches_parent = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
+    deleted_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         app_label = 'logger'
@@ -168,6 +163,17 @@ class DataView(models.Model):
             records = row[0]
 
         return True if records else False
+
+    def soft_delete(self):
+        """
+        Soft deletes a dataview by adding a deleted_at timestamp and renaming
+        the dataview by adding a deleted-at and timestamp to the name.
+        """
+        soft_deletion_time = timezone.now()
+        deletion_suffix = soft_deletion_time.strftime('-deleted-at-%s')
+        self.deleted_at = soft_deletion_time
+        self.name += deletion_suffix
+        self.save()
 
     @classmethod
     def _get_where_clause(cls, data_view, form_integer_fields=[],
