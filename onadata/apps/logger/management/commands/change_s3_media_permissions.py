@@ -25,8 +25,9 @@ class Command(BaseCommand):
         try:
             s3 = get_storage_class('storages.backends.s3boto.S3BotoStorage')()
         except Exception:
-            print _(u"Missing necessary libraries. Try running: pip install "
-                    "-r requirements-s3.pip")
+            self.stderr.write(_(
+                u"Missing necessary libraries. Try running: pip install "
+                "-r requirements-s3.pip"))
             sys.exit(1)
         else:
             all_files = s3.bucket.list()
@@ -34,6 +35,8 @@ class Command(BaseCommand):
             for i, f in enumerate(all_files):
                 f.set_acl(permission)
                 if i % 1000 == 0:
-                    print i, "file objects processed"
+                    self.stdout.write(_(
+                        "%s file objects processed" % i))
 
-            print "a total of", i, "file objects processed"
+            self.stdout.write(_(
+                "A total of %s file objects processed" % i))
