@@ -14,5 +14,6 @@ class Command(BaseCommand):
                 dd._mark_start_time_boolean()
                 dd.save()
             except Exception:
-                print (_("Could not mark start time for DD: %(data)s") % {
+                self.stderr.write(_(
+                    "Could not mark start time for DD: %(data)s") % {
                     'data': repr(dd)})
