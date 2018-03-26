@@ -1,4 +1,5 @@
 import datetime
+from builtins import str
 
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
@@ -161,7 +162,7 @@ class DataView(models.Model):
                + u" AND deleted_at IS NULL"
         params = [self.xform.pk, instance.id] + where_params
 
-        cursor.execute(sql, [unicode(i) for i in params])
+        cursor.execute(sql, [str(i) for i in params])
 
         for row in cursor.fetchall():
             records = row[0]
@@ -211,10 +212,10 @@ class DataView(models.Model):
 
             if condi and condi.lower() == 'or':
                 or_where = append_where_list(comp, or_where, json_str)
-                or_params.extend((column, unicode(value)))
+                or_params.extend((column, str(value)))
             else:
                 where = append_where_list(comp, where, json_str)
-                where_params.extend((column, unicode(value)))
+                where_params.extend((column, str(value)))
 
         if or_where:
             or_where = [u"".join([u"(", u" OR ".join(or_where), u")"])]
@@ -228,7 +229,7 @@ class DataView(models.Model):
     def query_iterator(cls, sql, fields=None, params=[], count=False):
         cursor = connection.cursor()
         sql_params = tuple(
-            i if isinstance(i, tuple) else unicode(i) for i in params)
+            i if isinstance(i, tuple) else str(i) for i in params)
 
         if count:
             from_pos = sql.upper().find(' FROM')
@@ -347,14 +348,15 @@ class DataView(models.Model):
         return records
 
 
-# Post delete handler for clearing the dataview cache
 def clear_cache(sender, instance, **kwargs):
-    # clear cache
+    """ Post delete handler for clearing the dataview cache.
+    """
     safe_delete('{}{}'.format(XFORM_LINKED_DATAVIEWS, instance.xform.pk))
 
 
-# Post Save handler for clearing dataview cache on serialized fields
 def clear_dataview_cache(sender, instance, **kwargs):
+    """ Post Save handler for clearing dataview cache on serialized fields.
+    """
     safe_delete('{}{}'.format(DATAVIEW_COUNT, instance.xform.pk))
     safe_delete(
         '{}{}'.format(DATAVIEW_LAST_SUBMISSION_TIME, instance.xform.pk))

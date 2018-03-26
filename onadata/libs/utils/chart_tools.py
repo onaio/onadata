@@ -1,11 +1,11 @@
 import re
+import six
 
+from builtins import str
 from past.builtins import basestring
 
 from django.db.utils import DataError
 from django.http import Http404
-
-import six
 from rest_framework.exceptions import ParseError
 
 from onadata.apps.logger.models.data_view import DataView
@@ -398,7 +398,7 @@ def build_chart_data_from_widget(widget, language_index=0):
         data = build_chart_data_for_field(
             xform, field, language_index, choices=choices)
     except DataError as e:
-        raise ParseError(unicode(e))
+        raise ParseError(str(e))
 
     return data
 
@@ -495,7 +495,7 @@ def get_chart_data_for_field(field_name,
             group_by=group_by,
             data_view=data_view)
     except DataError as e:
-        raise ParseError(unicode(e))
+        raise ParseError(str(e))
     else:
         if accepted_format == 'json':
             xform = xform.pk

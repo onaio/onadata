@@ -1,12 +1,12 @@
 import json
 import requests
+from builtins import str
 
-from mock import patch
 from django_digest.test import DigestAuth
 from django.db.models import signals
 from django.test.utils import override_settings
-
 from httmock import all_requests, HTTMock
+from mock import patch
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
@@ -14,8 +14,7 @@ from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.main.models import UserProfile
 from django.contrib.auth.models import User
 from onadata.libs.serializers.user_profile_serializer import (
-    _get_first_last_names
-)
+    _get_first_last_names)
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
 from onadata.libs.authentication import DigestAuthentication
 from onadata.apps.main.models.user_profile import\
@@ -523,7 +522,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         profile = UserProfile.objects.get(
             user__username=data['username'].lower())
         data['id'] = profile.user.pk
-        data['gravatar'] = unicode(profile.gravatar)
+        data['gravatar'] = str(profile.gravatar)
         data['url'] = 'http://testserver/api/v1/profiles/deno'
         data['user'] = 'http://testserver/api/v1/users/deno'
         data['username'] = u'deno'

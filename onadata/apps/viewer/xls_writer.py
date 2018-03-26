@@ -1,3 +1,4 @@
+from builtins import str
 from collections import defaultdict
 from pyxform import Section, Question
 from xlwt import Workbook
@@ -83,7 +84,7 @@ class XlsWriter(object):
             self.add_sheet(table_name)
             for i, row in enumerate(table):
                 for j, value in enumerate(row):
-                    self._sheets[table_name].write(i, j, unicode(value))
+                    self._sheets[table_name].write(i, j, str(value))
         return self._workbook
 
     def save_workbook_to_file(self):
