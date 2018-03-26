@@ -6,6 +6,7 @@ import uuid
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
+from functools import reduce
 from io import BytesIO
 
 from django.conf import settings

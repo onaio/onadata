@@ -1,11 +1,12 @@
 import base64
 import json
 import os
+import pytz
 import re
 from builtins import str
 from datetime import datetime
+from functools import reduce
 from hashlib import md5
-import pytz
 from xml.dom import Node
 
 from django.conf import settings

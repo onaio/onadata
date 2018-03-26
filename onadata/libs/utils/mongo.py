@@ -1,4 +1,5 @@
 import base64
+from functools import reduce
 import re
 
 
