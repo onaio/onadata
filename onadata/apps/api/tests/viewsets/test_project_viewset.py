@@ -242,6 +242,37 @@ class TestProjectViewSet(TestAbstractViewSet):
             self.assertEqual(self.user, project.created_by)
             self.assertEqual(self.user, project.organization)
 
+    def test_create_duplicate_project(self):
+        """
+        Test creating a project with the same name
+        """
+        self._project_create()
+        self.assertIsNotNone(self.project_data)
+
+        view = ProjectViewSet.as_view({
+            'post': 'create'
+        })
+        data = {
+            'name': u'demo',
+            'owner':
+            'http://testserver/api/v1/users/%s' % self.user.username,
+            'metadata': {'description': 'Some description',
+                         'location': 'Naivasha, Kenya',
+                         'category': 'governance'},
+            'public': False
+        }
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, owner=self.user.username)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data, {
+                u'non_field_errors':
+                [u'The fields name, organization must make a unique set.']
+            }
+        )
+
     def test_projects_create_no_metadata(self):
         data = {
             'name': u'demo',
