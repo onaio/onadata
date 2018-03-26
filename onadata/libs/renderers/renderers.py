@@ -1,6 +1,7 @@
 import decimal
 import json
 import math
+from future.utils import iteritems
 from io import BytesIO
 
 from django.utils.encoding import smart_text
@@ -183,7 +184,7 @@ class XFormListRenderer(BaseRenderer):
                 xml.endElement(self.element_node)
 
         elif isinstance(data, dict):
-            for key, value in six.iteritems(data):
+            for (key, value) in iteritems(data):
                 xml.startElement(key, {})
                 self._to_xml(xml, value)
                 xml.endElement(key)

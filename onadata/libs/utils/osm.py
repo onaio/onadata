@@ -2,6 +2,8 @@
 """
 OSM utility module.
 """
+from future.utils import iteritems
+
 from celery import task
 from django.contrib.gis.geos import (GeometryCollection, LineString, Point,
                                      Polygon)
@@ -221,7 +223,7 @@ def osm_flat_dict(instance_id):
 
     for osm in osm_data:
         for tag in osm.tags:
-            for k, v in tag.iteritems():
+            for (k, v) in iteritems(tag):
                 tags.update({"osm_{}".format(k): v})
 
     return tags
