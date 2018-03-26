@@ -1,10 +1,10 @@
-from test_base import TestBase
 
 from onadata.apps.logger.models import Instance, Project, XForm
 from onadata.apps.main.models.meta_data import (
     MetaData,
     unique_type_for_form,
     upload_to)
+from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.common_tags import GOOGLE_SHEET_DATA_TYPE,\
     GOOGLE_SHEET_ID, USER_ID, UPDATE_OR_DELETE_GOOGLE_SHEET_DATA
 

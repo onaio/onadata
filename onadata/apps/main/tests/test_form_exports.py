@@ -7,11 +7,11 @@ from django.core.urlresolvers import reverse
 from django.utils import timezone
 from xlrd import open_workbook
 
+from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.views import zip_export, kml_export, export_download
 from onadata.libs.utils.export_tools import generate_export
 from onadata.libs.utils.user_auth import http_auth_string
-from test_base import TestBase
 
 
 class TestFormExports(TestBase):
