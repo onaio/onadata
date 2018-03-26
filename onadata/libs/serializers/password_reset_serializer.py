@@ -1,3 +1,6 @@
+from builtins import bytes
+from future.moves.urllib.parse import urlparse
+
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
@@ -6,9 +9,7 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_decode
 from django.utils.http import urlsafe_base64_encode
 from django.utils.translation import ugettext_lazy as _
-
 from rest_framework import serializers
-from future.moves.urllib.parse import urlparse
 
 
 def get_password_reset_email(user, reset_url,
@@ -26,7 +27,7 @@ def get_password_reset_email(user, reset_url,
         'site_name': site_name,
         'uid': urlsafe_base64_encode(force_bytes(user.pk)),
         'username': user.username,
-        'encoded_username': urlsafe_base64_encode(user.username),
+        'encoded_username': urlsafe_base64_encode(bytes(user.username)),
         'token': token_generator.make_token(user),
         'protocol': result.scheme if result.scheme != '' else 'http',
     }

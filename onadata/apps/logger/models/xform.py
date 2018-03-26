@@ -3,7 +3,7 @@ import json
 import os
 import pytz
 import re
-from builtins import str
+from builtins import bytes, str
 from datetime import datetime
 from functools import reduce
 from hashlib import md5
@@ -51,7 +51,7 @@ title_pattern = re.compile(r"<h:title>(.*?)</h:title>")
 
 
 def _encode_for_mongo(key):
-    return reduce(lambda s, c: re.sub(c[0], base64.b64encode(c[1]), s),
+    return reduce(lambda s, c: re.sub(c[0], base64.b64encode(bytes(c[1])), s),
                   [(r'^\$', '$'), (r'\.', '.')], key)
 
 
