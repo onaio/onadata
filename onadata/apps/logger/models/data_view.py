@@ -173,7 +173,7 @@ class DataView(models.Model):
         deletion_suffix = soft_deletion_time.strftime('-deleted-at-%s')
         self.deleted_at = soft_deletion_time
         self.name += deletion_suffix
-        self.save()
+        self.save(update_fields=['date_modified', 'deleted_at', 'name'])
 
     @classmethod
     def _get_where_clause(cls, data_view, form_integer_fields=[],

@@ -38,7 +38,6 @@ from onadata.apps.api.tests.mocked_data import (
     xls_url_no_extension_mock_content_disposition_attr_jumbled_v2)
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
-from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Attachment, Instance, Project, XForm
@@ -3518,7 +3517,8 @@ class TestXFormViewSet(TestAbstractViewSet):
 
     def test_delete_xform_also_deletes_linked_dataviews(self):
         """
-        Tests that filtered datasets are also deleted when a form is deleted
+        Tests that filtered datasets are also soft deleted
+        when a form is soft deleted
         """
         # publish form and make submissions
         xlsform_path = os.path.join(
@@ -3567,13 +3567,10 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.xform.refresh_from_db()
         self.assertIsNotNone(self.xform.deleted_at)
 
-        # check that dataview is also deleted
-        view = DataViewViewSet.as_view({
-            'get': 'data',
-        })
-        request = self.factory.get('/', **self.extra)
-        response = view(request, pk=self.data_view.pk)
-        self.assertEqual(response.status_code, 404)
+        # check that dataview is also soft deleted
+        self.data_view.refresh_from_db()
+        self.assertIsNotNone(self.data_view.deleted_at)
+        self.assertIn("-deleted-at-", self.data_view.name)
 
     def test_multitple_enketo_urls(self):
         with HTTMock(enketo_mock):

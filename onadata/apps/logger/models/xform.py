@@ -843,6 +843,7 @@ class XForm(XFormMixin, BaseModel):
         Mark the XForm as soft deleted, appending a timestamped suffix to the
         id_string and sms_id_string to make the initial values available
         without violating the uniqueness constraint.
+        Also soft deletes associated dataviews
         """
 
         soft_deletion_time = timezone.now()
@@ -855,9 +856,8 @@ class XForm(XFormMixin, BaseModel):
             'date_modified', 'deleted_at', 'id_string', 'sms_id_string',
             'downloadable'
         ])
-
         for dataview in self.dataview_set.all():
-            dataview.delete()
+            dataview.soft_delete()
 
     def submission_count(self, force_update=False):
         if self.num_of_submissions == 0 or force_update:
