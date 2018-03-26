@@ -11,11 +11,13 @@
     Output is HTML ; not raw. Output uses only span markup with classes
     so it should be somewhat easy to restyle """
 
-import json
-import datetime
+from __future__ import absolute_import
 
-from tools import (DEFAULT_SEPARATOR, DEFAULT_ALLOW_MEDIA, MEDIA_TYPES,
-                   DEFAULT_DATE_FORMAT, DEFAULT_DATETIME_FORMAT)
+import datetime
+import json
+
+from .tools import (DEFAULT_ALLOW_MEDIA, DEFAULT_DATE_FORMAT,
+                    DEFAULT_DATETIME_FORMAT, DEFAULT_SEPARATOR, MEDIA_TYPES)
 
 
 def get_sample_data_for(question, json_survey, as_names=False):
