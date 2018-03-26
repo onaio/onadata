@@ -1,6 +1,6 @@
 import json
-
 import requests
+from future.utils import iteritems
 from six import string_types
 
 from onadata.apps.main.models import MetaData
@@ -60,4 +60,4 @@ class ServiceDefinition(RestServiceInterface):
                     self.clean_keys_of_slashes(v)
 
         # remove elements with no value
-        return dict((k, v) for k, v in record.iteritems() if v)
+        return {k: v for (k, v) in iteritems(record) if v}

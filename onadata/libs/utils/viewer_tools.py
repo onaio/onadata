@@ -5,6 +5,7 @@ Util functions for data views.
 import os
 import sys
 import zipfile
+from future.utils import iteritems
 from tempfile import NamedTemporaryFile
 from xml.dom import minidom
 
@@ -237,7 +238,7 @@ def generate_enketo_form_defaults(xform, **kwargs):
     defaults = {}
 
     if kwargs:
-        for name, value in kwargs.iteritems():
+        for (name, value) in iteritems(kwargs):
             field = xform.get_survey_element(name)
             if field:
                 defaults["defaults[{}]".format(field.get_xpath())] = value

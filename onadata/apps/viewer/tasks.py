@@ -4,6 +4,7 @@ Export tasks.
 """
 import sys
 from datetime import timedelta
+from future.utils import iteritems
 
 import librabbitmq
 from celery import task
@@ -57,7 +58,7 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
     def _create_export(xform, export_type, options):
         export_options = {
             key: get_boolean_value(value, default=True)
-            for key, value in options.iteritems()
+            for (key, value) in iteritems(options)
             if key in Export.EXPORT_OPTION_FIELDS
         }
         if query and 'query' not in export_options:
