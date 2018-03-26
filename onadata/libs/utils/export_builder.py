@@ -3,6 +3,7 @@ import logging
 import six
 import uuid
 
+from builtins import str
 from celery import current_task
 from datetime import datetime, date
 from zipfile import ZipFile, ZIP_DEFLATED
@@ -450,7 +451,7 @@ class ExportBuilder(object):
         # for each select_multiple, get the associated data and split it
         for xpath, choices in select_multiples.iteritems():
             # get the data matching this xpath
-            data = row.get(xpath) and unicode(row.get(xpath))
+            data = row.get(xpath) and str(row.get(xpath))
             selections = []
             if data:
                 selections = [

@@ -5,6 +5,7 @@ logger views.
 import json
 import os
 import tempfile
+from builtins import str
 from datetime import datetime
 
 import pytz
@@ -50,7 +51,7 @@ IO_ERROR_STRINGS = [
 
 
 def _bad_request(e):
-    strerror = unicode(e)
+    strerror = str(e)
 
     return strerror and strerror in IO_ERROR_STRINGS
 

@@ -2,11 +2,12 @@ import base64
 import json
 import os
 import re
+from builtins import str
 from datetime import datetime
 from hashlib import md5
+import pytz
 from xml.dom import Node
 
-import pytz
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericRelation
@@ -377,7 +378,7 @@ class XFormMixin(object):
         """
         names = {}
         for elem in self.get_survey_elements():
-            names[_encode_for_mongo(unicode(elem.get_abbreviated_xpath()))] = \
+            names[_encode_for_mongo(str(elem.get_abbreviated_xpath()))] = \
                 elem.get_abbreviated_xpath()
         return names
 
@@ -417,7 +418,7 @@ class XFormMixin(object):
             return []
 
         result = [] if result is None else result
-        path = '/'.join([prefix, unicode(survey_element.name)])
+        path = '/'.join([prefix, str(survey_element.name)])
 
         if survey_element.children is not None:
             # add xpaths to result for each child

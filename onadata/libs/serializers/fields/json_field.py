@@ -1,4 +1,5 @@
 import json
+from builtins import str
 from past.builtins import basestring
 from rest_framework import serializers
 
@@ -16,7 +17,7 @@ class JsonField(serializers.Field):
                 return json.loads(value)
             except ValueError as e:
                 # invalid json
-                raise serializers.ValidationError(unicode(e))
+                raise serializers.ValidationError(str(e))
         return value
 
     @classmethod
