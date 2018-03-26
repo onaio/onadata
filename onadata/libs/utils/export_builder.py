@@ -10,6 +10,7 @@ import uuid
 
 from builtins import str
 from datetime import datetime, date
+from future.utils import iteritems
 from zipfile import ZipFile, ZIP_DEFLATED
 
 from django.conf import settings
@@ -131,7 +132,7 @@ def dict_to_joined_export(data, index, indices, name, survey, row,
     output = {}
     # TODO: test for _geolocation and attachment lists
     if isinstance(data, dict):
-        for key, val in data.iteritems():
+        for (key, val) in iteritems(data):
             if isinstance(val, list) and key not in [NOTES, ATTACHMENTS, TAGS]:
 
                 output[key] = []
