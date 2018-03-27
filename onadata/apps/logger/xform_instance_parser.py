@@ -161,7 +161,7 @@ def _xml_node_to_dict(node, repeats=[], encrypted=False):
 
             child_name = child.nodeName
             child_xpath = xpath_from_xml_node(child)
-            assert d.keys() == [child_name]
+            assert list(d) == [child_name]
             node_type = dict
             # check if name is in list of repeats and make it a list if so
             # All the photo attachments in an encrypted form use name media
