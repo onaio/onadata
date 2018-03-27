@@ -78,7 +78,7 @@ def include_hxl_row(dv_columns, hxl_columns):
 
 
 def _get_export_type(export_type):
-    if export_type in EXPORT_EXT.keys():
+    if export_type in list(EXPORT_EXT):
         export_type = EXPORT_EXT[export_type]
     else:
         raise exceptions.ParseError(
@@ -115,7 +115,7 @@ def custom_response_handler(request,
 
         if columns_with_hxl:
             options['include_hxl'] = include_hxl_row(dataview.columns,
-                                                     columns_with_hxl.keys())
+                                                     list(columns_with_hxl))
     try:
         query = filter_queryset_xform_meta_perms_sql(xform, request.user,
                                                      query)

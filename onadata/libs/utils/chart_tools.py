@@ -449,8 +449,8 @@ def get_field_from_field_xpath(field_xpath, xform):
 
 def get_field_label(field, language_index=0):
     # check if label is dict i.e. multilang
-    if isinstance(field.label, dict) and len(field.label.keys()) > 0:
-        languages = field.label.keys()
+    if isinstance(field.label, dict) and len(list(field.label)) > 0:
+        languages = list(field.label)
         language_index = min(language_index, len(languages) - 1)
         field_label = field.label[languages[language_index]]
     else:

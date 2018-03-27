@@ -435,7 +435,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                             # collapse xpath
                             new_xpath = u"/".join(xpaths)
                             # check if this key exists in our ordered columns
-                            if key in ordered_columns.keys():
+                            if key in list(ordered_columns):
                                 if new_xpath not in ordered_columns[key]:
                                     ordered_columns[key].append(new_xpath)
                             d[new_xpath] = get_value_or_attachment_uri(

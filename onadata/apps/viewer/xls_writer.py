@@ -46,7 +46,7 @@ class XlsWriter(object):
     def add_row(self, sheet_name, row):
         i = self._current_index[sheet_name]
         columns = self._columns[sheet_name]
-        for key in row.keys():
+        for key in list(row):
             if key not in columns:
                 self.add_column(sheet_name, key)
         for j, column_name in enumerate(self._columns[sheet_name]):

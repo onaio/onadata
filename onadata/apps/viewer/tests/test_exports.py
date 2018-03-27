@@ -53,7 +53,7 @@ class TestExports(TestBase):
         xls_writer.add_sheet('section9_pit_latrine_with_slab_group')
         xls_writer.add_sheet('section9_pit_latrine_without_slab_group')
         # create a set of sheet names keys
-        sheet_names_set = set(xls_writer._sheets.keys())
+        sheet_names_set = set(xls_writer._sheets)
         self.assertEqual(len(sheet_names_set), 2)
 
     def test_csv_http_response(self):
@@ -329,7 +329,7 @@ class TestExports(TestBase):
         content = json.loads(response.content)
         self.assertEqual(len(content), 2)
         self.assertEqual(sorted(['url', 'export_id', 'complete', 'filename']),
-                         sorted(content[0].keys()))
+                         sorted(list(content[0])))
 
     def test_auto_export_if_none_exists(self):
         self._publish_transportation_form()

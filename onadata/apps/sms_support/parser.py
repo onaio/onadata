@@ -302,9 +302,9 @@ def process_incoming_smses(username, incomings,
             resp_str.update({'success': json_survey.get('sms_response')})
 
         # check that the form contains at least one filled group
-        meta_groups = sum([1 for k in json_submission.keys()
+        meta_groups = sum([1 for k in list(json_submission)
                            if k.startswith('meta')])
-        if len(json_submission.keys()) <= meta_groups:
+        if len(list(json_submission)) <= meta_groups:
             responses.append({'code': SMS_PARSING_ERROR,
                               'text': _(u"There must be at least one group of "
                                         u"questions filled.")})

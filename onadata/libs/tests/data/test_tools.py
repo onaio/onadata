@@ -31,7 +31,7 @@ class TestTools(TestBase):
             result = get_form_submissions_grouped_by_field(
                 self.xform, field)[0]
 
-            self.assertEqual([field, count_key], sorted(result.keys()))
+            self.assertEqual([field, count_key], sorted(list(result)))
             self.assertEqual(result[count_key], count)
 
     @patch('onadata.apps.logger.models.instance.submission_time')
@@ -55,7 +55,7 @@ class TestTools(TestBase):
             result = get_form_submissions_grouped_by_field(
                 self.xform, field)[0]
 
-            self.assertEqual([field, count_key], sorted(result.keys()))
+            self.assertEqual([field, count_key], sorted(list(result)))
             self.assertEqual(result[field], str(now.date()))
             self.assertEqual(result[count_key], count)
 
@@ -83,7 +83,7 @@ class TestTools(TestBase):
             result = get_form_submissions_grouped_by_field(
                 self.xform, field)[0]
 
-            self.assertEqual([field, count_key], sorted(result.keys()))
+            self.assertEqual([field, count_key], sorted(list(result)))
             self.assertEqual(result[count_key], count)
 
         count = len(first_xform.instances.all())
@@ -92,7 +92,7 @@ class TestTools(TestBase):
             result = get_form_submissions_grouped_by_field(
                 first_xform, field)[0]
 
-            self.assertEqual([field, count_key], sorted(result.keys()))
+            self.assertEqual([field, count_key], sorted(list(result)))
             self.assertEqual(result[count_key], count)
 
     @patch('django.utils.timezone.now')
@@ -130,7 +130,7 @@ class TestTools(TestBase):
             result = get_form_submissions_grouped_by_field(
                 xform, field, name)[0]
 
-            self.assertEqual([name, count_key], sorted(result.keys()))
+            self.assertEqual([name, count_key], sorted(list(result)))
             self.assertEqual(result[count_key], count)
 
     def test_get_form_submissions_when_response_not_provided(self):
