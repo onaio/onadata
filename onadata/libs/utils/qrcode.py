@@ -1,6 +1,7 @@
 from base64 import b64encode
 from elaphe import barcode
 from io import BytesIO
+from past.builtins import basestring
 
 
 def generate_qrcode(message, stream=None,
@@ -11,7 +12,7 @@ def generate_qrcode(message, stream=None,
     if stream is None:
         stream = BytesIO()
 
-    if isinstance(message, unicode):
+    if isinstance(message, basestring):
         message = message.encode()
 
     img = barcode('qrcode', message,
@@ -20,7 +21,8 @@ def generate_qrcode(message, stream=None,
 
     img.save(stream, format)
 
-    datauri = "data:image/png;base64,%s" % b64encode(stream.getvalue())
+    datauri = "data:image/png;base64,%s"\
+        % b64encode(stream.getvalue()).decode("utf-8")
     stream.close()
 
     return datauri
