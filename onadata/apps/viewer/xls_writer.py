@@ -1,4 +1,4 @@
-from builtins import str
+from builtins import str as text
 from collections import defaultdict
 from pyxform import Section, Question
 from xlwt import Workbook
@@ -84,7 +84,7 @@ class XlsWriter(object):
             self.add_sheet(table_name)
             for i, row in enumerate(table):
                 for j, value in enumerate(row):
-                    self._sheets[table_name].write(i, j, str(value))
+                    self._sheets[table_name].write(i, j, text(value))
         return self._workbook
 
     def save_workbook_to_file(self):
@@ -124,7 +124,7 @@ class XlsWriter(object):
             i = 1
             unique_name = sheet_name
             while(unique_name in self._sheets):
-                number_len = len(str(i))
+                number_len = len(text(i))
                 allowed_name_len = self.sheet_name_limit - number_len
                 # make name required len
                 if(len(unique_name) > allowed_name_len):

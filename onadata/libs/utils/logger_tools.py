@@ -1,7 +1,7 @@
 import os
 import re
 import tempfile
-from builtins import str
+from builtins import str as text
 from datetime import datetime
 from wsgiref.util import FileWrapper
 from xml.dom import Node
@@ -374,7 +374,7 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
         error = OpenRosaResponseBadRequest(
             _(u"Received empty submission. No instance was created"))
     except (FormInactiveError, FormIsMergedDatasetError) as e:
-        error = OpenRosaResponseNotAllowed(str(e))
+        error = OpenRosaResponseNotAllowed(text(e))
     except XForm.DoesNotExist:
         error = OpenRosaResponseNotFound(
             _(u"Form does not exist on this account"))
@@ -389,7 +389,8 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
         error = OpenRosaResponseForbidden(e)
     except UnreadablePostError as e:
         error = OpenRosaResponseBadRequest(
-            _(u"Unable to read submitted file: %(error)s" % {'error': str(e)}))
+            _(u"Unable to read submitted file: %(error)s"
+              % {'error': text(e)}))
     except InstanceMultipleNodeError as e:
         error = OpenRosaResponseBadRequest(e)
     except DjangoUnicodeDecodeError:
@@ -472,7 +473,7 @@ def publish_form(callback):
     try:
         return callback()
     except (PyXFormError, XLSFormError) as e:
-        return {'type': 'alert-error', 'text': str(e)}
+        return {'type': 'alert-error', 'text': text(e)}
     except IntegrityError as e:
         return {
             'type': 'alert-error',
@@ -491,7 +492,7 @@ def publish_form(callback):
                        'Please try again.')),
         }
     except (AttributeError, Exception, ValidationError) as e:
-        return {'type': 'alert-error', 'text': str(e)}
+        return {'type': 'alert-error', 'text': text(e)}
 
 
 @transaction.atomic()

@@ -1,7 +1,7 @@
 import re
 import six
 
-from builtins import str
+from builtins import str as text
 from past.builtins import basestring
 
 from django.db.utils import DataError
@@ -398,7 +398,7 @@ def build_chart_data_from_widget(widget, language_index=0):
         data = build_chart_data_for_field(
             xform, field, language_index, choices=choices)
     except DataError as e:
-        raise ParseError(str(e))
+        raise ParseError(text(e))
 
     return data
 
@@ -495,7 +495,7 @@ def get_chart_data_for_field(field_name,
             group_by=group_by,
             data_view=data_view)
     except DataError as e:
-        raise ParseError(str(e))
+        raise ParseError(text(e))
     else:
         if accepted_format == 'json':
             xform = xform.pk
