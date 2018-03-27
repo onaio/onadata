@@ -4,7 +4,7 @@ from onadata.apps.sms_support.tools import (SMS_API_ERROR, SMS_PARSING_ERROR,
                                             SMS_SUBMISSION_ACCEPTED,
                                             SMS_SUBMISSION_REFUSED)
 
-from .test_base_sms import TestBaseSMS
+from onadata.apps.sms_support.tests.test_base_sms import TestBaseSMS
 
 
 class TestParser(TestBaseSMS):

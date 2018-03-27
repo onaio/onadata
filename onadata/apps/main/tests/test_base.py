@@ -87,10 +87,12 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             path = os.path.join(self.this_directory, path)
         with open(path, 'rb') as f:
             xls_file = InMemoryUploadedFile(
-                f, 'xls_file',
+                f,
+                'xls_file',
                 os.path.abspath(os.path.basename(path)),
                 'application/vnd.ms-excel',
-                os.path.getsize(path), None)
+                os.path.getsize(path),
+                None)
             if not hasattr(self, 'project'):
                 self.project = get_user_default_project(self.user)
 
@@ -98,8 +100,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
                 created_by=self.user,
                 user=self.user,
                 xls=xls_file,
-                project=self.project
-            )
+                project=self.project)
 
     def _publish_xlsx_file(self):
         path = os.path.join(self.this_directory, 'fixtures', 'exp.xlsx')
@@ -175,7 +176,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             tmp_file = NamedTemporaryFile(delete=False)
             split_xml = None
 
-            with open(path) as _file:
+            with open(path, encoding='utf-8') as _file:
                 split_xml = re.split(r'(<transport>)', _file.read())
 
             split_xml[1:1] = [
@@ -185,7 +186,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             path = tmp_file.name
             tmp_file.close()
 
-        with open(path) as f:
+        with open(path, encoding='utf-8') as f:
             post_data = {'xml_submission_file': f}
 
             if username is None:
@@ -216,15 +217,16 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             os.unlink(tmp_file.name)
 
     def _make_submission_w_attachment(self, path, attachment_path):
-        with open(path) as f:
+        with open(path, encoding='utf-8') as f:
             data = {'xml_submission_file': f}
             if attachment_path is not None:
                 if isinstance(attachment_path, list):
                     for c in range(len(attachment_path)):
                         data['media_file_{}'.format(c)] = open(
-                            attachment_path[c])
+                            attachment_path[c], 'rb')
                 else:
-                    data['media_file'] = open(attachment_path)
+                    data['media_file'] = open(
+                        attachment_path, 'rb')
 
             url = '/%s/submission' % self.user.username
             auth = DigestAuth('bob', 'bob')
@@ -331,7 +333,8 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         csv_import = \
             open(os.path.join(settings.PROJECT_ROOT, 'apps', 'main',
                               'tests', 'fixtures', 'geolocation',
-                              'GeoLocationForm_2015_01_15_01_28_45.csv'))
+                              'GeoLocationForm_2015_01_15_01_28_45.csv'),
+                 encoding='utf-8')
         post_data = {'csv_file': csv_import}
         request = self.factory.post('/', data=post_data, **self.extra)
         response = view(request, pk=self.xform.id)
@@ -364,7 +367,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         data = get_response_content(response)
         reader = csv.DictReader(BytesIO(data))
         data = [_ for _ in reader]
-        with open(csv_file_path, 'r') as test_file:
+        with open(csv_file_path, encoding='utf-8') as test_file:
             expected_csv_reader = csv.DictReader(test_file)
             for index, row in enumerate(expected_csv_reader):
                 if None in row:
@@ -374,7 +377,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
     def _test_csv_files(self, csv_file, csv_file_path):
         reader = csv.DictReader(csv_file)
         data = [_ for _ in reader]
-        with open(csv_file_path, 'r') as test_file:
+        with open(csv_file_path, encoding='utf-8') as test_file:
             expected_csv_reader = csv.DictReader(test_file)
             for index, row in enumerate(expected_csv_reader):
                 if None in row:
