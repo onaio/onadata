@@ -4,7 +4,7 @@ from onadata.libs.serializers.password_reset_serializer import \
 from django.utils.http import urlsafe_base64_encode
 
 
-class TestPasswordResetEmail(TestBase):
+class TestPasswordResetSerializer(TestBase):
 
     def test_get_password_reset_email(self):
         """Test base64 username is included in reset email."""
