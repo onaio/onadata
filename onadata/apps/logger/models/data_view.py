@@ -166,8 +166,9 @@ class DataView(models.Model):
 
     def soft_delete(self):
         """
-        Soft deletes a dataview by adding a deleted_at timestamp and renaming
-        the dataview by adding a deleted-at and timestamp to the name.
+        Mark the dataview as soft deleted, appending a timestamped suffix to
+        the name to make the initial values available without violating the
+        uniqueness constraint.
         """
         soft_deletion_time = timezone.now()
         deletion_suffix = soft_deletion_time.strftime('-deleted-at-%s')
