@@ -51,7 +51,9 @@ title_pattern = re.compile(r"<h:title>(.*?)</h:title>")
 
 
 def _encode_for_mongo(key):
-    return reduce(lambda s, c: re.sub(c[0], base64.b64encode(bytes(c[1])), s),
+    return reduce(lambda s, c:
+                  re.sub(c[0],
+                         str(base64.b64encode(c[1].encode('utf-8'))), s),
                   [(r'^\$', '$'), (r'\.', '.')], key)
 
 
