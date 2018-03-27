@@ -20,6 +20,8 @@ def get_password_reset_email(user, reset_url,
     """Creates the subject and email body for password reset email."""
     result = urlparse(reset_url)
     site_name = domain = result.hostname
+    encoded_username = urlsafe_base64_encode(
+        bytes(user.username.encode('utf-8')))
     c = {
         'email': user.email,
         'domain': domain,
@@ -27,7 +29,7 @@ def get_password_reset_email(user, reset_url,
         'site_name': site_name,
         'uid': urlsafe_base64_encode(force_bytes(user.pk)),
         'username': user.username,
-        'encoded_username': urlsafe_base64_encode(bytes(user.username)),
+        'encoded_username': encoded_username,
         'token': token_generator.make_token(user),
         'protocol': result.scheme if result.scheme != '' else 'http',
     }
