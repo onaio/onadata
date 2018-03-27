@@ -22,7 +22,7 @@ from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
-from onadata.apps.main.test.test_base import TestBase
+from onadata.apps.main.tests.test_base import TestBase
 
 
 uuid_regex = re.compile(
