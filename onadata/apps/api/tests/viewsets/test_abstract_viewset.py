@@ -1,9 +1,10 @@
 import json
 import os
 import re
+import requests
+from builtins import open
 from tempfile import NamedTemporaryFile
 
-import requests
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import Permission, User
@@ -259,7 +260,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
             "transportation", "transportation.xls")
 
         with HTTMock(enketo_preview_url_mock, enketo_url_mock):
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.post(
                     '/', data=post_data, **self.extra)

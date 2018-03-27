@@ -2,6 +2,7 @@ import os
 import logging
 from hashlib import md5
 from future.moves.urllib.parse import urlparse
+from future.utils import listvalues
 
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
@@ -115,7 +116,7 @@ class XFormMixin(object):
             data[k]['role'] = get_role(data[k]['permissions'], XForm)
             del (data[k]['permissions'])
 
-        xform_perms = data.values()
+        xform_perms = listvalues(data)
 
         cache.set('{}{}'.format(XFORM_PERMISSIONS_CACHE, obj.pk), xform_perms)
 

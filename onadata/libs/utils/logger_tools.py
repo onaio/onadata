@@ -107,7 +107,7 @@ def dict2xform(jsform, form_id, root=None):
 
 def get_uuid_from_submission(xml):
     # parse UUID from uploaded XML
-    split_xml = uuid_regex.split(xml)
+    split_xml = uuid_regex.split(xml.decode('utf-8'))
 
     # check that xml has UUID
     return len(split_xml) > 1 and split_xml[1] or None
