@@ -1,5 +1,5 @@
 import datetime
-from builtins import str
+from builtins import str as text
 
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
@@ -162,7 +162,7 @@ class DataView(models.Model):
                + u" AND deleted_at IS NULL"
         params = [self.xform.pk, instance.id] + where_params
 
-        cursor.execute(sql, [str(i) for i in params])
+        cursor.execute(sql, [text(i) for i in params])
 
         for row in cursor.fetchall():
             records = row[0]
@@ -212,10 +212,10 @@ class DataView(models.Model):
 
             if condi and condi.lower() == 'or':
                 or_where = append_where_list(comp, or_where, json_str)
-                or_params.extend((column, str(value)))
+                or_params.extend((column, text(value)))
             else:
                 where = append_where_list(comp, where, json_str)
-                where_params.extend((column, str(value)))
+                where_params.extend((column, text(value)))
 
         if or_where:
             or_where = [u"".join([u"(", u" OR ".join(or_where), u")"])]
@@ -229,7 +229,7 @@ class DataView(models.Model):
     def query_iterator(cls, sql, fields=None, params=[], count=False):
         cursor = connection.cursor()
         sql_params = tuple(
-            i if isinstance(i, tuple) else str(i) for i in params)
+            i if isinstance(i, tuple) else text(i) for i in params)
 
         if count:
             from_pos = sql.upper().find(' FROM')

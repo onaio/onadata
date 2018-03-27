@@ -7,8 +7,7 @@ import csv
 import logging
 import six
 import uuid
-
-from builtins import str
+from builtins import str as text
 from datetime import datetime, date
 from future.utils import iteritems
 from zipfile import ZipFile, ZIP_DEFLATED
@@ -211,7 +210,7 @@ def track_task_progress(additions, total=None):
             current_task.update_state(state='PROGRESS', meta=meta)
     except Exception as e:
         logging.exception(
-            _(u'Track task progress threw exception: %s' % str(e)))
+            _(u'Track task progress threw exception: %s' % text(e)))
 
 
 def string_to_date_with_xls_validation(date_str):
@@ -489,7 +488,7 @@ class ExportBuilder(object):
         # for each select_multiple, get the associated data and split it
         for (xpath, choices) in iteritems(select_multiples):
             # get the data matching this xpath
-            data = row.get(xpath) and str(row.get(xpath))
+            data = row.get(xpath) and text(row.get(xpath))
             selections = []
             if data:
                 selections = [
@@ -692,7 +691,7 @@ class ExportBuilder(object):
         i = 1
         generated_name = new_sheet_name
         while generated_name in existing_names:
-            digit_length = len(str(i))
+            digit_length = len(text(i))
             allowed_name_len = cls.XLS_SHEET_NAME_MAX_CHARS - \
                 digit_length
             # make name the required len
@@ -1016,7 +1015,7 @@ class ExportBuilder(object):
         if column.lower() in (t.lower() for t in columns):
             if len(column) > 59:
                 column = column[:-5]
-            column = column + "@" + str(uuid.uuid4()).split("-")[1]
+            column = column + "@" + text(uuid.uuid4()).split("-")[1]
 
         return column
 

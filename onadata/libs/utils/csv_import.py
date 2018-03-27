@@ -3,7 +3,7 @@ import logging
 import sys
 import unicodecsv as ucsv
 import uuid
-from builtins import str
+from builtins import str as text
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
@@ -292,7 +292,7 @@ def submit_csv(username, xform, csv_file):
             if error:
                 Instance.objects.filter(
                     uuid__in=rollback_uuids, xform=xform).delete()
-                return async_status(FAILED, str(error))
+                return async_status(FAILED, text(error))
             else:
                 additions += 1
                 if additions % PROGRESS_BATCH_UPDATE == 0:
@@ -320,7 +320,7 @@ def submit_csv(username, xform, csv_file):
         return failed_import(
             rollback_uuids, xform, e, u'CSV file must be utf-8 encoded')
     except Exception as e:
-        return failed_import(rollback_uuids, xform, e, str(e))
+        return failed_import(rollback_uuids, xform, e, text(e))
     finally:
         xform.submission_count(True)
 

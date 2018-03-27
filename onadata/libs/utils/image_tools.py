@@ -1,4 +1,4 @@
-from builtins import str
+from builtins import str as text
 from io import StringIO
 from tempfile import NamedTemporaryFile
 
@@ -61,7 +61,7 @@ def resize(filename):
 
     if req.status_code == 200:
         try:
-            im = StringIO(str(req.content))
+            im = StringIO(text(req.content))
             image = Image.open(im)
             conf = settings.THUMB_CONF
 

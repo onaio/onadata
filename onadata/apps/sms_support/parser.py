@@ -2,7 +2,7 @@ import base64
 import json
 import logging
 import re
-from builtins import str
+from builtins import str as text
 from datetime import datetime, date
 from io import StringIO
 
@@ -90,7 +90,7 @@ def parse_sms_text(xform, identity, text):
                                       % {'except': e}, xlsf_name)
 
         if xlsf_type == 'text':
-            return safe_wrap(lambda: str(value))
+            return safe_wrap(lambda: text(value))
         elif xlsf_type == 'integer':
             return safe_wrap(lambda: int(value))
         elif xlsf_type == 'decimal':
@@ -138,7 +138,7 @@ def parse_sms_text(xform, identity, text):
             # Example: hello.jpg;dGhpcyBpcyBteSBwaWN0dXJlIQ==
             return media_value(value, medias)
         elif xlsf_type == 'barcode':
-            return safe_wrap(lambda: str(value))
+            return safe_wrap(lambda: text(value))
         elif xlsf_type == 'date':
             return safe_wrap(lambda: datetime.strptime(value,
                                                        xlsf_date_fmt).date())
@@ -339,7 +339,7 @@ def process_incoming_smses(username, incomings,
                 notes[idx] = note.replace('${', '{').format(**data)
             except Exception as e:
                 logging.exception(_(u'Updating note threw exception: %s'
-                                  % str(e)))
+                                  % text(e)))
 
         # process_incoming expectes submission to be a file-like object
         xforms.append(StringIO(xml_submission))
@@ -351,7 +351,7 @@ def process_incoming_smses(username, incomings,
         try:
             process_incoming(incoming, id_string)
         except Exception as e:
-            responses.append({'code': SMS_PARSING_ERROR, 'text': str(e)})
+            responses.append({'code': SMS_PARSING_ERROR, 'text': text(e)})
 
     for idx, xform in enumerate(xforms):
         # generate_instance expects media as a request.FILES.values() list

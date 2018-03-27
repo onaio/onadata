@@ -1,7 +1,7 @@
 import math
 from datetime import datetime
 
-from builtins import str
+from builtins import str as text
 from past.builtins import basestring
 
 from celery import task
@@ -87,7 +87,7 @@ class FormInactiveError(Exception):
         return _("Form is inactive")
 
     def __str__(self):
-        return str(self).encode('utf-8')
+        return text(self).encode('utf-8')
 
 
 class FormIsMergedDatasetError(Exception):
@@ -97,7 +97,7 @@ class FormIsMergedDatasetError(Exception):
         return _("Submissions are not allowed on merged datasets.")
 
     def __str__(self):
-        return str(self).encode('utf-8')
+        return text(self).encode('utf-8')
 
 
 def numeric_checker(string_value):

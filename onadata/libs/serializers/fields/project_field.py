@@ -1,4 +1,4 @@
-from builtins import str
+from builtins import str as text
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
@@ -19,6 +19,6 @@ class ProjectField(serializers.Field):
                     {"value": data}
                 ))
             except ValueError as e:
-                raise serializers.ValidationError(str(e))
+                raise serializers.ValidationError(text(e))
 
             return project

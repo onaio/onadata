@@ -3,7 +3,7 @@
 Export model.
 """
 import os
-from builtins import str
+from builtins import str as text
 from tempfile import NamedTemporaryFile
 
 from django.core.files.storage import get_storage_class
@@ -58,7 +58,7 @@ class Export(models.Model):
             return _(u"Invalid export type specified")
 
         def __str__(self):
-            return str(self).encode('utf-8')
+            return text(self).encode('utf-8')
 
     class ExportConnectionError(Exception):
         """
@@ -68,7 +68,7 @@ class Export(models.Model):
             return _(u"Export server is down.")
 
         def __str__(self):
-            return str(self).encode('utf-8')
+            return text(self).encode('utf-8')
 
     XLS_EXPORT = 'xls'
     CSV_EXPORT = 'csv'
