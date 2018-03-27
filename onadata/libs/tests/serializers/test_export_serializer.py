@@ -31,10 +31,10 @@ class TestExportSerializer(TestAbstractViewSet):
         export = create_async_export(self.xform, 'csv', None, False, options)
         serializer = ExportSerializer(instance=export[0], context={'request':
                                                                    request})
-        self.assertEqual(serializer.data.keys(), ['id', 'job_status', 'type',
-                                                  'task_id', 'xform',
-                                                  'date_created', 'filename',
-                                                  'options', 'export_url'])
+        self.assertEqual(list(serializer.data), ['id', 'job_status', 'type',
+                                                 'task_id', 'xform',
+                                                 'date_created', 'filename',
+                                                 'options', 'export_url'])
         self.assertEqual(
             serializer.data.get('export_url'),
             'http://testserver/api/v1/export/%s.csv' % export[0].id

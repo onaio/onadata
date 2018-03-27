@@ -363,7 +363,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         lookup = self.kwargs.get(lookup_field)
         is_public_request = lookup == self.public_data_endpoint
 
-        if lookup_field not in kwargs.keys():
+        if lookup_field not in list(kwargs):
             self.object_list = self.filter_queryset(self.get_queryset())
             serializer = self.get_serializer(self.object_list, many=True)
 

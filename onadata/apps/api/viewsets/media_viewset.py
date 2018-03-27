@@ -55,7 +55,7 @@ class MediaViewSet(AuthenticateHeaderMixin,
                 suffix = request.query_params.get('suffix')
 
                 if suffix:
-                    if suffix in settings.THUMB_CONF.keys():
+                    if suffix in list(settings.THUMB_CONF):
                         try:
                             url = image_url(obj, suffix)
                         except Exception as e:

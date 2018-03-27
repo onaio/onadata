@@ -129,7 +129,7 @@ def get_users(obj, context, all_perms=True):
         if perm.user_id in data:
             data[perm.user_id]['permissions'].append(perm.permission.codename)
 
-    for k in data.keys():
+    for k in list(data):
         data[k]['permissions'].sort()
         data[k]['role'] = get_role(data[k]['permissions'], obj)
         del(data[k]['permissions'])

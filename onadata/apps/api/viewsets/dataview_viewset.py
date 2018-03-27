@@ -125,7 +125,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
 
         if columns_with_hxl and include_hxl:
             include_hxl = include_hxl_row(
-                dataview.columns, columns_with_hxl.keys()
+                dataview.columns, list(columns_with_hxl)
             )
 
         options = {

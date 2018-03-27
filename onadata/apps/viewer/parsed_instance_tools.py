@@ -81,11 +81,11 @@ def get_where_clause(query, form_integer_fields=[]):
             if isinstance(query, list):
                 query = query[0]
 
-            if '$or' in query.keys():
+            if '$or' in list(query):
                 or_dict = query.pop('$or')
                 for l in or_dict:
-                    or_where.extend([u"json->>%s = %s" for i in l.items()])
-                    [or_params.extend(i) for i in l.items()]
+                    or_where.extend([u"json->>%s = %s" for i in iteritems(l)])
+                    [or_params.extend(i) for i in iteritems(l)]
 
                 or_where = [u"".join([u"(", u" OR ".join(or_where), u")"])]
 
