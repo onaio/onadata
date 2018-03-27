@@ -56,7 +56,7 @@ djangorestframework-xml==1.3.0
 djangorestframework==3.6.3  # via djangorestframework-csv, djangorestframework-gis, djangorestframework-jsonapi
 docutils==0.13.1          # via sphinx
 dpath==1.4.0
-elaphe==0.6.0
+elaphe3==0.2.0
 enum34==1.1.6             # via flake8
 et-xmlfile==1.0.1         # via openpyxl
 flake8==3.3.0
