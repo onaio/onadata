@@ -1,5 +1,4 @@
 import requests
-from builtins import str
 from httmock import urlmatch, HTTMock
 
 from onadata.libs.utils.image_tools import resize
@@ -20,5 +19,5 @@ class TestImageTools(TestBase):
             with self.assertRaises(Exception) as io_error:
                 resize('test.jpg')
 
-        self.assertEqual(str(io_error),
+        self.assertEqual(str(io_error.exception),
                          u'The image file couldn\'t be identified')
