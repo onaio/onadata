@@ -189,7 +189,8 @@ def enketo_url(form_url,
         values.update({
             'instance': instance_xml,
             'instance_id': instance_id,
-            'return_url': return_url
+            # convert to unicode string in python3 compatible way
+            'return_url': u'%s' % return_url
         })
 
     if kwargs:
