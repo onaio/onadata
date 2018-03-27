@@ -239,4 +239,4 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
             obj.xform.survey.get('children')
         )
 
-        return include_hxl_row(obj.columns, columns_with_hxl.keys())
+        return include_hxl_row(obj.columns, list(columns_with_hxl))

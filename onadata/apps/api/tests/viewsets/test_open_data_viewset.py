@@ -205,7 +205,7 @@ class TestOpenDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertListEqual(
             ['table_alias', 'column_headers', 'connection_name'],
-            response.data.keys()
+            list(response.data)
         )
         connection_name = u"%s_%s" % (
             self.xform.project_id,

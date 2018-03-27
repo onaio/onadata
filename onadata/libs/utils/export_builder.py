@@ -298,7 +298,7 @@ class ExportBuilder(object):
 
     def get_choice_label_from_dict(self, label):
         if isinstance(label, dict):
-            language = self.get_default_language(label.keys())
+            language = self.get_default_language(list(label))
             label = label.get(language)
 
         return label
@@ -927,7 +927,7 @@ class ExportBuilder(object):
 
             # Determine if all select1 choices are numeric in nature
             # and as such have the field type in spss be numeric
-            choices = all_value_labels[var_name].keys()
+            choices = list(all_value_labels[var_name])
             if len(choices) == 0:
                 return False
 

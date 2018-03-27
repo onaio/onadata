@@ -115,7 +115,7 @@ def dict_pathkeys_to_nested_dicts(dictionary):
     :rtype: dict
     """
     d = dictionary.copy()
-    for key in d.keys():
+    for key in list(d):
         if r'/' in key:
             d = dict_merge(
                 reduce(lambda v, k: {k: v},
@@ -236,7 +236,7 @@ def submit_csv(username, xform, csv_file):
             submission_date = row.get('_submission_time', submission_time)
 
             location_data = {}
-            for key in row.keys():  # seems faster than a comprehension
+            for key in list(row):  # seems faster than a comprehension
                 # remove metadata (keys starting with '_')
                 if key.startswith('_'):
                     del row[key]
@@ -255,7 +255,7 @@ def submit_csv(username, xform, csv_file):
 
             # collect all location K-V pairs into single geopoint field(s)
             # in location_data dict
-            for location_key in location_data.keys():
+            for location_key in list(location_data):
                 location_data.update({
                     location_key:
                     (u'%(latitude)s %(longitude)s '

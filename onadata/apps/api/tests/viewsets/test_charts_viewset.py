@@ -50,13 +50,13 @@ class TestChartsViewSet(TestBase):
         # the instance below has valid start and end times
         instance = Instance.objects.all()[0]
         _dict = instance.parsed_instance.to_dict_for_mongo()
-        self.assertIn('_duration', _dict.keys())
+        self.assertIn('_duration', list(_dict))
         self.assertEqual(_dict.get('_duration'), 24.0)
         self.assertNotEqual(_dict.get('_duration'), None)
 
         _dict = instance.json
         duration = calculate_duration(_dict.get('start_time'), 'invalid')
-        self.assertIn('_duration', _dict.keys())
+        self.assertIn('_duration', list(_dict))
         self.assertEqual(duration, '')
         self.assertNotEqual(duration, None)
 

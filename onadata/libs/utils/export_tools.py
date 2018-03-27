@@ -304,7 +304,7 @@ def should_create_new_export(xform,
     if getattr(settings, 'SHOULD_ALWAYS_CREATE_NEW_EXPORT', False):
         return True
 
-    if (request and (frozenset(request.GET.keys()) &
+    if (request and (frozenset(list(request.GET)) &
                      frozenset(['start', 'end', 'data_id']))) or\
             not split_select_multiples:
         return True
@@ -529,7 +529,7 @@ def kml_export_data(id_string, user, xform=None):
         """
         Get and Cache labels for the XForm.
         """
-        if xpath in labels.keys():
+        if xpath in list(labels):
             return labels[xpath]
         labels[xpath] = xform.get_label(xpath)
 
@@ -552,7 +552,7 @@ def kml_export_data(id_string, user, xform=None):
     for instance in queryset_iterator(instances):
         # read the survey instances
         data_for_display = instance.get_dict()
-        xpaths = data_for_display.keys()
+        xpaths = list(data_for_display)
         xpaths.sort(cmp=instance.xform.get_xpath_cmp())
         table_rows = [
             '<tr><td>%s</td><td>%s</td></tr>' %
@@ -647,7 +647,7 @@ def clean_keys_of_slashes(record):
     :param record: list containing a couple of dictionaries
     :return: record with keys without slashes
     """
-    for key in record.keys():
+    for key in list(record):
         value = record[key]
         if '/' in key:
             # replace with _
