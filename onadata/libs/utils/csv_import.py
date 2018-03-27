@@ -10,6 +10,7 @@ from datetime import datetime
 from functools import reduce
 from future.utils import iteritems
 from io import BytesIO
+from past.builtins import basestring
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -352,7 +353,7 @@ def get_async_csv_submission_status(job_uuid):
             return async_status(
                 celery_state_to_status(job.state), job.result.message)
 
-        if isinstance(result, (str, unicode)):
+        if isinstance(result, basestring):
             return async_status(celery_state_to_status(job.state))
 
     except BacklogLimitExceeded:
