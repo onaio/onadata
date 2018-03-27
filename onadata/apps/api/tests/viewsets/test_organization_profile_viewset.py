@@ -1,5 +1,6 @@
 import json
 from mock import patch
+from past.builtins import basestring
 
 from django.contrib.auth.models import User
 
@@ -146,7 +147,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertIn('users', response.data.keys())
         for user in response.data['users']:
             self.assertEqual(user['role'], 'owner')
-            self.assertEqual(type(user['user']), unicode)
+            self.assertEqual(type(user['user']), basestring)
 
     def test_orgs_get_not_creator(self):
         self._org_create()
@@ -166,7 +167,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertIn('users', response.data.keys())
         for user in response.data['users']:
             self.assertEqual(user['role'], 'owner')
-            self.assertEqual(type(user['user']), unicode)
+            self.assertEqual(type(user['user']), basestring)
 
     def test_orgs_get_anon(self):
         self._org_create()
@@ -181,7 +182,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertIn('users', response.data.keys())
         for user in response.data['users']:
             self.assertEqual(user['role'], 'owner')
-            self.assertEqual(type(user['user']), unicode)
+            self.assertEqual(type(user['user']), basestring)
 
     def test_orgs_create(self):
         self._org_create()
