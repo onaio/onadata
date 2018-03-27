@@ -55,9 +55,10 @@ class Command(BaseCommand):
                         attachment.instance = first
                         attachment.save()
 
-            assert delete_count < dupes_count, \
-                "# of records to delete %d should be less than total # of "\
-                "duplicates %d." % (delete_count, dupes_count)
+            if delete_count >= dupes_count:
+                raise AssertionError(
+                    "# of records to delete %d should be less than total # of "
+                    "duplicates %d." % (delete_count, dupes_count))
             to_delete.delete()
             total_count += dupes_count
             total_deleted += delete_count
