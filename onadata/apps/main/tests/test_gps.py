@@ -1,7 +1,7 @@
 import os
 
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
-from onadata.apps.main.test.test_base import TestBase
+from onadata.apps.main.tests.test_base import TestBase
 
 
 class TestGPS(TestBase):
