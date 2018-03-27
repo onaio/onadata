@@ -6,6 +6,7 @@ import importlib
 import os
 import tempfile
 from datetime import datetime
+from future.utils import listitems
 
 import librabbitmq
 from django import forms
@@ -326,7 +327,7 @@ def do_publish_xlsform(user, post, files, owner, id_string=None, project=None):
         """
 
         if project:
-            args = post or {}
+            args = (post and dict(listitems(post))) or {}
             args['project'] = project.pk
         else:
             args = post
