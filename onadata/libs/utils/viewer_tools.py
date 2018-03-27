@@ -75,8 +75,9 @@ def parse_xform_instance(xml_str):
     # NOTE: THIS WILL DESTROY ANY DATA COLLECTED WITH REPEATABLE NODES
     # THIS IS OKAY FOR OUR USE CASE, BUT OTHER USERS SHOULD BEWARE.
     survey_data = dict(_path_value_pairs(root_node))
-    assert len(list(_all_attributes(root_node))) == 1, \
-        _(u"There should be exactly one attribute in this document.")
+    if len(list(_all_attributes(root_node))) != 1:
+        raise AssertionError(_(
+            u"There should be exactly one attribute in this document."))
     survey_data.update({
         common_tags.XFORM_ID_STRING:
         root_node.getAttribute(u"id"),
