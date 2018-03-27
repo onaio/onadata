@@ -1,4 +1,4 @@
-from builtins import str
+from builtins import str as text
 
 from django.http import Http404
 from django.utils.translation import ugettext as _
@@ -64,7 +64,7 @@ class AttachmentViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
             try:
                 data = get_attachment_data(self.object, suffix)
             except IOError as e:
-                if str(e).startswith('File does not exist'):
+                if text(e).startswith('File does not exist'):
                     raise Http404()
 
                 raise ParseError(e)

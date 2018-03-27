@@ -2,7 +2,7 @@ import datetime
 import json
 import six
 import types
-from builtins import str
+from builtins import str as text
 from dateutil import parser
 
 from django.conf import settings
@@ -85,7 +85,7 @@ def _query_iterator(sql, fields=None, params=[], count=False):
         sql = u"SELECT COUNT(*) FROM (" + sql + ") AS CQ"
         fields = [u'count']
 
-    cursor.execute(sql, [str(i) for i in sql_params])
+    cursor.execute(sql, [text(i) for i in sql_params])
 
     if fields is None:
         for row in cursor.fetchall():

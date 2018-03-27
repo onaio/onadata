@@ -5,7 +5,7 @@ logger views.
 import json
 import os
 import tempfile
-from builtins import str
+from builtins import str as text
 from datetime import datetime
 
 import pytz
@@ -51,7 +51,7 @@ IO_ERROR_STRINGS = [
 
 
 def _bad_request(e):
-    strerror = str(e)
+    strerror = text(e)
 
     return strerror and strerror in IO_ERROR_STRINGS
 
@@ -555,7 +555,7 @@ def edit_data(request, username, id_string, data_id):
         reverse(
             'submission-instance',
             kwargs={'username': username,
-                    'id_string': id_string}) + "#/" + str(instance.id))
+                    'id_string': id_string}) + "#/" + text(instance.id))
     form_url = get_form_url(request, username, settings.ENKETO_PROTOCOL)
 
     try:
