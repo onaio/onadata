@@ -3,6 +3,7 @@ import csv
 import os
 import re
 import socket
+from builtins import open
 from future.moves.urllib.error import URLError
 from future.moves.urllib.request import urlopen
 from io import BytesIO
@@ -84,7 +85,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
     def _publish_xls_file(self, path):
         if not path.startswith('/%s/' % self.user.username):
             path = os.path.join(self.this_directory, path)
-        with open(path) as f:
+        with open(path, 'rb') as f:
             xls_file = InMemoryUploadedFile(
                 f, 'xls_file',
                 os.path.abspath(os.path.basename(path)),
