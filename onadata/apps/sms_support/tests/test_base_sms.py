@@ -36,7 +36,7 @@ class TestBaseSMS(TestBase):
             self.xform = xform
 
     def random_identity(self):
-        return ''.join([random.choice(string.digits + string.letters)
+        return ''.join([random.choice(string.digits + string.ascii_letters)
                         for x in range(8)])
 
     def response_for_text(self, username, text,
