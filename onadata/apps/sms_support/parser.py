@@ -90,7 +90,7 @@ def parse_sms_text(xform, identity, text):
                                       % {'except': e}, xlsf_name)
 
         if xlsf_type == 'text':
-            return safe_wrap(lambda: text(value))
+            return safe_wrap(lambda: str(value))
         elif xlsf_type == 'integer':
             return safe_wrap(lambda: int(value))
         elif xlsf_type == 'decimal':
@@ -259,8 +259,8 @@ def process_incoming_smses(username, incomings,
         if len(incoming) >= 2:
             identity = incoming[0].strip().lower()
             text = incoming[1].strip().lower()
-            # if the tuple contain an id_string, use it, otherwise default
-            if len(incoming) and id_string is None >= 3:
+            # if the tuple contains an id_string, use it, otherwise default
+            if id_string is None and len(incoming) >= 3:
                 id_string = incoming[2]
         else:
             responses.append({'code': SMS_API_ERROR,

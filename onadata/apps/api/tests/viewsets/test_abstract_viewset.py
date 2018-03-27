@@ -260,7 +260,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
             "transportation", "transportation.xls")
 
         with HTTMock(enketo_preview_url_mock, enketo_url_mock):
-            with open(path, 'rb') as xls_file:
+            with open(path, encoding='utf-8') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.post(
                     '/', data=post_data, **self.extra)
@@ -282,7 +282,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         tmp_file = NamedTemporaryFile(delete=False)
         split_xml = None
 
-        with open(path, 'rb') as _file:
+        with open(path, encoding='utf-8') as _file:
             split_xml = re.split(r'(<transport>)', _file.read())
 
         split_xml[1:1] = [
@@ -307,7 +307,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
 
         if add_uuid:
             path = self._add_uuid_to_submission_xml(path, self.xform)
-        with open(path, 'rb') as f:
+        with open(path, encoding='utf-8') as f:
             post_data = {'xml_submission_file': f}
 
             if media_file is not None:
@@ -380,7 +380,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
             media_file = "1335783522563.jpg"
         path = os.path.join(self.main_directory, 'fixtures',
                             'transportation', 'instances', s, media_file)
-        with open(path, 'rb') as f:
+        with open(path, encoding='utf-8') as f:
             self._make_submission(os.path.join(
                 self.main_directory, 'fixtures',
                 'transportation', 'instances', s, s + '.xml'), media_file=f,
@@ -414,7 +414,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         }
 
         if path and data_value:
-            with open(path, 'rb') as media_file:
+            with open(path, encoding='utf-8') as media_file:
                 data.update({
                     'data_file': media_file,
                 })
