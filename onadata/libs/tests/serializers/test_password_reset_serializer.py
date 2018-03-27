@@ -10,5 +10,8 @@ class TestPasswordResetSerializer(TestBase):
         """Test base64 username is included in reset email."""
         subject, email = get_password_reset_email(self.user, 'https://ona.io')
 
-        self.assertIn(urlsafe_base64_encode(self.user.username), email,
-                      "Username is included in reset email.")
+        self.assertIn(
+            urlsafe_base64_encode(
+                bytes(self.user.username.encode('utf-8'))).decode('utf-8'),
+            email,
+            "Username is included in reset email.")
