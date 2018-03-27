@@ -246,12 +246,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         """
         Test creating a project with the same name
         """
-        self._project_create()
-        self.assertIsNotNone(self.project_data)
-
-        view = ProjectViewSet.as_view({
-            'post': 'create'
-        })
+        # data to create project
         data = {
             'name': u'demo',
             'owner':
@@ -261,6 +256,23 @@ class TestProjectViewSet(TestAbstractViewSet):
                          'category': 'governance'},
             'public': False
         }
+
+        # current number of projects
+        count = Project.objects.count()
+
+        # create project using data
+        view = ProjectViewSet.as_view({
+            'post': 'create'
+        })
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, owner=self.user.username)
+        self.assertEqual(response.status_code, 201)
+        after_count = Project.objects.count()
+        self.assertEqual(after_count, count + 1)
+
+        # create another project using the same data
         request = self.factory.post(
             '/', data=json.dumps(data),
             content_type="application/json", **self.extra)
@@ -272,6 +284,8 @@ class TestProjectViewSet(TestAbstractViewSet):
                 [u'The fields name, organization must make a unique set.']
             }
         )
+        final_count = Project.objects.count()
+        self.assertEqual(after_count, final_count)
 
     def test_projects_create_no_metadata(self):
         data = {
