@@ -4,6 +4,7 @@ Test CSVDataFrameBuilder
 """
 import csv
 import os
+from builtins import chr
 from tempfile import NamedTemporaryFile
 
 from django.test.utils import override_settings
@@ -323,7 +324,7 @@ class TestCSVDataFrameBuilder(TestBase):
         """
         Test write_to_csv() with unicode characters.
         """
-        unicode_char = unichr(40960)
+        unicode_char = chr(40960)
         # fake data
         data = [{"key": unicode_char}]
         columns = ["key"]

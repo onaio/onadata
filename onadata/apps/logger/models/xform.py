@@ -7,6 +7,7 @@ from builtins import bytes, str
 from datetime import datetime
 from functools import reduce
 from hashlib import md5
+from past.builtins import cmp
 from xml.dom import Node
 
 from django.conf import settings
