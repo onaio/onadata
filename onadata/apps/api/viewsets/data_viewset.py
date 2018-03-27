@@ -1,6 +1,6 @@
 import json
 import types
-from builtins import str
+from builtins import str as text
 
 from django.db.models import Q
 from django.db.models.query import QuerySet
@@ -63,7 +63,7 @@ BaseViewset = get_baseviewset_class()
 
 
 def get_data_and_form(kwargs):
-    data_id = str(kwargs.get('dataid'))
+    data_id = text(kwargs.get('dataid'))
     if not data_id.isdigit():
         raise ParseError(_(u"Data ID should be an integer"))
 
@@ -80,7 +80,7 @@ def delete_instance(instance):
     try:
         instance.set_deleted(timezone.now())
     except FormInactiveError as e:
-        raise ParseError(str(e))
+        raise ParseError(text(e))
 
 
 class DataViewSet(AnonymousUserPublicFormsMixin,
@@ -261,7 +261,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                     data["url"] = get_enketo_edit_url(
                         request, self.object, return_url)
                 except EnketoError as e:
-                    raise ParseError(str(e))
+                    raise ParseError(text(e))
             else:
                 raise PermissionDenied(_(u"You do not have edit permissions."))
 
@@ -473,9 +473,9 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 )
                 self.etag_hash = get_etag_hash_from_query(records, sql, params)
         except ValueError as e:
-            raise ParseError(str(e))
+            raise ParseError(text(e))
         except DataError as e:
-            raise ParseError(str(e))
+            raise ParseError(text(e))
 
     def _get_data(self, query, fields, sort, start, limit, is_public_request):
         self.set_object_list(

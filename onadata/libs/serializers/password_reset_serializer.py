@@ -1,4 +1,4 @@
-from builtins import bytes
+from builtins import bytes as b
 from future.moves.urllib.parse import urlparse
 
 from django.contrib.auth.models import User
@@ -21,7 +21,7 @@ def get_password_reset_email(user, reset_url,
     result = urlparse(reset_url)
     site_name = domain = result.hostname
     encoded_username = urlsafe_base64_encode(
-        bytes(user.username.encode('utf-8')))
+        b(user.username.encode('utf-8')))
     c = {
         'email': user.email,
         'domain': domain,

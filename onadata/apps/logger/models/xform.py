@@ -3,7 +3,7 @@ import json
 import os
 import pytz
 import re
-from builtins import bytes, str
+from builtins import bytes as b, str as text
 from datetime import datetime
 from functools import reduce
 from future.utils import iteritems
@@ -55,7 +55,7 @@ title_pattern = re.compile(r"<h:title>(.*?)</h:title>")
 def _encode_for_mongo(key):
     return reduce(lambda s, c:
                   re.sub(c[0],
-                         str(base64.b64encode(c[1].encode('utf-8'))), s),
+                         text(base64.b64encode(c[1].encode('utf-8'))), s),
                   [(r'^\$', '$'), (r'\.', '.')], key)
 
 
@@ -310,7 +310,7 @@ class XFormMixin(object):
                 self._survey = \
                     builder.create_survey_element_from_json(self.json)
             except ValueError:
-                xml = bytes(bytearray(self.xml, encoding='utf-8'))
+                xml = b(bytearray(self.xml, encoding='utf-8'))
                 self._survey = create_survey_element_from_xml(xml)
         return self._survey
 
@@ -386,7 +386,7 @@ class XFormMixin(object):
         """
         names = {}
         for elem in self.get_survey_elements():
-            names[_encode_for_mongo(str(elem.get_abbreviated_xpath()))] = \
+            names[_encode_for_mongo(text(elem.get_abbreviated_xpath()))] = \
                 elem.get_abbreviated_xpath()
         return names
 
@@ -426,7 +426,7 @@ class XFormMixin(object):
             return []
 
         result = [] if result is None else result
-        path = '/'.join([prefix, str(survey_element.name)])
+        path = '/'.join([prefix, text(survey_element.name)])
 
         if survey_element.children is not None:
             # add xpaths to result for each child
