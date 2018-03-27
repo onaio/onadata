@@ -26,7 +26,7 @@ from onadata.libs.utils.viewer_tools import get_path
 
 
 def get_attachment_data(attachment, suffix):
-    if suffix in settings.THUMB_CONF.keys():
+    if suffix in list(settings.THUMB_CONF):
         image_url(attachment, suffix)
         suffix = settings.THUMB_CONF.get(suffix).get('suffix')
         f = default_storage.open(

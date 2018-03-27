@@ -105,7 +105,7 @@ def csv_dict_to_nested_dict(csv_dict):
     """
     results = []
 
-    for key in csv_dict.keys():
+    for key in list(csv_dict):
         result = {}
         value = csv_dict[key]
         split_keys = key.split('/')

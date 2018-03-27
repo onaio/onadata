@@ -600,7 +600,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         # updating the file
         if request.FILES or set(['xls_url',
                                  'dropbox_xls_url',
-                                 'text_xls_form']) & set(request.data.keys()):
+                                 'text_xls_form']) & set(request.data):
             return _try_update_xlsform(request, self.object, owner)
 
         try:

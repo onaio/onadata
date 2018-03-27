@@ -144,7 +144,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.company_data)
-        self.assertIn('users', response.data.keys())
+        self.assertIn('users', list(response.data))
         for user in response.data['users']:
             self.assertEqual(user['role'], 'owner')
             self.assertEqual(type(user['user']), basestring)
@@ -164,7 +164,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.company_data)
-        self.assertIn('users', response.data.keys())
+        self.assertIn('users', list(response.data))
         for user in response.data['users']:
             self.assertEqual(user['role'], 'owner')
             self.assertEqual(type(user['user']), basestring)
@@ -179,7 +179,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.company_data)
-        self.assertIn('users', response.data.keys())
+        self.assertIn('users', list(response.data))
         for user in response.data['users']:
             self.assertEqual(user['role'], 'owner')
             self.assertEqual(type(user['user']), basestring)
@@ -365,7 +365,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 200)
-        self.assertIn('users', response.data.keys())
+        self.assertIn('users', list(response.data))
 
         for user in response.data['users']:
             username = user['user']
@@ -575,7 +575,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 200)
-        self.assertIn('users', response.data.keys())
+        self.assertIn('users', list(response.data))
 
         for user in response.data['users']:
             username = user['user']

@@ -104,7 +104,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                                            context={'request': request})
 
         self.assertEqual(response.data, [serializer.data])
-        self.assertIn('created_by', response.data[0].keys())
+        self.assertIn('created_by', list(response.data[0]))
 
     def test_projects_get(self):
         self._project_create()
@@ -120,7 +120,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.project_data)
-        res_user_props = response.data['users'][0].keys()
+        res_user_props = list(response.data['users'][0])
         res_user_props.sort()
         self.assertEqual(res_user_props, user_props)
 
@@ -154,8 +154,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertGreater(
             len(response.data.get('data_views')), 0)
 
-        form_obj_keys = response.data.get('forms')[0].keys()
-        data_view_obj_keys = response.data.get('data_views')[0].keys()
+        form_obj_keys = list(response.data.get('forms')[0])
+        data_view_obj_keys = list(response.data.get('data_views')[0])
         self.assertEqual(['date_created',
                           'downloadable',
                           'encrypted',
@@ -426,7 +426,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         # check if form added appears in the project details
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.project.pk)
-        self.assertIn('forms', response.data.keys())
+        self.assertIn('forms', list(response.data))
         self.assertEqual(len(response.data['forms']), 1)
 
     def test_project_manager_can_assign_form_to_project(self):
@@ -463,7 +463,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         # check if form added appears in the project details
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.project.pk)
-        self.assertIn('forms', response.data.keys())
+        self.assertIn('forms', list(response.data))
         self.assertEqual(len(response.data['forms']), 1)
 
     def test_project_manager_can_assign_form_to_project_no_perm(self):
@@ -2139,7 +2139,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                                            context={'request': request})
 
         self.assertEqual(response.data, [serializer.data])
-        self.assertIn('created_by', response.data[0].keys())
+        self.assertIn('created_by', list(response.data[0]))
 
         request = self.factory.delete('/', **self.extra)
         request.user = self.user
