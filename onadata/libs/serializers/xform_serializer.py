@@ -165,7 +165,8 @@ class XFormMixin(object):
                 return data_views
 
             data_views = DataViewMinimalSerializer(
-                obj.dataview_set.all(), many=True, context=self.context).data
+                obj.dataview_set.filter(deleted_at__isnull=True),
+                many=True, context=self.context).data
 
             cache.set(key, list(data_views))
 

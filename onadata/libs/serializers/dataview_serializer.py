@@ -101,7 +101,7 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
         fields = ('dataviewid', 'name', 'xform', 'project', 'columns', 'query',
                   'matches_parent', 'count', 'instances_with_geopoints',
                   'last_submission_time', 'has_hxl_support', 'url',
-                  'date_created')
+                  'date_created', 'deleted_at')
 
     def create(self, validated_data):
         validated_data = match_columns(validated_data)

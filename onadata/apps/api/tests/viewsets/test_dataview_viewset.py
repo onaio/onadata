@@ -216,22 +216,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.data['name'], 'My DataView updated')
 
-    def test_delete_dataview(self):
-        self._create_dataview()
-        count = DataView.objects.filter(xform=self.xform,
-                                        project=self.project).count()
-
-        request = self.factory.delete('/', **self.extra)
-        response = self.view(request, pk=self.data_view.pk)
-
-        self.assertEquals(response.status_code, 204)
-
-        after_count = DataView.objects.filter(xform=self.xform,
-                                              project=self.project).count()
-
-        self.assertEquals(count - 1, after_count)
-
-    def test_dataview_soft_delete(self):
+    def test_soft_delete_dataview(self):
         """
         Tests that a dataview is soft deleted
         """
@@ -255,7 +240,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertIsNotNone(self.data_view.deleted_at)
         self.assertIn("-deleted-at-", self.data_view.name)
 
-    def test_deleted_dataview_not_in_forms_list(self):
+    def test_soft_deleted_dataview_not_in_forms_list(self):
         self._create_dataview()
         get_form_request = self.factory.get('/', **self.extra)
 
@@ -272,7 +257,6 @@ class TestDataViewViewSet(TestAbstractViewSet):
         xform_serializer = XFormSerializer(
             self.xform,
             context={'request': get_form_request})
-
         self.assertEquals(xform_serializer.data['data_views'], [])
 
     def test_list_dataview(self):

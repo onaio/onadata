@@ -349,6 +349,7 @@ def clear_dataview_cache(sender, instance, **kwargs):
     safe_delete('{}{}'.format(DATAVIEW_COUNT, instance.xform.pk))
     safe_delete(
         '{}{}'.format(DATAVIEW_LAST_SUBMISSION_TIME, instance.xform.pk))
+    safe_delete('{}{}'.format(XFORM_LINKED_DATAVIEWS, instance.xform.pk))
 
 
 post_save.connect(clear_dataview_cache, sender=DataView,
