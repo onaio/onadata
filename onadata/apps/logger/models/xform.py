@@ -837,7 +837,7 @@ class XForm(XFormMixin, BaseModel):
     def __unicode__(self):
         return getattr(self, "id_string", "")
 
-    def soft_delete(self):
+    def soft_delete(self, *kwargs):
         """
         Return the soft deletion timestamp
         Mark the XForm as soft deleted, appending a timestamped suffix to the
@@ -857,7 +857,8 @@ class XForm(XFormMixin, BaseModel):
             'downloadable'
         ])
         for dataview in self.dataview_set.all():
-            dataview.soft_delete()
+            user = self.kwargs.get('user')
+            dataview.soft_delete(user)
 
     def submission_count(self, force_update=False):
         if self.num_of_submissions == 0 or force_update:
