@@ -121,7 +121,7 @@ def _all_attributes(node):
     Go through an XML document returning all the attributes we see.
     """
     if hasattr(node, "hasAttributes") and node.hasAttributes():
-        for key in node.attributes.keys():
+        for key in list(node.attributes):
             yield key, node.getAttribute(key)
     for child in node.childNodes:
         for pair in _all_attributes(child):

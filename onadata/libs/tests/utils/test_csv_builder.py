@@ -123,7 +123,7 @@ class TestCSVDataFrameBuilder(TestBase):
         self._publish_grouped_gps_form()
         self._submit_fixture_instance("grouped_gps", "01")
         data = self._csv_data_for_dataframe()
-        columns = data[0].keys()
+        columns = list(data[0])
         expected_columns = [
             u'gps_group/gps',
             u'gps_group/_gps_latitude',
@@ -203,8 +203,8 @@ class TestCSVDataFrameBuilder(TestBase):
         }
         # build a new dictionary only composed of the keys we want to use in
         # the comparison
-        result = dict([(key, result[key]) for key in result.keys()
-                       if key in expected_result.keys()])
+        result = dict([(key, result[key]) for key in list(result)
+                       if key in list(expected_result)])
         self.assertEqual(expected_result, result)
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username,
@@ -221,8 +221,8 @@ class TestCSVDataFrameBuilder(TestBase):
         }
         # build a new dictionary only composed of the keys we want to use in
         # the comparison
-        result = dict([(key, result[key]) for key in result.keys()
-                       if key in expected_result.keys()])
+        result = dict([(key, result[key]) for key in list(result)
+                       if key in list(expected_result)])
         self.assertEqual(expected_result, result)
 
     # pylint: disable=invalid-name

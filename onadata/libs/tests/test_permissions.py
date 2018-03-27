@@ -119,13 +119,14 @@ class TestPermissions(TestBase):
             self.xform, with_group_users=True)
         self.assertTrue(org_user in [d['user'] for d in users_with_perms])
         self.assertTrue(alice in [d['user'] for d in users_with_perms])
-        self.assertIn('first_name', users_with_perms[0].keys())
-        self.assertIn('last_name', users_with_perms[0].keys())
-        self.assertIn('user', users_with_perms[0].keys())
-        self.assertIn('role', users_with_perms[0].keys())
-        self.assertIn('gravatar', users_with_perms[0].keys())
-        self.assertIn('metadata', users_with_perms[0].keys())
-        self.assertIn('is_org', users_with_perms[0].keys())
+        users_with_perms_first_keys = list(users_with_perms[0])
+        self.assertIn('first_name', users_with_perms_first_keys)
+        self.assertIn('last_name', users_with_perms_first_keys)
+        self.assertIn('user', users_with_perms_first_keys)
+        self.assertIn('role', users_with_perms_first_keys)
+        self.assertIn('gravatar', users_with_perms_first_keys)
+        self.assertIn('metadata', users_with_perms_first_keys)
+        self.assertIn('is_org', users_with_perms_first_keys)
 
     def test_readonly_no_downloads_has_role(self):
         """

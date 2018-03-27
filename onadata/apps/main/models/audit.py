@@ -72,7 +72,7 @@ class AuditLog(object):
             query = json.loads(query)
             or_where = []
             or_params = []
-            if '$or' in query.keys():
+            if '$or' in list(query):
                 or_dict = query.pop('$or')
                 for l in or_dict:
                     or_where.extend([u"json->>%s = %s" for i in l.items()])
