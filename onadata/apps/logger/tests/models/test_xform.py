@@ -2,8 +2,8 @@
 """
 test_xform module
 """
-
 import os
+from past.builtins import basestring
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm, Instance
@@ -42,7 +42,7 @@ class TestXForm(TestBase):
         )
         self._publish_xls_file_and_set_xform(xls_file_path)
 
-        self.assertTrue(isinstance(self.xform.xml, unicode))
+        self.assertTrue(isinstance(self.xform.xml, basestring))
 
         # change title
         self.xform.title = u'Random Title'

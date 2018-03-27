@@ -34,7 +34,7 @@ TX_LOGIN_URL = u'https://www.transifex.com/signin/'
 REPO_ROOT = os.join('..', os.path.dirname(os.path.abspath(__file__)))
 
 
-class DownloadFailed(StandardError):
+class DownloadFailed(Exception):
     pass
 
 
