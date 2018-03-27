@@ -1,5 +1,6 @@
 import datetime
 
+from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import JSONField
 from django.db import connection
@@ -94,6 +95,7 @@ class DataView(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
+    deleted_by = models.ForeignKey(User, related_name='dataview', null=True)
 
     class Meta:
         app_label = 'logger'
@@ -164,7 +166,7 @@ class DataView(models.Model):
 
         return True if records else False
 
-    def soft_delete(self):
+    def soft_delete(self, user):
         """
         Mark the dataview as soft deleted, appending a timestamped suffix to
         the name to make the initial values available without violating the
@@ -174,7 +176,9 @@ class DataView(models.Model):
         deletion_suffix = soft_deletion_time.strftime('-deleted-at-%s')
         self.deleted_at = soft_deletion_time
         self.name += deletion_suffix
-        self.save(update_fields=['date_modified', 'deleted_at', 'name'])
+        self.deleted_by = user
+        self.save(update_fields=['date_modified', 'deleted_at', 'name',
+                                 'deleted_by'])
 
     @classmethod
     def _get_where_clause(cls, data_view, form_integer_fields=[],

@@ -247,7 +247,8 @@ class DataViewViewSet(AuthenticateHeaderMixin,
 
     def destroy(self, request, *args, **kwargs):
         dataview = self.get_object()
-        dataview.soft_delete()
+        user = request.user
+        dataview.soft_delete(user)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 

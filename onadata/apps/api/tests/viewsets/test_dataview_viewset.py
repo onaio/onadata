@@ -239,6 +239,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.data_view = DataView.objects.get(pk=dataview_id)
         self.assertIsNotNone(self.data_view.deleted_at)
         self.assertIn("-deleted-at-", self.data_view.name)
+        self.assertEquals(self.data_view.deleted_by.username, u'bob')
 
     def test_soft_deleted_dataview_not_in_forms_list(self):
         self._create_dataview()
