@@ -1,3 +1,5 @@
+from future.utils import listvalues
+
 from rest_framework import serializers
 from django.db.utils import IntegrityError
 from django.conf import settings
@@ -133,7 +135,7 @@ def get_users(obj, context, all_perms=True):
         data[k]['role'] = get_role(data[k]['permissions'], obj)
         del(data[k]['permissions'])
 
-    results = data.values()
+    results = listvalues(data)
 
     if all_perms:
         cache.set('{}{}'.format(PROJ_PERM_CACHE, obj.pk), results)
