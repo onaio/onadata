@@ -6,6 +6,7 @@ import re
 from builtins import bytes, str
 from datetime import datetime
 from functools import reduce
+from future.utils import iteritems
 from hashlib import md5
 from past.builtins import cmp
 from xml.dom import Node
@@ -88,13 +89,14 @@ class DictOrganizer(object):
             u"_parent_table_name": parent_table_name,
             u"_parent_index": parent_index,
         })
-        for k, v in d.items():
+        for (k, v) in iteritems(d):
             if isinstance(v, dict) and isinstance(v, list):
-                assert k not in obs[table_name][-1]
+                if k in obs[table_name][-1]:
+                    raise AssertionError()
                 obs[table_name][-1][k] = v
         obs[table_name][-1][u"_index"] = this_index
 
-        for k, v in d.items():
+        for (k, v) in iteritems(d):
             if isinstance(v, dict):
                 kwargs = {
                     "d": v,
@@ -117,8 +119,9 @@ class DictOrganizer(object):
         return obs
 
     def get_observation_from_dict(self, d):
-        assert len(d.keys()) == 1
-        root_name = d.keys()[0]
+        if len(list(d)) != 1:
+            raise AssertionError()
+        root_name = list(d)[0]
         kwargs = {
             "d": d[root_name],
             "obs": {},
@@ -535,7 +538,7 @@ class XFormMixin(object):
             label = elem.label
 
             if isinstance(label, dict):
-                language = self.get_language(label.keys())
+                language = self.get_language(list(label))
                 label = label[language] if language else ''
 
             return label
@@ -574,7 +577,8 @@ class XFormMixin(object):
         if not hasattr(self, "_headers"):
             self._headers = self.get_headers()
 
-        assert abbreviated_xpath in self._keys, abbreviated_xpath
+        if abbreviated_xpath not in self._keys:
+            raise AssertionError(abbreviated_xpath)
         i = self._keys.index(abbreviated_xpath)
         header = self._headers[i]
 
@@ -594,7 +598,8 @@ class XFormMixin(object):
             yield i.get_dict(flat=flat)
 
     def _rename_key(self, d, old_key, new_key):
-        assert new_key not in d, d
+        if new_key in d:
+            raise AssertionError(d)
         d[new_key] = d[old_key]
         del d[old_key]
 
@@ -607,7 +612,7 @@ class XFormMixin(object):
 
     def get_data_for_excel(self):
         for d in self.get_list_of_parsed_instances():
-            for key in d.keys():
+            for key in list(d):
                 e = self.get_element(key)
                 _expand_select_all_that_apply(d, key, e)
                 self._expand_geocodes(d, key, e)

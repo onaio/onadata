@@ -1,3 +1,4 @@
+import logging
 import re
 import dateutil.parser
 from builtins import str
@@ -161,7 +162,8 @@ def _xml_node_to_dict(node, repeats=[], encrypted=False):
 
             child_name = child.nodeName
             child_xpath = xpath_from_xml_node(child)
-            assert list(d) == [child_name]
+            if list(d) != [child_name]:
+                raise AssertionError()
             node_type = dict
             # check if name is in list of repeats and make it a list if so
             # All the photo attachments in an encrypted form use name media
@@ -336,13 +338,9 @@ class XFormInstanceParser(object):
         self._attributes = {}
         all_attributes = list(_get_all_attributes(self._root_node))
         for key, value in all_attributes:
-            # commented since enketo forms may have the template attribute in
-            # multiple xml tags and I dont see the harm in overiding
-            # attributes at this point
-            try:
-                assert key not in self._attributes
-            except AssertionError:
-                import logging
+            # Since enketo forms may have the template attribute in
+            # multiple xml tags, overriding and log when this occurs
+            if key in self._attributes:
                 logger = logging.getLogger("console_logger")
                 logger.debug("Skipping duplicate attribute: %s"
                              " with value %s" % (key, value))
