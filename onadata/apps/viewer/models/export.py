@@ -223,7 +223,8 @@ class Export(models.Model):
         self._update_filedir()
 
     def _update_filedir(self):
-        assert self.filename
+        if not self.filename:
+            raise AssertionError()
         self.filedir = os.path.join(self.xform.user.username,
                                     'exports', self.xform.id_string,
                                     self.export_type)
