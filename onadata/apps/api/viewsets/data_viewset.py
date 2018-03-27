@@ -38,7 +38,6 @@ from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
-from onadata.libs.mixins.total_header_mixin import TotalHeaderMixin
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.data_serializer import DataSerializer
 from onadata.libs.serializers.data_serializer import (
@@ -54,6 +53,7 @@ from onadata.libs.exceptions import EnketoError
 from onadata.libs.utils.viewer_tools import get_enketo_edit_url
 from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.data import parse_int
+from onadata.libs.utils.common_tools import json_stream
 from onadata.apps.api.permissions import ConnectViewsetPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.instance import FormInactiveError
@@ -86,7 +86,6 @@ def delete_instance(instance):
 class DataViewSet(AnonymousUserPublicFormsMixin,
                   AuthenticateHeaderMixin,
                   ETagsMixin, CacheControlMixin,
-                  TotalHeaderMixin,
                   BaseViewset,
                   ModelViewSet):
     """
@@ -416,7 +415,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
         if export_type == Attachment.OSM:
             if request.GET:
-                self.set_object_list_and_total_count(
+                self.set_object_list(
                     query, fields, sort, start, limit, is_public_request)
                 kwargs = {'instance__in': self.object_list}
             osm_list = OsmData.objects.filter(**kwargs)
@@ -436,7 +435,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
         return custom_response_handler(request, xform, query, export_type)
 
-    def set_object_list_and_total_count(
+    def set_object_list(
             self, query, fields, sort, start, limit, is_public_request):
         try:
             if not is_public_request:
@@ -452,9 +451,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 limit = limit if start is None or start == 0 else start + limit
                 self.object_list = filter_queryset_xform_meta_perms(
                     self.get_object(), self.request.user, self.object_list)
-                self.object_list = \
-                    self.object_list.order_by('pk')[start: limit]
-                self.total_count = self.object_list.count()
+                self.object_list = self.object_list[start:limit]
             elif (sort or limit or start or fields) and not is_public_request:
                 try:
                     query = \
@@ -464,21 +461,12 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                     self.object_list = query_data(xform, query=query,
                                                   sort=sort, start_index=start,
                                                   limit=limit, fields=fields)
-                    self.total_count = query_data(
-                        xform, query=query, sort=sort, start_index=start,
-                        limit=limit, fields=fields, count=True
-                    )[0].get('count')
-
                 except NoRecordsPermission:
                     self.object_list = []
-                    self.total_count = 0
 
-            else:
-                self.total_count = self.object_list.count()
-
-            if self.total_count and isinstance(self.object_list, QuerySet):
+            if isinstance(self.object_list, QuerySet):
                 self.etag_hash = get_etag_hash_from_query(self.object_list)
-            elif self.total_count:
+            else:
                 sql, params, records = get_sql_with_params(
                     xform, query=query, sort=sort, start_index=start,
                     limit=limit, fields=fields
@@ -490,7 +478,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             raise ParseError(unicode(e))
 
     def _get_data(self, query, fields, sort, start, limit, is_public_request):
-        self.set_object_list_and_total_count(
+        self.set_object_list(
             query, fields, sort, start, limit, is_public_request)
 
         pagination_keys = [self.paginator.page_query_param,
@@ -503,34 +491,23 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
         STREAM_DATA = getattr(settings, 'STREAM_DATA', False)
         if STREAM_DATA:
-            length = self.total_count
-            if should_paginate and \
-                    not isinstance(self.object_list, types.GeneratorType):
-                length = len(self.object_list)
-            response = self._get_streaming_response(length)
+            response = self._get_streaming_response()
         else:
             serializer = self.get_serializer(self.object_list, many=True)
             response = Response(serializer.data)
 
         return response
 
-    def _get_streaming_response(self, length):
-        """Get a StreamingHttpResponse response object
-
-        @param length ensures a valid JSON is generated, avoid a trailing comma
+    def _get_streaming_response(self):
         """
-        def stream_json(data, length):
-            """Generator function to stream JSON data"""
-            yield u"["
-
-            for i, d in enumerate(data, start=1):
-                yield json.dumps(d.json if isinstance(d, Instance) else d)
-                yield "" if i == length else ","
-
-            yield u"]"
+        Get a StreamingHttpResponse response object
+        """
+        def get_json_string(item):
+            return json.dumps(
+                item.json if isinstance(item, Instance) else item)
 
         response = StreamingHttpResponse(
-            stream_json(self.object_list, length),
+            json_stream(self.object_list, get_json_string),
             content_type="application/json"
         )
 

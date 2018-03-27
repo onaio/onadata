@@ -532,7 +532,6 @@ def api(request, username=None, id_string=None):
         response_text = ("%s(%s)" % (callback, response_text))
 
     response = HttpResponse(response_text, content_type='application/json')
-    response['X-total'] = total_records
     add_cors_headers(response)
 
     return response

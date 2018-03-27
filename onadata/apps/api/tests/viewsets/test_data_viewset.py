@@ -441,31 +441,23 @@ class TestDataViewSet(TestBase):
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.has_header('X-total'))
-        self.assertEqual(int(response.get('X-total')), 4)
         self.assertEqual(len(response.data), 4)
 
         request = self.factory.get('/', data={"page": "1", "page_size": 2},
                                    **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.has_header('X-total'))
-        self.assertEqual(int(response.get('X-total')), 4)
         self.assertEqual(len(response.data), 2)
 
         request = self.factory.get('/', data={"page_size": "3"}, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.has_header('X-total'))
-        self.assertEqual(int(response.get('X-total')), 4)
         self.assertEqual(len(response.data), 3)
 
         request = self.factory.get(
             '/', data={"page": "1", "page_size": "2"}, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.has_header('X-total'))
-        self.assertEqual(int(response.get('X-total')), 4)
         self.assertEqual(len(response.data), 2)
 
         # invalid page returns a 404
@@ -722,8 +714,6 @@ class TestDataViewSet(TestBase):
         request = self.factory.get('/', **self.extra)
         response = view(request, pk='public')
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.has_header('X-total'))
-        self.assertEqual(int(response.get('X-total')), 0)
         self.assertEqual(response.data, [])
         self.xform.shared_data = True
         self.xform.save()
@@ -731,8 +721,6 @@ class TestDataViewSet(TestBase):
         data = _data_list(formid)
         response = view(request, pk='public')
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.has_header('X-total'))
-        self.assertEqual(int(response.get('X-total')), 1)
         self.assertEqual(response.data, data)
 
     def test_data_public_anon_user(self):
@@ -870,8 +858,6 @@ class TestDataViewSet(TestBase):
         request = self.factory.get('/?query=%s' % query_str, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.has_header('X-total'))
-        self.assertEqual(int(response.get('X-total')), 1)
         self.assertEqual(len(response.data), 1)
 
         submission_time = instance.date_created.strftime(MONGO_STRFTIME)

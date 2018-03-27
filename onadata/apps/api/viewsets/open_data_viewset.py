@@ -18,10 +18,10 @@ from onadata.apps.logger.models.open_data import OpenData
 from onadata.libs.data import parse_int
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
-from onadata.libs.mixins.total_header_mixin import TotalHeaderMixin
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.data_serializer import DataInstanceSerializer
 from onadata.libs.serializers.open_data_serializer import OpenDataSerializer
+from onadata.libs.utils.common_tools import json_stream
 from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
 
 BaseViewset = get_baseviewset_class()
@@ -32,7 +32,7 @@ def replace_special_characters_with_underscores(data):
     return [re.sub(r"\W", r"_", a) for a in data]
 
 
-class OpenDataViewSet(ETagsMixin, CacheControlMixin, TotalHeaderMixin,
+class OpenDataViewSet(ETagsMixin, CacheControlMixin,
                       BaseViewset, ModelViewSet):
     permission_classes = (OpenDataViewSetPermissions, )
     queryset = OpenData.objects.filter()
@@ -132,42 +132,33 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, TotalHeaderMixin,
                 qs_kwargs.update({'id__gt': gt_id})
 
             instances = Instance.objects.filter(**qs_kwargs).order_by('pk')
-            length = self.total_count = instances.count()
 
             if count:
-                return Response({'count': self.total_count})
+                return Response({'count': instances.count()})
 
             if should_paginate:
                 instances = self.paginate_queryset(instances)
-                length = 1 + self.paginator.page.end_index(
-                ) - self.paginator.page.start_index()
 
             csv_df_builder = CSVDataFrameBuilder(
                 xform.user.username, xform.id_string, include_images=False)
             data = csv_df_builder._format_for_dataframe(
                 DataInstanceSerializer(instances, many=True).data)
 
-            return self._get_streaming_response(data, length)
+            return self._get_streaming_response(data)
 
         return Response(data)
 
-    def _get_streaming_response(self, data, length):
+    def _get_streaming_response(self, data):
         """Get a StreamingHttpResponse response object"""
 
-        def stream_json(streaming_data, length):
-            """Generator function to stream JSON data"""
-            yield u"["
-
-            for i, d in enumerate(streaming_data, start=1):
-                yield json.dumps({
-                    re.sub(r"\W", r"_", a): b for a, b in d.items()
-                })
-                yield "" if i == length else ","
-
-            yield u"]"
+        def get_json_string(item):
+            return json.dumps({
+                re.sub(r"\W", r"_", a): b for a, b in item.items()})
 
         response = StreamingHttpResponse(
-            stream_json(data, length), content_type="application/json")
+            json_stream(data, get_json_string),
+            content_type="application/json"
+        )
 
         # set headers on streaming response
         for k, v in self.headers.items():
