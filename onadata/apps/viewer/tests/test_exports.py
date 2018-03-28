@@ -2,7 +2,7 @@ import csv
 import datetime
 import json
 import os
-from io import BytesIO
+from io import StringIO
 from mock import patch
 from time import sleep
 
@@ -598,7 +598,7 @@ class TestExports(TestBase):
                                   "id_string": self.xform.id_string})
         response = self.client.get(csv_export_url)
         self.assertEqual(response.status_code, 200)
-        f = BytesIO(get_response_content(response))
+        f = StringIO(get_response_content(response))
         csv_reader = csv.reader(f)
         num_rows = len([row for row in csv_reader])
         f.close()
@@ -628,7 +628,7 @@ class TestExports(TestBase):
                                   "id_string": self.xform.id_string})
         response = self.client.get(csv_export_url)
         self.assertEqual(response.status_code, 200)
-        f = BytesIO(get_response_content(response))
+        f = StringIO(get_response_content(response))
         csv_reader = csv.DictReader(f)
         data = [row for row in csv_reader]
         f.close()
