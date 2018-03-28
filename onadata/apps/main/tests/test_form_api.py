@@ -8,7 +8,7 @@ from onadata.apps.main.views import api
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance,\
     _encode_for_mongo
 from onadata.libs.utils.mongo import _decode_from_mongo
-from test_base import TestBase
+from onadata.apps.main.tests.test_base import TestBase
 
 
 def dict_for_mongo_without_userform_id(parsed_instance):
