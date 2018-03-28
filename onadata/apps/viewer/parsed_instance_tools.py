@@ -1,7 +1,7 @@
 import json
 import six
 import datetime
-from builtins import str
+from builtins import str as text
 from future.utils import iteritems
 
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
@@ -54,16 +54,16 @@ def _parse_where(query, known_integers, or_where, or_params):
                     _v = datetime.datetime.strptime(
                         _v[:19], MONGO_STRFTIME)
                 if field_key in NONE_JSON_FIELDS:
-                    where_params.extend([str(_v)])
+                    where_params.extend([text(_v)])
                 else:
-                    where_params.extend((field_key, str(_v)))
+                    where_params.extend((field_key, text(_v)))
         else:
             if field_key in NONE_JSON_FIELDS:
                 where.append("{} = %s".format(NONE_JSON_FIELDS[field_key]))
-                where_params.extend([str(field_value)])
+                where_params.extend([text(field_value)])
             else:
                 where.append(u"json->>%s = %s")
-                where_params.extend((field_key, str(field_value)))
+                where_params.extend((field_key, text(field_value)))
 
     return where + or_where, where_params + or_params
 
