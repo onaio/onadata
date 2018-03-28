@@ -478,12 +478,12 @@ def generate_kml_export(export_type, username, id_string, export_id=None,
     """
     Generates kml export for geographical data
 
-    param: export_type
-    params: username: logged in username
-    params: id_string: xform id_string
-    params: export_id: ID of export object associated with the request
-    param: options: additional parameters required for the lookup.
-        extension: File extension of the generated export
+    :param export_type: type of export
+    :param username: logged in username
+    :param id_string: xform id_string
+    :param export_id: ID of export object associated with the request
+    :param options: additional parameters required for the lookup.
+    :param extension: File extension of the generated export
     """
     export_type = options.get("extension", export_type)
 
@@ -590,12 +590,12 @@ def generate_osm_export(export_type, username, id_string, export_id=None,
     """
     Generates osm export for OpenStreetMap data
 
-    param: export_type
-    params: username: logged in username
-    params: id_string: xform id_string
-    params: export_id: ID of export object associated with the request
-    param: options: additional parameters required for the lookup.
-        ext: File extension of the generated export
+    :param export_type: type of export
+    :param username: logged in username
+    :param id_string: xform id_string
+    :param export_id: ID of export object associated with the request
+    :param options: additional parameters required for the lookup.
+    :param ext: File extension of the generated export
     """
 
     extension = options.get("extension", export_type)
