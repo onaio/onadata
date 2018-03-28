@@ -2,6 +2,8 @@
 """
 OSM utility module.
 """
+from __future__ import unicode_literals
+
 from future.utils import iteritems
 
 from celery import task
@@ -43,7 +45,7 @@ def get_combined_osm(osm_list):
     """
     Combine osm xml form list of OsmData objects
     """
-    xml = u""
+    xml = ''
     if (osm_list and isinstance(osm_list, list)) \
             or isinstance(osm_list, models.QuerySet):
         osm = None
@@ -52,23 +54,18 @@ def get_combined_osm(osm_list):
             _osm = _get_xml_obj(osm_xml)
             if _osm is None:
                 continue
-
             if osm is None:
                 osm = _osm
                 continue
-
             for child in _osm.getchildren():
                 osm.append(child)
-
         if osm is not None:
             # pylint: disable=E1101
-            xml = etree.tostring(osm, encoding='utf-8', xml_declaration=True)
-
+            return etree.tostring(osm, encoding='utf-8', xml_declaration=True)
     elif isinstance(osm_list, dict):
         if 'detail' in osm_list:
-            xml = u'<error>' + osm_list['detail'] + '</error>'
-
-    return xml
+            xml = '<error>%s</error>' % osm_list['detail']
+    return xml.encode('utf-8')
 
 
 def parse_osm_ways(osm_xml, include_osm_id=False):
