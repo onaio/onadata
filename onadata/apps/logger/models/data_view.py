@@ -95,7 +95,9 @@ class DataView(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
-    deleted_by = models.ForeignKey(User, related_name='dataview', null=True)
+    deleted_by = models.ForeignKey(User, related_name='dataview', null=True,
+                                   on_delete=models.SET_NULL, default=None,
+                                   blank=True)
 
     class Meta:
         app_label = 'logger'
@@ -166,7 +168,7 @@ class DataView(models.Model):
 
         return True if records else False
 
-    def soft_delete(self, user):
+    def soft_delete(self, user=None):
         """
         Mark the dataview as soft deleted, appending a timestamped suffix to
         the name to make the initial values available without violating the
@@ -176,7 +178,8 @@ class DataView(models.Model):
         deletion_suffix = soft_deletion_time.strftime('-deleted-at-%s')
         self.deleted_at = soft_deletion_time
         self.name += deletion_suffix
-        self.deleted_by = user
+        if user is not None:
+            self.deleted_by = user
         self.save(update_fields=['date_modified', 'deleted_at', 'name',
                                  'deleted_by'])
 
