@@ -10,7 +10,7 @@ import re
 from collections import OrderedDict
 from datetime import datetime
 from datetime import timedelta
-from io import BytesIO, StringIO
+from io import StringIO
 from xml.dom import Node
 from xml.dom import minidom
 
@@ -3636,7 +3636,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         content = get_response_content(response)
 
         if test_data and field:
-            reader = csv.DictReader(BytesIO(content))
+            reader = csv.DictReader(StringIO(content))
             self.assertEqual([i[field] for i in reader], test_data)
         else:
             with open(test_file_path, 'r') as test_file:

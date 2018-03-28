@@ -1,6 +1,6 @@
 import csv
 import os
-from io import BytesIO
+from io import StringIO
 
 from django.db import IntegrityError, transaction
 from django.db.transaction import TransactionManagementError
@@ -137,7 +137,7 @@ class TestOSMViewSet(TestAbstractViewSet):
         self.assertEqual(ext, '.csv')
 
         content = get_response_content(response)
-        reader = csv.DictReader(BytesIO(content))
+        reader = csv.DictReader(StringIO(content))
         data = [_ for _ in reader]
         test_file_path = os.path.join(self.fixtures_dir, 'osm.csv')
         with open(test_file_path, 'r') as test_file:
