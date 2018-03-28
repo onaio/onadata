@@ -2,6 +2,7 @@
 """
 Util functions for data views.
 """
+import json
 import os
 import sys
 import zipfile
@@ -206,7 +207,7 @@ def enketo_url(form_url,
         verify=getattr(settings, 'VERIFY_SSL', True))
     if response.status_code in [200, 201]:
         try:
-            data = response.json()
+            data = json.loads(response.content)
         except ValueError:
             pass
         else:
@@ -216,7 +217,7 @@ def enketo_url(form_url,
                 return url
     else:
         try:
-            data = response.json()
+            data = json.loads(response.content)
         except ValueError:
             report_exception("HTTP Error {}".format(response.status_code),
                              response.text, sys.exc_info())
@@ -348,14 +349,14 @@ def get_enketo_preview_url(request, username, id_string, xform_pk=None):
         request, username, settings.ENKETO_PROTOCOL, True, xform_pk=xform_pk)
     values = {'form_id': id_string, 'server_url': form_url}
 
-    res = requests.post(
+    response = requests.post(
         settings.ENKETO_PREVIEW_URL,
         data=values,
         auth=(settings.ENKETO_API_TOKEN, ''),
         verify=getattr(settings, 'VERIFY_SSL', True))
 
     try:
-        response = res.json()
+        response = json.loads(response.content)
     except ValueError:
         pass
     else:
