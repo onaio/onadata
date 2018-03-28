@@ -1325,7 +1325,7 @@ class TestExports(TestBase):
 
         response = self.client.post(create_export_url)
         self.assertEqual(response.status_code, 403)
-        self.assertEquals(response.content, u'No XLS Template set.')
+        self.assertEquals(response.content, b'No XLS Template set.')
         self.assertEqual(Export.objects.count(), num_exports)
 
     def test_all_keys_cleaned_of_slashes(self):
