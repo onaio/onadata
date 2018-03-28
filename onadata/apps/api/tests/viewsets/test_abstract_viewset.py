@@ -260,7 +260,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
             "transportation", "transportation.xls")
 
         with HTTMock(enketo_preview_url_mock, enketo_url_mock):
-            with open(path, encoding='utf-8') as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.post(
                     '/', data=post_data, **self.extra)
