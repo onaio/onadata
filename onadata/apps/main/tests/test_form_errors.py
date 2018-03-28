@@ -6,9 +6,9 @@ from django.core.files.storage import get_storage_class
 from pyxform.errors import PyXFormError
 
 from onadata.apps.main.views import show
+from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.logger_tools import XLSFormError
-from test_base import TestBase
 
 
 class TestFormErrors(TestBase):
