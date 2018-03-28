@@ -95,9 +95,9 @@ class DataView(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
-    deleted_by = models.ForeignKey(User, related_name='dataview', null=True,
-                                   on_delete=models.SET_NULL, default=None,
-                                   blank=True)
+    deleted_by = models.ForeignKey(User, related_name='dataview_deleted_by',
+                                   null=True, on_delete=models.SET_NULL,
+                                   default=None, blank=True)
 
     class Meta:
         app_label = 'logger'
