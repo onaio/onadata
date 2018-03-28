@@ -7,13 +7,14 @@ from __future__ import unicode_literals
 import json
 
 from django.test import TestCase
+
 from mock import MagicMock
 
 from onadata.apps.messaging.backends.mqtt import (MQTTBackend, get_payload,
                                                   get_target_metadata)
+from onadata.apps.messaging.constants import PROJECT, XFORM
 from onadata.apps.messaging.tests.test_base import (_create_message,
                                                     _create_user)
-from onadata.apps.messaging.constants import PROJECT, XFORM
 
 
 class TestMQTTBackend(TestCase):
