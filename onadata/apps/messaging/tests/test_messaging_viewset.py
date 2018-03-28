@@ -4,7 +4,7 @@ Tests Messaging app viewsets.
 """
 from __future__ import unicode_literals
 
-from builtins import str  # pylint: disable=W0622
+from builtins import str as text
 
 from django.test import TestCase
 
@@ -44,7 +44,7 @@ class TestMessagingViewSet(TestCase):
         self.assertDictContainsSubset(data, response.data)
         # ensure that id and timestamp are returned
         self.assertTrue('id' and 'timestamp' in
-                        [str(x) for x in list(response.data)])
+                        [text(x) for x in list(response.data)])
         return response.data
 
     def test_create_message(self):

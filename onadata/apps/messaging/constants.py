@@ -5,13 +5,13 @@ Messaging constant variables.
 
 from __future__ import unicode_literals
 
-from builtins import str  # pylint: disable=W0622
+from builtins import str as text
 
 from django.utils.translation import ugettext as _
 
-XFORM = str('xform')
-PROJECT = str('project')
-USER = str('user')
+XFORM = text('xform')
+PROJECT = text('project')
+USER = text('user')
 
 APP_LABEL_MAPPING = {
     XFORM: 'logger',
