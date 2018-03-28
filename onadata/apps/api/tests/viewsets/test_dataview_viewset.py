@@ -227,8 +227,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         request = self.factory.get('/', **self.extra)
         response = self.view(request, pk=dataview_id)
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.data['name'], u'My DataView')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['name'], u'My DataView')
 
         # delete
         request = self.factory.delete('/', **self.extra)
@@ -236,10 +236,10 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 204)
 
         # check that it is soft deleted
-        self.data_view = DataView.objects.get(pk=dataview_id)
-        self.assertIsNotNone(self.data_view.deleted_at)
-        self.assertIn("-deleted-at-", self.data_view.name)
-        self.assertEquals(self.data_view.deleted_by.username, u'bob')
+        data_view = DataView.objects.get(pk=dataview_id)
+        self.assertIsNotNone(data_view.deleted_at)
+        self.assertIn("-deleted-at-", data_view.name)
+        self.assertEqual(data_view.deleted_by.username, u'bob')
 
     def test_soft_deleted_dataview_not_in_forms_list(self):
         self._create_dataview()
