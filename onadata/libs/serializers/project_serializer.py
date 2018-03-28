@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.db.utils import IntegrityError
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.cache import cache
@@ -349,18 +350,23 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         if metadata is None:
             metadata = dict()
         created_by = self.context['request'].user
-        project = Project.objects.create(
-            name=validated_data.get('name'),
-            organization=validated_data.get('organization'),
-            created_by=created_by,
-            shared=validated_data.get('shared', False),
-            metadata=metadata
-        )
 
-        project.xform_set.exclude(shared=project.shared)\
-            .update(shared=project.shared, shared_data=project.shared)
+        try:
+            project = Project.objects.create(
+                name=validated_data.get('name'),
+                organization=validated_data.get('organization'),
+                created_by=created_by,
+                shared=validated_data.get('shared', False),
+                metadata=metadata
+            )
+            project.xform_set.exclude(shared=project.shared)\
+                .update(shared=project.shared, shared_data=project.shared)
 
-        return project
+            return project
+
+        except IntegrityError:
+            raise serializers.ValidationError(
+                "The fields name, organization must make a unique set.")
 
     def get_users(self, obj):
         return get_users(obj, self.context)
