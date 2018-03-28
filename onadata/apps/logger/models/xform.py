@@ -662,6 +662,9 @@ class XForm(XFormMixin, BaseModel):
     downloadable = models.BooleanField(default=True)
     allows_sms = models.BooleanField(default=False)
     encrypted = models.BooleanField(default=False)
+    deleted_by = models.ForeignKey(User, related_name='xform_deleted_by',
+                                   null=True, on_delete=models.SET_NULL,
+                                   default=None, blank=True)
 
     # the following fields are filled in automatically
     sms_id_string = models.SlugField(
@@ -852,10 +855,13 @@ class XForm(XFormMixin, BaseModel):
         self.id_string += deletion_suffix
         self.sms_id_string += deletion_suffix
         self.downloadable = False
-        self.save(update_fields=[
-            'date_modified', 'deleted_at', 'id_string', 'sms_id_string',
-            'downloadable'
-        ])
+        update_fields = ['date_modified', 'deleted_at', 'id_string',
+                         'sms_id_string', 'downloadable']
+        if user is not None:
+            self.deleted_by = user
+            update_fields.append('deleted_by')
+
+        self.save(update_fields=update_fields)
         for dataview in self.dataview_set.all():
             dataview.soft_delete(user)
 
