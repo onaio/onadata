@@ -74,26 +74,26 @@ class TestFormExports(TestBase):
         params = {'end': end_time}
         response = self.client.get(url, params)
         self.assertEqual(response.status_code, 200)
-        content = get_response_content(response)
+        content = get_response_content(response, decode=False)
         self.assertEqual(self._num_rows(content, export_format), 3)
         # test restricting to after start time, thus excluding the initial
         # submission
         params = {'start': start_time}
         response = self.client.get(url, params)
         self.assertEqual(response.status_code, 200)
-        content = get_response_content(response)
+        content = get_response_content(response, decode=False)
         self.assertEqual(self._num_rows(content, export_format), 3)
         # test no time restriction
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        content = get_response_content(response)
+        content = get_response_content(response, decode=False)
         self.assertEqual(self._num_rows(content, export_format), 4)
         # test restricting to between start time and end time
         params = {'start': start_time, 'end': end_time}
         response = self.client.get(url, params)
         self.assertEqual(response.status_code, 200)
-        content = get_response_content(response)
+        content = get_response_content(response, decode=False)
         self.assertEqual(self._num_rows(content, export_format), 2)
 
     def test_filter_by_date_csv(self):
