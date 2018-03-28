@@ -380,7 +380,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
             media_file = "1335783522563.jpg"
         path = os.path.join(self.main_directory, 'fixtures',
                             'transportation', 'instances', s, media_file)
-        with open(path, encoding='utf-8') as f:
+        with open(path, 'rb') as f:
             self._make_submission(os.path.join(
                 self.main_directory, 'fixtures',
                 'transportation', 'instances', s, s + '.xml'), media_file=f,
@@ -414,7 +414,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         }
 
         if path and data_value:
-            with open(path, encoding='utf-8') as media_file:
+            with open(path, 'rb') as media_file:
                 data.update({
                     'data_file': media_file,
                 })
