@@ -165,7 +165,8 @@ class XFormMixin(object):
                 return data_views
 
             data_views = DataViewMinimalSerializer(
-                obj.dataview_set.all(), many=True, context=self.context).data
+                obj.dataview_set.filter(deleted_at__isnull=True),
+                many=True, context=self.context).data
 
             cache.set(key, list(data_views))
 
@@ -240,7 +241,7 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
                             'encrypted', 'bamboo_dataset',
                             'last_submission_time', 'is_merged_dataset')
         exclude = ('json', 'xml', 'xls', 'user', 'has_start_time', 'shared',
-                   'shared_data', 'deleted_at')
+                   'shared_data', 'deleted_at', 'deleted_by')
 
 
 class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
@@ -279,7 +280,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
                             'encrypted', 'bamboo_dataset',
                             'last_submission_time', 'is_merged_dataset')
         exclude = ('json', 'xml', 'xls', 'user', 'has_start_time', 'shared',
-                   'shared_data', 'deleted_at')
+                   'shared_data', 'deleted_at', 'deleted_by')
 
     def get_metadata(self, obj):
         xform_metadata = []

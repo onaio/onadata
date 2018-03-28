@@ -87,7 +87,7 @@ class TestXForm(TestBase):
         # deletions this should not raise any exception however
         xform.title = 'Trial & Error'
 
-        xform.soft_delete()
+        xform.soft_delete(self.user)
         xform.refresh_from_db()
 
         # deleted_at is not None
@@ -99,6 +99,7 @@ class TestXForm(TestBase):
         # deleted-at suffix is present
         self.assertIn("-deleted-at-", xform.id_string)
         self.assertIn("-deleted-at-", xform.sms_id_string)
+        self.assertEqual(xform.deleted_by.username, 'bob')
 
     def test_get_survey_element(self):
         """

@@ -216,22 +216,32 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.data['name'], 'My DataView updated')
 
-    def test_delete_dataview(self):
+    def test_soft_delete_dataview(self):
+        """
+        Tests that a dataview is soft deleted
+        """
         self._create_dataview()
-        count = DataView.objects.filter(xform=self.xform,
-                                        project=self.project).count()
+        dataview_id = self.data_view.pk
+        self.assertIsNone(self.data_view.deleted_at)
+        self.assertNotIn("-deleted-at-", self.data_view.name)
 
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request, pk=dataview_id)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['name'], u'My DataView')
+
+        # delete
         request = self.factory.delete('/', **self.extra)
-        response = self.view(request, pk=self.data_view.pk)
+        response = self.view(request, pk=dataview_id)
+        self.assertEqual(response.status_code, 204)
 
-        self.assertEquals(response.status_code, 204)
+        # check that it is soft deleted
+        data_view = DataView.objects.get(pk=dataview_id)
+        self.assertIsNotNone(data_view.deleted_at)
+        self.assertIn("-deleted-at-", data_view.name)
+        self.assertEqual(data_view.deleted_by.username, u'bob')
 
-        after_count = DataView.objects.filter(xform=self.xform,
-                                              project=self.project).count()
-
-        self.assertEquals(count - 1, after_count)
-
-    def test_deleted_dataview_not_in_forms_list(self):
+    def test_soft_deleted_dataview_not_in_forms_list(self):
         self._create_dataview()
         get_form_request = self.factory.get('/', **self.extra)
 
@@ -248,7 +258,6 @@ class TestDataViewViewSet(TestAbstractViewSet):
         xform_serializer = XFormSerializer(
             self.xform,
             context={'request': get_form_request})
-
         self.assertEquals(xform_serializer.data['data_views'], [])
 
     def test_list_dataview(self):

@@ -1,4 +1,8 @@
-# coding=utf-8
+# -*- coding: utf-8 -*-
+"""
+Tests the XForm viewset.
+"""
+
 import csv
 import json
 import os
@@ -8,7 +12,6 @@ from cStringIO import StringIO
 from datetime import datetime, timedelta
 from xml.dom import Node, minidom
 
-import jwt
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
@@ -18,6 +21,8 @@ from django.http import HttpResponseRedirect
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import utc
+
+import jwt
 from django_digest.test import DigestAuth
 from httmock import HTTMock
 from mock import Mock, patch
@@ -25,10 +30,10 @@ from rest_framework import status
 from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.api.tests.mocked_data import (
-    enketo_error_mock, enketo_mock, enketo_mock_with_form_defaults,
-    enketo_preview_url_mock, enketo_url_mock, external_mock,
-    external_mock_single_instance, external_mock_single_instance2,
-    xls_url_no_extension_mock, enketo_error500_mock, enketo_error502_mock,
+    enketo_error500_mock, enketo_error502_mock, enketo_error_mock, enketo_mock,
+    enketo_mock_with_form_defaults, enketo_preview_url_mock,
+    enketo_url_mock, external_mock, external_mock_single_instance,
+    external_mock_single_instance2, xls_url_no_extension_mock,
     xls_url_no_extension_mock_content_disposition_attr_jumbled_v1,
     xls_url_no_extension_mock_content_disposition_attr_jumbled_v2)
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
@@ -39,20 +44,18 @@ from onadata.apps.logger.models import Attachment, Instance, Project, XForm
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.models import MetaData
 from onadata.apps.viewer.models import Export
-from onadata.libs.permissions import (ROLES_ORDERED, DataEntryMinorRole,
-                                      DataEntryOnlyRole, DataEntryRole,
-                                      EditorMinorRole, EditorRole, ManagerRole,
-                                      OwnerRole, ReadOnlyRole)
-from onadata.libs.serializers.xform_serializer import (XFormBaseSerializer,
-                                                       XFormSerializer)
-from onadata.libs.utils.cache_tools import (ENKETO_URL_CACHE, PROJ_FORMS_CACHE,
-                                            XFORM_DATA_VERSIONS,
-                                            XFORM_PERMISSIONS_CACHE,
-                                            safe_delete)
-from onadata.libs.utils.common_tags import (GROUPNAME_REMOVED_FLAG,
-                                            MONGO_STRFTIME)
-from onadata.libs.utils.common_tools import (filename_from_disposition,
-                                             get_response_content)
+from onadata.libs.permissions import (
+    ROLES_ORDERED, DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole,
+    EditorMinorRole, EditorRole, ManagerRole, OwnerRole, ReadOnlyRole)
+from onadata.libs.serializers.xform_serializer import (
+    XFormBaseSerializer, XFormSerializer)
+from onadata.libs.utils.cache_tools import (
+    ENKETO_URL_CACHE, PROJ_FORMS_CACHE, XFORM_DATA_VERSIONS,
+    XFORM_PERMISSIONS_CACHE, safe_delete)
+from onadata.libs.utils.common_tags import (
+    GROUPNAME_REMOVED_FLAG, MONGO_STRFTIME)
+from onadata.libs.utils.common_tools import (
+    filename_from_disposition, get_response_content)
 
 
 def fixtures_path(filepath):
@@ -3511,6 +3514,63 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertIn('data_views', response.data)
         self.assertEquals(2, len(response.data['data_views']))
+
+    def test_delete_xform_also_deletes_linked_dataviews(self):
+        """
+        Tests that filtered datasets are also soft deleted
+        when a form is soft deleted
+        """
+        # publish form and make submissions
+        xlsform_path = os.path.join(
+            settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
+            "tutorial.xls")
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        for x in range(1, 9):
+            path = os.path.join(
+                settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
+                'tutorial', 'instances', 'uuid{}'.format(x), 'submission.xml')
+            self._make_submission(path)
+            x += 1
+
+        # create dataview
+        self._create_dataview()
+        data = {
+            'name': "My DataView",
+            'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+            'project': 'http://testserver/api/v1/projects/%s'
+                       % self.project.pk,
+            'columns': '["name", "age", "gender"]',
+            'query': '[{"column":"age","filter":">","value":"50"}]'
+        }
+        self._create_dataview(data=data)
+
+        # check that dataview exists
+        view = XFormViewSet.as_view({
+            'get': 'retrieve',
+        })
+        formid = self.xform.pk
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('data_views', response.data)
+        self.assertEquals(2, len(response.data['data_views']))
+
+        # delete xform
+        view = XFormViewSet.as_view({
+                'delete': 'destroy',
+                'get': 'retrieve'
+        })
+        request = self.factory.delete('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.data, None)
+        self.assertEqual(response.status_code, 204)
+        self.xform.refresh_from_db()
+        self.assertIsNotNone(self.xform.deleted_at)
+
+        # check that dataview is also soft deleted
+        self.data_view.refresh_from_db()
+        self.assertIsNotNone(self.data_view.deleted_at)
+        self.assertIn("-deleted-at-", self.data_view.name)
 
     def test_multitple_enketo_urls(self):
         with HTTMock(enketo_mock):

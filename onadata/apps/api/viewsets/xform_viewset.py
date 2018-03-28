@@ -630,7 +630,8 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
     def destroy(self, request, *args, **kwargs):
         xform = self.get_object()
-        xform.soft_delete()
+        user = request.user
+        xform.soft_delete(user=user)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
