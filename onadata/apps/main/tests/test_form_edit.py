@@ -4,7 +4,7 @@ from onadata.apps.main.models import MetaData
 from onadata.apps.main.views import edit
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.views import delete_xform
-from test_base import TestBase
+from onadata.apps.main.tests.test_base import TestBase
 
 
 class TestFormEdit(TestBase):
