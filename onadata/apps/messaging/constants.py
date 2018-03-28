@@ -5,13 +5,18 @@ Messaging constant variables.
 
 from __future__ import unicode_literals
 
+from builtins import str
+
 from django.utils.translation import ugettext as _
 
+XFORM = str('xform')
+PROJECT = str('project')
+USER = str('user')
 
 APP_LABEL_MAPPING = {
-    'xform': 'logger',
-    'projects': 'logger',
-    'user': 'auth',
+    XFORM: 'logger',
+    PROJECT: 'logger',
+    USER: 'auth',
 }
 
 MESSAGE = 'message'

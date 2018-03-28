@@ -9,12 +9,30 @@ import json
 import paho.mqtt.client as paho
 
 from onadata.apps.messaging.backends.base import BaseBackend
+from onadata.apps.messaging.constants import PROJECT, USER, XFORM
+
+
+def get_target_metadata(target_obj):
+    """
+    Gets the metadata of a Target object
+    """
+    target_obj_type = target_obj._meta.model_name
+    metadata = dict(id=target_obj.pk)
+    if target_obj_type == PROJECT:
+        metadata['name'] = target_obj.name
+    elif target_obj_type == XFORM:
+        metadata['name'] = target_obj.name
+        metadata['form_id'] = target_obj.id_string
+    elif target_obj_type == USER:
+        metadata['name'] = target_obj.get_full_name()
+    return metadata
 
 
 def get_payload(instance):
     """
     Constructs the message payload
     """
+
     payload = {
         'id': instance.id,
         'time': instance.timestamp.isoformat(),
@@ -25,6 +43,7 @@ def get_payload(instance):
             },
             'context': {
                 'type': instance.target._meta.model_name,
+                'metadata': get_target_metadata(instance.target)
             },
             'message': instance.description
         }
