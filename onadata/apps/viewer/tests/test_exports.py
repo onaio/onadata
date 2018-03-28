@@ -14,17 +14,18 @@ from django.utils.dateparse import parse_datetime
 from django.http import Http404
 from xlrd import open_workbook
 
+from onadata.apps.logger.models import Instance
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.views import delete_data
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.viewer.xls_writer import XlsWriter
+from onadata.apps.viewer.models.export import Export
+from onadata.apps.viewer.models.parsed_instance import query_data
 from onadata.apps.viewer.tests.export_helpers import viewer_fixture_path
 from onadata.apps.viewer.views import delete_export, export_list,\
     create_export, export_progress, export_download
-from onadata.apps.viewer.xls_writer import XlsWriter
-from onadata.apps.viewer.models.export import Export
-from onadata.apps.main.models.meta_data import MetaData
-from onadata.apps.viewer.models.parsed_instance import query_data
-from onadata.apps.logger.models import Instance
 from onadata.apps.viewer.tasks import create_xls_export
+from onadata.libs.utils.common_tools import get_response_content
 from onadata.libs.utils.export_builder import dict_to_joined_export
 from onadata.libs.utils.export_tools import generate_export,\
     increment_index_in_filename, clean_keys_of_slashes
@@ -597,7 +598,7 @@ class TestExports(TestBase):
                                   "id_string": self.xform.id_string})
         response = self.client.get(csv_export_url)
         self.assertEqual(response.status_code, 200)
-        f = BytesIO(self._get_response_content(response))
+        f = BytesIO(get_response_content(response))
         csv_reader = csv.reader(f)
         num_rows = len([row for row in csv_reader])
         f.close()
@@ -627,7 +628,7 @@ class TestExports(TestBase):
                                   "id_string": self.xform.id_string})
         response = self.client.get(csv_export_url)
         self.assertEqual(response.status_code, 200)
-        f = BytesIO(self._get_response_content(response))
+        f = BytesIO(get_response_content(response))
         csv_reader = csv.DictReader(f)
         data = [row for row in csv_reader]
         f.close()

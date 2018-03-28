@@ -1,7 +1,7 @@
 import os
 
 from django.db import IntegrityError
-from test_base import TestBase
+from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm
 
 

@@ -4,7 +4,7 @@ from django.core.urlresolvers import reverse
 
 from onadata.apps.main.views import clone_xlsform
 from onadata.apps.logger.models import XForm
-from test_base import TestBase
+from onadata.apps.main.tests.test_base import TestBase
 
 
 class TestFormGallery(TestBase):
