@@ -142,7 +142,8 @@ class TestExportList(TestBase):
         count = len(Export.objects.all())
         response = self.client.get(url)
         self.assertEqual(response.status_code, 403)
-        self.assertEquals(response.content, u'No XLS Template set.')
+        self.assertEquals(response.content.decode('utf-8'),
+                          u'No XLS Template set.')
         count1 = len(Export.objects.all())
         self.assertEquals(count, count1)
 
