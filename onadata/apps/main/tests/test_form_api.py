@@ -65,11 +65,11 @@ class TestFormAPI(TestBase):
         data = {'query': json.dumps(query)}
         response = self.client.get(self.api_url, data)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content, '[]')
+        self.assertEqual(response.content, b'[]')
         data['fields'] = '["_id"]'
         response = self.client.get(self.api_url, data)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content, '[]')
+        self.assertEqual(response.content, b'[]')
 
     def test_handle_bad_json(self):
         response = self.client.get(self.api_url, {'query': '{bad'})
