@@ -2,6 +2,8 @@
 """
 Common helper functions
 """
+from __future__ import unicode_literals
+
 import logging
 import math
 import sys
@@ -95,13 +97,16 @@ def filename_from_disposition(content_disposition):
     return content_disposition[filename_pos + len('filename='):]
 
 
-def get_response_content(response):
+def get_response_content(response, decode=True):
     """
     Gets HTTP content for the given a HTTP response object.
 
     Handles the case where a streaming_content is in the response.
+
+    :param response: The response to extract content from.
+    :param decode: If true decode as utf-8, default True.
     """
-    contents = u''
+    contents = ''
     if response.streaming:
         actual_content = BytesIO()
         for content in response.streaming_content:
@@ -111,7 +116,10 @@ def get_response_content(response):
     else:
         contents = response.content
 
-    return contents
+    if decode:
+        return contents.decode('utf-8')
+    else:
+        return contents
 
 
 def json_stream(data, json_string):

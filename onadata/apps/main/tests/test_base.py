@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import base64
 import csv
 import os
@@ -6,7 +8,7 @@ import socket
 from builtins import open
 from future.moves.urllib.error import URLError
 from future.moves.urllib.request import urlopen
-from io import BytesIO
+from io import StringIO
 from tempfile import NamedTemporaryFile
 
 from django.conf import settings
@@ -295,18 +297,6 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         client.set_authorization(username, password, 'Digest')
         return client
 
-    def _get_response_content(self, response):
-        contents = u''
-        if response.streaming:
-            actual_content = BytesIO()
-            for content in response.streaming_content:
-                actual_content.write(content)
-            contents = actual_content.getvalue()
-            actual_content.close()
-        else:
-            contents = response.content
-        return contents
-
     def _set_mock_time(self, mock_time):
         current_time = timezone.now()
         mock_time.return_value = current_time
@@ -365,7 +355,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         self.assertEqual(ext, '.csv')
 
         data = get_response_content(response)
-        reader = csv.DictReader(BytesIO(data))
+        reader = csv.DictReader(StringIO(data))
         data = [_ for _ in reader]
         with open(csv_file_path, encoding='utf-8') as test_file:
             expected_csv_reader = csv.DictReader(test_file)
