@@ -50,7 +50,7 @@ class TestCsvExport(TestBase):
         self.assertEqual(ext, '.csv')
         test_file_path = os.path.join(
             self.fixture_dir, 'tutorial_w_repeats.csv')
-        with storage.open(export.filepath) as csv_file:
+        with storage.open(export.filepath, 'r') as csv_file:
             self._test_csv_files(csv_file, test_file_path)
 
     def test_csv_nested_repeat_output(self):
@@ -84,7 +84,7 @@ class TestCsvExport(TestBase):
         path, ext = os.path.splitext(export.filename)
         self.assertEqual(ext, '.csv')
         test_file_path = os.path.join(self.fixture_dir, 'export.csv')
-        with storage.open(export.filepath) as csv_file:
+        with storage.open(export.filepath, 'r') as csv_file:
             self._test_csv_files(csv_file, test_file_path)
 
     def test_dotted_fields_csv_export(self):
@@ -112,7 +112,7 @@ class TestCsvExport(TestBase):
         test_file_path = os.path.join(
             os.path.dirname(__file__), 'fixtures', 'userone',
             'userone_with_dot_name_fields.csv')
-        with storage.open(export.filepath) as csv_file:
+        with storage.open(export.filepath, 'r') as csv_file:
             self._test_csv_files(csv_file, test_file_path)
 
     def test_csv_truncated_titles(self):
@@ -137,5 +137,5 @@ class TestCsvExport(TestBase):
         self.assertEqual(ext, '.csv')
         test_file_path = os.path.join(
             self.fixture_dir, 'tutorial_w_repeats_truncate_titles.csv')
-        with storage.open(export.filepath) as csv_file:
+        with storage.open(export.filepath, 'r') as csv_file:
             self._test_csv_files(csv_file, test_file_path)
