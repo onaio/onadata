@@ -1,4 +1,4 @@
-from test_base import TestBase
+from onadata.main.tests.test_base import TestBase
 
 
 class TestUserLogin(TestBase):

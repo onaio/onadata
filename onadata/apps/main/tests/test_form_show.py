@@ -7,18 +7,18 @@ from django.core.files.base import ContentFile
 from django.core.urlresolvers import reverse
 from django.core.exceptions import MultipleObjectsReturned
 
-from onadata.apps.main.views import show, form_photos, update_xform, profile,\
-    enketo_preview
+from onadata.apps.api.tests.viewsets.test_xform_viewset import enketo_mock,\
+    enketo_preview_url_mock
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.views import download_xlsform, download_jsonform,\
     download_xform, delete_xform
+from onadata.apps.main.views import show, form_photos, update_xform, profile,\
+    enketo_preview
+from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.views import export_list, map_view, data_export
 from onadata.libs.utils.logger_tools import publish_xml_form
 from onadata.libs.utils.user_auth import http_auth_string
 from onadata.libs.utils.user_auth import get_user_default_project
-from onadata.apps.api.tests.viewsets.test_xform_viewset import enketo_mock,\
-    enketo_preview_url_mock
-from test_base import TestBase
 
 
 def raise_multiple_objects_returned_error(*args, **kwargs):
