@@ -5,7 +5,7 @@ Messaging constant variables.
 
 from __future__ import unicode_literals
 
-from builtins import str
+from builtins import str  # pylint: disable=W0622
 
 from django.utils.translation import ugettext as _
 
