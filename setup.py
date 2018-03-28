@@ -17,7 +17,7 @@ https://opendatakit.org
 
 from setuptools import setup, find_packages
 
-config = dict(
+setup(
     name="onadata",
     version="1.13.0",
     description="Collect Analyze and Share Data!",
@@ -106,7 +106,4 @@ config = dict(
         "raven",
         "django-activity-stream",
         "paho-mqtt",
-    ]
-)
-
-setup(**config)
+    ])
