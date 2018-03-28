@@ -4,6 +4,8 @@ Tests Messaging app viewsets.
 """
 from __future__ import unicode_literals
 
+from builtins import str as text
+
 from django.test import TestCase
 
 from actstream.models import Action
@@ -40,7 +42,9 @@ class TestMessagingViewSet(TestCase):
         response = view(request=request)
         self.assertEqual(response.status_code, 201, response.data)
         self.assertDictContainsSubset(data, response.data)
-
+        # ensure that id and timestamp are returned
+        self.assertTrue('id' and 'timestamp' in
+                        [text(x) for x in list(response.data)])
         return response.data
 
     def test_create_message(self):

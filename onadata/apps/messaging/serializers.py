@@ -45,7 +45,7 @@ class MessageSerializer(serializers.ModelSerializer):
         MessageSerializer metadata
         """
         model = Action
-        fields = ['id', 'message', 'target_id', 'target_type']
+        fields = ['id', 'message', 'target_id', 'target_type', 'timestamp']
 
     def create(self, validated_data):
         """
