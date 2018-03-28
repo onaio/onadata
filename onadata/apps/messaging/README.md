@@ -34,7 +34,7 @@ Returns a specific message with matching pk.
 curl -X GET https://api.ona.io/api/v1/messaging/1337
 ```
 
-### DELETE /api/messaging/[pk] 
+### DELETE /api/messaging/[pk]
 
 Deletes a specific message with matching pk.
 
@@ -91,3 +91,78 @@ Topics for sending messages are constructed like so:
 ```
 
 These are the topics that an MQTT client would subscribe to in order to receive messages for that particular user/xform/project.
+
+
+#### Payloads
+
+MQTT payloads are as such:
+
+##### Users
+
+```json
+{
+    "payload": {
+        "message": "I love oov",
+        "context": {
+            "type": "user",
+            "metadata": {
+                "id": 1337,
+                "name": "John Doe",
+            }
+        },
+        "author": {
+            "username": "Bob",
+            "real_name": "Bob Smith"
+        }
+    },
+    "id": 3,
+    "time": "2018-03-27T08:14:51.136675+00:00"
+}
+```
+
+##### Forms
+
+```json
+{
+    "payload": {
+        "message": "I love oov",
+        "context": {
+            "type": "xform",
+            "metadata": {
+                "id": 1337,
+                "name": "Form Name",
+                "form_id": "Form_ID"
+            }
+        },
+        "author": {
+            "username": "Bob",
+            "real_name": "Bob Smith"
+        }
+    },
+    "id": 3,
+    "time": "2018-03-27T08:14:51.136675+00:00"
+}
+```
+
+##### Projects
+
+```json
+{
+    "payload": {
+        "message": "I love oov",
+        "context": {
+            "type": "project",
+            "metadata": {
+                "id": 1337,
+                "name": "Project Name",
+            }
+        },
+        "author": {
+            "username": "Bob",
+            "real_name": "Bob Smith"
+        }
+    },
+    "id": 3,
+    "time": "2018-03-27T08:14:51.136675+00:00"
+}
+```
