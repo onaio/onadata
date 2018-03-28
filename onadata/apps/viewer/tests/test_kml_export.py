@@ -40,4 +40,5 @@ class TestKMLExport(TestBase):
             expected_content = expected_content.replace('{{second}}', second)
 
             self.assertMultiLineEqual(
-                expected_content.strip(), response.content.strip())
+                expected_content.strip(),
+                response.content.decode('utf-8').strip())
