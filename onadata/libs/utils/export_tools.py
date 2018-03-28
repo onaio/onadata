@@ -37,6 +37,7 @@ from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 from onadata.libs.utils.common_tags import (DATAVIEW_EXPORT,
                                             GROUPNAME_REMOVED_FLAG)
 from onadata.libs.utils.common_tools import (str_to_bool,
+                                             cmp_to_key,
                                              report_exception,
                                              retry)
 from onadata.libs.utils.export_builder import ExportBuilder
@@ -553,7 +554,7 @@ def kml_export_data(id_string, user, xform=None):
         # read the survey instances
         data_for_display = instance.get_dict()
         xpaths = list(data_for_display)
-        xpaths.sort(cmp=instance.xform.get_xpath_cmp())
+        xpaths.sort(key=cmp_to_key(instance.xform.get_xpath_cmp()))
         table_rows = [
             '<tr><td>%s</td><td>%s</td></tr>' %
             (cached_get_labels(xpath), data_for_display[xpath]) for xpath in
