@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Management Command to Remove old bamboo rest services and ensures date modified
+is not null
+"""
+from __future__ import unicode_literals
+
 from django.core.management.base import BaseCommand
 from django.utils.translation import gettext as _
 
@@ -6,8 +13,8 @@ from onadata.libs.utils.model_tools import queryset_iterator
 
 
 class Command(BaseCommand):
-    help = _(u"Removes old bamboo rest services and ensures date modified is "
-             u"not null")
+    help = _("Removes old bamboo rest services and ensures date modified is "
+             "not null")
 
     def handle(self, *args, **options):
         self.stdout.write("Task started ...")
