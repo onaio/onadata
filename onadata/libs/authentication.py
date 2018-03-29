@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import jwt
 from django.conf import settings
 from django.core.signing import BadSignature
@@ -69,7 +71,7 @@ class DigestAuthentication(BaseAuthentication):
                 return request.user, None
             else:
                 raise AuthenticationFailed(
-                    _(u"Invalid username/password"))
+                    _('Invalid username/password'))
         except (AttributeError, ValueError, DataError) as e:
             raise AuthenticationFailed(e.message)
 
