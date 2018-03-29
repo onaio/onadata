@@ -33,9 +33,11 @@ from onadata.apps.viewer.tests.export_helpers import viewer_fixture_path
 from onadata.libs.utils.csv_builder import (CSVDataFrameBuilder,
                                             get_labels_from_columns)
 from onadata.libs.utils.export_builder import (
+    _decode_mongo_encoded_section_names,
     dict_to_joined_export,
+    ExportBuilder,
     string_to_date_with_xls_validation)
-from onadata.libs.utils.export_tools import ExportBuilder, get_columns_with_hxl
+from onadata.libs.utils.export_tools import get_columns_with_hxl
 from onadata.libs.utils.logger_tools import create_instance
 
 
@@ -192,7 +194,7 @@ class TestExportBuilder(TestBase):
                 {
                     'childrenLg==info/nameLg==first': 'Mike',
                     'childrenLg==info/age': 5,
-                    'childrenLg==info/fav_colors': u'red\'s blue\'s',
+                    'childrenLg==info/fav_colors': "red's blue's",
                     'childrenLg==info/ice_creams': 'vanilla chocolate',
                     'childrenLg==info/cartoons':
                     [
@@ -203,8 +205,8 @@ class TestExportBuilder(TestBase):
                         {
                             'childrenLg==info/cartoons/name': 'Flinstones',
                             'childrenLg==info/cartoons/why':
-                            u"I like bam bam\u0107"
                             # throw in a unicode character
+                            'I like bam bam\u0107'
                         }
                     ]
                 }
@@ -382,7 +384,7 @@ class TestExportBuilder(TestBase):
             'sectionLg==1/info': [1, 2, 3, 4],
             'sectionLg==2/info': [1, 2, 3, 4],
         }
-        result = ExportBuilder.decode_mongo_encoded_section_names(data)
+        result = _decode_mongo_encoded_section_names(data)
         expected_result = {
             'main_section': [1, 2, 3, 4],
             'section.1/info': [1, 2, 3, 4],
@@ -871,10 +873,10 @@ class TestExportBuilder(TestBase):
         # check that values for red\'s and blue\'s are set to true
         wb = load_workbook(temp_xls_file.name)
         children_sheet = wb["children.info"]
-        data = dict([(r[0].value, r[1].value) for r in children_sheet.columns])
-        self.assertTrue(data[u'children.info/fav_colors/red\'s'])
-        self.assertTrue(data[u'children.info/fav_colors/blue\'s'])
-        self.assertFalse(data[u'children.info/fav_colors/pink\'s'])
+        data = dict([(x.value, y.value) for x, y in children_sheet.columns])
+        self.assertTrue(data["children.info/fav_colors/red's"])
+        self.assertTrue(data["children.info/fav_colors/blue's"])
+        self.assertFalse(data["children.info/fav_colors/pink's"])
         temp_xls_file.close()
 
     def test_xls_export_with_hxl_adds_extra_row(self):
