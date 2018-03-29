@@ -4,7 +4,7 @@ Test CSVDataFrameBuilder
 """
 import csv
 import os
-from builtins import chr
+from builtins import chr, open
 from tempfile import NamedTemporaryFile
 
 from django.test.utils import override_settings
@@ -417,9 +417,9 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
         csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name)
+        csv_file = open(temp_file.name, 'r')
         csv_reader = csv.reader(csv_file)
-        header = csv_reader.next()
+        header = next(csv_reader)
         self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
         rows = []
         for row in csv_reader:
@@ -451,9 +451,9 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
         csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name)
+        csv_file = open(temp_file.name, 'r')
         csv_reader = csv.reader(csv_file)
-        header = csv_reader.next()
+        header = next(csv_reader)
         self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
         expected_header = [
             '\xef\xbb\xbfname', '\xef\xbb\xbfage', '\xef\xbb\xbfhas_kids',
@@ -551,9 +551,9 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
         csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name)
+        csv_file = open(temp_file.name, 'r')
         csv_reader = csv.reader(csv_file)
-        header = csv_reader.next()
+        header = next(csv_reader)
         self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
         expected_header = [
             'name', 'age', 'has_kids', 'kids_name', 'kids_age', 'kids_name',
@@ -595,9 +595,9 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
         csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name)
+        csv_file = open(temp_file.name, 'r')
         csv_reader = csv.reader(csv_file)
-        header = csv_reader.next()
+        header = next(csv_reader)
         self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
         expected_header = [
             'name', 'age', 'has_kids', 'kids_name', 'kids_age', 'kids_name',
@@ -609,7 +609,7 @@ class TestCSVDataFrameBuilder(TestBase):
             '_media_count', '_media_all_received'
         ]
         self.assertEqual(expected_header, header)
-        labels = csv_reader.next()
+        labels = next(csv_reader)
         self.assertEqual(len(labels), 17 + len(csv_df_builder.extra_columns))
         expected_labels = [
             'Name', 'age', 'Do you have kids?', 'Kids Name', 'Kids Age',
@@ -653,9 +653,9 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
         csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name)
+        csv_file = open(temp_file.name, 'r')
         csv_reader = csv.reader(csv_file)
-        labels = csv_reader.next()
+        labels = next(csv_reader)
         self.assertEqual(len(labels), 17 + len(csv_df_builder.extra_columns))
         expected_labels = [
             'Name', 'age', 'Do you have kids?', 'Kids Name', 'Kids Age',
@@ -751,9 +751,9 @@ class TestCSVDataFrameBuilder(TestBase):
             include_labels=True)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
         csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name)
+        csv_file = open(temp_file.name, 'r')
         csv_reader = csv.reader(csv_file)
-        header = csv_reader.next()
+        header = next(csv_reader)
         self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
         expected_header = [
             'name', 'age', 'has_kids', 'kids_name', 'kids_age', 'kids_name',
@@ -776,9 +776,9 @@ class TestCSVDataFrameBuilder(TestBase):
             include_labels=True)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
         csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name)
+        csv_file = open(temp_file.name, 'r')
         csv_reader = csv.reader(csv_file)
-        header = csv_reader.next()
+        header = next(csv_reader)
         self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
         self.assertEqual(expected_header, header)
         csv_file.close()
