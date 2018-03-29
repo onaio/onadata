@@ -165,10 +165,16 @@ class FloipSerializer(serializers.HyperlinkedModelSerializer):
 
         raise serializers.ValidationError(instance)
 
-    def create(self, validated_data):
+    def validate(self, attrs):
         request = self.context['request']
+        if 'name' not in request.data:
+            raise serializers.ValidationError({
+                'name': _("Is a required field in a flow results package!")})
 
-        return self._process_request(request)
+        return attrs
+
+    def create(self, validated_data):
+        return self._process_request(self.context['request'])
 
     def update(self, instance, validated_data):
         request = self.context['request']
