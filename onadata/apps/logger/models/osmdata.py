@@ -1,14 +1,16 @@
+# -*- coding: utf-8 -*-
+"""
+OSM Data model class
+"""
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import JSONField
-
-from onadata.apps.logger.models.instance import Instance
 
 
 class OsmData(models.Model):
     """
     OSM Data information from a submission instance
     """
-    instance = models.ForeignKey(Instance, related_name='osm_data')
+    instance = models.ForeignKey('logger.Instance', related_name='osm_data')
     xml = models.TextField()
     osm_id = models.CharField(max_length=20)
     osm_type = models.CharField(max_length=10, default='way')
@@ -47,6 +49,7 @@ class OsmData(models.Model):
     def _set_centroid_in_tags(self):
         self.tags = self.tags if isinstance(self.tags, dict) else {}
         if self.geom is not None:
+            # pylint: disable=E1101
             self.tags.update({
                 "ctr:lon": self.geom.centroid.x,
                 "ctr:lat": self.geom.centroid.y,
