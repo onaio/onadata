@@ -15,7 +15,7 @@ class TestPermissions(TestCase):
 
     def setUp(self):
         self.factory = APIRequestFactory()
-        self.extra = {'HTTP_AUTHORIZATION': 'digest &#x0030;'}
+        self.extra = {'HTTP_AUTHORIZATION': b'digest &#x0030;'}
 
     def test_invalid_bytes_in_digest(self):
         digest_auth = DigestAuthentication()
