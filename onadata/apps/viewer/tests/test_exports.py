@@ -1150,9 +1150,8 @@ class TestExports(TestBase):
             index = child[0]
             name = child[1]
             self.assertEqual(
-                filter(
-                    lambda x: x['children/name'] == name,
-                    output['children'])[0],
+                [x for x in output['children']
+                 if x['children/name'] == name][0],
                 expected_output['children'][index])
         # 2nd level
         self.assertEqual(len(output['children/cartoons']), 4)
@@ -1161,9 +1160,8 @@ class TestExports(TestBase):
             index = cartoon[0]
             name = cartoon[1]
             self.assertEqual(
-                filter(
-                    lambda x: x['children/cartoons/name'] == name,
-                    output['children/cartoons'])[0],
+                [x for x in output['children/cartoons']
+                 if x['children/cartoons/name'] == name][0],
                 expected_output['children/cartoons'][index])
         # 3rd level
         self.assertEqual(len(output['children/cartoons/characters']), 2)
@@ -1171,9 +1169,8 @@ class TestExports(TestBase):
             index = characters[0]
             name = characters[1]
             self.assertEqual(
-                filter(
-                    lambda x: x['children/cartoons/characters/name'] == name,
-                    output['children/cartoons/characters'])[0],
+                [x for x in output['children/cartoons/characters']
+                 if x['children/cartoons/characters/name'] == name][0],
                 expected_output['children/cartoons/characters'][index])
 
     def test_generate_csv_zip_export(self):
