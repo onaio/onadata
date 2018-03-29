@@ -2,6 +2,7 @@
 """
 Tests the XForm viewset.
 """
+from __future__ import unicode_literals
 
 import csv
 import json
@@ -3855,11 +3856,11 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertEqual(response.status_code, 202)
                 export = Export.objects.get(task_id=task_id)
                 self.assertTrue(export.is_successful)
-                with default_storage.open(export.filepath) as f:
+                with default_storage.open(export.filepath, 'r') as f:
                     csv_reader = csv.reader(f)
                     # jump over headers first
-                    csv_reader.next()
-                    labels = csv_reader.next()
+                    next(csv_reader)
+                    labels = next(csv_reader)
                     self.assertIn(
                         'Is ambulance available daily or weekly?', labels
                     )
@@ -3868,11 +3869,11 @@ class TestXFormViewSet(TestAbstractViewSet):
                                            data={'include_labels': 'true'},
                                            **self.extra)
                 response = form_view(request, pk=formid, format=export_format)
-                f = StringIO(u''.join(response.streaming_content))
+                f = StringIO(''.join(response.streaming_content))
                 csv_reader = csv.reader(f)
                 # jump over headers first
-                csv_reader.next()
-                labels = csv_reader.next()
+                next(csv_reader)
+                labels = next(csv_reader)
                 self.assertIn(
                     'Is ambulance available daily or weekly?', labels
                 )
@@ -3908,9 +3909,9 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertEqual(response.status_code, 202)
                 export = Export.objects.get(task_id=task_id)
                 self.assertTrue(export.is_successful)
-                with default_storage.open(export.filepath) as f:
+                with default_storage.open(export.filepath, 'r') as f:
                     csv_reader = csv.reader(f)
-                    headers = csv_reader.next()
+                    headers = next(csv_reader)
                     self.assertIn(
                         'Is ambulance available daily or weekly?', headers
                     )
@@ -3921,9 +3922,9 @@ class TestXFormViewSet(TestAbstractViewSet):
                     **self.extra
                 )
                 response = form_view(request, pk=formid, format=export_format)
-                f = StringIO(u''.join(response.streaming_content))
+                f = StringIO(''.join(response.streaming_content))
                 csv_reader = csv.reader(f)
-                headers = csv_reader.next()
+                headers = next(csv_reader)
                 self.assertIn(
                     'Is ambulance available daily or weekly?', headers
                 )

@@ -814,9 +814,9 @@ class TestExports(TestBase):
 
     def _get_csv_data(self, filepath):
         storage = get_storage_class()()
-        csv_file = storage.open(filepath)
+        csv_file = storage.open(filepath, mode='r')
         reader = csv.DictReader(csv_file)
-        data = reader.next()
+        data = next(reader)
         csv_file.close()
         return data
 

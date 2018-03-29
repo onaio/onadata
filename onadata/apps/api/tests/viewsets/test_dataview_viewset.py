@@ -666,10 +666,10 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 202)
         export = Export.objects.get(task_id=task_id)
         self.assertTrue(export.is_successful)
-        with default_storage.open(export.filepath) as f:
+        with default_storage.open(export.filepath, 'r') as f:
             csv_reader = csv.reader(f)
-            csv_reader.next()
-            labels = csv_reader.next()
+            next(csv_reader)
+            labels = next(csv_reader)
             self.assertIn(
                 'Gender', labels
             )
