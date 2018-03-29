@@ -350,8 +350,7 @@ def calculate_ranges(page, items_per_page, total_items):
 def build_chart_data(xform, language_index=0, page=0):
     # only use chart-able fields
 
-    fields = filter(lambda f: f.type in CHART_FIELDS,
-                    [e for e in xform.survey_elements])
+    fields = [e for e in xform.survey_elements if e.type in CHART_FIELDS]
 
     # prepend submission time
     fields[:0] = [common_tags.SUBMISSION_TIME]
@@ -382,8 +381,7 @@ def build_chart_data_from_widget(widget, language_index=0):
         field = common_tags.SUBMISSION_TIME
     else:
         # use specified field to get summary
-        fields = filter(lambda f: f.name == field_name,
-                        [e for e in xform.survey_elements])
+        fields = [e for e in xform.survey_elements if e.name == field_name]
 
         if len(fields) == 0:
             raise ParseError("Field %s does not not exist on the form" %
