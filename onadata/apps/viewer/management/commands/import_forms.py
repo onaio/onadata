@@ -8,7 +8,7 @@ import os
 from django.core.management.base import BaseCommand
 from django.utils.translation import ugettext_lazy
 
-from ... import models
+from onadata.apps.logger.models import XForm
 
 
 class Command(BaseCommand):
@@ -18,5 +18,5 @@ class Command(BaseCommand):
         path = args[0]
         for form in glob.glob(os.path.join(path, "*")):
             f = open(form)
-            models.XForm.objects.get_or_create(xml=f.read(), active=False)
+            XForm.objects.get_or_create(xml=f.read(), active=False)
             f.close()
