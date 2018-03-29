@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+UserProfile model class
+"""
 import requests
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -5,6 +9,7 @@ from django.contrib.postgres.fields import JSONField
 from django.db import models
 from django.db.models.signals import post_save
 from django.utils.translation import ugettext_lazy
+from django.utils.encoding import python_2_unicode_compatible
 from guardian.shortcuts import get_perms_for_model, assign_perm
 from guardian.models import UserObjectPermissionBase
 from guardian.models import GroupObjectPermissionBase
@@ -16,7 +21,12 @@ from onadata.apps.main.signals import set_api_permissions
 REQUIRE_AUTHENTICATION = 'REQUIRE_ODK_AUTHENTICATION'
 
 
+@python_2_unicode_compatible
 class UserProfile(models.Model):
+    """
+    Userprofile model
+    """
+
     # This field is required.
     user = models.OneToOneField(User, related_name='profile')
 
@@ -38,7 +48,7 @@ class UserProfile(models.Model):
     metadata = JSONField(default=dict, blank=True)
     date_modified = models.DateTimeField(auto_now=True)
 
-    def __unicode__(self):
+    def __str__(self):
         return u'%s[%s]' % (self.name, self.user.username)
 
     @property

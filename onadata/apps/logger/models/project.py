@@ -1,17 +1,24 @@
+# -*- coding: utf-8 -*-
+"""
+Project model class
+"""
+from django.conf import settings
+from django.contrib.postgres.fields import JSONField
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Prefetch
 from django.db.models.signals import post_save
-from django.contrib.auth.models import User
-from django.contrib.postgres.fields import JSONField
 from django.utils import timezone
-from django.core.exceptions import ValidationError
-from guardian.models import UserObjectPermissionBase
-from guardian.models import GroupObjectPermissionBase
+from django.utils.encoding import python_2_unicode_compatible
+
+from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from guardian.shortcuts import assign_perm, get_perms_for_model
 from taggit.managers import TaggableManager
 
 from onadata.libs.models.base_model import BaseModel
 from onadata.libs.utils.common_tags import OWNER_TEAM_NAME
+
+User = settings.AUTH_USER_MODEL
 
 
 class PrefetchManager(models.Manager):
@@ -52,19 +59,11 @@ class PrefetchManager(models.Manager):
             ))
 
 
+@python_2_unicode_compatible
 class Project(BaseModel):
-    class Meta:
-        app_label = 'logger'
-        unique_together = (('name', 'organization'),)
-        permissions = (
-            ('view_project', "Can view project"),
-            ('add_project_xform', "Can add xform to project"),
-            ("report_project_xform", "Can make submissions to the project"),
-            ('transfer_project', "Can transfer project to different owner"),
-            ('can_export_project_data', "Can export data in project"),
-            ("view_project_all", "Can view all associated data"),
-            ("view_project_data", "Can view submitted data"),
-        )
+    """
+    Project model class
+    """
 
     name = models.CharField(max_length=255)
     metadata = JSONField(default=dict)
@@ -80,10 +79,24 @@ class Project(BaseModel):
     tags = TaggableManager(related_name='project_tags')
     prefetched = PrefetchManager()
 
-    def __unicode__(self):
+    class Meta:
+        app_label = 'logger'
+        unique_together = (('name', 'organization'),)
+        permissions = (
+            ('view_project', "Can view project"),
+            ('add_project_xform', "Can add xform to project"),
+            ("report_project_xform", "Can make submissions to the project"),
+            ('transfer_project', "Can transfer project to different owner"),
+            ('can_export_project_data', "Can export data in project"),
+            ("view_project_all", "Can view all associated data"),
+            ("view_project_data", "Can view submitted data"),
+        )
+
+    def __str__(self):
         return u'%s|%s' % (self.organization, self.name)
 
     def clean(self):
+        # pylint: disable=E1101
         query_set = Project.objects.exclude(pk=self.pk)\
             .filter(name__iexact=self.name, organization=self.organization)
         if query_set.exists():

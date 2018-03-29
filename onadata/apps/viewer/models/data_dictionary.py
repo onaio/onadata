@@ -12,6 +12,7 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
 from django.utils.translation import ugettext as _
+from django.utils.encoding import python_2_unicode_compatible
 
 import librabbitmq
 import xlrd
@@ -109,6 +110,7 @@ def upload_to(instance, filename, username=None):
     )
 
 
+@python_2_unicode_compatible
 class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
     """
     DataDictionary model class.
@@ -120,7 +122,7 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
         self._id_string_changed = False
         super(DataDictionary, self).__init__(*args, **kwargs)
 
-    def __unicode__(self):
+    def __str__(self):
         return getattr(self, "id_string", "")
 
     def save(self, *args, **kwargs):
