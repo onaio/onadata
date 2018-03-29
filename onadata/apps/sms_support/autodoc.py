@@ -105,6 +105,7 @@ def get_helper_text(question, json_survey):
     elif xlsf_type == 'select one':
         helper = u'Select one of the following:'
         helper += u'<ul>'
+        # pylint: disable=E1101
         helper += u''.join([
             u'<li><span class="sms_autodoc_helper_choice_id">'
             u'%(sms_option)s</span> <span class="sms_autodoc_'
@@ -118,6 +119,7 @@ def get_helper_text(question, json_survey):
     elif xlsf_type == 'select all that apply':
         helper = u'Select none, one or more in:'
         helper += u'<ul>'
+        # pylint: disable=E1101
         helper += u''.join([
             u'<li><span class="sms_autodoc_helper_choice_id">'
             u'%(sms_option)s</span> <span class="sms_autodoc_'
