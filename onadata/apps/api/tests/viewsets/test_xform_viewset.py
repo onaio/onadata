@@ -3465,8 +3465,8 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             export_pk = Export.objects.all().order_by('pk').reverse()[0].pk
 
-            # metaclass for mocking results
-            job = type('AsyncResultMock', (),
+            # metaclaass for mocking results
+            job = type(str('AsyncResultMock'), (),
                        {'state': 'SUCCESS', 'result': export_pk})
             async_result.return_value = job
 
