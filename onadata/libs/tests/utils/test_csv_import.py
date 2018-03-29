@@ -1,5 +1,6 @@
 import os
 import re
+from builtins import open
 from io import BytesIO
 
 from django.conf import settings
@@ -126,7 +127,8 @@ class CSVImportTestCase(TestBase):
         self.xform = XForm.objects.get()
 
         count = Instance.objects.count()
-        non_utf8_csv = open(os.path.join(self.fixtures_dir, 'non_utf8.csv'))
+        non_utf8_csv = open(os.path.join(self.fixtures_dir, 'non_utf8.csv'),
+                            'rb')
         result = csv_import.submit_csv(self.user.username, self.xform,
                                        non_utf8_csv)
         self.assertEqual(
@@ -153,7 +155,8 @@ class CSVImportTestCase(TestBase):
         self._publish_xls_file(self.xls_file_path)
         self.xform = XForm.objects.get()
 
-        good_csv = open(os.path.join(self.fixtures_dir, 'another_good.csv'))
+        good_csv = open(os.path.join(self.fixtures_dir, 'another_good.csv'),
+                        'rb')
         csv_import.submit_csv(self.user.username, self.xform, good_csv)
         self.assertEqual(Instance.objects.count(), 9,
                          u'submit_csv edits #1 test Failed!')
@@ -166,7 +169,8 @@ class CSVImportTestCase(TestBase):
 
         good_csv = open(
             os.path.join(self.fixtures_dir,
-                         'csv_import_with_multiple_select.csv'))
+                         'csv_import_with_multiple_select.csv'),
+            'rb')
         csv_import.submit_csv(self.user.username, self.xform, good_csv)
         self.assertEqual(Instance.objects.count(), 1,
                          u'submit_csv edits #1 test Failed!')
@@ -177,7 +181,8 @@ class CSVImportTestCase(TestBase):
                                           'tutorial_w_repeats.xls')
         repeats_csv = open(
             os.path.join(self.this_directory, 'fixtures', 'csv_export',
-                         'tutorial_w_repeats.csv'))
+                         'tutorial_w_repeats.csv'),
+            'rb')
         self._publish_xls_file(self.xls_file_path)
         self.xform = XForm.objects.get()
         pre_count = self.xform.instances.count()
@@ -191,7 +196,8 @@ class CSVImportTestCase(TestBase):
                                           'tutorial_w_repeats.xls')
         repeats_csv = open(
             os.path.join(self.this_directory, 'fixtures', 'csv_export',
-                         'tutorial_w_repeats_import.csv'))
+                         'tutorial_w_repeats_import.csv'),
+            'rb')
         self._publish_xls_file(self.xls_file_path)
         self.xform = XForm.objects.get()
         pre_count = self.xform.instances.count()
