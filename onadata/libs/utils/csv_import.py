@@ -351,7 +351,7 @@ def get_async_csv_submission_status(job_uuid):
 
         if isinstance(result, (Exception)):
             return async_status(
-                celery_state_to_status(job.state), job.result.message)
+                celery_state_to_status(job.state), text(job.result))
 
         if isinstance(result, basestring):
             return async_status(celery_state_to_status(job.state))
