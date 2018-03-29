@@ -1,31 +1,37 @@
+# -*- coding: utf-8 -*-
+"""
+Tests Export Builder Functionality
+"""
+from __future__ import unicode_literals
+
 import csv
 import datetime
 import os
 import shutil
 import tempfile
-import xlrd
 import zipfile
-from cStringIO import StringIO
-
 from collections import OrderedDict
+from cStringIO import StringIO
 from ctypes import ArgumentError
+
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
+
+import xlrd
 from openpyxl import load_workbook
 from pyxform.builder import create_survey_from_xls
-from savReaderWriter import SavReader
-from savReaderWriter import SavHeaderReader
+from savReaderWriter import SavHeaderReader, SavReader
 
+from onadata.apps.logger.import_tools import django_file
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
-from onadata.apps.viewer.models.parsed_instance import _encode_for_mongo
-from onadata.apps.viewer.models.parsed_instance import query_data
+from onadata.apps.viewer.models.parsed_instance import (_encode_for_mongo,
+                                                        query_data)
 from onadata.apps.viewer.tests.export_helpers import viewer_fixture_path
-from onadata.apps.logger.import_tools import django_file
+from onadata.libs.utils.csv_builder import (CSVDataFrameBuilder,
+                                            get_labels_from_columns)
 from onadata.libs.utils.export_builder import dict_to_joined_export
 from onadata.libs.utils.export_tools import ExportBuilder, get_columns_with_hxl
-from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
-from onadata.libs.utils.csv_builder import get_labels_from_columns
 from onadata.libs.utils.logger_tools import create_instance
 
 
@@ -199,6 +205,24 @@ class TestExportBuilder(TestBase):
                     ]
                 }
             ]
+        }
+    ]
+    osm_data = [
+        {
+            'photo': '1424308569120.jpg',
+            'osm_road': 'OSMWay234134797.osm',
+            'osm_building': 'OSMWay34298972.osm',
+            'fav_color': 'red',
+            'osm_road:ctr:lat': '23.708174238006087',
+            'osm_road:ctr:lon': '90.40946505581161',
+            'osm_road:highway': 'tertiary',
+            'osm_road:lanes': 2,
+            'osm_road:name': 'Patuatuli Road',
+            'osm_building:building': 'yes',
+            'osm_building:building:levels': 4,
+            'osm_building:ctr:lat': '23.707316084046038',
+            'osm_building:ctr:lon': '90.40849938337506',
+            'osm_building:name': 'kol'
         }
     ]
 
@@ -2133,3 +2157,159 @@ class TestExportBuilder(TestBase):
 
         val = ExportBuilder.string_to_date_with_xls_validation(0.4)
         self.assertEqual(val, 0.4)
+
+    def _create_osm_survey(self):
+        """
+        Creates survey for osm tests
+        """
+        # publish form
+        osm_fixtures_dir = os.path.join(settings.PROJECT_ROOT, 'apps', 'api',
+                                        'tests', 'fixtures', 'osm')
+        xlsform_path = os.path.join(osm_fixtures_dir, 'osm.xlsx')
+        self._publish_xls_file_and_set_xform(xlsform_path)
+
+        # make submissions
+        filenames = [
+            'OSMWay234134797.osm',
+            'OSMWay34298972.osm',
+        ]
+        paths = [os.path.join(osm_fixtures_dir, filename)
+                 for filename in filenames]
+        submission_path = os.path.join(osm_fixtures_dir, 'instance_a.xml')
+        self._make_submission_w_attachment(submission_path, paths)
+        survey = create_survey_from_xls(xlsform_path)
+        return survey
+
+    def test_xls_export_with_osm_data(self):
+        """
+        Tests that osm data is included in xls export
+        """
+        survey = self._create_osm_survey()
+        xform = self.xform
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey, xform)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+        export_builder.to_xls_export(temp_xls_file.name, self.osm_data)
+        temp_xls_file.seek(0)
+        wb = load_workbook(temp_xls_file.name)
+        osm_data_sheet = wb["osm"]
+        rows = [row for row in osm_data_sheet.rows]
+        xls_headers = [a.value for a in rows[0]]
+        temp_xls_file.close()
+
+        expected_column_headers = [
+            u'photo', u'osm_road', u'osm_building', u'fav_color',
+            u'form_completed', u'meta/instanceID', u'_id', u'_uuid',
+            u'_submission_time', u'_index', u'_parent_table_name',
+            u'_parent_index', u'_tags', u'_notes', u'_version', u'_duration',
+            u'_submitted_by', u'osm_road:ctr:lat', u'osm_road:ctr:lon',
+            u'osm_road:highway', u'osm_road:lanes', u'osm_road:name',
+            u'osm_road:way:id', u'osm_building:building',
+            u'osm_building:building:levels', u'osm_building:ctr:lat',
+            u'osm_building:ctr:lon', u'osm_building:name',
+            u'osm_building:way:id']
+        self.assertEqual(sorted(expected_column_headers), sorted(xls_headers))
+
+        submission = [a.value for a in rows[1]]
+        self.assertEqual(submission[0], u'1424308569120.jpg')
+        self.assertEqual(submission[2], u'23.708174238006087')
+        self.assertEqual(submission[4], u'tertiary')
+        self.assertEqual(submission[6], u'Patuatuli Road')
+        self.assertEqual(submission[11], u'23.707316084046038')
+        self.assertEqual(submission[13], u'kol')
+
+    def test_zipped_csv_export_with_osm_data(self):
+        """
+        Tests that osm data is included in zipped csv export
+        """
+        survey = self._create_osm_survey()
+        xform = self.xform
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey, xform)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        export_builder.to_zipped_csv(temp_zip_file.name, self.osm_data)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+
+        with open(os.path.join(temp_dir, "osm.csv")) as csv_file:
+            reader = csv.reader(csv_file)
+            rows = [row for row in reader]
+
+            expected_column_headers = [
+                'photo', 'osm_road', 'osm_building', 'fav_color',
+                'form_completed', 'meta/instanceID', '_id', '_uuid',
+                '_submission_time', '_index', '_parent_table_name',
+                '_parent_index', '_tags', '_notes', '_version', '_duration',
+                '_submitted_by', 'osm_road:ctr:lat', 'osm_road:ctr:lon',
+                'osm_road:highway', 'osm_road:lanes', 'osm_road:name',
+                'osm_road:way:id', 'osm_building:building',
+                'osm_building:building:levels', 'osm_building:ctr:lat',
+                'osm_building:ctr:lon', 'osm_building:name',
+                'osm_building:way:id']
+
+            self.assertEqual(sorted(rows[0]), sorted(expected_column_headers))
+            self.assertEqual(rows[1][0], '1424308569120.jpg')
+            self.assertEqual(rows[1][1], 'OSMWay234134797.osm')
+            self.assertEqual(rows[1][2], '23.708174238006087')
+            self.assertEqual(rows[1][4], 'tertiary')
+            self.assertEqual(rows[1][6], 'Patuatuli Road')
+            self.assertEqual(rows[1][13], 'kol')
+
+    def test_zipped_sav_export_with_osm_data(self):
+        """
+        Test that osm data is included in zipped sav export
+        """
+        survey = self._create_osm_survey()
+        xform = self.xform
+        osm_data = [{
+            'photo': '1424308569120.jpg',
+            'osm_road': 'OSMWay234134797.osm',
+            'osm_building': 'OSMWay34298972.osm',
+            'fav_color': 'red',
+            'osm_road_ctr_lat': '23.708174238006087',
+            'osm_road_ctr_lon': '90.40946505581161',
+            'osm_road_highway': 'tertiary',
+            'osm_road_lanes': 2,
+            'osm_road_name': 'Patuatuli Road',
+            'osm_building_building': 'yes',
+            'osm_building_building_levels': 4,
+            'osm_building_ctr_lat': '23.707316084046038',
+            'osm_building_ctr_lon': '90.40849938337506',
+            'osm_building_name': 'kol'
+        }]
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey, xform)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        export_builder.to_zipped_sav(temp_zip_file.name, osm_data)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+
+        with SavReader(os.path.join(temp_dir, "osm.sav"),
+                       returnHeader=True) as reader:
+            rows = [r for r in reader]
+            expected_column_headers = [
+                'photo', 'osm_road', 'osm_building', 'fav_color',
+                'form_completed', 'meta.instanceID', '@_id', '@_uuid',
+                '@_submission_time', '@_index', '@_parent_table_name',
+                '@_parent_index', '@_tags', '@_notes', '@_version',
+                '@_duration', '@_submitted_by', 'osm_road_ctr_lat',
+                'osm_road_ctr_lon', 'osm_road_highway', 'osm_road_lanes',
+                'osm_road_name', 'osm_road_way_id', 'osm_building_building',
+                'osm_building_building_levels', 'osm_building_ctr_lat',
+                'osm_building_ctr_lon', 'osm_building_name',
+                'osm_building_way_id']
+            self.assertEqual(sorted(rows[0]), sorted(expected_column_headers))
+            self.assertEqual(rows[1][0], '1424308569120.jpg')
+            self.assertEqual(rows[1][1], 'OSMWay234134797.osm')
+            self.assertEqual(rows[1][2], '23.708174238006087')
+            self.assertEqual(rows[1][4], 'tertiary')
+            self.assertEqual(rows[1][6], 'Patuatuli Road')
+            self.assertEqual(rows[1][13], 'kol')
