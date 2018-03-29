@@ -607,7 +607,7 @@ class ExportBuilder(object):
         total_records = kwargs.get('total_records')
 
         for section in self.sections:
-            csv_file = NamedTemporaryFile(suffix='.csv')
+            csv_file = NamedTemporaryFile(suffix='.csv', mode='w')
             csv_writer = csv.writer(csv_file)
             csv_defs[section['name']] = {
                 'csv_file': csv_file, 'csv_writer': csv_writer}
@@ -1043,7 +1043,7 @@ class ExportBuilder(object):
         # write headers
         for section in self.sections:
             sav_options = self._get_sav_options(section['elements'])
-            sav_file = NamedTemporaryFile(suffix='.sav')
+            sav_file = NamedTemporaryFile(suffix='.sav', mode='w')
             sav_writer = SavWriter(sav_file.name, ioLocale='en_US.UTF-8',
                                    **sav_options)
             sav_defs[section['name']] = {
