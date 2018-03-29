@@ -416,7 +416,7 @@ class ExportBuilder(object):
 
                     # get other osm fields
                     if child.get(u"type") == OSM_BIND_TYPE:
-                        xpaths = self.get_osm_paths(child, xform)
+                        xpaths = _get_osm_paths(child, xform)
                         for xpath in xpaths:
                             _title = ExportBuilder.format_field_title(
                                 xpath, field_delimiter, dd,
@@ -439,6 +439,18 @@ class ExportBuilder(object):
             field_list[
                 current_section_name][xpath] = xpaths
 
+        def _get_osm_paths(osm_field, xform):
+            """
+            Get osm tag keys from OsmData and make them available for the
+            export builder. They are used as columns.
+            """
+            osm_columns = []
+            if osm_field and xform:
+                osm_columns = OsmData.get_tag_keys(
+                                xform, osm_field.get_abbreviated_xpath(),
+                                include_prefix=True)
+            return osm_columns
+
         self.dd = dd
         self.survey = survey
         self.select_multiples = {}
@@ -452,18 +464,6 @@ class ExportBuilder(object):
             self.select_multiples, self.gps_fields, self.osm_fields,
             self.encoded_fields, self.GROUP_DELIMITER,
             self.TRUNCATE_GROUP_TITLE)
-
-    def get_osm_paths(self, osm_field, xform):
-        """
-        Get osm tag keys from OsmData and make them available for the export
-        builder. They are used as columns.
-        """
-        osm_columns = []
-        if osm_field and xform:
-            osm_columns = OsmData.get_tag_keys(
-                            xform, osm_field.get_abbreviated_xpath(),
-                            include_prefix=True)
-        return osm_columns
 
     def section_by_name(self, name):
         matches = filter(lambda s: s['name'] == name, self.sections)
