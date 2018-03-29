@@ -1,16 +1,19 @@
+# -*- coding: utf-8 -*-
+"""
+DataView model class
+"""
 import datetime
 from builtins import str as text
 
-from django.contrib.auth.models import User
+from django.conf import settings
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import JSONField
 from django.db import connection
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
+from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext as _
 
-from onadata.apps.logger.models.project import Project
-from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.parsed_instance_tools import get_where_clause
 from onadata.libs.models.sorting import (json_order_by, json_order_by_params,
                                          sort_from_mongo_sort_str)
@@ -25,6 +28,8 @@ from onadata.libs.utils.common_tags import (ATTACHMENTS, EDITED, GEOLOCATION,
 SUPPORTED_FILTERS = ['=', '>', '<', '>=', '<=', '<>', '!=']
 ATTACHMENT_TYPES = ['photo', 'audio', 'video']
 DEFAULT_COLUMNS = [ID, SUBMISSION_TIME, EDITED, LAST_EDITED, NOTES]
+
+User = settings.AUTH_USER_MODEL
 
 
 def _json_sql_str(key, known_integers=[], known_dates=[]):
@@ -80,14 +85,15 @@ def has_attachments_fields(data_view):
     return False
 
 
+@python_2_unicode_compatible
 class DataView(models.Model):
     """
     Model to provide filtered access to the underlying data of an XForm
     """
 
     name = models.CharField(max_length=255)
-    xform = models.ForeignKey(XForm)
-    project = models.ForeignKey(Project)
+    xform = models.ForeignKey('logger.XForm')
+    project = models.ForeignKey('logger.Project')
 
     columns = JSONField()
     query = JSONField(default=dict, blank=True)
@@ -105,7 +111,7 @@ class DataView(models.Model):
         verbose_name = _('Data View')
         verbose_name_plural = _('Data Views')
 
-    def __unicode__(self):
+    def __str__(self):
         return getattr(self, "name", "")
 
     def has_geo_columnn_n_data(self):
@@ -116,7 +122,7 @@ class DataView(models.Model):
 
         # Get the form geo xpaths
         xform = self.xform
-        geo_xpaths = xform.geopoint_xpaths()
+        geo_xpaths = xform.geopoint_xpaths()  # pylint: disable=E1101
 
         set_geom = set(geo_xpaths)
         set_columns = set(self.columns)
@@ -134,6 +140,7 @@ class DataView(models.Model):
         return super(DataView, self).save(*args, **kwargs)
 
     def _get_known_type(self, type_str):
+        # pylint: disable=E1101
         return [
             get_name_from_survey_element(e)
             for e in self.xform.get_survey_elements_of_type(type_str)]
@@ -160,6 +167,7 @@ class DataView(models.Model):
 
         sql += u" WHERE xform_id = %s AND id = %s" + sql_where \
                + u" AND deleted_at IS NULL"
+        # pylint: disable=E1101
         params = [self.xform.pk, instance.id] + where_params
 
         cursor.execute(sql, [text(i) for i in params])
