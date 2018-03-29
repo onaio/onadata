@@ -32,7 +32,8 @@ class TestExportList(TestBase):
         self.assertNotIn(
             '<input title="" data-original-title="" \
             class="btn large btn-primary" \
-            value="New Export" type="submit">', response.content)
+            value="New Export" type="submit">',
+            response.content.decode('utf-8'))
         self.assertEqual(response.status_code, 200)
 
     def test_unsupported_type_export(self):
