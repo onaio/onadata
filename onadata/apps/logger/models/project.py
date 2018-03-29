@@ -18,7 +18,7 @@ from taggit.managers import TaggableManager
 from onadata.libs.models.base_model import BaseModel
 from onadata.libs.utils.common_tags import OWNER_TEAM_NAME
 
-User = settings.AUTH_USER_MODEL
+USER = settings.AUTH_USER_MODEL
 
 
 class PrefetchManager(models.Manager):
@@ -67,9 +67,9 @@ class Project(BaseModel):
 
     name = models.CharField(max_length=255)
     metadata = JSONField(default=dict)
-    organization = models.ForeignKey(User, related_name='project_org')
-    created_by = models.ForeignKey(User, related_name='project_owner')
-    user_stars = models.ManyToManyField(User, related_name='project_stars')
+    organization = models.ForeignKey(USER, related_name='project_org')
+    created_by = models.ForeignKey(USER, related_name='project_owner')
+    user_stars = models.ManyToManyField(USER, related_name='project_stars')
     shared = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
