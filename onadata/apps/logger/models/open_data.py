@@ -7,10 +7,12 @@ authentication using the unique uuid.
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models
+from django.utils.encoding import python_2_unicode_compatible
 
 from onadata.libs.utils.common_tools import get_uuid
 
 
+@python_2_unicode_compatible
 class OpenData(models.Model):
     """
     OpenData model represents a way to access private datasets without
@@ -26,7 +28,7 @@ class OpenData(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
 
-    def __unicode__(self):
+    def __str__(self):
         return getattr(self, "name", "")
 
     class Meta:
