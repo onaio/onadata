@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import logging
 import mimetypes
 import os
@@ -200,14 +202,14 @@ class MetaData(models.Model):
             try:
                 self.data_file.seek(os.SEEK_SET)
             except IOError:
-                return u''
+                return ''
             else:
-                self.file_hash = u'md5:%s' \
-                    % md5(self.data_file.read()).hexdigest()
+                self.file_hash = 'md5:%s' \
+                    % md5(self.data_file.read().encode('utf-8')).hexdigest()
 
                 return self.file_hash
 
-        return u''
+        return ''
 
     @staticmethod
     def public_link(content_object, data_value=None):
