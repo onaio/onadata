@@ -4,7 +4,7 @@ import logging
 import re
 from builtins import str as text
 from datetime import datetime, date
-from io import StringIO
+from io import BytesIO
 
 from django.utils.translation import ugettext as _
 
@@ -342,7 +342,7 @@ def process_incoming_smses(username, incomings,
                                   % text(e)))
 
         # process_incoming expectes submission to be a file-like object
-        xforms.append(StringIO(xml_submission))
+        xforms.append(BytesIO(xml_submission.encode('utf-8')))
         medias.append(medias_submission)
         json_submissions.append(json_submission)
         xforms_notes.append(notes)
