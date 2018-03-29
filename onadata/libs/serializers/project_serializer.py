@@ -359,14 +359,14 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
                 shared=validated_data.get('shared', False),
                 metadata=metadata
             )
+        except IntegrityError:
+            raise serializers.ValidationError(
+                "The fields name, organization must make a unique set.")
+        else:
             project.xform_set.exclude(shared=project.shared)\
                 .update(shared=project.shared, shared_data=project.shared)
 
             return project
-
-        except IntegrityError:
-            raise serializers.ValidationError(
-                "The fields name, organization must make a unique set.")
 
     def get_users(self, obj):
         return get_users(obj, self.context)
