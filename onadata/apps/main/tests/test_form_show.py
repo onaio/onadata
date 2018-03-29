@@ -1,5 +1,6 @@
 import os
 import mock
+from builtins import open
 from unittest import skip
 from httmock import HTTMock
 
@@ -368,7 +369,7 @@ class TestFormShow(TestBase):
         count = XForm.objects.count()
         xls_path = os.path.join(self.this_directory, "fixtures",
                                 "transportation", "transportation_updated.xls")
-        with open(xls_path, "r") as xls_file:
+        with open(xls_path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
             self.client.post(xform_update_url, post_data)
         self.assertEqual(XForm.objects.count(), count)
@@ -398,7 +399,7 @@ class TestFormShow(TestBase):
             "fixtures",
             "transportation",
             "transportation_with_long_id_string_updated.xls")
-        with open(updated_xls_path, "r") as xls_file:
+        with open(updated_xls_path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
             self.client.post(xform_update_url, post_data)
         # Count should stay the same

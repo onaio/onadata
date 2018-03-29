@@ -284,7 +284,9 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
     def _set_auth_headers(self, username, password):
         return {
             'HTTP_AUTHORIZATION':
-            'Basic ' + base64.b64encode('%s:%s' % (username, password)),
+            'Basic ' + base64.b64encode((
+                '%s:%s' % (username, password)).encode(
+                    'utf-8')).decode('utf-8'),
         }
 
     def _get_authenticated_client(

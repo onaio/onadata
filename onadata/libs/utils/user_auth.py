@@ -148,7 +148,8 @@ def helper_auth_helper(request):
     if 'HTTP_AUTHORIZATION' in request.META:
         auth = request.META['HTTP_AUTHORIZATION'].split()
         if len(auth) == 2 and auth[0].lower() == "basic":
-            uname, passwd = base64.b64decode(auth[1]).split(':')
+            uname, passwd = base64.b64decode(auth[1].encode(
+                'utf-8')).decode('utf-8').split(':')
             user = authenticate(username=uname, password=passwd)
             if user:
                 request.user = user
@@ -169,7 +170,9 @@ def basic_http_auth(func):
 
 
 def http_auth_string(username, password):
-    credentials = base64.b64encode('%s:%s' % (username, password)).strip()
+    credentials = base64.b64encode((
+        '%s:%s' % (username, password)).encode('utf-8')
+        ).decode('utf-8').strip()
     auth_string = 'Basic %s' % credentials
     return auth_string
 
