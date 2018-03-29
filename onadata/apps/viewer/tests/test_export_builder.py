@@ -2185,9 +2185,9 @@ class TestExportBuilder(TestBase):
         Tests that osm data is included in xls export
         """
         survey = self._create_osm_survey()
+        xform = self.xform
         export_builder = ExportBuilder()
-        export_builder.set_survey(survey)
-        export_builder.set_osm_columns(self.xform)
+        export_builder.set_survey(survey, xform)
         temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
         export_builder.to_xls_export(temp_xls_file.name, self.osm_data)
         temp_xls_file.seek(0)
@@ -2212,20 +2212,20 @@ class TestExportBuilder(TestBase):
 
         submission = [a.value for a in rows[1]]
         self.assertEqual(submission[0], u'1424308569120.jpg')
-        self.assertEqual(submission[17], u'23.708174238006087')
-        self.assertEqual(submission[19], u'tertiary')
-        self.assertEqual(submission[21], u'Patuatuli Road')
-        self.assertEqual(submission[25], u'23.707316084046038')
-        self.assertEqual(submission[27], u'kol')
+        self.assertEqual(submission[2], u'23.708174238006087')
+        self.assertEqual(submission[4], u'tertiary')
+        self.assertEqual(submission[6], u'Patuatuli Road')
+        self.assertEqual(submission[11], u'23.707316084046038')
+        self.assertEqual(submission[13], u'kol')
 
     def test_zipped_csv_export_with_osm_data(self):
         """
         Tests that osm data is included in zipped csv export
         """
         survey = self._create_osm_survey()
+        xform = self.xform
         export_builder = ExportBuilder()
-        export_builder.set_survey(survey)
-        export_builder.set_osm_columns(self.xform)
+        export_builder.set_survey(survey, xform)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
         export_builder.to_zipped_csv(temp_zip_file.name, self.osm_data)
         temp_zip_file.seek(0)
@@ -2254,16 +2254,17 @@ class TestExportBuilder(TestBase):
             self.assertEqual(sorted(rows[0]), sorted(expected_column_headers))
             self.assertEqual(rows[1][0], '1424308569120.jpg')
             self.assertEqual(rows[1][1], 'OSMWay234134797.osm')
-            self.assertEqual(rows[1][17], '23.708174238006087')
-            self.assertEqual(rows[1][19], 'tertiary')
-            self.assertEqual(rows[1][21], 'Patuatuli Road')
-            self.assertEqual(rows[1][27], 'kol')
+            self.assertEqual(rows[1][2], '23.708174238006087')
+            self.assertEqual(rows[1][4], 'tertiary')
+            self.assertEqual(rows[1][6], 'Patuatuli Road')
+            self.assertEqual(rows[1][13], 'kol')
 
     def test_zipped_sav_export_with_osm_data(self):
         """
         Test that osm data is included in zipped sav export
         """
         survey = self._create_osm_survey()
+        xform = self.xform
         osm_data = [{
             'photo': '1424308569120.jpg',
             'osm_road': 'OSMWay234134797.osm',
@@ -2281,8 +2282,7 @@ class TestExportBuilder(TestBase):
             'osm_building_name': 'kol'
         }]
         export_builder = ExportBuilder()
-        export_builder.set_survey(survey)
-        export_builder.set_osm_columns(self.xform)
+        export_builder.set_survey(survey, xform)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
         export_builder.to_zipped_sav(temp_zip_file.name, osm_data)
         temp_zip_file.seek(0)
@@ -2309,7 +2309,7 @@ class TestExportBuilder(TestBase):
             self.assertEqual(sorted(rows[0]), sorted(expected_column_headers))
             self.assertEqual(rows[1][0], '1424308569120.jpg')
             self.assertEqual(rows[1][1], 'OSMWay234134797.osm')
-            self.assertEqual(rows[1][17], '23.708174238006087')
-            self.assertEqual(rows[1][19], 'tertiary')
-            self.assertEqual(rows[1][21], 'Patuatuli Road')
-            self.assertEqual(rows[1][27], 'kol')
+            self.assertEqual(rows[1][2], '23.708174238006087')
+            self.assertEqual(rows[1][4], 'tertiary')
+            self.assertEqual(rows[1][6], 'Patuatuli Road')
+            self.assertEqual(rows[1][13], 'kol')

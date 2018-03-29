@@ -34,6 +34,7 @@ from onadata.libs.utils.mongo import _decode_from_mongo, _is_invalid_for_mongo
 # the bind type of select multiples that we use to compare
 MULTIPLE_SELECT_BIND_TYPE = u"select"
 GEOPOINT_BIND_TYPE = u"geopoint"
+OSM_BIND_TYPE = u"osm"
 DEFAULT_UPDATE_BATCH = 100
 
 
@@ -322,12 +323,12 @@ class ExportBuilder(object):
 
         return choices
 
-    def set_survey(self, survey):
+    def set_survey(self, survey, xform=None):
         dd = get_data_dictionary_from_survey(survey)
 
         def build_sections(
                 current_section, survey_element, sections, select_multiples,
-                gps_fields, encoded_fields, field_delimiter='/',
+                gps_fields, osm_fields, encoded_fields, field_delimiter='/',
                 remove_group_name=False):
 
             for child in survey_element.children:
@@ -343,14 +344,14 @@ class ExportBuilder(object):
                         self.sections.append(section)
                         build_sections(
                             section, child, sections, select_multiples,
-                            gps_fields, encoded_fields, field_delimiter,
-                            remove_group_name)
+                            gps_fields, osm_fields, encoded_fields,
+                            field_delimiter, remove_group_name)
                     else:
                         # its a group, recurs using the same section
                         build_sections(
                             current_section, child, sections, select_multiples,
-                            gps_fields, encoded_fields, field_delimiter,
-                            remove_group_name)
+                            gps_fields, osm_fields, encoded_fields,
+                            field_delimiter, remove_group_name)
                 elif isinstance(child, Question) and \
                         (child.bind.get(u"type")
                          not in QUESTION_TYPES_TO_EXCLUDE and
@@ -413,6 +414,24 @@ class ExportBuilder(object):
                             current_section_name, gps_fields,
                             child.get_abbreviated_xpath(), xpaths)
 
+                    # get other osm fields
+                    if child.get(u"type") == OSM_BIND_TYPE:
+                        xpaths = self.get_osm_paths(child, xform)
+                        for xpath in xpaths:
+                            _title = ExportBuilder.format_field_title(
+                                xpath, field_delimiter, dd,
+                                remove_group_name
+                            )
+                            current_section['elements'].append({
+                                'label': _title,
+                                'title': _title,
+                                'xpath': xpath,
+                                'type': 'osm'
+                            })
+                        _append_xpaths_to_section(
+                            current_section_name, osm_fields,
+                            child.get_abbreviated_xpath(), xpaths)
+
         def _append_xpaths_to_section(current_section_name, field_list, xpath,
                                       xpaths):
             if current_section_name not in field_list:
@@ -424,25 +443,27 @@ class ExportBuilder(object):
         self.survey = survey
         self.select_multiples = {}
         self.gps_fields = {}
+        self.osm_fields = {}
         self.encoded_fields = {}
         main_section = {'name': survey.name, 'elements': []}
         self.sections = [main_section]
         build_sections(
             main_section, self.survey, self.sections,
-            self.select_multiples, self.gps_fields, self.encoded_fields,
-            self.GROUP_DELIMITER, self.TRUNCATE_GROUP_TITLE)
+            self.select_multiples, self.gps_fields, self.osm_fields,
+            self.encoded_fields, self.GROUP_DELIMITER,
+            self.TRUNCATE_GROUP_TITLE)
 
-    def set_osm_columns(self, xform):
+    def get_osm_paths(self, osm_field, xform):
         """
         Get osm tag keys from OsmData and make them available for the export
-        builder. They are used as column headers.
+        builder. They are used as columns.
         """
-        osm_fields = self.dd.get_survey_elements_of_type('osm')
-        if osm_fields:
-            for field in osm_fields:
-                self.osm_columns += OsmData.get_tag_keys(
-                    xform, field.get_abbreviated_xpath(),
-                    include_prefix=True)
+        osm_columns = []
+        if osm_field and xform:
+            osm_columns = OsmData.get_tag_keys(
+                            xform, osm_field.get_abbreviated_xpath(),
+                            include_prefix=True)
+        return osm_columns
 
     def section_by_name(self, name):
         matches = filter(lambda s: s['name'] == name, self.sections)
@@ -846,28 +867,24 @@ class ExportBuilder(object):
         return sav_value_labels
 
     def _get_var_name(self, title, var_names):
-        """GET valid SPSS varName.
-                @param title - survey element title/name
-                @param var_names - list of existing var_names
-
-                @return valid varName and list of var_names with new var name
-                 appended
-
-                """
-        var_name = title.replace('/', '.').replace('-', '_')
+        """
+        GET valid SPSS varName.
+        @param title - survey element title/name
+        @param var_names - list of existing var_names
+        @return valid varName and list of var_names with new var name appended
+        """
+        var_name = title.replace('/', '.').replace('-', '_').replace(':', '_')
         var_name = self._check_sav_column(var_name, var_names)
         var_name = '@' + var_name if var_name.startswith('_') else var_name
         var_names.append(var_name)
         return var_name, var_names
 
     def _get_sav_options(self, elements):
-        """GET/SET SPSS options.
+        """
+        GET/SET SPSS options.
         @param elements - a list of survey elements
-
         @return dictionary with options for `SavWriter`:
-
         .. code-block: python
-
             {
                 'varLabels': var_labels,  # a dict of varLabels
                 'varNames': var_names,   # a list of varNames
@@ -909,13 +926,9 @@ class ExportBuilder(object):
         var_labels = {}
         var_names = []
         fields_and_labels = []
-        osm_columns = [column.replace(':', '_') for column in self.osm_columns]
 
         elements += [{'title': f, "label": f, "xpath": f, 'type': f}
-                     for f in self.extra_columns] + [
-                    {'title': f, "label": f, "xpath": f, 'type': f}
-                    for f in osm_columns]
-
+                     for f in self.extra_columns]
         for element in elements:
             title = element['title']
             _var_name, _var_names = self._get_var_name(title, var_names)
@@ -998,6 +1011,8 @@ class ExportBuilder(object):
         total_records = kwargs.get('total_records')
 
         def write_row(row, csv_writer, fields):
+            # replace character for osm fields
+            fields = [field.replace(':', '_') for field in fields]
             sav_writer.writerow(
                 [encode_if_str(row, field, sav_writer=sav_writer)
                  for field in fields])
@@ -1074,9 +1089,7 @@ class ExportBuilder(object):
         if dataview:
             return [element[key] for element in section['elements']
                     if element['title'] in dataview.columns]\
-                + self.extra_columns + self.osm_columns
-
+                    + self.extra_columns
         else:
             return [element[key] for element in
-                    section['elements']] + self.extra_columns\
-                    + self.osm_columns
+                    section['elements']] + self.extra_columns

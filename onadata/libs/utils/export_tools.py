@@ -226,8 +226,7 @@ def generate_export(export_type, xform, export_id=None, options=None,
     if 'win_excel_utf8' in options and export_type != Export.CSV_EXPORT:
         del options['win_excel_utf8']
 
-    export_builder.set_survey(xform.survey)
-    export_builder.set_osm_columns(xform)
+    export_builder.set_survey(xform.survey, xform)
 
     temp_file = NamedTemporaryFile(suffix=("." + extension))
 
