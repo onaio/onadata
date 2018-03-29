@@ -2,11 +2,16 @@ from django.db import models
 from django.db.models.signals import post_save
 from django.utils.translation import ugettext as _
 
-from .xform import XForm
+from onadata.apps.logger.models.xform import XForm
 
 
 class MergedXForm(XForm):
-    xforms = models.ManyToManyField(XForm, related_name='mergedxform_ptr')
+    """
+    Merged XForms
+    """
+
+    xforms = models.ManyToManyField(
+        'logger.XForm', related_name='mergedxform_ptr')
 
     class Meta:
         app_label = 'logger'
