@@ -29,15 +29,15 @@ SUPPORTED_FILTERS = ['=', '>', '<', '>=', '<=', '<>', '!=']
 ATTACHMENT_TYPES = ['photo', 'audio', 'video']
 DEFAULT_COLUMNS = [ID, SUBMISSION_TIME, EDITED, LAST_EDITED, NOTES]
 
-User = settings.AUTH_USER_MODEL
+USER = settings.AUTH_USER_MODEL
 
 
-def _json_sql_str(key, known_integers=[], known_dates=[]):
+def _json_sql_str(key, known_integers=None, known_dates=None):
     _json_str = u"json->>%s"
 
-    if key in known_integers:
+    if known_integers is not None and key in known_integers:
         _json_str = u"CAST(json->>%s AS INT)"
-    elif key in known_dates:
+    elif known_dates is not None and key in known_dates:
         _json_str = u"CAST(json->>%s AS TIMESTAMP)"
 
     return _json_str
@@ -102,7 +102,7 @@ class DataView(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
-    deleted_by = models.ForeignKey(User, related_name='dataview_deleted_by',
+    deleted_by = models.ForeignKey(USER, related_name='dataview_deleted_by',
                                    null=True, on_delete=models.SET_NULL,
                                    default=None, blank=True)
 
