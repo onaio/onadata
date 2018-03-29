@@ -918,7 +918,8 @@ class TestExportBuilder(TestBase):
         media_file = django_file(path=file_path,
                                  field_name="image1",
                                  content_type="image/jpeg")
-        create_instance(self.user.username, BytesIO(xml_string.strip()),
+        create_instance(self.user.username,
+                        BytesIO(xml_string.strip().encode('utf-8')),
                         media_files=[media_file])
 
         xdata = query_data(self.xform)
