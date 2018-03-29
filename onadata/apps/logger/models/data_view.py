@@ -29,7 +29,7 @@ SUPPORTED_FILTERS = ['=', '>', '<', '>=', '<=', '<>', '!=']
 ATTACHMENT_TYPES = ['photo', 'audio', 'video']
 DEFAULT_COLUMNS = [ID, SUBMISSION_TIME, EDITED, LAST_EDITED, NOTES]
 
-USER = settings.AUTH_USER_MODEL
+User = settings.AUTH_USER_MODEL  # pylint: disable=C0103
 
 
 def _json_sql_str(key, known_integers=None, known_dates=None):
@@ -102,7 +102,7 @@ class DataView(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
-    deleted_by = models.ForeignKey(USER, related_name='dataview_deleted_by',
+    deleted_by = models.ForeignKey(User, related_name='dataview_deleted_by',
                                    null=True, on_delete=models.SET_NULL,
                                    default=None, blank=True)
 
