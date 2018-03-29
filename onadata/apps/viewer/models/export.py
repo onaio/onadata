@@ -11,8 +11,8 @@ from django.contrib.postgres.fields import JSONField
 from django.db import models
 from django.db.models.signals import post_delete
 from django.utils.translation import ugettext as _
+from django.utils.encoding import python_2_unicode_compatible
 
-from onadata.apps.logger.models import XForm
 from onadata.libs.utils.common_tags import OSM
 from onadata.libs.utils import async_status
 
@@ -50,6 +50,7 @@ class Export(models.Model):
     Class representing a data export from an XForm
     """
 
+    @python_2_unicode_compatible
     class ExportTypeError(Exception):
         """
         ExportTypeError exception class.
@@ -60,6 +61,7 @@ class Export(models.Model):
         def __str__(self):
             return text(self).encode('utf-8')
 
+    @python_2_unicode_compatible
     class ExportConnectionError(Exception):
         """
         ExportConnectionError exception class.
@@ -131,7 +133,7 @@ class Export(models.Model):
     MAX_EXPORTS = 10
 
     # Required fields
-    xform = models.ForeignKey(XForm)
+    xform = models.ForeignKey('logger.XForm')
     export_type = models.CharField(
         max_length=10, choices=EXPORT_TYPES, default=XLS_EXPORT
     )
@@ -173,6 +175,7 @@ class Export(models.Model):
 
             # update time_of_last_submission with
             # xform.time_of_last_submission_update
+            # pylint: disable=E1101
             self.time_of_last_submission = self.xform.\
                 time_of_last_submission_update()
         if self.filename:
@@ -225,6 +228,7 @@ class Export(models.Model):
     def _update_filedir(self):
         if not self.filename:
             raise AssertionError()
+        # pylint: disable=E1101
         self.filedir = os.path.join(self.xform.user.username,
                                     'exports', self.xform.id_string,
                                     self.export_type)

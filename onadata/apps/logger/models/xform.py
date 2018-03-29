@@ -1,15 +1,17 @@
 import base64
 import json
 import os
-import pytz
 import re
-from builtins import bytes as b, str as text
+from builtins import bytes as b
+from builtins import str as text
 from datetime import datetime
 from functools import reduce
-from future.utils import iteritems
 from hashlib import md5
-from past.builtins import cmp
 from xml.dom import Node
+
+from future.utils import iteritems
+
+from past.builtins import cmp
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -20,8 +22,11 @@ from django.db import models
 from django.db.models import Sum
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.utils import timezone
+from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy
+
+import pytz
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from pyxform import SurveyElementBuilder, constants
 from pyxform.question import Question
@@ -31,18 +36,17 @@ from taggit.managers import TaggableManager
 
 from onadata.apps.logger.xform_instance_parser import (XLSFormError,
                                                        clean_and_parse_xml)
-from onadata.apps.main.models import MetaData
 from onadata.libs.models.base_model import BaseModel
-from onadata.libs.utils.cache_tools import (IS_ORG, PROJ_FORMS_CACHE,
-                                            PROJ_BASE_FORMS_CACHE,
+from onadata.libs.utils.cache_tools import (IS_ORG, PROJ_BASE_FORMS_CACHE,
+                                            PROJ_FORMS_CACHE,
                                             PROJ_NUM_DATASET_CACHE,
                                             PROJ_SUB_DATE_CACHE, XFORM_COUNT,
                                             safe_delete)
-from onadata.libs.utils.common_tags import (DURATION, KNOWN_MEDIA_TYPES, NOTES,
-                                            SUBMISSION_TIME, SUBMITTED_BY,
-                                            TAGS, UUID, VERSION, TOTAL_MEDIA,
-                                            MEDIA_COUNT, MEDIA_ALL_RECEIVED,
-                                            ID)
+from onadata.libs.utils.common_tags import (DURATION, ID, KNOWN_MEDIA_TYPES,
+                                            MEDIA_ALL_RECEIVED, MEDIA_COUNT,
+                                            NOTES, SUBMISSION_TIME,
+                                            SUBMITTED_BY, TAGS, TOTAL_MEDIA,
+                                            UUID, VERSION)
 from onadata.libs.utils.model_tools import queryset_iterator
 
 QUESTION_TYPES_TO_EXCLUDE = [
@@ -659,6 +663,7 @@ class XFormMixin(object):
             for elem in self.get_survey_elements_of_type('osm')]
 
 
+@python_2_unicode_compatible
 class XForm(XFormMixin, BaseModel):
     CLONED_SUFFIX = '_cloned'
     MAX_ID_LENGTH = 100
@@ -712,7 +717,7 @@ class XForm(XFormMixin, BaseModel):
     project = models.ForeignKey('Project')
     created_by = models.ForeignKey(User, null=True, blank=True)
     metadata_set = GenericRelation(
-        MetaData,
+        'main.MetaData',
         content_type_field='content_type_id',
         object_id_field="object_id")
     has_hxl_support = models.BooleanField(default=False)
@@ -850,7 +855,7 @@ class XForm(XFormMixin, BaseModel):
 
         super(XForm, self).save(*args, **kwargs)
 
-    def __unicode__(self):
+    def __str__(self):
         return getattr(self, "id_string", "")
 
     def soft_delete(self, user=None):
