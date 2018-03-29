@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Export Builder
+ExportBuilder
 """
 from __future__ import unicode_literals
 
