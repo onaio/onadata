@@ -1,15 +1,13 @@
 import json
 import os
 import re
-from builtins import bytes as b
-from builtins import str as text
+from builtins import bytes as b, str as text
 from datetime import datetime
-from hashlib import md5
-from xml.dom import Node
-
 from future.utils import iteritems
-
+from future.utils import listvalues
+from hashlib import md5
 from past.builtins import cmp
+from xml.dom import Node
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -369,7 +367,7 @@ class XFormMixin(object):
             label = choice.label
 
             if isinstance(label, dict):
-                label = label.get(lang, choice.label.values()[0])
+                label = label.get(lang, listvalues(choice.label)[0])
 
             return label
 

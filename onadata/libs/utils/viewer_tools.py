@@ -6,6 +6,7 @@ import json
 import os
 import sys
 import zipfile
+from builtins import open
 from future.utils import iteritems
 from tempfile import NamedTemporaryFile
 from xml.dom import minidom
@@ -135,7 +136,7 @@ def django_file(path, field_name, content_type):
     """
     # adapted from here: http://groups.google.com/group/django-users/browse_th\
     # read/thread/834f988876ff3c45/
-    file_object = open(path)
+    file_object = open(path, 'rb')
 
     return InMemoryUploadedFile(
         file=file_object,
