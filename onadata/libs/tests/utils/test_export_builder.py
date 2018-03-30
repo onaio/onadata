@@ -774,7 +774,7 @@ class TestExportBuilder(TestBase):
             # expensed.1 is selected hence True, 1.00 or 1 in SPSS
             self.assertEqual(rows[1][1], 2)
             # expensed.0 is not selected hence False, .00 or 0 in SPSS
-            self.assertEqual(rows[1][2], "b'09'")
+            self.assertEqual(rows[1][2], '09')
             self.assertEqual(rows[1][6], '2016-11-21 03:43:43')
 
         shutil.rmtree(temp_dir)
