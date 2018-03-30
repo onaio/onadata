@@ -119,9 +119,10 @@ class TestFormShow(TestBase):
             'username': self.user.username,
             'id_string': self.xform.id_string
         }), {'callback': callback})
+        content = response.content.decode('utf-8')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content.startswith(callback + '('), True)
-        self.assertEqual(response.content.endswith(')'), True)
+        self.assertEqual(content.startswith(callback + '('), True)
+        self.assertEqual(content.endswith(')'), True)
 
     def test_dl_json_for_basic_auth(self):
         extra = {
