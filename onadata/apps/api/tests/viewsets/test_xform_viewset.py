@@ -3118,21 +3118,16 @@ class TestXFormViewSet(TestAbstractViewSet):
             content = get_response_content(response)
 
             expected_content = (
-                '\xef\xbb\xbfage,\xef\xbb\xbfname,\xef\xbb\xbfmeta/instanceID,'
-                '\xef\xbb\xbf_id,'
-                '\xef\xbb\xbf_uuid,\xef\xbb\xbf_submission_time,'
-                '\xef\xbb\xbf_tags,\xef\xbb\xbf_notes,\xef\xbb\xbf_version,'
-                '\xef\xbb\xbf_duration,\xef\xbb\xbf_submitted_by,'
-                '\xef\xbb\xbf_total_media,\xef\xbb\xbf_media_count,'
-                '\xef\xbb\xbf_media_all_received\n'
-                '\xef\xbb\xbf#age,,,,,,,,,,,,,\n29,\xef\xbb\xbfLionel Messi,'
-                '\xef\xbb\xbfuuid:74ee8b73-48aa-4ced-9072-862f93d49c16,'
-                '%s,'
-                '\xef\xbb\xbf74ee8b73-48aa-4ced-9072-862f93d49c16,\xef\xbb\xbf'
-                '2013-02-18T15:54:01,\xef\xbb\xbf,\xef\xbb\xbf,'
-                '\xef\xbb\xbf201604121155,\xef\xbb\xbf,\xef\xbb\xbfbob,0,0,'
-                'True\n' % data_id
-            )
+                '\ufeffage,\ufeffname,\ufeffmeta/instanceID,\ufeff_id,'
+                '\ufeff_uuid,\ufeff_submission_time,\ufeff_tags,\ufeff_notes,'
+                '\ufeff_version,\ufeff_duration,\ufeff_submitted_by,'
+                '\ufeff_total_media,\ufeff_media_count,'
+                '\ufeff_media_all_received\n\ufeff#age,,,,,,,,,,,,,\n29,'
+                '\ufeffLionel Messi,'
+                '\ufeffuuid:74ee8b73-48aa-4ced-9072-862f93d49c16,%s,'
+                '\ufeff74ee8b73-48aa-4ced-9072-862f93d49c16,'
+                '\ufeff2013-02-18T15:54:01,\ufeff,\ufeff,\ufeff201604121155,'
+                '\ufeff,\ufeffbob,0,0,True\n' % data_id)
 
             self.assertEqual(expected_content, content)
             headers = dict(response.items())
