@@ -1,5 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from __future__ import unicode_literals
+
 import os
 import unittest
 from decimal import Decimal
@@ -15,13 +17,12 @@ from onadata.libs.utils.chart_tools import (
 
 
 def find_field_by_name(xform, field_name):
-    return filter(lambda f: f.name == field_name,
-                  [e for e in xform.survey_elements])[0]
+    return [e for e in xform.survey_elements if e.name == field_name][0]
 
 
 def find_field_by_xpath(xform, field_xpath):
-    return filter(lambda f: f.get_abbreviated_xpath() == field_xpath,
-                  [e for e in xform.survey_elements])[0]
+    return [e for e in xform.survey_elements
+            if e.get_abbreviated_xpath() == field_xpath][0]
 
 
 class TestChartTools(TestBase):
@@ -59,13 +60,13 @@ class TestChartTools(TestBase):
         self.assertEqual(data['field_name'], '_submitted_by')
         self.assertEqual(data['field_type'], 'text')
         self.assertEqual(data['data_type'], 'categorized')
-        self.assertEqual(data['grouped_by'], u'pizza_fan')
+        self.assertEqual(data['grouped_by'], 'pizza_fan')
         self.assertEqual(data['data'], [{
             '_submitted_by':
-            u'bob',
+            'bob',
             'items': [{
                 'count': 2,
-                u'pizza_fan': [u'No']
+                'pizza_fan': ['No']
             }]
         }])
 
@@ -88,17 +89,17 @@ class TestChartTools(TestBase):
         xform = XForm.objects.get(id_string='sample_accent')
         self.assertEqual(xform.title, "sample_accent")
 
-        field = find_field_by_name(xform, u'tête')
+        field = find_field_by_name(xform, 'tête')
         data = build_chart_data_for_field(self.xform, field)
-        self.assertEqual(data['field_name'], u'tête')
+        self.assertEqual(data['field_name'], 'tête')
 
-        field = find_field_by_name(xform, u'té')
+        field = find_field_by_name(xform, 'té')
         data = build_chart_data_for_field(self.xform, field)
-        self.assertEqual(data['field_name'], u'té')
+        self.assertEqual(data['field_name'], 'té')
 
-        field = find_field_by_name(xform, u'père')
+        field = find_field_by_name(xform, 'père')
         data = build_chart_data_for_field(self.xform, field)
-        self.assertEqual(data['field_name'], u'père')
+        self.assertEqual(data['field_name'], 'père')
 
     def test_build_chart_data_for_field_on_select_one(self):
         field_name = 'gender'
@@ -154,7 +155,7 @@ class TestChartTools(TestBase):
         self.assertEqual(data['data'], [{
             'count': 2,
             'sum': 150000.0,
-            'pizza_fan': [u'No'],
+            'pizza_fan': ['No'],
             'mean': 75000.0
         }])
 
@@ -169,19 +170,20 @@ class TestChartTools(TestBase):
         self.assertEqual(data['field_type'], 'select one')
         self.assertEqual(data['grouped_by'], 'pizza_fan')
         self.assertEqual(data['data_type'], 'categorized')
-        self.assertEqual(data['data'], [{
-            u'gender': [u'Male'],
-            'items': [{
-                'count': 1,
-                u'pizza_fan': [u'No']
-            }]
-        }, {
-            u'gender': [u'Female'],
-            'items': [{
-                'count': 1,
-                u'pizza_fan': [u'No']
-            }]
-        }])
+        self.assertEqual(sorted(data['data'], key=lambda k: k['gender']), [
+            {
+                'gender': ['Female'],
+                'items': [{
+                    'count': 1,
+                    'pizza_fan': ['No']}]
+            },
+            {
+                'gender': ['Male'],
+                'items': [{
+                    'count': 1,
+                    'pizza_fan': ['No']}]
+            }
+        ])
 
     def test_build_chart_category_field_group_by_category_field_in_group(self):
         field = find_field_by_name(self.xform, 'gender')
@@ -194,19 +196,20 @@ class TestChartTools(TestBase):
         self.assertEqual(data['field_type'], 'select one')
         self.assertEqual(data['grouped_by'], 'a_group/grouped')
         self.assertEqual(data['data_type'], 'categorized')
-        self.assertEqual(data['data'], [{
-            u'gender': [u'Male'],
-            'items': [{
-                u'a_group/grouped': [u'Yes'],
-                'count': 1
-            }]
-        }, {
-            u'gender': [u'Female'],
-            'items': [{
-                u'a_group/grouped': [u'Yes'],
-                'count': 1
-            }]
-        }])
+        self.assertEqual(sorted(data['data'], key=lambda k: k['gender']), [
+            {
+                'gender': ['Female'],
+                'items': [{
+                    'a_group/grouped': ['Yes'],
+                    'count': 1}]
+            },
+            {
+                'gender': ['Male'],
+                'items': [{
+                    'a_group/grouped': ['Yes'],
+                    'count': 1}]
+            }
+        ])
 
     def test_build_chart_data_cannot_group_by_field(self):
         field = find_field_by_name(self.xform, 'gender')
@@ -253,7 +256,7 @@ class TestChartTools(TestBase):
         self._make_submission(path)
         field = find_field_by_name(self.xform, 'food_type')
         data = build_chart_data_for_field(self.xform, field, language_index=1)
-        self.assertEqual(data['field_label'], u"Type of Eat")
+        self.assertEqual(data['field_label'], "Type of Eat")
 
     def test_build_chart_data_for_field_with_language_on_non_lang_field(self):
         path = os.path.join(
@@ -434,16 +437,16 @@ class TestChartTools(TestBase):
         data = build_chart_data_for_field(self.xform, field, choices=choices)
 
         expected_data = {
-            'field_type': u'select one',
+            'field_type': 'select one',
             'data_type': 'categorized',
-            'field_xpath': u'name_I',
+            'field_xpath': 'name_I',
             'data': [{
                 'count': 1,
-                'name_I': [u'Aynalem Tenaw']
+                'name_I': ['Aynalem Tenaw']
             }],
             'grouped_by': None,
-            'field_label': u'Name of interviewer',
-            'field_name': u'name_I'
+            'field_label': 'Name of interviewer',
+            'field_name': 'name_I'
         }
 
         self.assertEqual(data, expected_data)
@@ -471,23 +474,23 @@ class TestChartTools(TestBase):
 
         expected_data = {
             'field_type':
-            u'calculate',
+            'calculate',
             'data_type':
             'numeric',
             'field_xpath':
-            u'toexppc',
+            'toexppc',
             'data': [{
                 'count': 1,
                 'sum': Decimal('3.357142857142857'),
-                'name_I': [u'Aynalem Tenaw'],
+                'name_I': ['Aynalem Tenaw'],
                 'mean': Decimal('3.3571428571428570')
             }],
             'grouped_by':
-            u'name_I',
+            'name_I',
             'field_label':
-            u'Total expenditure per capita',
+            'Total expenditure per capita',
             'field_name':
-            u'toexppc'
+            'toexppc'
         }
 
         self.assertEqual(data, expected_data)
