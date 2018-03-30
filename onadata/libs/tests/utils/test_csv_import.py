@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import os
 import re
 from builtins import open
@@ -14,7 +16,7 @@ from onadata.libs.utils import csv_import
 
 
 def strip_xml_uuid(s):
-    return re.sub('\S*uuid\S*', '', s.rstrip('\n'))
+    return re.sub(b'\S*uuid\S*', b'', s.rstrip(b'\n'))
 
 
 class CSVImportTestCase(TestBase):
@@ -22,12 +24,12 @@ class CSVImportTestCase(TestBase):
         super(CSVImportTestCase, self).setUp()
         self.fixtures_dir = os.path.join(settings.PROJECT_ROOT, 'libs',
                                          'tests', 'utils', 'fixtures')
-        self.good_csv = open(os.path.join(self.fixtures_dir, 'good.csv'))
-        self.bad_csv = open(os.path.join(self.fixtures_dir, 'bad.csv'))
+        self.good_csv = open(os.path.join(self.fixtures_dir, 'good.csv'), 'rb')
+        self.bad_csv = open(os.path.join(self.fixtures_dir, 'bad.csv'), 'rb')
         self.xls_file_path = os.path.join(self.fixtures_dir, 'tutorial.xls')
 
     def test_submit_csv_param_sanity_check(self):
-        resp = csv_import.submit_csv(u'userX', XForm(), 123456)
+        resp = csv_import.submit_csv('userX', XForm(), 123456)
         self.assertIsNotNone(resp.get('error'))
 
     @mock.patch('onadata.libs.utils.csv_import.safe_create_instance')
@@ -36,22 +38,22 @@ class CSVImportTestCase(TestBase):
         self.xform = XForm.objects.get()
 
         safe_create_instance.return_value = {}
-        single_csv = open(os.path.join(self.fixtures_dir, 'single.csv'))
+        single_csv = open(os.path.join(self.fixtures_dir, 'single.csv'), 'rb')
         csv_import.submit_csv(self.user.username, self.xform, single_csv)
         xml_file_param = BytesIO(
-            open(os.path.join(self.fixtures_dir, 'single.xml')).read())
+            open(os.path.join(self.fixtures_dir, 'single.xml'), 'rb').read())
         safe_create_args = list(safe_create_instance.call_args[0])
 
         self.assertEqual(safe_create_args[0], self.user.username,
-                         u'Wrong username passed')
+                         'Wrong username passed')
         self.assertEqual(
             strip_xml_uuid(safe_create_args[1].getvalue()),
             strip_xml_uuid(xml_file_param.getvalue()),
-            u'Wrong xml param passed')
+            'Wrong xml param passed')
         self.assertEqual(safe_create_args[2], [],
-                         u'Wrong media array param passed')
+                         'Wrong media array param passed')
         self.assertEqual(safe_create_args[3], self.xform.uuid,
-                         u'Wrong xform uuid passed')
+                         'Wrong xform uuid passed')
         self.assertEqual(safe_create_args[4], None)
 
     @mock.patch('onadata.libs.utils.csv_import.safe_create_instance')
@@ -63,23 +65,23 @@ class CSVImportTestCase(TestBase):
         safe_create_instance.return_value = [
             None,
         ]
-        single_csv = open(os.path.join(self.fixtures_dir, 'single.csv'))
+        single_csv = open(os.path.join(self.fixtures_dir, 'single.csv'), 'rb')
         csv_import.submit_csv(self.user.username, self.xform, single_csv)
 
         test_location_val = '83.3595 -32.8601 0 1'
         test_location2_val = '21.22474 -10.5601 50000 200'
 
         self.assertNotEqual(d2x.call_args, None,
-                            u'dict2xmlsubmission not called')
+                            'dict2xmlsubmission not called')
 
         call_dict = d2x.call_args[0][0]
 
         self.assertEqual(
             call_dict.get('test_location'), test_location_val,
-            u'Location prop test fail')
+            'Location prop test fail')
         self.assertEqual(
             call_dict.get('test_location2'), test_location2_val,
-            u'Location2 prop test fail')
+            'Location2 prop test fail')
 
     def test_submit_csv_and_rollback(self):
         xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
@@ -90,12 +92,12 @@ class CSVImportTestCase(TestBase):
         count = Instance.objects.count()
         csv_import.submit_csv(self.user.username, self.xform, self.good_csv)
         self.assertEqual(Instance.objects.count(), count + 9,
-                         u'submit_csv test Failed!')
+                         'submit_csv test Failed!')
         # Check that correct # of submissions belong to our user
         self.assertEqual(
             Instance.objects.filter(user=self.user).count(),
             count + 8,
-            u'submit_csv username check failed!')
+            'submit_csv username check failed!')
         self.xform.refresh_from_db()
         self.assertEqual(self.xform.num_of_submissions, count + 9)
 
@@ -107,19 +109,20 @@ class CSVImportTestCase(TestBase):
 
         csv_import.submit_csv(self.user.username, self.xform, self.good_csv)
         self.assertEqual(Instance.objects.count(), 9,
-                         u'submit_csv edits #1 test Failed!')
+                         'submit_csv edits #1 test Failed!')
 
         edit_csv = open(os.path.join(self.fixtures_dir, 'edit.csv'))
         edit_csv_str = edit_csv.read()
 
         edit_csv = BytesIO(
             edit_csv_str.format(
-                * [x.get('uuid') for x in Instance.objects.values('uuid')]))
+                * [x.get('uuid') for x in Instance.objects.values('uuid')])
+            .encode('utf-8'))
 
         count = Instance.objects.count()
         csv_import.submit_csv(self.user.username, self.xform, edit_csv)
         self.assertEqual(Instance.objects.count(), count,
-                         u'submit_csv edits #2 test Failed!')
+                         'submit_csv edits #2 test Failed!')
 
     def test_import_non_utf8_csv(self):
         xls_file_path = os.path.join(self.fixtures_dir, "mali_health.xls")
@@ -132,22 +135,23 @@ class CSVImportTestCase(TestBase):
         result = csv_import.submit_csv(self.user.username, self.xform,
                                        non_utf8_csv)
         self.assertEqual(
-            result.get('error'), u'CSV file must be utf-8 encoded',
-            u'Incorrect error message returned.')
+            result.get('error'), 'CSV file must be utf-8 encoded',
+            'Incorrect error message returned.')
         self.assertEqual(Instance.objects.count(), count,
-                         u'Non unicode csv import rollback failed!')
+                         'Non unicode csv import rollback failed!')
 
     def test_reject_spaces_in_headers(self):
         self._publish_xls_file(self.xls_file_path)
         self.xform = XForm.objects.get()
 
-        non_utf8csv = open(os.path.join(self.fixtures_dir, 'header_space.csv'))
+        non_utf8csv = open(os.path.join(self.fixtures_dir, 'header_space.csv'),
+                           'rb')
         result = csv_import.submit_csv(self.user.username, self.xform,
                                        non_utf8csv)
         self.assertEqual(
             result.get('error'),
-            u'CSV file fieldnames should not contain spaces',
-            u'Incorrect error message returned.')
+            'CSV file fieldnames should not contain spaces',
+            'Incorrect error message returned.')
 
     def test_nested_geo_paths_csv(self):
         self.xls_file_path = os.path.join(self.fixtures_dir,
@@ -159,7 +163,7 @@ class CSVImportTestCase(TestBase):
                         'rb')
         csv_import.submit_csv(self.user.username, self.xform, good_csv)
         self.assertEqual(Instance.objects.count(), 9,
-                         u'submit_csv edits #1 test Failed!')
+                         'submit_csv edits #1 test Failed!')
 
     def test_csv_with_multiple_select_in_one_column(self):
         self.xls_file_path = os.path.join(self.fixtures_dir,
@@ -173,7 +177,7 @@ class CSVImportTestCase(TestBase):
             'rb')
         csv_import.submit_csv(self.user.username, self.xform, good_csv)
         self.assertEqual(Instance.objects.count(), 1,
-                         u'submit_csv edits #1 test Failed!')
+                         'submit_csv edits #1 test Failed!')
 
     def test_csv_with_repeats_import(self):
         self.xls_file_path = os.path.join(self.this_directory, 'fixtures',
@@ -214,7 +218,7 @@ class CSVImportTestCase(TestBase):
     def test_get_async_csv_submission_status(self, AsyncResult):
         result = csv_import.get_async_csv_submission_status(None)
         self.assertEqual(result,
-                         {'error': u'Empty job uuid',
+                         {'error': 'Empty job uuid',
                           'job_status': 'FAILURE'})
 
         class BacklogLimitExceededMockAsyncResult(object):
@@ -253,5 +257,5 @@ class CSVImportTestCase(TestBase):
         AsyncResult.return_value = MockAsyncResultIOError()
         result = csv_import.get_async_csv_submission_status('x-y-z')
         self.assertEqual(result,
-                         {'error': u'File not found!',
+                         {'error': 'File not found!',
                           'job_status': 'FAILURE'})
