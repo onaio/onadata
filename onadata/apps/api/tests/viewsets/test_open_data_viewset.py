@@ -17,7 +17,8 @@ from onadata.apps.main.tests.test_base import TestBase
 
 
 def streaming_data(response):
-    return json.loads(u''.join([i for i in response.streaming_content]))
+    return json.loads(u''.join(
+        [i.decode('utf-8') for i in response.streaming_content]))
 
 
 class TestOpenDataViewSet(TestBase):

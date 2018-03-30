@@ -1,5 +1,6 @@
-from datetime import datetime
 import os
+from datetime import datetime
+from builtins import open
 
 from django.core.files.base import File
 from django.core.files.storage import default_storage
@@ -24,7 +25,7 @@ class TestAttachment(TestBase):
         self.instance = Instance.objects.all()[0]
         self.attachment = Attachment.objects.create(
             instance=self.instance,
-            media_file=File(open(media_file), media_file))
+            media_file=File(open(media_file, 'rb'), media_file))
 
     def test_mimetype(self):
         self.assertEqual(self.attachment.mimetype, 'image/jpeg')
@@ -33,7 +34,7 @@ class TestAttachment(TestBase):
         media_file = os.path.join(
             self.this_directory, 'fixtures',
             'transportation', 'instances', self.surveys[0], self.media_file)
-        media_file = File(open(media_file), media_file)
+        media_file = File(open(media_file, 'rb'), media_file)
         with self.assertRaises(DataError):
             Attachment.objects.create(
                 instance=self.instance,

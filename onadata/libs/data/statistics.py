@@ -61,7 +61,7 @@ def get_mean_for_numeric_fields_in_form(xform, field):
     data = {}
     for field_name in [field] if field else get_numeric_fields(xform):
         mean = get_mean_for_field(field_name, xform)
-        data.update({field_name: round(mean, DECIMAL_PRECISION)})
+        data.update({field_name: np.round(mean, DECIMAL_PRECISION)})
     return data
 
 
@@ -75,7 +75,7 @@ def get_mode_for_numeric_fields_in_form(xform, field=None):
     data = {}
     for field_name in [field] if field else get_numeric_fields(xform):
         mode = get_mode_for_field(field_name, xform)
-        data.update({field_name: round(mode, DECIMAL_PRECISION)})
+        data.update({field_name: np.round(mode, DECIMAL_PRECISION)})
     return data
 
 
@@ -103,9 +103,9 @@ def get_all_stats(xform, field=None):
         mean = get_mean_for_field(field_name, xform)
         median = get_median_for_field(field_name, xform)
         data[field_name] = {
-            'mean': round(mean, DECIMAL_PRECISION),
+            'mean': np.round(mean, DECIMAL_PRECISION),
             'median': median,
-            'mode': round(mode, DECIMAL_PRECISION),
+            'mode': np.round(mode, DECIMAL_PRECISION),
             'max': _max,
             'min': _min,
             'range': _range

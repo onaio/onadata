@@ -6,12 +6,20 @@ from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+from onadata.apps.api import tools as utils
+from onadata.apps.api.permissions import ProjectPermissions
+from onadata.apps.api.tools import get_baseviewset_class
+from onadata.apps.logger.models import Project
+from onadata.apps.logger.models import XForm
+from onadata.apps.main.models import UserProfile
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.filters import (
     AnonUserProjectFilter,
     ProjectOwnerFilter,
     TagFilter)
 from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
+from onadata.libs.mixins.profiler_mixin import ProfilerMixin
 from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
@@ -24,18 +32,11 @@ from onadata.libs.serializers.share_project_serializer import\
     ShareProjectSerializer, RemoveUserFromProjectSerializer
 from onadata.libs.serializers.xform_serializer import XFormCreateSerializer,\
     XFormSerializer
-from onadata.apps.api import tools as utils
-from onadata.apps.api.permissions import ProjectPermissions
-from onadata.apps.logger.models import Project
-from onadata.apps.logger.models import XForm
-from onadata.apps.main.models import UserProfile
+from onadata.libs.utils.common_tools import merge_dicts
+from onadata.libs.utils.export_tools import str_to_bool
 from onadata.settings.common import (
     DEFAULT_FROM_EMAIL,
     SHARE_PROJECT_SUBJECT)
-from onadata.apps.api.tools import get_baseviewset_class
-from onadata.libs.mixins.profiler_mixin import ProfilerMixin
-from onadata.apps.main.models.meta_data import MetaData
-from onadata.libs.utils.export_tools import str_to_bool
 
 
 BaseViewset = get_baseviewset_class()
@@ -114,7 +115,7 @@ class ProjectViewSet(AuthenticateHeaderMixin,
     @detail_route(methods=['PUT'])
     def share(self, request, *args, **kwargs):
         self.object = self.get_object()
-        data = dict(request.data.items() + [('project', self.object.pk)])
+        data = merge_dicts(request.data, {'project': self.object.pk})
         if data.get("remove"):
             serializer = RemoveUserFromProjectSerializer(data=data)
         else:
