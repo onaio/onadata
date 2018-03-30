@@ -414,35 +414,30 @@ class TestExportBuilder(TestBase):
             os.path.exists(
                 os.path.join(temp_dir, "children.info.csv")))
         # check file's contents
-        with open(os.path.join(temp_dir, "children.info.csv")) as csv_file:
+        with open(os.path.join(temp_dir, "children.info.csv"),
+                  encoding='utf-8') as csv_file:
             reader = csv.reader(csv_file)
             expected_headers = ['children.info/name.first',
                                 'children.info/age',
                                 'children.info/fav_colors',
-                                u'children.info/fav_colors/red\'s',
-                                u'children.info/fav_colors/blue\'s',
-                                u'children.info/fav_colors/pink\'s',
+                                'children.info/fav_colors/red\'s',
+                                'children.info/fav_colors/blue\'s',
+                                'children.info/fav_colors/pink\'s',
                                 'children.info/ice_creams',
                                 'children.info/ice_creams/vanilla',
                                 'children.info/ice_creams/strawberry',
                                 'children.info/ice_creams/chocolate', '_id',
                                 '_uuid', '_submission_time', '_index',
                                 '_parent_table_name', '_parent_index',
-                                u'_tags', '_notes', '_version',
+                                '_tags', '_notes', '_version',
                                 '_duration', '_submitted_by']
             rows = [row for row in reader]
-            actual_headers = [h.decode('utf-8') for h in rows[0]]
+            actual_headers = [h for h in rows[0]]
             self.assertEqual(sorted(actual_headers), sorted(expected_headers))
             data = dict(zip(rows[0], rows[1]))
-            self.assertEqual(
-                data[u'children.info/fav_colors/red\'s'.encode('utf-8')],
-                'True')
-            self.assertEqual(
-                data[u'children.info/fav_colors/blue\'s'.encode('utf-8')],
-                'True')
-            self.assertEqual(
-                data[u'children.info/fav_colors/pink\'s'.encode('utf-8')],
-                'False')
+            self.assertEqual(data['children.info/fav_colors/red\'s'], 'True')
+            self.assertEqual(data['children.info/fav_colors/blue\'s'], 'True')
+            self.assertEqual(data['children.info/fav_colors/pink\'s'], 'False')
             # check that red and blue are set to true
 
     def test_zipped_sav_export_with_date_field(self):
@@ -459,7 +454,7 @@ class TestExportBuilder(TestBase):
         """
         survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
         data = [{"expense_date": "2013-01-03", "A/gdate": "2017-06-13",
-                 '_submission_time': u'2016-11-21T03:43:43.000-08:00'}]
+                 '_submission_time': '2016-11-21T03:43:43.000-08:00'}]
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
@@ -502,7 +497,7 @@ class TestExportBuilder(TestBase):
         """
         survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
         data = [{'expensed': '09',
-                 '_submission_time': u'2016-11-21T03:43:43.000-08:00'}]
+                 '_submission_time': '2016-11-21T03:43:43.000-08:00'}]
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
@@ -542,7 +537,7 @@ class TestExportBuilder(TestBase):
         """
         survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
         data = [{"expensed": "1", "A/q1": "1",
-                 '_submission_time': u'2016-11-21T03:43:43.000-08:00'}]
+                 '_submission_time': '2016-11-21T03:43:43.000-08:00'}]
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
@@ -643,7 +638,7 @@ class TestExportBuilder(TestBase):
         """
         survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
         data = [{"expensed": "1", "A/q1": "1", "A/q2": "1",
-                 '_submission_time': u'2016-11-21T03:43:43.000-08:00'}]
+                 '_submission_time': '2016-11-21T03:43:43.000-08:00'}]
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
@@ -710,7 +705,7 @@ class TestExportBuilder(TestBase):
         """
         survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
         data = [{"expensed": "1",
-                 '_submission_time': u'2016-11-21T03:43:43.000-08:00'}]
+                 '_submission_time': '2016-11-21T03:43:43.000-08:00'}]
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
@@ -753,7 +748,7 @@ class TestExportBuilder(TestBase):
         """
         survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
         data = [{"expensed": "2 09",
-                 '_submission_time': u'2016-11-21T03:43:43.000-08:00'}]
+                 '_submission_time': '2016-11-21T03:43:43.000-08:00'}]
         export_builder = ExportBuilder()
         export_builder.VALUE_SELECT_MULTIPLES = True
         export_builder.set_survey(survey)
@@ -804,9 +799,9 @@ class TestExportBuilder(TestBase):
         """
         survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
         data = [{"q1": "1",
-                '_submission_time': u'2016-11-21T03:43:43.000-08:00'},
+                '_submission_time': '2016-11-21T03:43:43.000-08:00'},
                 {"q1": "6",
-                '_submission_time': u'2016-11-21T03:43:43.000-08:00'}
+                '_submission_time': '2016-11-21T03:43:43.000-08:00'}
                 ]
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
@@ -835,7 +830,7 @@ class TestExportBuilder(TestBase):
         """
         survey = self.md_to_pyxform_survey(md, {'name': 'sports'})
         data = [{"Sport": "Basketball", "sport": "Soccer",
-                '_submission_time': u'2016-11-21T03:43:43.000-08:00'}]
+                '_submission_time': '2016-11-21T03:43:43.000-08:00'}]
 
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
@@ -894,7 +889,7 @@ class TestExportBuilder(TestBase):
         survey_elements = [
             survey_item[1]
             for survey_item in survey.items()
-            if survey_item[0] == u'children'
+            if survey_item[0] == 'children'
         ][0]
 
         columns_with_hxl = export_builder.INCLUDE_HXL and get_columns_with_hxl(
@@ -912,7 +907,7 @@ class TestExportBuilder(TestBase):
         # we pick the second row because the first row has xform fieldnames
         rows = [row for row in children_sheet.rows]
         hxl_row = [a.value for a in rows[1]]
-        self.assertIn(u'#age', hxl_row)
+        self.assertIn('#age', hxl_row)
 
     def test_export_with_image_attachments(self):
         """
@@ -1240,8 +1235,8 @@ class TestExportBuilder(TestBase):
                 ]
             }
         childrens_section = export_builder.section_by_name('children')
-        match = filter(lambda x: expected_section['elements'][0]['xpath'] ==
-                       x['xpath'], childrens_section['elements'])[0]
+        match = [x for x in childrens_section['elements']
+                 if expected_section['elements'][0]['xpath'] == x['xpath']][0]
         self.assertEqual(
             expected_section['elements'][0]['title'], match['title'])
 
@@ -1261,9 +1256,8 @@ class TestExportBuilder(TestBase):
                 ]
             }
         main_section = export_builder.section_by_name('childrens_survey')
-        match = filter(
-            lambda x: (expected_section['elements'][0]['xpath'] ==
-                       x['xpath']), main_section['elements'])[0]
+        match = [x for x in main_section['elements']
+                 if expected_section['elements'][0]['xpath'] == x['xpath']][0]
         self.assertEqual(
             expected_section['elements'][0]['title'], match['title'])
 
@@ -1286,12 +1280,12 @@ class TestExportBuilder(TestBase):
         # check header columns
         main_sheet = wb.sheet_by_name('childrens_survey')
         expected_column_headers = [
-            u'name', u'age', u'geo/geolocation', u'geo/_geolocation_latitude',
-            u'geo/_geolocation_longitude', u'geo/_geolocation_altitude',
-            u'geo/_geolocation_precision', u'tel/tel.office',
-            u'tel/tel.mobile', u'_id', u'meta/instanceID', u'_uuid',
-            u'_submission_time', u'_index', u'_parent_index',
-            u'_parent_table_name', u'_tags', '_notes', '_version',
+            'name', 'age', 'geo/geolocation', 'geo/_geolocation_latitude',
+            'geo/_geolocation_longitude', 'geo/_geolocation_altitude',
+            'geo/_geolocation_precision', 'tel/tel.office',
+            'tel/tel.mobile', '_id', 'meta/instanceID', '_uuid',
+            '_submission_time', '_index', '_parent_index',
+            '_parent_table_name', '_tags', '_notes', '_version',
             '_duration', '_submitted_by']
         column_headers = main_sheet.row_values(0)
         self.assertEqual(sorted(column_headers),
@@ -1299,13 +1293,13 @@ class TestExportBuilder(TestBase):
 
         childrens_sheet = wb.sheet_by_name('children')
         expected_column_headers = [
-            u'children/name', u'children/age', u'children/fav_colors',
-            u'children/fav_colors/red', u'children/fav_colors/blue',
-            u'children/fav_colors/pink', u'children/ice.creams',
-            u'children/ice.creams/vanilla', u'children/ice.creams/strawberry',
-            u'children/ice.creams/chocolate', u'_id', u'_uuid',
-            u'_submission_time', u'_index', u'_parent_index',
-            u'_parent_table_name', u'_tags', '_notes', '_version',
+            'children/name', 'children/age', 'children/fav_colors',
+            'children/fav_colors/red', 'children/fav_colors/blue',
+            'children/fav_colors/pink', 'children/ice.creams',
+            'children/ice.creams/vanilla', 'children/ice.creams/strawberry',
+            'children/ice.creams/chocolate', '_id', '_uuid',
+            '_submission_time', '_index', '_parent_index',
+            '_parent_table_name', '_tags', '_notes', '_version',
             '_duration', '_submitted_by']
         column_headers = childrens_sheet.row_values(0)
         self.assertEqual(sorted(column_headers),
@@ -1313,9 +1307,9 @@ class TestExportBuilder(TestBase):
 
         cartoons_sheet = wb.sheet_by_name('children_cartoons')
         expected_column_headers = [
-            u'children/cartoons/name', u'children/cartoons/why', u'_id',
-            u'_uuid', u'_submission_time', u'_index', u'_parent_index',
-            u'_parent_table_name', u'_tags', '_notes', '_version',
+            'children/cartoons/name', 'children/cartoons/why', '_id',
+            '_uuid', '_submission_time', '_index', '_parent_index',
+            '_parent_table_name', '_tags', '_notes', '_version',
             '_duration', '_submitted_by']
         column_headers = cartoons_sheet.row_values(0)
         self.assertEqual(sorted(column_headers),
@@ -1323,10 +1317,10 @@ class TestExportBuilder(TestBase):
 
         characters_sheet = wb.sheet_by_name('children_cartoons_characters')
         expected_column_headers = [
-            u'children/cartoons/characters/name',
-            u'children/cartoons/characters/good_or_evil', u'_id', u'_uuid',
-            u'_submission_time', u'_index', u'_parent_index',
-            u'_parent_table_name', u'_tags', '_notes', '_version',
+            'children/cartoons/characters/name',
+            'children/cartoons/characters/good_or_evil', '_id', '_uuid',
+            '_submission_time', '_index', '_parent_index',
+            '_parent_table_name', '_tags', '_notes', '_version',
             '_duration', '_submitted_by']
         column_headers = characters_sheet.row_values(0)
         self.assertEqual(sorted(column_headers),
@@ -1348,12 +1342,12 @@ class TestExportBuilder(TestBase):
         # check header columns
         main_sheet = wb.sheet_by_name('childrens_survey')
         expected_column_headers = [
-            u'name', u'age', u'geo.geolocation', u'geo._geolocation_latitude',
-            u'geo._geolocation_longitude', u'geo._geolocation_altitude',
-            u'geo._geolocation_precision', u'tel.tel.office',
-            u'tel.tel.mobile', u'_id', u'meta.instanceID', u'_uuid',
-            u'_submission_time', u'_index', u'_parent_index',
-            u'_parent_table_name', u'_tags', '_notes', '_version',
+            'name', 'age', 'geo.geolocation', 'geo._geolocation_latitude',
+            'geo._geolocation_longitude', 'geo._geolocation_altitude',
+            'geo._geolocation_precision', 'tel.tel.office',
+            'tel.tel.mobile', '_id', 'meta.instanceID', '_uuid',
+            '_submission_time', '_index', '_parent_index',
+            '_parent_table_name', '_tags', '_notes', '_version',
             '_duration', '_submitted_by']
         column_headers = main_sheet.row_values(0)
         self.assertEqual(sorted(column_headers),
@@ -1704,30 +1698,24 @@ class TestExportBuilder(TestBase):
             expected_headers = ['name.first',
                                 'age',
                                 'fav_colors',
-                                u'fav_colors/red\'s',
-                                u'fav_colors/blue\'s',
-                                u'fav_colors/pink\'s',
+                                'fav_colors/red\'s',
+                                'fav_colors/blue\'s',
+                                'fav_colors/pink\'s',
                                 'ice_creams',
                                 'ice_creams/vanilla',
                                 'ice_creams/strawberry',
                                 'ice_creams/chocolate', '_id',
                                 '_uuid', '_submission_time', '_index',
                                 '_parent_table_name', '_parent_index',
-                                u'_tags', '_notes', '_version',
+                                '_tags', '_notes', '_version',
                                 '_duration', '_submitted_by']
             rows = [row for row in reader]
-            actual_headers = [h.decode('utf-8') for h in rows[0]]
+            actual_headers = [h for h in rows[0]]
             self.assertEqual(sorted(actual_headers), sorted(expected_headers))
             data = dict(zip(rows[0], rows[1]))
-            self.assertEqual(
-                data[u'fav_colors/red\'s'.encode('utf-8')],
-                'True')
-            self.assertEqual(
-                data[u'fav_colors/blue\'s'.encode('utf-8')],
-                'True')
-            self.assertEqual(
-                data[u'fav_colors/pink\'s'.encode('utf-8')],
-                'False')
+            self.assertEqual(data['fav_colors/red\'s'], 'True')
+            self.assertEqual(data['fav_colors/blue\'s'], 'True')
+            self.assertEqual(data['fav_colors/pink\'s'], 'False')
             # check that red and blue are set to true
         shutil.rmtree(temp_dir)
 
@@ -1746,18 +1734,18 @@ class TestExportBuilder(TestBase):
         children_sheet = wb["children.info"]
         labels = dict([(r[0].value, r[1].value)
                        for r in children_sheet.columns])
-        self.assertEqual(labels[u'name.first'], '3.1 Childs name')
-        self.assertEqual(labels[u'age'], '3.2 Child age')
-        self.assertEqual(labels[u'fav_colors/red\'s'], 'fav_colors/Red')
-        self.assertEqual(labels[u'fav_colors/blue\'s'], 'fav_colors/Blue')
-        self.assertEqual(labels[u'fav_colors/pink\'s'], 'fav_colors/Pink')
+        self.assertEqual(labels['name.first'], '3.1 Childs name')
+        self.assertEqual(labels['age'], '3.2 Child age')
+        self.assertEqual(labels['fav_colors/red\'s'], 'fav_colors/Red')
+        self.assertEqual(labels['fav_colors/blue\'s'], 'fav_colors/Blue')
+        self.assertEqual(labels['fav_colors/pink\'s'], 'fav_colors/Pink')
 
         data = dict([(r[0].value, r[2].value) for r in children_sheet.columns])
-        self.assertEqual(data[u'name.first'], 'Mike')
-        self.assertEqual(data[u'age'], 5)
-        self.assertTrue(data[u'fav_colors/red\'s'])
-        self.assertTrue(data[u'fav_colors/blue\'s'])
-        self.assertFalse(data[u'fav_colors/pink\'s'])
+        self.assertEqual(data['name.first'], 'Mike')
+        self.assertEqual(data['age'], 5)
+        self.assertTrue(data['fav_colors/red\'s'])
+        self.assertTrue(data['fav_colors/blue\'s'])
+        self.assertFalse(data['fav_colors/pink\'s'])
         temp_xls_file.close()
 
     def test_xls_export_with_labels_only(self):
@@ -1776,9 +1764,9 @@ class TestExportBuilder(TestBase):
         data = dict([(r[0].value, r[1].value) for r in children_sheet.columns])
         self.assertEqual(data['3.1 Childs name'], 'Mike')
         self.assertEqual(data['3.2 Child age'], 5)
-        self.assertTrue(data[u'fav_colors/Red'])
-        self.assertTrue(data[u'fav_colors/Blue'])
-        self.assertFalse(data[u'fav_colors/Pink'])
+        self.assertTrue(data['fav_colors/Red'])
+        self.assertTrue(data['fav_colors/Blue'])
+        self.assertFalse(data['fav_colors/Pink'])
         temp_xls_file.close()
 
     def test_zipped_csv_export_with_labels(self):
@@ -1804,21 +1792,22 @@ class TestExportBuilder(TestBase):
             os.path.exists(
                 os.path.join(temp_dir, "children.info.csv")))
         # check file's contents
-        with open(os.path.join(temp_dir, "children.info.csv")) as csv_file:
+        with open(os.path.join(temp_dir, "children.info.csv"),
+                  encoding='utf-8') as csv_file:
             reader = csv.reader(csv_file)
             expected_headers = ['name.first',
                                 'age',
                                 'fav_colors',
-                                u'fav_colors/red\'s',
-                                u'fav_colors/blue\'s',
-                                u'fav_colors/pink\'s',
+                                'fav_colors/red\'s',
+                                'fav_colors/blue\'s',
+                                'fav_colors/pink\'s',
                                 'ice_creams',
                                 'ice_creams/vanilla',
                                 'ice_creams/strawberry',
                                 'ice_creams/chocolate', '_id',
                                 '_uuid', '_submission_time', '_index',
                                 '_parent_table_name', '_parent_index',
-                                u'_tags', '_notes', '_version',
+                                '_tags', '_notes', '_version',
                                 '_duration', '_submitted_by']
             expected_labels = ['3.1 Childs name',
                                '3.2 Child age',
@@ -1832,23 +1821,17 @@ class TestExportBuilder(TestBase):
                                'ice_creams/Chocolate', '_id',
                                '_uuid', '_submission_time', '_index',
                                '_parent_table_name', '_parent_index',
-                               u'_tags', '_notes', '_version',
+                               '_tags', '_notes', '_version',
                                '_duration', '_submitted_by']
             rows = [row for row in reader]
-            actual_headers = [h.decode('utf-8') for h in rows[0]]
+            actual_headers = [h for h in rows[0]]
             self.assertEqual(sorted(actual_headers), sorted(expected_headers))
-            actual_labels = [h.decode('utf-8') for h in rows[1]]
+            actual_labels = [h for h in rows[1]]
             self.assertEqual(sorted(actual_labels), sorted(expected_labels))
             data = dict(zip(rows[0], rows[2]))
-            self.assertEqual(
-                data[u'fav_colors/red\'s'.encode('utf-8')],
-                'True')
-            self.assertEqual(
-                data[u'fav_colors/blue\'s'.encode('utf-8')],
-                'True')
-            self.assertEqual(
-                data[u'fav_colors/pink\'s'.encode('utf-8')],
-                'False')
+            self.assertEqual(data['fav_colors/red\'s'], 'True')
+            self.assertEqual(data['fav_colors/blue\'s'], 'True')
+            self.assertEqual(data['fav_colors/pink\'s'], 'False')
             # check that red and blue are set to true
         shutil.rmtree(temp_dir)
 
@@ -1875,7 +1858,8 @@ class TestExportBuilder(TestBase):
             os.path.exists(
                 os.path.join(temp_dir, "children.info.csv")))
         # check file's contents
-        with open(os.path.join(temp_dir, "children.info.csv")) as csv_file:
+        with open(os.path.join(temp_dir, "children.info.csv"),
+                  encoding='utf-8') as csv_file:
             reader = csv.reader(csv_file)
             expected_headers = [
                 '3.1 Childs name',
@@ -1890,22 +1874,16 @@ class TestExportBuilder(TestBase):
                 'ice_creams/Chocolate', '_id',
                 '_uuid', '_submission_time', '_index',
                 '_parent_table_name', '_parent_index',
-                u'_tags', '_notes', '_version',
+                '_tags', '_notes', '_version',
                 '_duration', '_submitted_by'
             ]
             rows = [row for row in reader]
-            actual_headers = [h.decode('utf-8') for h in rows[0]]
+            actual_headers = [h for h in rows[0]]
             self.assertEqual(sorted(actual_headers), sorted(expected_headers))
             data = dict(zip(rows[0], rows[1]))
-            self.assertEqual(
-                data[u'fav_colors/Red'.encode('utf-8')],
-                'True')
-            self.assertEqual(
-                data[u'fav_colors/Blue'.encode('utf-8')],
-                'True')
-            self.assertEqual(
-                data[u'fav_colors/Pink'.encode('utf-8')],
-                'False')
+            self.assertEqual(data['fav_colors/Red'], 'True')
+            self.assertEqual(data['fav_colors/Blue'], 'True')
+            self.assertEqual(data['fav_colors/Pink'], 'False')
             # check that red and blue are set to true
         shutil.rmtree(temp_dir)
 
@@ -1998,8 +1976,8 @@ class TestExportBuilder(TestBase):
         childrens_survey_sheet = wb["childrens_survey_en"]
         labels = dict([(r[0].value, r[1].value)
                        for r in childrens_survey_sheet.columns])
-        self.assertEqual(labels[u'name'], '1. What is your name?')
-        self.assertEqual(labels[u'age'], '2. How old are you?')
+        self.assertEqual(labels['name'], '1. What is your name?')
+        self.assertEqual(labels['age'], '2. How old are you?')
 
         children_sheet = wb["children"]
         labels = dict([(r[0].value, r[1].value)
@@ -2026,8 +2004,8 @@ class TestExportBuilder(TestBase):
         childrens_survey_sheet = wb["childrens_survey_sw"]
         labels = dict([(r[0].value, r[1].value)
                        for r in childrens_survey_sheet.columns])
-        self.assertEqual(labels[u'name'], '1. Jina lako ni?')
-        self.assertEqual(labels[u'age'], '2. Umri wako ni?')
+        self.assertEqual(labels['name'], '1. Jina lako ni?')
+        self.assertEqual(labels['age'], '2. Umri wako ni?')
 
         children_sheet = wb["children"]
         labels = dict([(r[0].value, r[1].value)
@@ -2071,29 +2049,29 @@ class TestExportBuilder(TestBase):
         )
         expected_choices = [
             {
-                'xpath': u'children/fav_colors/red',
-                'title': u'children/fav_colors/red',
+                'xpath': 'children/fav_colors/red',
+                'title': 'children/fav_colors/red',
                 'type': 'string',
-                'label': u'fav_colors/Nyekundu'
+                'label': 'fav_colors/Nyekundu'
             }, {
-                'xpath': u'children/fav_colors/blue',
-                'title': u'children/fav_colors/blue',
-                'type': 'string', 'label': u'fav_colors/Bluu'
+                'xpath': 'children/fav_colors/blue',
+                'title': 'children/fav_colors/blue',
+                'type': 'string', 'label': 'fav_colors/Bluu'
             }, {
-                'xpath': u'children/fav_colors/pink',
-                'title': u'children/fav_colors/pink',
-                'type': 'string', 'label': u'fav_colors/Pink'
+                'xpath': 'children/fav_colors/pink',
+                'title': 'children/fav_colors/pink',
+                'type': 'string', 'label': 'fav_colors/Pink'
             }
         ]
         self.assertEqual(choices, expected_choices)
         select_multiples = {
-            u'children/fav_colors': [
-                u'children/fav_colors/red', u'children/fav_colors/blue',
-                u'children/fav_colors/pink'
-            ], u'children/ice.creams': [
-                u'children/ice.creams/vanilla',
-                u'children/ice.creams/strawberry',
-                u'children/ice.creams/chocolate'
+            'children/fav_colors': [
+                'children/fav_colors/red', 'children/fav_colors/blue',
+                'children/fav_colors/pink'
+            ], 'children/ice.creams': [
+                'children/ice.creams/vanilla',
+                'children/ice.creams/strawberry',
+                'children/ice.creams/chocolate'
             ]
         }
         self.assertEqual(CSVDataFrameBuilder._collect_select_multiples(dd),
@@ -2118,37 +2096,37 @@ class TestExportBuilder(TestBase):
         self.assertEqual(child.children, [])
         expected_choices = [
             {
-                'label': u'county/King',
-                'title': u'county/king',
+                'label': 'county/King',
+                'title': 'county/king',
                 'type': 'string',
-                'xpath': u'county/king'
+                'xpath': 'county/king'
             },
             {
-                'label': u'county/Pierce',
-                'title': u'county/pierce',
+                'label': 'county/Pierce',
+                'title': 'county/pierce',
                 'type': 'string',
-                'xpath': u'county/pierce'
+                'xpath': 'county/pierce'
             },
             {
-                'label': u'county/King',
-                'title': u'county/king',
+                'label': 'county/King',
+                'title': 'county/king',
                 'type': 'string',
-                'xpath': u'county/king'
+                'xpath': 'county/king'
             },
             {
-                'label': u'county/Cameron',
-                'title': u'county/cameron',
+                'label': 'county/Cameron',
+                'title': 'county/cameron',
                 'type': 'string',
-                'xpath': u'county/cameron'
+                'xpath': 'county/cameron'
             }
         ]
         self.assertEqual(choices, expected_choices)
         select_multiples = {
-            u'county': [
-                u'county/king',
-                u'county/pierce',
-                u'county/king',
-                u'county/cameron'
+            'county': [
+                'county/king',
+                'county/pierce',
+                'county/king',
+                'county/cameron'
             ]
         }
         self.assertEqual(CSVDataFrameBuilder._collect_select_multiples(dd),
@@ -2206,25 +2184,25 @@ class TestExportBuilder(TestBase):
         temp_xls_file.close()
 
         expected_column_headers = [
-            u'photo', u'osm_road', u'osm_building', u'fav_color',
-            u'form_completed', u'meta/instanceID', u'_id', u'_uuid',
-            u'_submission_time', u'_index', u'_parent_table_name',
-            u'_parent_index', u'_tags', u'_notes', u'_version', u'_duration',
-            u'_submitted_by', u'osm_road:ctr:lat', u'osm_road:ctr:lon',
-            u'osm_road:highway', u'osm_road:lanes', u'osm_road:name',
-            u'osm_road:way:id', u'osm_building:building',
-            u'osm_building:building:levels', u'osm_building:ctr:lat',
-            u'osm_building:ctr:lon', u'osm_building:name',
-            u'osm_building:way:id']
+            'photo', 'osm_road', 'osm_building', 'fav_color',
+            'form_completed', 'meta/instanceID', '_id', '_uuid',
+            '_submission_time', '_index', '_parent_table_name',
+            '_parent_index', '_tags', '_notes', '_version', '_duration',
+            '_submitted_by', 'osm_road:ctr:lat', 'osm_road:ctr:lon',
+            'osm_road:highway', 'osm_road:lanes', 'osm_road:name',
+            'osm_road:way:id', 'osm_building:building',
+            'osm_building:building:levels', 'osm_building:ctr:lat',
+            'osm_building:ctr:lon', 'osm_building:name',
+            'osm_building:way:id']
         self.assertEqual(sorted(expected_column_headers), sorted(xls_headers))
 
         submission = [a.value for a in rows[1]]
-        self.assertEqual(submission[0], u'1424308569120.jpg')
-        self.assertEqual(submission[2], u'23.708174238006087')
-        self.assertEqual(submission[4], u'tertiary')
-        self.assertEqual(submission[6], u'Patuatuli Road')
-        self.assertEqual(submission[11], u'23.707316084046038')
-        self.assertEqual(submission[13], u'kol')
+        self.assertEqual(submission[0], '1424308569120.jpg')
+        self.assertEqual(submission[2], '23.708174238006087')
+        self.assertEqual(submission[4], 'tertiary')
+        self.assertEqual(submission[6], 'Patuatuli Road')
+        self.assertEqual(submission[11], '23.707316084046038')
+        self.assertEqual(submission[13], 'kol')
 
     def test_zipped_csv_export_with_osm_data(self):
         """
