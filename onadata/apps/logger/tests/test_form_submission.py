@@ -576,7 +576,7 @@ class TestFormSubmission(TestBase):
         with open(xml_submission_file_path, "r") as f:
             xml_str = f.read()
         xml_str = clean_and_parse_xml(xml_str).toxml()
-        edited_name = re.match(ur"^.+?<name>(.+?)</name>", xml_str).groups()[0]
+        edited_name = re.match(r"^.+?<name>(.+?)</name>", xml_str).groups()[0]
         self.assertEqual(record['name'], edited_name)
 
     @patch('onadata.libs.utils.logger_tools.create_instance')
