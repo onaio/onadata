@@ -205,7 +205,7 @@ class MetaData(models.Model):
                 return ''
             else:
                 self.file_hash = 'md5:%s' \
-                    % md5(self.data_file.read().encode('utf-8')).hexdigest()
+                    % md5(self.data_file.read()).hexdigest()
 
                 return self.file_hash
 
