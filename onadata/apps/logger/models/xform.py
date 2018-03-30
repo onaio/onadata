@@ -1,11 +1,9 @@
-import base64
 import json
 import os
 import re
 from builtins import bytes as b
 from builtins import str as text
 from datetime import datetime
-from functools import reduce
 from hashlib import md5
 from xml.dom import Node
 
@@ -48,19 +46,13 @@ from onadata.libs.utils.common_tags import (DURATION, ID, KNOWN_MEDIA_TYPES,
                                             SUBMITTED_BY, TAGS, TOTAL_MEDIA,
                                             UUID, VERSION)
 from onadata.libs.utils.model_tools import queryset_iterator
+from onadata.libs.utils.mongo import _encode_for_mongo
 
 QUESTION_TYPES_TO_EXCLUDE = [
     u'note',
 ]
 XFORM_TITLE_LENGTH = 255
 title_pattern = re.compile(r"<h:title>(.*?)</h:title>")
-
-
-def _encode_for_mongo(key):
-    return reduce(lambda s, c:
-                  re.sub(c[0],
-                         text(base64.b64encode(c[1].encode('utf-8'))), s),
-                  [(r'^\$', '$'), (r'\.', '.')], key)
 
 
 def question_types_to_exclude(_type):
