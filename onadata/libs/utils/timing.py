@@ -1,7 +1,6 @@
 import datetime
 import six
 
-from itertools import chain
 from django.utils import timezone
 
 
@@ -33,10 +32,6 @@ def get_date(_object=None):
 
 def last_modified_header(last_modified_date):
     return {'Last-Modified': last_modified_date}
-
-
-def merge_dicts(*args):
-    return dict(chain(*[d.items() for d in args]))
 
 
 def calculate_duration(start_time, end_time):
