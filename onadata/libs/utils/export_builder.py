@@ -97,7 +97,7 @@ def get_data_dictionary_from_survey(survey):
 
 
 def encode_if_str(row, key, encode_dates=False, sav_writer=None):
-    val = row.get(key, '')
+    val = row.get(key)
     if isinstance(val, (datetime, date)):
         if sav_writer:
             if isinstance(val, datetime):
