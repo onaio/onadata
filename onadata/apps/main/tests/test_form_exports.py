@@ -33,8 +33,8 @@ class TestFormExports(TestBase):
             return open_workbook(file_contents=f).sheets()[0].nrows
 
         def csv_rows(f):
-            with tempfile.TemporaryFile() as tmp:
-                tmp.write(f.encode('utf-8'))
+            with tempfile.TemporaryFile('w+') as tmp:
+                tmp.write(f.decode('utf-8'))
                 tmp.seek(0)
                 return len([line for line in csv.reader(tmp)])
         num_rows_fn = {
