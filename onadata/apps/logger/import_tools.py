@@ -3,6 +3,7 @@ import os
 import shutil
 import tempfile
 import zipfile
+from builtins import open
 
 from celery import task
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -32,7 +33,7 @@ def django_file(path, field_name, content_type):
     # adapted from here:
     # http://groups.google.com/group/django-users/browse_thread/thread/
     # 834f988876ff3c45/
-    f = open(path)
+    f = open(path, 'rb')
     return InMemoryUploadedFile(
         file=f,
         field_name=field_name,

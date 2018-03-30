@@ -215,17 +215,9 @@ def save_attachments(xform, instance, media_files):
             xform.instances_with_osm = True
             xform.save()
         filename = os.path.basename(f.name)
-        # filename = os.path.join(upload_path, f.name)
-        # attachments = Attachment.objects.filter(instance=instance,
-        #                                         media_file=filename)
-        # attachment = attachments.first()
-        # if attachment:
-        #     if attachment.media_file.size < f.size():
-        #         attachment.media_file = f
-        #         attachment.save()
-        # else:
-        media_in_submission = (filename in instance.get_expected_media() or
-                               instance.xml.find(filename) != -1)
+        media_in_submission = (
+            filename in instance.get_expected_media() or
+            instance.xml.decode('utf-8').find(filename) != -1)
         if media_in_submission:
             Attachment.objects.get_or_create(
                 instance=instance,

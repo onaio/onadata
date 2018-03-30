@@ -9,6 +9,7 @@ import json
 import os
 import re
 import sys
+from builtins import open
 from datetime import datetime, timedelta
 from future.moves.urllib.parse import urlparse
 from future.utils import iteritems
@@ -423,7 +424,7 @@ def generate_attachments_zip_export(export_type, username, id_string,
         zip_file = create_attachments_zipfile(attachments)
 
         try:
-            temp_file = open(zip_file.name)
+            temp_file = open(zip_file.name, 'rb')
             filename = default_storage.save(
                 file_path,
                 File(temp_file, file_path))
