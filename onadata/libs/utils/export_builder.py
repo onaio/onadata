@@ -98,8 +98,6 @@ def get_data_dictionary_from_survey(survey):
 
 def encode_if_str(row, key, encode_dates=False, sav_writer=None):
     val = row.get(key, '')
-    if isinstance(val, text):
-        return val.encode('utf-8')
     if isinstance(val, (datetime, date)):
         if sav_writer:
             if isinstance(val, datetime):
@@ -616,14 +614,14 @@ class ExportBuilder(object):
             for section in self.sections:
                 fields = self.get_fields(dataview, section, 'title')
                 csv_defs[section['name']]['csv_writer'].writerow(
-                    [f.encode('utf-8') for f in fields])
+                    [f for f in fields])
 
         # write labels
         if self.INCLUDE_LABELS or self.INCLUDE_LABELS_ONLY:
             for section in self.sections:
                 fields = self.get_fields(dataview, section, 'label')
                 csv_defs[section['name']]['csv_writer'].writerow(
-                    [f.encode('utf-8') for f in fields])
+                    [f for f in fields])
 
         media_xpaths = [] if not self.INCLUDE_IMAGES \
             else self.dd.get_media_survey_xpaths()
