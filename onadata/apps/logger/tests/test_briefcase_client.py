@@ -1,5 +1,6 @@
 import os.path
 import shutil
+from builtins import open
 from io import BytesIO
 
 from future.moves.urllib.parse import urljoin
@@ -85,7 +86,7 @@ class TestBriefcaseClient(TestBase):
         self._submit_transport_instance_w_attachment()
         src = os.path.join(self.this_directory, "fixtures",
                            "transportation", "screenshot.png")
-        uf = UploadedFile(file=open(src), content_type='image/png')
+        uf = UploadedFile(file=open(src, 'rb'), content_type='image/png')
         count = MetaData.objects.count()
         MetaData.media_upload(self.xform, uf)
         self.assertEqual(MetaData.objects.count(), count + 1)

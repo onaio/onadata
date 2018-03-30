@@ -3,6 +3,7 @@ import os
 from django.utils import timezone
 from django.core.files.base import ContentFile
 from django.test import RequestFactory
+from builtins import open
 from mock import patch
 
 from onadata.apps.main.tests.test_base import TestBase
@@ -110,7 +111,8 @@ class TestStatsViewSet(TestBase):
             {'count': 2, 'gender': u'Female'},
             {'count': 1, 'gender': u'Male'}
         ]
-        self.assertEqual(sorted(data), sorted(response.data))
+        self.assertEqual(sorted(data, key=lambda k: k['gender']),
+                         sorted(response.data, key=lambda k: k['gender']))
 
     def test_anon_form_list(self):
         self._publish_transportation_form()
@@ -130,7 +132,7 @@ class TestStatsViewSet(TestBase):
         instance_paths = [os.path.join(tutorial_folder, 'instances', i)
                           for i in ['1.xml', '2.xml', '3.xml']]
         for path in instance_paths:
-            create_instance(self.user.username, open(path), [])
+            create_instance(self.user.username, open(path, 'rb'), [])
 
         self.assertEqual(self.xform.instances.count(), 3)
 
@@ -139,9 +141,8 @@ class TestStatsViewSet(TestBase):
         path = os.path.join(os.path.dirname(__file__),
                             '..', 'fixtures', 'forms', 'contributions')
         form_path = os.path.join(path, 'contributions.xml')
-        f = open(form_path)
-        xml_file = ContentFile(f.read())
-        f.close()
+        with open(form_path, encoding='utf-8') as f:
+            xml_file = ContentFile(f.read())
         xml_file.name = 'contributions.xml'
         project = get_user_default_project(self.user)
         self.xform = publish_xml_form(xml_file, self.user, project)
@@ -149,7 +150,7 @@ class TestStatsViewSet(TestBase):
         instances_path = os.path.join(path, 'instances')
         for uuid in os.listdir(instances_path):
             s_path = os.path.join(instances_path, uuid, 'submission.xml')
-            create_instance(self.user.username, open(s_path), [])
+            create_instance(self.user.username, open(s_path, 'rb'), [])
         self.assertEqual(self.xform.instances.count(), 6)
 
     def test_median_api(self):
