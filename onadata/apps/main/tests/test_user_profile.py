@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from mock import patch
 
 from django.test import TestCase
@@ -9,6 +11,7 @@ from django.contrib.auth.models import AnonymousUser
 
 from onadata.apps.main.views import profile, api_token
 from onadata.apps.logger.xform_instance_parser import XLSFormError
+from onadata.libs.utils.common_tools import merge_dicts
 
 
 class TestUserProfile(TestCase):
@@ -32,7 +35,7 @@ class TestUserProfile(TestCase):
             'twitter': 'boberama'
         }
         url = '/accounts/register/'
-        post_data = dict(post_data.items() + extra_post_data.items())
+        post_data = merge_dicts(post_data, extra_post_data)
         self.response = self.client.post(url, post_data)
         try:
             self.user = User.objects.get(username=post_data['username'])
@@ -47,7 +50,7 @@ class TestUserProfile(TestCase):
     @patch('onadata.apps.main.views.render')
     def test_xlsform_error_returns_400(self, mock_render):
         mock_render.side_effect = XLSFormError(
-            u"Title shouldn't have an ampersand")
+            "Title shouldn't have an ampersand")
         self._login_user_and_profile()
         response = self.client.get(
             reverse(profile, kwargs={
@@ -56,7 +59,8 @@ class TestUserProfile(TestCase):
 
         self.assertTrue(mock_render.called)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, "Title shouldn't have an ampersand")
+        self.assertEqual(response.content.decode('utf-8'),
+                         "Title shouldn't have an ampersand")
 
     def test_create_user_profile_for_user(self):
         self._login_user_and_profile()
