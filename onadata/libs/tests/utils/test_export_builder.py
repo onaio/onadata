@@ -10,10 +10,10 @@ import os
 import shutil
 import tempfile
 import zipfile
+from builtins import open
 from collections import OrderedDict
 from ctypes import ArgumentError
 from io import BytesIO
-
 from past.builtins import basestring
 
 from django.conf import settings
@@ -299,7 +299,7 @@ class TestExportBuilder(TestBase):
         export_builder.to_zipped_csv(temp_zip_file.name, self.data)
         temp_zip_file.seek(0)
         temp_dir = tempfile.mkdtemp()
-        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file = zipfile.ZipFile(temp_zip_file.name, 'r')
         zip_file.extractall(temp_dir)
         zip_file.close()
         temp_zip_file.close()
@@ -319,15 +319,14 @@ class TestExportBuilder(TestBase):
         self.assertTrue(
             os.path.exists(
                 os.path.join(temp_dir, "{0}.csv".format(survey.name))))
-        with open(
-                os.path.join(
-                    temp_dir, "{0}.csv".format(survey.name))) as csv_file:
+        with open(os.path.join(temp_dir, "{0}.csv".format(survey.name)),
+                  encoding='utf-8') as csv_file:
             reader = csv.reader(csv_file)
             rows = [r for r in reader]
 
             # open comparison file
-            with open(_logger_fixture_path(
-                    'csvs', 'childrens_survey.csv')) as fixture_csv:
+            with open(_logger_fixture_path('csvs', 'childrens_survey.csv'),
+                      encoding='utf-8') as fixture_csv:
                 fixture_reader = csv.reader(fixture_csv)
                 expected_rows = [r for r in fixture_reader]
                 self.assertEqual(rows, expected_rows)
@@ -335,13 +334,14 @@ class TestExportBuilder(TestBase):
         self.assertTrue(
             os.path.exists(
                 os.path.join(temp_dir, "children.csv")))
-        with open(os.path.join(temp_dir, "children.csv")) as csv_file:
+        with open(os.path.join(temp_dir, "children.csv"),
+                  encoding='utf-8') as csv_file:
             reader = csv.reader(csv_file)
             rows = [r for r in reader]
 
             # open comparison file
-            with open(_logger_fixture_path(
-                    'csvs', 'children.csv')) as fixture_csv:
+            with open(_logger_fixture_path('csvs', 'children.csv'),
+                      encoding='utf-8') as fixture_csv:
                 fixture_reader = csv.reader(fixture_csv)
                 expected_rows = [r for r in fixture_reader]
                 self.assertEqual(rows, expected_rows)
@@ -349,13 +349,14 @@ class TestExportBuilder(TestBase):
         self.assertTrue(
             os.path.exists(
                 os.path.join(temp_dir, "children_cartoons.csv")))
-        with open(os.path.join(temp_dir, "children_cartoons.csv")) as csv_file:
+        with open(os.path.join(temp_dir, "children_cartoons.csv"),
+                  encoding='utf-8') as csv_file:
             reader = csv.reader(csv_file)
             rows = [r for r in reader]
 
             # open comparison file
-            with open(_logger_fixture_path(
-                    'csvs', 'children_cartoons.csv')) as fixture_csv:
+            with open(_logger_fixture_path('csvs', 'children_cartoons.csv'),
+                      encoding='utf-8') as fixture_csv:
                 fixture_reader = csv.reader(fixture_csv)
                 expected_rows = [r for r in fixture_reader]
                 self.assertEqual(rows, expected_rows)
@@ -363,15 +364,15 @@ class TestExportBuilder(TestBase):
         self.assertTrue(
             os.path.exists(
                 os.path.join(temp_dir, "children_cartoons_characters.csv")))
-        with open(os.path.join(
-                temp_dir, "children_cartoons_characters.csv")) as csv_file:
+        with open(os.path.join(temp_dir, "children_cartoons_characters.csv"),
+                  encoding='utf-8') as csv_file:
             reader = csv.reader(csv_file)
             rows = [r for r in reader]
 
             # open comparison file
             with open(_logger_fixture_path(
-                    'csvs',
-                    'children_cartoons_characters.csv')) as fixture_csv:
+                    'csvs', 'children_cartoons_characters.csv'),
+                      encoding='utf-8') as fixture_csv:
                 fixture_reader = csv.reader(fixture_csv)
                 expected_rows = [r for r in fixture_reader]
                 self.assertEqual(rows, expected_rows)
