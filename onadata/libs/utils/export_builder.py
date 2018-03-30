@@ -97,23 +97,22 @@ def get_data_dictionary_from_survey(survey):
 
 
 def encode_if_str(row, key, encode_dates=False, sav_writer=None):
-    val = row.get(key)
-
+    val = row.get(key, '')
     if isinstance(val, text):
         return val.encode('utf-8')
-
-    if sav_writer and isinstance(val, (datetime, date)):
-        strptime_fmt = '%Y-%m-%dT%H:%M:%S.%f%z' \
-            if isinstance(val, datetime) else '%Y-%m-%d'
-
-        if isinstance(val, datetime) and len(val.isoformat()):
-            strptime_fmt = strptime_fmt[:17]
-
-        return sav_writer.spssDateTime(val.isoformat(), strptime_fmt)
-
-    if encode_dates and isinstance(val, (datetime, date)):
-        return val.isoformat()
-
+    if isinstance(val, (datetime, date)):
+        if sav_writer:
+            if isinstance(val, datetime):
+                if len(val.isoformat()):
+                    strptime_fmt = '%Y-%m-%dT%H:%M:%S'
+                else:
+                    strptime_fmt = '%Y-%m-%dT%H:%M:%S.%f%z'
+            else:
+                strptime_fmt = '%Y-%m-%d'
+            return sav_writer.spssDateTime(val.isoformat().encode('utf-8'),
+                                           strptime_fmt)
+        elif encode_dates:
+            return val.isoformat()
     return val
 
 
@@ -1043,8 +1042,8 @@ class ExportBuilder(object):
         # write headers
         for section in self.sections:
             sav_options = self._get_sav_options(section['elements'])
-            sav_file = NamedTemporaryFile(suffix='.sav', mode='w')
-            sav_writer = SavWriter(sav_file.name, ioLocale='en_US.UTF-8',
+            sav_file = NamedTemporaryFile(suffix='.sav')
+            sav_writer = SavWriter(sav_file.name, ioLocale=str('en_US.UTF-8'),
                                    **sav_options)
             sav_defs[section['name']] = {
                 'sav_file': sav_file, 'sav_writer': sav_writer}
@@ -1077,11 +1076,11 @@ class ExportBuilder(object):
                     section['elements']]
                 sav_writer = sav_def['sav_writer']
                 row = output.get(section_name, None)
-                if type(row) == dict:
+                if isinstance(row, dict):
                     write_row(
                         self.pre_process_row(row, section),
                         sav_writer, fields)
-                elif type(row) == list:
+                elif isinstance(row, list):
                     for child_row in row:
                         write_row(
                             self.pre_process_row(child_row, section),
