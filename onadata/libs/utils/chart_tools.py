@@ -1,7 +1,10 @@
+from __future__ import unicode_literals
+
 import re
 import six
 
 from builtins import str as text
+from collections import OrderedDict
 from past.builtins import basestring
 
 from django.db.utils import DataError
@@ -164,7 +167,6 @@ def _use_labels_from_field_name(field_name,
                                 choices=None):
     # truncate field name to 63 characters to fix #354
     truncated_name = field_name[0:POSTGRES_ALIAS_LENGTH]
-    truncated_name = truncated_name.encode('utf-8')
 
     if data_type == 'categorized' and field_name != common_tags.SUBMITTED_BY:
         if data:
@@ -175,9 +177,6 @@ def _use_labels_from_field_name(field_name,
                 if truncated_name in item:
                     item[truncated_name] = get_choice_label(
                         choices, item[truncated_name])
-
-    # replace truncated field names in the result set with the field name key
-    field_name = field_name.encode('utf-8')
 
     for item in data:
         if field_name != truncated_name:
@@ -194,7 +193,6 @@ def _use_labels_from_group_by_name(field_name,
                                    choices=None):
     # truncate field name to 63 characters to fix #354
     truncated_name = field_name[0:POSTGRES_ALIAS_LENGTH]
-    truncated_name = truncated_name.encode('utf-8')
 
     if data_type == 'categorized':
         if data:
@@ -209,9 +207,6 @@ def _use_labels_from_group_by_name(field_name,
                 else:
                     item[truncated_name] = \
                         get_choice_label(choices, item[truncated_name])
-
-    # replace truncated field names in the result set with the field name key
-    field_name = field_name.encode('utf-8')
 
     for item in data:
         if 'items' in item:
@@ -280,7 +275,7 @@ def build_chart_data_for_field(xform,
             result = get_form_submissions_aggregated_by_select_one(
                 xform, field_xpath, field_name, group_by_name, data_view)
         else:
-            raise ParseError(u'Cannot group by %s' % group_by_name)
+            raise ParseError('Cannot group by %s' % group_by_name)
     else:
         result = get_form_submissions_grouped_by_field(xform, field_xpath,
                                                        field_name, data_view)
@@ -448,7 +443,7 @@ def get_field_from_field_xpath(field_xpath, xform):
 def get_field_label(field, language_index=0):
     # check if label is dict i.e. multilang
     if isinstance(field.label, dict) and len(list(field.label)) > 0:
-        languages = list(field.label)
+        languages = list(OrderedDict(field.label))
         language_index = min(language_index, len(languages) - 1)
         field_label = field.label[languages[language_index]]
     else:
@@ -500,7 +495,7 @@ def get_chart_data_for_field(field_name,
         elif accepted_format == 'html' and 'data' in data:
             for item in data['data']:
                 if isinstance(item[field_name], list):
-                    item[field_name] = u', '.join(item[field_name])
+                    item[field_name] = ', '.join(item[field_name])
 
         data.update({'xform': xform})
 
