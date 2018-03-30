@@ -175,7 +175,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         tmp_file = None
 
         if add_uuid:
-            tmp_file = NamedTemporaryFile(delete=False)
+            tmp_file = NamedTemporaryFile(delete=False, mode='w')
             split_xml = None
 
             with open(path, encoding='utf-8') as _file:
