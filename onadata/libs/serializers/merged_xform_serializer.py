@@ -174,7 +174,8 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
         xforms = validated_data['xforms']
         # create merged xml, json with non conflicting id_string
         survey = get_merged_xform_survey(xforms)
-        survey['id_string'] = base64.b64encode(uuid.uuid4().hex[:6])
+        survey['id_string'] = base64.b64encode(uuid.uuid4().hex[:6].encode(
+            'utf-8')).decode('utf-8')
         survey['sms_keyword'] = survey['id_string']
         survey['title'] = validated_data.pop('name')
         validated_data['json'] = survey.to_json()
