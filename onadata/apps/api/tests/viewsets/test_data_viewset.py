@@ -5,6 +5,7 @@ import json
 import os
 import requests
 import datetime
+from builtins import open
 from mock import patch
 from datetime import timedelta
 from django.utils import timezone
@@ -199,7 +200,7 @@ class TestDataViewSet(TestBase):
                                                           'tutorial.xls'))
 
         instance_path = os.path.join(tutorial_folder, 'instances', '1.xml')
-        create_instance(self.user.username, open(instance_path), [])
+        create_instance(self.user.username, open(instance_path, 'rb'), [])
 
         self.assertEqual(self.xform.instances.count(), 1)
         view = DataViewSet.as_view({'get': 'list'})
@@ -2213,7 +2214,7 @@ class TestOSM(TestAbstractViewSet):
         combined_osm_path = os.path.join(osm_fixtures_dir, 'combined.osm')
         self._publish_xls_form_to_project(xlsform_path=xlsform_path)
         submission_path = os.path.join(osm_fixtures_dir, 'instance_a.xml')
-        files = [open(path) for path in paths]
+        files = [open(path, 'rb') for path in paths]
         count = Attachment.objects.filter(extension='osm').count()
         self._make_submission(submission_path, media_file=files)
         self.assertTrue(
@@ -2232,10 +2233,11 @@ class TestOSM(TestAbstractViewSet):
         view = DataViewSet.as_view({'get': 'retrieve'})
         response = view(request, pk=formid, dataid=dataid, format='osm')
         self.assertEqual(response.status_code, 200)
-        with open(combined_osm_path) as f:
+        with open(combined_osm_path, encoding='utf-8') as f:
             osm = f.read()
             response.render()
-            self.assertMultiLineEqual(response.content.strip(), osm.strip())
+            self.assertMultiLineEqual(response.content.decode('utf-8').strip(),
+                                      osm.strip())
 
             # look at the data/[pk].osm endpoint
             view = DataViewSet.as_view({'get': 'list'})
@@ -2243,8 +2245,10 @@ class TestOSM(TestAbstractViewSet):
             self.assertEqual(response.status_code, 200)
             response.render()
             response1.render()
-            self.assertMultiLineEqual(response1.content.strip(), osm.strip())
-            self.assertMultiLineEqual(response.content.strip(), osm.strip())
+            self.assertMultiLineEqual(
+                response1.content.decode('utf-8').strip(), osm.strip())
+            self.assertMultiLineEqual(
+                response.content.decode('utf-8').strip(), osm.strip())
 
         # filter using value that exists
         request = self.factory.get(
