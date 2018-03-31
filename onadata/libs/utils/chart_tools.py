@@ -396,48 +396,31 @@ def build_chart_data_from_widget(widget, language_index=0):
     return data
 
 
-def get_field_from_field_name(field_name, xform):
+def _get_field_from_field_fn(field_str, xform, field_fn):
     # check if its the special _submission_time META
-    if field_name == common_tags.SUBMISSION_TIME:
+    if field_str == common_tags.SUBMISSION_TIME:
         field = common_tags.SUBMISSION_TIME
-    elif field_name == common_tags.SUBMITTED_BY:
+    elif field_str == common_tags.SUBMITTED_BY:
         field = common_tags.SUBMITTED_BY
-    elif field_name == common_tags.DURATION:
+    elif field_str == common_tags.DURATION:
         field = common_tags.DURATION
     else:
         # use specified field to get summary
-        fields = filter(lambda f: f.name == field_name,
-                        [e for e in xform.survey_elements])
-
+        fields = [e for e in xform.survey_elements if field_fn(e) == field_str]
         if len(fields) == 0:
             raise Http404("Field %s does not not exist on the form" %
-                          field_name)
-
+                          field_str)
         field = fields[0]
-
     return field
+
+
+def get_field_from_field_name(field_name, xform):
+    return _get_field_from_field_fn(field_name, xform, lambda x: x.name)
 
 
 def get_field_from_field_xpath(field_xpath, xform):
-    # check if its the special _submission_time META
-    if field_xpath == common_tags.SUBMISSION_TIME:
-        field = common_tags.SUBMISSION_TIME
-    elif field_xpath == common_tags.SUBMITTED_BY:
-        field = common_tags.SUBMITTED_BY
-    elif field_xpath == common_tags.DURATION:
-        field = common_tags.DURATION
-    else:
-        # use specified field to get summary
-        fields = filter(lambda f: f.get_abbreviated_xpath() == field_xpath,
-                        [e for e in xform.survey_elements])
-
-        if len(fields) == 0:
-            raise Http404("Field %s does not not exist on the form" %
-                          field_xpath)
-
-        field = fields[0]
-
-    return field
+    return _get_field_from_field_fn(
+        field_xpath, xform, lambda x: x.get_abbreviated_xpath())
 
 
 def get_field_label(field, language_index=0):
