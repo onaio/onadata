@@ -1,4 +1,5 @@
 import os
+from builtins import open
 from hashlib import md5
 
 from django.conf import settings
@@ -34,10 +35,10 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(response.status_code, 200)
         path = os.path.join(
             os.path.dirname(__file__), '..', 'fixtures', 'formList.xml')
-        with open(path) as f:
+        with open(path, encoding='utf-8') as f:
             form_list_xml = f.read().strip()
             data = {"hash": self.xform.hash, "pk": self.xform.pk}
-            content = response.render().content
+            content = response.render().content.decode('utf-8')
             self.assertEqual(content, form_list_xml % data)
             self.assertTrue(response.has_header('X-OpenRosa-Version'))
             self.assertTrue(
@@ -64,10 +65,10 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         path = os.path.join(
             os.path.dirname(__file__), '..', 'fixtures', 'formList.xml')
 
-        with open(path) as f:
+        with open(path, encoding='utf-8') as f:
             form_list_xml = f.read().strip()
             data = {"hash": self.xform.hash, "pk": self.xform.pk}
-            content = response.render().content
+            content = response.render().content.decode('utf-8')
             self.assertEqual(content, form_list_xml % data)
             self.assertTrue(response.has_header('X-OpenRosa-Version'))
             self.assertTrue(
@@ -93,10 +94,10 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         path = os.path.join(
             os.path.dirname(__file__), '..', 'fixtures', 'formList.xml')
 
-        with open(path) as f:
+        with open(path, encoding='utf-8') as f:
             form_list_xml = f.read().strip()
             data = {"hash": self.xform.hash, "pk": self.xform.pk}
-            content = response.render().content
+            content = response.render().content.decode('utf-8')
             self.assertEqual(content, form_list_xml % data)
 
     def test_form_id_filter_for_require_auth_account(self):
@@ -141,10 +142,10 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         path = os.path.join(
             os.path.dirname(__file__), '..', 'fixtures', 'formList2.xml')
 
-        with open(path) as f:
+        with open(path, encoding='utf-8') as f:
             form_list = f.read().strip()
             data = {"hash": self.xform.hash, "pk": self.xform.pk}
-            content = response.render().content
+            content = response.render().content.decode('utf-8')
             self.assertEqual(content, form_list % data)
 
         # Test for shared forms
@@ -193,10 +194,10 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         path = os.path.join(
             os.path.dirname(__file__), '..', 'fixtures', 'formList2.xml')
 
-        with open(path) as f:
+        with open(path, encoding='utf-8') as f:
             form_list = f.read().strip()
             data = {"hash": self.xform.hash, "pk": self.xform.pk}
-            content = response.render().content
+            content = response.render().content.decode('utf-8')
             self.assertEqual(content, form_list % data)
 
         # Bob's profile
@@ -269,10 +270,10 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         path = os.path.join(
             os.path.dirname(__file__), '..', 'fixtures', 'formList.xml')
 
-        with open(path) as f:
+        with open(path, encoding='utf-8') as f:
             form_list_xml = f.read().strip()
             data = {"hash": self.xform.hash, "pk": self.xform.pk}
-            content = response.render().content
+            content = response.render().content.decode('utf-8')
             self.assertEqual(content, form_list_xml % data)
             self.assertTrue(response.has_header('X-OpenRosa-Version'))
             self.assertTrue(
@@ -445,10 +446,10 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         path = os.path.join(
             os.path.dirname(__file__), '..', 'fixtures', 'formList.xml')
 
-        with open(path) as f:
+        with open(path, encoding='utf-8') as f:
             form_list_xml = f.read().strip()
             data = {"hash": self.xform.hash, "pk": self.xform.pk}
-            content = response.render().content
+            content = response.render().content.decode('utf-8')
             self.assertEqual(content, form_list_xml % data)
             download_url = ('<downloadUrl>http://testserver/%s/'
                             'forms/%s/form.xml</downloadUrl>') % (
@@ -475,7 +476,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
 
         xml = u'<?xml version="1.0" encoding="utf-8"?>\n<xforms '
         xml += u'xmlns="http://openrosa.org/xforms/xformsList"></xforms>'
-        content = response.render().content
+        content = response.render().content.decode('utf-8')
         self.assertEqual(content, xml)
         self.assertTrue(response.has_header('X-OpenRosa-Version'))
         self.assertTrue(
@@ -493,7 +494,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         path = os.path.join(
             os.path.dirname(__file__), '..', 'fixtures', 'formList.xml')
 
-        with open(path) as f:
+        with open(path, encoding='utf-8') as f:
             form_list_xml = f.read().strip()
             data = {"hash": self.xform.hash, "pk": self.xform.pk}
             content = response.render().content.decode('utf-8')
@@ -527,7 +528,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         request.META.update(auth(request.META, response))
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
-        content = response.render().content
+        content = response.render().content.decode('utf-8')
         self.assertNotIn(self.xform.id_string, content)
         self.assertIn('<?xml version="1.0" encoding="utf-8"?>\n<xforms ',
                       content)
@@ -551,7 +552,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         request.META.update(auth(request.META, response))
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
-        content = response.render().content
+        content = response.render().content.decode('utf-8')
         self.assertNotIn(self.xform.id_string, content)
         self.assertIn('<?xml version="1.0" encoding="utf-8"?>\n<xforms ',
                       content)
@@ -580,10 +581,10 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         path = os.path.join(
             os.path.dirname(__file__), '..', 'fixtures', 'formList.xml')
 
-        with open(path) as f:
+        with open(path, encoding='utf-8') as f:
             form_list_xml = f.read().strip()
             data = {"hash": self.xform.hash, "pk": self.xform.pk}
-            content = response.render().content
+            content = response.render().content.decode('utf-8')
             self.assertEqual(content, form_list_xml % data)
             self.assertTrue(response.has_header('X-OpenRosa-Version'))
             self.assertTrue(
@@ -611,10 +612,10 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             os.path.dirname(__file__), '..', 'fixtures',
             'Transportation Form.xml')
 
-        with open(path) as f:
+        with open(path, encoding='utf-8') as f:
             form_xml = f.read().strip()
             data = {"form_uuid": self.xform.uuid}
-            content = response.render().content.strip()
+            content = response.render().content.decode('utf-8').strip()
             content = content.replace(self.xform.version, u"20141112071722")
             self.assertEqual(content, form_xml % data)
             self.assertTrue(response.has_header('X-OpenRosa-Version'))
@@ -658,7 +659,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             "pk": self.metadata.pk,
             "xform": self.xform.pk
         }
-        content = response.render().content.strip()
+        content = response.render().content.decode('utf-8').strip()
         self.assertEqual(content, manifest_xml % data)
         self.assertTrue(response.has_header('X-OpenRosa-Version'))
         self.assertTrue(
@@ -683,7 +684,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             "pk": self.metadata.pk,
             "xform": self.xform.pk
         }
-        content = response.render().content.strip()
+        content = response.render().content.decode('utf-8').strip()
         self.assertEqual(content, manifest_xml % data)
         self.assertTrue(response.has_header('X-OpenRosa-Version'))
         self.assertTrue(
@@ -899,7 +900,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         view = XFormListViewSet.as_view({"get": "list"})
         response = view(request, username='bob', pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
-        content = response.render().content
+        content = response.render().content.decode('utf-8')
         manifest_url = ('<manifestUrl></manifestUrl>')
         self.assertTrue(manifest_url in content)
 
@@ -909,7 +910,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self._add_form_metadata(self.xform, data_type, data_value)
         response = view(request, username='bob', pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
-        content = response.render().content
+        content = response.render().content.decode('utf-8')
         manifest_url = (
             '<manifestUrl>http://testserver/%s/xformsManifest'
             '/%s</manifestUrl>') % (self.user.username, self.xform.id)
