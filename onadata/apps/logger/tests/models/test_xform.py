@@ -3,6 +3,7 @@
 test_xform module
 """
 import os
+from builtins import str as text
 from past.builtins import basestring
 
 from onadata.apps.main.tests.test_base import TestBase
@@ -50,8 +51,7 @@ class TestXForm(TestBase):
         self.assertNotIn(self.xform.title, self.xform.xml)
 
         # convert xml to str
-        self.xform.xml = self.xform.xml.encode('utf-8')
-        self.assertTrue(isinstance(self.xform.xml, str))
+        self.assertTrue(isinstance(self.xform.xml, text))
 
         # set title in xform xml
         self.xform._set_title()  # pylint: disable=W0212

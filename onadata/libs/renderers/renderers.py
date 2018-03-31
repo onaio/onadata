@@ -25,7 +25,7 @@ def pairing(val1, val2):
 
     Reference: https://en.wikipedia.org/wiki/Pairing_function
     """
-    return ((val1 + val2) * (val1 + val2 + 1) >> 1) + val2
+    return (((val1 + val2) * (val1 + val2 + 1)) / 2) + val2
 
 
 def floip_rows_list(data):
