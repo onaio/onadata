@@ -115,17 +115,14 @@ class ProjectViewSet(AuthenticateHeaderMixin,
     @detail_route(methods=['PUT'])
     def share(self, request, *args, **kwargs):
         self.object = self.get_object()
-        data = merge_dicts(request.data, {'project': self.object.pk})
+        data = merge_dicts(request.data.dict(), {'project': self.object.pk})
         if data.get("remove"):
             serializer = RemoveUserFromProjectSerializer(data=data)
         else:
             serializer = ShareProjectSerializer(data=data)
-
         if serializer.is_valid():
             serializer.save()
-
             email_msg = data.get('email_msg')
-
             if email_msg:
                 # send out email message.
                 user = serializer.instance.user
@@ -133,11 +130,9 @@ class ProjectViewSet(AuthenticateHeaderMixin,
                           email_msg,
                           DEFAULT_FROM_EMAIL,
                           (user.email, ))
-
         else:
             return Response(data=serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
-
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @detail_route(methods=['DELETE', 'GET', 'POST'])
