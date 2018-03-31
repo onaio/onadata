@@ -1,4 +1,5 @@
 import os
+from builtins import open
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.test import TransactionTestCase
@@ -40,13 +41,13 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         media_file = "1335783522563.jpg"
         path = os.path.join(self.main_directory, 'fixtures',
                             'transportation', 'instances', s, media_file)
-        with open(path) as f:
+        with open(path, 'rb') as f:
             f = InMemoryUploadedFile(f, 'media_file', media_file, 'image/jpg',
                                      os.path.getsize(path), None)
             submission_path = os.path.join(
                 self.main_directory, 'fixtures',
                 'transportation', 'instances', s, s + '.xml')
-            with open(submission_path) as sf:
+            with open(submission_path, 'rb') as sf:
                 data = {'xml_submission_file': sf, 'media_file': f}
                 request = self.factory.post(
                     '/%s/submission' % self.user.username, data)
@@ -69,13 +70,13 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         media_file = "1335783522563.jpg"
         path = os.path.join(self.main_directory, 'fixtures',
                             'transportation', 'instances', s, media_file)
-        with open(path) as f:
+        with open(path, 'rb') as f:
             f = InMemoryUploadedFile(f, 'media_file', media_file, 'image/jpg',
                                      os.path.getsize(path), None)
             submission_path = os.path.join(
                 self.main_directory, 'fixtures',
                 'transportation', 'instances', s, s + '.xml')
-            with open(submission_path) as sf:
+            with open(submission_path, 'rb') as sf:
                 data = {'xml_submission_file': sf, 'media_file': f}
                 request = self.factory.post('/submission', data)
                 response = self.view(request)
@@ -101,7 +102,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         media_file = "1335783522563.jpg"
         path = os.path.join(self.main_directory, 'fixtures',
                             'transportation', 'instances', s, media_file)
-        with open(path) as f:
+        with open(path, 'rb') as f:
             f = InMemoryUploadedFile(f, 'media_file', media_file, 'image/jpg',
                                      os.path.getsize(path), None)
             path = os.path.join(
@@ -109,7 +110,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                 'transportation', 'instances', s, s + '.xml')
             path = self._add_uuid_to_submission_xml(path, self.xform)
 
-            with open(path) as sf:
+            with open(path, 'rb') as sf:
                 data = {'xml_submission_file': sf, 'media_file': f}
                 request = self.factory.post('/submission', data)
                 response = self.view(request)
@@ -125,7 +126,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             '..',
             'fixtures',
             'transport_submission.json')
-        with open(path) as f:
+        with open(path, encoding='utf-8') as f:
             data = json.loads(f.read())
             request = self.factory.post('/submission', data, format='json')
             response = self.view(request)
@@ -151,7 +152,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             '..',
             'fixtures',
             'transport_submission.json')
-        with open(path) as f:
+        with open(path, encoding='utf-8') as f:
             data = json.loads(f.read())
             request = self.factory.post('/submission', [data], format='json')
             response = self.view(request)
@@ -177,7 +178,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             '..',
             'fixtures',
             'transport_submission.json')
-        with open(path) as f:
+        with open(path, encoding='utf-8') as f:
             data = json.loads(f.read())
             data['submission'] = [data['submission']]
             request = self.factory.post('/submission', data, format='json')
@@ -204,7 +205,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             '..',
             'fixtures',
             'transport_submission_bad.json')
-        with open(path) as f:
+        with open(path, encoding='utf-8') as f:
             data = json.loads(f.read())
             request = self.factory.post('/submission', data, format='json')
             response = self.view(request)
@@ -235,7 +236,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         submission_path = os.path.join(
             self.main_directory, 'fixtures',
             'transportation', 'instances', submission, submission + '.xml')
-        with open(submission_path) as submission_file:
+        with open(submission_path, 'rb') as submission_file:
             data = {'xml_submission_file': submission_file}
             request = self.factory.post('/submission', data)
             response = self.view(request)
@@ -264,13 +265,13 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         media_file = "1335783522563.jpg"
         path = os.path.join(self.main_directory, 'fixtures',
                             'transportation', 'instances', s, media_file)
-        with open(path) as f:
+        with open(path, 'rb') as f:
             f = InMemoryUploadedFile(f, 'media_file', media_file, 'image/jpg',
                                      os.path.getsize(path), None)
             submission_path = os.path.join(
                 self.main_directory, 'fixtures',
                 'transportation', 'instances', s, s + '.xml')
-            with open(submission_path) as sf:
+            with open(submission_path, 'rb') as sf:
                 data = {'xml_submission_file': sf, 'media_file': f}
                 request = self.factory.post('/submission', data)
                 response = self.view(request)
@@ -291,13 +292,13 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         media_file = "1335783522563.jpg"
         path = os.path.join(self.main_directory, 'fixtures',
                             'transportation', 'instances', s, media_file)
-        with open(path) as f:
+        with open(path, 'rb') as f:
             f = InMemoryUploadedFile(f, 'media_file', media_file, 'image/jpg',
                                      os.path.getsize(path), None)
             submission_path = os.path.join(
                 self.main_directory, 'fixtures',
                 'transportation', 'instances', s, s + '.xml')
-            with open(submission_path) as sf:
+            with open(submission_path, 'rb') as sf:
                 data = {'xml_submission_file': sf, 'media_file': f}
                 request = self.factory.post('/submission', data)
                 response = self.view(request)
@@ -326,13 +327,13 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         media_file = "1335783522563.jpg"
         path = os.path.join(self.main_directory, 'fixtures',
                             'transportation', 'instances', s, media_file)
-        with open(path) as f:
+        with open(path, 'rb') as f:
             f = InMemoryUploadedFile(f, 'media_file', media_file, 'image/jpg',
                                      os.path.getsize(path), None)
             submission_path = os.path.join(
                 self.main_directory, 'fixtures',
                 'transportation', 'instances', s, s + '.xml')
-            with open(submission_path) as sf:
+            with open(submission_path, 'rb') as sf:
                 data = {'xml_submission_file': sf, 'media_file': f}
                 request = self.factory.post('/submission', data)
                 response = self.view(request)

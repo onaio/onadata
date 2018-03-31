@@ -8,6 +8,7 @@ import csv
 import json
 import os
 import re
+from builtins import open
 from collections import OrderedDict
 from datetime import datetime
 from datetime import timedelta
@@ -28,8 +29,7 @@ from django.utils.timezone import utc
 import jwt
 from django_digest.test import DigestAuth
 from httmock import HTTMock
-from mock import Mock
-from mock import patch
+from mock import Mock, patch
 from rest_framework import status
 from rest_framework.viewsets import ModelViewSet
 
@@ -67,7 +67,8 @@ from onadata.libs.utils.common_tools import (
 
 def fixtures_path(filepath):
     return open(os.path.join(
-        settings.PROJECT_ROOT, 'libs', 'tests', 'utils', 'fixtures', filepath))
+        settings.PROJECT_ROOT, 'libs', 'tests', 'utils', 'fixtures', filepath),
+        'rb')
 
 
 ROLES = [ReadOnlyRole,
@@ -97,7 +98,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "subdistrict_profiling_tool.xlsx")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.post('/', data=post_data, **self.extra)
                 response = view(request)
@@ -130,7 +131,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             xls_file_path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "logger", "fixtures",
                 "external_choice_form_v2.xlsx")
-            with open(xls_file_path) as xls_file:
+            with open(xls_file_path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
@@ -246,9 +247,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get('/', **self.extra)
             response = view(request)
             self.assertTrue(response.streaming)
-            streaming_data = json.loads(
-                u''.join([i for i in response.streaming_content])
-            )
+            streaming_data = json.loads(u''.join(
+                [i.decode('utf-8') for i in response.streaming_content]))
             self.assertIsInstance(streaming_data, list)
             self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
@@ -324,8 +324,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             del response.data[0]['last_updated_at']
 
             self.form_data.pop('has_id_string_changed')
-            self.form_data['metadata'].sort()
-            response.data[0]['metadata'].sort()
+            self.form_data['metadata'].sort(key=lambda x: x['id'])
+            response.data[0]['metadata'].sort(key=lambda x: x['id'])
             self.assertEqual(response.data, [self.form_data])
 
             # public shared form data
@@ -427,13 +427,14 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 200)
 
             self.form_data.pop('has_id_string_changed')
-            response_data = sorted(response.data)
+            response_data = sorted(response.data,
+                                   key=lambda x: x['formid'])
             for k in ['submission_count_for_today', 'metadata',
                       'form_versions']:
                 bobs_form_data.pop(k)
                 self.form_data.pop(k)
-            expected_data = sorted([OrderedDict(bobs_form_data),
-                                    OrderedDict(self.form_data)])
+            expected_data = [OrderedDict(bobs_form_data),
+                             OrderedDict(self.form_data)]
 
             self.assertTrue(len(response_data), 2)
 
@@ -602,7 +603,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             xml_path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation.xml")
-            with open(xml_path) as xml_file:
+            with open(xml_path, 'rb') as xml_file:
                 expected_doc = minidom.parse(xml_file)
 
             model_node = [
@@ -776,7 +777,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 path = os.path.join(
                     settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                     "transportation", "transportation_version.xls")
-                with open(path) as xls_file:
+                with open(path, 'rb') as xls_file:
                     post_data = {'xls_file': xls_file}
                     request = self.factory.patch(
                         '/', data=post_data, **self.extra)
@@ -817,7 +818,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_version.xls")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
@@ -848,7 +849,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_version.xls")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
@@ -871,7 +872,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_version.xls")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
@@ -1020,7 +1021,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation.xls")
 
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.post('/', data=post_data, **self.extra)
                 response = view(request)
@@ -1066,7 +1067,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation.xls")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.post('/', data=post_data, **self.extra)
                 response = view(request)
@@ -1095,7 +1096,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_copy.xls")
 
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.post('/', data=post_data, **self.extra)
                 response = view(request)
@@ -1139,7 +1140,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_different_id_string.xlsx")
 
-            xls_file = open(path)
+            xls_file = open(path, 'rb')
             mock_urlopen.return_value = xls_file
 
             post_data = {'xls_url': xls_url}
@@ -1165,7 +1166,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_different_id_string.xlsx")
 
-            xls_file = open(path)
+            xls_file = open(path, 'rb')
             mock_urlopen.return_value = xls_file
 
             post_data = {'xls_url': xls_url}
@@ -1191,7 +1192,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_different_id_string.xlsx")
 
-            xls_file = open(path)
+            xls_file = open(path, 'rb')
             mock_urlopen.return_value = xls_file
 
             post_data = {'xls_url': xls_url}
@@ -1217,7 +1218,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_different_id_string.xlsx")
 
-            xls_file = open(path)
+            xls_file = open(path, 'rb')
             mock_urlopen.return_value = xls_file
 
             post_data = {'xls_url': xls_url}
@@ -1240,7 +1241,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 settings.PROJECT_ROOT, "apps", "api", "tests", "fixtures",
                 "text_and_integer.csv")
 
-            csv_file = open(path)
+            csv_file = open(path, 'rb')
             mock_urlopen.return_value = csv_file
 
             post_data = {'csv_url': csv_url}
@@ -1261,7 +1262,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "api", "tests", "fixtures",
                 "select_one_external.xlsx")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 # pylint: disable=no-member
                 meta_count = MetaData.objects.count()
                 post_data = {'xls_file': xls_file}
@@ -1285,7 +1286,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "api", "tests", "fixtures",
                 "universal_newline.csv")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.post('/', data=post_data, **self.extra)
                 response = view(request)
@@ -1300,7 +1301,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             "transportation", "transportation.xls")
         username = 'Anon'
         error_msg = 'User with username %s does not exist.' % username
-        with open(path) as xls_file:
+        with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file, 'owner': username}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request)
@@ -1315,7 +1316,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
             "transportation", "transportation.bad_id.xls")
-        with open(path) as xls_file:
+        with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request)
@@ -1328,7 +1329,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
             "transportation", "transportation_ampersand_in_title.xls")
-        with open(path) as xls_file:
+        with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request)
@@ -1356,7 +1357,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
             "transportation", "transportation.no_choices.xls")
-        with open(path) as xls_file:
+        with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request)
@@ -2051,7 +2052,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_version.xls")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
@@ -2093,7 +2094,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
             "transportation", "transportation_version.xls")
-        with open(path) as xls_file:
+        with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.patch('/', data=post_data, **self.extra)
             response = view(request, pk=form_id)
@@ -2102,7 +2103,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         # assign manager role
         ManagerRole.add(self.user, self.xform.project)
 
-        with open(path) as xls_file:
+        with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.patch('/', data=post_data, **self.extra)
             response = view(request, pk=form_id)
@@ -2139,7 +2140,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_different_id_string.xlsx")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
@@ -2154,7 +2155,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "tutorial_.xls")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
@@ -2181,7 +2182,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_different_id_string.xlsx")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
@@ -2197,7 +2198,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "tutorial_.xls")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
@@ -2223,7 +2224,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_updated.xls")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
@@ -2322,7 +2323,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation.bad_id.xls")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
@@ -2355,7 +2356,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_updated.xls")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
@@ -2388,7 +2389,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_version.xls")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
@@ -2419,7 +2420,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_version.xls")
 
-            xls_file = open(path)
+            xls_file = open(path, 'rb')
             mock_urlopen.return_value = xls_file
 
             post_data = {'xls_url': xls_url}
@@ -2453,7 +2454,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_version.xls")
 
-            xls_file = open(path)
+            xls_file = open(path, 'rb')
             mock_urlopen.return_value = xls_file
 
             post_data = {'dropbox_xls_url': xls_url}
@@ -2563,7 +2564,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
             "transportation", "transportation.xls")
 
-        with open(path) as xls_file:
+        with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request)
@@ -2600,7 +2601,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
             "transportation", "transportation.xls")
 
-        with open(path) as xls_file:
+        with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request)
@@ -2634,7 +2635,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             "transportation", "transportation.xls")
 
         get_data = None
-        with open(path) as xls_file:
+        with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request)
@@ -3053,7 +3054,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_version.xls")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=self.xform.pk)
@@ -3635,7 +3636,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             reader = csv.DictReader(StringIO(content))
             self.assertEqual([i[field] for i in reader], test_data)
         else:
-            with open(test_file_path, 'r') as test_file:
+            with open(test_file_path, encoding='utf-8') as test_file:
                 self.assertEqual(content, test_file.read())
 
     def _get_date_filtered_export(self, query_str):
@@ -3917,7 +3918,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                     **self.extra
                 )
                 response = form_view(request, pk=formid, format=export_format)
-                f = StringIO(''.join(response.streaming_content))
+                f = StringIO(''.join([
+                    c.decode('utf-8') for c in response.streaming_content]))
                 csv_reader = csv.reader(f)
                 headers = next(csv_reader)
                 self.assertIn(
@@ -3935,7 +3937,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(settings.PROJECT_ROOT, 'libs', 'tests',
                                 "utils", "fixtures", "tutorial", "instances",
                                 "uuid1", media_file)
-            with open(path) as f:
+            with open(path, 'rb') as f:
                 self._make_submission(os.path.join(
                     settings.PROJECT_ROOT, 'libs', 'tests', "utils",
                     "fixtures", "tutorial", "instances",
@@ -4302,7 +4304,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'post': 'create'
             })
 
-            with open(form_path) as xml_file:
+            with open(form_path, 'rb') as xml_file:
                 post_data = {'xml_file': xml_file}
                 request = self.factory.post('/', data=post_data, **self.extra)
                 response = view(request)
@@ -4390,7 +4392,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 os.path.dirname(__file__), "../", "fixtures",
                 "flow-results-example-1.json")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'floip_file': xls_file}
                 request = self.factory.post('/', data=post_data, **self.extra)
                 response = view(request)
