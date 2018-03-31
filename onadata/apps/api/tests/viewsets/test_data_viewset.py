@@ -57,24 +57,24 @@ def enketo_mock_http_413(url, request):
 
 def _data_list(formid):
     return [{
-        u'id': formid,
-        u'id_string': u'transportation_2011_07_25',
-        u'title': 'transportation_2011_07_25',
-        u'description': '',
-        u'url': u'http://testserver/api/v1/data/%s' % formid
+        'id': formid,
+        'id_string': 'transportation_2011_07_25',
+        'title': 'transportation_2011_07_25',
+        'description': '',
+        'url': 'http://testserver/api/v1/data/%s' % formid
     }]
 
 
 def _data_instance(dataid):
     return {
-        u'_bamboo_dataset_id': u'',
-        u'_attachments': [],
-        u'_geolocation': [None, None],
-        u'_xform_id_string': u'transportation_2011_07_25',
-        u'transport/available_transportation_types_to_referral_facility':
-        u'none',
-        u'_status': u'submitted_via_web',
-        u'_id': dataid
+        '_bamboo_dataset_id': '',
+        '_attachments': [],
+        '_geolocation': [None, None],
+        '_xform_id_string': 'transportation_2011_07_25',
+        'transport/available_transportation_types_to_referral_facility':
+        'none',
+        '_status': 'submitted_via_web',
+        '_id': dataid
     }
 
 
@@ -105,13 +105,14 @@ class TestDataViewSet(TestBase):
 
         dataid = self.xform.instances.all().order_by('id')[0].pk
         data = _data_instance(dataid)
-        self.assertDictContainsSubset(data, sorted(response.data)[0])
+        self.assertDictContainsSubset(
+            data, sorted(response.data, key=lambda x: x['_id'])[0])
 
         data = {
-            u'_xform_id_string': u'transportation_2011_07_25',
-            u'transport/available_transportation_types_to_referral_facility':
-            u'none',
-            u'_submitted_by': u'bob',
+            '_xform_id_string': 'transportation_2011_07_25',
+            'transport/available_transportation_types_to_referral_facility':
+            'none',
+            '_submitted_by': 'bob',
         }
         view = DataViewSet.as_view({'get': 'retrieve'})
         response = view(request, pk=formid, dataid=dataid)
@@ -136,20 +137,21 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         streaming_data = json.loads(
-            u''.join([i for i in response.streaming_content])
+            ''.join([i.decode('utf-8') for i in response.streaming_content])
         )
         self.assertIsInstance(streaming_data, list)
         self.assertTrue(self.xform.instances.count())
 
         dataid = self.xform.instances.all().order_by('id')[0].pk
         data = _data_instance(dataid)
-        self.assertDictContainsSubset(data, sorted(streaming_data)[0])
+        self.assertDictContainsSubset(
+            data, sorted(streaming_data, key=lambda x: x['_id'])[0])
 
         data = {
-            u'_xform_id_string': u'transportation_2011_07_25',
-            u'transport/available_transportation_types_to_referral_facility':
-            u'none',
-            u'_submitted_by': u'bob',
+            '_xform_id_string': 'transportation_2011_07_25',
+            'transport/available_transportation_types_to_referral_facility':
+            'none',
+            '_submitted_by': 'bob',
         }
         view = DataViewSet.as_view({'get': 'retrieve'})
         response = view(request, pk=formid, dataid=dataid)
@@ -161,7 +163,7 @@ class TestDataViewSet(TestBase):
     def test_catch_data_error(self):
         view = DataViewSet.as_view({'get': 'list'})
         formid = self.xform.pk
-        query_str = [(u'\'{"_submission_time":{'
+        query_str = [('\'{"_submission_time":{'
                       '"$and":[{"$gte":"2015-11-15T00:00:00"},'
                       '{"$lt":"2015-11-16T00:00:00"}]}}')]
 
@@ -173,7 +175,7 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
             response.data.get('detail'),
-            u'invalid regular expression: invalid character range\n')
+            'invalid regular expression: invalid character range\n')
 
     def test_data_list_with_xform_in_delete_async_queue(self):
         self._make_submissions()
@@ -210,7 +212,7 @@ class TestDataViewSet(TestBase):
         # check that ONLY values with numeric and decimal types are converted
         self.assertEqual(response.data[0].get('age'), 35)
         self.assertEqual(response.data[0].get('net_worth'), 100000.00)
-        self.assertEqual(response.data[0].get('imei'), u'351746052009472')
+        self.assertEqual(response.data[0].get('imei'), '351746052009472')
 
     def test_data_jsonp(self):
         self._make_submissions()
@@ -220,8 +222,9 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid, format='jsonp')
         self.assertEqual(response.status_code, 200)
         response.render()
-        self.assertTrue(response.content.startswith('callback('))
-        self.assertTrue(response.content.endswith(');'))
+        content = response.content.decode('utf-8')
+        self.assertTrue(content.startswith('callback('))
+        self.assertTrue(content.endswith(');'))
         self.assertEqual(len(response.data), 4)
 
     def _assign_user_role(self, user, role):
@@ -491,29 +494,29 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
 
-        error_message = (u'Expecting property name enclosed in '
+        error_message = ('Expecting property name enclosed in '
                          'double quotes: line 1 column 2 (char 1)')
 
-        request = self.factory.get('/', data={"sort": u'{'':}'},
+        request = self.factory.get('/', data={"sort": '{'':}'},
                                    **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data.get('detail'), error_message)
 
-        request = self.factory.get('/', data={"sort": u'{:}'},
+        request = self.factory.get('/', data={"sort": '{:}'},
                                    **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data.get('detail'), error_message)
 
-        request = self.factory.get('/', data={"sort": u'{'':''}'},
+        request = self.factory.get('/', data={"sort": '{'':''}'},
                                    **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data.get('detail'), error_message)
 
         # test sort with a key that os likely in the json data
-        request = self.factory.get('/', data={"sort": u'random'},
+        request = self.factory.get('/', data={"sort": 'random'},
                                    **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
@@ -558,8 +561,8 @@ class TestDataViewSet(TestBase):
         response.render()
         data = json.loads(response.content)
         self.assertEqual([i['_uuid'] for i in data],
-                         [u'f3d8dc65-91a6-4d0f-9e97-802128083390',
-                          u'9c6f3468-cfda-46e8-84c1-75458e72805d'])
+                         ['f3d8dc65-91a6-4d0f-9e97-802128083390',
+                          '9c6f3468-cfda-46e8-84c1-75458e72805d'])
 
         request = self.factory.get('/', data={"start": "3", "limit": 1},
                                    **self.extra)
@@ -571,7 +574,7 @@ class TestDataViewSet(TestBase):
         response.render()
         data = json.loads(response.content)
         self.assertEqual([i['_uuid'] for i in data],
-                         [u'9f0a1508-c3b7-4c99-be00-9b237c26bcbf'])
+                         ['9f0a1508-c3b7-4c99-be00-9b237c26bcbf'])
 
         request = self.factory.get('/', data={"limit": "3"}, **self.extra)
         response = view(request, pk=formid)
@@ -622,8 +625,8 @@ class TestDataViewSet(TestBase):
         response.render()
         data = json.loads(response.content)
         self.assertEqual([i['_uuid'] for i in data],
-                         [u'f3d8dc65-91a6-4d0f-9e97-802128083390',
-                          u'9c6f3468-cfda-46e8-84c1-75458e72805d'])
+                         ['f3d8dc65-91a6-4d0f-9e97-802128083390',
+                          '9c6f3468-cfda-46e8-84c1-75458e72805d'])
 
     @override_settings(STREAM_DATA=True)
     def test_data_start_limit_sort_json_field(self):
@@ -642,11 +645,12 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.has_header('ETag'))
-        data = json.loads(''.join([c for c in response.streaming_content]))
+        data = json.loads(''.join([
+            c.decode('utf-8') for c in response.streaming_content]))
         self.assertEqual(len(data), 2)
         self.assertEqual([i['_uuid'] for i in data],
-                         [u'f3d8dc65-91a6-4d0f-9e97-802128083390',
-                          u'5b2cc313-fc09-437e-8149-fcd32f695d41'])
+                         ['f3d8dc65-91a6-4d0f-9e97-802128083390',
+                          '5b2cc313-fc09-437e-8149-fcd32f695d41'])
 
         # will result in a queryset due to the page and page_size params
         # hence paging and thus len(self.object_list) for length
@@ -658,7 +662,8 @@ class TestDataViewSet(TestBase):
                                    **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
-        data = json.loads(''.join([c for c in response.streaming_content]))
+        data = json.loads(''.join(
+            [c.decode('utf-8') for c in response.streaming_content]))
         self.assertEqual(len(data), 2)
 
         data = {
@@ -697,13 +702,14 @@ class TestDataViewSet(TestBase):
         dataid = self.xform.instances.all().order_by('id')[0].pk
         data = _data_instance(dataid)
 
-        self.assertDictContainsSubset(data, sorted(response.data)[0])
+        self.assertDictContainsSubset(
+            data, sorted(response.data, key=lambda x: x['_id'])[0])
 
         data = {
-            u'_xform_id_string': u'transportation_2011_07_25',
-            u'transport/available_transportation_types_to_referral_facility':
-            u'none',
-            u'_submitted_by': u'bob',
+            '_xform_id_string': 'transportation_2011_07_25',
+            'transport/available_transportation_types_to_referral_facility':
+            'none',
+            '_submitted_by': 'bob',
         }
         view = DataViewSet.as_view({'get': 'retrieve'})
         response = view(request, pk=formid, dataid=dataid)
@@ -777,7 +783,7 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.get('Cache-Control'), None)
-        data = {u'detail': u'Invalid form ID: INVALID'}
+        data = {'detail': 'Invalid form ID: INVALID'}
         self.assertEqual(response.data, data)
 
     def test_data_bad_dataid(self):
@@ -961,9 +967,9 @@ class TestDataViewSet(TestBase):
         request = self.factory.post('/', data={"tags": "hello"}, **self.extra)
         response = view(request, pk=pk)
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data, [u'hello'])
+        self.assertEqual(response.data, ['hello'])
         for i in self.xform.instances.all():
-            self.assertIn(u'hello', i.tags.names())
+            self.assertIn('hello', i.tags.names())
 
         request = self.factory.get('/', {'tags': 'hello'}, **self.extra)
         response = data_view(request)
@@ -982,7 +988,7 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
         for i in self.xform.instances.all():
-            self.assertNotIn(u'hello', i.tags.names())
+            self.assertNotIn('hello', i.tags.names())
 
     def test_data_tags(self):
         """Test that when a tag is applied on an xform,
@@ -1022,12 +1028,12 @@ class TestDataViewSet(TestBase):
         request = self.factory.post('/', data={"tags": "hello"}, **self.extra)
         response = view(request, pk=pk, dataid=dataid)
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data, [u'hello'])
-        self.assertIn(u'hello', Instance.objects.get(pk=dataid).tags.names())
+        self.assertEqual(response.data, ['hello'])
+        self.assertIn('hello', Instance.objects.get(pk=dataid).tags.names())
 
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=pk, dataid=dataid)
-        self.assertEqual(response.data, [u'hello'])
+        self.assertEqual(response.data, ['hello'])
 
         request = self.factory.get('/', {'tags': 'hello'}, **self.extra)
         response = data_view(request, pk=pk)
@@ -1045,7 +1051,7 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
         self.assertNotIn(
-            u'hello', Instance.objects.get(pk=dataid).tags.names())
+            'hello', Instance.objects.get(pk=dataid).tags.names())
 
     def test_labels_action_with_params(self):
         self._make_submissions()
@@ -1085,8 +1091,9 @@ class TestDataViewSet(TestBase):
         response = view(request)
         self.assertEqual(response.status_code, 200)
         # should be both bob's and alice's form
-        self.assertEqual(sorted(response.data),
-                         sorted([bobs_data, alice_data]))
+        self.assertEqual(
+            sorted(response.data, key=lambda x: x['_id']),
+            sorted([bobs_data, alice_data], key=lambda x: x['_id']))
 
         # apply filter, see only bob's forms
         request = self.factory.get('/', data={'owner': 'bob'}, **self.extra)
@@ -1156,7 +1163,8 @@ class TestDataViewSet(TestBase):
         self.assertTrue(self.xform.instances.count())
         dataid = self.xform.instances.all().order_by('id')[0].pk
         data = _data_instance(dataid)
-        self.assertDictContainsSubset(data, sorted(response.data)[0])
+        self.assertDictContainsSubset(
+            data, sorted(response.data, key=lambda x: x['_id'])[0])
 
         # access to a public data as other user
         self._create_user_and_login('alice', 'alice')
@@ -1170,7 +1178,8 @@ class TestDataViewSet(TestBase):
         self.assertTrue(self.xform.instances.count())
         dataid = self.xform.instances.all().order_by('id')[0].pk
         data = _data_instance(dataid)
-        self.assertDictContainsSubset(data, sorted(response.data)[0])
+        self.assertDictContainsSubset(
+            data, sorted(response.data, key=lambda x: x['_id'])[0])
 
     def test_same_submission_with_different_attachments(self):
         """
@@ -1203,11 +1212,11 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         formid = xform.pk
         data = {
-            u'id': formid,
-            u'id_string': xform.id_string,
-            u'title': xform.title,
-            u'description': '',
-            u'url': u'http://testserver/api/v1/data/%s' % formid
+            'id': formid,
+            'id_string': xform.id_string,
+            'title': xform.title,
+            'description': '',
+            'url': 'http://testserver/api/v1/data/%s' % formid
         }
         self.assertEqual(response.data[1], data)
         response = view(request, pk=formid)
@@ -1218,25 +1227,25 @@ class TestDataViewSet(TestBase):
         attachment = instance.attachments.all().first()
 
         data = {
-            u'_bamboo_dataset_id': u'',
-            u'_attachments': [{
-                u'download_url': get_attachment_url(attachment),
-                u'small_download_url':
+            '_bamboo_dataset_id': '',
+            '_attachments': [{
+                'download_url': get_attachment_url(attachment),
+                'small_download_url':
                 get_attachment_url(attachment, 'small'),
-                u'medium_download_url':
+                'medium_download_url':
                 get_attachment_url(attachment, 'medium'),
-                u'mimetype': attachment.mimetype,
-                u'instance': attachment.instance.pk,
-                u'filename': attachment.media_file.name,
-                u'name': attachment.name,
-                u'id': attachment.pk,
-                u'xform': xform.id}
+                'mimetype': attachment.mimetype,
+                'instance': attachment.instance.pk,
+                'filename': attachment.media_file.name,
+                'name': attachment.name,
+                'id': attachment.pk,
+                'xform': xform.id}
             ],
-            u'_geolocation': [None, None],
-            u'_xform_id_string': xform.id_string,
-            u'_status': u'submitted_via_web',
-            u'_id': dataid,
-            u'image1': u'1335783522563.jpg'
+            '_geolocation': [None, None],
+            '_xform_id_string': xform.id_string,
+            '_status': 'submitted_via_web',
+            '_id': dataid,
+            'image1': '1335783522563.jpg'
         }
         self.assertDictContainsSubset(data, sorted(response.data)[0])
 
@@ -1252,17 +1261,17 @@ class TestDataViewSet(TestBase):
             attachment = Attachment.objects.get(name=media_file)
 
             data['_attachments'] = data.get('_attachments') + [{
-                u'download_url': get_attachment_url(attachment),
-                u'small_download_url':
+                'download_url': get_attachment_url(attachment),
+                'small_download_url':
                 get_attachment_url(attachment, 'small'),
-                u'medium_download_url':
+                'medium_download_url':
                 get_attachment_url(attachment, 'medium'),
-                u'mimetype': attachment.mimetype,
-                u'instance': attachment.instance.pk,
-                u'filename': attachment.media_file.name,
-                u'name': attachment.name,
-                u'id': attachment.pk,
-                u'xform': xform.id
+                'mimetype': attachment.mimetype,
+                'instance': attachment.instance.pk,
+                'filename': attachment.media_file.name,
+                'name': attachment.name,
+                'id': attachment.pk,
+                'xform': xform.id
             }]
             self.maxDiff = None
             response = view(request, pk=formid)
@@ -1289,34 +1298,34 @@ class TestDataViewSet(TestBase):
         dataid = self.xform.instances.all().order_by('id')[0].pk
 
         data = {
-            u'_bamboo_dataset_id': u'',
-            u'_attachments': [{
+            '_bamboo_dataset_id': '',
+            '_attachments': [{
                 'download_url': get_attachment_url(self.attachment),
                 'small_download_url':
                 get_attachment_url(self.attachment, 'small'),
                 'medium_download_url':
                 get_attachment_url(self.attachment, 'medium'),
-                u'mimetype': self.attachment.mimetype,
-                u'instance': self.attachment.instance.pk,
-                u'filename': self.attachment.media_file.name,
-                u'name': self.attachment.name,
-                u'id': self.attachment.pk,
-                u'xform': self.xform.id}
+                'mimetype': self.attachment.mimetype,
+                'instance': self.attachment.instance.pk,
+                'filename': self.attachment.media_file.name,
+                'name': self.attachment.name,
+                'id': self.attachment.pk,
+                'xform': self.xform.id}
             ],
-            u'_geolocation': [None, None],
-            u'_xform_id_string': u'transportation_2011_07_25',
-            u'transport/available_transportation_types_to_referral_facility':
-            u'none',
-            u'_status': u'submitted_via_web',
-            u'_id': dataid
+            '_geolocation': [None, None],
+            '_xform_id_string': 'transportation_2011_07_25',
+            'transport/available_transportation_types_to_referral_facility':
+            'none',
+            '_status': 'submitted_via_web',
+            '_id': dataid
         }
         self.assertDictContainsSubset(data, sorted(response.data)[0])
 
         data = {
-            u'_xform_id_string': u'transportation_2011_07_25',
-            u'transport/available_transportation_types_to_referral_facility':
-            u'none',
-            u'_submitted_by': u'bob',
+            '_xform_id_string': 'transportation_2011_07_25',
+            'transport/available_transportation_types_to_referral_facility':
+            'none',
+            '_submitted_by': 'bob',
         }
         view = DataViewSet.as_view({'get': 'retrieve'})
         response = view(request, pk=formid, dataid=dataid)
@@ -1517,10 +1526,10 @@ class TestDataViewSet(TestBase):
         test_geo = {
             'type': 'Feature',
             'geometry': {
-                u'type': u'GeometryCollection',
-                u'geometries': [{
-                    u'type': u'Point',
-                    u'coordinates': [
+                'type': 'GeometryCollection',
+                'geometries': [{
+                    'type': 'Point',
+                    'coordinates': [
                         36.787219,
                         -1.294197
                     ]
@@ -1546,10 +1555,10 @@ class TestDataViewSet(TestBase):
                 {
                     'type': 'Feature',
                     'geometry': {
-                        u'type': u'GeometryCollection',
-                        u'geometries': [{
-                            u'type': u'Point',
-                            u'coordinates': [
+                        'type': 'GeometryCollection',
+                        'geometries': [{
+                            'type': 'Point',
+                            'coordinates': [
                                 36.787219,
                                 -1.294197
                             ]
@@ -1565,10 +1574,10 @@ class TestDataViewSet(TestBase):
                 {
                     'type': 'Feature',
                     'geometry': {
-                        u'type': u'GeometryCollection',
-                        u'geometries': [{
-                            u'type': u'Point',
-                            u'coordinates': [
+                        'type': 'GeometryCollection',
+                        'geometries': [{
+                            'type': 'Point',
+                            'coordinates': [
                                 36.787219,
                                 -1.294197
                             ]
@@ -1584,10 +1593,10 @@ class TestDataViewSet(TestBase):
                 {
                     'type': 'Feature',
                     'geometry': {
-                        u'type': u'GeometryCollection',
-                        u'geometries': [{
-                            u'type': u'Point',
-                            u'coordinates': [
+                        'type': 'GeometryCollection',
+                        'geometries': [{
+                            'type': 'Point',
+                            'coordinates': [
                                 36.787219,
                                 -1.294197
                             ]
@@ -1603,10 +1612,10 @@ class TestDataViewSet(TestBase):
                 {
                     'type': 'Feature',
                     'geometry': {
-                        u'type': u'GeometryCollection',
-                        u'geometries': [{
-                            u'type': u'Point',
-                            u'coordinates': [
+                        'type': 'GeometryCollection',
+                        'geometries': [{
+                            'type': 'Point',
+                            'coordinates': [
                                 36.787219,
                                 -1.294197
                             ]
@@ -1646,7 +1655,7 @@ class TestDataViewSet(TestBase):
             properties={
                 'xform': self.xform.pk,
                 'id': dataid,
-                u'today': '2015-01-15'
+                'today': '2015-01-15'
             }
         )
         if 'id' in test_loc:
@@ -1907,7 +1916,7 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=self.xform.pk, dataid="boo!")
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data['detail'],
-                         u'Data ID should be an integer')
+                         'Data ID should be an integer')
 
         history_instance_count = InstanceHistory.objects.count()
         self.assertEqual(history_instance_count, 0)
@@ -2181,9 +2190,9 @@ class TestDataViewSet(TestBase):
         self.assertTrue(isinstance(floip_list, list))
         data = [
             response.data[0]['_submission_time'], None,
-            u'bob', response.data[0]['_id'],
-            u'transport/available_transportation_types_to_referral_facility',
-            u'none', None
+            'bob', response.data[0]['_id'],
+            'transport/available_transportation_types_to_referral_facility',
+            'none', None
         ]
         self.assertEqual(floip_list[0][0], data[0])
         self.assertEqual(floip_list[0][2], data[2])
@@ -2253,7 +2262,7 @@ class TestOSM(TestAbstractViewSet):
         # filter using value that exists
         request = self.factory.get(
             '/',
-            data={"query": u'{"osm_road": "OSMWay234134797.osm"}'},
+            data={"query": '{"osm_road": "OSMWay234134797.osm"}'},
             **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(len(response.data), 1)
@@ -2261,7 +2270,7 @@ class TestOSM(TestAbstractViewSet):
         # filter using value that doesn't exists
         request = self.factory.get(
             '/',
-            data={"query": u'{"osm_road": "OSMWay123456789.osm"}'},
+            data={"query": '{"osm_road": "OSMWay123456789.osm"}'},
             **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(len(response.data), 0)
