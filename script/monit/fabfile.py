@@ -21,8 +21,8 @@ DEPLOYMENTS = {
 def check_key_filename(deployment_name):
     if 'key_filename' in DEPLOYMENTS[deployment_name] and \
        not os.path.exists(DEPLOYMENTS[deployment_name]['key_filename']):
-        print ("Cannot find required permissions file: %s" %
-               DEPLOYMENTS[deployment_name]['key_filename'])
+        print("Cannot find required permissions file: %s" %
+              DEPLOYMENTS[deployment_name]['key_filename'])
         return False
     return True
 
