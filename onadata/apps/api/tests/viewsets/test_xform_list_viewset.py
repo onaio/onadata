@@ -496,7 +496,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         with open(path) as f:
             form_list_xml = f.read().strip()
             data = {"hash": self.xform.hash, "pk": self.xform.pk}
-            content = response.render().content
+            content = response.render().content.decode('utf-8')
             self.assertEqual(content, form_list_xml % data)
             self.assertTrue(response.has_header('X-OpenRosa-Version'))
             self.assertTrue(

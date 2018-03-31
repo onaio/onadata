@@ -19,7 +19,7 @@ class TempFileProxy(object):
     with "read" and "close" methods.
     """
     def __init__(self, content):
-        self.content = content
+        self.content = content.encode('utf-8')
 
     def read(self):
         return self.content
