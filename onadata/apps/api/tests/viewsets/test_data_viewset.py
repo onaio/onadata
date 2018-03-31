@@ -1092,8 +1092,8 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         # should be both bob's and alice's form
         self.assertEqual(
-            sorted(response.data, key=lambda x: x['_id']),
-            sorted([bobs_data, alice_data], key=lambda x: x['_id']))
+            sorted(response.data, key=lambda x: x['id']),
+            sorted([bobs_data, alice_data], key=lambda x: x['id']))
 
         # apply filter, see only bob's forms
         request = self.factory.get('/', data={'owner': 'bob'}, **self.extra)

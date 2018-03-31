@@ -40,18 +40,19 @@ class TestBaseProjectSerializer(TestAbstractViewSet):
         request.user = self.user
         self.serializer.context['request'] = request
         users = self.serializer.get_users(self.project)
-        self.assertEqual(users, [{'first_name': u'Bob',
-                                  'last_name': u'erama',
-                                  'is_org': False,
-                                  'role': 'owner',
-                                  'user': u'bob',
-                                  'metadata': {}},
-                                 {'first_name': u'Dennis',
-                                  'last_name': u'',
-                                  'is_org': True,
-                                  'role': 'owner',
-                                  'user': u'denoinc',
-                                  'metadata': {}}])
+        self.assertEqual(sorted(users, key=lambda x: x['first_name']),
+                         [{'first_name': u'Bob',
+                           'last_name': u'erama',
+                           'is_org': False,
+                           'role': 'owner',
+                           'user': u'bob',
+                           'metadata': {}},
+                          {'first_name': u'Dennis',
+                           'last_name': u'',
+                           'is_org': True,
+                           'role': 'owner',
+                           'user': u'denoinc',
+                           'metadata': {}}])
 
 
 class TestProjectSerializer(TestAbstractViewSet):
