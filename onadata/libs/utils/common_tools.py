@@ -126,15 +126,15 @@ def json_stream(data, json_string):
     """
     Generator function to stream JSON data
     """
-    yield u"["
+    yield '['
     try:
         data = data.__iter__()
-        item = data.next()
+        item = next(data)
         while item:
             try:
-                next_item = data.next()
+                next_item = next(data)
                 yield json_string(item)
-                yield ","
+                yield ','
                 item = next_item
             except StopIteration:
                 yield json_string(item)
@@ -142,7 +142,7 @@ def json_stream(data, json_string):
     except AttributeError:
         pass
     finally:
-        yield u"]"
+        yield ']'
 
 
 def retry(tries, delay=3, backoff=2):
