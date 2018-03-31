@@ -674,7 +674,8 @@ class TestDataViewSet(TestBase):
                                    **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
-        data = json.loads(''.join([c for c in response.streaming_content]))
+        data = json.loads(''.join(
+            [c.decode('utf-8') for c in response.streaming_content]))
         self.assertEqual(len(data), 3)
 
     def test_data_anon(self):
