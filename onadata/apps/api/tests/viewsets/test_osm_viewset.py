@@ -80,14 +80,16 @@ class TestOSMViewSet(TestAbstractViewSet):
         with open(self.combined_osm_path) as f:
             osm = f.read()
             response.render()
-            self.assertMultiLineEqual(response.content.strip(), osm.strip())
+            self.assertMultiLineEqual(response.content.decode('utf-8').strip(),
+                                      osm.strip())
 
             # look at the data/[pk].osm endpoint
             view = OsmViewSet.as_view({'get': 'list'})
             response = view(request, pk=formid, format='osm')
             self.assertEqual(response.status_code, 200)
             response.render()
-            self.assertMultiLineEqual(response.content.strip(), osm.strip())
+            self.assertMultiLineEqual(response.content.decode('utf-8').strip(),
+                                      osm.strip())
 
         # look at the data.osm endpoint
         view = OsmViewSet.as_view({'get': 'list'})

@@ -1,6 +1,6 @@
 import os
 import shutil
-import codecs
+from io import open
 
 from django.core.urlresolvers import reverse
 from django.core.files.storage import get_storage_class
@@ -63,12 +63,13 @@ class TestBriefcaseAPI(TestBase):
         self.assertEqual(instances.count(), NUM_INSTANCES)
 
         last_index = instances[instances.count() - 1].pk
-        with codecs.open(submission_list_path, 'rb', encoding='utf-8') as f:
+        with open(submission_list_path, encoding='utf-8') as f:
             expected_submission_list = f.read()
             expected_submission_list = \
                 expected_submission_list.replace(
                     '{{resumptionCursor}}', '%s' % last_index)
-            self.assertEqual(response.content, expected_submission_list)
+            self.assertEqual(response.content.decode('utf-8'),
+                             expected_submission_list)
 
     def test_view_submission_list_w_deleted_submission(self):
         self._publish_xml_form()
@@ -91,12 +92,13 @@ class TestBriefcaseAPI(TestBase):
         self.assertEqual(instances.count(), NUM_INSTANCES - 1)
 
         last_index = instances[instances.count() - 1].pk
-        with codecs.open(submission_list_path, 'rb', encoding='utf-8') as f:
+        with open(submission_list_path, encoding='utf-8') as f:
             expected_submission_list = f.read()
             expected_submission_list = \
                 expected_submission_list.replace(
                     '{{resumptionCursor}}', '%s' % last_index)
-            self.assertEqual(response.content, expected_submission_list)
+            self.assertEqual(response.content.decode('utf-8'),
+                             expected_submission_list)
 
         formId = u'%(formId)s[@version=null and @uiVersion=null]/' \
                  u'%(formId)s[@key=uuid:%(instanceId)s]' % {
@@ -157,20 +159,21 @@ class TestBriefcaseAPI(TestBase):
             filename = 'submissionList-%s.xml' % index
 
             if index == 4:
-                self.assertEqual(
-                    response.content, last_expected_submission_list)
+                self.assertEqual(response.content.decode('utf-8'),
+                                 last_expected_submission_list)
                 continue
             # set cursor for second request
             params['cursor'] = last_index
             submission_list_path = os.path.join(
                 self.this_directory, 'fixtures', 'transportation',
                 'view', filename)
-            with codecs.open(submission_list_path, encoding='utf-8') as f:
+            with open(submission_list_path, encoding='utf-8') as f:
                 expected_submission_list = f.read()
                 last_expected_submission_list = expected_submission_list = \
                     expected_submission_list.replace(
                         '{{resumptionCursor}}', '%s' % last_index)
-                self.assertEqual(response.content, expected_submission_list)
+                self.assertEqual(response.content.decode('utf-8'),
+                                 expected_submission_list)
             last_index += 2
 
     def test_view_downloadSubmission(self):
@@ -194,12 +197,12 @@ class TestBriefcaseAPI(TestBase):
         download_submission_path = os.path.join(
             self.this_directory, 'fixtures', 'transportation',
             'view', 'downloadSubmission.xml')
-        with codecs.open(download_submission_path, encoding='utf-8') as f:
+        with open(download_submission_path, encoding='utf-8') as f:
             text = f.read()
             text = text.replace(u'{{submissionDate}}',
                                 instance.date_created.isoformat())
             self.assertContains(response, instanceId, status_code=200)
-            self.assertMultiLineEqual(response.content, text)
+            self.assertMultiLineEqual(response.content.decode('utf-8'), text)
 
     def test_view_downloadSubmission_OtherUser(self):
         self._publish_xml_form()
@@ -226,7 +229,7 @@ class TestBriefcaseAPI(TestBase):
         self._create_user('deno', 'deno')
         count = XForm.objects.count()
 
-        with codecs.open(self.form_def_path, encoding='utf-8') as f:
+        with open(self.form_def_path, encoding='utf-8') as f:
             params = {'form_def_file': f, 'dataFile': ''}
             request = self.factory.post(self._form_upload_url, params)
             response = form_upload(request, username=self.user.username)
@@ -242,7 +245,7 @@ class TestBriefcaseAPI(TestBase):
             self.this_directory, 'fixtures', 'transportation',
             'Transportation Form.xml')
         count = XForm.objects.count()
-        with codecs.open(form_def_path, encoding='utf-8') as f:
+        with open(form_def_path, encoding='utf-8') as f:
             params = {'form_def_file': f, 'dataFile': ''}
             request = self.factory.post(self._form_upload_url, params)
             response = form_upload(request, username=self.user.username)
@@ -256,7 +259,7 @@ class TestBriefcaseAPI(TestBase):
 
     def _publish_xml_form(self):
         count = XForm.objects.count()
-        with codecs.open(self.form_def_path, encoding='utf-8') as f:
+        with open(self.form_def_path, encoding='utf-8') as f:
             params = {'form_def_file': f, 'dataFile': ''}
             request = self.factory.post(self._form_upload_url, params)
             response = form_upload(request, username=self.user.username)
@@ -271,7 +274,7 @@ class TestBriefcaseAPI(TestBase):
 
     def test_form_upload(self):
         self._publish_xml_form()
-        with codecs.open(self.form_def_path, encoding='utf-8') as f:
+        with open(self.form_def_path, encoding='utf-8') as f:
             params = {'form_def_file': f, 'dataFile': ''}
             request = self.factory.post(self._form_upload_url, params)
             response = form_upload(request, username=self.user.username)
@@ -294,7 +297,7 @@ class TestBriefcaseAPI(TestBase):
             self.this_directory, 'fixtures', 'transportation',
             'view', 'submission.xml')
         count = Instance.objects.count()
-        with codecs.open(submission_path, encoding='utf-8') as f:
+        with open(submission_path, encoding='utf-8') as f:
             post_data = {'xml_submission_file': f}
             self.factory = APIRequestFactory()
             request = self.factory.post(self._submission_url, post_data)

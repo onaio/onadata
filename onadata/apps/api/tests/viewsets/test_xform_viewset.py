@@ -892,9 +892,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             formid = self.xform.pk
             request = self.factory.get('/')
             response = view(request, pk=formid)
-            self.assertEqual(
-                response.content,
-                "Authentication failure, cannot redirect")
+            self.assertEqual(response.content.decode('utf-8'),
+                             "Authentication failure, cannot redirect")
 
     @override_settings(ENKETO_CLIENT_LOGIN_URL='http://test.ona.io/login')
     def test_login_enketo_no_jwt_but_with_return_url(self):
