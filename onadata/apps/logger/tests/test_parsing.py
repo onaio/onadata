@@ -1,4 +1,5 @@
 # vim: ai ts=4 sts=4 et sw=4 fileencoding=utf-8
+import json
 import os
 import re
 from xml.dom import minidom
@@ -222,9 +223,9 @@ class TestXFormInstanceParser(TestBase):
             "../fixtures/repeated_nodes_expected_results.json"
         )
         with open(xml_file) as file:
-            dict = _xml_node_to_dict(clean_and_parse_xml(file.read()))
-            self.assertTrue(dict['#document']['RW_OUNIS_2016']['S2A'])
-            self.assertEqual(3, len(dict['#document']['RW_OUNIS_2016']['S2A']))
+            xml_dict = _xml_node_to_dict(clean_and_parse_xml(file.read()))
+            self.assertTrue(xml_dict['#document']['RW_OUNIS_2016']['S2A'])
+            self.assertEqual(3, len(
+                xml_dict['#document']['RW_OUNIS_2016']['S2A']))
             with open(json_file) as file:
-                import json
-                self.assertEqual(file.read(), json.dumps(dict))
+                self.assertEqual(json.loads(file.read()), xml_dict)
