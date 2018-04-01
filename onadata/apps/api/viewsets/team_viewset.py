@@ -8,6 +8,9 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import DjangoObjectPermissions
 
+from onadata.apps.api.models import Team
+from onadata.apps.api.tools import add_user_to_team, remove_user_from_team
+from onadata.apps.api.tools import get_baseviewset_class
 from onadata.libs.filters import TeamOrgFilter
 from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
@@ -16,9 +19,7 @@ from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.team_serializer import TeamSerializer
 from onadata.libs.serializers.share_team_project_serializer import (
     ShareTeamProjectSerializer, RemoveTeamFromProjectSerializer)
-from onadata.apps.api.models import Team
-from onadata.apps.api.tools import add_user_to_team, remove_user_from_team
-from onadata.apps.api.tools import get_baseviewset_class
+from onadata.libs.utils.common_tools import merge_dicts
 
 BaseViewset = get_baseviewset_class()
 
@@ -74,7 +75,7 @@ class TeamViewSet(AuthenticateHeaderMixin,
     @detail_route(methods=['POST'])
     def share(self, request, *args, **kwargs):
         self.object = self.get_object()
-        data = dict(request.data.items() + [('team', self.object.pk)])
+        data = merge_dicts(request.data.items(), {'team': self.object.pk})
 
         if data.get("remove"):
             serializer = RemoveTeamFromProjectSerializer(data=data)

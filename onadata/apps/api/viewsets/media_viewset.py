@@ -59,7 +59,7 @@ class MediaViewSet(AuthenticateHeaderMixin,
                         try:
                             url = image_url(obj, suffix)
                         except Exception as e:
-                            raise ParseError(e.message)
+                            raise ParseError(e)
                     else:
                         raise Http404()
 

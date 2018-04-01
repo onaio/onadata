@@ -1,4 +1,5 @@
 import os
+from builtins import open
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -45,7 +46,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         }
 
         if path and data_value:
-            with open(path) as media_file:
+            with open(path, 'rb') as media_file:
                 data.update({
                     'data_file': media_file,
                 })
@@ -79,7 +80,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         }
 
         if path and data_value:
-            with open(path) as media_file:
+            with open(path, 'rb') as media_file:
                 data.update({
                     'data_file': media_file,
                 })
@@ -211,12 +212,12 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
         # test invalid URL
         data_value = 'some thing random here'
-        with self.assertRaises(AssertionError) as e:
-            self._add_form_metadata(self.xform, data_type, data_value)
+        response = self._add_form_metadata(
+            self.xform, data_type, data_value, test=False)
         expected_exception = {
             'data_value': [u"Invalid url 'some thing random here'."]
         }
-        self.assertEqual(e.exception.message, expected_exception)
+        self.assertEqual(response.data, expected_exception)
 
         # test valid URL
         data_value = 'https://devtrac.ona.io/fieldtrips.csv'
@@ -232,14 +233,14 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
         # test missing parameters
         data_value = 'xform {}'.format(self.xform.pk)
-        with self.assertRaises(AssertionError) as e:
-            self._add_form_metadata(self.xform, data_type, data_value)
+        response = self._add_form_metadata(
+            self.xform, data_type, data_value, test=False)
         expected_exception = {
             'data_value': [
                 u"Expecting 'xform [xform id] [media name]' or "
                 "'dataview [dataview id] [media name]' or a valid URL."]
         }
-        self.assertEqual(e.exception.message, expected_exception)
+        self.assertEqual(response.data, expected_exception)
 
         data_value = 'xform {} transportation'.format(self.xform.pk)
         self._add_form_metadata(self.xform, data_type, data_value)
@@ -401,7 +402,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
     def _create_metadata_object(self):
         view = MetaDataViewSet.as_view({'post': 'create'})
-        with open(self.path) as media_file:
+        with open(self.path, 'rb') as media_file:
             data = {
                 'data_type': 'media',
                 'data_value': 'check.png',
@@ -425,7 +426,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
     def test_invalid_form_metadata(self):
         view = MetaDataViewSet.as_view({'post': 'create'})
-        with open(self.path) as media_file:
+        with open(self.path, 'rb') as media_file:
             data = {
                 'data_type': "media",
                 'data_value': self.data_value,

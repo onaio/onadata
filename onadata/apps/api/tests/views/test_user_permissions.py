@@ -1,5 +1,6 @@
 import json
 import os
+from builtins import open
 
 from django.conf import settings
 from django_digest.test import DigestAuth
@@ -45,13 +46,13 @@ class TestUserPermissions(TestAbstractViewSet):
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
         self._login_user_and_profile(extra_post_data=alice_data)
 
-        with open(path) as xls_file:
+        with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file, 'owner': 'bob'}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request)
             self.assertEqual(response.status_code, 403)
 
-        with open(path) as xls_file:
+        with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file, 'owner': 'bob'}
             request = self.factory.post('/', data=post_data, **self.extra)
             role.ManagerRole.add(self.user, bob.profile)
