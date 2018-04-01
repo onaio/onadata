@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 import csv
 import logging
+import sys
 import uuid
 from builtins import str as text
 from datetime import datetime, date
@@ -40,6 +41,9 @@ MULTIPLE_SELECT_BIND_TYPE = 'select'
 GEOPOINT_BIND_TYPE = 'geopoint'
 OSM_BIND_TYPE = 'osm'
 DEFAULT_UPDATE_BATCH = 100
+
+# savReaderWriter behaves differenlty depending on this
+IS_PY_3K = sys.version_info[0] > 2
 
 
 def current_site_url(path):
@@ -111,7 +115,7 @@ def encode_if_str(row, key, encode_dates=False, sav_writer=None):
                                            strptime_fmt)
         elif encode_dates:
             return val.isoformat()
-    return val
+    return text(val) if IS_PY_3K else val
 
 
 def dict_to_joined_export(data, index, indices, name, survey, row,
@@ -180,6 +184,11 @@ def is_all_numeric(items):
     try:
         for i in items:
             float(i)
+            # if there is a zero padded number, it is not all numeric
+            if isinstance(i, text) and len(i) > 1 and \
+                    i[0] == '0' and i[1] != '.':
+                return False
+        return True
     except ValueError:
         return False
 
