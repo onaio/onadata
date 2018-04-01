@@ -3,7 +3,7 @@
 Export model.
 """
 import os
-from builtins import str as text
+from future.utils import python_2_unicode_compatible
 from tempfile import NamedTemporaryFile
 
 from django.core.files.storage import get_storage_class
@@ -11,7 +11,6 @@ from django.contrib.postgres.fields import JSONField
 from django.db import models
 from django.db.models.signals import post_delete
 from django.utils.translation import ugettext as _
-from django.utils.encoding import python_2_unicode_compatible
 
 from onadata.libs.utils.common_tags import OSM
 from onadata.libs.utils import async_status
@@ -45,33 +44,29 @@ def get_export_options_query_kwargs(options):
     return options_kwargs
 
 
+@python_2_unicode_compatible
+class ExportTypeError(Exception):
+    """
+    ExportTypeError exception class.
+    """
+    def __str__(self):
+        return _(u'Invalid export type specified')
+
+
+@python_2_unicode_compatible
+class ExportConnectionError(Exception):
+    """
+    ExportConnectionError exception class.
+    """
+    def __str__(self):
+        return _(u'Export server is down.')
+
+
+@python_2_unicode_compatible
 class Export(models.Model):
     """
     Class representing a data export from an XForm
     """
-
-    @python_2_unicode_compatible
-    class ExportTypeError(Exception):
-        """
-        ExportTypeError exception class.
-        """
-        def __unicode__(self):
-            return _(u"Invalid export type specified")
-
-        def __str__(self):
-            return text(self).encode('utf-8')
-
-    @python_2_unicode_compatible
-    class ExportConnectionError(Exception):
-        """
-        ExportConnectionError exception class.
-        """
-        def __unicode__(self):
-            return _(u"Export server is down.")
-
-        def __str__(self):
-            return text(self).encode('utf-8')
-
     XLS_EXPORT = 'xls'
     CSV_EXPORT = 'csv'
     KML_EXPORT = 'kml'
@@ -160,7 +155,7 @@ class Export(models.Model):
         app_label = "viewer"
         unique_together = (("xform", "filename"),)
 
-    def __unicode__(self):
+    def __str__(self):
         return u'%s - %s (%s)' % (self.export_type, self.xform, self.filename)
 
     def save(self, *args, **kwargs):  # pylint: disable=arguments-differ
