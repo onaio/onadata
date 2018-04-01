@@ -53,7 +53,7 @@ class OrganizationProfileViewSet(AuthenticateHeaderMixin,
     @detail_route(methods=['DELETE', 'GET', 'POST', 'PUT'])
     def members(self, request, *args, **kwargs):
         organization = self.get_object()
-        data = merge_dicts(request.data.dict(),
+        data = merge_dicts(request.data,
                            request.query_params.dict(),
                            {'organization': organization.pk})
 
