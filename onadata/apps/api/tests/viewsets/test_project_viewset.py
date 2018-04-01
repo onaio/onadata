@@ -1758,17 +1758,21 @@ class TestProjectViewSet(TestAbstractViewSet):
         # save the org creator
         bob = self.user
 
-        data = {"username": alice_profile.user.username,
-                "role": OwnerRole.name}
+        data = json.dumps(
+            {"username": alice_profile.user.username,
+             "role": OwnerRole.name})
         # create admin 1
-        request = self.factory.post('/', data=data, **self.extra)
+        request = self.factory.post(
+            '/', data=data, content_type='application/json', **self.extra)
         response = view(request, user='denoinc')
 
         self.assertEquals(201, response.status_code)
-        data = {"username": chuck_profile.user.username,
-                "role": OwnerRole.name}
+        data = json.dumps(
+            {"username": chuck_profile.user.username,
+             "role": OwnerRole.name})
         # create admin 2
-        request = self.factory.post('/', data=data, **self.extra)
+        request = self.factory.post(
+            '/', data=data, content_type='application/json', **self.extra)
         response = view(request, user='denoinc')
 
         self.assertEquals(201, response.status_code)
@@ -1822,12 +1826,13 @@ class TestProjectViewSet(TestAbstractViewSet):
             'HTTP_AUTHORIZATION': 'Token %s' % bob.auth_token}
 
         # remove from admin org
-        data = {"username": alice_profile.user.username}
+        data = json.dumps({"username": alice_profile.user.username})
         view = OrganizationProfileViewSet.as_view({
             'delete': 'members'
         })
 
-        request = self.factory.delete('/', data=data, **self.extra)
+        request = self.factory.delete(
+            '/', data=data, content_type='application/json', **self.extra)
         response = view(request, user='denoinc')
         self.assertEquals(200, response.status_code)
 

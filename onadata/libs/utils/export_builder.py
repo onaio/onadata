@@ -972,7 +972,6 @@ class ExportBuilder(object):
                 duplicate_names.append((xpath, var_name))
             if var_name in all_value_labels:
                 value_labels[var_name] = all_value_labels.get(var_name)
-
         var_types = dict(
             [(_var_types[element['xpath']],
                 SAV_NUMERIC_TYPE if _is_numeric(element['xpath'],
