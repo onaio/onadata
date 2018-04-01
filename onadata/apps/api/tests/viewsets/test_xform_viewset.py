@@ -532,8 +532,10 @@ class TestXFormViewSet(TestAbstractViewSet):
                 ('date_created', url.date_created)
             ])]
 
-            sorted(self.form_data['metadata'], key=lambda x: x['id'])
-            sorted(response.data['metadata'], key=lambda x: x['id'])
+            self.form_data['metadata'] = sorted(
+                self.form_data['metadata'], key=lambda x: x['id'])
+            response.data['metadata'] = sorted(
+                response.data['metadata'], key=lambda x: x['id'])
 
             # remove date modified
             self.form_data.pop('date_modified')
