@@ -142,7 +142,7 @@ class FloipSerializer(serializers.HyperlinkedModelSerializer):
         data = deepcopy(request.data)
         if 'profile' in data and data['profile'] == 'flow-results-package':
             data['profile'] = 'data-package'
-        descriptor = BytesIO(json.dumps(data))
+        descriptor = BytesIO(json.dumps(data).encode('utf-8'))
         descriptor.seek(0, os.SEEK_END)
         floip_file = InMemoryUploadedFile(
             descriptor,

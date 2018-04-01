@@ -407,8 +407,9 @@ class XFormManifestSerializer(serializers.Serializer):
                     xform = data_view.xform
 
             if xform and xform.last_submission_time:
-                hsh = u'md5:%s' % (
-                    md5(xform.last_submission_time.isoformat()).hexdigest())
+                hsh = u'md5:%s' % (md5(
+                    xform.last_submission_time.isoformat().encode(
+                        'utf-8')).hexdigest())
 
         return u"%s" % (hsh or 'md5:')
 

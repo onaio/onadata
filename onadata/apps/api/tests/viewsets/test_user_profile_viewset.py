@@ -81,8 +81,10 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         })
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(sorted([dict(d) for d in response.data]),
-                         sorted([self.user_profile_data(), deno_profile_data]))
+        self.assertEqual(
+            sorted([dict(d) for d in response.data], key=lambda x: x['id']),
+            sorted([self.user_profile_data(), deno_profile_data],
+                   key=lambda x: x['id']))
         self.assertEqual(len(response.data), 2)
 
         # Inactive user not in list

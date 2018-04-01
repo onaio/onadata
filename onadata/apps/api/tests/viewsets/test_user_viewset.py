@@ -123,18 +123,14 @@ class TestUserViewSet(TestAbstractViewSet):
         all_users_response = view(all_users_request)
 
         self.assertEquals(all_users_response.status_code, 200)
-        self.assertEquals(
-            len(filter(
-                lambda user: user['username'] == 'denoinc',
-                all_users_response.data)),
-            1)
+        self.assertEquals(len(
+            [u for u in all_users_response.data if u['username'] == 'denoinc']
+        ), 1)
 
         no_orgs_request = self.factory.get('/', data={'orgs': 'false'})
         no_orgs_response = view(no_orgs_request)
 
         self.assertEquals(no_orgs_response.status_code, 200)
-        self.assertEquals(
-            len(filter(
-                lambda user: user['username'] == 'denoinc',
-                no_orgs_response.data)),
+        self.assertEquals(len(
+            [u for u in no_orgs_response.data if u['username'] == 'denoinc']),
             0)

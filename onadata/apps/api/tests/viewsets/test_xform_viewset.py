@@ -163,7 +163,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         valid_post_data = {
             u'downloadable': [u'True'],
             u'text_xls_form': [
-                (u"survey\r\n,"
+                ("survey\r\n,"
                  "required,type,name,label,calculation\r\n,"
                  "true,text,What_is_your_name,What is your name\r\n,"
                  ",calculate,__version__,,'vbP67kPMwnY8aTFcFHgWMN'\r\n"
@@ -181,7 +181,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         updated_post_data = {
             u'downloadable': [u'True'],
             u'text_xls_form': [
-                (u"survey\r\n,"
+                ("survey\r\n,"
                  "required,type,name,label,calculation\r\n,"
                  "true,text,What_is_your_name,What is your name\r\n,"
                  "true,integer,What_is_your_age,What is your age\r\n,"
@@ -296,7 +296,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.form_data['metadata'] = [{
                 'id': preview_url.pk,
                 'xform': self.xform.pk,
-                'data_value': u"https://enketo.ona.io/preview/::YY8M",
+                'data_value': "https://enketo.ona.io/preview/::YY8M",
                 'data_type': u'enketo_preview_url',
                 'data_file': None,
                 'data_file_type': None,
@@ -307,7 +307,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'date_created': preview_url.date_created
             }, {
                 'id': url.pk,
-                'data_value': u"https://enketo.ona.io/::YY8M",
+                'data_value': "https://enketo.ona.io/::YY8M",
                 'xform': self.xform.pk,
                 'data_file': None,
                 'data_type': u'enketo_url',
@@ -354,7 +354,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.form_data['metadata'] = [{
                 'id': preview_url.pk,
                 'xform': self.xform.pk,
-                'data_value': u"https://enketo.ona.io/preview/::YY8M",
+                'data_value': "https://enketo.ona.io/preview/::YY8M",
                 'data_type': u'enketo_preview_url',
                 'data_file': None,
                 'data_file_type': None,
@@ -366,7 +366,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             }, {
                 'id': url.pk,
                 'xform': self.xform.pk,
-                'data_value': u"https://enketo.ona.io/::YY8M",
+                'data_value': "https://enketo.ona.io/::YY8M",
                 'data_type': u'enketo_url',
                 'data_file': None,
                 'data_file_type': None,
@@ -510,7 +510,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.form_data['metadata'] = [OrderedDict([
                 ('id', preview_url.pk),
                 ('xform', self.xform.pk),
-                ('data_value', u"https://enketo.ona.io/preview/::YY8M"),
+                ('data_value', "https://enketo.ona.io/preview/::YY8M"),
                 ('data_type', 'enketo_preview_url'),
                 ('data_file', None),
                 ('data_file_type', None),
@@ -522,7 +522,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             ]), OrderedDict([
                 ('id', url.pk),
                 ('xform', self.xform.pk),
-                ('data_value', u"https://enketo.ona.io/::YY8M"),
+                ('data_value', "https://enketo.ona.io/::YY8M"),
                 ('data_type', 'enketo_url'),
                 ('data_file', None),
                 ('data_file_type', None),
@@ -532,8 +532,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                 ('date_created', url.date_created)
             ])]
 
-            self.form_data['metadata'].sort()
-            response.data['metadata'].sort()
+            sorted(self.form_data['metadata'], key=lambda x: x['id'])
+            sorted(response.data['metadata'], key=lambda x: x['id'])
 
             # remove date modified
             self.form_data.pop('date_modified')
@@ -623,7 +623,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             # check content without UUID
             response_xml = response_doc.toxml().replace(
-                self.xform.version, u"201411120717")
+                self.xform.version, "201411120717")
             self.assertEqual(response_xml, expected_doc.toxml())
 
     def test_form_tags(self):
@@ -689,7 +689,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response = view(request, pk=formid)
                 data = {
                     'message':
-                    u"Enketo error: no account exists for this OpenRosa server"
+                    "Enketo error: no account exists for this OpenRosa server"
                 }
 
                 self.assertEqual(
@@ -723,7 +723,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response = view(request, pk=formid)
                 data = {
                     'message':
-                    u"Enketo error: Sorry, we cannot load your form right "
+                    "Enketo error: Sorry, we cannot load your form right "
                     "now.  Please try again later."
                 }
                 self.assertEqual(
@@ -740,8 +740,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             # no tags
             request = self.factory.get('/', **self.extra)
             response = view(request, pk=formid)
-            url = u"https://enketo.ona.io/::YY8M"
-            preview_url = u"https://enketo.ona.io/preview/::YY8M"
+            url = "https://enketo.ona.io/::YY8M"
+            preview_url = "https://enketo.ona.io/preview/::YY8M"
             data = {"enketo_url": url, "enketo_preview_url": preview_url}
             self.assertEqual(response.data, data)
 
@@ -757,7 +757,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get('/', data=get_data, **self.extra)
             response = view(request, pk=formid)
             url = "https://dmfrm.enketo.org/webform?d[%2Fnum]=1"
-            preview_url = u"https://enketo.ona.io/preview/::YY8M"
+            preview_url = "https://enketo.ona.io/preview/::YY8M"
             data = {"enketo_url": url, "enketo_preview_url": preview_url}
             self.assertEqual(response.data, data)
 
@@ -904,7 +904,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             })
 
             formid = self.xform.pk
-            url = u"https://enketo.ona.io/::YY8M"
+            url = "https://enketo.ona.io/::YY8M"
             query_data = {'return': url}
             request = self.factory.get('/', data=query_data)
             response = view(request, pk=formid)
@@ -925,7 +925,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             # do not store temp token
 
-            url = u"https://enketo.ona.io/::YY8M?jwt=%s" % temp_token
+            url = "https://enketo.ona.io/::YY8M?jwt=%s" % temp_token
             query_data = {'return': url}
             request = self.factory.get('/', data=query_data)
             response = view(request, pk=formid)
@@ -952,8 +952,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                 payload, JWT_SECRET_KEY,
                 algorithm=JWT_ALGORITHM)
 
-            return_url = u"https://enketo.ona.io/_/#YY8M"
-            url = u"https://enketo.ona.io/_/?jwt=%s#YY8M" % encoded_payload
+            return_url = "https://enketo.ona.io/_/#YY8M"
+            url = "https://enketo.ona.io/_/?jwt=%s#YY8M" % encoded_payload
 
             query_data = {'return': url}
             request = self.factory.get('/', data=query_data)
@@ -991,8 +991,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                 payload, JWT_SECRET_KEY,
                 algorithm=JWT_ALGORITHM)
 
-            return_url = u"https://enketo.ona.io/::YY8M"
-            url = u"%s?jwt=%s" % (return_url, encoded_payload)
+            return_url = "https://enketo.ona.io/::YY8M"
+            url = "%s?jwt=%s" % (return_url, encoded_payload)
             query_data = {'return': url}
             request = self.factory.get('/', data=query_data)
             response = view(request, pk=formid)
@@ -1335,20 +1335,20 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request)
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.get('Cache-Control'), None)
-            error_msg = u"Title shouldn't have any invalid xml characters " \
-                        u"('>' '&' '<')"
+            error_msg = "Title shouldn't have any invalid xml characters " \
+                        "('>' '&' '<')"
             self.assertEqual(response.data.get('text'), error_msg)
 
     @patch.object(ModelViewSet, 'list')
     def test_return_400_on_xlsform_error_on_list_action(self, mock_set_title):
         with HTTMock(enketo_mock):
-            error_msg = u"Title shouldn't have an ampersand"
+            error_msg = "Title shouldn't have an ampersand"
             mock_set_title.side_effect = XLSFormError(error_msg)
             request = self.factory.get('/', **self.extra)
             response = self.view(request)
             self.assertTrue(mock_set_title.called)
             self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.content, error_msg)
+            self.assertEqual(response.content.decode('utf-8'), error_msg)
 
     def test_publish_invalid_xls_form_no_choices(self):
         view = XFormViewSet.as_view({
@@ -1669,7 +1669,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=formid)
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.data['project'][0],
-                             u"Project with id '5000' does not exist.")
+                             "Project with id '5000' does not exist.")
 
             data['project_id'] = "abc123"
             request = self.factory.post('/', data=data, **self.extra)
@@ -1677,10 +1677,10 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 400)
             self.assertEqual(
                 response.data['project'],
-                [u"invalid literal for int() with base 10: 'abc123'"])
+                ["invalid literal for int() with base 10: 'abc123'"])
 
             # pylint: disable=no-member
-            project = Project.objects.create(name=u"alice's other project",
+            project = Project.objects.create(name="alice's other project",
                                              organization=alice_profile.user,
                                              created_by=alice_profile.user,
                                              metadata='{}')
@@ -1924,8 +1924,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 400)
             self.assertIn("error", response.data)
             self.assertEquals(response.data.get('error'),
-                              u"Sorry uploaded file does not match the form. "
-                              u"The file is missing the column(s): name, age.")
+                              "Sorry uploaded file does not match the form. "
+                              "The file is missing the column(s): name, age.")
 
     def test_csv_import_additional_columns(self):
         with HTTMock(enketo_mock):
@@ -1941,8 +1941,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 200)
             self.assertIn("info", response.data)
             self.assertEquals(response.data.get('info'),
-                              u"Additional column(s) excluded from the upload:"
-                              u" '_additional'.")
+                              "Additional column(s) excluded from the upload:"
+                              " '_additional'.")
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.viewsets.xform_viewset.submit_csv_async')
@@ -2145,7 +2145,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
                 self.assertEqual(response.status_code, 400)
-                expected_response = u"Your updated form's id_string " \
+                expected_response = "Your updated form's id_string " \
                     "'transportation_2015_01_07' must match the existing " \
                     "forms' id_string 'transportation_2011_07_25'."
                 self.assertEqual(response.data.get(
@@ -2161,7 +2161,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response = view(request, pk=form_id)
                 self.assertEqual(response.status_code, 400)
                 expected_response = (
-                    u"Your updated form's id_string "
+                    "Your updated form's id_string "
                     "'tutorial_' must match the existing "
                     "forms' id_string 'transportation_2011_07_25'.")
                 self.assertEqual(response.data.get(
@@ -2188,7 +2188,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response = view(request, pk=form_id)
                 self.assertEqual(response.status_code, 400)
                 expected_response = (
-                    u"Your updated form's id_string "
+                    "Your updated form's id_string "
                     "'transportation_2015_01_07' must match the existing "
                     "forms' id_string 'transportation_2011_07_25'.")
                 self.assertEqual(response.data.get(
@@ -2204,7 +2204,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response = view(request, pk=form_id)
                 self.assertEqual(response.status_code, 400)
                 expected_response = (
-                    u"Your updated form's id_string "
+                    "Your updated form's id_string "
                     "'tutorial_' must match the existing "
                     "forms' id_string 'transportation_2011_07_25'.")
                 self.assertEqual(response.data.get(
@@ -2399,7 +2399,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.xform.refresh_from_db()
 
             # diff versions
-            self.assertEquals(self.xform.version, u"212121211")
+            self.assertEquals(self.xform.version, "212121211")
             self.assertEquals(form_id, self.xform.pk)
 
     @patch('onadata.apps.main.forms.urlopen')
@@ -2433,7 +2433,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             self.assertEquals(count, XForm.objects.all().count())
             # diff versions
-            self.assertEquals(self.xform.version, u"212121211")
+            self.assertEquals(self.xform.version, "212121211")
             self.assertEquals(form_id, self.xform.pk)
 
     @patch('onadata.apps.main.forms.urlopen')
@@ -2467,7 +2467,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             self.assertEquals(count, XForm.objects.all().count())
             # diff versions
-            self.assertEquals(self.xform.version, u"212121211")
+            self.assertEquals(self.xform.version, "212121211")
             self.assertEquals(form_id, self.xform.pk)
 
     def test_update_xform_using_put(self):
@@ -3865,7 +3865,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                                            data={'include_labels': 'true'},
                                            **self.extra)
                 response = form_view(request, pk=formid, format=export_format)
-                f = StringIO(''.join(response.streaming_content))
+                f = StringIO(''.join([
+                    c.decode('utf-8') for c in response.streaming_content]))
                 csv_reader = csv.reader(f)
                 # jump over headers first
                 next(csv_reader)

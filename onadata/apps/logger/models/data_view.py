@@ -350,7 +350,7 @@ class DataView(models.Model):
                                                                     params,
                                                                     count)]
         except Exception as e:
-            return {"error": _(e.message)}
+            return {"error": _(text(e))}
 
         return records
 
