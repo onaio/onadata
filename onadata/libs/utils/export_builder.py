@@ -178,7 +178,8 @@ def is_all_numeric(items):
     :return boolean:
     """
     try:
-        map(float, [i for i in items])
+        for i in items:
+            float(i)
     except ValueError:
         return False
 
