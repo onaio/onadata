@@ -727,6 +727,6 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             else:
                 resp = super(XFormViewSet, self).list(request, *args, **kwargs)
         except XLSFormError as e:
-            resp = HttpResponseBadRequest(e.message)
+            resp = HttpResponseBadRequest(e)
 
         return resp
