@@ -770,8 +770,9 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data[0]['filename'], 'transportation.csv')
         self.assertEqual(
-            response.data[0]['hash'], 'md5:%s' %
-            md5(self.xform.last_submission_time.isoformat()).hexdigest())
+            response.data[0]['hash'], 'md5:%s' % md5(
+                self.xform.last_submission_time.isoformat().encode(
+                    'utf-8')).hexdigest())
 
         self.view = XFormListViewSet.as_view(
             {

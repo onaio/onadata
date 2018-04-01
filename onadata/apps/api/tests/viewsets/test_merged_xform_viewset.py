@@ -54,7 +54,8 @@ def streaming_data(response):
     """
     Iterates through a streaming response to return a json list object
     """
-    return json.loads(u''.join([i for i in response.streaming_content]))
+    return json.loads(u''.join([
+        i.decode('utf-8') for i in response.streaming_content]))
 
 
 def _make_submissions_merged_datasets(merged_xform):
@@ -404,7 +405,8 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         response = view(request, pk=merged_dataset['id'], format='csv')
         self.assertEqual(response.status_code, 200)
 
-        csv_file_obj = StringIO(''.join(response.streaming_content))
+        csv_file_obj = StringIO(''.join([
+            c.decode('utf-8') for c in response.streaming_content]))
         csv_reader = csv.reader(csv_file_obj)
         # jump over headers first
         headers = next(csv_reader)
