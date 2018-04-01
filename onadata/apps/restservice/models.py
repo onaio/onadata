@@ -3,6 +3,7 @@
 RestService model
 """
 import importlib
+from future.utils import python_2_unicode_compatible
 
 from django.conf import settings
 from django.db import models
@@ -15,6 +16,7 @@ from onadata.apps.restservice import SERVICE_CHOICES
 from onadata.libs.utils.common_tags import GOOGLE_SHEET, TEXTIT
 
 
+@python_2_unicode_compatible
 class RestService(models.Model):
     """
     Properties for an external service.
@@ -35,7 +37,7 @@ class RestService(models.Model):
     inactive_reason = models.TextField(ugettext_lazy("Inactive reason"),
                                        blank=True, default="")
 
-    def __unicode__(self):
+    def __str__(self):
         return u"%s:%s - %s" % (self.xform, self.long_name, self.service_url)
 
     def get_service_definition(self):

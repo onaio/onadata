@@ -2,7 +2,9 @@ import logging
 import re
 import dateutil.parser
 from builtins import str as text
+from future.utils import python_2_unicode_compatible
 from xml.dom import minidom, Node
+
 from django.utils.encoding import smart_text, smart_str
 from django.utils.translation import ugettext as _
 
@@ -13,36 +15,28 @@ class XLSFormError(Exception):
     pass
 
 
+@python_2_unicode_compatible
 class DuplicateInstance(Exception):
-    def __unicode__(self):
-        return _("Duplicate Instance")
-
     def __str__(self):
-        return text(self).encode('utf-8')
+        return _(u'Duplicate Instance')
 
 
+@python_2_unicode_compatible
 class InstanceInvalidUserError(Exception):
-    def __unicode__(self):
-        return _("Could not determine the user.")
-
     def __str__(self):
-        return text(self).encode('utf-8')
+        return _(u'Could not determine the user.')
 
 
+@python_2_unicode_compatible
 class InstanceParseError(Exception):
-    def __unicode__(self):
-        return _("The instance could not be parsed.")
-
     def __str__(self):
-        return text(self).encode('utf-8')
+        return _(u'The instance could not be parsed.')
 
 
+@python_2_unicode_compatible
 class InstanceEmptyError(InstanceParseError):
-    def __unicode__(self):
-        return _("Empty instance")
-
     def __str__(self):
-        return text(self).encode('utf-8')
+        return _(u'Empty instance')
 
 
 class InstanceMultipleNodeError(Exception):

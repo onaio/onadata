@@ -3,9 +3,8 @@
 Instance model class
 """
 import math
-from builtins import str as text
 from datetime import datetime
-
+from future.utils import python_2_unicode_compatible
 from past.builtins import basestring  # pylint: disable=W0622
 
 from django.conf import settings
@@ -85,24 +84,18 @@ def _get_tag_or_element_type_xpath(xform, tag):
     return elems[0].get_abbreviated_xpath() if elems else tag
 
 
+@python_2_unicode_compatible
 class FormInactiveError(Exception):
     """Exception class for inactive forms"""
-
-    def __unicode__(self):
-        return _("Form is inactive")
-
     def __str__(self):
-        return text(self).encode('utf-8')
+        return _(u'Form is inactive')
 
 
+@python_2_unicode_compatible
 class FormIsMergedDatasetError(Exception):
     """Exception class for merged datasets"""
-
-    def __unicode__(self):
-        return _("Submissions are not allowed on merged datasets.")
-
     def __str__(self):
-        return text(self).encode('utf-8')
+        return _(u'Submissions are not allowed on merged datasets.')
 
 
 def numeric_checker(string_value):
