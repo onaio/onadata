@@ -563,8 +563,8 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         request = self.factory.head('/')
         response = view(request)
         self.assertTrue(response.has_header('WWW-Authenticate'))
-        self.assertTrue(
-            response['WWW-Authenticate'].startswith('Digest nonce='))
+        self.assertTrue(response['WWW-Authenticate'].startswith('Digest '))
+        self.assertIn('nonce=', response['WWW-Authenticate'])
         request = self.factory.get('/')
         request.META.update(auth(request.META, response))
         request.session = self.client.session
