@@ -277,7 +277,8 @@ class TestConnectViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
 
-        data['uid'] = urlsafe_base64_encode(force_bytes(self.user.pk))
+        data['uid'] = urlsafe_base64_encode(
+            force_bytes(self.user.pk)).decode('utf-8')
         # with uid, should be successful
         request = self.factory.post('/', data=data)
         response = self.view(request)
