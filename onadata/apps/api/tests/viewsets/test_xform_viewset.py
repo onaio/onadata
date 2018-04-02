@@ -1926,7 +1926,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertIn("error", response.data)
             self.assertEquals(response.data.get('error'),
                               "Sorry uploaded file does not match the form. "
-                              "The file is missing the column(s): name, age.")
+                              "The file is missing the column(s): age, name.")
 
     def test_csv_import_additional_columns(self):
         with HTTMock(enketo_mock):
