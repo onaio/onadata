@@ -277,10 +277,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             if not instance_ids:
                 raise ParseError(_(u"Data id(s) not provided."))
             else:
-                instance_ids = filter(
-                    lambda x: x.isdigit(),
-                    instance_ids.split(',')
-                )
+                instance_ids = [
+                    x for x in instance_ids.split(',') if x.isdigit()]
 
                 if not instance_ids:
                     raise ParseError(_(u"Invalid data ids were provided."))
