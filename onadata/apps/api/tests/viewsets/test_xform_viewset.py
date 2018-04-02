@@ -990,7 +990,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             encoded_payload = jwt.encode(
                 payload, JWT_SECRET_KEY,
-                algorithm=JWT_ALGORITHM)
+                algorithm=JWT_ALGORITHM).decode('utf-8')
 
             return_url = "https://enketo.ona.io/::YY8M"
             url = "%s?jwt=%s" % (return_url, encoded_payload)
@@ -1287,7 +1287,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "api", "tests", "fixtures",
                 "universal_newline.csv")
-            with open(path, 'rb') as xls_file:
+            with open(path, encoding='utf-8') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.post('/', data=post_data, **self.extra)
                 response = view(request)
@@ -4306,7 +4306,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'post': 'create'
             })
 
-            with open(form_path, 'rb') as xml_file:
+            with open(form_path, encoding='utf-8') as xml_file:
                 post_data = {'xml_file': xml_file}
                 request = self.factory.post('/', data=post_data, **self.extra)
                 response = view(request)
