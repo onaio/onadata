@@ -4,6 +4,7 @@ Test FloipViewset module.
 """
 import json
 import os
+from builtins import open
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
@@ -21,7 +22,7 @@ class TestFloipViewSet(TestAbstractViewSet):
                        test=True):
         view = FloipViewSet.as_view({'post': 'create'})
         path = os.path.join(os.path.dirname(__file__), "../", "fixtures", path)
-        with open(path) as json_file:
+        with open(path, encoding='utf-8') as json_file:
             post_data = json_file.read()
             request = self.factory.post(
                 '/',
@@ -116,7 +117,7 @@ class TestFloipViewSet(TestAbstractViewSet):
         self.assertNotIn(question, data['resources'][0]['schema']['questions'])
         path = os.path.join(os.path.dirname(__file__), "../", "fixtures",
                             'flow-results-example-w-uuid-update.json')
-        with open(path) as json_file:
+        with open(path, encoding='utf-8') as json_file:
             post_data = json_file.read()
             request = self.factory.put(
                 '/flow-results/packages/' + data['id'],
@@ -141,7 +142,7 @@ class TestFloipViewSet(TestAbstractViewSet):
         path = os.path.join(
             os.path.dirname(__file__), "../", "fixtures",
             "flow-results-example-2-api-data.json")
-        with open(path) as json_file:
+        with open(path, encoding='utf-8') as json_file:
             descriptor = json.load(json_file)
             descriptor['data']['id'] = floip_data['id']
             request = self.factory.post(
@@ -167,7 +168,7 @@ class TestFloipViewSet(TestAbstractViewSet):
         path = os.path.join(
             os.path.dirname(__file__), "../", "fixtures",
             "flow-results-number-question-names.json")
-        with open(path) as json_file:
+        with open(path, encoding='utf-8') as json_file:
             post_data = json_file.read()
             request = self.factory.post(
                 '/',

@@ -134,7 +134,6 @@ class DataView(models.Model):
         return False
 
     def save(self, *args, **kwargs):
-
         self.instances_with_geopoints = self.has_geo_columnn_n_data()
         return super(DataView, self).save(*args, **kwargs)
 
