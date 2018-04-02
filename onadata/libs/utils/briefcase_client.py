@@ -253,7 +253,7 @@ class BriefcaseClient(object):
         de_node = xml_doc.documentElement
         for node in de_node.firstChild.childNodes:
             xml.write(node.toxml())
-        new_xml_file = ContentFile(xml.getvalue())
+        new_xml_file = ContentFile(xml.getvalue().encode('utf-8'))
         new_xml_file.content_type = 'text/xml'
         xml.close()
         attachments = []
