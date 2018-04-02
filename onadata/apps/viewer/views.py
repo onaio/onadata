@@ -35,7 +35,7 @@ from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.views import download_jsonform
 from onadata.apps.main.models import MetaData, TokenStorageModel, UserProfile
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
-from onadata.apps.viewer.models.export import Export
+from onadata.apps.viewer.models.export import Export, ExportTypeError
 from onadata.apps.viewer.tasks import create_async_export
 from onadata.apps.viewer.xls_writer import XlsWriter
 from onadata.libs.exceptions import NoRecordsFoundError
@@ -406,7 +406,7 @@ def create_export(request, username, id_string, export_type):
 
     try:
         create_async_export(xform, export_type, query, force_xlsx, options)
-    except Export.ExportTypeError:
+    except ExportTypeError:
         return HttpResponseBadRequest(
             _("%s is not a valid export type" % export_type))
     else:
