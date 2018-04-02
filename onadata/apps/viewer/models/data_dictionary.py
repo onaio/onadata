@@ -2,9 +2,8 @@
 """
 DataDictionary model.
 """
-
-import csv
 import os
+import unicodecsv as csv
 from builtins import str as text
 from io import BytesIO, StringIO
 
@@ -88,7 +87,7 @@ def sheet_to_csv(xls_content, sheet_name):
 
     csv_file = BytesIO()
 
-    writer = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
+    writer = csv.writer(csv_file, encoding='utf-8', quoting=csv.QUOTE_ALL)
     mask = [v and len(v.strip()) > 0 for v in sheet.row_values(0)]
 
     for row in range(sheet.nrows):

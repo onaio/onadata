@@ -6,7 +6,7 @@ FloipSerializer module.
 import json
 import os
 from copy import deepcopy
-from io import BytesIO, StringIO
+from io import BytesIO
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -223,8 +223,8 @@ class FlowResultsResponseSerializer(serializers.Serializer):
         xform = get_object_or_404(XForm, uuid=validated_data['id'])
         processed = []
         for submission in parse_responses(responses):
-            xml_file = StringIO(
-                dict2xform(submission, xform.id_string, 'data'))
+            xml_file = BytesIO(dict2xform(
+                submission, xform.id_string, 'data').encode('utf-8'))
 
             error, instance = safe_create_instance(
                 request.user.username, xml_file, [], None, request)
