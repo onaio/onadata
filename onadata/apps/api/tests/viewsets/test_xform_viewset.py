@@ -2668,7 +2668,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data.get('detail'), 'Missing body')
 
-        body = u'"survey",,,,,,,,,,\n,"name","type","label","hint",' \
+        body = '"survey",,,,,,,,,,\n,"name","type","label","hint",' \
             '"required","relevant","default","' \
             'constraint","constraint_message","appearance"\n,"sdfasdfaf"' \
             ',"geopoint","sdfasdfaf",,"false",,,,,\n,"sdfsdaf","text",' \
@@ -2701,7 +2701,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         response = view(request)
         self.assertEqual(response.status_code, 200)
 
-        body = u'"survey",,,,,,,,,,\n,"name","type","label","hint",' \
+        body = '"survey",,,,,,,,,,\n,"name","type","label","hint",' \
             '"required","relevant","default","' \
             'constraint","constraint_message","appearance"\n,"sdfasdfaf sdf"' \
             ',"geopoint","sdfasdfaf",,"false",,,,,\n,"sdfsdaf","text",' \
