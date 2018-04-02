@@ -208,7 +208,7 @@ def submit_csv(username, xform, csv_file):
             addition_col.remove(col)
 
     # remove headers for repeats that might be missing from csv
-    missing = [m for m in missing if m.find('[') == -1]
+    missing = sorted([m for m in missing if m.find('[') == -1])
 
     # Include additional repeats
     addition_col = [a for a in addition_col if a.find('[') == -1]
