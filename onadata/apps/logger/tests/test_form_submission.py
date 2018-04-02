@@ -77,7 +77,7 @@ class TestFormSubmission(TestBase):
         self.assertEqual(self.response.status_code, 400)
         self.assertTrue(
             "Unable to submit because there are multiple forms with this form"
-            in self.response.content)
+            in self.response.content.decode('utf-8'))
 
     @patch('django.utils.datastructures.MultiValueDict.pop')
     def test_fail_with_ioerror_read(self, mock_pop):

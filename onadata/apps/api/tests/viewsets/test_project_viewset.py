@@ -81,7 +81,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_different_id_string.xlsx")
 
-            xls_file = open(path)
+            xls_file = open(path, 'rb')
             mock_urlopen.return_value = xls_file
 
             post_data = {'xls_url': xls_url}
