@@ -2281,7 +2281,7 @@ class TestExportBuilder(TestBase):
         with SavReader(os.path.join(temp_dir, "osm.sav"),
                        returnHeader=True) as reader:
             rows = [r for r in reader]
-            expected_column_headers = [
+            expected_column_headers = [x.encode('utf-8') for x in [
                 'photo', 'osm_road', 'osm_building', 'fav_color',
                 'form_completed', 'meta.instanceID', '@_id', '@_uuid',
                 '@_submission_time', '@_index', '@_parent_table_name',
@@ -2291,7 +2291,7 @@ class TestExportBuilder(TestBase):
                 'osm_road_name', 'osm_road_way_id', 'osm_building_building',
                 'osm_building_building_levels', 'osm_building_ctr_lat',
                 'osm_building_ctr_lon', 'osm_building_name',
-                'osm_building_way_id']
+                'osm_building_way_id']]
             self.assertEqual(sorted(rows[0]), sorted(expected_column_headers))
             self.assertEqual(rows[1][0], b'1424308569120.jpg')
             self.assertEqual(rows[1][1], b'OSMWay234134797.osm')
