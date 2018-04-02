@@ -144,17 +144,17 @@ class TestBriefcaseClient(TestBase):
         XForm.objects.all().delete()
         xforms = XForm.objects.filter(
             user=self.user, id_string=self.xform.id_string)
-        self.assertTrue(xforms.count() == 0)
+        self.assertEqual(xforms.count(), 0)
         instances = Instance.objects.filter(
             xform__user=self.user, xform__id_string=self.xform.id_string)
-        self.assertTrue(instances.count() == 0)
+        self.assertEqual(instances.count(), 0)
         self.bc.push()
         xforms = XForm.objects.filter(
             user=self.user, id_string=self.xform.id_string)
-        self.assertTrue(xforms.count() == 1)
+        self.assertEqual(xforms.count(), 1)
         instances = Instance.objects.filter(
             xform__user=self.user, xform__id_string=self.xform.id_string)
-        self.assertTrue(instances.count() == 1)
+        self.assertEqual(instances.count(), 1)
 
     def tearDown(self):
         # remove media files
