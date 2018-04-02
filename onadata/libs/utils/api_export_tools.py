@@ -29,7 +29,7 @@ from savReaderWriter import SPSSIOError
 
 from onadata.apps.main.models import TokenStorageModel
 from onadata.apps.viewer import tasks as viewer_task
-from onadata.apps.viewer.models.export import Export
+from onadata.apps.viewer.models.export import Export, ExportConnectionError
 from onadata.libs.exceptions import (J2XException, NoRecordsFoundError,
                                      NoRecordsPermission, ServiceUnavailable)
 from onadata.libs.permissions import filter_queryset_xform_meta_perms_sql
@@ -449,7 +449,7 @@ def _create_export_async(xform,
     try:
         export, async_result = viewer_task.create_async_export(
             xform, export_type, query, force_xlsx, options=options)
-    except Export.ExportConnectionError:
+    except ExportConnectionError:
         raise ServiceUnavailable
 
     return async_result.task_id
