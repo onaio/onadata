@@ -16,7 +16,9 @@ class TestFloipViewSet(TestAbstractViewSet):
     Test FloipViewSet class.
     """
 
-    def _publish_floip(self, path='flow-results-example-2-api.json'):
+    def _publish_floip(self,
+                       path='flow-results-example-2-api.json',
+                       test=True):
         view = FloipViewSet.as_view({'post': 'create'})
         path = os.path.join(os.path.dirname(__file__), "../", "fixtures", path)
         with open(path) as json_file:
@@ -27,13 +29,16 @@ class TestFloipViewSet(TestAbstractViewSet):
                 content_type='application/vnd.api+json',
                 **self.extra)
             response = view(request)
-            self.assertEqual(response.status_code, 201, response.data)
-            self.assertEqual(response['Content-Type'],
-                             'application/vnd.api+json')
-            self.assertEqual(response['Location'],
-                             'http://testserver/api/v1/flow-results/packages/'
-                             + response.data['id'])
-            self.assertEqual(response.data['profile'], 'flow-results-package')
+            if test:
+                self.assertEqual(response.status_code, 201, response.data)
+                self.assertEqual(response['Content-Type'],
+                                 'application/vnd.api+json')
+                self.assertEqual(
+                    response['Location'],
+                    'http://testserver/api/v1/flow-results/packages/'
+                    + response.data['id'])
+                self.assertEqual(response.data['profile'],
+                                 'flow-results-package')
             return response.data
 
     def test_publishing_descriptor(self):
@@ -52,10 +57,10 @@ class TestFloipViewSet(TestAbstractViewSet):
         xforms = XForm.objects.count()
         data = self._publish_floip(path='flow-results-example-w-uuid.json')
         self.assertEqual(data['id'], 'ee21fa6f-3027-4bdd-a534-1bb324782b6f')
-        with self.assertRaises(AssertionError) as assert_error:
-            self._publish_floip(path='flow-results-example-w-uuid.json')
+        response = self._publish_floip(path='flow-results-example-w-uuid.json',
+                                       test=False)
         self.assertEqual(
-            assert_error.exception.message.get('text'),
+            response['text'],
             'An xform with uuid: ee21fa6f-3027-4bdd-a534-1bb324782b6f already'
             ' exists')
         self.assertEqual(xforms + 1, XForm.objects.count())
