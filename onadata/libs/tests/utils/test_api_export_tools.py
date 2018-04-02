@@ -14,7 +14,7 @@ from rest_framework.request import Request
 
 from onadata.apps.logger.models import XForm
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.viewer.models.export import Export
+from onadata.apps.viewer.models.export import Export, ExportConnectionError
 from onadata.libs.utils.api_export_tools import (
     get_async_response, process_async_export, response_for_format)
 from onadata.libs.utils.async_status import SUCCESSFUL, status_msg
@@ -157,7 +157,7 @@ class TestApiExportTools(TestBase):
         """
         Test process_async_export creates a new export.
         """
-        mock_task.side_effect = Export.ExportConnectionError
+        mock_task.side_effect = ExportConnectionError
         self._publish_transportation_form_and_submit_instance()
         request = self.factory.post('/')
         request.user = self.user
