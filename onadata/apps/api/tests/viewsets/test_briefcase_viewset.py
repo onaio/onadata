@@ -265,7 +265,7 @@ class TestBriefcaseViewSet(test_abstract_viewset.TestAbstractViewSet):
             text = text.replace(u'{{submissionDate}}',
                                 instance.date_created.isoformat())
             self.assertContains(response, instanceId, status_code=200)
-            self.assertMultiLineEqual(response.content, text)
+            self.assertMultiLineEqual(response.content.decode('utf-8'), text)
 
     def test_view_downloadSubmission_OtherUser(self):
         view = BriefcaseViewset.as_view({'get': 'retrieve'})
