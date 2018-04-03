@@ -167,7 +167,7 @@ def external_mock(url, request):  # pylint: disable=unused-argument
     response = requests.Response()
     response.status_code = 201
     # pylint: disable=protected-access
-    response._content = "/xls/ee3ff9d8f5184fc4a8fdebc2547cc059"
+    response._content = b"/xls/ee3ff9d8f5184fc4a8fdebc2547cc059"
     return response
 
 
@@ -188,7 +188,7 @@ def external_mock_single_instance(url, request, uuid=None):
     response = requests.Response()
     response.status_code = 201
     # pylint: disable=protected-access
-    response._content = "/xls/ee3ff9d8f5184fc4a8fdebc2547cc059"
+    response._content = b"/xls/ee3ff9d8f5184fc4a8fdebc2547cc059"
     return response
 
 
@@ -208,5 +208,5 @@ def external_mock_single_instance2(url, request, uuid=None):
     response = requests.Response()
     response.status_code = 201
     # pylint: disable=protected-access
-    response._content = "/xls/ee3ff9d8f5184fc4a8fdebc2547cc057"
+    response._content = b"/xls/ee3ff9d8f5184fc4a8fdebc2547cc057"
     return response
