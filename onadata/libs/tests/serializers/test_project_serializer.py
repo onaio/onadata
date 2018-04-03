@@ -1,10 +1,12 @@
+from mock import MagicMock
+from rest_framework import serializers
 from rest_framework.test import APIRequestFactory
 
-from onadata.apps.logger.models import Project
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
-from onadata.libs.serializers.project_serializer import\
-    ProjectSerializer, BaseProjectSerializer
+from onadata.apps.logger.models import Project
+from onadata.libs.serializers.project_serializer import (BaseProjectSerializer,
+                                                         ProjectSerializer)
 
 
 class TestBaseProjectSerializer(TestAbstractViewSet):
@@ -88,3 +90,27 @@ class TestProjectSerializer(TestAbstractViewSet):
         serializer = ProjectSerializer(project, context={'request': request})
         self.assertEqual(len(serializer.data['forms']), 0)
         self.assertEqual(serializer.data['num_datasets'], 0)
+
+    def test_create_duplicate_projects(self):
+        validated_data = {
+                'name': u'demo',
+                'organization': self.user,
+                'metadata': {'description': 'Some description',
+                             'location': 'Naivasha, Kenya',
+                             'category': 'governance'},
+                'public': False
+            }
+
+        # create first project
+        request = MagicMock(user=self.user)
+        serializer = ProjectSerializer(context={'request': request})
+        project = serializer.create(validated_data)
+        self.assertEqual(project.name, u'demo')
+        self.assertEqual(project.organization, self.user)
+
+        # create another project with same data
+        with self.assertRaises(serializers.ValidationError) as e:
+            serializer.create(validated_data)
+        self.assertEqual(
+            e.exception.detail,
+            [u'The fields name, organization must make a unique set.'])
