@@ -3119,7 +3119,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             content = get_response_content(response)
 
-            expected_content = (
+            expected_content_py2 = (
                 '\ufeffage,\ufeffname,\ufeffmeta/instanceID,\ufeff_id,'
                 '\ufeff_uuid,\ufeff_submission_time,\ufeff_tags,\ufeff_notes,'
                 '\ufeff_version,\ufeff_duration,\ufeff_submitted_by,'
@@ -3130,8 +3130,17 @@ class TestXFormViewSet(TestAbstractViewSet):
                 '\ufeff74ee8b73-48aa-4ced-9072-862f93d49c16,'
                 '\ufeff2013-02-18T15:54:01,\ufeff,\ufeff,\ufeff201604121155,'
                 '\ufeff,\ufeffbob,0,0,True\n' % data_id)
+            expected_content_py3 = (
+                '\ufeffage,name,meta/instanceID,_id,_uuid,_submission_time,'
+                '_tags,_notes,_version,_duration,_submitted_by,_total_media,'
+                '_media_count,_media_all_received\n\ufeff#age,,,,,,,,,,,,,\n'
+                '\ufeff29,Lionel Messi,'
+                'uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,%s,'
+                '74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01,,,'
+                '201604121155,,bob,0,0,True\n' % data_id)
 
-            self.assertEqual(expected_content, content)
+            self.assertIn(content, [expected_content_py2,
+                                    expected_content_py3])
             headers = dict(response.items())
             self.assertEqual(headers['Content-Type'], 'application/csv')
             content_disposition = headers['Content-Disposition']
