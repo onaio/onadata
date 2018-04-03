@@ -335,11 +335,8 @@ def create_instance(username,
                 a.media_file.name.split('/')[-1]
                 for a in Attachment.objects.filter(instance=instance)
             ]
-
-            for a in media_files:
-                if a.name in attachment_names:
-                    media_files.remove(a)
-
+            media_files = [f for f in media_files
+                           if f.name not in attachment_names]
             save_attachments(xform, instance, media_files)
             instance.save()
 
