@@ -4,8 +4,10 @@
 # installed from Git
 -e git+https://github.com/bfirsh/django-ordered-model.git@master#egg=django-ordered-model
 -e git+https://github.com/onaio/django-multidb-router.git@django-1.11#egg=django-multidb-router
--e git+https://github.com/onaio/django-digest.git@django-1.9-fixes#egg=django-digest
+-e git+https://github.com/onaio/django-digest.git@master#egg=django-digest
 -e git+https://github.com/onaio/floip-py.git@master#egg=floip
 -e git+https://github.com/onaio/python-json2xlsclient.git#egg=python-json2xlsclient
 -e git+https://github.com/jbalogh/django-nose.git#egg=django-nose
 -e git+https://github.com/XLSForm/pyxform.git@master#egg=pyxform
+# install librabbitmq from git as the python3 version is not yet on pypi
+-e git+https://github.com/celery/librabbitmq@master#egg=librabbitmq

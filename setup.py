@@ -19,7 +19,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="onadata",
-    version="1.13.0",
+    version="1.13.1",
     description="Collect Analyze and Share Data!",
     author="Ona Systems Inc",
     author_email="support@ona.io",
@@ -39,7 +39,6 @@ setup(
         "django-query-builder",
         "celery",
         "django-celery",
-        "librabbitmq",
         # cors
         "django-cors-headers",
         "django-debug-toolbar",
@@ -106,4 +105,10 @@ setup(
         "raven",
         "django-activity-stream",
         "paho-mqtt",
-    ])
+    ],
+    extras_require={
+        ':python_version=="2.7"': [
+            'functools32>=3.2.3-2'
+        ]
+    }
+)
