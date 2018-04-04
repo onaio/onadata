@@ -115,6 +115,8 @@ def encode_if_str(row, key, encode_dates=False, sav_writer=None):
                                            strptime_fmt)
         elif encode_dates:
             return val.isoformat()
+    if isinstance(val, bool):
+        return val
     return text(val) if IS_PY_3K else val
 
 
