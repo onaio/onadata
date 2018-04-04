@@ -17,9 +17,11 @@ https://opendatakit.org
 
 from setuptools import setup, find_packages
 
+import onadata
+
 setup(
     name="onadata",
-    version="1.13.0",
+    version=onadata.__version__,
     description="Collect Analyze and Share Data!",
     author="Ona Systems Inc",
     author_email="support@ona.io",
