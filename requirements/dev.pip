@@ -125,7 +125,7 @@ python-dateutil==2.6.0    # via fleming, tableschema
 python-digest==1.7
 python-memcached==1.58
 pytz==2017.2              # via babel, celery, django, django-query-builder, fleming
-pyxform==0.10.0
+pyxform==0.11.0
 raven==6.1.0
 recaptcha-client==1.0.6
 requests==2.17.3          # via datapackage, httmock, sphinx, tableschema, tabulator
