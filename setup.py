@@ -92,7 +92,7 @@ setup(
         "xlwt",
         "openpyxl",
         "dpath",
-        "elaphe",
+        "elaphe3",
         "httplib2",
         "modilabs-python-utils",
         "numpy",
