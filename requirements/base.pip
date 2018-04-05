@@ -12,6 +12,7 @@
 # Added python2 marker to functools manually
 #
 -e git+https://github.com/onaio/django-digest.git@master#egg=django-digest
+-e git+https://github.com/onaio/python-digest.git@master#egg=python-digest
 -e git+https://github.com/onaio/django-multidb-router.git@django-1.11#egg=django-multidb-router
 -e git+https://github.com/jbalogh/django-nose.git#egg=django-nose
 -e git+https://github.com/bfirsh/django-ordered-model.git@master#egg=django-ordered-model
@@ -111,7 +112,6 @@ pyjwt==1.5.0
 pylibmc==1.5.2
 pymongo==3.4.0
 python-dateutil==2.6.0    # via fleming, tableschema
-python-digest==1.7
 python-memcached==1.58
 pytz==2017.2              # via babel, celery, django, django-query-builder, fleming
 pyxform==0.11.1
