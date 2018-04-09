@@ -115,7 +115,9 @@ def encode_if_str(row, key, encode_dates=False, sav_writer=None):
                                            strptime_fmt)
         elif encode_dates:
             return val.isoformat()
-    return text(val) if IS_PY_3K else val
+
+    val = '' if val is None else val
+    return text(val) if IS_PY_3K and not isinstance(val, bool) else val
 
 
 def dict_to_joined_export(data, index, indices, name, survey, row,
@@ -982,6 +984,14 @@ class ExportBuilder(object):
                 duplicate_names.append((xpath, var_name))
             if var_name in all_value_labels:
                 value_labels[var_name] = all_value_labels.get(var_name)
+
+        def _get_element_type(element_xpath):
+            for element in elements:
+                if element["xpath"] == element_xpath:
+                    return element["type"]
+
+            return ""
+
         var_types = dict(
             [(_var_types[element['xpath']],
                 SAV_NUMERIC_TYPE if _is_numeric(element['xpath'],
@@ -997,7 +1007,7 @@ class ExportBuilder(object):
             [(x[1],
               SAV_NUMERIC_TYPE if _is_numeric(
                 x[0],
-                self.dd.get_element(x[0]).type,
+                _get_element_type(x[0]),
                 self.dd) else SAV_255_BYTES_TYPE)
                 for x in duplicate_names]
         )
