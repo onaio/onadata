@@ -27,8 +27,10 @@ RUN apt-get update \
     python-celery \
     python-sphinx \
     openjdk-9-jre-headless \
-    python-virtualenv
+    python-virtualenv \
+    locales
 
+RUN  locale-gen en_US.UTF-8
 RUN mkdir -p /srv/onadata/requirements
 
 ADD requirements /srv/onadata/requirements/
