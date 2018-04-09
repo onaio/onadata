@@ -31,7 +31,7 @@ setup(
     },
     packages=find_packages(exclude=['docs', 'tests']),
     install_requires=[
-        "Django>=1.11<2",
+        "Django>=1.11,<2",
         "django-guardian",
         "django-registration-redux",
         "django-templated-email",
@@ -108,4 +108,12 @@ setup(
         "raven",
         "django-activity-stream",
         "paho-mqtt",
+    ],
+    dependency_links=[
+        'https://github.com/bfirsh/django-ordered-model/tarball/master#egg=django-ordered-model',  # noqa pylint: disable=line-too-long
+        'https://github.com/onaio/django-multidb-router/tarball/django-1.11#egg=django-multidb-router',  # noqa pylint: disable=line-too-long
+        'https://github.com/onaio/django-digest/tarball/django-1.9-fixes#egg=django-digest',  # noqa pylint: disable=line-too-long
+        'https://github.com/onaio/floip-py/tarball/master#egg=floip',
+        'https://github.com/onaio/python-json2xlsclient/tarball/master#egg=python-json2xlsclient',  # noqa pylint: disable=line-too-long
+        'https://github.com/jbalogh/django-nose/tarball/master#egg=django-nose',  # noqa pylint: disable=line-too-long
     ])
