@@ -455,23 +455,7 @@ class TestCSVDataFrameBuilder(TestBase):
         csv_reader = csv.reader(csv_file)
         header = next(csv_reader)
         self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
-        expected_header = [
-            '\xef\xbb\xbfname', '\xef\xbb\xbfage', '\xef\xbb\xbfhas_kids',
-            '\xef\xbb\xbfkids_name', '\xef\xbb\xbfkids_age',
-            '\xef\xbb\xbfkids_name', '\xef\xbb\xbfkids_age', '\xef\xbb\xbfgps',
-            '\xef\xbb\xbf_gps_latitude', '\xef\xbb\xbf_gps_longitude',
-            '\xef\xbb\xbf_gps_altitude', '\xef\xbb\xbf_gps_precision',
-            '\xef\xbb\xbfweb_browsers/firefox',
-            '\xef\xbb\xbfweb_browsers/chrome', '\xef\xbb\xbfweb_browsers/ie',
-            '\xef\xbb\xbfweb_browsers/safari', '\xef\xbb\xbfinstanceID',
-            '\xef\xbb\xbf_id', '\xef\xbb\xbf_uuid',
-            '\xef\xbb\xbf_submission_time', '\xef\xbb\xbf_tags',
-            '\xef\xbb\xbf_notes', '\xef\xbb\xbf_version',
-            '\xef\xbb\xbf_duration', '\xef\xbb\xbf_submitted_by',
-            '\xef\xbb\xbf_total_media', '\xef\xbb\xbf_media_count',
-            '\xef\xbb\xbf_media_all_received'
-        ]
-        self.assertEqual(expected_header, header)
+        self.assertEqual(b'\xef\xbb\xbfname', header[0].encode('utf-8'))
         # close and delete file
         csv_file.close()
         os.unlink(temp_file.name)
