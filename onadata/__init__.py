@@ -5,4 +5,4 @@ ODK Briefcase API and a REST API to manage data analysis, collection and
 visualization.
 """
 
-__version__ = '1.13.1'
+__version__ = '1.13.2'

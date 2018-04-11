@@ -1,10 +1,26 @@
 Changelog for onadata
 =====================
 
-1.13.2 (Unreleased)
+1.13.3 (Unreleased)
 --------------------
 
 - Nothing changed yet
+
+1.13.2 (2018-04-11)
+--------------------
+
+- Bump pyxform version to 0.11.1
+  `Issue 1355 <https://github.com/onaio/onadata/pull/1355>`_
+  [ukanga]
+
+- Update privacy policy to point to hosted privacy policy, tos, and license
+  `Issue 1360 <https://github.com/onaio/onadata/pull/1360>`_
+  [pld]
+
+- Use resource_name responses for responses endpoint
+  `Issue 1362 <https://github.com/onaio/onadata/pull/1362>`_
+  [ukanga]
+
 
 
 1.13.1 (2018-04-04)
