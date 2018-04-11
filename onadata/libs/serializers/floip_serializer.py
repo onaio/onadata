@@ -214,7 +214,7 @@ class FlowResultsResponseSerializer(serializers.Serializer):
         """
         JSON API metaclass.
         """
-        resource_name = 'flow-results-data'
+        resource_name = 'responses'
 
     def create(self, validated_data):
         request = self.context['request']
