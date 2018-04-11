@@ -6,6 +6,7 @@ import os
 import unittest
 from decimal import Decimal
 
+from collections import OrderedDict
 from rest_framework.exceptions import ParseError
 
 from onadata.apps.logger.models import XForm
@@ -255,7 +256,9 @@ class TestChartTools(TestBase):
             "tests", "fixtures", "good_eats_multilang", "1.xml")
         self._make_submission(path)
         field = find_field_by_name(self.xform, 'food_type')
-        data = build_chart_data_for_field(self.xform, field, language_index=1)
+        language_index = list(OrderedDict(field.label)).index('English')
+        data = build_chart_data_for_field(self.xform, field,
+                                          language_index=language_index)
         self.assertEqual(data['field_label'], "Type of Eat")
 
     def test_build_chart_data_for_field_with_language_on_non_lang_field(self):
