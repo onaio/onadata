@@ -30,6 +30,9 @@ setup(
         'Source': 'https://github.com/onaio/onadata',
     },
     packages=find_packages(exclude=['docs', 'tests']),
+    package_data={
+        '': ['*.xls'],
+    },
     install_requires=[
         "Django>=1.11,<2",
         "django-guardian",
