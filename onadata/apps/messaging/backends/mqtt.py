@@ -5,8 +5,9 @@ Messaging notification backend for MQTT
 from __future__ import unicode_literals
 
 import json
+import ssl
 
-import paho.mqtt.client as paho
+import paho.mqtt.publish as publish
 
 from onadata.apps.messaging.backends.base import BaseBackend
 from onadata.apps.messaging.constants import PROJECT, USER, XFORM
@@ -62,15 +63,26 @@ class MQTTBackend(BaseBackend):
         if not options:
             raise Exception("MQTT Backend expects configuration options.")
 
-        host = options.get('HOST')
-        if not host:
+        self.host = options.get('HOST')
+        if not self.host:
             raise Exception("An MQTT host is required.")
+        self.port = options.get('PORT')
+        self.cert_info = None
+        secure = options.get('SECURE', False)
+        if secure:
+            if options.get('CA_CERT_FILE') is None:
+                raise Exception("The Certificate Authority certificate file "
+                                "is required.")
+            self.cert_info = dict(
+                ca_certs=options.get('CA_CERT_FILE'),
+                certfile=options.get('CERT_FILE'),
+                keyfile=options.get('KEY_FILE'),
+                tls_version=ssl.PROTOCOL_TLSv1_2,
+                cert_reqs=ssl.CERT_NONE)
+
         self.qos = options.get('QOS', 0)
         self.retain = options.get('RETAIN', False)
         self.topic_base = options.get('TOPIC_BASE', 'onadata')
-
-        self.client = paho.Client()
-        self.client.connect(host)
 
     def get_topic(self, instance):
         """
@@ -96,8 +108,8 @@ class MQTTBackend(BaseBackend):
         """
         topic = self.get_topic(instance)
         payload = get_payload(instance)
-        result = self.client.publish(
-            topic, payload=payload, qos=self.qos, retain=self.retain)
-        self.client.disconnect()
+        # send it
 
-        return result
+        return publish.single(topic, payload=payload, hostname=self.host,
+                              port=self.port, tls=self.cert_info, qos=self.qos,
+                              retain=self.retain)

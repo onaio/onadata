@@ -5,10 +5,11 @@ Tests for MQTT notification backend
 from __future__ import unicode_literals
 
 import json
+import ssl
 
 from django.test import TestCase
 
-from mock import MagicMock
+from mock import MagicMock, patch
 
 from onadata.apps.messaging.backends.mqtt import (MQTTBackend, get_payload,
                                                   get_target_metadata)
@@ -43,10 +44,9 @@ class TestMQTTBackend(TestCase):
 
         # User objects
         user = _create_user('John')
-        user_metadata = {'id':  user.pk,
-                         'name': user.get_full_name()}
-        self.assertEqual(json.dumps(user_metadata),
-                         json.dumps(get_target_metadata(user)))
+        user_metadata = {'id': user.pk, 'name': user.get_full_name()}
+        self.assertEqual(
+            json.dumps(user_metadata), json.dumps(get_target_metadata(user)))
 
         # XForm objects
         xform = MagicMock()
@@ -54,21 +54,23 @@ class TestMQTTBackend(TestCase):
         xform.name = 'Test Form'
         xform.id_string = 'Test_Form_ID'
         xform._meta.model_name = XFORM
-        xform_metadata = {'id':  1337,
-                          'name': 'Test Form',
-                          'form_id': 'Test_Form_ID'}
-        self.assertEqual(json.dumps(xform_metadata),
-                         json.dumps(get_target_metadata(xform)))
+        xform_metadata = {
+            'id': 1337,
+            'name': 'Test Form',
+            'form_id': 'Test_Form_ID'
+        }
+        self.assertEqual(
+            json.dumps(xform_metadata), json.dumps(get_target_metadata(xform)))
 
         # Project objects
         project = MagicMock()
         project.pk = 7331
         project.name = 'Test Project'
         project._meta.model_name = PROJECT
-        project_metadata = {'id':  7331,
-                            'name': 'Test Project'}
-        self.assertEqual(json.dumps(project_metadata),
-                         json.dumps(get_target_metadata(project)))
+        project_metadata = {'id': 7331, 'name': 'Test Project'}
+        self.assertEqual(
+            json.dumps(project_metadata),
+            json.dumps(get_target_metadata(project)))
 
     def test_mqtt_get_payload(self):
         """
@@ -89,7 +91,7 @@ class TestMQTTBackend(TestCase):
                 'context': {
                     'type': to_user._meta.model_name,
                     'metadata': {
-                        'id':  to_user.pk,
+                        'id': to_user.pk,
                         'name': to_user.get_full_name()
                     }
                 },
@@ -98,13 +100,35 @@ class TestMQTTBackend(TestCase):
         }
         self.assertEqual(json.dumps(payload), get_payload(instance))
 
-    def test_mqqt_send(self):
+    @patch('onadata.apps.messaging.backends.mqtt.publish.single')
+    def test_mqtt_send(self, mocked):
         """
         Test MQTT Backend send method
         """
         from_user = _create_user('Bob')
         to_user = _create_user('Alice')
         instance = _create_message(from_user, to_user, 'I love oov')
-        mqtt = MQTTBackend(options={'HOST': 'localhost'})
-        result = mqtt.send(instance=instance)
-        self.assertTrue(result.is_published())
+        mqtt = MQTTBackend(options={
+            'HOST': 'localhost',
+            'PORT': 8883,
+            'SECURE': True,
+            'CA_CERT_FILE': 'cacert.pem',
+            'CERT_FILE': 'emq.pem',
+            'KEY_FILE': 'emq.key'
+        })
+        mqtt.send(instance=instance)
+        self.assertTrue(mocked.called)
+        args, kwargs = mocked.call_args_list[0]
+        self.assertEquals(mqtt.get_topic(instance), args[0])
+        self.assertEquals(get_payload(instance), kwargs['payload'])
+        self.assertEquals('localhost', kwargs['hostname'])
+        self.assertEquals(8883, kwargs['port'])
+        self.assertEquals(0, kwargs['qos'])
+        self.assertEquals(False, kwargs['retain'])
+        self.assertDictEqual(
+            dict(ca_certs='cacert.pem',
+                 certfile='emq.pem',
+                 keyfile='emq.key',
+                 tls_version=ssl.PROTOCOL_TLSv1_2,
+                 cert_reqs=ssl.CERT_NONE),
+            kwargs['tls'])

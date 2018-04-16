@@ -59,9 +59,14 @@ NOTIFICATION_BACKENDS = {
         'BACKEND': 'onadata.apps.messaging.backends.mqtt.MQTTBackend',
         'OPTIONS': {
             'HOST': 'localhost',  # the MQTT host
+            'PORT': 1883,  # the MQTT port
             'QOS': 0,  # the MQTT QoS level
             'RETAIN': False,  # MQTT retain messages option
-            'TOPIC_BASE': 'onadata'  # the topic root
+            'TOPIC_BASE': 'onadata',  # the topic root
+            'SECURE': False,  # whether to attempt a secure connection
+            'CA_CERT_FILE': 'path to Certificate Authority certificate files',
+            'CERT_FILE': 'file path to PEM encoded client certificate',
+            'KEY_FILE': 'file path to PEM encoded client private key'
         }
     },
 }
