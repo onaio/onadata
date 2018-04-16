@@ -95,7 +95,7 @@ class TestExportTools(TestBase):
                 content = f2.read()
                 self.assertMultiLineEqual(content.strip(), osm.strip())
 
-        # deleted submission
+        # delete submission and check that content is no longer in export
         submission = self.xform.instances.filter().first()
         submission.deleted_at = timezone.now()
         submission.save()
@@ -105,6 +105,7 @@ class TestExportTools(TestBase):
         self.assertTrue(export.is_successful)
         with default_storage.open(export.filepath) as f2:
             content = f2.read()
+            self.assertEqual(content, '')
 
     def test_generate_attachments_zip_export(self):
         filenames = [
