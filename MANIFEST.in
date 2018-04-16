@@ -1,0 +1,2 @@
+include onadata/apps/main/tests/fixtures/transportation/transportation.xls
+include onadata/apps/api/tests/fixtures/forms/tutorial/tutorial.xls
