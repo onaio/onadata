@@ -106,7 +106,7 @@ class TestExportTools(TestBase):
         self.assertTrue(export.is_successful)
         with default_storage.open(export.filepath) as f2:
             content = f2.read()
-            self.assertEqual(content, '')
+            self.assertEqual(content, b'')
 
     def test_generate_attachments_zip_export(self):
         filenames = [
