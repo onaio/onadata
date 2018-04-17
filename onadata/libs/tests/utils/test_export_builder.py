@@ -33,7 +33,7 @@ from onadata.apps.viewer.tests.export_helpers import viewer_fixture_path
 from onadata.libs.utils.csv_builder import (CSVDataFrameBuilder,
                                             get_labels_from_columns)
 from onadata.libs.utils.export_builder import (
-    _decode_mongo_encoded_section_names,
+    decode_mongo_encoded_section_names,
     dict_to_joined_export,
     ExportBuilder,
     string_to_date_with_xls_validation)
@@ -385,7 +385,7 @@ class TestExportBuilder(TestBase):
             'sectionLg==1/info': [1, 2, 3, 4],
             'sectionLg==2/info': [1, 2, 3, 4],
         }
-        result = _decode_mongo_encoded_section_names(data)
+        result = decode_mongo_encoded_section_names(data)
         expected_result = {
             'main_section': [1, 2, 3, 4],
             'section.1/info': [1, 2, 3, 4],

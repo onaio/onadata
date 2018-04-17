@@ -238,7 +238,7 @@ def string_to_date_with_xls_validation(date_str):
         return date_obj
 
 
-def _decode_mongo_encoded_section_names(data):
+def decode_mongo_encoded_section_names(data):
     """ Recursively decode mongo keys.
 
     :param data: A dictionary to decode.
@@ -247,9 +247,9 @@ def _decode_mongo_encoded_section_names(data):
     for (k, v) in iteritems(data):
         new_v = v
         if isinstance(v, dict):
-            new_v = _decode_mongo_encoded_section_names(v)
+            new_v = decode_mongo_encoded_section_names(v)
         elif isinstance(v, list):
-            new_v = [_decode_mongo_encoded_section_names(x)
+            new_v = [decode_mongo_encoded_section_names(x)
                      if isinstance(x, dict) else x for x in v]
         results[_decode_from_mongo(k)] = new_v
     return results
@@ -658,7 +658,7 @@ class ExportBuilder(object):
                                                   survey_name,
                                                   self.survey, d,
                                                   media_xpaths)
-            output = _decode_mongo_encoded_section_names(joined_export)
+            output = decode_mongo_encoded_section_names(joined_export)
             # attach meta fields (index, parent_index, parent_table)
             # output has keys for every section
             if survey_name not in output:
@@ -787,7 +787,7 @@ class ExportBuilder(object):
                                                   survey_name,
                                                   self.survey, d,
                                                   media_xpaths)
-            output = _decode_mongo_encoded_section_names(joined_export)
+            output = decode_mongo_encoded_section_names(joined_export)
             # attach meta fields (index, parent_index, parent_table)
             # output has keys for every section
             if survey_name not in output:
@@ -1077,7 +1077,7 @@ class ExportBuilder(object):
                                                   survey_name,
                                                   self.survey, d,
                                                   media_xpaths)
-            output = _decode_mongo_encoded_section_names(joined_export)
+            output = decode_mongo_encoded_section_names(joined_export)
             # attach meta fields (index, parent_index, parent_table)
             # output has keys for every section
             if survey_name not in output:
