@@ -51,7 +51,7 @@ class TestMQTTBackend(TestCase):
         # XForm objects
         xform = MagicMock()
         xform.pk = 1337
-        xform.name = 'Test Form'
+        xform.title = 'Test Form'
         xform.id_string = 'Test_Form_ID'
         xform._meta.model_name = XFORM
         xform_metadata = {

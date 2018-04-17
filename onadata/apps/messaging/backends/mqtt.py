@@ -22,7 +22,7 @@ def get_target_metadata(target_obj):
     if target_obj_type == PROJECT:
         metadata['name'] = target_obj.name
     elif target_obj_type == XFORM:
-        metadata['name'] = target_obj.name
+        metadata['name'] = target_obj.title
         metadata['form_id'] = target_obj.id_string
     elif target_obj_type == USER:
         metadata['name'] = target_obj.get_full_name()
