@@ -843,6 +843,21 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
 
+    def test_filter_by_submission_time_date_formats(self):
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+
+        data = {'query': '{"_submission_time":{"$gt":"2018-04-19"}}'}
+        request = self.factory.get('/', data=data, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+
+        data = {'query': '{"_submission_time":{"$gt":"2018-04-19T14:46:32"}}'}
+        request = self.factory.get('/', data=data, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+
     def test_data_with_query_parameter(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
