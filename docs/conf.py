@@ -55,7 +55,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Ona API'
-copyright = u'2017, Ona'
+copyright = u'2018, Ona'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
