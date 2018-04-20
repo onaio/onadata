@@ -2,7 +2,7 @@ import json
 import six
 import datetime
 
-from onadata.libs.utils.common_tags import MONGO_STRFTIME
+from onadata.libs.utils.common_tags import MONGO_STRFTIME, DATE_FORMAT
 
 KNOWN_DATES = ['_submission_time']
 NONE_JSON_FIELDS = {
@@ -49,8 +49,13 @@ def _parse_where(query, known_integers, or_where, or_params):
                     )
                 _v = value
                 if field_key in KNOWN_DATES:
-                    _v = datetime.datetime.strptime(
-                        _v[:19], MONGO_STRFTIME)
+                    raw_date = value
+                    for date_format in (MONGO_STRFTIME, DATE_FORMAT):
+                        try:
+                            _v = datetime.datetime.strptime(raw_date[:19],
+                                                            date_format)
+                        except ValueError:
+                            pass
                 if field_key in NONE_JSON_FIELDS:
                     where_params.extend([unicode(_v)])
                 else:
