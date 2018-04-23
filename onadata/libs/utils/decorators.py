@@ -1,13 +1,10 @@
 from functools import wraps
-import urlparse
+from future.moves.urllib.parse import urlparse
 
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.utils.decorators import available_attrs
 from django.conf import settings
 from django.http import HttpResponseRedirect
-from pymongo.cursor import Cursor
-
-from onadata.apps.logger.models import XForm
 
 
 def check_obj(f):
@@ -33,44 +30,11 @@ def is_owner(view_func):
         login_url = request.build_absolute_uri(settings.LOGIN_URL)
         # If the login url is the same scheme and net location then just
         # use the path as the "next" url.
-        login_scheme, login_netloc = urlparse.urlparse(login_url)[:2]
-        current_scheme, current_netloc = urlparse.urlparse(path)[:2]
+        login_scheme, login_netloc = urlparse(login_url)[:2]
+        current_scheme, current_netloc = urlparse(path)[:2]
         if ((not login_scheme or login_scheme == current_scheme) and
                 (not login_netloc or login_netloc == current_netloc)):
             path = request.get_full_path()
         from django.contrib.auth.views import redirect_to_login
         return redirect_to_login(path, None, REDIRECT_FIELD_NAME)
     return _wrapped_view
-
-
-def apply_form_field_names(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        def _get_decoded_record(record):
-            if isinstance(record, dict):
-                for field in record:
-                    if isinstance(record[field], list):
-                        tmp_items = []
-                        items = record[field]
-                        for item in items:
-                            tmp_items.append(_get_decoded_record(item))
-                        record[field] = tmp_items
-                    if field not in field_names.values() and \
-                            field in field_names.keys():
-                        record[field_names[field]] = record.pop(field)
-            return record
-
-        cursor = func(*args, **kwargs)
-        if isinstance(cursor, Cursor) and 'id_string' in kwargs and\
-                'username' in kwargs:
-            username = kwargs.get('username')
-            id_string = kwargs.get('id_string')
-            xform = XForm.objects.get(
-                id_string=id_string, user__username=username)
-            records = []
-            field_names = xform.get_mongo_field_names_dict()
-            for record in cursor:
-                records.append(_get_decoded_record(record))
-            return records
-        return cursor
-    return wrapper

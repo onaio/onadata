@@ -1,28 +1,28 @@
 import json
 
+from past.builtins import basestring
+
 from django.conf import settings
 
-from rest_framework import serializers
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.decorators import detail_route
 from rest_framework.exceptions import ParseError
 from rest_framework.filters import OrderingFilter
 from rest_framework.generics import get_object_or_404
-from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
+from rest_framework.viewsets import ModelViewSet
 
+from onadata.apps.api.permissions import UserProfilePermissions
+from onadata.apps.api.tools import get_baseviewset_class, load_class
+from onadata.apps.main.models import UserProfile
 from onadata.libs import filters
 from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
-from onadata.libs.serializers.user_profile_serializer import\
+from onadata.libs.serializers.user_profile_serializer import \
     UserProfileSerializer
-from onadata.apps.main.models import UserProfile
-from onadata.apps.api.permissions import UserProfilePermissions
-from onadata.apps.api.tools import load_class, get_baseviewset_class
-
 
 BaseViewset = get_baseviewset_class()
 

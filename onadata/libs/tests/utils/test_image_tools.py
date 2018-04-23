@@ -19,5 +19,5 @@ class TestImageTools(TestBase):
             with self.assertRaises(Exception) as io_error:
                 resize('test.jpg')
 
-        self.assertEqual(io_error.exception.message,
+        self.assertEqual(str(io_error.exception),
                          u'The image file couldn\'t be identified')

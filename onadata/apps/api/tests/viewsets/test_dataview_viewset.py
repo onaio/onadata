@@ -1,6 +1,7 @@
 import json
 import os
 import csv
+from builtins import open
 
 from datetime import datetime, timedelta
 from django.conf import settings
@@ -70,7 +71,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
             'tutorial', 'instances', 'uuid10', 'submission.xml')
 
         # make a submission with an attachment
-        with open(attachment_file_path) as f:
+        with open(attachment_file_path, 'rb') as f:
             self._make_submission(submission_file_path, media_file=f)
 
         data = {
@@ -456,8 +457,9 @@ class TestDataViewViewSet(TestAbstractViewSet):
         response = self.view(request)
 
         self.assertEquals(response.status_code, 400)
-        self.assertEquals(response.data,
-                          {'columns': [u'No JSON object could be decoded']})
+        self.assertIn(response.data['columns'][0],
+                      ['Expecting value: line 1 column 1 (char 0)',
+                       'No JSON object could be decoded'])
 
     def test_dataview_invalid_query(self):
         data = {
@@ -473,8 +475,9 @@ class TestDataViewViewSet(TestAbstractViewSet):
         response = self.view(request)
 
         self.assertEquals(response.status_code, 400)
-        self.assertEquals(response.data,
-                          {'query': [u'No JSON object could be decoded']})
+        self.assertIn(response.data['query'][0],
+                      ['Expecting value: line 1 column 1 (char 0)',
+                       u'No JSON object could be decoded'])
 
     def test_dataview_query_not_required(self):
         data = {
@@ -525,7 +528,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
                                       'viewer', 'tests', 'fixtures',
                                       'dataview.csv')
-        with open(test_file_path, 'r') as test_file:
+        with open(test_file_path, encoding='utf-8') as test_file:
             self.assertEqual(content, test_file.read())
 
     def test_csvzip_export_dataview(self):
@@ -556,7 +559,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
             'tutorial', 'instances', 'uuid10', 'submission.xml')
 
         # make a submission with an attachment
-        with open(attachment_file_path) as f:
+        with open(attachment_file_path, 'rb') as f:
             self._make_submission(submission_file_path, media_file=f)
 
         data = {
@@ -666,10 +669,10 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 202)
         export = Export.objects.get(task_id=task_id)
         self.assertTrue(export.is_successful)
-        with default_storage.open(export.filepath) as f:
+        with default_storage.open(export.filepath, 'r') as f:
             csv_reader = csv.reader(f)
-            csv_reader.next()
-            labels = csv_reader.next()
+            next(csv_reader)
+            labels = next(csv_reader)
             self.assertIn(
                 'Gender', labels
             )
@@ -740,7 +743,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         response = view(request, pk=dataview_pk)
 
         self.assertIsNotNone(
-            response.streaming_content.next(),
+            next(response.streaming_content),
             expected_output
         )
 
@@ -1199,8 +1202,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
         response = view(request, pk=self.data_view.pk)
         self.assertEquals(response.status_code, 200)
         self.assertEquals(len(response.data), 8)
-        data_with_notes = \
-            (d for d in response.data if d["_id"] == data_id).next()
+        data_with_notes = next((
+            d for d in response.data if d["_id"] == data_id))
         self.assertIn("_notes", data_with_notes)
         self.assertEquals([{'created_by': self.user.id,
                             'id': 1,
@@ -1474,7 +1477,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 202)
         export = Export.objects.get(task_id=task_id)
         self.assertTrue(export.is_successful)
-        with open(export.full_filepath) as csv_file:
+        with open(export.full_filepath, encoding='utf-8') as csv_file:
             self.assertEqual(
                 csv_file.read(),
                 'name,age,gender\nDennis Wambua,28,male\n')

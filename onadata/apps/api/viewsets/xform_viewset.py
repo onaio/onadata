@@ -2,7 +2,7 @@ import json
 import os
 import random
 from datetime import datetime
-from urlparse import urlparse
+from future.moves.urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -87,7 +87,8 @@ def upload_to_survey_draft(filename, username):
 
 
 def get_survey_dict(csv_name):
-    survey_file = default_storage.open(csv_name, 'r')
+    survey_file = default_storage.open(csv_name, 'rb')
+
     survey_dict = parse_file_to_json(
         survey_file.name, default_name='data', file_object=survey_file)
 
@@ -178,9 +179,7 @@ def parse_webform_return_url(return_url, request):
     url = urlparse(return_url)
     try:
         # get jwt from url - probably zebra via enketo
-        jwt_param = filter(
-            lambda p: p.startswith('jwt'),
-            url.query.split('&'))
+        jwt_param = [p for p in url.query.split('&') if p.startswith('jwt')]
         jwt_param = jwt_param and jwt_param[0].split('=')[1]
 
         if not jwt_param:
@@ -602,7 +601,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         # updating the file
         if request.FILES or set(['xls_url',
                                  'dropbox_xls_url',
-                                 'text_xls_form']) & set(request.data.keys()):
+                                 'text_xls_form']) & set(request.data):
             return _try_update_xlsform(request, self.object, owner)
 
         try:
@@ -728,7 +727,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                 resp = self._get_streaming_response()
             else:
                 resp = super(XFormViewSet, self).list(request, *args, **kwargs)
-        except XLSFormError, e:
-            resp = HttpResponseBadRequest(e.message)
+        except XLSFormError as e:
+            resp = HttpResponseBadRequest(e)
 
         return resp

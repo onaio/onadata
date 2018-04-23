@@ -3,7 +3,9 @@ import os
 import shutil
 import tempfile
 import zipfile
+from builtins import open
 
+from celery import task
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
 from onadata.apps.logger.xform_fs import XFormInstanceFS
@@ -31,7 +33,7 @@ def django_file(path, field_name, content_type):
     # adapted from here:
     # http://groups.google.com/group/django-users/browse_thread/thread/
     # 834f988876ff3c45/
-    f = open(path)
+    f = open(path, 'rb')
     return InMemoryUploadedFile(
         file=f,
         field_name=field_name,
@@ -40,6 +42,41 @@ def django_file(path, field_name, content_type):
         size=os.path.getsize(path),
         charset=None
     )
+
+
+def import_instance(username, xform_path, photos, osm_files, status,
+                    raise_exception):
+    """
+    This callback is passed an instance of a XFormInstanceFS.
+    See xform_fs.py for more info.
+    """
+    with django_file(xform_path, field_name="xml_file",
+                     content_type="text/xml") as xml_file:
+        images = [django_file(jpg, field_name="image",
+                  content_type="image/jpeg") for jpg in photos]
+        images += [
+            django_file(osm, field_name='image',
+                        content_type='text/xml')
+            for osm in osm_files
+        ]
+        try:
+            instance = create_instance(username, xml_file, images, status)
+        except Exception as e:
+            if raise_exception:
+                raise e
+
+        for i in images:
+            i.close()
+
+        if instance:
+            return 1
+        else:
+            return 0
+
+
+@task(ignore_result=True)
+def import_instance_async(username, xform_path, photos, osm_files, status):
+    import_instance(username, xform_path, photos, osm_files, status, False)
 
 
 def iterate_through_instances(dirpath, callback, user=None, status='zip',
@@ -61,7 +98,7 @@ def iterate_through_instances(dirpath, callback, user=None, status='zip',
                 else:
                     try:
                         success_count += callback(xfxs)
-                    except Exception, e:
+                    except Exception as e:
                         errors.append("%s => %s" % (xfxs.filename, str(e)))
                     del(xfxs)
                 total_file_count += 1
@@ -75,7 +112,7 @@ def import_instances_from_zip(zipfile_path, user, status="zip"):
         zf = zipfile.ZipFile(zipfile_path)
 
         zf.extractall(temp_directory)
-    except zipfile.BadZipfile, e:
+    except zipfile.BadZipfile as e:
         errors = [u"%s" % e]
         return 0, 0, errors
     else:
@@ -90,32 +127,14 @@ def import_instances_from_path(path, user, status="zip", is_async=False):
         This callback is passed an instance of a XFormInstanceFS.
         See xform_fs.py for more info.
         """
-        with django_file(xform_fs.path, field_name="xml_file",
-                         content_type="text/xml") as xml_file:
-            images = [django_file(jpg, field_name="image",
-                      content_type="image/jpeg") for jpg in xform_fs.photos]
-            images += [
-                django_file(osm, field_name='image',
-                            content_type='text/xml')
-                for osm in xform_fs.osm
-            ]
-            # TODO: if an instance has been submitted make sure all the
-            # files are in the database.
-            # there shouldn't be any instances with a submitted status in the
-            # import.
-            instance = create_instance(user.username, xml_file, images, status)
-
-            for i in images:
-                i.close()
-
-            if instance:
-                return 1
-            else:
-                return 0
+        import_instance(user.username,
+                        xform_fs.path,
+                        xform_fs.photos,
+                        xform_fs.osm,
+                        status,
+                        True)
 
     if is_async:
-        from onadata.apps.logger.tasks import import_instance_async
-
         total_count, success_count, errors = iterate_through_instances(
             path,
             import_instance_async,

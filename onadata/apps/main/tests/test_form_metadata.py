@@ -1,5 +1,6 @@
 import os
 import hashlib
+from builtins import open
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.base import File
@@ -8,10 +9,10 @@ from django.core.urlresolvers import reverse
 from django.core.cache import cache
 
 from onadata.apps.main.models import MetaData
+from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.main.views import show, edit, download_metadata,\
     download_media_data, delete_metadata
 from onadata.libs.utils.cache_tools import XFORM_METADATA_CACHE
-from test_base import TestBase
 
 
 class TestFormMetadata(TestBase):
@@ -36,7 +37,7 @@ class TestFormMetadata(TestBase):
             name = 'transportation.xls'
         path = os.path.join(self.this_directory, "fixtures",
                             "transportation", name)
-        with open(path) as doc_file:
+        with open(path, 'rb') as doc_file:
             self.post_data = {}
             self.post_data[data_type] = doc_file
             self.client.post(self.edit_url, self.post_data)
@@ -60,7 +61,7 @@ class TestFormMetadata(TestBase):
             'transportation.xls'
         )
 
-        with open(path) as doc_file:
+        with open(path, 'rb') as doc_file:
             self.post_data = {}
             self.post_data['doc'] = doc_file
             self.client.post(self.edit_url, self.post_data)
@@ -291,9 +292,9 @@ class TestFormMetadata(TestBase):
             data_type='media',
             object_id=self.xform.id,
             data_value=name,
-            data_file=File(open(media_file), name),
+            data_file=File(open(media_file, 'rb'), name),
             data_file_type='image/png')
-        f = open(media_file)
+        f = open(media_file, 'rb')
         media_hash = 'md5:%s' % hashlib.md5(f.read()).hexdigest()
         f.close()
         meta_hash = m.hash
@@ -312,7 +313,7 @@ class TestFormMetadata(TestBase):
         media_file = os.path.join(
             self.this_directory, 'fixtures', 'transportation',
             'transportation.csv')
-        f = InMemoryUploadedFile(open(media_file),
+        f = InMemoryUploadedFile(open(media_file, 'rb'),
                                  'media',
                                  'transportation.csv',
                                  'application/octet-stream',

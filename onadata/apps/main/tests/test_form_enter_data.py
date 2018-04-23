@@ -1,26 +1,24 @@
 import os
 import re
-import requests
-
-from urlparse import urlparse
 from time import time
-from httmock import urlmatch, HTTMock
+from future.moves.urllib.parse import urlparse
+from past.builtins import basestring
 
-from django.test import RequestFactory
-from django.core.urlresolvers import reverse
-from django.core.validators import URLValidator
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.core.urlresolvers import reverse
+from django.core.validators import URLValidator
+from django.test import RequestFactory
 
+import requests
+from httmock import HTTMock, urlmatch
 from nose import SkipTest
 
-from onadata.apps.main.views import set_perm
-from onadata.apps.main.views import show
-from onadata.apps.main.views import qrcode
-from onadata.apps.main.models import MetaData
 from onadata.apps.logger.views import enter_data
+from onadata.apps.main.models import MetaData
+from onadata.apps.main.views import qrcode, set_perm, show
+from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.viewer_tools import enketo_url
-from test_base import TestBase
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')

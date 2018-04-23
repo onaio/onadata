@@ -1,16 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # vim: ai ts=4 sts=4 et sw=4 nu
+from __future__ import absolute_import
 
 import json
 
 from django.http import HttpResponse
-from django.views.decorators.http import require_GET, require_POST
-from django.views.decorators.csrf import csrf_exempt
 from django.utils.translation import ugettext as _
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET, require_POST
 
-from tools import SMS_API_ERROR
-from parser import process_incoming_smses
+from onadata.apps.sms_support.parser import process_incoming_smses
+from onadata.apps.sms_support.tools import SMS_API_ERROR
 
 
 def get_response(data):

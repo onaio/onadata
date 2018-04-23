@@ -41,7 +41,6 @@ setup(
         "django-query-builder",
         "celery",
         "django-celery",
-        "librabbitmq",
         # cors
         "django-cors-headers",
         "django-debug-toolbar",
@@ -93,7 +92,7 @@ setup(
         "xlwt",
         "openpyxl",
         "dpath",
-        "elaphe",
+        "elaphe3",
         "httplib2",
         "modilabs-python-utils",
         "numpy",
@@ -116,4 +115,10 @@ setup(
         'https://github.com/onaio/floip-py/tarball/master#egg=floip',
         'https://github.com/onaio/python-json2xlsclient/tarball/master#egg=python-json2xlsclient',  # noqa pylint: disable=line-too-long
         'https://github.com/jbalogh/django-nose/tarball/master#egg=django-nose',  # noqa pylint: disable=line-too-long
-    ])
+    ],
+    extras_require={
+        ':python_version=="2.7"': [
+            'functools32>=3.2.3-2'
+        ]
+    }
+)

@@ -48,8 +48,11 @@ def get_merged_xform_survey(xforms):
     """
     Genertates a new pyxform survey object from the intersection of fields of
     the xforms being merged.
+
+    :param xforms: A list of XForms of at least length 2.
     """
-    assert len(xforms) > 1, _("Expecting at least 2 xforms")
+    if len(xforms) < 2:
+        raise serializers.ValidationError(_('Expecting at least 2 xforms'))
 
     xform_sets = [_get_fields_set(xform) for xform in xforms]
 
@@ -93,11 +96,7 @@ def has_matching_fields(value):
     """
     Validate we have some matching fields in the xforms being merged.
     """
-    # checks we have at least matching fields
-    try:
-        get_merged_xform_survey(value)
-    except AssertionError as e:
-        raise serializers.ValidationError(unicode(e))
+    get_merged_xform_survey(value)
 
     return value
 
@@ -175,7 +174,8 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
         xforms = validated_data['xforms']
         # create merged xml, json with non conflicting id_string
         survey = get_merged_xform_survey(xforms)
-        survey['id_string'] = base64.b64encode(uuid.uuid4().hex[:6])
+        survey['id_string'] = base64.b64encode(uuid.uuid4().hex[:6].encode(
+            'utf-8')).decode('utf-8')
         survey['sms_keyword'] = survey['id_string']
         survey['title'] = validated_data.pop('name')
         validated_data['json'] = survey.to_json()

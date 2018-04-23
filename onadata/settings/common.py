@@ -11,21 +11,27 @@
 # environment variable as needed.
 import logging
 import os
+import socket
 import subprocess  # noqa, used by included files
 import sys
-import socket
-from urlparse import urljoin
+from imp import reload
 
-from celery.signals import after_setup_logger
+from future.moves.urllib.parse import urljoin
+
+from past.builtins import basestring
+
 from django.core.exceptions import SuspiciousOperation
 from django.utils.log import AdminEmailHandler
+
 import djcelery
+from celery.signals import after_setup_logger
 
 djcelery.setup_loader()
 
 # setting default encoding to utf-8
-reload(sys)
-sys.setdefaultencoding('utf-8')
+if sys.version[0] == '2':
+    reload(sys)
+    sys.setdefaultencoding("utf-8")
 
 CURRENT_FILE = os.path.abspath(__file__)
 PROJECT_ROOT = os.path.realpath(
@@ -449,12 +455,6 @@ NOSE_ARGS = ['--with-fixture-bundling', '--nologcapture', '--nocapture']
 TEST_HTTP_HOST = 'testserver.com'
 TEST_USERNAME = 'bob'
 
-# re-captcha in registrations
-REGISTRATION_REQUIRE_CAPTCHA = False
-RECAPTCHA_USE_SSL = False
-RECAPTCHA_PRIVATE_KEY = ''
-RECAPTCHA_PUBLIC_KEY = '6Ld52OMSAAAAAJJ4W-0TFDTgbznnWWFf0XuOSaB6'
-
 # specify the root folder which may contain a templates folder and a static
 # folder used to override templates for site specific details
 TEMPLATE_OVERRIDE_ROOT_DIR = None
@@ -532,7 +532,7 @@ STATIC_DOC = '/static/docs/index.html'
 
 try:
     HOSTNAME = socket.gethostname()
-except:
+except Exception:
     HOSTNAME = 'localhost'
 
 CACHE_MIXIN_SECONDS = 60

@@ -1,5 +1,8 @@
 import logging
 from datetime import datetime
+
+from django.utils.translation import ugettext as _
+
 from onadata.libs.utils.viewer_tools import get_client_ip
 
 
@@ -102,8 +105,8 @@ class AuditLogHandler(logging.Handler):
         # save to mongodb audit_log
         try:
             model = self.get_model(self.model_name)
-        except:
-            pass
+        except Exception as e:
+            logging.exception(_(u'Get model threw exception: %s' % str(e)))
         else:
             log_entry = model(data)
             log_entry.save()

@@ -1,8 +1,10 @@
 # flake8: noqa
 # this preset is used for automated testing of formhub
-from urlparse import urljoin
+from __future__ import absolute_import
 
-from common import *  # nopep8
+from future.moves.urllib.parse import urljoin
+
+from .common import *  # nopep8
 
 DATABASES = {
     'default': {

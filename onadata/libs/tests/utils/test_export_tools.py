@@ -6,6 +6,7 @@ import os
 import shutil
 import tempfile
 import zipfile
+from builtins import open
 from datetime import date, datetime, timedelta
 
 from django.conf import settings
@@ -89,10 +90,10 @@ class TestExportTools(TestBase):
         export = generate_osm_export(Attachment.OSM, self.user.username,
                                      self.xform.id_string, None, options)
         self.assertTrue(export.is_successful)
-        with open(combined_osm_path) as f:
+        with open(combined_osm_path, encoding='utf-8') as f:
             osm = f.read()
             with default_storage.open(export.filepath) as f2:
-                content = f2.read()
+                content = f2.read().decode('utf-8')
                 self.assertMultiLineEqual(content.strip(), osm.strip())
 
         # delete submission and check that content is no longer in export
@@ -105,7 +106,7 @@ class TestExportTools(TestBase):
         self.assertTrue(export.is_successful)
         with default_storage.open(export.filepath) as f2:
             content = f2.read()
-            self.assertEqual(content, '')
+            self.assertEqual(content, b'')
 
     def test_generate_attachments_zip_export(self):
         filenames = [

@@ -31,13 +31,13 @@ class TestTools(TestBase):
             result = get_form_submissions_grouped_by_field(
                 self.xform, field)[0]
 
-            self.assertEqual([field, count_key], sorted(result.keys()))
+            self.assertEqual([field, count_key], sorted(list(result)))
             self.assertEqual(result[count_key], count)
 
     @patch('onadata.apps.logger.models.instance.submission_time')
     def test_get_form_submissions_grouped_by_field_datetime_to_date(
             self, mock_time):
-        now = datetime(2014, 01, 01, tzinfo=utc)
+        now = datetime(2014, 1, 1, tzinfo=utc)
         times = [now, now + timedelta(seconds=1), now + timedelta(seconds=2),
                  now + timedelta(seconds=3)]
         mock_time.side_effect = times
@@ -55,7 +55,7 @@ class TestTools(TestBase):
             result = get_form_submissions_grouped_by_field(
                 self.xform, field)[0]
 
-            self.assertEqual([field, count_key], sorted(result.keys()))
+            self.assertEqual([field, count_key], sorted(list(result)))
             self.assertEqual(result[field], str(now.date()))
             self.assertEqual(result[count_key], count)
 
@@ -83,7 +83,7 @@ class TestTools(TestBase):
             result = get_form_submissions_grouped_by_field(
                 self.xform, field)[0]
 
-            self.assertEqual([field, count_key], sorted(result.keys()))
+            self.assertEqual([field, count_key], sorted(list(result)))
             self.assertEqual(result[count_key], count)
 
         count = len(first_xform.instances.all())
@@ -92,7 +92,7 @@ class TestTools(TestBase):
             result = get_form_submissions_grouped_by_field(
                 first_xform, field)[0]
 
-            self.assertEqual([field, count_key], sorted(result.keys()))
+            self.assertEqual([field, count_key], sorted(list(result)))
             self.assertEqual(result[count_key], count)
 
     @patch('django.utils.timezone.now')
@@ -130,7 +130,7 @@ class TestTools(TestBase):
             result = get_form_submissions_grouped_by_field(
                 xform, field, name)[0]
 
-            self.assertEqual([name, count_key], sorted(result.keys()))
+            self.assertEqual([name, count_key], sorted(list(result)))
             self.assertEqual(result[count_key], count)
 
     def test_get_form_submissions_when_response_not_provided(self):
@@ -162,9 +162,9 @@ class TestTools(TestBase):
         self.assertEqual(len(results), count + 1)
 
         # the count where the value is None should have a count of 1
-        result = filter(
-            lambda r: r['available_transportation_types_to_referral_facility']
-            is None, results)[0]
+        result = [r for r in results if
+                  r['available_transportation_types_to_referral_facility']
+                  is None][0]
         self.assertEqual(result['count'], 1)
 
     def test_get_date_fields_includes_start_end(self):

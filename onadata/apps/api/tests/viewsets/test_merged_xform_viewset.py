@@ -2,10 +2,11 @@
 """
 Test merged dataset functionality.
 """
+from __future__ import unicode_literals
 
 import csv
 import json
-from cStringIO import StringIO
+from io import StringIO
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
@@ -24,6 +25,7 @@ from onadata.apps.restservice.viewsets.restservices_viewset import \
     RestServicesViewSet
 from onadata.libs.utils.export_tools import get_osm_data_kwargs
 from onadata.libs.utils.user_auth import get_user_default_project
+
 
 MD = """
 | survey  |
@@ -52,7 +54,8 @@ def streaming_data(response):
     """
     Iterates through a streaming response to return a json list object
     """
-    return json.loads(u''.join([i for i in response.streaming_content]))
+    return json.loads(u''.join([
+        i.decode('utf-8') for i in response.streaming_content]))
 
 
 def _make_submissions_merged_datasets(merged_xform):
@@ -402,18 +405,19 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         response = view(request, pk=merged_dataset['id'], format='csv')
         self.assertEqual(response.status_code, 200)
 
-        csv_file_obj = StringIO(u''.join(response.streaming_content))
+        csv_file_obj = StringIO(''.join([
+            c.decode('utf-8') for c in response.streaming_content]))
         csv_reader = csv.reader(csv_file_obj)
         # jump over headers first
-        headers = csv_reader.next()
+        headers = next(csv_reader)
         self.assertEqual(headers, [
             'fruit', 'meta/instanceID', '_id', '_uuid', '_submission_time',
             '_tags', '_notes', '_version', '_duration', '_submitted_by',
             '_total_media', '_media_count', '_media_all_received'
         ])
-        row1 = csv_reader.next()
+        row1 = next(csv_reader)
         self.assertEqual(row1[0], 'orange')
-        row2 = csv_reader.next()
+        row2 = next(csv_reader)
         self.assertEqual(row2[0], 'mango')
 
     def test_get_osm_data_kwargs(self):

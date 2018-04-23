@@ -35,15 +35,18 @@ class Command(BaseCommand):
                         uuid = line[2]
                         update_xform_uuid(username, id_string, uuid)
                     except IndexError:
-                        print "line %d is in an invalid format" % (i + 1)
+                        self.stderr.write(
+                            "line %d is in an invalid format" % (i + 1))
                     except XForm.DoesNotExist:
-                        print "XForm with username: %s and id string: %s does"\
-                              " not exist" % (username, id_string, uuid)
+                        self.stderr.write("XForm with username: %s and id "
+                                          "string: %s does not exist"
+                                          % (username, id_string))
                     except DuplicateUUIDError:
-                        print "An xform with uuid: %s already exists" % uuid
+                        self.stderr.write(
+                            "An xform with uuid: %s already exists" % uuid)
                     else:
                         i += 1
-                        print "Updated %d rows" % i
+                        self.stdout.write("Updated %d rows" % i)
         except IOError:
             raise CommandError(
                 "file %s could not be open" % kwargs.get('file'))

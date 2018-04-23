@@ -21,7 +21,7 @@ class Command(BaseCommand):
                 xform.instances_with_geopoints = has_geo
                 xform.save()
             except Exception as e:
-                print e
+                self.stderr.write(e)
             else:
                 count += 1
-        print "%d of %d forms processed." % (count, total)
+        self.stdout.write("%d of %d forms processed." % (count, total))

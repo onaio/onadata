@@ -1,33 +1,36 @@
+from __future__ import unicode_literals
+
 import base64
 import csv
 import os
 import re
 import socket
-import urllib2
+from builtins import open
+from future.moves.urllib.error import URLError
+from future.moves.urllib.request import urlopen
+from io import StringIO
 from tempfile import NamedTemporaryFile
 
-from cStringIO import StringIO
-
 from django.conf import settings
+from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from django.test import TransactionTestCase
-from django.test import RequestFactory
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.test import RequestFactory, TransactionTestCase
 from django.test.client import Client
+from django.utils import timezone
+
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
-from django.contrib.auth import authenticate
-from django.utils import timezone
-from django.core.files.uploadedfile import InMemoryUploadedFile
 from pyxform.tests_v1.pyxform_test_case import PyxformMarkdown
 from rest_framework.test import APIRequestFactory
 
-from onadata.apps.logger.models import XForm, Instance, Attachment
+from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
+from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.logger.views import submission
 from onadata.apps.main.models import UserProfile
-from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.viewer.models import DataDictionary
-from onadata.libs.utils.common_tools import (
-    filename_from_disposition, get_response_content)
+from onadata.libs.utils.common_tools import (filename_from_disposition,
+                                             get_response_content)
 from onadata.libs.utils.user_auth import get_user_default_project
 
 
@@ -84,12 +87,14 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
     def _publish_xls_file(self, path):
         if not path.startswith('/%s/' % self.user.username):
             path = os.path.join(self.this_directory, path)
-        with open(path) as f:
+        with open(path, 'rb') as f:
             xls_file = InMemoryUploadedFile(
-                f, 'xls_file',
+                f,
+                'xls_file',
                 os.path.abspath(os.path.basename(path)),
                 'application/vnd.ms-excel',
-                os.path.getsize(path), None)
+                os.path.getsize(path),
+                None)
             if not hasattr(self, 'project'):
                 self.project = get_user_default_project(self.user)
 
@@ -97,8 +102,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
                 created_by=self.user,
                 user=self.user,
                 xls=xls_file,
-                project=self.project
-            )
+                project=self.project)
 
     def _publish_xlsx_file(self):
         path = os.path.join(self.this_directory, 'fixtures', 'exp.xlsx')
@@ -171,10 +175,10 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         tmp_file = None
 
         if add_uuid:
-            tmp_file = NamedTemporaryFile(delete=False)
+            tmp_file = NamedTemporaryFile(delete=False, mode='w')
             split_xml = None
 
-            with open(path) as _file:
+            with open(path, encoding='utf-8') as _file:
                 split_xml = re.split(r'(<transport>)', _file.read())
 
             split_xml[1:1] = [
@@ -184,7 +188,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             path = tmp_file.name
             tmp_file.close()
 
-        with open(path) as f:
+        with open(path, encoding='utf-8') as f:
             post_data = {'xml_submission_file': f}
 
             if username is None:
@@ -215,15 +219,16 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             os.unlink(tmp_file.name)
 
     def _make_submission_w_attachment(self, path, attachment_path):
-        with open(path) as f:
+        with open(path, encoding='utf-8') as f:
             data = {'xml_submission_file': f}
             if attachment_path is not None:
                 if isinstance(attachment_path, list):
                     for c in range(len(attachment_path)):
                         data['media_file_{}'.format(c)] = open(
-                            attachment_path[c])
+                            attachment_path[c], 'rb')
                 else:
-                    data['media_file'] = open(attachment_path)
+                    data['media_file'] = open(
+                        attachment_path, 'rb')
 
             url = '/%s/submission' % self.user.username
             auth = DigestAuth('bob', 'bob')
@@ -266,9 +271,9 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
 
     def _check_url(self, url, timeout=1):
         try:
-            urllib2.urlopen(url, timeout=timeout)
+            urlopen(url, timeout=timeout)
             return True
-        except (urllib2.URLError, socket.timeout):
+        except (URLError, socket.timeout):
             pass
         return False
 
@@ -279,7 +284,9 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
     def _set_auth_headers(self, username, password):
         return {
             'HTTP_AUTHORIZATION':
-            'Basic ' + base64.b64encode('%s:%s' % (username, password)),
+            'Basic ' + base64.b64encode((
+                '%s:%s' % (username, password)).encode(
+                    'utf-8')).decode('utf-8'),
         }
 
     def _get_authenticated_client(
@@ -291,18 +298,6 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         # apply credentials
         client.set_authorization(username, password, 'Digest')
         return client
-
-    def _get_response_content(self, response):
-        contents = u''
-        if response.streaming:
-            actual_content = StringIO()
-            for content in response.streaming_content:
-                actual_content.write(content)
-            contents = actual_content.getvalue()
-            actual_content.close()
-        else:
-            contents = response.content
-        return contents
 
     def _set_mock_time(self, mock_time):
         current_time = timezone.now()
@@ -330,7 +325,8 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         csv_import = \
             open(os.path.join(settings.PROJECT_ROOT, 'apps', 'main',
                               'tests', 'fixtures', 'geolocation',
-                              'GeoLocationForm_2015_01_15_01_28_45.csv'))
+                              'GeoLocationForm_2015_01_15_01_28_45.csv'),
+                 encoding='utf-8')
         post_data = {'csv_file': csv_import}
         request = self.factory.post('/', data=post_data, **self.extra)
         response = view(request, pk=self.xform.id)
@@ -363,7 +359,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         data = get_response_content(response)
         reader = csv.DictReader(StringIO(data))
         data = [_ for _ in reader]
-        with open(csv_file_path, 'r') as test_file:
+        with open(csv_file_path, encoding='utf-8') as test_file:
             expected_csv_reader = csv.DictReader(test_file)
             for index, row in enumerate(expected_csv_reader):
                 if None in row:
@@ -373,7 +369,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
     def _test_csv_files(self, csv_file, csv_file_path):
         reader = csv.DictReader(csv_file)
         data = [_ for _ in reader]
-        with open(csv_file_path, 'r') as test_file:
+        with open(csv_file_path, encoding='utf-8') as test_file:
             expected_csv_reader = csv.DictReader(test_file)
             for index, row in enumerate(expected_csv_reader):
                 if None in row:

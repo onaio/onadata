@@ -1,8 +1,10 @@
+from future.utils import iteritems
+
 from django.core.urlresolvers import reverse
 
 from onadata.apps.main.models import UserProfile
 from onadata.apps.main.views import profile_settings
-from test_base import TestBase
+from onadata.apps.main.tests.test_base import TestBase
 
 
 class TestUserSettings(TestBase):
@@ -42,10 +44,10 @@ class TestUserSettings(TestBase):
         response = self.client.post(self.settings_url, post_data)
         self.assertEqual(response.status_code, 302)
         self.user = UserProfile.objects.get(pk=self.user.profile.pk).user
-        for key, value in post_data.iteritems():
+        for (key, value) in iteritems(post_data):
             try:
                 self.assertEqual(self.user.profile.__dict__[key], value)
-            except KeyError, e:
+            except KeyError as e:
                 if key == 'email':
                     self.assertEqual(self.user.__dict__[key], value)
                 else:

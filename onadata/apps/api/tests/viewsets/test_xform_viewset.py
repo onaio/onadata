@@ -2,15 +2,19 @@
 """
 Tests the XForm viewset.
 """
+from __future__ import unicode_literals
 
 import csv
 import json
 import os
 import re
+from builtins import open
 from collections import OrderedDict
-from cStringIO import StringIO
-from datetime import datetime, timedelta
-from xml.dom import Node, minidom
+from datetime import datetime
+from datetime import timedelta
+from io import StringIO
+from xml.dom import Node
+from xml.dom import minidom
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -40,7 +44,10 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import Attachment, Instance, Project, XForm
+from onadata.apps.logger.models import Attachment
+from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models import Project
+from onadata.apps.logger.models import XForm
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.models import MetaData
 from onadata.apps.viewer.models import Export
@@ -60,7 +67,8 @@ from onadata.libs.utils.common_tools import (
 
 def fixtures_path(filepath):
     return open(os.path.join(
-        settings.PROJECT_ROOT, 'libs', 'tests', 'utils', 'fixtures', filepath))
+        settings.PROJECT_ROOT, 'libs', 'tests', 'utils', 'fixtures', filepath),
+        'rb')
 
 
 ROLES = [ReadOnlyRole,
@@ -90,7 +98,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "subdistrict_profiling_tool.xlsx")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.post('/', data=post_data, **self.extra)
                 response = view(request)
@@ -123,7 +131,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             xls_file_path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "logger", "fixtures",
                 "external_choice_form_v2.xlsx")
-            with open(xls_file_path) as xls_file:
+            with open(xls_file_path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
@@ -155,7 +163,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         valid_post_data = {
             u'downloadable': [u'True'],
             u'text_xls_form': [
-                (u"survey\r\n,"
+                ("survey\r\n,"
                  "required,type,name,label,calculation\r\n,"
                  "true,text,What_is_your_name,What is your name\r\n,"
                  ",calculate,__version__,,'vbP67kPMwnY8aTFcFHgWMN'\r\n"
@@ -173,7 +181,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         updated_post_data = {
             u'downloadable': [u'True'],
             u'text_xls_form': [
-                (u"survey\r\n,"
+                ("survey\r\n,"
                  "required,type,name,label,calculation\r\n,"
                  "true,text,What_is_your_name,What is your name\r\n,"
                  "true,integer,What_is_your_age,What is your age\r\n,"
@@ -239,9 +247,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get('/', **self.extra)
             response = view(request)
             self.assertTrue(response.streaming)
-            streaming_data = json.loads(
-                u''.join([i for i in response.streaming_content])
-            )
+            streaming_data = json.loads(u''.join(
+                [i.decode('utf-8') for i in response.streaming_content]))
             self.assertIsInstance(streaming_data, list)
             self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
@@ -289,7 +296,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.form_data['metadata'] = [{
                 'id': preview_url.pk,
                 'xform': self.xform.pk,
-                'data_value': u"https://enketo.ona.io/preview/::YY8M",
+                'data_value': "https://enketo.ona.io/preview/::YY8M",
                 'data_type': u'enketo_preview_url',
                 'data_file': None,
                 'data_file_type': None,
@@ -300,7 +307,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'date_created': preview_url.date_created
             }, {
                 'id': url.pk,
-                'data_value': u"https://enketo.ona.io/::YY8M",
+                'data_value': "https://enketo.ona.io/::YY8M",
                 'xform': self.xform.pk,
                 'data_file': None,
                 'data_type': u'enketo_url',
@@ -317,8 +324,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             del response.data[0]['last_updated_at']
 
             self.form_data.pop('has_id_string_changed')
-            self.form_data['metadata'].sort()
-            response.data[0]['metadata'].sort()
+            self.form_data['metadata'].sort(key=lambda x: x['id'])
+            response.data[0]['metadata'].sort(key=lambda x: x['id'])
             self.assertEqual(response.data, [self.form_data])
 
             # public shared form data
@@ -347,7 +354,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.form_data['metadata'] = [{
                 'id': preview_url.pk,
                 'xform': self.xform.pk,
-                'data_value': u"https://enketo.ona.io/preview/::YY8M",
+                'data_value': "https://enketo.ona.io/preview/::YY8M",
                 'data_type': u'enketo_preview_url',
                 'data_file': None,
                 'data_file_type': None,
@@ -359,7 +366,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             }, {
                 'id': url.pk,
                 'xform': self.xform.pk,
-                'data_value': u"https://enketo.ona.io/::YY8M",
+                'data_value': "https://enketo.ona.io/::YY8M",
                 'data_type': u'enketo_url',
                 'data_file': None,
                 'data_file_type': None,
@@ -420,13 +427,14 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 200)
 
             self.form_data.pop('has_id_string_changed')
-            response_data = sorted(response.data)
+            response_data = sorted(response.data,
+                                   key=lambda x: x['formid'])
             for k in ['submission_count_for_today', 'metadata',
                       'form_versions']:
                 bobs_form_data.pop(k)
                 self.form_data.pop(k)
-            expected_data = sorted([OrderedDict(bobs_form_data),
-                                    OrderedDict(self.form_data)])
+            expected_data = [OrderedDict(bobs_form_data),
+                             OrderedDict(self.form_data)]
 
             self.assertTrue(len(response_data), 2)
 
@@ -502,7 +510,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.form_data['metadata'] = [OrderedDict([
                 ('id', preview_url.pk),
                 ('xform', self.xform.pk),
-                ('data_value', u"https://enketo.ona.io/preview/::YY8M"),
+                ('data_value', "https://enketo.ona.io/preview/::YY8M"),
                 ('data_type', 'enketo_preview_url'),
                 ('data_file', None),
                 ('data_file_type', None),
@@ -514,7 +522,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             ]), OrderedDict([
                 ('id', url.pk),
                 ('xform', self.xform.pk),
-                ('data_value', u"https://enketo.ona.io/::YY8M"),
+                ('data_value', "https://enketo.ona.io/::YY8M"),
                 ('data_type', 'enketo_url'),
                 ('data_file', None),
                 ('data_file_type', None),
@@ -524,8 +532,10 @@ class TestXFormViewSet(TestAbstractViewSet):
                 ('date_created', url.date_created)
             ])]
 
-            self.form_data['metadata'].sort()
-            response.data['metadata'].sort()
+            self.form_data['metadata'] = sorted(
+                self.form_data['metadata'], key=lambda x: x['id'])
+            response.data['metadata'] = sorted(
+                response.data['metadata'], key=lambda x: x['id'])
 
             # remove date modified
             self.form_data.pop('date_modified')
@@ -595,7 +605,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             xml_path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation.xml")
-            with open(xml_path) as xml_file:
+            with open(xml_path, 'rb') as xml_file:
                 expected_doc = minidom.parse(xml_file)
 
             model_node = [
@@ -615,7 +625,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             # check content without UUID
             response_xml = response_doc.toxml().replace(
-                self.xform.version, u"201411120717")
+                self.xform.version, "201411120717")
             self.assertEqual(response_xml, expected_doc.toxml())
 
     def test_form_tags(self):
@@ -681,7 +691,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response = view(request, pk=formid)
                 data = {
                     'message':
-                    u"Enketo error: no account exists for this OpenRosa server"
+                    "Enketo error: no account exists for this OpenRosa server"
                 }
 
                 self.assertEqual(
@@ -715,7 +725,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response = view(request, pk=formid)
                 data = {
                     'message':
-                    u"Enketo error: Sorry, we cannot load your form right "
+                    "Enketo error: Sorry, we cannot load your form right "
                     "now.  Please try again later."
                 }
                 self.assertEqual(
@@ -732,8 +742,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             # no tags
             request = self.factory.get('/', **self.extra)
             response = view(request, pk=formid)
-            url = u"https://enketo.ona.io/::YY8M"
-            preview_url = u"https://enketo.ona.io/preview/::YY8M"
+            url = "https://enketo.ona.io/::YY8M"
+            preview_url = "https://enketo.ona.io/preview/::YY8M"
             data = {"enketo_url": url, "enketo_preview_url": preview_url}
             self.assertEqual(response.data, data)
 
@@ -749,7 +759,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get('/', data=get_data, **self.extra)
             response = view(request, pk=formid)
             url = "https://dmfrm.enketo.org/webform?d[%2Fnum]=1"
-            preview_url = u"https://enketo.ona.io/preview/::YY8M"
+            preview_url = "https://enketo.ona.io/preview/::YY8M"
             data = {"enketo_url": url, "enketo_preview_url": preview_url}
             self.assertEqual(response.data, data)
 
@@ -769,7 +779,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 path = os.path.join(
                     settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                     "transportation", "transportation_version.xls")
-                with open(path) as xls_file:
+                with open(path, 'rb') as xls_file:
                     post_data = {'xls_file': xls_file}
                     request = self.factory.patch(
                         '/', data=post_data, **self.extra)
@@ -810,7 +820,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_version.xls")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
@@ -841,7 +851,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_version.xls")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
@@ -864,7 +874,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_version.xls")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
@@ -882,9 +892,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             formid = self.xform.pk
             request = self.factory.get('/')
             response = view(request, pk=formid)
-            self.assertEqual(
-                response.content,
-                "Authentication failure, cannot redirect")
+            self.assertEqual(response.content.decode('utf-8'),
+                             "Authentication failure, cannot redirect")
 
     @override_settings(ENKETO_CLIENT_LOGIN_URL='http://test.ona.io/login')
     def test_login_enketo_no_jwt_but_with_return_url(self):
@@ -896,7 +905,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             })
 
             formid = self.xform.pk
-            url = u"https://enketo.ona.io/::YY8M"
+            url = "https://enketo.ona.io/::YY8M"
             query_data = {'return': url}
             request = self.factory.get('/', data=query_data)
             response = view(request, pk=formid)
@@ -917,7 +926,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             # do not store temp token
 
-            url = u"https://enketo.ona.io/::YY8M?jwt=%s" % temp_token
+            url = "https://enketo.ona.io/::YY8M?jwt=%s" % temp_token
             query_data = {'return': url}
             request = self.factory.get('/', data=query_data)
             response = view(request, pk=formid)
@@ -942,10 +951,10 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             encoded_payload = jwt.encode(
                 payload, JWT_SECRET_KEY,
-                algorithm=JWT_ALGORITHM)
+                algorithm=JWT_ALGORITHM).decode('utf-8')
 
-            return_url = u"https://enketo.ona.io/_/#YY8M"
-            url = u"https://enketo.ona.io/_/?jwt=%s#YY8M" % encoded_payload
+            return_url = "https://enketo.ona.io/_/#YY8M"
+            url = "https://enketo.ona.io/_/?jwt=%s#YY8M" % encoded_payload
 
             query_data = {'return': url}
             request = self.factory.get('/', data=query_data)
@@ -981,10 +990,10 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             encoded_payload = jwt.encode(
                 payload, JWT_SECRET_KEY,
-                algorithm=JWT_ALGORITHM)
+                algorithm=JWT_ALGORITHM).decode('utf-8')
 
-            return_url = u"https://enketo.ona.io/::YY8M"
-            url = u"%s?jwt=%s" % (return_url, encoded_payload)
+            return_url = "https://enketo.ona.io/::YY8M"
+            url = "%s?jwt=%s" % (return_url, encoded_payload)
             query_data = {'return': url}
             request = self.factory.get('/', data=query_data)
             response = view(request, pk=formid)
@@ -1013,7 +1022,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation.xls")
 
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.post('/', data=post_data, **self.extra)
                 response = view(request)
@@ -1059,7 +1068,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation.xls")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.post('/', data=post_data, **self.extra)
                 response = view(request)
@@ -1088,7 +1097,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_copy.xls")
 
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.post('/', data=post_data, **self.extra)
                 response = view(request)
@@ -1119,7 +1128,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertIsInstance(xform, XForm)
             self.assertEqual(counter + 2, XForm.objects.count())
 
-    @patch('urllib2.urlopen')
+    @patch('onadata.apps.main.forms.urlopen')
     def test_publish_xlsform_using_url_upload(self, mock_urlopen):
         with HTTMock(enketo_mock):
             view = XFormViewSet.as_view({
@@ -1132,7 +1141,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_different_id_string.xlsx")
 
-            xls_file = open(path)
+            xls_file = open(path, 'rb')
             mock_urlopen.return_value = xls_file
 
             post_data = {'xls_url': xls_url}
@@ -1145,7 +1154,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 201)
             self.assertEqual(XForm.objects.count(), pre_count + 1)
 
-    @patch('urllib2.urlopen')
+    @patch('onadata.apps.main.forms.urlopen')
     def test_publish_xlsform_using_url_with_no_extension(self, mock_urlopen):
         with HTTMock(enketo_mock, xls_url_no_extension_mock):
             view = XFormViewSet.as_view({
@@ -1158,7 +1167,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_different_id_string.xlsx")
 
-            xls_file = open(path)
+            xls_file = open(path, 'rb')
             mock_urlopen.return_value = xls_file
 
             post_data = {'xls_url': xls_url}
@@ -1168,7 +1177,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 201)
             self.assertEqual(XForm.objects.count(), pre_count + 1)
 
-    @patch('urllib2.urlopen')
+    @patch('onadata.apps.main.forms.urlopen')
     def test_publish_xlsform_using_url_content_disposition_attr_jumbled_v1(
             self, mock_urlopen):
         with HTTMock(
@@ -1184,7 +1193,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_different_id_string.xlsx")
 
-            xls_file = open(path)
+            xls_file = open(path, 'rb')
             mock_urlopen.return_value = xls_file
 
             post_data = {'xls_url': xls_url}
@@ -1194,7 +1203,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 201)
             self.assertEqual(XForm.objects.count(), pre_count + 1)
 
-    @patch('urllib2.urlopen')
+    @patch('onadata.apps.main.forms.urlopen')
     def test_publish_xlsform_using_url_content_disposition_attr_jumbled_v2(
             self, mock_urlopen):
         with HTTMock(
@@ -1210,7 +1219,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_different_id_string.xlsx")
 
-            xls_file = open(path)
+            xls_file = open(path, 'rb')
             mock_urlopen.return_value = xls_file
 
             post_data = {'xls_url': xls_url}
@@ -1220,7 +1229,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 201)
             self.assertEqual(XForm.objects.count(), pre_count + 1)
 
-    @patch('urllib2.urlopen')
+    @patch('onadata.apps.main.forms.urlopen')
     def test_publish_csvform_using_url_upload(self, mock_urlopen):
         with HTTMock(enketo_mock):
             view = XFormViewSet.as_view({
@@ -1233,7 +1242,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 settings.PROJECT_ROOT, "apps", "api", "tests", "fixtures",
                 "text_and_integer.csv")
 
-            csv_file = open(path)
+            csv_file = open(path, 'rb')
             mock_urlopen.return_value = csv_file
 
             post_data = {'csv_url': csv_url}
@@ -1254,7 +1263,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "api", "tests", "fixtures",
                 "select_one_external.xlsx")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 # pylint: disable=no-member
                 meta_count = MetaData.objects.count()
                 post_data = {'xls_file': xls_file}
@@ -1278,7 +1287,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "api", "tests", "fixtures",
                 "universal_newline.csv")
-            with open(path) as xls_file:
+            with open(path, encoding='utf-8') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.post('/', data=post_data, **self.extra)
                 response = view(request)
@@ -1293,7 +1302,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             "transportation", "transportation.xls")
         username = 'Anon'
         error_msg = 'User with username %s does not exist.' % username
-        with open(path) as xls_file:
+        with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file, 'owner': username}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request)
@@ -1308,7 +1317,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
             "transportation", "transportation.bad_id.xls")
-        with open(path) as xls_file:
+        with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request)
@@ -1321,26 +1330,26 @@ class TestXFormViewSet(TestAbstractViewSet):
         path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
             "transportation", "transportation_ampersand_in_title.xls")
-        with open(path) as xls_file:
+        with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request)
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.get('Cache-Control'), None)
-            error_msg = u"Title shouldn't have any invalid xml characters " \
-                        u"('>' '&' '<')"
+            error_msg = "Title shouldn't have any invalid xml characters " \
+                        "('>' '&' '<')"
             self.assertEqual(response.data.get('text'), error_msg)
 
     @patch.object(ModelViewSet, 'list')
     def test_return_400_on_xlsform_error_on_list_action(self, mock_set_title):
         with HTTMock(enketo_mock):
-            error_msg = u"Title shouldn't have an ampersand"
+            error_msg = "Title shouldn't have an ampersand"
             mock_set_title.side_effect = XLSFormError(error_msg)
             request = self.factory.get('/', **self.extra)
             response = self.view(request)
             self.assertTrue(mock_set_title.called)
             self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.content, error_msg)
+            self.assertEqual(response.content.decode('utf-8'), error_msg)
 
     def test_publish_invalid_xls_form_no_choices(self):
         view = XFormViewSet.as_view({
@@ -1349,7 +1358,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
             "transportation", "transportation.no_choices.xls")
-        with open(path) as xls_file:
+        with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request)
@@ -1661,7 +1670,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=formid)
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.data['project'][0],
-                             u"Project with id '5000' does not exist.")
+                             "Project with id '5000' does not exist.")
 
             data['project_id'] = "abc123"
             request = self.factory.post('/', data=data, **self.extra)
@@ -1669,10 +1678,10 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 400)
             self.assertEqual(
                 response.data['project'],
-                [u"invalid literal for int() with base 10: 'abc123'"])
+                ["invalid literal for int() with base 10: 'abc123'"])
 
             # pylint: disable=no-member
-            project = Project.objects.create(name=u"alice's other project",
+            project = Project.objects.create(name="alice's other project",
                                              organization=alice_profile.user,
                                              created_by=alice_profile.user,
                                              metadata='{}')
@@ -1916,8 +1925,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 400)
             self.assertIn("error", response.data)
             self.assertEquals(response.data.get('error'),
-                              u"Sorry uploaded file does not match the form. "
-                              u"The file is missing the column(s): name, age.")
+                              "Sorry uploaded file does not match the form. "
+                              "The file is missing the column(s): age, name.")
 
     def test_csv_import_additional_columns(self):
         with HTTMock(enketo_mock):
@@ -1933,8 +1942,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 200)
             self.assertIn("info", response.data)
             self.assertEquals(response.data.get('info'),
-                              u"Additional column(s) excluded from the upload:"
-                              u" '_additional'.")
+                              "Additional column(s) excluded from the upload:"
+                              " '_additional'.")
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.viewsets.xform_viewset.submit_csv_async')
@@ -2044,7 +2053,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_version.xls")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
@@ -2086,7 +2095,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
             "transportation", "transportation_version.xls")
-        with open(path) as xls_file:
+        with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.patch('/', data=post_data, **self.extra)
             response = view(request, pk=form_id)
@@ -2095,7 +2104,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         # assign manager role
         ManagerRole.add(self.user, self.xform.project)
 
-        with open(path) as xls_file:
+        with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.patch('/', data=post_data, **self.extra)
             response = view(request, pk=form_id)
@@ -2132,12 +2141,12 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_different_id_string.xlsx")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
                 self.assertEqual(response.status_code, 400)
-                expected_response = u"Your updated form's id_string " \
+                expected_response = "Your updated form's id_string " \
                     "'transportation_2015_01_07' must match the existing " \
                     "forms' id_string 'transportation_2011_07_25'."
                 self.assertEqual(response.data.get(
@@ -2147,13 +2156,13 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "tutorial_.xls")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
                 self.assertEqual(response.status_code, 400)
                 expected_response = (
-                    u"Your updated form's id_string "
+                    "Your updated form's id_string "
                     "'tutorial_' must match the existing "
                     "forms' id_string 'transportation_2011_07_25'.")
                 self.assertEqual(response.data.get(
@@ -2174,13 +2183,13 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_different_id_string.xlsx")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
                 self.assertEqual(response.status_code, 400)
                 expected_response = (
-                    u"Your updated form's id_string "
+                    "Your updated form's id_string "
                     "'transportation_2015_01_07' must match the existing "
                     "forms' id_string 'transportation_2011_07_25'.")
                 self.assertEqual(response.data.get(
@@ -2190,13 +2199,13 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "tutorial_.xls")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
                 self.assertEqual(response.status_code, 400)
                 expected_response = (
-                    u"Your updated form's id_string "
+                    "Your updated form's id_string "
                     "'tutorial_' must match the existing "
                     "forms' id_string 'transportation_2011_07_25'.")
                 self.assertEqual(response.data.get(
@@ -2216,7 +2225,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_updated.xls")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
@@ -2315,7 +2324,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation.bad_id.xls")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
@@ -2348,7 +2357,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_updated.xls")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
@@ -2381,7 +2390,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_version.xls")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
@@ -2391,10 +2400,10 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.xform.refresh_from_db()
 
             # diff versions
-            self.assertEquals(self.xform.version, u"212121211")
+            self.assertEquals(self.xform.version, "212121211")
             self.assertEquals(form_id, self.xform.pk)
 
-    @patch('urllib2.urlopen')
+    @patch('onadata.apps.main.forms.urlopen')
     def test_update_xform_xls_url(self, mock_urlopen):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
@@ -2412,7 +2421,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_version.xls")
 
-            xls_file = open(path)
+            xls_file = open(path, 'rb')
             mock_urlopen.return_value = xls_file
 
             post_data = {'xls_url': xls_url}
@@ -2425,10 +2434,10 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             self.assertEquals(count, XForm.objects.all().count())
             # diff versions
-            self.assertEquals(self.xform.version, u"212121211")
+            self.assertEquals(self.xform.version, "212121211")
             self.assertEquals(form_id, self.xform.pk)
 
-    @patch('urllib2.urlopen')
+    @patch('onadata.apps.main.forms.urlopen')
     def test_update_xform_dropbox_url(self, mock_urlopen):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
@@ -2446,7 +2455,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_version.xls")
 
-            xls_file = open(path)
+            xls_file = open(path, 'rb')
             mock_urlopen.return_value = xls_file
 
             post_data = {'dropbox_xls_url': xls_url}
@@ -2459,7 +2468,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             self.assertEquals(count, XForm.objects.all().count())
             # diff versions
-            self.assertEquals(self.xform.version, u"212121211")
+            self.assertEquals(self.xform.version, "212121211")
             self.assertEquals(form_id, self.xform.pk)
 
     def test_update_xform_using_put(self):
@@ -2556,7 +2565,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
             "transportation", "transportation.xls")
 
-        with open(path) as xls_file:
+        with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request)
@@ -2593,7 +2602,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
             "transportation", "transportation.xls")
 
-        with open(path) as xls_file:
+        with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request)
@@ -2627,7 +2636,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             "transportation", "transportation.xls")
 
         get_data = None
-        with open(path) as xls_file:
+        with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request)
@@ -2659,7 +2668,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data.get('detail'), 'Missing body')
 
-        body = u'"survey",,,,,,,,,,\n,"name","type","label","hint",' \
+        body = '"survey",,,,,,,,,,\n,"name","type","label","hint",' \
             '"required","relevant","default","' \
             'constraint","constraint_message","appearance"\n,"sdfasdfaf"' \
             ',"geopoint","sdfasdfaf",,"false",,,,,\n,"sdfsdaf","text",' \
@@ -2692,7 +2701,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         response = view(request)
         self.assertEqual(response.status_code, 200)
 
-        body = u'"survey",,,,,,,,,,\n,"name","type","label","hint",' \
+        body = '"survey",,,,,,,,,,\n,"name","type","label","hint",' \
             '"required","relevant","default","' \
             'constraint","constraint_message","appearance"\n,"sdfasdfaf sdf"' \
             ',"geopoint","sdfasdfaf",,"false",,,,,\n,"sdfsdaf","text",' \
@@ -3046,7 +3055,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_version.xls")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=self.xform.pk)
@@ -3110,24 +3119,28 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             content = get_response_content(response)
 
-            expected_content = (
-                '\xef\xbb\xbfage,\xef\xbb\xbfname,\xef\xbb\xbfmeta/instanceID,'
-                '\xef\xbb\xbf_id,'
-                '\xef\xbb\xbf_uuid,\xef\xbb\xbf_submission_time,'
-                '\xef\xbb\xbf_tags,\xef\xbb\xbf_notes,\xef\xbb\xbf_version,'
-                '\xef\xbb\xbf_duration,\xef\xbb\xbf_submitted_by,'
-                '\xef\xbb\xbf_total_media,\xef\xbb\xbf_media_count,'
-                '\xef\xbb\xbf_media_all_received\n'
-                '\xef\xbb\xbf#age,,,,,,,,,,,,,\n29,\xef\xbb\xbfLionel Messi,'
-                '\xef\xbb\xbfuuid:74ee8b73-48aa-4ced-9072-862f93d49c16,'
-                '%s,'
-                '\xef\xbb\xbf74ee8b73-48aa-4ced-9072-862f93d49c16,\xef\xbb\xbf'
-                '2013-02-18T15:54:01,\xef\xbb\xbf,\xef\xbb\xbf,'
-                '\xef\xbb\xbf201604121155,\xef\xbb\xbf,\xef\xbb\xbfbob,0,0,'
-                'True\n' % data_id
-            )
+            expected_content_py2 = (
+                '\ufeffage,\ufeffname,\ufeffmeta/instanceID,\ufeff_id,'
+                '\ufeff_uuid,\ufeff_submission_time,\ufeff_tags,\ufeff_notes,'
+                '\ufeff_version,\ufeff_duration,\ufeff_submitted_by,'
+                '\ufeff_total_media,\ufeff_media_count,'
+                '\ufeff_media_all_received\n\ufeff#age,,,,,,,,,,,,,\n29,'
+                '\ufeffLionel Messi,'
+                '\ufeffuuid:74ee8b73-48aa-4ced-9072-862f93d49c16,%s,'
+                '\ufeff74ee8b73-48aa-4ced-9072-862f93d49c16,'
+                '\ufeff2013-02-18T15:54:01,\ufeff,\ufeff,\ufeff201604121155,'
+                '\ufeff,\ufeffbob,0,0,True\n' % data_id)
+            expected_content_py3 = (
+                '\ufeffage,name,meta/instanceID,_id,_uuid,_submission_time,'
+                '_tags,_notes,_version,_duration,_submitted_by,_total_media,'
+                '_media_count,_media_all_received\n\ufeff#age,,,,,,,,,,,,,\n'
+                '\ufeff29,Lionel Messi,'
+                'uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,%s,'
+                '74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01,,,'
+                '201604121155,,bob,0,0,True\n' % data_id)
 
-            self.assertEqual(expected_content, content)
+            self.assertIn(content, [expected_content_py2,
+                                    expected_content_py3])
             headers = dict(response.items())
             self.assertEqual(headers['Content-Type'], 'application/csv')
             content_disposition = headers['Content-Disposition']
@@ -3458,8 +3471,8 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             export_pk = Export.objects.all().order_by('pk').reverse()[0].pk
 
-            # metaclass for mocking results
-            job = type('AsyncResultMock', (),
+            # metaclaass for mocking results
+            job = type(str('AsyncResultMock'), (),
                        {'state': 'SUCCESS', 'result': export_pk})
             async_result.return_value = job
 
@@ -3633,7 +3646,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             reader = csv.DictReader(StringIO(content))
             self.assertEqual([i[field] for i in reader], test_data)
         else:
-            with open(test_file_path, 'r') as test_file:
+            with open(test_file_path, encoding='utf-8') as test_file:
                 self.assertEqual(content, test_file.read())
 
     def _get_date_filtered_export(self, query_str):
@@ -3849,11 +3862,11 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertEqual(response.status_code, 202)
                 export = Export.objects.get(task_id=task_id)
                 self.assertTrue(export.is_successful)
-                with default_storage.open(export.filepath) as f:
+                with default_storage.open(export.filepath, 'r') as f:
                     csv_reader = csv.reader(f)
                     # jump over headers first
-                    csv_reader.next()
-                    labels = csv_reader.next()
+                    next(csv_reader)
+                    labels = next(csv_reader)
                     self.assertIn(
                         'Is ambulance available daily or weekly?', labels
                     )
@@ -3862,11 +3875,12 @@ class TestXFormViewSet(TestAbstractViewSet):
                                            data={'include_labels': 'true'},
                                            **self.extra)
                 response = form_view(request, pk=formid, format=export_format)
-                f = StringIO(u''.join(response.streaming_content))
+                f = StringIO(''.join([
+                    c.decode('utf-8') for c in response.streaming_content]))
                 csv_reader = csv.reader(f)
                 # jump over headers first
-                csv_reader.next()
-                labels = csv_reader.next()
+                next(csv_reader)
+                labels = next(csv_reader)
                 self.assertIn(
                     'Is ambulance available daily or weekly?', labels
                 )
@@ -3902,9 +3916,9 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertEqual(response.status_code, 202)
                 export = Export.objects.get(task_id=task_id)
                 self.assertTrue(export.is_successful)
-                with default_storage.open(export.filepath) as f:
+                with default_storage.open(export.filepath, 'r') as f:
                     csv_reader = csv.reader(f)
-                    headers = csv_reader.next()
+                    headers = next(csv_reader)
                     self.assertIn(
                         'Is ambulance available daily or weekly?', headers
                     )
@@ -3915,9 +3929,10 @@ class TestXFormViewSet(TestAbstractViewSet):
                     **self.extra
                 )
                 response = form_view(request, pk=formid, format=export_format)
-                f = StringIO(u''.join(response.streaming_content))
+                f = StringIO(''.join([
+                    c.decode('utf-8') for c in response.streaming_content]))
                 csv_reader = csv.reader(f)
-                headers = csv_reader.next()
+                headers = next(csv_reader)
                 self.assertIn(
                     'Is ambulance available daily or weekly?', headers
                 )
@@ -3933,7 +3948,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(settings.PROJECT_ROOT, 'libs', 'tests',
                                 "utils", "fixtures", "tutorial", "instances",
                                 "uuid1", media_file)
-            with open(path) as f:
+            with open(path, 'rb') as f:
                 self._make_submission(os.path.join(
                     settings.PROJECT_ROOT, 'libs', 'tests', "utils",
                     "fixtures", "tutorial", "instances",
@@ -4300,7 +4315,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'post': 'create'
             })
 
-            with open(form_path) as xml_file:
+            with open(form_path, encoding='utf-8') as xml_file:
                 post_data = {'xml_file': xml_file}
                 request = self.factory.post('/', data=post_data, **self.extra)
                 response = view(request)
@@ -4388,7 +4403,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 os.path.dirname(__file__), "../", "fixtures",
                 "flow-results-example-1.json")
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'floip_file': xls_file}
                 request = self.factory.post('/', data=post_data, **self.extra)
                 response = view(request)

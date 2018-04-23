@@ -1,5 +1,6 @@
 import json
 from mock import patch
+from builtins import str as text
 
 from django.contrib.auth.models import User
 
@@ -143,10 +144,10 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.company_data)
-        self.assertIn('users', response.data.keys())
+        self.assertIn('users', list(response.data))
         for user in response.data['users']:
             self.assertEqual(user['role'], 'owner')
-            self.assertEqual(type(user['user']), unicode)
+            self.assertTrue(isinstance(user['user'], text))
 
     def test_orgs_get_not_creator(self):
         self._org_create()
@@ -163,10 +164,10 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.company_data)
-        self.assertIn('users', response.data.keys())
+        self.assertIn('users', list(response.data))
         for user in response.data['users']:
             self.assertEqual(user['role'], 'owner')
-            self.assertEqual(type(user['user']), unicode)
+            self.assertTrue(isinstance(user['user'], text))
 
     def test_orgs_get_anon(self):
         self._org_create()
@@ -178,10 +179,10 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.company_data)
-        self.assertIn('users', response.data.keys())
+        self.assertIn('users', list(response.data))
         for user in response.data['users']:
             self.assertEqual(user['role'], 'owner')
-            self.assertEqual(type(user['user']), unicode)
+            self.assertTrue(isinstance(user['user'], text))
 
     def test_orgs_create(self):
         self._org_create()
@@ -364,7 +365,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 200)
-        self.assertIn('users', response.data.keys())
+        self.assertIn('users', list(response.data))
 
         for user in response.data['users']:
             username = user['user']
@@ -574,7 +575,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 200)
-        self.assertIn('users', response.data.keys())
+        self.assertIn('users', list(response.data))
 
         for user in response.data['users']:
             username = user['user']

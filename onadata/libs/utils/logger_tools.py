@@ -1,6 +1,7 @@
 import os
 import re
 import tempfile
+from builtins import str as text
 from datetime import datetime
 from wsgiref.util import FileWrapper
 from xml.dom import Node
@@ -106,7 +107,7 @@ def dict2xform(jsform, form_id, root=None):
 
 def get_uuid_from_submission(xml):
     # parse UUID from uploaded XML
-    split_xml = uuid_regex.split(xml)
+    split_xml = uuid_regex.split(xml.decode('utf-8'))
 
     # check that xml has UUID
     return len(split_xml) > 1 and split_xml[1] or None
@@ -214,17 +215,9 @@ def save_attachments(xform, instance, media_files):
             xform.instances_with_osm = True
             xform.save()
         filename = os.path.basename(f.name)
-        # filename = os.path.join(upload_path, f.name)
-        # attachments = Attachment.objects.filter(instance=instance,
-        #                                         media_file=filename)
-        # attachment = attachments.first()
-        # if attachment:
-        #     if attachment.media_file.size < f.size():
-        #         attachment.media_file = f
-        #         attachment.save()
-        # else:
-        media_in_submission = (filename in instance.get_expected_media() or
-                               instance.xml.find(filename) != -1)
+        media_in_submission = (
+            filename in instance.get_expected_media() or
+            instance.xml.decode('utf-8').find(filename) != -1)
         if media_in_submission:
             Attachment.objects.get_or_create(
                 instance=instance,
@@ -342,11 +335,8 @@ def create_instance(username,
                 a.media_file.name.split('/')[-1]
                 for a in Attachment.objects.filter(instance=instance)
             ]
-
-            for a in media_files:
-                if a.name in attachment_names:
-                    media_files.remove(a)
-
+            media_files = [f for f in media_files
+                           if f.name not in attachment_names]
             save_attachments(xform, instance, media_files)
             instance.save()
 
@@ -373,7 +363,7 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
         error = OpenRosaResponseBadRequest(
             _(u"Received empty submission. No instance was created"))
     except (FormInactiveError, FormIsMergedDatasetError) as e:
-        error = OpenRosaResponseNotAllowed(str(e))
+        error = OpenRosaResponseNotAllowed(text(e))
     except XForm.DoesNotExist:
         error = OpenRosaResponseNotFound(
             _(u"Form does not exist on this account"))
@@ -388,7 +378,8 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
         error = OpenRosaResponseForbidden(e)
     except UnreadablePostError as e:
         error = OpenRosaResponseBadRequest(
-            _(u"Unable to read submitted file: %(error)s" % {'error': str(e)}))
+            _(u"Unable to read submitted file: %(error)s"
+              % {'error': text(e)}))
     except InstanceMultipleNodeError as e:
         error = OpenRosaResponseBadRequest(e)
     except DjangoUnicodeDecodeError:
@@ -471,7 +462,7 @@ def publish_form(callback):
     try:
         return callback()
     except (PyXFormError, XLSFormError) as e:
-        return {'type': 'alert-error', 'text': unicode(e)}
+        return {'type': 'alert-error', 'text': text(e)}
     except IntegrityError as e:
         return {
             'type': 'alert-error',
@@ -490,7 +481,7 @@ def publish_form(callback):
                        'Please try again.')),
         }
     except (AttributeError, Exception, ValidationError) as e:
-        return {'type': 'alert-error', 'text': unicode(e)}
+        return {'type': 'alert-error', 'text': text(e)}
 
 
 @transaction.atomic()
@@ -516,6 +507,8 @@ def publish_xls_form(xls_file, user, project, id_string=None, created_by=None):
 
 def publish_xml_form(xml_file, user, project, id_string=None, created_by=None):
     xml = xml_file.read()
+    if isinstance(xml, bytes):
+        xml = xml.decode('utf-8')
     survey = create_survey_element_from_xml(xml)
     form_json = survey.to_json()
     if id_string:

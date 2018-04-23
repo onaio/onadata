@@ -1,6 +1,8 @@
 import json
 import six
 import datetime
+from builtins import str as text
+from future.utils import iteritems
 
 from onadata.libs.utils.common_tags import MONGO_STRFTIME, DATE_FORMAT
 
@@ -34,14 +36,14 @@ def _parse_where(query, known_integers, or_where, or_params):
         '$lte': '<=',
         '$i': '~*'
     }
-    for field_key, field_value in query.iteritems():
+    for (field_key, field_value) in iteritems(query):
         if isinstance(field_value, dict):
             if field_key in NONE_JSON_FIELDS:
                 json_str = NONE_JSON_FIELDS.get(field_key)
             else:
                 json_str = _json_sql_str(
                     field_key, known_integers, KNOWN_DATES)
-            for key, value in field_value.iteritems():
+            for (key, value) in iteritems(field_value):
                 _v = None
                 if key in OPERANDS:
                     where.append(
@@ -57,16 +59,16 @@ def _parse_where(query, known_integers, or_where, or_params):
                         except ValueError:
                             pass
                 if field_key in NONE_JSON_FIELDS:
-                    where_params.extend([unicode(_v)])
+                    where_params.extend([text(_v)])
                 else:
-                    where_params.extend((field_key, unicode(_v)))
+                    where_params.extend((field_key, text(_v)))
         else:
             if field_key in NONE_JSON_FIELDS:
                 where.append("{} = %s".format(NONE_JSON_FIELDS[field_key]))
-                where_params.extend([unicode(field_value)])
+                where_params.extend([text(field_value)])
             else:
                 where.append(u"json->>%s = %s")
-                where_params.extend((field_key, unicode(field_value)))
+                where_params.extend((field_key, text(field_value)))
 
     return where + or_where, where_params + or_params
 
@@ -84,11 +86,12 @@ def get_where_clause(query, form_integer_fields=[]):
             if isinstance(query, list):
                 query = query[0]
 
-            if '$or' in query.keys():
+            if isinstance(query, dict) and '$or' in list(query):
                 or_dict = query.pop('$or')
                 for l in or_dict:
-                    or_where.extend([u"json->>%s = %s" for i in l.items()])
-                    [or_params.extend(i) for i in l.items()]
+                    or_where.extend([u"json->>%s = %s" for i in iteritems(l)])
+                    for i in iteritems(l):
+                        or_params.extend(i)
 
                 or_where = [u"".join([u"(", u" OR ".join(or_where), u")"])]
 

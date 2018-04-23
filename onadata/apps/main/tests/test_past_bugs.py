@@ -1,8 +1,9 @@
 import os
+from builtins import str
 from pyxform.errors import PyXFormError
 
 from onadata.apps.logger.models import XForm, Instance
-from test_base import TestBase
+from onadata.apps.main.tests.test_base import TestBase
 
 
 class TestInputs(TestBase):
@@ -35,7 +36,7 @@ class TestInputs(TestBase):
                     'fixtures', 'bug_fixes', name))
             except Exception as e:
                 self.assertEqual(u"Duplicate column header: label",
-                                 unicode(e))
+                                 str(e))
 
 
 class TestSubmissionBugs(TestBase):

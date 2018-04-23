@@ -1,19 +1,18 @@
 import re
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
+from io import BytesIO
 
-from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
 from django.conf import settings
 
-from onadata.libs.utils.logger_tools import generate_content_disposition_header
-from onadata.libs.utils.logger_tools import create_instance
+from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
+
 from onadata.apps.logger.import_tools import django_file
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import Instance
-from onadata.libs.utils.common_tags import MEDIA_ALL_RECEIVED, TOTAL_MEDIA,\
-    MEDIA_COUNT
+from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.utils.common_tags import MEDIA_ALL_RECEIVED
+from onadata.libs.utils.common_tags import MEDIA_COUNT
+from onadata.libs.utils.common_tags import TOTAL_MEDIA
+from onadata.libs.utils.logger_tools import create_instance
+from onadata.libs.utils.logger_tools import generate_content_disposition_header
 
 
 class TestLoggerTools(PyxformTestCase, TestBase):
@@ -70,7 +69,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                                  field_name="image1",
                                  content_type="image/jpeg")
         instance = create_instance(self.user.username,
-                                   StringIO(xml_string.strip()),
+                                   BytesIO(xml_string.strip().encode('utf-8')),
                                    media_files=[media_file])
         self.assertFalse(instance.json[MEDIA_ALL_RECEIVED])
         self.assertEquals(instance.json[TOTAL_MEDIA], 2)
@@ -85,7 +84,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                                   field_name="image2",
                                   content_type="image/jpeg")
         create_instance(self.user.username,
-                        StringIO(xml_string.strip()),
+                        BytesIO(xml_string.strip().encode('utf-8')),
                         media_files=[media2_file])
         instance2 = Instance.objects.get(pk=instance.pk)
         self.assertTrue(instance2.json[MEDIA_ALL_RECEIVED])
@@ -99,7 +98,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                                   field_name="image2",
                                   content_type="image/jpeg")
         create_instance(self.user.username,
-                        StringIO(xml_string.strip()),
+                        BytesIO(xml_string.strip().encode('utf-8')),
                         media_files=[media2_file])
         instance3 = Instance.objects.get(pk=instance.pk)
         self.assertTrue(instance3.json[MEDIA_ALL_RECEIVED])
@@ -146,7 +145,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                                  field_name="image1",
                                  content_type="image/jpeg")
         instance = create_instance(self.user.username,
-                                   StringIO(xml_string.strip()),
+                                   BytesIO(xml_string.strip().encode('utf-8')),
                                    media_files=[media_file])
         self.assertFalse(instance.json[MEDIA_ALL_RECEIVED])
         self.assertEquals(instance.json[TOTAL_MEDIA], 2)
@@ -161,7 +160,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                                   field_name="image1",
                                   content_type="image/jpeg")
         create_instance(self.user.username,
-                        StringIO(xml_string.strip()),
+                        BytesIO(xml_string.strip().encode('utf-8')),
                         media_files=[media2_file])
         instance2 = Instance.objects.get(pk=instance.pk)
         self.assertTrue(instance2.json[MEDIA_ALL_RECEIVED])
@@ -210,7 +209,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                                  field_name="image1",
                                  content_type="image/jpeg")
         instance = create_instance(self.user.username,
-                                   StringIO(xml_string.strip()),
+                                   BytesIO(xml_string.strip().encode('utf-8')),
                                    media_files=[media_file])
         self.assertFalse(instance.json[MEDIA_ALL_RECEIVED])
         self.assertEquals(instance.json[TOTAL_MEDIA], 2)
@@ -225,7 +224,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                                   field_name="image1",
                                   content_type="image/jpeg")
         create_instance(self.user.username,
-                        StringIO(xml_string.strip()),
+                        BytesIO(xml_string.strip().encode('utf-8')),
                         media_files=[media2_file])
         instance2 = Instance.objects.get(pk=instance.pk)
         self.assertTrue(instance2.json[MEDIA_ALL_RECEIVED])
@@ -266,7 +265,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                                  field_name="image1",
                                  content_type="image/jpeg")
         instance = create_instance(self.user.username,
-                                   StringIO(xml_string.strip()),
+                                   BytesIO(xml_string.strip().encode('utf-8')),
                                    media_files=[media_file])
         self.assertFalse(instance.json[MEDIA_ALL_RECEIVED])
         self.assertEquals(instance.json[TOTAL_MEDIA], 2)
@@ -279,7 +278,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                                   field_name="image1",
                                   content_type="image/jpeg")
         create_instance(self.user.username,
-                        StringIO(xml_string.strip()),
+                        BytesIO(xml_string.strip().encode('utf-8')),
                         media_files=[media2_file])
         instance2 = Instance.objects.get(pk=instance.pk)
         self.assertFalse(instance2.json[MEDIA_ALL_RECEIVED])
@@ -324,7 +323,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                                   field_name="image1",
                                   content_type="image/jpeg")
         instance = create_instance(self.user.username,
-                                   StringIO(xml_string.strip()),
+                                   BytesIO(xml_string.strip().encode('utf-8')),
                                    media_files=[media_file, media2_file])
         self.assertFalse(instance.json[MEDIA_ALL_RECEIVED])
         self.assertEquals(instance.json[TOTAL_MEDIA], 2)

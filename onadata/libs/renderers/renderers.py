@@ -1,21 +1,18 @@
-import json
 import decimal
+import json
 import math
+from future.utils import iteritems
+from io import BytesIO
 
-from cStringIO import StringIO
 from django.utils.encoding import smart_text
 from django.utils.xmlutils import SimplerXMLGenerator
 
 from rest_framework import negotiation
 from rest_framework.compat import six
-from rest_framework.renderers import BaseRenderer
-from rest_framework.renderers import JSONRenderer
-from rest_framework.renderers import TemplateHTMLRenderer
-from rest_framework.renderers import StaticHTMLRenderer
+from rest_framework.renderers import (BaseRenderer, JSONRenderer,
+                                      StaticHTMLRenderer, TemplateHTMLRenderer)
 from rest_framework.utils.encoders import JSONEncoder
-
 from rest_framework_xml.renderers import XMLRenderer
-
 
 from onadata.libs.utils.osm import get_combined_osm
 
@@ -28,7 +25,7 @@ def pairing(val1, val2):
 
     Reference: https://en.wikipedia.org/wiki/Pairing_function
     """
-    return ((val1 + val2) * (val1 + val2 + 1) >> 1) + val2
+    return (((val1 + val2) * (val1 + val2 + 1)) / 2) + val2
 
 
 def floip_rows_list(data):
@@ -38,7 +35,7 @@ def floip_rows_list(data):
     for i, key in enumerate(data, 1):
         if not (key.startswith('_') or key in IGNORE_FIELDS):
             session_id = data['_id']
-            yield [data['_submission_time'], long(pairing(session_id, i)),
+            yield [data['_submission_time'], int(pairing(session_id, i)),
                    data.get('_submitted_by'), data['_id'], key, data[key],
                    None]
 
@@ -166,7 +163,7 @@ class XFormListRenderer(BaseRenderer):
         elif isinstance(data, six.string_types):
             return data
 
-        stream = StringIO()
+        stream = BytesIO()
 
         xml = SimplerXMLGenerator(stream, self.charset)
         xml.startDocument()
@@ -187,7 +184,7 @@ class XFormListRenderer(BaseRenderer):
                 xml.endElement(self.element_node)
 
         elif isinstance(data, dict):
-            for key, value in six.iteritems(data):
+            for (key, value) in iteritems(data):
                 xml.startElement(key, {})
                 self._to_xml(xml, value)
                 xml.endElement(key)

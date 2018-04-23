@@ -3,6 +3,7 @@
 Export model.
 """
 import os
+from future.utils import python_2_unicode_compatible
 from tempfile import NamedTemporaryFile
 
 from django.core.files.storage import get_storage_class
@@ -11,7 +12,6 @@ from django.db import models
 from django.db.models.signals import post_delete
 from django.utils.translation import ugettext as _
 
-from onadata.apps.logger.models import XForm
 from onadata.libs.utils.common_tags import OSM
 from onadata.libs.utils import async_status
 
@@ -44,31 +44,29 @@ def get_export_options_query_kwargs(options):
     return options_kwargs
 
 
+@python_2_unicode_compatible
+class ExportTypeError(Exception):
+    """
+    ExportTypeError exception class.
+    """
+    def __str__(self):
+        return _(u'Invalid export type specified')
+
+
+@python_2_unicode_compatible
+class ExportConnectionError(Exception):
+    """
+    ExportConnectionError exception class.
+    """
+    def __str__(self):
+        return _(u'Export server is down.')
+
+
+@python_2_unicode_compatible
 class Export(models.Model):
     """
     Class representing a data export from an XForm
     """
-
-    class ExportTypeError(Exception):
-        """
-        ExportTypeError exception class.
-        """
-        def __unicode__(self):
-            return _(u"Invalid export type specified")
-
-        def __str__(self):
-            return unicode(self).encode('utf-8')
-
-    class ExportConnectionError(Exception):
-        """
-        ExportConnectionError exception class.
-        """
-        def __unicode__(self):
-            return _(u"Export server is down.")
-
-        def __str__(self):
-            return unicode(self).encode('utf-8')
-
     XLS_EXPORT = 'xls'
     CSV_EXPORT = 'csv'
     KML_EXPORT = 'kml'
@@ -130,7 +128,7 @@ class Export(models.Model):
     MAX_EXPORTS = 10
 
     # Required fields
-    xform = models.ForeignKey(XForm)
+    xform = models.ForeignKey('logger.XForm')
     export_type = models.CharField(
         max_length=10, choices=EXPORT_TYPES, default=XLS_EXPORT
     )
@@ -157,7 +155,7 @@ class Export(models.Model):
         app_label = "viewer"
         unique_together = (("xform", "filename"),)
 
-    def __unicode__(self):
+    def __str__(self):
         return u'%s - %s (%s)' % (self.export_type, self.xform, self.filename)
 
     def save(self, *args, **kwargs):  # pylint: disable=arguments-differ
@@ -172,6 +170,7 @@ class Export(models.Model):
 
             # update time_of_last_submission with
             # xform.time_of_last_submission_update
+            # pylint: disable=E1101
             self.time_of_last_submission = self.xform.\
                 time_of_last_submission_update()
         if self.filename:
@@ -222,7 +221,9 @@ class Export(models.Model):
         self._update_filedir()
 
     def _update_filedir(self):
-        assert self.filename
+        if not self.filename:
+            raise AssertionError()
+        # pylint: disable=E1101
         self.filedir = os.path.join(self.xform.user.username,
                                     'exports', self.xform.id_string,
                                     self.export_type)

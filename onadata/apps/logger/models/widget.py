@@ -1,3 +1,6 @@
+from builtins import str as text
+from past.builtins import basestring
+
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models
@@ -9,10 +12,12 @@ from querybuilder.query import Query
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.xform import XForm
-from onadata.libs.utils.chart_tools import (
-    DATA_TYPE_MAP, _flatten_multiple_dict_into_one,
-    _use_labels_from_group_by_name, get_field_choices,
-    get_field_from_field_xpath, get_field_label)
+from onadata.libs.utils.chart_tools import (DATA_TYPE_MAP,
+                                            _flatten_multiple_dict_into_one,
+                                            _use_labels_from_group_by_name,
+                                            get_field_choices,
+                                            get_field_from_field_xpath,
+                                            get_field_label)
 from onadata.libs.utils.common_tags import (NUMERIC_LIST, SELECT_ONE,
                                             SUBMISSION_TIME)
 from onadata.libs.utils.model_tools import generate_uuid_for_form
@@ -85,27 +90,27 @@ class Widget(OrderedModel):
 
         columns = [
             SimpleField(
-                field="json->>'%s'" % unicode(column),
+                field="json->>'%s'" % text(column),
                 alias='{}'.format(column)),
             CountField(
-                field="json->>'%s'" % unicode(column),
+                field="json->>'%s'" % text(column),
                 alias='count')
         ]
 
         if group_by:
             if field_type in NUMERIC_LIST:
                 column_field = SimpleField(
-                    field="json->>'%s'" % unicode(column),
+                    field="json->>'%s'" % text(column),
                     cast="float",
                     alias=column)
             else:
                 column_field = SimpleField(
-                    field="json->>'%s'" % unicode(column), alias=column)
+                    field="json->>'%s'" % text(column), alias=column)
 
             # build inner query
             inner_query_columns = \
                 [column_field,
-                 SimpleField(field="json->>'%s'" % unicode(group_by),
+                 SimpleField(field="json->>'%s'" % text(group_by),
                              alias=group_by),
                  SimpleField(field="xform_id"),
                  SimpleField(field="deleted_at")]
@@ -136,7 +141,7 @@ class Widget(OrderedModel):
         else:
             query = Query().from_table(Instance, columns).\
                 where(xform_id=xform.pk, deleted_at=None)
-            query.group_by("json->>'%s'" % unicode(column))
+            query.group_by("json->>'%s'" % text(column))
 
         # run query
         records = query.select()

@@ -5,13 +5,16 @@ UserProfile Serializers.
 import copy
 import re
 
-import six
+from past.builtins import basestring
+
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.utils.translation import ugettext as _
+
+import six
 from django_digest.backend.db import update_partial_digests
 from registration.models import RegistrationProfile
 from rest_framework import serializers

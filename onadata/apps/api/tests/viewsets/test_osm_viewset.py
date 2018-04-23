@@ -1,25 +1,24 @@
 import csv
 import os
-from cStringIO import StringIO
-from mock import patch
+from io import StringIO
 
+from django.db import IntegrityError, transaction
+from django.db.transaction import TransactionManagementError
 from django.test import RequestFactory
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
-from django.db import IntegrityError, transaction
-from django.db.transaction import TransactionManagementError
+
+from mock import patch
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
+from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.osm_viewset import OsmViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.api.viewsets.data_viewset import DataViewSet
-from onadata.apps.logger.models import Attachment
-from onadata.apps.logger.models import Instance
-from onadata.apps.logger.models import OsmData
+from onadata.apps.logger.models import Attachment, Instance, OsmData
 from onadata.apps.viewer.models import Export
-from onadata.libs.utils.common_tools import (
-    filename_from_disposition, get_response_content)
+from onadata.libs.utils.common_tools import (filename_from_disposition,
+                                             get_response_content)
 from onadata.libs.utils.osm import save_osm_data
 
 
@@ -81,14 +80,16 @@ class TestOSMViewSet(TestAbstractViewSet):
         with open(self.combined_osm_path) as f:
             osm = f.read()
             response.render()
-            self.assertMultiLineEqual(response.content.strip(), osm.strip())
+            self.assertMultiLineEqual(response.content.decode('utf-8').strip(),
+                                      osm.strip())
 
             # look at the data/[pk].osm endpoint
             view = OsmViewSet.as_view({'get': 'list'})
             response = view(request, pk=formid, format='osm')
             self.assertEqual(response.status_code, 200)
             response.render()
-            self.assertMultiLineEqual(response.content.strip(), osm.strip())
+            self.assertMultiLineEqual(response.content.decode('utf-8').strip(),
+                                      osm.strip())
 
         # look at the data.osm endpoint
         view = OsmViewSet.as_view({'get': 'list'})

@@ -1,3 +1,4 @@
+import json
 import os
 import mock
 
@@ -50,13 +51,13 @@ class TestChartsViewSet(TestBase):
         # the instance below has valid start and end times
         instance = Instance.objects.all()[0]
         _dict = instance.parsed_instance.to_dict_for_mongo()
-        self.assertIn('_duration', _dict.keys())
+        self.assertIn('_duration', list(_dict))
         self.assertEqual(_dict.get('_duration'), 24.0)
         self.assertNotEqual(_dict.get('_duration'), None)
 
         _dict = instance.json
         duration = calculate_duration(_dict.get('start_time'), 'invalid')
-        self.assertIn('_duration', _dict.keys())
+        self.assertIn('_duration', list(_dict))
         self.assertEqual(duration, '')
         self.assertNotEqual(duration, None)
 
@@ -366,13 +367,29 @@ class TestChartsViewSet(TestBase):
             format='json'
         )
         renderer = DecimalJSONRenderer()
-        res = renderer.render(response.data)
+        res = json.loads(renderer.render(response.data).decode('utf-8'))
 
-        expected = ('{"field_type":"calculate","data_type":"numeric",'
-                    '"field_xpath":"networth_calc","data":[{"count":2,'
-                    '"sum":150000.0,'
-                    '"pizza_fan":["No"],"mean":75000.0},{"count":2,"sum":null,'
-                    '"pizza_fan":["Yes"],"mean":null}],"grouped_by":'
-                    '"pizza_fan","field_label":"Networth Calc","field_name":'
-                    '"networth_calc","xform":' + str(self.xform.pk) + '}')
+        expected = {
+            "field_type": "calculate",
+            "data_type": "numeric",
+            "field_xpath": "networth_calc",
+            "data": [
+                {
+                    "count": 2,
+                    "sum": 150000.0,
+                    "pizza_fan": ["No"],
+                    "mean": 75000.0
+                },
+                {
+                    "count": 2,
+                    "sum": None,
+                    "pizza_fan": ["Yes"],
+                    "mean": None
+                }
+            ],
+            "grouped_by": "pizza_fan",
+            "field_label": "Networth Calc",
+            "field_name": "networth_calc",
+            "xform": self.xform.pk
+        }
         self.assertEqual(expected, res)

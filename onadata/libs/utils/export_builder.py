@@ -1,17 +1,22 @@
 # -*- coding: utf-8 -*-
 """
-Export Builder
+ExportBuilder
 """
+from __future__ import unicode_literals
 
 import csv
+import logging
+import sys
 import uuid
-from datetime import date, datetime
-from zipfile import ZIP_DEFLATED, ZipFile
+from builtins import str as text
+from datetime import datetime, date
+from future.utils import iteritems
+from zipfile import ZipFile, ZIP_DEFLATED
 
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
+from django.utils.translation import ugettext as _
 
-import six
 from celery import current_task
 from openpyxl.utils.datetime import to_excel
 from openpyxl.workbook import Workbook
@@ -32,10 +37,13 @@ from onadata.libs.utils.common_tags import (
 from onadata.libs.utils.mongo import _decode_from_mongo, _is_invalid_for_mongo
 
 # the bind type of select multiples that we use to compare
-MULTIPLE_SELECT_BIND_TYPE = u"select"
-GEOPOINT_BIND_TYPE = u"geopoint"
-OSM_BIND_TYPE = u"osm"
+MULTIPLE_SELECT_BIND_TYPE = 'select'
+GEOPOINT_BIND_TYPE = 'geopoint'
+OSM_BIND_TYPE = 'osm'
 DEFAULT_UPDATE_BATCH = 100
+
+# savReaderWriter behaves differenlty depending on this
+IS_PY_3K = sys.version_info[0] > 2
 
 
 def current_site_url(path):
@@ -94,23 +102,22 @@ def get_data_dictionary_from_survey(survey):
 
 def encode_if_str(row, key, encode_dates=False, sav_writer=None):
     val = row.get(key)
+    if isinstance(val, (datetime, date)):
+        if sav_writer:
+            if isinstance(val, datetime):
+                if len(val.isoformat()):
+                    strptime_fmt = '%Y-%m-%dT%H:%M:%S'
+                else:
+                    strptime_fmt = '%Y-%m-%dT%H:%M:%S.%f%z'
+            else:
+                strptime_fmt = '%Y-%m-%d'
+            return sav_writer.spssDateTime(val.isoformat().encode('utf-8'),
+                                           strptime_fmt)
+        elif encode_dates:
+            return val.isoformat()
 
-    if isinstance(val, six.string_types):
-        return val.encode('utf-8')
-
-    if sav_writer and isinstance(val, (datetime, date)):
-        strptime_fmt = '%Y-%m-%dT%H:%M:%S.%f%z' \
-            if isinstance(val, datetime) else '%Y-%m-%d'
-
-        if isinstance(val, datetime) and len(val.isoformat()):
-            strptime_fmt = strptime_fmt[:17]
-
-        return sav_writer.spssDateTime(val.isoformat(), strptime_fmt)
-
-    if encode_dates and isinstance(val, (datetime, date)):
-        return val.isoformat()
-
-    return val
+    val = '' if val is None else val
+    return text(val) if IS_PY_3K and not isinstance(val, bool) else val
 
 
 def dict_to_joined_export(data, index, indices, name, survey, row,
@@ -127,9 +134,8 @@ def dict_to_joined_export(data, index, indices, name, survey, row,
     output = {}
     # TODO: test for _geolocation and attachment lists
     if isinstance(data, dict):
-        for key, val in data.iteritems():
+        for (key, val) in iteritems(data):
             if isinstance(val, list) and key not in [NOTES, ATTACHMENTS, TAGS]:
-
                 output[key] = []
                 for child in val:
                     if key not in indices:
@@ -143,7 +149,7 @@ def dict_to_joined_export(data, index, indices, name, survey, row,
                          PARENT_TABLE_NAME: name}
                     # iterate over keys within new_output and append to
                     # main output
-                    for out_key, out_val in new_output.iteritems():
+                    for (out_key, out_val) in iteritems(new_output):
                         if isinstance(out_val, list):
                             if out_key not in output:
                                 output[out_key] = []
@@ -155,17 +161,16 @@ def dict_to_joined_export(data, index, indices, name, survey, row,
                 if name not in output:
                     output[name] = {}
                 if key in [TAGS]:
-                    output[name][key] = ",".join(val)
+                    output[name][key] = ','.join(val)
                 elif key in [NOTES]:
-                    note_list = [v if isinstance(v, six.string_types)
+                    note_list = [v if isinstance(v, text)
                                  else v['note'] for v in val]
-                    output[name][key] = "\r\n".join(note_list)
+                    output[name][key] = '\r\n'.join(note_list)
                 else:
                     data_dictionary = get_data_dictionary_from_survey(survey)
                     output[name][key] = get_value_or_attachment_uri(
                         key, val, data, data_dictionary, media_xpaths,
-                        row and row.get(ATTACHMENTS)
-                    )
+                        row and row.get(ATTACHMENTS))
 
     return output
 
@@ -179,13 +184,19 @@ def is_all_numeric(items):
     :return boolean:
     """
     try:
-        map(float, [i for i in items])
+        for i in items:
+            float(i)
+            # if there is a zero padded number, it is not all numeric
+            if isinstance(i, text) and len(i) > 1 and \
+                    i[0] == '0' and i[1] != '.':
+                return False
+        return True
     except ValueError:
         return False
 
     # check for zero padded numbers to be treated as non numeric
     return not (any([i.startswith('0') and len(i) > 1 and i.find('.') == -1
-                     for i in items if isinstance(i, six.string_types)]))
+                     for i in items if isinstance(i, text)]))
 
 
 def track_task_progress(additions, total=None):
@@ -204,8 +215,44 @@ def track_task_progress(additions, total=None):
             if total:
                 meta.update({'total': total})
             current_task.update_state(state='PROGRESS', meta=meta)
-    except:
-        pass
+    except Exception as e:
+        logging.exception(
+            _('Track task progress threw exception: %s' % text(e)))
+
+
+def string_to_date_with_xls_validation(date_str):
+    """ Try to convert a string to a date object.
+
+    :param date_str: string to convert
+    :returns: object if converted, otherwise date string
+    """
+    if not isinstance(date_str, text):
+        return date_str
+
+    try:
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+        to_excel(date_obj)
+    except ValueError:
+        return date_str
+    else:
+        return date_obj
+
+
+def decode_mongo_encoded_section_names(data):
+    """ Recursively decode mongo keys.
+
+    :param data: A dictionary to decode.
+    """
+    results = {}
+    for (k, v) in iteritems(data):
+        new_v = v
+        if isinstance(v, dict):
+            new_v = decode_mongo_encoded_section_names(v)
+        elif isinstance(v, list):
+            new_v = [decode_mongo_encoded_section_names(x)
+                     if isinstance(x, dict) else x for x in v]
+        results[_decode_from_mongo(k)] = new_v
+    return results
 
 
 class ExportBuilder(object):
@@ -236,9 +283,9 @@ class ExportBuilder(object):
 
     TYPES_TO_CONVERT = ['int', 'decimal', 'date']  # , 'dateTime']
     CONVERT_FUNCS = {
-        'int': lambda x: int(x),
-        'decimal': lambda x: float(x),
-        'date': lambda x: ExportBuilder.string_to_date_with_xls_validation(x),
+        'int': int,
+        'decimal': float,
+        'date': string_to_date_with_xls_validation,
         'dateTime': lambda x: datetime.strptime(x[:19], '%Y-%m-%dT%H:%M:%S')
     }
 
@@ -253,18 +300,6 @@ class ExportBuilder(object):
         self.osm_columns = []
 
     @classmethod
-    def string_to_date_with_xls_validation(cls, date_str):
-        if not isinstance(date_str, six.string_types):
-            return date_str
-        try:
-            date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
-            to_excel(date_obj)
-        except ValueError:
-            return date_str
-        else:
-            return date_obj
-
-    @classmethod
     def format_field_title(cls, abbreviated_xpath, field_delimiter,
                            data_dictionary, remove_group_name=False):
         title = abbreviated_xpath
@@ -274,8 +309,8 @@ class ExportBuilder(object):
             # incase abbreviated_xpath is a choices xpath
             if elem is None:
                 pass
-            elif elem.type == u'':
-                title = u'/'.join([elem.parent.name, elem.name])
+            elif elem.type == '':
+                title = '/'.join([elem.parent.name, elem.name])
             else:
                 title = elem.name
 
@@ -286,7 +321,7 @@ class ExportBuilder(object):
 
     def get_choice_label_from_dict(self, label):
         if isinstance(label, dict):
-            language = self.get_default_language(label.keys())
+            language = self.get_default_language(list(label))
             label = label.get(language)
 
         return label
@@ -312,7 +347,7 @@ class ExportBuilder(object):
         if not child.children and child.choice_filter and child.itemset:
             itemset = dd.survey.to_json_dict()['choices'].get(child.itemset)
             choices = [get_choice_dict(
-                u'/'.join([child.get_abbreviated_xpath(), i['name']]),
+                '/'.join([child.get_abbreviated_xpath(), i['name']]),
                 self.get_choice_label_from_dict(i['label'])
             ) for i in itemset] if itemset else choices
         else:
@@ -353,7 +388,7 @@ class ExportBuilder(object):
                             gps_fields, osm_fields, encoded_fields,
                             field_delimiter, remove_group_name)
                 elif isinstance(child, Question) and \
-                        (child.bind.get(u"type")
+                        (child.bind.get('type')
                          not in QUESTION_TYPES_TO_EXCLUDE and
                          child.type not in QUESTION_TYPES_TO_EXCLUDE):
                     # add to survey_sections
@@ -369,7 +404,7 @@ class ExportBuilder(object):
                             'label': _label,
                             'title': _title,
                             'xpath': child_xpath,
-                            'type': child.bind.get(u"type")
+                            'type': child.bind.get('type')
                         })
 
                         if _is_invalid_for_mongo(child_xpath):
@@ -379,7 +414,7 @@ class ExportBuilder(object):
                                 {child_xpath: _encode_for_mongo(child_xpath)})
 
                     # if its a select multiple, make columns out of its choices
-                    if child.bind.get(u"type") == MULTIPLE_SELECT_BIND_TYPE\
+                    if child.bind.get('type') == MULTIPLE_SELECT_BIND_TYPE\
                             and self.SPLIT_SELECT_MULTIPLES:
                         choices = self._get_select_mulitples_choices(
                             child, dd, field_delimiter, remove_group_name
@@ -395,7 +430,7 @@ class ExportBuilder(object):
                         )
 
                     # split gps fields within this section
-                    if child.bind.get(u"type") == GEOPOINT_BIND_TYPE:
+                    if child.bind.get('type') == GEOPOINT_BIND_TYPE:
                         # add columns for geopoint components
                         xpaths = DataDictionary.get_additional_geopoint_xpaths(
                             child.get_abbreviated_xpath())
@@ -466,21 +501,22 @@ class ExportBuilder(object):
             self.TRUNCATE_GROUP_TITLE)
 
     def section_by_name(self, name):
-        matches = filter(lambda s: s['name'] == name, self.sections)
+        matches = [s for s in self.sections if s['name'] == name]
         assert(len(matches) == 1)
+
         return matches[0]
 
     @classmethod
     def split_select_multiples(cls, row, select_multiples,
                                select_values=False):
         # for each select_multiple, get the associated data and split it
-        for xpath, choices in select_multiples.iteritems():
+        for (xpath, choices) in iteritems(select_multiples):
             # get the data matching this xpath
-            data = row.get(xpath) and unicode(row.get(xpath))
+            data = row.get(xpath) and text(row.get(xpath))
             selections = []
             if data:
                 selections = [
-                    u'{0}/{1}'.format(
+                    '{0}/{1}'.format(
                         xpath, selection) for selection in data.split()]
             if select_values:
                 row.update(dict(
@@ -502,7 +538,7 @@ class ExportBuilder(object):
     @classmethod
     def split_gps_components(cls, row, gps_fields):
         # for each gps_field, get associated data and split it
-        for xpath, gps_components in gps_fields.iteritems():
+        for (xpath, gps_components) in iteritems(gps_fields):
             data = row.get(xpath)
             if data:
                 gps_parts = data.split()
@@ -512,15 +548,11 @@ class ExportBuilder(object):
 
     @classmethod
     def decode_mongo_encoded_fields(cls, row, encoded_fields):
-        for xpath, encoded_xpath in encoded_fields.iteritems():
+        for (xpath, encoded_xpath) in iteritems(encoded_fields):
             if row.get(encoded_xpath):
                 val = row.pop(encoded_xpath)
                 row.update({xpath: val})
         return row
-
-    @classmethod
-    def decode_mongo_encoded_section_names(cls, data):
-        return dict([(_decode_from_mongo(k), v) for k, v in data.iteritems()])
 
     @classmethod
     def convert_type(cls, value, data_type):
@@ -584,7 +616,7 @@ class ExportBuilder(object):
         total_records = kwargs.get('total_records')
 
         for section in self.sections:
-            csv_file = NamedTemporaryFile(suffix=".csv")
+            csv_file = NamedTemporaryFile(suffix='.csv', mode='w')
             csv_writer = csv.writer(csv_file)
             csv_defs[section['name']] = {
                 'csv_file': csv_file, 'csv_writer': csv_writer}
@@ -594,14 +626,14 @@ class ExportBuilder(object):
             for section in self.sections:
                 fields = self.get_fields(dataview, section, 'title')
                 csv_defs[section['name']]['csv_writer'].writerow(
-                    [f.encode('utf-8') for f in fields])
+                    [f for f in fields])
 
         # write labels
         if self.INCLUDE_LABELS or self.INCLUDE_LABELS_ONLY:
             for section in self.sections:
                 fields = self.get_fields(dataview, section, 'label')
                 csv_defs[section['name']]['csv_writer'].writerow(
-                    [f.encode('utf-8') for f in fields])
+                    [f for f in fields])
 
         media_xpaths = [] if not self.INCLUDE_IMAGES \
             else self.dd.get_media_survey_xpaths()
@@ -626,8 +658,7 @@ class ExportBuilder(object):
                                                   survey_name,
                                                   self.survey, d,
                                                   media_xpaths)
-            output = ExportBuilder.decode_mongo_encoded_section_names(
-                joined_export)
+            output = decode_mongo_encoded_section_names(joined_export)
             # attach meta fields (index, parent_index, parent_table)
             # output has keys for every section
             if survey_name not in output:
@@ -643,11 +674,11 @@ class ExportBuilder(object):
                 # section name might not exist within the output, e.g. data was
                 # not provided for said repeat - write test to check this
                 row = output.get(section_name, None)
-                if type(row) == dict:
+                if isinstance(row, dict):
                     write_row(
                         self.pre_process_row(row, section),
                         csv_writer, fields)
-                elif type(row) == list:
+                elif isinstance(row, list):
                     for child_row in row:
                         write_row(
                             self.pre_process_row(child_row, section),
@@ -657,14 +688,14 @@ class ExportBuilder(object):
 
         # write zipfile
         with ZipFile(path, 'w', ZIP_DEFLATED, allowZip64=True) as zip_file:
-            for section_name, csv_def in csv_defs.iteritems():
+            for (section_name, csv_def) in iteritems(csv_defs):
                 csv_file = csv_def['csv_file']
                 csv_file.seek(0)
                 zip_file.write(
-                    csv_file.name, "_".join(section_name.split("/")) + ".csv")
+                    csv_file.name, '_'.join(section_name.split('/')) + '.csv')
 
         # close files when we are done
-        for section_name, csv_def in csv_defs.iteritems():
+        for (section_name, csv_def) in iteritems(csv_defs):
             csv_def['csv_file'].close()
 
     @classmethod
@@ -679,13 +710,13 @@ class ExportBuilder(object):
         i = 1
         generated_name = new_sheet_name
         while generated_name in existing_names:
-            digit_length = len(str(i))
+            digit_length = len(text(i))
             allowed_name_len = cls.XLS_SHEET_NAME_MAX_CHARS - \
                 digit_length
             # make name the required len
             if len(generated_name) > allowed_name_len:
                 generated_name = generated_name[:allowed_name_len]
-            generated_name = "{0}{1}".format(generated_name, i)
+            generated_name = '{0}{1}'.format(generated_name, i)
             i += 1
         return generated_name
 
@@ -706,7 +737,7 @@ class ExportBuilder(object):
         for section in self.sections:
             section_name = section['name']
             work_sheet_title = ExportBuilder.get_valid_sheet_name(
-                "_".join(section_name.split("/")), work_sheet_titles.values())
+                '_'.join(section_name.split('/')), work_sheet_titles.values())
             work_sheet_titles[section_name] = work_sheet_title
             work_sheets[section_name] = wb.create_sheet(
                 title=work_sheet_title)
@@ -756,8 +787,7 @@ class ExportBuilder(object):
                                                   survey_name,
                                                   self.survey, d,
                                                   media_xpaths)
-            output = ExportBuilder.decode_mongo_encoded_section_names(
-                joined_export)
+            output = decode_mongo_encoded_section_names(joined_export)
             # attach meta fields (index, parent_index, parent_table)
             # output has keys for every section
             if survey_name not in output:
@@ -773,11 +803,11 @@ class ExportBuilder(object):
                 # section might not exist within the output, e.g. data was
                 # not provided for said repeat - write test to check this
                 row = output.get(section_name, None)
-                if type(row) == dict:
+                if isinstance(row, dict):
                     write_row(
                         self.pre_process_row(row, section),
                         ws, fields, work_sheet_titles)
-                elif type(row) == list:
+                elif isinstance(row, list):
                     for child_row in row:
                         write_row(
                             self.pre_process_row(child_row, section),
@@ -824,7 +854,7 @@ class ExportBuilder(object):
         return language
 
     def _get_sav_value_labels(self, xpath_var_names=None):
-        """GET/SET SPSS `VALUE LABELS`. It takes the dictionary of the form
+        """ GET/SET SPSS `VALUE LABELS`. It takes the dictionary of the form
         `{varName: {value: valueLabel}}`:
 
         .. code-block: python
@@ -854,7 +884,7 @@ class ExportBuilder(object):
                 name = choice['name'].strip()
                 # should skip select multiple and zero padded numbers e.g
                 # 009 or 09, they should be treated as strings
-                if q.type != u'select all that apply' and is_numeric:
+                if q.type != 'select all that apply' and is_numeric:
                     try:
                         name = float(name) \
                             if (float(name) > int(name)) else int(name)
@@ -914,7 +944,7 @@ class ExportBuilder(object):
 
             # Determine if all select1 choices are numeric in nature
             # and as such have the field type in spss be numeric
-            choices = all_value_labels[var_name].keys()
+            choices = list(all_value_labels[var_name])
             if len(choices) == 0:
                 return False
 
@@ -955,6 +985,13 @@ class ExportBuilder(object):
             if var_name in all_value_labels:
                 value_labels[var_name] = all_value_labels.get(var_name)
 
+        def _get_element_type(element_xpath):
+            for element in elements:
+                if element["xpath"] == element_xpath:
+                    return element["type"]
+
+            return ""
+
         var_types = dict(
             [(_var_types[element['xpath']],
                 SAV_NUMERIC_TYPE if _is_numeric(element['xpath'],
@@ -970,7 +1007,7 @@ class ExportBuilder(object):
             [(x[1],
               SAV_NUMERIC_TYPE if _is_numeric(
                 x[0],
-                self.dd.get_element(x[0]).type,
+                _get_element_type(x[0]),
                 self.dd) else SAV_255_BYTES_TYPE)
                 for x in duplicate_names]
         )
@@ -1003,7 +1040,7 @@ class ExportBuilder(object):
         if column.lower() in (t.lower() for t in columns):
             if len(column) > 59:
                 column = column[:-5]
-            column = column + "@" + str(uuid.uuid4()).split("-")[1]
+            column = column + '@' + text(uuid.uuid4()).split('-')[1]
 
         return column
 
@@ -1022,8 +1059,8 @@ class ExportBuilder(object):
         # write headers
         for section in self.sections:
             sav_options = self._get_sav_options(section['elements'])
-            sav_file = NamedTemporaryFile(suffix=".sav")
-            sav_writer = SavWriter(sav_file.name, ioLocale="en_US.UTF-8",
+            sav_file = NamedTemporaryFile(suffix='.sav')
+            sav_writer = SavWriter(sav_file.name, ioLocale=str('en_US.UTF-8'),
                                    **sav_options)
             sav_defs[section['name']] = {
                 'sav_file': sav_file, 'sav_writer': sav_writer}
@@ -1040,8 +1077,7 @@ class ExportBuilder(object):
                                                   survey_name,
                                                   self.survey, d,
                                                   media_xpaths)
-            output = ExportBuilder.decode_mongo_encoded_section_names(
-                joined_export)
+            output = decode_mongo_encoded_section_names(joined_export)
             # attach meta fields (index, parent_index, parent_table)
             # output has keys for every section
             if survey_name not in output:
@@ -1057,11 +1093,11 @@ class ExportBuilder(object):
                     section['elements']]
                 sav_writer = sav_def['sav_writer']
                 row = output.get(section_name, None)
-                if type(row) == dict:
+                if isinstance(row, dict):
                     write_row(
                         self.pre_process_row(row, section),
                         sav_writer, fields)
-                elif type(row) == list:
+                elif isinstance(row, list):
                     for child_row in row:
                         write_row(
                             self.pre_process_row(child_row, section),
@@ -1069,20 +1105,20 @@ class ExportBuilder(object):
             index += 1
             track_task_progress(i, total_records)
 
-        for section_name, sav_def in sav_defs.iteritems():
+        for (section_name, sav_def) in iteritems(sav_defs):
             sav_def['sav_writer'].closeSavFile(
                 sav_def['sav_writer'].fh, mode='wb')
 
         # write zipfile
         with ZipFile(path, 'w', ZIP_DEFLATED, allowZip64=True) as zip_file:
-            for section_name, sav_def in sav_defs.iteritems():
+            for (section_name, sav_def) in iteritems(sav_defs):
                 sav_file = sav_def['sav_file']
                 sav_file.seek(0)
                 zip_file.write(
-                    sav_file.name, "_".join(section_name.split("/")) + ".sav")
+                    sav_file.name, '_'.join(section_name.split('/')) + '.sav')
 
         # close files when we are done
-        for section_name, sav_def in sav_defs.iteritems():
+        for (section_name, sav_def) in iteritems(sav_defs):
             sav_def['sav_file'].close()
 
     def get_fields(self, dataview, section, key):

@@ -1,23 +1,25 @@
-import shutil
 import os.path
-import requests
+import shutil
+from builtins import open
+from io import BytesIO
 
-from cStringIO import StringIO
-from urlparse import urljoin
-from httmock import urlmatch, HTTMock
+from future.moves.urllib.parse import urljoin
 
 from django.contrib.auth import authenticate
 from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import UploadedFile
 from django.core.urlresolvers import reverse
 from django.test import RequestFactory
-from django_digest.test import Client as DigestClient
 
+import requests
+from django_digest.test import Client as DigestClient
+from httmock import HTTMock, urlmatch
+
+from onadata.apps.logger.models import Instance, XForm
+from onadata.apps.logger.views import download_xform, formList, xformsManifest
 from onadata.apps.main.models import MetaData
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.main.views import profile, download_media_data
-from onadata.apps.logger.models import Instance, XForm
-from onadata.apps.logger.views import formList, download_xform, xformsManifest
+from onadata.apps.main.views import download_media_data, profile
 from onadata.libs.utils.briefcase_client import BriefcaseClient
 
 storage = get_storage_class()()
@@ -52,7 +54,7 @@ def form_list_xml(url, request, **kwargs):
 
 
 def get_streaming_content(res):
-    tmp = StringIO()
+    tmp = BytesIO()
     for chunk in res.streaming_content:
         tmp.write(chunk)
     content = tmp.getvalue()
@@ -84,7 +86,7 @@ class TestBriefcaseClient(TestBase):
         self._submit_transport_instance_w_attachment()
         src = os.path.join(self.this_directory, "fixtures",
                            "transportation", "screenshot.png")
-        uf = UploadedFile(file=open(src), content_type='image/png')
+        uf = UploadedFile(file=open(src, 'rb'), content_type='image/png')
         count = MetaData.objects.count()
         MetaData.media_upload(self.xform, uf)
         self.assertEqual(MetaData.objects.count(), count + 1)
@@ -142,17 +144,17 @@ class TestBriefcaseClient(TestBase):
         XForm.objects.all().delete()
         xforms = XForm.objects.filter(
             user=self.user, id_string=self.xform.id_string)
-        self.assertTrue(xforms.count() == 0)
+        self.assertEqual(xforms.count(), 0)
         instances = Instance.objects.filter(
             xform__user=self.user, xform__id_string=self.xform.id_string)
-        self.assertTrue(instances.count() == 0)
+        self.assertEqual(instances.count(), 0)
         self.bc.push()
         xforms = XForm.objects.filter(
             user=self.user, id_string=self.xform.id_string)
-        self.assertTrue(xforms.count() == 1)
+        self.assertEqual(xforms.count(), 1)
         instances = Instance.objects.filter(
             xform__user=self.user, xform__id_string=self.xform.id_string)
-        self.assertTrue(instances.count() == 1)
+        self.assertEqual(instances.count(), 1)
 
     def tearDown(self):
         # remove media files

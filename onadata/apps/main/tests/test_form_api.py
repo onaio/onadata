@@ -5,10 +5,9 @@ from django.core.urlresolvers import reverse
 from django.test import RequestFactory
 
 from onadata.apps.main.views import api
-from onadata.apps.viewer.models.parsed_instance import ParsedInstance,\
-    _encode_for_mongo
-from onadata.libs.utils.mongo import _decode_from_mongo
-from test_base import TestBase
+from onadata.apps.viewer.models.parsed_instance import ParsedInstance
+from onadata.libs.utils.mongo import _decode_from_mongo, _encode_for_mongo
+from onadata.apps.main.tests.test_base import TestBase
 
 
 def dict_for_mongo_without_userform_id(parsed_instance):
@@ -65,11 +64,11 @@ class TestFormAPI(TestBase):
         data = {'query': json.dumps(query)}
         response = self.client.get(self.api_url, data)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content, '[]')
+        self.assertEqual(response.content, b'[]')
         data['fields'] = '["_id"]'
         response = self.client.get(self.api_url, data)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content, '[]')
+        self.assertEqual(response.content, b'[]')
 
     def test_handle_bad_json(self):
         response = self.client.get(self.api_url, {'query': '{bad'})
@@ -80,11 +79,12 @@ class TestFormAPI(TestBase):
         callback = 'jsonpCallback'
         response = self.client.get(self.api_url, {'callback': callback})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content.startswith(callback + '('), True)
-        self.assertEqual(response.content.endswith(')'), True)
+        content = response.content.decode('utf-8')
+        self.assertEqual(content.startswith(callback + '('), True)
+        self.assertEqual(content.endswith(')'), True)
         start = callback.__len__() + 1
-        end = response.content.__len__() - 1
-        content = response.content[start: end]
+        end = content.__len__() - 1
+        content = content[start: end]
         d = dict_for_mongo_without_userform_id(
             self.xform.instances.all()[0].parsed_instance)
         find_d = json.loads(content)[0]
@@ -156,8 +156,9 @@ class TestFormAPI(TestBase):
         encoded = _encode_for_mongo(field)
         self.assertEqual(encoded, (
             "%(dollar)ssection1%(dot)sgroup01%(dot)squestion1" % {
-                "dollar": base64.b64encode("$"),
-                "dot": base64.b64encode(".")}))
+                "dollar": base64.b64encode(
+                    '$'.encode('utf-8')).decode('utf-8'),
+                "dot": base64.b64encode('.'.encode('utf-8')).decode('utf-8')}))
         decoded = _decode_from_mongo(encoded)
         self.assertEqual(field, decoded)
 

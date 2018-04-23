@@ -2,18 +2,23 @@
 """
 Util functions for data views.
 """
+import json
 import os
 import sys
 import zipfile
+from builtins import open
+from future.utils import iteritems
 from tempfile import NamedTemporaryFile
-from urlparse import urljoin
 from xml.dom import minidom
 
-import requests
+from future.moves.urllib.parse import urljoin
+
 from django.conf import settings
 from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.translation import ugettext as _
+
+import requests
 
 from onadata.libs.exceptions import EnketoError
 from onadata.libs.utils import common_tags
@@ -72,8 +77,9 @@ def parse_xform_instance(xml_str):
     # NOTE: THIS WILL DESTROY ANY DATA COLLECTED WITH REPEATABLE NODES
     # THIS IS OKAY FOR OUR USE CASE, BUT OTHER USERS SHOULD BEWARE.
     survey_data = dict(_path_value_pairs(root_node))
-    assert len(list(_all_attributes(root_node))) == 1, \
-        _(u"There should be exactly one attribute in this document.")
+    if len(list(_all_attributes(root_node))) != 1:
+        raise AssertionError(_(
+            u"There should be exactly one attribute in this document."))
     survey_data.update({
         common_tags.XFORM_ID_STRING:
         root_node.getAttribute(u"id"),
@@ -117,7 +123,7 @@ def _all_attributes(node):
     Go through an XML document returning all the attributes we see.
     """
     if hasattr(node, "hasAttributes") and node.hasAttributes():
-        for key in node.attributes.keys():
+        for key in list(node.attributes):
             yield key, node.getAttribute(key)
     for child in node.childNodes:
         for pair in _all_attributes(child):
@@ -130,7 +136,7 @@ def django_file(path, field_name, content_type):
     """
     # adapted from here: http://groups.google.com/group/django-users/browse_th\
     # read/thread/834f988876ff3c45/
-    file_object = open(path)
+    file_object = open(path, 'rb')
 
     return InMemoryUploadedFile(
         file=file_object,
@@ -186,7 +192,8 @@ def enketo_url(form_url,
         values.update({
             'instance': instance_xml,
             'instance_id': instance_id,
-            'return_url': return_url
+            # convert to unicode string in python3 compatible way
+            'return_url': u'%s' % return_url
         })
 
     if kwargs:
@@ -201,7 +208,7 @@ def enketo_url(form_url,
         verify=getattr(settings, 'VERIFY_SSL', True))
     if response.status_code in [200, 201]:
         try:
-            data = response.json()
+            data = json.loads(response.content)
         except ValueError:
             pass
         else:
@@ -211,7 +218,7 @@ def enketo_url(form_url,
                 return url
     else:
         try:
-            data = response.json()
+            data = json.loads(response.content)
         except ValueError:
             report_exception("HTTP Error {}".format(response.status_code),
                              response.text, sys.exc_info())
@@ -235,7 +242,7 @@ def generate_enketo_form_defaults(xform, **kwargs):
     defaults = {}
 
     if kwargs:
-        for name, value in kwargs.iteritems():
+        for (name, value) in iteritems(kwargs):
             field = xform.get_survey_element(name)
             if field:
                 defaults["defaults[{}]".format(field.get_xpath())] = value
@@ -343,14 +350,14 @@ def get_enketo_preview_url(request, username, id_string, xform_pk=None):
         request, username, settings.ENKETO_PROTOCOL, True, xform_pk=xform_pk)
     values = {'form_id': id_string, 'server_url': form_url}
 
-    res = requests.post(
+    response = requests.post(
         settings.ENKETO_PREVIEW_URL,
         data=values,
         auth=(settings.ENKETO_API_TOKEN, ''),
         verify=getattr(settings, 'VERIFY_SSL', True))
 
     try:
-        response = res.json()
+        response = json.loads(response.content)
     except ValueError:
         pass
     else:

@@ -7,11 +7,12 @@ from django.core.urlresolvers import reverse
 from django.utils import timezone
 from xlrd import open_workbook
 
+from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.views import zip_export, kml_export, export_download
+from onadata.libs.utils.common_tools import get_response_content
 from onadata.libs.utils.export_tools import generate_export
 from onadata.libs.utils.user_auth import http_auth_string
-from test_base import TestBase
 
 
 class TestFormExports(TestBase):
@@ -32,8 +33,8 @@ class TestFormExports(TestBase):
             return open_workbook(file_contents=f).sheets()[0].nrows
 
         def csv_rows(f):
-            with tempfile.TemporaryFile() as tmp:
-                tmp.write(f.encode('utf-8'))
+            with tempfile.TemporaryFile('w+') as tmp:
+                tmp.write(f.decode('utf-8'))
                 tmp.seek(0)
                 return len([line for line in csv.reader(tmp)])
         num_rows_fn = {
@@ -73,26 +74,26 @@ class TestFormExports(TestBase):
         params = {'end': end_time}
         response = self.client.get(url, params)
         self.assertEqual(response.status_code, 200)
-        content = self._get_response_content(response)
+        content = get_response_content(response, decode=False)
         self.assertEqual(self._num_rows(content, export_format), 3)
         # test restricting to after start time, thus excluding the initial
         # submission
         params = {'start': start_time}
         response = self.client.get(url, params)
         self.assertEqual(response.status_code, 200)
-        content = self._get_response_content(response)
+        content = get_response_content(response, decode=False)
         self.assertEqual(self._num_rows(content, export_format), 3)
         # test no time restriction
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        content = self._get_response_content(response)
+        content = get_response_content(response, decode=False)
         self.assertEqual(self._num_rows(content, export_format), 4)
         # test restricting to between start time and end time
         params = {'start': start_time, 'end': end_time}
         response = self.client.get(url, params)
         self.assertEqual(response.status_code, 200)
-        content = self._get_response_content(response)
+        content = get_response_content(response, decode=False)
         self.assertEqual(self._num_rows(content, export_format), 2)
 
     def test_filter_by_date_csv(self):

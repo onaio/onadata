@@ -1,7 +1,8 @@
 import os
 import logging
 from hashlib import md5
-from urlparse import urlparse
+from future.moves.urllib.parse import urlparse
+from future.utils import listvalues
 
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
@@ -47,9 +48,9 @@ def _create_enketo_url(request, xform):
     try:
         url = enketo_url(form_url, xform.id_string)
         MetaData.enketo_url(xform, url)
-    except ConnectionError, e:
+    except ConnectionError as e:
         logging.exception("Connection Error: %s" % e.message)
-    except EnketoError, e:
+    except EnketoError as e:
         logging.exception("Enketo Error: %s" % e.message)
 
     return url
@@ -110,12 +111,12 @@ class XFormMixin(object):
                 data[perm.user_id]['permissions'].append(
                     perm.permission.codename)
 
-        for k in data.keys():
+        for k in list(data):
             data[k]['permissions'].sort()
             data[k]['role'] = get_role(data[k]['permissions'], XForm)
             del (data[k]['permissions'])
 
-        xform_perms = data.values()
+        xform_perms = listvalues(data)
 
         cache.set('{}{}'.format(XFORM_PERMISSIONS_CACHE, obj.pk), xform_perms)
 
@@ -148,7 +149,7 @@ class XFormMixin(object):
                     url = get_enketo_preview_url(
                         self.context.get('request'), obj.user.username,
                         obj.id_string, xform_pk=obj.pk)
-                except:
+                except Exception:
                     return url
                 else:
                     MetaData.enketo_preview_url(obj, url)
@@ -406,8 +407,9 @@ class XFormManifestSerializer(serializers.Serializer):
                     xform = data_view.xform
 
             if xform and xform.last_submission_time:
-                hsh = u'md5:%s' % (
-                    md5(xform.last_submission_time.isoformat()).hexdigest())
+                hsh = u'md5:%s' % (md5(
+                    xform.last_submission_time.isoformat().encode(
+                        'utf-8')).hexdigest())
 
         return u"%s" % (hsh or 'md5:')
 

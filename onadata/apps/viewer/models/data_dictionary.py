@@ -2,24 +2,27 @@
 """
 DataDictionary model.
 """
-
-import csv
-import io
 import os
-from cStringIO import StringIO
+import unicodecsv as csv
+from builtins import str as text
+from io import BytesIO, StringIO
 
-import librabbitmq
-import xlrd
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
 from django.utils.translation import ugettext as _
+from django.utils.encoding import python_2_unicode_compatible
+
+import librabbitmq
+import xlrd
 from floip import FloipSurvey
 from pyxform.builder import create_survey_element_from_dict
 from pyxform.utils import has_external_choices
 from pyxform.xls2json import parse_file_to_json
 
-from onadata.apps.logger.models.xform import XForm, check_xform_uuid
+from onadata.apps.logger.models.xform import (XForm,
+                                              check_xform_uuid,
+                                              check_version_set)
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.libs.utils.cache_tools import (PROJ_BASE_FORMS_CACHE,
                                             PROJ_FORMS_CACHE, safe_delete)
@@ -33,7 +36,7 @@ def is_newline_error(e):
     """
     newline_error = u'new-line character seen in unquoted field - do you need'\
         u' to open the file in universal-newline mode?'
-    return newline_error == unicode(e)
+    return newline_error == text(e)
 
 
 def process_xlsform(xls, default_name):
@@ -48,7 +51,7 @@ def process_xlsform(xls, default_name):
     if xls.name.endswith('csv'):
         # a csv file gets closed in pyxform, make a copy
         xls.seek(0)
-        file_object = io.BytesIO()
+        file_object = BytesIO()
         file_object.write(xls.read())
         file_object.seek(0)
         xls.seek(0)
@@ -82,9 +85,9 @@ def sheet_to_csv(xls_content, sheet_name):
         raise Exception(_(u"Sheet <'%(sheet_name)s'> has no data." %
                           {'sheet_name': sheet_name}))
 
-    csv_file = StringIO()
+    csv_file = BytesIO()
 
-    writer = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
+    writer = csv.writer(csv_file, encoding='utf-8', quoting=csv.QUOTE_ALL)
     mask = [v and len(v.strip()) > 0 for v in sheet.row_values(0)]
 
     for row in range(sheet.nrows):
@@ -106,6 +109,7 @@ def upload_to(instance, filename, username=None):
     )
 
 
+@python_2_unicode_compatible
 class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
     """
     DataDictionary model class.
@@ -117,7 +121,7 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
         self._id_string_changed = False
         super(DataDictionary, self).__init__(*args, **kwargs)
 
-    def __unicode__(self):
+    def __str__(self):
         return getattr(self, "id_string", "")
 
     def save(self, *args, **kwargs):
@@ -130,7 +134,7 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
             if has_external_choices(survey_dict):
                 self.has_external_choices = True
             survey = create_survey_element_from_dict(survey_dict)
-            survey = self._check_version_set(survey)
+            survey = check_version_set(survey)
             if get_columns_with_hxl(survey.get('children')):
                 self.has_hxl_support = True
             # if form is being replaced, don't check for id_string uniqueness

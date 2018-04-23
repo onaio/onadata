@@ -1,5 +1,6 @@
 import json
 import types
+from builtins import str as text
 
 from django.db.models import Q
 from django.db.models.query import QuerySet
@@ -11,8 +12,6 @@ from django.utils import six
 from django.utils.translation import ugettext as _
 from django.core.exceptions import PermissionDenied
 from django.utils import timezone
-from onadata.libs.exceptions import NoRecordsPermission
-
 from rest_framework import status
 from rest_framework.decorators import detail_route
 from rest_framework.generics import get_object_or_404
@@ -31,6 +30,7 @@ from onadata.apps.viewer.models.parsed_instance import get_etag_hash_from_query
 from onadata.apps.viewer.models.parsed_instance import get_sql_with_params
 from onadata.apps.viewer.models.parsed_instance import get_where_clause
 from onadata.apps.viewer.models.parsed_instance import query_data
+from onadata.libs.exceptions import NoRecordsPermission
 from onadata.libs.renderers import renderers
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
@@ -63,7 +63,7 @@ BaseViewset = get_baseviewset_class()
 
 
 def get_data_and_form(kwargs):
-    data_id = str(kwargs.get('dataid'))
+    data_id = text(kwargs.get('dataid'))
     if not data_id.isdigit():
         raise ParseError(_(u"Data ID should be an integer"))
 
@@ -80,7 +80,7 @@ def delete_instance(instance):
     try:
         instance.set_deleted(timezone.now())
     except FormInactiveError as e:
-        raise ParseError(str(e))
+        raise ParseError(text(e))
 
 
 class DataViewSet(AnonymousUserPublicFormsMixin,
@@ -261,7 +261,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                     data["url"] = get_enketo_edit_url(
                         request, self.object, return_url)
                 except EnketoError as e:
-                    raise ParseError(str(e))
+                    raise ParseError(text(e))
             else:
                 raise PermissionDenied(_(u"You do not have edit permissions."))
 
@@ -277,10 +277,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             if not instance_ids:
                 raise ParseError(_(u"Data id(s) not provided."))
             else:
-                instance_ids = filter(
-                    lambda x: x.isdigit(),
-                    instance_ids.split(',')
-                )
+                instance_ids = [
+                    x for x in instance_ids.split(',') if x.isdigit()]
 
                 if not instance_ids:
                     raise ParseError(_(u"Invalid data ids were provided."))
@@ -363,7 +361,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         lookup = self.kwargs.get(lookup_field)
         is_public_request = lookup == self.public_data_endpoint
 
-        if lookup_field not in kwargs.keys():
+        if lookup_field not in list(kwargs):
             self.object_list = self.filter_queryset(self.get_queryset())
             serializer = self.get_serializer(self.object_list, many=True)
 
@@ -473,9 +471,9 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 )
                 self.etag_hash = get_etag_hash_from_query(records, sql, params)
         except ValueError as e:
-            raise ParseError(unicode(e))
+            raise ParseError(text(e))
         except DataError as e:
-            raise ParseError(unicode(e))
+            raise ParseError(text(e))
 
     def _get_data(self, query, fields, sort, start, limit, is_public_request):
         self.set_object_list(

@@ -2,12 +2,15 @@
 # vim: ai ts=4 sts=4 et sw=5 coding=utf-8
 import os
 
+from past.builtins import basestring
+
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
-from django.utils.translation import ugettext as _, ugettext_lazy
+from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy
 
-from onadata.apps.logger.import_tools import import_instances_from_zip,\
-    import_instances_from_path
+from onadata.apps.logger.import_tools import (import_instances_from_path,
+                                              import_instances_from_zip)
 
 
 class Command(BaseCommand):

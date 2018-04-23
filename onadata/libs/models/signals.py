@@ -1,3 +1,5 @@
+from past.builtins import basestring
+
 import django.dispatch
 
 from onadata.apps.logger.models import XForm

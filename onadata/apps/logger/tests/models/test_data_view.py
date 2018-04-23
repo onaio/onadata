@@ -1,4 +1,5 @@
 import os
+from builtins import str
 from django.conf import settings
 from django.db import connection
 
@@ -93,7 +94,7 @@ class TestIntegratedDataView(TestAbstractViewSet):
         self.assertEquals(sql, expected_sql)
         self.assertEqual(len(columns), 8)
 
-        self.cursor.execute(sql, [unicode(i) for i in (params)])
+        self.cursor.execute(sql, [str(i) for i in (params)])
         results = self.cursor.fetchall()
 
         self.assertEquals(len(results), 3)

@@ -3,7 +3,7 @@
 Test encrypted form submissions.
 """
 import os
-import codecs
+from builtins import open
 
 from django.core.urlresolvers import reverse
 from django.contrib.auth import authenticate
@@ -49,8 +49,8 @@ class TestEncryptedForms(TestBase):
                 'instances_encrypted', filename)
         count = Instance.objects.count()
         acount = Attachment.objects.count()
-        with open(files['submission.xml.enc']) as encryped_file:
-            with codecs.open(files['submission.xml']) as f:
+        with open(files['submission.xml.enc'], 'rb') as encryped_file:
+            with open(files['submission.xml'], 'rb') as f:
                 post_data = {
                     'xml_submission_file': f,
                     'submission.xml.enc': encryped_file}

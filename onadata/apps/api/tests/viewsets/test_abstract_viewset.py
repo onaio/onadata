@@ -1,9 +1,10 @@
 import json
 import os
 import re
+import requests
+from builtins import open
 from tempfile import NamedTemporaryFile
 
-import requests
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import Permission, User
@@ -30,6 +31,7 @@ from onadata.apps.main import tests as main_tests
 from onadata.apps.main.models import MetaData, UserProfile
 from onadata.apps.viewer.models import DataDictionary
 from onadata.libs.serializers.project_serializer import ProjectSerializer
+from onadata.libs.utils.common_tools import merge_dicts
 from onadata.libs.utils.user_auth import get_user_default_project
 
 
@@ -110,8 +112,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         user.user_permissions.add(add_userprofile)
 
     def _create_user_profile(self, extra_post_data={}):
-        self.profile_data = dict(
-            self.profile_data.items() + extra_post_data.items())
+        self.profile_data = merge_dicts(self.profile_data, extra_post_data)
         user, created = User.objects.get_or_create(
             username=self.profile_data['username'],
             first_name=self.profile_data['first_name'],
@@ -259,7 +260,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
             "transportation", "transportation.xls")
 
         with HTTMock(enketo_preview_url_mock, enketo_url_mock):
-            with open(path) as xls_file:
+            with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.post(
                     '/', data=post_data, **self.extra)
@@ -278,10 +279,10 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
                 self.form_data = response.data
 
     def _add_uuid_to_submission_xml(self, path, xform):
-        tmp_file = NamedTemporaryFile(delete=False)
+        tmp_file = NamedTemporaryFile(delete=False, mode='w')
         split_xml = None
 
-        with open(path) as _file:
+        with open(path, encoding='utf-8') as _file:
             split_xml = re.split(r'(<transport>)', _file.read())
 
         split_xml[1:1] = [
@@ -306,7 +307,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
 
         if add_uuid:
             path = self._add_uuid_to_submission_xml(path, self.xform)
-        with open(path) as f:
+        with open(path, encoding='utf-8') as f:
             post_data = {'xml_submission_file': f}
 
             if media_file is not None:
@@ -379,7 +380,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
             media_file = "1335783522563.jpg"
         path = os.path.join(self.main_directory, 'fixtures',
                             'transportation', 'instances', s, media_file)
-        with open(path) as f:
+        with open(path, 'rb') as f:
             self._make_submission(os.path.join(
                 self.main_directory, 'fixtures',
                 'transportation', 'instances', s, s + '.xml'), media_file=f,
@@ -413,7 +414,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         }
 
         if path and data_value:
-            with open(path) as media_file:
+            with open(path, 'rb') as media_file:
                 data.update({
                     'data_file': media_file,
                 })
@@ -562,8 +563,8 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         request = self.factory.head('/')
         response = view(request)
         self.assertTrue(response.has_header('WWW-Authenticate'))
-        self.assertTrue(
-            response['WWW-Authenticate'].startswith('Digest nonce='))
+        self.assertTrue(response['WWW-Authenticate'].startswith('Digest '))
+        self.assertIn('nonce=', response['WWW-Authenticate'])
         request = self.factory.get('/')
         request.META.update(auth(request.META, response))
         request.session = self.client.session

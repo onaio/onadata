@@ -1,16 +1,22 @@
-import re
+from __future__ import unicode_literals
 
+import re
 import six
+
+from builtins import str as text
+from collections import OrderedDict
+from past.builtins import basestring
+
 from django.db.utils import DataError
 from django.http import Http404
 from rest_framework.exceptions import ParseError
 
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.xform import XForm
-from onadata.libs.data.query import (
-    get_form_submissions_aggregated_by_select_one,
-    get_form_submissions_grouped_by_field,
-    get_form_submissions_grouped_by_select_one)
+from onadata.libs.data.query import \
+    get_form_submissions_aggregated_by_select_one
+from onadata.libs.data.query import get_form_submissions_grouped_by_field
+from onadata.libs.data.query import get_form_submissions_grouped_by_select_one
 from onadata.libs.utils import common_tags
 
 # list of fields we can chart
@@ -161,7 +167,6 @@ def _use_labels_from_field_name(field_name,
                                 choices=None):
     # truncate field name to 63 characters to fix #354
     truncated_name = field_name[0:POSTGRES_ALIAS_LENGTH]
-    truncated_name = truncated_name.encode('utf-8')
 
     if data_type == 'categorized' and field_name != common_tags.SUBMITTED_BY:
         if data:
@@ -172,9 +177,6 @@ def _use_labels_from_field_name(field_name,
                 if truncated_name in item:
                     item[truncated_name] = get_choice_label(
                         choices, item[truncated_name])
-
-    # replace truncated field names in the result set with the field name key
-    field_name = field_name.encode('utf-8')
 
     for item in data:
         if field_name != truncated_name:
@@ -191,7 +193,6 @@ def _use_labels_from_group_by_name(field_name,
                                    choices=None):
     # truncate field name to 63 characters to fix #354
     truncated_name = field_name[0:POSTGRES_ALIAS_LENGTH]
-    truncated_name = truncated_name.encode('utf-8')
 
     if data_type == 'categorized':
         if data:
@@ -206,9 +207,6 @@ def _use_labels_from_group_by_name(field_name,
                 else:
                     item[truncated_name] = \
                         get_choice_label(choices, item[truncated_name])
-
-    # replace truncated field names in the result set with the field name key
-    field_name = field_name.encode('utf-8')
 
     for item in data:
         if 'items' in item:
@@ -277,7 +275,7 @@ def build_chart_data_for_field(xform,
             result = get_form_submissions_aggregated_by_select_one(
                 xform, field_xpath, field_name, group_by_name, data_view)
         else:
-            raise ParseError(u'Cannot group by %s' % group_by_name)
+            raise ParseError('Cannot group by %s' % group_by_name)
     else:
         result = get_form_submissions_grouped_by_field(xform, field_xpath,
                                                        field_name, data_view)
@@ -347,8 +345,7 @@ def calculate_ranges(page, items_per_page, total_items):
 def build_chart_data(xform, language_index=0, page=0):
     # only use chart-able fields
 
-    fields = filter(lambda f: f.type in CHART_FIELDS,
-                    [e for e in xform.survey_elements])
+    fields = [e for e in xform.survey_elements if e.type in CHART_FIELDS]
 
     # prepend submission time
     fields[:0] = [common_tags.SUBMISSION_TIME]
@@ -379,8 +376,7 @@ def build_chart_data_from_widget(widget, language_index=0):
         field = common_tags.SUBMISSION_TIME
     else:
         # use specified field to get summary
-        fields = filter(lambda f: f.name == field_name,
-                        [e for e in xform.survey_elements])
+        fields = [e for e in xform.survey_elements if e.name == field_name]
 
         if len(fields) == 0:
             raise ParseError("Field %s does not not exist on the form" %
@@ -395,59 +391,42 @@ def build_chart_data_from_widget(widget, language_index=0):
         data = build_chart_data_for_field(
             xform, field, language_index, choices=choices)
     except DataError as e:
-        raise ParseError(unicode(e))
+        raise ParseError(text(e))
 
     return data
 
 
-def get_field_from_field_name(field_name, xform):
+def _get_field_from_field_fn(field_str, xform, field_fn):
     # check if its the special _submission_time META
-    if field_name == common_tags.SUBMISSION_TIME:
+    if field_str == common_tags.SUBMISSION_TIME:
         field = common_tags.SUBMISSION_TIME
-    elif field_name == common_tags.SUBMITTED_BY:
+    elif field_str == common_tags.SUBMITTED_BY:
         field = common_tags.SUBMITTED_BY
-    elif field_name == common_tags.DURATION:
+    elif field_str == common_tags.DURATION:
         field = common_tags.DURATION
     else:
         # use specified field to get summary
-        fields = filter(lambda f: f.name == field_name,
-                        [e for e in xform.survey_elements])
-
+        fields = [e for e in xform.survey_elements if field_fn(e) == field_str]
         if len(fields) == 0:
             raise Http404("Field %s does not not exist on the form" %
-                          field_name)
-
+                          field_str)
         field = fields[0]
-
     return field
+
+
+def get_field_from_field_name(field_name, xform):
+    return _get_field_from_field_fn(field_name, xform, lambda x: x.name)
 
 
 def get_field_from_field_xpath(field_xpath, xform):
-    # check if its the special _submission_time META
-    if field_xpath == common_tags.SUBMISSION_TIME:
-        field = common_tags.SUBMISSION_TIME
-    elif field_xpath == common_tags.SUBMITTED_BY:
-        field = common_tags.SUBMITTED_BY
-    elif field_xpath == common_tags.DURATION:
-        field = common_tags.DURATION
-    else:
-        # use specified field to get summary
-        fields = filter(lambda f: f.get_abbreviated_xpath() == field_xpath,
-                        [e for e in xform.survey_elements])
-
-        if len(fields) == 0:
-            raise Http404("Field %s does not not exist on the form" %
-                          field_xpath)
-
-        field = fields[0]
-
-    return field
+    return _get_field_from_field_fn(
+        field_xpath, xform, lambda x: x.get_abbreviated_xpath())
 
 
 def get_field_label(field, language_index=0):
     # check if label is dict i.e. multilang
-    if isinstance(field.label, dict) and len(field.label.keys()) > 0:
-        languages = field.label.keys()
+    if isinstance(field.label, dict) and len(list(field.label)) > 0:
+        languages = list(OrderedDict(field.label))
         language_index = min(language_index, len(languages) - 1)
         field_label = field.label[languages[language_index]]
     else:
@@ -492,14 +471,14 @@ def get_chart_data_for_field(field_name,
             group_by=group_by,
             data_view=data_view)
     except DataError as e:
-        raise ParseError(unicode(e))
+        raise ParseError(text(e))
     else:
         if accepted_format == 'json':
             xform = xform.pk
         elif accepted_format == 'html' and 'data' in data:
             for item in data['data']:
                 if isinstance(item[field_name], list):
-                    item[field_name] = u', '.join(item[field_name])
+                    item[field_name] = ', '.join(item[field_name])
 
         data.update({'xform': xform})
 

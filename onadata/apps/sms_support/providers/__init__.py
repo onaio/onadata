@@ -1,22 +1,33 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # vim: ai ts=4 sts=4 et sw=4 nu
+from __future__ import absolute_import
 
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from smssync import (import_submission as imp_sub_smssync,
-                     import_submission_for_form as imp_sub_form_smssync,
-                     autodoc as autodoc_smssync)
-from telerivet import (import_submission as imp_sub_telerivet,
-                       import_submission_for_form as imp_sub_form_telerivet,
-                       autodoc as autodoc_telerivet)
-from twilio import (import_submission as imp_sub_twilio,
-                    import_submission_for_form as imp_sub_form_twilio,
-                    autodoc as autodoc_twilio)
-from textit import (import_submission as imp_sub_textit,
-                    import_submission_for_form as imp_sub_form_textit,
-                    autodoc as autodoc_textit)
+from onadata.apps.sms_support.providers.smssync import \
+    autodoc as autodoc_smssync
+from onadata.apps.sms_support.providers.smssync import \
+    import_submission as imp_sub_smssync
+from onadata.apps.sms_support.providers.smssync import \
+    import_submission_for_form as imp_sub_form_smssync
+from onadata.apps.sms_support.providers.telerivet import \
+    autodoc as autodoc_telerivet
+from onadata.apps.sms_support.providers.telerivet import \
+    import_submission as imp_sub_telerivet
+from onadata.apps.sms_support.providers.telerivet import \
+    import_submission_for_form as imp_sub_form_telerivet
+from onadata.apps.sms_support.providers.textit import autodoc as autodoc_textit
+from onadata.apps.sms_support.providers.textit import \
+    import_submission as imp_sub_textit
+from onadata.apps.sms_support.providers.textit import \
+    import_submission_for_form as imp_sub_form_textit
+from onadata.apps.sms_support.providers.twilio import autodoc as autodoc_twilio
+from onadata.apps.sms_support.providers.twilio import \
+    import_submission as imp_sub_twilio
+from onadata.apps.sms_support.providers.twilio import \
+    import_submission_for_form as imp_sub_form_twilio
 
 SMSSYNC = 'smssync'
 TELERIVET = 'telerivet'

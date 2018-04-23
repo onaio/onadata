@@ -1,14 +1,17 @@
+from past.builtins import basestring
+
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext as _
+
 from rest_framework import serializers
 
 from onadata.apps.api import tools
 from onadata.apps.api.models import OrganizationProfile
-from onadata.apps.api.tools import get_organization_members
+from onadata.apps.api.tools import (_get_first_last_names,
+                                    get_organization_members)
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.libs.permissions import get_role_in_org
 from onadata.libs.serializers.fields.json_field import JsonField
-from onadata.apps.api.tools import _get_first_last_names
 
 
 class OrganizationSerializer(serializers.HyperlinkedModelSerializer):

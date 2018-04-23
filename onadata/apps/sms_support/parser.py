@@ -1,8 +1,10 @@
 import base64
-from datetime import datetime, date
 import json
+import logging
 import re
-import StringIO
+from builtins import str as text
+from datetime import datetime, date
+from io import BytesIO
 
 from django.utils.translation import ugettext as _
 
@@ -35,11 +37,7 @@ def parse_sms_text(xform, identity, text):
     separator = json_survey.get('sms_separator', DEFAULT_SEPARATOR) \
         or DEFAULT_SEPARATOR
 
-    try:
-        allow_media = bool(json_survey.get('sms_allow_media', False))
-    except:
-        raise
-        allow_media = False
+    allow_media = bool(json_survey.get('sms_allow_media', False))
 
     xlsf_date_fmt = json_survey.get('sms_date_format', DEFAULT_DATE_FORMAT) \
         or DEFAULT_DATE_FORMAT
@@ -92,7 +90,7 @@ def parse_sms_text(xform, identity, text):
                                       % {'except': e}, xlsf_name)
 
         if xlsf_type == 'text':
-            return safe_wrap(lambda: unicode(value))
+            return safe_wrap(lambda: str(value))
         elif xlsf_type == 'integer':
             return safe_wrap(lambda: int(value))
         elif xlsf_type == 'decimal':
@@ -140,7 +138,7 @@ def parse_sms_text(xform, identity, text):
             # Example: hello.jpg;dGhpcyBpcyBteSBwaWN0dXJlIQ==
             return media_value(value, medias)
         elif xlsf_type == 'barcode':
-            return safe_wrap(lambda: unicode(value))
+            return safe_wrap(lambda: text(value))
         elif xlsf_type == 'date':
             return safe_wrap(lambda: datetime.strptime(value,
                                                        xlsf_date_fmt).date())
@@ -261,8 +259,8 @@ def process_incoming_smses(username, incomings,
         if len(incoming) >= 2:
             identity = incoming[0].strip().lower()
             text = incoming[1].strip().lower()
-            # if the tuple contain an id_string, use it, otherwise default
-            if len(incoming) and id_string is None >= 3:
+            # if the tuple contains an id_string, use it, otherwise default
+            if id_string is None and len(incoming) >= 3:
                 id_string = incoming[2]
         else:
             responses.append({'code': SMS_API_ERROR,
@@ -304,9 +302,9 @@ def process_incoming_smses(username, incomings,
             resp_str.update({'success': json_survey.get('sms_response')})
 
         # check that the form contains at least one filled group
-        meta_groups = sum([1 for k in json_submission.keys()
+        meta_groups = sum([1 for k in list(json_submission)
                            if k.startswith('meta')])
-        if len(json_submission.keys()) <= meta_groups:
+        if len(list(json_submission)) <= meta_groups:
             responses.append({'code': SMS_PARSING_ERROR,
                               'text': _(u"There must be at least one group of "
                                         u"questions filled.")})
@@ -339,11 +337,12 @@ def process_incoming_smses(username, incomings,
         for idx, note in enumerate(notes):
             try:
                 notes[idx] = note.replace('${', '{').format(**data)
-            except:
-                pass
+            except Exception as e:
+                logging.exception(_(u'Updating note threw exception: %s'
+                                  % text(e)))
 
         # process_incoming expectes submission to be a file-like object
-        xforms.append(StringIO.StringIO(xml_submission))
+        xforms.append(BytesIO(xml_submission.encode('utf-8')))
         medias.append(medias_submission)
         json_submissions.append(json_submission)
         xforms_notes.append(notes)
@@ -352,7 +351,7 @@ def process_incoming_smses(username, incomings,
         try:
             process_incoming(incoming, id_string)
         except Exception as e:
-            responses.append({'code': SMS_PARSING_ERROR, 'text': str(e)})
+            responses.append({'code': SMS_PARSING_ERROR, 'text': text(e)})
 
     for idx, xform in enumerate(xforms):
         # generate_instance expects media as a request.FILES.values() list

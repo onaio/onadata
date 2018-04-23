@@ -4,13 +4,15 @@ Test ProjectViewSet module.
 """
 import json
 import os
+from builtins import str
+from future.utils import iteritems
 from operator import itemgetter
 
-import requests
 from django.conf import settings
 from django.db.models import Q
 from httmock import HTTMock, urlmatch
 from mock import MagicMock, patch
+import requests
 
 from onadata.apps.api import tools
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
@@ -64,7 +66,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             'post': 'create'
         })
 
-    @patch('urllib2.urlopen')
+    @patch('onadata.apps.main.forms.urlopen')
     def test_publish_xlsform_using_url_upload(self, mock_urlopen):
         with HTTMock(enketo_mock):
             self._project_create()
@@ -79,7 +81,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_different_id_string.xlsx")
 
-            xls_file = open(path)
+            xls_file = open(path, 'rb')
             mock_urlopen.return_value = xls_file
 
             post_data = {'xls_url': xls_url}
@@ -102,7 +104,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                                            context={'request': request})
 
         self.assertEqual(response.data, [serializer.data])
-        self.assertIn('created_by', response.data[0].keys())
+        self.assertIn('created_by', list(response.data[0]))
 
     def test_projects_get(self):
         self._project_create()
@@ -118,7 +120,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.project_data)
-        res_user_props = response.data['users'][0].keys()
+        res_user_props = list(response.data['users'][0])
         res_user_props.sort()
         self.assertEqual(res_user_props, user_props)
 
@@ -152,8 +154,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertGreater(
             len(response.data.get('data_views')), 0)
 
-        form_obj_keys = response.data.get('forms')[0].keys()
-        data_view_obj_keys = response.data.get('data_views')[0].keys()
+        form_obj_keys = list(response.data.get('forms')[0])
+        data_view_obj_keys = list(response.data.get('data_views')[0])
         self.assertEqual(['date_created',
                           'downloadable',
                           'encrypted',
@@ -424,7 +426,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         # check if form added appears in the project details
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.project.pk)
-        self.assertIn('forms', response.data.keys())
+        self.assertIn('forms', list(response.data))
         self.assertEqual(len(response.data['forms']), 1)
 
     def test_project_manager_can_assign_form_to_project(self):
@@ -461,7 +463,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         # check if form added appears in the project details
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.project.pk)
-        self.assertIn('forms', response.data.keys())
+        self.assertIn('forms', list(response.data))
         self.assertEqual(len(response.data['forms']), 1)
 
     def test_project_manager_can_assign_form_to_project_no_perm(self):
@@ -1356,7 +1358,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         })
 
         data = {'username': 'alice', 'remove': True}
-        for role_name, role_class in role.ROLES.iteritems():
+        for (role_name, role_class) in iteritems(role.ROLES):
 
             ShareProject(self.project, 'alice', role_name).save()
 
@@ -1736,7 +1738,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEquals(3, len(response.data['teams']))
         self.assertEquals(response.data['teams'][2]['role'], 'editor')
         self.assertEquals(response.data['teams'][2]['users'][0],
-                          unicode(chuck_profile.user.username))
+                          str(chuck_profile.user.username))
 
     def test_project_accesible_by_admin_created_by_diff_admin(self):
         self._org_create()
@@ -1756,17 +1758,21 @@ class TestProjectViewSet(TestAbstractViewSet):
         # save the org creator
         bob = self.user
 
-        data = {"username": alice_profile.user.username,
-                "role": OwnerRole.name}
+        data = json.dumps(
+            {"username": alice_profile.user.username,
+             "role": OwnerRole.name})
         # create admin 1
-        request = self.factory.post('/', data=data, **self.extra)
+        request = self.factory.post(
+            '/', data=data, content_type='application/json', **self.extra)
         response = view(request, user='denoinc')
 
         self.assertEquals(201, response.status_code)
-        data = {"username": chuck_profile.user.username,
-                "role": OwnerRole.name}
+        data = json.dumps(
+            {"username": chuck_profile.user.username,
+             "role": OwnerRole.name})
         # create admin 2
-        request = self.factory.post('/', data=data, **self.extra)
+        request = self.factory.post(
+            '/', data=data, content_type='application/json', **self.extra)
         response = view(request, user='denoinc')
 
         self.assertEquals(201, response.status_code)
@@ -1820,12 +1826,13 @@ class TestProjectViewSet(TestAbstractViewSet):
             'HTTP_AUTHORIZATION': 'Token %s' % bob.auth_token}
 
         # remove from admin org
-        data = {"username": alice_profile.user.username}
+        data = json.dumps({"username": alice_profile.user.username})
         view = OrganizationProfileViewSet.as_view({
             'delete': 'members'
         })
 
-        request = self.factory.delete('/', data=data, **self.extra)
+        request = self.factory.delete(
+            '/', data=data, content_type='application/json', **self.extra)
         response = view(request, user='denoinc')
         self.assertEquals(200, response.status_code)
 
@@ -1899,7 +1906,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         view = ProjectViewSet.as_view({'put': 'share'})
 
         data = {'username': 'alice', 'remove': True}
-        for role_name, role_class in role.ROLES.iteritems():
+        for (role_name, role_class) in iteritems(role.ROLES):
 
             ShareProject(self.project, 'alice', role_name).save()
 
@@ -1951,7 +1958,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         view = ProjectViewSet.as_view({'put': 'share'})
 
         data = {'username': 'alice', 'remove': True}
-        for role_name, role_class in role.ROLES.iteritems():
+        for (role_name, role_class) in iteritems(role.ROLES):
 
             ShareProject(self.project, 'alice', role_name).save()
 
@@ -2137,7 +2144,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                                            context={'request': request})
 
         self.assertEqual(response.data, [serializer.data])
-        self.assertIn('created_by', response.data[0].keys())
+        self.assertIn('created_by', list(response.data[0]))
 
         request = self.factory.delete('/', **self.extra)
         request.user = self.user

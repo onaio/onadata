@@ -4,14 +4,23 @@
 #
 #    pip-compile --output-file requirements/base.pip requirements/base.in
 #
--e git+https://github.com/onaio/django-digest.git@django-1.9-fixes#egg=django-digest
+#
+# -e git+https://github.com/celery/librabbitmq@master#egg=librabbitmq
+# manually editted to git+https://github.com/celery/librabbitmq@master
+# so that the install works
+#
+# Added python2 marker to functools manually
+#
+-e git+https://github.com/onaio/django-digest.git@master#egg=django-digest
+-e git+https://github.com/onaio/python-digest.git@master#egg=python-digest
 -e git+https://github.com/onaio/django-multidb-router.git@django-1.11#egg=django-multidb-router
 -e git+https://github.com/jbalogh/django-nose.git#egg=django-nose
 -e git+https://github.com/bfirsh/django-ordered-model.git@master#egg=django-ordered-model
+git+https://github.com/celery/librabbitmq@master
 -e git+https://github.com/onaio/floip-py.git@master#egg=floip
 -e git+https://github.com/onaio/python-json2xlsclient.git#egg=python-json2xlsclient
 alabaster==0.7.10         # via sphinx
-amqp==1.4.9               # via kombu, librabbitmq
+amqp==1.4.9               # via kombu
 anyjson==0.3.3            # via kombu
 argparse==1.4.0           # via unittest2
 babel==2.4.0              # via sphinx
@@ -49,14 +58,14 @@ djangorestframework-xml==1.3.0
 djangorestframework==3.6.3  # via djangorestframework-csv, djangorestframework-gis, djangorestframework-jsonapi
 docutils==0.13.1          # via sphinx
 dpath==1.4.0
-elaphe==0.6.0
+elaphe3==0.2.0
 enum34==1.1.6             # via flake8
 et-xmlfile==1.0.1         # via openpyxl
 flake8==3.3.0
 fleming==0.4.5            # via django-query-builder
-formencode==1.3.1         # via pyxform
+formencode==1.3.1
 funcsigs==1.0.2           # via mock
-functools32==3.2.3.post2  # via jsonschema
+functools32==3.2.3.post2 ; python_version == "2.7"
 future==0.16.0
 geojson==1.3.5
 google-api-python-client==1.6.2
@@ -75,7 +84,6 @@ jsonpickle==0.9.4
 jsonpointer==1.14         # via datapackage
 jsonschema==2.6.0         # via datapackage, tableschema
 kombu==3.0.37             # via celery
-librabbitmq==1.6.1
 linear-tsv==1.0.0         # via tabulator
 linecache2==1.0.0         # via traceback2
 lxml==3.7.3
@@ -103,7 +111,6 @@ pyjwt==1.5.0
 pylibmc==1.5.2
 pymongo==3.4.0
 python-dateutil==2.6.0    # via fleming, tableschema
-python-digest==1.7
 python-memcached==1.58
 pytz==2017.2              # via babel, celery, django, django-query-builder, fleming
 pyxform==0.11.1
@@ -123,11 +130,11 @@ sqlparse==0.2.3           # via django-debug-toolbar
 tableschema==1.0.8        # via datapackage
 tabulator==1.11.1         # via datapackage, tableschema
 traceback2==1.4.0         # via unittest2
-typing==3.6.1             # via sphinx
-unicodecsv==0.14.1        # via datapackage, djangorestframework-csv, pyxform, tableschema, tabulator
-unittest2==1.1.0          # via pyxform
+typing==3.6.4             # via sphinx
+unicodecsv==0.14.1        # via datapackage, djangorestframework-csv, tableschema, tabulator
+unittest2==1.1.0
 uritemplate==3.0.0        # via google-api-python-client
 urllib3==1.21.1           # via requests
 uwsgi==2.0.15
-xlrd==1.1.0               # via pyxform, tabulator
+xlrd==1.1.0               # via tabulator
 xlwt==1.2.0

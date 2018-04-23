@@ -1,4 +1,7 @@
+from past.builtins import basestring
+
 from django.http import Http404
+
 from rest_framework import serializers
 
 from onadata.apps.logger.models.xform import XForm

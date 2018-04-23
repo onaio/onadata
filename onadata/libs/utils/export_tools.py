@@ -2,23 +2,23 @@
 """
 Export tools
 """
+from __future__ import unicode_literals
 
 import hashlib
 import json
-import math
 import os
 import re
 import sys
-import time
+from builtins import open
 from datetime import datetime, timedelta
-from urlparse import urlparse
+from future.moves.urllib.parse import urlparse
+from future.utils import iteritems
 
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.base import File
 from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
-from django.db import OperationalError
 from django.db.models.query import QuerySet
 from django.shortcuts import render_to_response
 from django.utils import timezone
@@ -38,7 +38,10 @@ from onadata.apps.viewer.models.parsed_instance import query_data
 from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 from onadata.libs.utils.common_tags import (DATAVIEW_EXPORT,
                                             GROUPNAME_REMOVED_FLAG)
-from onadata.libs.utils.common_tools import report_exception, str_to_bool
+from onadata.libs.utils.common_tools import (str_to_bool,
+                                             cmp_to_key,
+                                             report_exception,
+                                             retry)
 from onadata.libs.utils.export_builder import ExportBuilder
 from onadata.libs.utils.model_tools import (get_columns_with_hxl,
                                             queryset_iterator)
@@ -53,54 +56,6 @@ EXPORT_QUERY_KEY = 'query'
 MAX_RETRIES = 3
 
 
-def export_retry(tries, delay=3, backoff=2):
-    '''
-    Adapted from code found here:
-        http://wiki.python.org/moin/PythonDecoratorLibrary#Retry
-
-    Retries a function or method until it returns True.
-
-    *delay* sets the initial delay in seconds, and *backoff* sets the
-    factor by which the delay should lengthen after each failure.
-    *backoff* must be greater than 1, or else it isn't really a backoff.
-    *tries* must be at least 0, and *delay* greater than 0.
-    '''
-
-    if backoff <= 1:  # pragma: no cover
-        raise ValueError("backoff must be greater than 1")
-
-    tries = math.floor(tries)
-    if tries < 0:  # pragma: no cover
-        raise ValueError("tries must be 0 or greater")
-
-    if delay <= 0:  # pragma: no cover
-        raise ValueError("delay must be greater than 0")
-
-    def decorator_retry(func):
-        def function_retry(self, *args, **kwargs):
-            mtries, mdelay = tries, delay
-            while mtries > 0:
-                try:
-                    result = func(self, *args, **kwargs)
-                except OperationalError:
-                    mtries -= 1
-                    time.sleep(mdelay)
-                    mdelay *= backoff
-                else:
-                    return result
-            # Last ditch effort run against master database
-            if len(getattr(settings, 'SLAVE_DATABASES', [])):
-                from multidb.pinning import use_master
-                with use_master:
-                    return func(self, *args, **kwargs)
-
-            # last attempt, exception raised from function is propagated
-            return func(self, *args, **kwargs)
-
-        return function_retry
-    return decorator_retry
-
-
 def dict_to_flat_export(d, parent_index=0):
     pass
 
@@ -111,7 +66,7 @@ def md5hash(string):
 
 def get_export_options(options):
     export_options = {
-        key: value for key, value in options.iteritems()
+        key: value for (key, value) in iteritems(options)
         if key in Export.EXPORT_OPTION_FIELDS}
 
     return export_options
@@ -134,7 +89,7 @@ def get_or_create_export(export_id, xform, export_type, options):
     return create_export_object(xform, export_type, options)
 
 
-@export_retry(MAX_RETRIES)
+@retry(MAX_RETRIES)
 def generate_export(export_type, xform, export_id=None, options=None,
                     retries=0):
     """
@@ -352,7 +307,7 @@ def should_create_new_export(xform,
     if getattr(settings, 'SHOULD_ALWAYS_CREATE_NEW_EXPORT', False):
         return True
 
-    if (request and (frozenset(request.GET.keys()) &
+    if (request and (frozenset(list(request.GET)) &
                      frozenset(['start', 'end', 'data_id']))) or\
             not split_select_multiples:
         return True
@@ -469,7 +424,7 @@ def generate_attachments_zip_export(export_type, username, id_string,
         zip_file = create_attachments_zipfile(attachments)
 
         try:
-            temp_file = open(zip_file.name)
+            temp_file = open(zip_file.name, 'rb')
             filename = default_storage.save(
                 file_path,
                 File(temp_file, file_path))
@@ -487,18 +442,56 @@ def generate_attachments_zip_export(export_type, username, id_string,
     return export
 
 
+def write_temp_file_to_path(suffix, content, file_path):
+    """ Write a temp file and return the name of the file.
+    :param suffix: The file suffix
+    :param content: The content to write
+    :param file_path: The path to write the temp file to
+    :return: The filename written to
+    """
+    temp_file = NamedTemporaryFile(suffix=suffix)
+    temp_file.write(content)
+    temp_file.seek(0)
+    export_filename = default_storage.save(
+        file_path,
+        File(temp_file, file_path))
+    temp_file.close()
+
+    return export_filename
+
+
+def get_or_create_export_object(export_id, options, xform, export_type):
+    """ Get or create export object.
+
+    :param export_id: Export ID
+    :param options: Options to convert to export options
+    :param xform: XForm to export
+    :param export_type: The type of export
+    :return: A new or found export object
+    """
+    if export_id and Export.objects.filter(pk=export_id).exists():
+        export = Export.objects.get(id=export_id)
+    else:
+        export_options = get_export_options(options)
+        export = Export.objects.create(xform=xform,
+                                       export_type=export_type,
+                                       options=export_options)
+
+    return export
+
+
 # pylint: disable=R0913
 def generate_kml_export(export_type, username, id_string, export_id=None,
                         options=None, xform=None):
     """
     Generates kml export for geographical data
 
-    param: export_type
-    params: username: logged in username
-    params: id_string: xform id_string
-    params: export_id: ID of export object associated with the request
-    param: options: additional parameters required for the lookup.
-        extension: File extension of the generated export
+    :param export_type: type of export
+    :param username: logged in username
+    :param id_string: xform id_string
+    :param export_id: ID of export object associated with the request
+    :param options: additional parameters required for the lookup.
+    :param extension: File extension of the generated export
     """
     export_type = options.get("extension", export_type)
 
@@ -518,22 +511,11 @@ def generate_kml_export(export_type, username, id_string, export_id=None,
         export_type,
         filename)
 
-    temp_file = NamedTemporaryFile(suffix=export_type.lower())
-    temp_file.write(response.content)
-    temp_file.seek(0)
-    export_filename = default_storage.save(
-        file_path,
-        File(temp_file, file_path))
-    temp_file.close()
+    export_filename = write_temp_file_to_path(
+        export_type.lower(), response.content, file_path)
 
-    # get or create export object
-    if export_id and Export.objects.filter(pk=export_id).exists():
-        export = Export.objects.get(id=export_id)
-    else:
-        export_options = get_export_options(options)
-        export = Export.objects.create(xform=xform,
-                                       export_type=export_type,
-                                       options=export_options)
+    export = get_or_create_export_object(
+        export_id, options, xform, export_type)
 
     export.filedir, export.filename = os.path.split(export_filename)
     export.internal_status = Export.SUCCESSFUL
@@ -550,7 +532,7 @@ def kml_export_data(id_string, user, xform=None):
         """
         Get and Cache labels for the XForm.
         """
-        if xpath in labels.keys():
+        if xpath in list(labels):
             return labels[xpath]
         labels[xpath] = xform.get_label(xpath)
 
@@ -573,8 +555,8 @@ def kml_export_data(id_string, user, xform=None):
     for instance in queryset_iterator(instances):
         # read the survey instances
         data_for_display = instance.get_dict()
-        xpaths = data_for_display.keys()
-        xpaths.sort(cmp=instance.xform.get_xpath_cmp())
+        xpaths = list(data_for_display)
+        xpaths.sort(key=cmp_to_key(instance.xform.get_xpath_cmp()))
         table_rows = [
             '<tr><td>%s</td><td>%s</td></tr>' %
             (cached_get_labels(xpath), data_for_display[xpath]) for xpath in
@@ -616,12 +598,12 @@ def generate_osm_export(export_type, username, id_string, export_id=None,
     """
     Generates osm export for OpenStreetMap data
 
-    param: export_type
-    params: username: logged in username
-    params: id_string: xform id_string
-    params: export_id: ID of export object associated with the request
-    param: options: additional parameters required for the lookup.
-        ext: File extension of the generated export
+    :param export_type: type of export
+    :param username: logged in username
+    :param id_string: xform id_string
+    :param export_id: ID of export object associated with the request
+    :param options: additional parameters required for the lookup.
+    :param ext: File extension of the generated export
     """
 
     extension = options.get("extension", export_type)
@@ -643,25 +625,12 @@ def generate_osm_export(export_type, username, id_string, export_id=None,
         export_type,
         filename)
 
-    temp_file = NamedTemporaryFile(suffix=extension)
-    temp_file.write(content)
-    temp_file.seek(0)
-    export_filename = default_storage.save(
-        file_path,
-        File(temp_file, file_path))
-    temp_file.close()
+    export_filename = write_temp_file_to_path(extension, content, file_path)
+
+    export = get_or_create_export_object(
+        export_id, options, xform, export_type)
 
     dir_name, basename = os.path.split(export_filename)
-
-    # get or create export object
-    if export_id and Export.objects.filter(pk=export_id).exists():
-        export = Export.objects.get(id=export_id)
-    else:
-        export_options = get_export_options(options)
-        export = Export.objects.create(xform=xform,
-                                       export_type=export_type,
-                                       options=export_options)
-
     export.filedir = dir_name
     export.filename = basename
     export.internal_status = Export.SUCCESSFUL
@@ -681,7 +650,7 @@ def clean_keys_of_slashes(record):
     :param record: list containing a couple of dictionaries
     :return: record with keys without slashes
     """
-    for key in record.keys():
+    for key in list(record):
         value = record[key]
         if '/' in key:
             # replace with _

@@ -9,6 +9,8 @@ from rest_framework.response import Response
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 
 from onadata.apps.api import permissions
+from onadata.apps.api.tools import get_baseviewset_class, load_class
+from onadata.libs.utils.common_tools import merge_dicts
 from onadata.libs.filters import (OrganizationPermissionFilter,
                                   OrganizationsSharedWithUserFilter)
 from onadata.libs.mixins.authenticate_header_mixin import \
@@ -16,13 +18,11 @@ from onadata.libs.mixins.authenticate_header_mixin import \
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
-from onadata.libs.serializers.organization_serializer import (
-    OrganizationSerializer)
-from onadata.apps.api.tools import load_class
-from onadata.apps.api.tools import get_baseviewset_class
-
 from onadata.libs.serializers.organization_member_serializer import \
     OrganizationMemberSerializer
+from onadata.libs.serializers.organization_serializer import (
+    OrganizationSerializer)
+
 
 BaseViewset = get_baseviewset_class()
 
@@ -53,9 +53,9 @@ class OrganizationProfileViewSet(AuthenticateHeaderMixin,
     @detail_route(methods=['DELETE', 'GET', 'POST', 'PUT'])
     def members(self, request, *args, **kwargs):
         organization = self.get_object()
-        data = dict(request.data.items() +
-                    request.query_params.items() +
-                    [('organization', organization.pk)])
+        data = merge_dicts(request.data,
+                           request.query_params.dict(),
+                           {'organization': organization.pk})
 
         if request.method == 'POST' and 'username' not in data:
             data['username'] = None

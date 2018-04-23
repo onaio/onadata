@@ -4,6 +4,7 @@ Test CSVDataFrameBuilder
 """
 import csv
 import os
+from builtins import chr, open
 from tempfile import NamedTemporaryFile
 
 from django.test.utils import override_settings
@@ -122,7 +123,7 @@ class TestCSVDataFrameBuilder(TestBase):
         self._publish_grouped_gps_form()
         self._submit_fixture_instance("grouped_gps", "01")
         data = self._csv_data_for_dataframe()
-        columns = data[0].keys()
+        columns = list(data[0])
         expected_columns = [
             u'gps_group/gps',
             u'gps_group/_gps_latitude',
@@ -202,8 +203,8 @@ class TestCSVDataFrameBuilder(TestBase):
         }
         # build a new dictionary only composed of the keys we want to use in
         # the comparison
-        result = dict([(key, result[key]) for key in result.keys()
-                       if key in expected_result.keys()])
+        result = dict([(key, result[key]) for key in list(result)
+                       if key in list(expected_result)])
         self.assertEqual(expected_result, result)
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username,
@@ -220,8 +221,8 @@ class TestCSVDataFrameBuilder(TestBase):
         }
         # build a new dictionary only composed of the keys we want to use in
         # the comparison
-        result = dict([(key, result[key]) for key in result.keys()
-                       if key in expected_result.keys()])
+        result = dict([(key, result[key]) for key in list(result)
+                       if key in list(expected_result)])
         self.assertEqual(expected_result, result)
 
     # pylint: disable=invalid-name
@@ -323,7 +324,7 @@ class TestCSVDataFrameBuilder(TestBase):
         """
         Test write_to_csv() with unicode characters.
         """
-        unicode_char = unichr(40960)
+        unicode_char = chr(40960)
         # fake data
         data = [{"key": unicode_char}]
         columns = ["key"]
@@ -416,9 +417,9 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
         csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name)
+        csv_file = open(temp_file.name, 'r')
         csv_reader = csv.reader(csv_file)
-        header = csv_reader.next()
+        header = next(csv_reader)
         self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
         rows = []
         for row in csv_reader:
@@ -450,27 +451,11 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
         csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name)
+        csv_file = open(temp_file.name, 'r')
         csv_reader = csv.reader(csv_file)
-        header = csv_reader.next()
+        header = next(csv_reader)
         self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
-        expected_header = [
-            '\xef\xbb\xbfname', '\xef\xbb\xbfage', '\xef\xbb\xbfhas_kids',
-            '\xef\xbb\xbfkids_name', '\xef\xbb\xbfkids_age',
-            '\xef\xbb\xbfkids_name', '\xef\xbb\xbfkids_age', '\xef\xbb\xbfgps',
-            '\xef\xbb\xbf_gps_latitude', '\xef\xbb\xbf_gps_longitude',
-            '\xef\xbb\xbf_gps_altitude', '\xef\xbb\xbf_gps_precision',
-            '\xef\xbb\xbfweb_browsers/firefox',
-            '\xef\xbb\xbfweb_browsers/chrome', '\xef\xbb\xbfweb_browsers/ie',
-            '\xef\xbb\xbfweb_browsers/safari', '\xef\xbb\xbfinstanceID',
-            '\xef\xbb\xbf_id', '\xef\xbb\xbf_uuid',
-            '\xef\xbb\xbf_submission_time', '\xef\xbb\xbf_tags',
-            '\xef\xbb\xbf_notes', '\xef\xbb\xbf_version',
-            '\xef\xbb\xbf_duration', '\xef\xbb\xbf_submitted_by',
-            '\xef\xbb\xbf_total_media', '\xef\xbb\xbf_media_count',
-            '\xef\xbb\xbf_media_all_received'
-        ]
-        self.assertEqual(expected_header, header)
+        self.assertEqual(b'\xef\xbb\xbfname', header[0].encode('utf-8'))
         # close and delete file
         csv_file.close()
         os.unlink(temp_file.name)
@@ -550,9 +535,9 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
         csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name)
+        csv_file = open(temp_file.name, 'r')
         csv_reader = csv.reader(csv_file)
-        header = csv_reader.next()
+        header = next(csv_reader)
         self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
         expected_header = [
             'name', 'age', 'has_kids', 'kids_name', 'kids_age', 'kids_name',
@@ -594,9 +579,9 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
         csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name)
+        csv_file = open(temp_file.name, 'r')
         csv_reader = csv.reader(csv_file)
-        header = csv_reader.next()
+        header = next(csv_reader)
         self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
         expected_header = [
             'name', 'age', 'has_kids', 'kids_name', 'kids_age', 'kids_name',
@@ -608,7 +593,7 @@ class TestCSVDataFrameBuilder(TestBase):
             '_media_count', '_media_all_received'
         ]
         self.assertEqual(expected_header, header)
-        labels = csv_reader.next()
+        labels = next(csv_reader)
         self.assertEqual(len(labels), 17 + len(csv_df_builder.extra_columns))
         expected_labels = [
             'Name', 'age', 'Do you have kids?', 'Kids Name', 'Kids Age',
@@ -652,9 +637,9 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
         csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name)
+        csv_file = open(temp_file.name, 'r')
         csv_reader = csv.reader(csv_file)
-        labels = csv_reader.next()
+        labels = next(csv_reader)
         self.assertEqual(len(labels), 17 + len(csv_df_builder.extra_columns))
         expected_labels = [
             'Name', 'age', 'Do you have kids?', 'Kids Name', 'Kids Age',
@@ -750,9 +735,9 @@ class TestCSVDataFrameBuilder(TestBase):
             include_labels=True)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
         csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name)
+        csv_file = open(temp_file.name, 'r')
         csv_reader = csv.reader(csv_file)
-        header = csv_reader.next()
+        header = next(csv_reader)
         self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
         expected_header = [
             'name', 'age', 'has_kids', 'kids_name', 'kids_age', 'kids_name',
@@ -775,9 +760,9 @@ class TestCSVDataFrameBuilder(TestBase):
             include_labels=True)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
         csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name)
+        csv_file = open(temp_file.name, 'r')
         csv_reader = csv.reader(csv_file)
-        header = csv_reader.next()
+        header = next(csv_reader)
         self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
         self.assertEqual(expected_header, header)
         csv_file.close()

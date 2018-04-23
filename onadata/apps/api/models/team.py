@@ -1,12 +1,14 @@
+from future.utils import python_2_unicode_compatible
+
 from django.db import models
 from django.db.models.signals import post_save
 from django.contrib.auth.models import User, Group
-
 from guardian.shortcuts import assign_perm, get_perms_for_model
 
 from onadata.apps.logger.models.project import Project
 
 
+@python_2_unicode_compatible
 class Team(Group):
     """
     TODO: documentation
@@ -31,13 +33,13 @@ class Team(Group):
                                         blank=True)
     date_modified = models.DateTimeField(auto_now=True, null=True, blank=True)
 
-    def __unicode__(self):
+    def __str__(self):
         # return a clear group name without username to user for viewing
         return self.name.split('#')[1]
 
     @property
     def team_name(self):
-        return self.__unicode__()
+        return self.__str__()
 
     def save(self, *args, **kwargs):
         # allow use of same name in different organizations/users

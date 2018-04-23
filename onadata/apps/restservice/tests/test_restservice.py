@@ -80,9 +80,10 @@ class RestServiceTest(TestBase):
             'id_string': self.xform.id_string
         })
         response = self.client.get(url)
-        self.assertFalse(
+        self.assertNotContains(
+            response,
             '<h3 data-toggle="collapse" class="toggler" data-target='
-            '"#restservice_tab">Rest Services</h3>' in response.content)
+            '"#restservice_tab">Rest Services</h3>')
 
     def test_delete_service(self):
         self._add_rest_service(self.service_url, self.service_name)

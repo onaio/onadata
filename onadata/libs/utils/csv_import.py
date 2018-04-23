@@ -1,26 +1,33 @@
-import cStringIO
 import json
+import logging
 import sys
+import unicodecsv as ucsv
 import uuid
+from builtins import str as text
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
+from functools import reduce
+from future.utils import iteritems
+from io import BytesIO
+from past.builtins import basestring
 
-import unicodecsv as ucsv
-from celery import current_task, task
-from celery.backends.amqp import BacklogLimitExceeded
-from celery.result import AsyncResult
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.storage import default_storage
+from django.utils.translation import ugettext as _
+
+from celery import current_task, task
+from celery.backends.amqp import BacklogLimitExceeded
+from celery.result import AsyncResult
 
 from onadata.apps.logger.models import Instance
 from onadata.libs.utils.async_status import (FAILED, async_status,
                                              celery_state_to_status)
 from onadata.libs.utils.common_tags import MULTIPLE_SELECT_TYPE
+from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
 from onadata.libs.utils.logger_tools import dict2xml, safe_create_instance
-from onadata.libs.utils.common_tools import report_exception
 
 DEFAULT_UPDATE_BATCH = 100
 PROGRESS_BATCH_UPDATE = getattr(settings, 'EXPORT_TASK_PROGRESS_UPDATE_BATCH',
@@ -88,7 +95,7 @@ def dict_merge(a, b):
     if not isinstance(b, dict):
         return b
     result = deepcopy(a)
-    for k, v in b.iteritems():
+    for (k, v) in iteritems(b):
         if k in result and isinstance(result[k], dict):
             result[k] = dict_merge(result[k], v)
         else:
@@ -108,7 +115,7 @@ def dict_pathkeys_to_nested_dicts(dictionary):
     :rtype: dict
     """
     d = dictionary.copy()
-    for key in d.keys():
+    for key in list(d):
         if r'/' in key:
             d = dict_merge(
                 reduce(lambda v, k: {k: v},
@@ -120,6 +127,21 @@ def dict_pathkeys_to_nested_dicts(dictionary):
 def submit_csv_async(username, xform, file_path):
     with default_storage.open(file_path) as csv_file:
         return submit_csv(username, xform, csv_file)
+
+
+def failed_import(rollback_uuids, xform, exception, status_message):
+    """ Report a failed import.
+    :param rollback_uuids: The rollback UUIDs
+    :param xform: The XForm that failed to import to
+    :param exception: The exception object
+    :return: The async_status result
+    """
+    Instance.objects.filter(uuid__in=rollback_uuids, xform=xform).delete()
+    report_exception('CSV Import Failed : %d - %s - %s' %
+                     (xform.pk, xform.id_string, xform.title),
+                     exception,
+                     sys.exc_info())
+    return async_status(FAILED, status_message)
 
 
 def submit_csv(username, xform, csv_file):
@@ -135,8 +157,8 @@ def submit_csv(username, xform, csv_file):
     :return: If sucessful, a dict with import summary else dict with error str.
     :rtype: Dict
     """
-    if isinstance(csv_file, unicode):
-        csv_file = cStringIO.StringIO(csv_file)
+    if isinstance(csv_file, str):
+        csv_file = BytesIO(csv_file)
     elif csv_file is None or not hasattr(csv_file, 'read'):
         return async_status(FAILED, (u'Invalid param type for `csv_file`. '
                                      'Expected utf-8 encoded file or unicode'
@@ -186,7 +208,7 @@ def submit_csv(username, xform, csv_file):
             addition_col.remove(col)
 
     # remove headers for repeats that might be missing from csv
-    missing = [m for m in missing if m.find('[') == -1]
+    missing = sorted([m for m in missing if m.find('[') == -1])
 
     # Include additional repeats
     addition_col = [a for a in addition_col if a.find('[') == -1]
@@ -214,7 +236,7 @@ def submit_csv(username, xform, csv_file):
             submission_date = row.get('_submission_time', submission_time)
 
             location_data = {}
-            for key in row.keys():  # seems faster than a comprehension
+            for key in list(row):  # seems faster than a comprehension
                 # remove metadata (keys starting with '_')
                 if key.startswith('_'):
                     del row[key]
@@ -233,7 +255,7 @@ def submit_csv(username, xform, csv_file):
 
             # collect all location K-V pairs into single geopoint field(s)
             # in location_data dict
-            for location_key in location_data.keys():
+            for location_key in list(location_data):
                 location_data.update({
                     location_key:
                     (u'%(latitude)s %(longitude)s '
@@ -258,7 +280,7 @@ def submit_csv(username, xform, csv_file):
             row_uuid = row.get('meta').get('instanceID')
             rollback_uuids.append(row_uuid.replace('uuid:', ''))
 
-            xml_file = cStringIO.StringIO(
+            xml_file = BytesIO(
                 dict2xmlsubmission(row, xform, row_uuid, submission_date))
 
             try:
@@ -270,7 +292,7 @@ def submit_csv(username, xform, csv_file):
             if error:
                 Instance.objects.filter(
                     uuid__in=rollback_uuids, xform=xform).delete()
-                return async_status(FAILED, str(error))
+                return async_status(FAILED, text(error))
             else:
                 additions += 1
                 if additions % PROGRESS_BATCH_UPDATE == 0:
@@ -283,7 +305,8 @@ def submit_csv(username, xform, csv_file):
                                 'info': addition_col
                             })
                     except Exception:
-                        pass
+                        logging.exception(_(u'Could not update state of '
+                                            'import CSV batch process.'))
                     finally:
                         xform.submission_count(True)
 
@@ -294,17 +317,10 @@ def submit_csv(username, xform, csv_file):
                     instance.save()
 
     except UnicodeDecodeError as e:
-        Instance.objects.filter(uuid__in=rollback_uuids, xform=xform).delete()
-        report_exception('CSV Import Failed : %d - %s - %s' %
-                         (xform.pk, xform.id_string, xform.title), e,
-                         sys.exc_info())
-        return async_status(FAILED, u'CSV file must be utf-8 encoded')
+        return failed_import(
+            rollback_uuids, xform, e, u'CSV file must be utf-8 encoded')
     except Exception as e:
-        Instance.objects.filter(uuid__in=rollback_uuids, xform=xform).delete()
-        report_exception('CSV Import Failed : %d - %s - %s' %
-                         (xform.pk, xform.id_string, xform.title), e,
-                         sys.exc_info())
-        return async_status(FAILED, str(e))
+        return failed_import(rollback_uuids, xform, e, text(e))
     finally:
         xform.submission_count(True)
 
@@ -335,9 +351,9 @@ def get_async_csv_submission_status(job_uuid):
 
         if isinstance(result, (Exception)):
             return async_status(
-                celery_state_to_status(job.state), job.result.message)
+                celery_state_to_status(job.state), text(job.result))
 
-        if isinstance(result, (str, unicode)):
+        if isinstance(result, basestring):
             return async_status(celery_state_to_status(job.state))
 
     except BacklogLimitExceeded:

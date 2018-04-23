@@ -1,4 +1,6 @@
+from builtins import str as text
 from collections import defaultdict
+from io import StringIO
 from pyxform import Section, Question
 from xlwt import Workbook
 
@@ -20,7 +22,6 @@ class XlsWriter(object):
         if file_object is not None:
             self._file = file_object
         else:
-            from StringIO import StringIO
             self._file = StringIO()
 
     def reset_workbook(self):
@@ -45,7 +46,7 @@ class XlsWriter(object):
     def add_row(self, sheet_name, row):
         i = self._current_index[sheet_name]
         columns = self._columns[sheet_name]
-        for key in row.keys():
+        for key in list(row):
             if key not in columns:
                 self.add_column(sheet_name, key)
         for j, column_name in enumerate(self._columns[sheet_name]):
@@ -83,7 +84,7 @@ class XlsWriter(object):
             self.add_sheet(table_name)
             for i, row in enumerate(table):
                 for j, value in enumerate(row):
-                    self._sheets[table_name].write(i, j, unicode(value))
+                    self._sheets[table_name].write(i, j, text(value))
         return self._workbook
 
     def save_workbook_to_file(self):
@@ -123,7 +124,7 @@ class XlsWriter(object):
             i = 1
             unique_name = sheet_name
             while(unique_name in self._sheets):
-                number_len = len(str(i))
+                number_len = len(text(i))
                 allowed_name_len = self.sheet_name_limit - number_len
                 # make name required len
                 if(len(unique_name) > allowed_name_len):

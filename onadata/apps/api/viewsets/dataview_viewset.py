@@ -1,8 +1,9 @@
-from django.http import HttpResponseBadRequest, Http404
-from django.db.models.signals import post_save, post_delete
+from past.builtins import basestring
+
+from django.db.models.signals import post_delete, post_save
+from django.http import Http404, HttpResponseBadRequest
 
 from celery.result import AsyncResult
-
 from rest_framework import status
 from rest_framework.decorators import detail_route
 from rest_framework.exceptions import ParseError
@@ -12,29 +13,28 @@ from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.api.permissions import DataViewViewsetPermissions
+from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.viewer.models.export import Export
-from onadata.libs.renderers import renderers
 from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
+from onadata.libs.renderers import renderers
+from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.serializers.dataview_serializer import DataViewSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
-from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.utils import common_tags
-from onadata.libs.utils.api_export_tools import custom_response_handler
-from onadata.libs.utils.api_export_tools import export_async_export_response
-from onadata.libs.utils.api_export_tools import process_async_export
-from onadata.libs.utils.api_export_tools import response_for_format
-from onadata.libs.utils.api_export_tools import include_hxl_row
-from onadata.libs.utils.chart_tools import get_chart_data_for_field, \
-    get_field_from_field_name
+from onadata.libs.utils.api_export_tools import (custom_response_handler,
+                                                 export_async_export_response,
+                                                 include_hxl_row,
+                                                 process_async_export,
+                                                 response_for_format)
+from onadata.libs.utils.cache_tools import (PROJECT_LINKED_DATAVIEWS,
+                                            safe_delete)
+from onadata.libs.utils.chart_tools import (get_chart_data_for_field,
+                                            get_field_from_field_name)
 from onadata.libs.utils.export_tools import str_to_bool
-from onadata.apps.api.tools import get_baseviewset_class
-from onadata.libs.utils.cache_tools import (
-    PROJECT_LINKED_DATAVIEWS,
-    safe_delete)
 from onadata.libs.utils.model_tools import get_columns_with_hxl
 
 BaseViewset = get_baseviewset_class()
@@ -125,7 +125,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
 
         if columns_with_hxl and include_hxl:
             include_hxl = include_hxl_row(
-                dataview.columns, columns_with_hxl.keys()
+                dataview.columns, list(columns_with_hxl)
             )
 
         options = {

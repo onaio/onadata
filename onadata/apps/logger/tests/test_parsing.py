@@ -1,4 +1,5 @@
 # vim: ai ts=4 sts=4 et sw=4 fileencoding=utf-8
+import json
 import os
 import re
 from xml.dom import minidom
@@ -100,7 +101,7 @@ class TestXFormInstanceParser(TestBase):
                   '<gps>-1.2625072 36.7924328 0.0 30.0</gps>' \
                   '<info>What</info></gps></test_item_name_matches_repeat>'
         clean_xml_str = xml_str.strip()
-        clean_xml_str = re.sub(ur">\s+<", u"><", clean_xml_str)
+        clean_xml_str = re.sub(r">\s+<", u"><", clean_xml_str)
         root_node = minidom.parseString(clean_xml_str).documentElement
         # get the first top-level gps element
         gps_node = root_node.firstChild.nextSibling
@@ -222,9 +223,9 @@ class TestXFormInstanceParser(TestBase):
             "../fixtures/repeated_nodes_expected_results.json"
         )
         with open(xml_file) as file:
-            dict = _xml_node_to_dict(clean_and_parse_xml(file.read()))
-            self.assertTrue(dict['#document']['RW_OUNIS_2016']['S2A'])
-            self.assertEqual(3, len(dict['#document']['RW_OUNIS_2016']['S2A']))
+            xml_dict = _xml_node_to_dict(clean_and_parse_xml(file.read()))
+            self.assertTrue(xml_dict['#document']['RW_OUNIS_2016']['S2A'])
+            self.assertEqual(3, len(
+                xml_dict['#document']['RW_OUNIS_2016']['S2A']))
             with open(json_file) as file:
-                import json
-                self.assertEqual(file.read(), json.dumps(dict))
+                self.assertEqual(json.loads(file.read()), xml_dict)

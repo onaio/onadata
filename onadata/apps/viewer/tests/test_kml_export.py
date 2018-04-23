@@ -1,4 +1,5 @@
 import os
+from future.utils import iteritems
 
 from django.core.urlresolvers import reverse
 
@@ -32,12 +33,19 @@ class TestKMLExport(TestBase):
 
         self.assertEqual(instances.count(), 2)
 
-        first, second = ["{:,}".format(i.pk) for i in instances]
+        # create a tuple of replacement data per instance
+        replacement_data = [["{:,}".format(x) for x in [
+            i.pk, i.point.x, i.point.y]] for i in instances]
+        # assuming 2 instances, flatten and assign to template names
+        replacement_dict = dict(zip(['pk1', 'x1', 'y1', 'pk2', 'x2', 'y2'],
+                                [i for s in replacement_data for i in s]))
 
         with open(os.path.join(self.fixtures, 'export.kml')) as f:
             expected_content = f.read()
-            expected_content = expected_content.replace('{{first}}', first)
-            expected_content = expected_content.replace('{{second}}', second)
+            for (template_name, template_data) in iteritems(replacement_dict):
+                expected_content = expected_content.replace(
+                    '{{%s}}' % template_name, template_data)
 
             self.assertMultiLineEqual(
-                expected_content.strip(), response.content.strip())
+                expected_content.strip(),
+                response.content.decode('utf-8').strip())

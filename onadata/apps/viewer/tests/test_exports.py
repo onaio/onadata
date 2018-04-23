@@ -2,9 +2,9 @@ import csv
 import datetime
 import json
 import os
-import StringIO
-from time import sleep
+from io import StringIO
 from mock import patch
+from time import sleep
 
 from celery import current_app
 from django.conf import settings
@@ -14,17 +14,18 @@ from django.utils.dateparse import parse_datetime
 from django.http import Http404
 from xlrd import open_workbook
 
+from onadata.apps.logger.models import Instance
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.views import delete_data
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.viewer.xls_writer import XlsWriter
+from onadata.apps.viewer.models.export import Export
+from onadata.apps.viewer.models.parsed_instance import query_data
 from onadata.apps.viewer.tests.export_helpers import viewer_fixture_path
 from onadata.apps.viewer.views import delete_export, export_list,\
     create_export, export_progress, export_download
-from onadata.apps.viewer.xls_writer import XlsWriter
-from onadata.apps.viewer.models.export import Export
-from onadata.apps.main.models.meta_data import MetaData
-from onadata.apps.viewer.models.parsed_instance import query_data
-from onadata.apps.logger.models import Instance
 from onadata.apps.viewer.tasks import create_xls_export
+from onadata.libs.utils.common_tools import get_response_content
 from onadata.libs.utils.export_builder import dict_to_joined_export
 from onadata.libs.utils.export_tools import generate_export,\
     increment_index_in_filename, clean_keys_of_slashes
@@ -53,7 +54,7 @@ class TestExports(TestBase):
         xls_writer.add_sheet('section9_pit_latrine_with_slab_group')
         xls_writer.add_sheet('section9_pit_latrine_without_slab_group')
         # create a set of sheet names keys
-        sheet_names_set = set(xls_writer._sheets.keys())
+        sheet_names_set = set(xls_writer._sheets)
         self.assertEqual(len(sheet_names_set), 2)
 
     def test_csv_http_response(self):
@@ -329,7 +330,7 @@ class TestExports(TestBase):
         content = json.loads(response.content)
         self.assertEqual(len(content), 2)
         self.assertEqual(sorted(['url', 'export_id', 'complete', 'filename']),
-                         sorted(content[0].keys()))
+                         sorted(list(content[0])))
 
     def test_auto_export_if_none_exists(self):
         self._publish_transportation_form()
@@ -597,7 +598,7 @@ class TestExports(TestBase):
                                   "id_string": self.xform.id_string})
         response = self.client.get(csv_export_url)
         self.assertEqual(response.status_code, 200)
-        f = StringIO.StringIO(self._get_response_content(response))
+        f = StringIO(get_response_content(response))
         csv_reader = csv.reader(f)
         num_rows = len([row for row in csv_reader])
         f.close()
@@ -627,7 +628,7 @@ class TestExports(TestBase):
                                   "id_string": self.xform.id_string})
         response = self.client.get(csv_export_url)
         self.assertEqual(response.status_code, 200)
-        f = StringIO.StringIO(self._get_response_content(response))
+        f = StringIO(get_response_content(response))
         csv_reader = csv.DictReader(f)
         data = [row for row in csv_reader]
         f.close()
@@ -813,9 +814,9 @@ class TestExports(TestBase):
 
     def _get_csv_data(self, filepath):
         storage = get_storage_class()()
-        csv_file = storage.open(filepath)
+        csv_file = storage.open(filepath, mode='r')
         reader = csv.DictReader(csv_file)
-        data = reader.next()
+        data = next(reader)
         csv_file.close()
         return data
 
@@ -1149,9 +1150,8 @@ class TestExports(TestBase):
             index = child[0]
             name = child[1]
             self.assertEqual(
-                filter(
-                    lambda x: x['children/name'] == name,
-                    output['children'])[0],
+                [x for x in output['children']
+                 if x['children/name'] == name][0],
                 expected_output['children'][index])
         # 2nd level
         self.assertEqual(len(output['children/cartoons']), 4)
@@ -1160,9 +1160,8 @@ class TestExports(TestBase):
             index = cartoon[0]
             name = cartoon[1]
             self.assertEqual(
-                filter(
-                    lambda x: x['children/cartoons/name'] == name,
-                    output['children/cartoons'])[0],
+                [x for x in output['children/cartoons']
+                 if x['children/cartoons/name'] == name][0],
                 expected_output['children/cartoons'][index])
         # 3rd level
         self.assertEqual(len(output['children/cartoons/characters']), 2)
@@ -1170,9 +1169,8 @@ class TestExports(TestBase):
             index = characters[0]
             name = characters[1]
             self.assertEqual(
-                filter(
-                    lambda x: x['children/cartoons/characters/name'] == name,
-                    output['children/cartoons/characters'])[0],
+                [x for x in output['children/cartoons/characters']
+                 if x['children/cartoons/characters/name'] == name][0],
                 expected_output['children/cartoons/characters'][index])
 
     def test_generate_csv_zip_export(self):
@@ -1325,7 +1323,7 @@ class TestExports(TestBase):
 
         response = self.client.post(create_export_url)
         self.assertEqual(response.status_code, 403)
-        self.assertEquals(response.content, u'No XLS Template set.')
+        self.assertEquals(response.content, b'No XLS Template set.')
         self.assertEqual(Export.objects.count(), num_exports)
 
     def test_all_keys_cleaned_of_slashes(self):

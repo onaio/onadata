@@ -1,12 +1,17 @@
+# -*- coding: utf-8 -*-
+"""
+Project model class
+"""
+from django.conf import settings
+from django.contrib.postgres.fields import JSONField
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Prefetch
 from django.db.models.signals import post_save
-from django.contrib.auth.models import User
-from django.contrib.postgres.fields import JSONField
 from django.utils import timezone
-from django.core.exceptions import ValidationError
-from guardian.models import UserObjectPermissionBase
-from guardian.models import GroupObjectPermissionBase
+from django.utils.encoding import python_2_unicode_compatible
+
+from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from guardian.shortcuts import assign_perm, get_perms_for_model
 from taggit.managers import TaggableManager
 
@@ -52,7 +57,29 @@ class PrefetchManager(models.Manager):
             ))
 
 
+@python_2_unicode_compatible
 class Project(BaseModel):
+    """
+    Project model class
+    """
+
+    name = models.CharField(max_length=255)
+    metadata = JSONField(default=dict)
+    organization = models.ForeignKey(settings.AUTH_USER_MODEL,
+                                     related_name='project_org')
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL,
+                                   related_name='project_owner')
+    user_stars = models.ManyToManyField(settings.AUTH_USER_MODEL,
+                                        related_name='project_stars')
+    shared = models.BooleanField(default=False)
+    date_created = models.DateTimeField(auto_now_add=True)
+    date_modified = models.DateTimeField(auto_now=True)
+    deleted_at = models.DateTimeField(blank=True, null=True)
+
+    objects = models.Manager()
+    tags = TaggableManager(related_name='project_tags')
+    prefetched = PrefetchManager()
+
     class Meta:
         app_label = 'logger'
         unique_together = (('name', 'organization'),)
@@ -66,24 +93,11 @@ class Project(BaseModel):
             ("view_project_data", "Can view submitted data"),
         )
 
-    name = models.CharField(max_length=255)
-    metadata = JSONField(default=dict)
-    organization = models.ForeignKey(User, related_name='project_org')
-    created_by = models.ForeignKey(User, related_name='project_owner')
-    user_stars = models.ManyToManyField(User, related_name='project_stars')
-    shared = models.BooleanField(default=False)
-    date_created = models.DateTimeField(auto_now_add=True)
-    date_modified = models.DateTimeField(auto_now=True)
-    deleted_at = models.DateTimeField(blank=True, null=True)
-
-    objects = models.Manager()
-    tags = TaggableManager(related_name='project_tags')
-    prefetched = PrefetchManager()
-
-    def __unicode__(self):
+    def __str__(self):
         return u'%s|%s' % (self.organization, self.name)
 
     def clean(self):
+        # pylint: disable=E1101
         query_set = Project.objects.exclude(pk=self.pk)\
             .filter(name__iexact=self.name, organization=self.organization)
         if query_set.exists():

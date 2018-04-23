@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from django.contrib.auth.models import User
 from django.test import TestCase, RequestFactory
 from pyxform import SurveyElementBuilder
@@ -17,7 +19,7 @@ class TempFileProxy(object):
     with "read" and "close" methods.
     """
     def __init__(self, content):
-        self.content = content
+        self.content = content.encode('utf-8')
 
     def read(self):
         return self.content
@@ -112,5 +114,5 @@ class TestSimpleSubmission(TestCase):
         request.user = self.user
         error, instance = safe_create_instance(
             self.user.username, TempFileProxy(xml), None, None, request)
-        text = 'File likely corrupted during transmission'
+        text = 'Improperly formatted XML.'
         self.assertContains(error, text, status_code=400)

@@ -1,10 +1,8 @@
-import os
 import mimetypes
-
+import os
 from hashlib import md5
-from django.db import models
 
-from instance import Instance
+from django.db import models
 
 
 def get_original_filename(filename):
@@ -37,8 +35,11 @@ class Attachment(models.Model):
     """
     Attachment model.
     """
+
     OSM = 'osm'
-    instance = models.ForeignKey(Instance, related_name="attachments")
+
+    instance = models.ForeignKey('logger.Instance',
+                                 related_name="attachments")
     media_file = models.FileField(max_length=255, upload_to=upload_to)
     mimetype = models.CharField(
         max_length=100, null=False, blank=True, default='')

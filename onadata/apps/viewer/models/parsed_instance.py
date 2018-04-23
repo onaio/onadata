@@ -2,8 +2,9 @@ import datetime
 import json
 import six
 import types
-
+from builtins import str as text
 from dateutil import parser
+
 from django.conf import settings
 from django.db import connection
 from django.db import models
@@ -14,7 +15,8 @@ from onadata.apps.logger.models.note import Note
 from onadata.apps.logger.models.instance import _get_attachments_from_instance
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.xform import _encode_for_mongo
-
+from onadata.apps.viewer.parsed_instance_tools import (get_where_clause,
+                                                       NONE_JSON_FIELDS)
 from onadata.libs.models.sorting import (
     json_order_by, json_order_by_params, sort_from_mongo_sort_str)
 from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
@@ -23,8 +25,6 @@ from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
     MEDIA_ALL_RECEIVED, XFORM_ID
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.mongo import _is_invalid_for_mongo
-from onadata.apps.viewer.parsed_instance_tools import get_where_clause
-from onadata.apps.viewer.parsed_instance_tools import NONE_JSON_FIELDS
 
 DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S'
 
@@ -47,10 +47,10 @@ def datetime_from_str(text):
 
 def dict_for_mongo(d):
     for key, value in d.items():
-        if type(value) == list:
+        if isinstance(value, list):
             value = [dict_for_mongo(e)
-                     if type(e) == dict else e for e in value]
-        elif type(value) == dict:
+                     if isinstance(e, dict) else e for e in value]
+        elif isinstance(value, dict):
             value = dict_for_mongo(value)
         elif key == '_id':
             try:
@@ -85,7 +85,7 @@ def _query_iterator(sql, fields=None, params=[], count=False):
         sql = u"SELECT COUNT(*) FROM (" + sql + ") AS CQ"
         fields = [u'count']
 
-    cursor.execute(sql, [unicode(i) for i in sql_params])
+    cursor.execute(sql, [text(i) for i in sql_params])
 
     if fields is None:
         for row in cursor.fetchall():
@@ -321,7 +321,7 @@ class ParsedInstance(models.Model):
         """
         datadict = json.loads(self.instance.xform.json)
         for item in datadict['children']:
-            if type(item) == dict and item.get(u'type') == type_value:
+            if isinstance(item, dict) and item.get(u'type') == type_value:
                 return item['name']
 
     # TODO: figure out how much of this code should be here versus

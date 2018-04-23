@@ -6,15 +6,16 @@ FloipSerializer module.
 import json
 import os
 from copy import deepcopy
-from cStringIO import StringIO
+from io import BytesIO
 
 from django.conf import settings
-import six
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext_lazy as _
+
+import six
 from floip import survey_to_floip_package
 from rest_framework.reverse import reverse
 from rest_framework_json_api import serializers
@@ -141,7 +142,7 @@ class FloipSerializer(serializers.HyperlinkedModelSerializer):
         data = deepcopy(request.data)
         if 'profile' in data and data['profile'] == 'flow-results-package':
             data['profile'] = 'data-package'
-        descriptor = StringIO(json.dumps(data))
+        descriptor = BytesIO(json.dumps(data).encode('utf-8'))
         descriptor.seek(0, os.SEEK_END)
         floip_file = InMemoryUploadedFile(
             descriptor,
@@ -222,8 +223,8 @@ class FlowResultsResponseSerializer(serializers.Serializer):
         xform = get_object_or_404(XForm, uuid=validated_data['id'])
         processed = []
         for submission in parse_responses(responses):
-            xml_file = StringIO(
-                dict2xform(submission, xform.id_string, 'data'))
+            xml_file = BytesIO(dict2xform(
+                submission, xform.id_string, 'data').encode('utf-8'))
 
             error, instance = safe_create_instance(
                 request.user.username, xml_file, [], None, request)

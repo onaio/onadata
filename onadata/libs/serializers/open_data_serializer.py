@@ -14,7 +14,7 @@ def get_data(request_data, update=False):
     fields = ['object_id', 'data_type', 'name']
     results = collections.namedtuple('results', 'error message data')
     if not update:
-        if not set(fields).issubset(request_data.keys()):
+        if not set(fields).issubset(list(request_data)):
             return results(
                 error=True,
                 message="Fields object_id, data_type and name are required.",
@@ -24,7 +24,7 @@ def get_data(request_data, update=False):
     fields.append('active')
 
     # check if invalid fields are provided
-    if any(a not in fields for a in request_data.keys()):
+    if any(a not in fields for a in list(request_data)):
         return results(
             error=True,
             message="Valid fields are object_id, data_type and name.",

@@ -5,7 +5,7 @@ MetaData Serializer
 
 import os
 import mimetypes
-from urlparse import urlparse
+from future.moves.urllib.parse import urlparse
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
@@ -198,7 +198,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
 
         if data_type == XFORM_META_PERMS:
             perms = value.split('|')
-            if len(perms) != 2 or not set(perms).issubset(set(ROLES.keys())):
+            if len(perms) != 2 or not set(perms).issubset(set(ROLES)):
                 raise serializers.ValidationError(
                     _(u"Format 'role'|'role' or Invalid role"))
 

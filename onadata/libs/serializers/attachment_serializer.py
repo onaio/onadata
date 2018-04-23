@@ -1,4 +1,5 @@
 import json
+from future.utils import listvalues
 
 from rest_framework import serializers
 
@@ -12,7 +13,7 @@ def dict_key_for_value(_dict, value):
     """
     This function is used to get key by value in a dictionary
     """
-    return _dict.keys()[_dict.values().index(value)]
+    return list(_dict)[listvalues(_dict).index(value)]
 
 
 def get_path(data, question_name, path_list):

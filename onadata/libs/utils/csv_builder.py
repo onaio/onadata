@@ -1,10 +1,13 @@
 from collections import OrderedDict
 from itertools import chain
+from future.utils import iteritems
+from past.builtins import basestring
 
-import unicodecsv as csv
 from django.conf import settings
 from django.db.models.query import QuerySet
 from django.utils.translation import ugettext as _
+
+import unicodecsv as csv
 from pyxform.question import Question
 from pyxform.section import RepeatingSection, Section
 
@@ -16,13 +19,14 @@ from onadata.apps.viewer.models.parsed_instance import (ParsedInstance,
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID,
                                             DELETEDAT, DURATION, EDITED,
-                                            GEOLOCATION, ID, NA_REP, NOTES,
-                                            STATUS, SUBMISSION_TIME,
-                                            SUBMITTED_BY, TAGS, UUID, VERSION,
-                                            XFORM_ID_STRING, MEDIA_COUNT,
-                                            TOTAL_MEDIA, MEDIA_ALL_RECEIVED)
-from onadata.libs.utils.export_builder import get_value_or_attachment_uri
-from onadata.libs.utils.export_builder import track_task_progress
+                                            GEOLOCATION, ID,
+                                            MEDIA_ALL_RECEIVED, MEDIA_COUNT,
+                                            NA_REP, NOTES, STATUS,
+                                            SUBMISSION_TIME, SUBMITTED_BY,
+                                            TAGS, TOTAL_MEDIA, UUID, VERSION,
+                                            XFORM_ID_STRING)
+from onadata.libs.utils.export_builder import (get_value_or_attachment_uri,
+                                               track_task_progress)
 from onadata.libs.utils.model_tools import get_columns_with_hxl
 
 # the bind type of select multiples that we use to compare
@@ -247,9 +251,9 @@ class AbstractDataFrameBuilder(object):
 
             # recurs into repeats
             for record_key, record_item in record.items():
-                if type(record_item) == list:
+                if isinstance(record_item, list):
                     for list_item in record_item:
-                        if type(list_item) == dict:
+                        if isinstance(list_item, dict):
                             cls._split_select_multiples(
                                 list_item, select_multiples)
         return record
@@ -276,7 +280,7 @@ class AbstractDataFrameBuilder(object):
     @classmethod
     def _split_gps_fields(cls, record, gps_fields):
         updated_gps_fields = {}
-        for key, value in record.iteritems():
+        for (key, value) in iteritems(record):
             if key in gps_fields and isinstance(value, basestring):
                 gps_xpaths = DataDictionary.get_additional_geopoint_xpaths(key)
                 gps_parts = dict([(xpath, None) for xpath in gps_xpaths])
@@ -289,9 +293,9 @@ class AbstractDataFrameBuilder(object):
                     gps_parts = dict(zip(gps_xpaths, parts))
                 updated_gps_fields.update(gps_parts)
             # check for repeats within record i.e. in value
-            elif type(value) == list:
+            elif isinstance(value, list):
                 for list_item in value:
-                    if type(list_item) == dict:
+                    if isinstance(list_item, dict):
                         cls._split_gps_fields(list_item, gps_fields)
         record.update(updated_gps_fields)
 
@@ -331,6 +335,7 @@ class AbstractDataFrameBuilder(object):
                 'count': False
             }
             cursor = query_data(**query_args)
+
             return cursor
 
 
@@ -380,18 +385,18 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         d = {}
 
         # check for lists
-        if type(value) is list and len(value) > 0 \
+        if isinstance(value, list) and len(value) > 0 \
                 and key not in [ATTACHMENTS, NOTES]:
             for index, item in enumerate(value):
                 # start at 1
                 index += 1
                 # for each list check for dict, we want to transform the key of
                 # this dict
-                if type(item) is dict:
+                if isinstance(item, dict):
                     # order repeat according to xform order
                     item = get_ordered_repeat_value(key, item)
 
-                    for nested_key, nested_val in item.iteritems():
+                    for (nested_key, nested_val) in iteritems(item):
                         # given the key "children/details" and nested_key/
                         # abbreviated xpath
                         # "children/details/immunization/polio_1",
@@ -416,7 +421,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                         # re-create xpath the split on /
                         xpaths = "/".join(xpaths).split("/")
                         new_prefix = xpaths[:-1]
-                        if type(nested_val) is list:
+                        if isinstance(nested_val, list):
                             # if nested_value is a list, rinse and repeat
                             d.update(cls._reindex(
                                 nested_key, nested_val,
@@ -430,7 +435,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                             # collapse xpath
                             new_xpath = u"/".join(xpaths)
                             # check if this key exists in our ordered columns
-                            if key in ordered_columns.keys():
+                            if key in list(ordered_columns):
                                 if new_xpath not in ordered_columns[key]:
                                     ordered_columns[key].append(new_xpath)
                             d[new_xpath] = get_value_or_attachment_uri(
@@ -506,7 +511,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             self._split_gps_fields(record, self.gps_fields)
             self._tag_edit_string(record)
             # re index repeats
-            for key, value in record.iteritems():
+            for (key, value) in iteritems(record):
                 self._reindex(
                     key, value, self.ordered_columns, record, self.dd,
                     include_images=image_xpaths,
@@ -517,7 +522,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         # TODO: check for and handle empty results
         # add ordered columns for select multiples
         if self.split_select_multiples:
-            for key, choices in self.select_multiples.items():
+            for (key, choices) in iteritems(self.select_multiples):
                 # HACK to ensure choices are NOT duplicated
                 self.ordered_columns[key] = \
                     remove_dups_from_list_maintain_order(choices)
@@ -540,7 +545,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             self._tag_edit_string(record)
             flat_dict = {}
             # re index repeats
-            for key, value in record.iteritems():
+            for (key, value) in iteritems(record):
                 reindexed = self._reindex(
                     key, value, self.ordered_columns, record, self.dd,
                     include_images=image_xpaths,
@@ -563,7 +568,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
             columns = list(chain.from_iterable(
                 [[xpath] if cols is None else cols
-                 for xpath, cols in self.ordered_columns.iteritems()
+                 for (xpath, cols) in iteritems(self.ordered_columns)
                  if [c for c in dataview.columns if xpath.startswith(c)]]
             ))
             cursor = dataview.query_data(dataview, all_data=True,
@@ -579,7 +584,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
             columns = list(chain.from_iterable(
                 [[xpath] if cols is None else cols
-                 for xpath, cols in self.ordered_columns.iteritems()]))
+                 for (xpath, cols) in iteritems(self.ordered_columns)]))
 
             # add extra columns
             columns += [col for col in self.extra_columns]

@@ -1,3 +1,5 @@
+from builtins import str as text
+
 from django.http import Http404
 from django.utils.translation import ugettext as _
 from django.core.files.storage import default_storage
@@ -24,7 +26,7 @@ from onadata.libs.utils.viewer_tools import get_path
 
 
 def get_attachment_data(attachment, suffix):
-    if suffix in settings.THUMB_CONF.keys():
+    if suffix in list(settings.THUMB_CONF):
         image_url(attachment, suffix)
         suffix = settings.THUMB_CONF.get(suffix).get('suffix')
         f = default_storage.open(
@@ -62,7 +64,7 @@ class AttachmentViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
             try:
                 data = get_attachment_data(self.object, suffix)
             except IOError as e:
-                if unicode(e).startswith('File does not exist'):
+                if text(e).startswith('File does not exist'):
                     raise Http404()
 
                 raise ParseError(e)

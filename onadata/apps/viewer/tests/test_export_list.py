@@ -32,7 +32,8 @@ class TestExportList(TestBase):
         self.assertNotIn(
             '<input title="" data-original-title="" \
             class="btn large btn-primary" \
-            value="New Export" type="submit">', response.content)
+            value="New Export" type="submit">',
+            response.content.decode('utf-8'))
         self.assertEqual(response.status_code, 200)
 
     def test_unsupported_type_export(self):
@@ -142,7 +143,8 @@ class TestExportList(TestBase):
         count = len(Export.objects.all())
         response = self.client.get(url)
         self.assertEqual(response.status_code, 403)
-        self.assertEquals(response.content, u'No XLS Template set.')
+        self.assertEquals(response.content.decode('utf-8'),
+                          u'No XLS Template set.')
         count1 = len(Export.objects.all())
         self.assertEquals(count, count1)
 

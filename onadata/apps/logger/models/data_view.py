@@ -1,15 +1,19 @@
+# -*- coding: utf-8 -*-
+"""
+DataView model class
+"""
 import datetime
+from builtins import str as text
 
-from django.contrib.auth.models import User
+from django.conf import settings
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import JSONField
 from django.db import connection
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
+from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext as _
 
-from onadata.apps.logger.models.project import Project
-from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.parsed_instance_tools import get_where_clause
 from onadata.libs.models.sorting import (json_order_by, json_order_by_params,
                                          sort_from_mongo_sort_str)
@@ -26,12 +30,12 @@ ATTACHMENT_TYPES = ['photo', 'audio', 'video']
 DEFAULT_COLUMNS = [ID, SUBMISSION_TIME, EDITED, LAST_EDITED, NOTES]
 
 
-def _json_sql_str(key, known_integers=[], known_dates=[]):
+def _json_sql_str(key, known_integers=None, known_dates=None):
     _json_str = u"json->>%s"
 
-    if key in known_integers:
+    if known_integers is not None and key in known_integers:
         _json_str = u"CAST(json->>%s AS INT)"
-    elif key in known_dates:
+    elif known_dates is not None and key in known_dates:
         _json_str = u"CAST(json->>%s AS TIMESTAMP)"
 
     return _json_str
@@ -79,14 +83,15 @@ def has_attachments_fields(data_view):
     return False
 
 
+@python_2_unicode_compatible
 class DataView(models.Model):
     """
     Model to provide filtered access to the underlying data of an XForm
     """
 
     name = models.CharField(max_length=255)
-    xform = models.ForeignKey(XForm)
-    project = models.ForeignKey(Project)
+    xform = models.ForeignKey('logger.XForm')
+    project = models.ForeignKey('logger.Project')
 
     columns = JSONField()
     query = JSONField(default=dict, blank=True)
@@ -95,7 +100,8 @@ class DataView(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
-    deleted_by = models.ForeignKey(User, related_name='dataview_deleted_by',
+    deleted_by = models.ForeignKey(settings.AUTH_USER_MODEL,
+                                   related_name='dataview_deleted_by',
                                    null=True, on_delete=models.SET_NULL,
                                    default=None, blank=True)
 
@@ -104,7 +110,7 @@ class DataView(models.Model):
         verbose_name = _('Data View')
         verbose_name_plural = _('Data Views')
 
-    def __unicode__(self):
+    def __str__(self):
         return getattr(self, "name", "")
 
     def has_geo_columnn_n_data(self):
@@ -115,7 +121,7 @@ class DataView(models.Model):
 
         # Get the form geo xpaths
         xform = self.xform
-        geo_xpaths = xform.geopoint_xpaths()
+        geo_xpaths = xform.geopoint_xpaths()  # pylint: disable=E1101
 
         set_geom = set(geo_xpaths)
         set_columns = set(self.columns)
@@ -128,11 +134,11 @@ class DataView(models.Model):
         return False
 
     def save(self, *args, **kwargs):
-
         self.instances_with_geopoints = self.has_geo_columnn_n_data()
         return super(DataView, self).save(*args, **kwargs)
 
     def _get_known_type(self, type_str):
+        # pylint: disable=E1101
         return [
             get_name_from_survey_element(e)
             for e in self.xform.get_survey_elements_of_type(type_str)]
@@ -159,9 +165,10 @@ class DataView(models.Model):
 
         sql += u" WHERE xform_id = %s AND id = %s" + sql_where \
                + u" AND deleted_at IS NULL"
+        # pylint: disable=E1101
         params = [self.xform.pk, instance.id] + where_params
 
-        cursor.execute(sql, [unicode(i) for i in params])
+        cursor.execute(sql, [text(i) for i in params])
 
         for row in cursor.fetchall():
             records = row[0]
@@ -211,10 +218,10 @@ class DataView(models.Model):
 
             if condi and condi.lower() == 'or':
                 or_where = append_where_list(comp, or_where, json_str)
-                or_params.extend((column, unicode(value)))
+                or_params.extend((column, text(value)))
             else:
                 where = append_where_list(comp, where, json_str)
-                where_params.extend((column, unicode(value)))
+                where_params.extend((column, text(value)))
 
         if or_where:
             or_where = [u"".join([u"(", u" OR ".join(or_where), u")"])]
@@ -228,7 +235,7 @@ class DataView(models.Model):
     def query_iterator(cls, sql, fields=None, params=[], count=False):
         cursor = connection.cursor()
         sql_params = tuple(
-            i if isinstance(i, tuple) else unicode(i) for i in params)
+            i if isinstance(i, tuple) else text(i) for i in params)
 
         if count:
             from_pos = sql.upper().find(' FROM')
@@ -342,19 +349,20 @@ class DataView(models.Model):
                                                                     params,
                                                                     count)]
         except Exception as e:
-            return {"error": _(e.message)}
+            return {"error": _(text(e))}
 
         return records
 
 
-# Post delete handler for clearing the dataview cache
 def clear_cache(sender, instance, **kwargs):
-    # clear cache
+    """ Post delete handler for clearing the dataview cache.
+    """
     safe_delete('{}{}'.format(XFORM_LINKED_DATAVIEWS, instance.xform.pk))
 
 
-# Post Save handler for clearing dataview cache on serialized fields
 def clear_dataview_cache(sender, instance, **kwargs):
+    """ Post Save handler for clearing dataview cache on serialized fields.
+    """
     safe_delete('{}{}'.format(DATAVIEW_COUNT, instance.xform.pk))
     safe_delete(
         '{}{}'.format(DATAVIEW_LAST_SUBMISSION_TIME, instance.xform.pk))

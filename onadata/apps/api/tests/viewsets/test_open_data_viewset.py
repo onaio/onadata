@@ -17,7 +17,8 @@ from onadata.apps.main.tests.test_base import TestBase
 
 
 def streaming_data(response):
-    return json.loads(u''.join([i for i in response.streaming_content]))
+    return json.loads(u''.join(
+        [i.decode('utf-8') for i in response.streaming_content]))
 
 
 class TestOpenDataViewSet(TestBase):
@@ -204,8 +205,8 @@ class TestOpenDataViewSet(TestBase):
         response = self.view(request, uuid=uuid)
         self.assertEqual(response.status_code, 200)
         self.assertListEqual(
-            ['table_alias', 'column_headers', 'connection_name'],
-            response.data.keys()
+            ['column_headers', 'connection_name', 'table_alias'],
+            sorted(list(response.data))
         )
         connection_name = u"%s_%s" % (
             self.xform.project_id,
