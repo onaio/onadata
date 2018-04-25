@@ -2,8 +2,10 @@ import csv
 import os
 from io import StringIO
 
+from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.transaction import TransactionManagementError
+from django.http import Http404
 from django.test import RequestFactory
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
@@ -205,3 +207,29 @@ class TestOSMViewSet(TestAbstractViewSet):
                     save_osm_data(submission.id)
                 except TransactionManagementError:
                     self.fail("TransactionManagementError was raised")
+
+    def test_save_osm_data_with_no_data(self):
+        """
+        Test that saving osm data with no data fails
+        """
+        osm_fixtures_dir = os.path.realpath(os.path.join(
+            os.path.dirname(__file__), '..', 'fixtures', 'osm'))
+
+        # publish form
+        xlsform_path = os.path.join(osm_fixtures_dir, 'osm.xlsx')
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        self.xform.save()
+        # make submission with osm data
+        submission_path = os.path.join(osm_fixtures_dir, 'instance_a.xml')
+        media_file = open(os.path.join(osm_fixtures_dir,
+                          'OSMWay234134797.osm'))
+        self._make_submission(submission_path, media_file=media_file)
+        # save osm data with a non existing file
+        submission = Instance.objects.first()
+        att = submission.attachments.first()
+        att.media_file = os.path.join(settings.PROJECT_ROOT, "test_media",
+                                      "noFile.osm")
+        att.save()
+
+        with self.assertRaises(Http404):
+            save_osm_data(submission.id)
