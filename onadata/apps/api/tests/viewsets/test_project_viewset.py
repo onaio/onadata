@@ -1495,8 +1495,16 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.patch('/', data=data_patch, **self.extra)
         response = view(request, pk=projectid)
 
-        self.project.refresh_from_db()
+        # bob cannot move project if he does not have can_add_project project
+        # permission on alice's account.c
+        self.assertEqual(response.status_code, 400)
+
+        # Give bob permission.
+        ManagerRole.add(self.user, alice_profile)
+        request = self.factory.patch('/', data=data_patch, **self.extra)
+        response = view(request, pk=projectid)
         self.assertEqual(response.status_code, 200)
+        self.project.refresh_from_db()
         self.assertEquals(self.project.organization, alice)
         self.assertTrue(OwnerRole.user_has_role(alice, self.project))
 
