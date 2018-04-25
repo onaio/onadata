@@ -260,6 +260,20 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
         return get_teams(obj)
 
 
+def can_add_project_to_profile(user, organization):
+    """
+    Check if user has permission to add a project to a profile.
+    """
+    perms = 'can_add_project'
+    if user != organization and \
+            not user.has_perm(perms, organization.profile) and \
+            not user.has_perm(
+                    perms, OrganizationProfile.objects.get(user=organization)):
+        return False
+
+    return True
+
+
 class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     projectid = serializers.ReadOnlyField(source='id')
     url = serializers.HyperlinkedIdentityField(
@@ -300,6 +314,17 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             raise serializers.ValidationError({
                 'name': _(u"Project {} already exists.".format(name))
             })
+        try:
+            has_perm = can_add_project_to_profile(
+                self.context['request'].user, organization)
+        except OrganizationProfile.DoesNotExist:
+            # most likely when transfering a project to an individual account
+            # A user does not require permissions to the user's account forms.
+            has_perm = False
+        if not has_perm:
+            raise serializers.ValidationError({
+                'owner': _("You do not have permmission to create a project "
+                           "in this organization.")})
         return attrs
 
     def validate_metadata(self, value):
