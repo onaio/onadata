@@ -78,6 +78,7 @@ class UserProfile(models.Model):
     class Meta:
         app_label = 'main'
         permissions = (
+            ('can_add_project', "Can add a project to an organization"),
             ('can_add_xform', "Can add/upload an xform to user profile"),
             ('view_profile', "Can view user profile"),
         )
