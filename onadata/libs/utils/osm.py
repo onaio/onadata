@@ -4,6 +4,8 @@ OSM utility module.
 """
 from __future__ import unicode_literals
 
+import logging
+
 from future.utils import iteritems
 
 from django.contrib.gis.geos import (GeometryCollection, LineString, Point,
@@ -169,7 +171,8 @@ def save_osm_data(instance_id):
         for osm in osm_attachments:
             try:
                 osm_xml = osm.media_file.read()
-            except IOError:
+            except IOError as e:
+                logging.exception("IOError saving osm data: %s" % str(e))
                 continue
             else:
                 filename = None
