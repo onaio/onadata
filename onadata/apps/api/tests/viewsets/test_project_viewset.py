@@ -2155,6 +2155,7 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         self.assertIsNotNone(self.project.deleted_at)
         self.assertTrue('deleted-at' in self.project.name)
+        self.assertEqual(self.project.deleted_by, self.user)
 
         request = self.factory.get('/', **self.extra)
         request.user = self.user

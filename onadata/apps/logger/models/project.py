@@ -3,6 +3,7 @@
 Project model class
 """
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -75,6 +76,9 @@ class Project(BaseModel):
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
+    deleted_by = models.ForeignKey(User, related_name='project_deleted_by',
+                                   blank=True, null=True, default=None,
+                                   on_delete=models.SET_NULL)
 
     objects = models.Manager()
     tags = TaggableManager(related_name='project_tags')
@@ -109,7 +113,7 @@ class Project(BaseModel):
     def user(self):
         return self.created_by
 
-    def soft_delete(self):
+    def soft_delete(self, user=None):
         """
         Soft deletes a project by adding a deleted_at timestamp and renaming
         the project name by adding a deleted-at and timestamp.
@@ -121,10 +125,12 @@ class Project(BaseModel):
         deletion_suffix = soft_deletion_time.strftime('-deleted-at-%s')
         self.deleted_at = soft_deletion_time
         self.name += deletion_suffix
+        if user is not None:
+            self.deleted_by = user
         self.save()
 
         for form in self.xform_set.all():
-            form.soft_delete()
+            form.soft_delete(user=user)
 
 
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
