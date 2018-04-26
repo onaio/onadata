@@ -408,7 +408,8 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             return data_views
 
         data_views_obj = obj.dataview_prefetch if \
-            hasattr(obj, 'dataview_prefetch') else obj.dataview_set.all()
+            hasattr(obj, 'dataview_prefetch') else\
+            obj.dataview_set.filter(deleted_at__isnull=True)
 
         serializer = DataViewMinimalSerializer(
             data_views_obj,
