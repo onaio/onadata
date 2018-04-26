@@ -160,6 +160,7 @@ class ProjectViewSet(AuthenticateHeaderMixin,
 
     def destroy(self, request, *args, **kwargs):
         project = self.get_object()
-        project.soft_delete()
+        user = request.user
+        project.soft_delete(user)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
