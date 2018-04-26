@@ -10,7 +10,6 @@ from django.contrib.gis.geos import (GeometryCollection, LineString, Point,
                                      Polygon)
 from django.contrib.gis.geos.error import GEOSException
 from django.db import IntegrityError, models, transaction
-from django.http import Http404
 
 from celery import task
 from lxml import etree
@@ -170,8 +169,8 @@ def save_osm_data(instance_id):
         for osm in osm_attachments:
             try:
                 osm_xml = osm.media_file.read()
-            except IOError as e:
-                raise Http404(str(e))
+            except IOError:
+                continue
             else:
                 filename = None
                 field_name = None

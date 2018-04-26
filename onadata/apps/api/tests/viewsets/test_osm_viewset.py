@@ -5,7 +5,6 @@ from io import StringIO
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.transaction import TransactionManagementError
-from django.http import Http404
 from django.test import RequestFactory
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
@@ -208,9 +207,10 @@ class TestOSMViewSet(TestAbstractViewSet):
                 except TransactionManagementError:
                     self.fail("TransactionManagementError was raised")
 
-    def test_save_osm_data_with_no_data(self):
+    def test_save_osm_data_with_non_existing_media_file(self):
         """
-        Test that saving osm data with no data fails
+        Test that saving osm data with a non existing media file
+        fails silenty and does not throw an IOError
         """
         osm_fixtures_dir = os.path.realpath(os.path.join(
             os.path.dirname(__file__), '..', 'fixtures', 'osm'))
@@ -226,10 +226,11 @@ class TestOSMViewSet(TestAbstractViewSet):
         self._make_submission(submission_path, media_file=media_file)
         # save osm data with a non existing file
         submission = Instance.objects.first()
-        att = submission.attachments.first()
-        att.media_file = os.path.join(settings.PROJECT_ROOT, "test_media",
-                                      "noFile.osm")
-        att.save()
-
-        with self.assertRaises(Http404):
+        attachment = submission.attachments.first()
+        attachment.media_file = os.path.join(
+            settings.PROJECT_ROOT, "test_media", "noFile.osm")
+        attachment.save()
+        try:
             save_osm_data(submission.id)
+        except IOError:
+            self.fail("IOError was raised")
