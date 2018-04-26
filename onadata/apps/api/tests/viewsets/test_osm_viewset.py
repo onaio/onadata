@@ -2,6 +2,7 @@ import csv
 import os
 from io import StringIO
 
+from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.transaction import TransactionManagementError
 from django.test import RequestFactory
@@ -205,3 +206,31 @@ class TestOSMViewSet(TestAbstractViewSet):
                     save_osm_data(submission.id)
                 except TransactionManagementError:
                     self.fail("TransactionManagementError was raised")
+
+    def test_save_osm_data_with_non_existing_media_file(self):
+        """
+        Test that saving osm data with a non existing media file
+        fails silenty and does not throw an IOError
+        """
+        osm_fixtures_dir = os.path.realpath(os.path.join(
+            os.path.dirname(__file__), '..', 'fixtures', 'osm'))
+
+        # publish form
+        xlsform_path = os.path.join(osm_fixtures_dir, 'osm.xlsx')
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        self.xform.save()
+        # make submission with osm data
+        submission_path = os.path.join(osm_fixtures_dir, 'instance_a.xml')
+        media_file = open(os.path.join(osm_fixtures_dir,
+                          'OSMWay234134797.osm'))
+        self._make_submission(submission_path, media_file=media_file)
+        # save osm data with a non existing file
+        submission = Instance.objects.first()
+        attachment = submission.attachments.first()
+        attachment.media_file = os.path.join(
+            settings.PROJECT_ROOT, "test_media", "noFile.osm")
+        attachment.save()
+        try:
+            save_osm_data(submission.id)
+        except IOError:
+            self.fail("IOError was raised")
