@@ -4,7 +4,10 @@ Changelog for onadata
 1.13.3 (Unreleased)
 --------------------
 
-- Nothing changed yet
+- Add check if user has permission to add a project to a profile
+  `Issue 1385 <https://github.com/onaio/onadata/pull/1385>`_
+  [ukanga]
+
 
 1.13.2 (2018-04-11)
 --------------------
