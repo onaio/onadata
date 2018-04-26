@@ -261,6 +261,28 @@ class TestDataViewViewSet(TestAbstractViewSet):
             context={'request': get_form_request})
         self.assertEquals(xform_serializer.data['data_views'], [])
 
+    def test_soft_deleted_dataview_not_in_project(self):
+        """
+        Test that once a filtered dataset is soft deleted
+        it does not appear in the list of forms for a project
+        """
+        self._create_dataview()
+        view = ProjectViewSet.as_view({
+            'get': 'retrieve'
+        })
+        # assert that dataview is in the returned list
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.assertIsNotNone(response.data['data_views'])
+        # delete dataview
+        request = self.factory.delete('/', **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+        self.assertEquals(response.status_code, 204)
+        # assert that deleted dataview is not in the returned list
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.data['data_views'], [])
+
     def test_list_dataview(self):
         self._create_dataview()
 
