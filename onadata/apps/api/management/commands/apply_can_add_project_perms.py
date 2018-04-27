@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Command apply_can_add_preject_perms - applys can_add_project permission to all
+Command apply_can_add_project_perms - applys can_add_project permission to all
 users who have can_add_xform permission to a user/organization profile.
 
 This was necessary because we previously (April 2018) did not have
