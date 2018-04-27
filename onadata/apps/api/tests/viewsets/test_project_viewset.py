@@ -60,7 +60,7 @@ def get_latest_tags(project):
 class TestProjectViewSet(TestAbstractViewSet):
 
     def setUp(self):
-        super(self.__class__, self).setUp()
+        super(TestProjectViewSet, self).setUp()
         self.view = ProjectViewSet.as_view({
             'get': 'list',
             'post': 'create'
@@ -243,6 +243,44 @@ class TestProjectViewSet(TestAbstractViewSet):
         for project in projects:
             self.assertEqual(self.user, project.created_by)
             self.assertEqual(self.user, project.organization)
+
+    def test_project_create_other_account(self):  # pylint: disable=C0103
+        """
+        Test that a user cannot create a project in a different user account
+        without the right permission.
+        """
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+        bob = self.user
+        self._login_user_and_profile(alice_data)
+        data = {
+            "name": "Example Project",
+            "owner": "http://testserver/api/v1/users/bob",  # Bob
+        }
+
+        # Alice should not be able to create the form in bobs account.
+        request = self.factory.post('/projects', data=data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {
+            'owner': [u'You do not have permmission to create a project in '
+                      'this organization.']})
+        self.assertEqual(Project.objects.count(), 0)
+
+        # Give Alice the permission to create a project in Bob's account.
+        ManagerRole.add(alice_profile.user, bob.profile)
+        request = self.factory.post('/projects', data=data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+
+        projects = Project.objects.all()
+        self.assertEqual(len(projects), 1)
+
+        for project in projects:
+            # Created by Alice
+            self.assertEqual(alice_profile.user, project.created_by)
+            # But under Bob's account
+            self.assertEqual(bob, project.organization)
 
     def test_create_duplicate_project(self):
         """
@@ -1495,8 +1533,16 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.patch('/', data=data_patch, **self.extra)
         response = view(request, pk=projectid)
 
-        self.project.refresh_from_db()
+        # bob cannot move project if he does not have can_add_project project
+        # permission on alice's account.c
+        self.assertEqual(response.status_code, 400)
+
+        # Give bob permission.
+        ManagerRole.add(self.user, alice_profile)
+        request = self.factory.patch('/', data=data_patch, **self.extra)
+        response = view(request, pk=projectid)
         self.assertEqual(response.status_code, 200)
+        self.project.refresh_from_db()
         self.assertEquals(self.project.organization, alice)
         self.assertTrue(OwnerRole.user_has_role(alice, self.project))
 
