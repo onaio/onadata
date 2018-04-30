@@ -377,8 +377,9 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             item = OrderedDict()
 
             for elem in children:
-                xp = elem.get_abbreviated_xpath()
-                item[xp] = repeat_value.get(xp, DEFAULT_NA_REP)
+                if not question_types_to_exclude(elem.type):
+                    xp = elem.get_abbreviated_xpath()
+                    item[xp] = repeat_value.get(xp, DEFAULT_NA_REP)
 
             return item
 
