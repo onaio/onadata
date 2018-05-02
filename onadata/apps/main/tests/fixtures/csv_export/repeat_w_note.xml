@@ -1,0 +1,12 @@
+<repeat_w_note id="repeat_w_note">
+    <note_a></note_a>
+    <chnum>2</chnum>
+    <chrepeat>
+        <chnote></chnote>
+        <chname>Jane Doe</chname>
+    </chrepeat>
+    <chrepeat>
+        <chnote></chnote>
+        <chname>John Doe</chname>
+    </chrepeat>
+</repeat_w_note>
