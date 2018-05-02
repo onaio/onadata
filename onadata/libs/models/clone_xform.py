@@ -27,6 +27,7 @@ class CloneXForm(object):
         xls_file = default_storage.save(xls_file_path, xls_data)
         self.cloned_form = DataDictionary.objects.create(
             user=user,
+            created_by=user,
             xls=xls_file,
             project=project
         )

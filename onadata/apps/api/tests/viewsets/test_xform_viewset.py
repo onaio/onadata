@@ -4329,6 +4329,30 @@ class TestXFormViewSet(TestAbstractViewSet):
             xform = XForm.objects.last()
             self.assertEqual(xform.instances.count(), 6)
 
+    def test_created_by_field_on_cloned_forms(self):
+        """
+        Test that the created by field is not empty for cloned forms
+        """
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({
+                'post': 'clone'
+            })
+            alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+            alice_profile = self._create_user_profile(alice_data)
+            count = XForm.objects.count()
+
+            data = {'username': 'alice'}
+            formid = self.xform.pk
+            ManagerRole.add(self.user, alice_profile)
+            request = self.factory.post('/', data=data, **self.extra)
+            response = view(request, pk=formid)
+            self.assertTrue(self.user.has_perm('can_add_xform', alice_profile))
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(count + 1, XForm.objects.count())
+            cloned_form = XForm.objects.last()
+            self.assertEqual(cloned_form.created_by.username, 'alice')
+
     @override_settings(CELERY_ALWAYS_EAGER=False)
     @patch('onadata.libs.utils.api_export_tools.AsyncResult')
     def test_pending_export_async(self, async_result):
