@@ -56,6 +56,16 @@ Edit top level requirements in the file `requirements/base.in <requirements/base
 
     pip-compile --output-file requirements/base.pip requirements/base.in
 
+**Security Acknowledgments**
+
+We would like to thank the following security researchers for responsibly disclosing security issues:
+
+============= ================  ==========  ==============
+ Name          Date              Severity    Contribution
+============= ================  ==========  ==============
+Danish Tariq   1st April 2018     Medium     `Users able to create projects in other user accounts <https://github.com/onaio/onadata/commit/bdcd53922940739d71bc554ca86ab484de5feab8>`_
+============= ================  ==========  ==============
+
 Code Structure
 --------------
 
