@@ -30,13 +30,16 @@ ATTACHMENT_TYPES = ['photo', 'audio', 'video']
 DEFAULT_COLUMNS = [ID, SUBMISSION_TIME, EDITED, LAST_EDITED, NOTES]
 
 
-def _json_sql_str(key, known_integers=None, known_dates=None):
+def _json_sql_str(key, known_integers=None, known_dates=None,
+                  known_decimals=None):
     _json_str = u"json->>%s"
 
     if known_integers is not None and key in known_integers:
         _json_str = u"CAST(json->>%s AS INT)"
     elif known_dates is not None and key in known_dates:
         _json_str = u"CAST(json->>%s AS TIMESTAMP)"
+    elif known_decimals is not None and key in known_decimals:
+        _json_str = u"CAST(JSON->>%s AS DECIMAL)"
 
     return _json_str
 
@@ -151,6 +154,10 @@ class DataView(models.Model):
         """Return elements of type date"""
         return self._get_known_type('date')
 
+    def get_known_decimals(self):
+        """Return elements of type decimal"""
+        return self._get_known_type('decimal')
+
     def has_instance(self, instance):
         """Return True if instance in set of dataview data"""
         cursor = connection.cursor()
@@ -158,7 +165,8 @@ class DataView(models.Model):
 
         where, where_params = self._get_where_clause(self,
                                                      self.get_known_integers(),
-                                                     self.get_known_dates())
+                                                     self.get_known_dates(),
+                                                     self.get_known_decimals())
         sql_where = u""
         if where:
             sql_where = u" AND " + u" AND ".join(where)
@@ -193,9 +201,10 @@ class DataView(models.Model):
 
     @classmethod
     def _get_where_clause(cls, data_view, form_integer_fields=[],
-                          form_date_fields=[]):
+                          form_date_fields=[], form_decimal_fields=[]):
         known_integers = ['_id'] + form_integer_fields
         known_dates = ['_submission_time'] + form_date_fields
+        known_decimals = form_decimal_fields
         where = []
         where_params = []
 
@@ -210,7 +219,8 @@ class DataView(models.Model):
             value = qu.get('value')
             condi = qu.get('condition')
 
-            json_str = _json_sql_str(column, known_integers, known_dates)
+            json_str = _json_sql_str(column, known_integers, known_dates,
+                                     known_decimals)
 
             if comp in known_dates:
                 value = datetime.datetime.strptime(
@@ -287,11 +297,13 @@ class DataView(models.Model):
         where, where_params = cls._get_where_clause(
             data_view,
             data_view.get_known_integers(),
-            data_view.get_known_dates())
+            data_view.get_known_dates(),
+            data_view.get_known_decimals())
 
         if filter_query:
             add_where, add_where_params = \
-                get_where_clause(filter_query, data_view.get_known_integers())
+                get_where_clause(filter_query, data_view.get_known_integers(),
+                                 data_view.get_known_decimals())
 
             if add_where:
                 where = where + add_where

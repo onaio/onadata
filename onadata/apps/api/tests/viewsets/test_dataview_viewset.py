@@ -354,6 +354,41 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEquals(len(response.data), 3)
         self.assertIn("_id", response.data[0])
 
+    def test_dataview_data_filter_decimal(self):
+        """
+        Test that data filter works correctly for decimal fields
+        """
+        # publish form with decimal field and make submissions
+        path = os.path.join(
+            settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
+            "age_decimal", "age_decimal.xlsx")
+        self._publish_xls_form_to_project(xlsform_path=path)
+        for x in range(1, 3):
+            path = os.path.join(
+                settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
+                'age_decimal', 'instances', 'submission{}.xml'.format(x), )
+            self._make_submission(path)
+            x += 1
+
+        # create a dataview using filter age > 30
+        data = {
+            'name': "My Dataview",
+            'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+            'project': 'http://testserver/api/v1/projects/%s'
+                       % self.project.pk,
+            'columns': '["name", "age"]',
+            'query': '[{"column":"age","filter":">","value":"30"}]'
+        }
+        self._create_dataview(data=data)
+        view = DataViewViewSet.as_view({
+            'get': 'data',
+        })
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.data_view.pk)
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(len(response.data), 1)
+        self.assertEquals(response.data[0]['age'], 31)
+
     def test_dataview_data_filter_date(self):
         data = {
             'name': "Transportation Dataview",

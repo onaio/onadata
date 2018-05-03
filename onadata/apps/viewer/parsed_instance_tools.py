@@ -14,18 +14,20 @@ NONE_JSON_FIELDS = {
 }
 
 
-def _json_sql_str(key, known_integers=[], known_dates=[]):
+def _json_sql_str(key, known_integers=[], known_dates=[], known_decimals=[]):
     _json_str = u"json->>%s"
 
     if key in known_integers:
         _json_str = u"CAST(json->>%s AS INT)"
     elif key in known_dates:
         _json_str = u"CAST(json->>%s AS TIMESTAMP)"
+    elif key in known_decimals:
+        _json_str = u"CAST(json->>%s AS DECIMAL)"
 
     return _json_str
 
 
-def _parse_where(query, known_integers, or_where, or_params):
+def _parse_where(query, known_integers, known_decimals, or_where, or_params):
     # using a dictionary here just incase we will need to filter using
     # other table columns
     where, where_params = [], []
@@ -42,7 +44,7 @@ def _parse_where(query, known_integers, or_where, or_params):
                 json_str = NONE_JSON_FIELDS.get(field_key)
             else:
                 json_str = _json_sql_str(
-                    field_key, known_integers, KNOWN_DATES)
+                    field_key, known_integers, KNOWN_DATES, known_decimals)
             for (key, value) in iteritems(field_value):
                 _v = None
                 if key in OPERANDS:
@@ -73,8 +75,9 @@ def _parse_where(query, known_integers, or_where, or_params):
     return where + or_where, where_params + or_params
 
 
-def get_where_clause(query, form_integer_fields=[]):
+def get_where_clause(query, form_integer_fields=[], form_decimal_fields=[]):
     known_integers = ['_id'] + form_integer_fields
+    known_decimals = form_decimal_fields
     where = []
     where_params = []
 
@@ -96,7 +99,8 @@ def get_where_clause(query, form_integer_fields=[]):
                 or_where = [u"".join([u"(", u" OR ".join(or_where), u")"])]
 
             where, where_params = _parse_where(query, known_integers,
-                                               or_where, or_params)
+                                               known_decimals, or_where,
+                                               or_params)
 
     except (ValueError, AttributeError) as e:
         if query and isinstance(query, six.string_types) and \
