@@ -14,7 +14,14 @@ NONE_JSON_FIELDS = {
 }
 
 
-def _json_sql_str(key, known_integers=[], known_dates=[], known_decimals=[]):
+def _json_sql_str(key, known_integers=None, known_dates=None,
+                  known_decimals=None):
+    if known_integers is None:
+        known_integers = []
+    if known_dates is None:
+        known_dates = []
+    if known_decimals is None:
+        known_decimals = []
     _json_str = u"json->>%s"
 
     if key in known_integers:
@@ -75,7 +82,12 @@ def _parse_where(query, known_integers, known_decimals, or_where, or_params):
     return where + or_where, where_params + or_params
 
 
-def get_where_clause(query, form_integer_fields=[], form_decimal_fields=[]):
+def get_where_clause(query, form_integer_fields=None,
+                     form_decimal_fields=None):
+    if form_integer_fields is None:
+        form_integer_fields = []
+    if form_decimal_fields is None:
+        form_decimal_fields = []
     known_integers = ['_id'] + form_integer_fields
     known_decimals = form_decimal_fields
     where = []
