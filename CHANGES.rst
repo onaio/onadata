@@ -1,8 +1,12 @@
 Changelog for onadata
 =====================
 
-1.14.0 (2018-05-02)
+1.14.0 (2018-05-03)
 --------------------
+
+- Python 3 support
+  `Issue 1295 <https://github.com/onaio/onadata/pull/1295>`_
+  [moshthepitt, pld, wambere]
 
 - Add TLS support to messaging
   `Issue 1366 <https://github.com/onaio/onadata/pull/1366>`_
