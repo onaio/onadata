@@ -1,6 +1,13 @@
 Changelog for onadata
 =====================
 
+1.14.1 (Unreleased)
+--------------------
+
+- Fix decimal filter for dataview
+  `Issue 1393 <https://github.com/onaio/onadata/pull/1393>`_
+  [wambere]
+
 1.14.0 (2018-05-03)
 --------------------
 
