@@ -26,8 +26,8 @@ def get_original_filename(filename):
 
 def upload_to(instance, filename):
     return os.path.join(
-        instance.instance.xform.user.username,
-        'attachments',
+        instance.instance.xform.user.username, 'attachments',
+        str(instance.instance.xform.id), instance.instance.xform.id_string,
         os.path.split(filename)[1])
 
 
