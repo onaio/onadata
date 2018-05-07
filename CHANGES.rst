@@ -1,7 +1,11 @@
 Changelog for onadata
 =====================
 
-1.14.1 (Unreleased)
+1.14.2 (Unreleased)
+--------------------
+
+
+1.14.1 (2018-05-07)
 --------------------
 
 - Fix decimal filter for dataview
