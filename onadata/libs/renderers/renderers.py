@@ -35,9 +35,15 @@ def floip_rows_list(data):
     for i, key in enumerate(data, 1):
         if not (key.startswith('_') or key in IGNORE_FIELDS):
             session_id = data['_id']
-            yield [data['_submission_time'], int(pairing(session_id, i)),
-                   data.get('_submitted_by'), data['_id'], key, data[key],
-                   None]
+            yield [
+                data['_submission_time'],  # Timestamp
+                int(pairing(session_id, i)),  # Row ID
+                data.get('meta/contactID', data.get('_submitted_by')),
+                data['_uuid'] or data['_id'],  # Session ID
+                key,  # Question ID
+                data[key],  # Response
+                None,  # Response Metadata
+            ]
 
 
 def floip_list(data):

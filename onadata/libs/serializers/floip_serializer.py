@@ -24,6 +24,7 @@ from onadata.apps.api.tools import do_publish_xlsform
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.logger_tools import dict2xform, safe_create_instance
 
+CONTACT_ID_INDEX = getattr(settings, 'FLOW_RESULTS_CONTACT_ID_INDEX', 2)
 SESSION_ID_INDEX = getattr(settings, 'FLOW_RESULTS_SESSION_ID_INDEX', 3)
 QUESTION_INDEX = getattr(settings, 'FLOW_RESULTS_QUESTION_INDEX', 4)
 ANSWER_INDEX = getattr(settings, 'FLOW_RESULTS_ANSWER_INDEX', 5)
@@ -49,7 +50,8 @@ def _get_owner(request):
 
 
 def parse_responses(responses, session_id_index=SESSION_ID_INDEX,
-                    question_index=QUESTION_INDEX, answer_index=ANSWER_INDEX):
+                    question_index=QUESTION_INDEX, answer_index=ANSWER_INDEX,
+                    contact_id_index=CONTACT_ID_INDEX):
     """
     Returns individual submission for all responses in a flow-results responses
     package.
@@ -61,6 +63,11 @@ def parse_responses(responses, session_id_index=SESSION_ID_INDEX,
             continue
         if current_key is None:
             current_key = row[session_id_index]
+        if 'meta' not in submission:
+            submission['meta'] = {
+                'instanceID': 'uuid:%s' % current_key,
+                'contactID': row[contact_id_index]
+            }
         if current_key != row[session_id_index]:
             yield submission
             submission = {}
