@@ -159,6 +159,20 @@ class TestFloipViewSet(TestAbstractViewSet):
                              + floip_data['id'] + '/responses')
             self.assertEqual(count + 2, Instance.objects.count())
 
+            request = self.factory.post(
+                '/',
+                data=json.dumps(descriptor),
+                content_type='application/vnd.api+json',
+                **self.extra)
+            response = view(request, uuid=floip_data['id'])
+            self.assertEqual(response.status_code, 202, response.data)
+            self.assertEqual(response['Content-Type'],
+                             'application/vnd.api+json')
+            self.assertEqual(response['Location'],
+                             'http://testserver/api/v1/flow-results/packages/'
+                             + floip_data['id'] + '/responses')
+            self.assertEqual(count + 2, Instance.objects.count())
+
     def test_publish_number_question_names(self):  # pylint: disable=C0103
         """
         Test publishing a descriptor with question identifiers that start with

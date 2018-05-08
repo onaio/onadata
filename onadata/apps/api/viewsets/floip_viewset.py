@@ -99,7 +99,10 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
             serializer.is_valid(raise_exception=True)
             serializer.save()
             data['response'] = serializer.data['responses']
-            status_code = status.HTTP_201_CREATED
+            if serializer.data['duplicates']:
+                status_code = status.HTTP_202_ACCEPTED
+            else:
+                status_code = status.HTTP_201_CREATED
         else:
             queryset = xform.instances.values_list('json', flat=True)
             paginate_queryset = self.paginate_queryset(queryset)
