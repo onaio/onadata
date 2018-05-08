@@ -12,6 +12,9 @@ Changelog for onadata
   `Issue 1393 <https://github.com/onaio/onadata/pull/1393>`_
   [wambere]
 
+- Update google-exports to v0.6
+  [wambere]
+
 1.14.0 (2018-05-03)
 --------------------
 
