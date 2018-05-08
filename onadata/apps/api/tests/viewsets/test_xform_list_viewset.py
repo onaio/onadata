@@ -144,7 +144,8 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
 
         with open(path, encoding='utf-8') as f:
             form_list = f.read().strip()
-            data = {"hash": self.xform.hash, "pk": self.xform.pk}
+            data = {"hash": self.xform.hash, "pk": self.xform.pk,
+                    'version': self.xform.version}
             content = response.render().content.decode('utf-8')
             self.assertEqual(content, form_list % data)
 
@@ -196,7 +197,8 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
 
         with open(path, encoding='utf-8') as f:
             form_list = f.read().strip()
-            data = {"hash": self.xform.hash, "pk": self.xform.pk}
+            data = {"hash": self.xform.hash, "pk": self.xform.pk,
+                    "version": self.xform.version}
             content = response.render().content.decode('utf-8')
             self.assertEqual(content, form_list % data)
 
