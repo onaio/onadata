@@ -199,8 +199,11 @@ class TestBriefcaseAPI(TestBase):
             'view', 'downloadSubmission.xml')
         with open(download_submission_path, encoding='utf-8') as f:
             text = f.read()
-            text = text.replace(u'{{submissionDate}}',
-                                instance.date_created.isoformat())
+            for var in ((u'{{submissionDate}}',
+                         instance.date_created.isoformat()),
+                        (u'{{form_id}}', str(self.xform.id))):
+                text = text.replace(*var)
+
             self.assertContains(response, instanceId, status_code=200)
             self.assertMultiLineEqual(response.content.decode('utf-8'), text)
 

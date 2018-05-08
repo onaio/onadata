@@ -38,7 +38,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
 
         data = {
             'url': 'http://testserver/api/v1/media/%s' % pk,
-            'field_xpath': None,
+            'field_xpath': 'image1',
             'download_url': attachment_url(self.attachment),
             'small_download_url': attachment_url(self.attachment, 'small'),
             'medium_download_url': attachment_url(self.attachment, 'medium'),

@@ -95,7 +95,9 @@ class TestDataViewViewSet(TestAbstractViewSet):
         attachment_info = instance_with_attachment.get('_attachments')[0]
         self.assertEquals(u'image/png', attachment_info.get(u'mimetype'))
         self.assertEquals(
-            u'%s/attachments/%s' % (self.user.username, media_file),
+            u'{}/attachments/{}_{}/{}'.format(
+                self.user.username, self.xform.id, self.xform.id_string,
+                media_file),
             attachment_info.get(u'filename'))
         self.assertEquals(response.status_code, 200)
 

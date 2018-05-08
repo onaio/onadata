@@ -9,7 +9,8 @@ from django.db.utils import DataError
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import Attachment, Instance
-from onadata.apps.logger.models.attachment import get_original_filename
+from onadata.apps.logger.models.attachment import (get_original_filename,
+                                                   upload_to)
 from onadata.libs.utils.image_tools import image_url
 
 
@@ -115,3 +116,12 @@ class TestAttachment(TestBase):
             get_original_filename('submission_random.enc'),
             'submission_random.enc'
         )
+
+    def test_upload_to(self):
+        """
+        Test that upload to returns the correct path
+        """
+        path = upload_to(self.attachment, self.attachment.filename)
+        self.assertEqual(path,
+                         'bob/attachments/{}_{}/1335783522563.jpg'.format(
+                             self.xform.id, self.xform.id_string))

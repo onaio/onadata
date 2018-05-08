@@ -3968,9 +3968,11 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=self.xform.pk, format='csv')
             self.assertEqual(response.status_code, 200)
 
-            expected_data = ['http://example.com/api/v1/files/%s?'
-                             'filename=bob/attachments/1442323232322.jpg' %
-                             attachment_id]
+            expected_data = ['http://example.com/api/v1/files/{}?'
+                             'filename=bob/attachments/{}_{}/'
+                             '1442323232322.jpg'.format(attachment_id,
+                                                        self.xform.id,
+                                                        self.xform.id_string)]
             key = 'photo'
             self._validate_csv_export(response, None, key, expected_data)
 
