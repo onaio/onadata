@@ -16,7 +16,7 @@ DB_FIXTURES_PATH = os.path.join(CUR_DIR, 'data_from_sdcard')
 
 def images_count(username="bob"):
     images = glob.glob(
-        os.path.join(settings.MEDIA_ROOT, username, 'attachments', '*'))
+        os.path.join(settings.MEDIA_ROOT, username, 'attachments', '*', '*'))
     return len(images)
 
 
@@ -35,7 +35,7 @@ class TestImportingDatabase(TestBase):
         if settings.TESTING_MODE:
             images = glob.glob(
                 os.path.join(settings.MEDIA_ROOT, self.user.username,
-                             'attachments', '*'))
+                             'attachments', '*', '*'))
             for image in images:
                 os.remove(image)
 

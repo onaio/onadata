@@ -122,4 +122,6 @@ class TestAttachment(TestBase):
         Test that upload to returns the correct path
         """
         path = upload_to(self.attachment, self.attachment.filename)
-        self.assertEqual(path, 'bob/attachments/1/transportation_2011_07_25/1335783522563.jpg')  # noqa
+        self.assertEqual(path,
+                         'bob/attachments/{}_{}/1335783522563.jpg'.format(
+                             self.xform.id, self.xform.id_string))
