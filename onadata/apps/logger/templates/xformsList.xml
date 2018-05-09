@@ -5,7 +5,6 @@
   <xform>
     <formID>{{ xform.id_string }}</formID>
     <name>{{ xform.title }}</name>
-    <majorMinorVersion/>
     <version/>
     <hash>md5:{{ xform.hash }}</hash>
     <descriptionText>{{ xform.description }}</descriptionText>
