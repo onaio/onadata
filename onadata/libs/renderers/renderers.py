@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Custom renderers for use with django rest_framework.
+"""
 import decimal
 import json
 import math
@@ -16,7 +20,7 @@ from rest_framework_xml.renderers import XMLRenderer
 
 from onadata.libs.utils.osm import get_combined_osm
 
-IGNORE_FIELDS = ['meta/instanceID', 'formhub/uuid']
+IGNORE_FIELDS = ['meta/contactID', 'meta/instanceID', 'formhub/uuid']
 
 
 def pairing(val1, val2):
@@ -35,9 +39,15 @@ def floip_rows_list(data):
     for i, key in enumerate(data, 1):
         if not (key.startswith('_') or key in IGNORE_FIELDS):
             session_id = data['_id']
-            yield [data['_submission_time'], int(pairing(session_id, i)),
-                   data.get('_submitted_by'), data['_id'], key, data[key],
-                   None]
+            yield [
+                data['_submission_time'],  # Timestamp
+                int(pairing(session_id, i)),  # Row ID
+                data.get('meta/contactID', data.get('_submitted_by')),
+                data.get('_uuid') or session_id,  # Session ID
+                key,  # Question ID
+                data[key],  # Response
+                None,  # Response Metadata
+            ]
 
 
 def floip_list(data):
@@ -50,14 +60,21 @@ def floip_list(data):
 
 
 class DecimalEncoder(JSONEncoder):
-    def default(self, obj):
+    """
+    JSON DecimalEncoder that returns None for decimal nan json values.
+    """
+    def default(self, obj):  # pylint: disable=method-hidden
         # Handle Decimal NaN values
         if isinstance(obj, decimal.Decimal) and math.isnan(obj):
             return None
         return JSONEncoder.default(self, obj)
 
 
-class XLSRenderer(BaseRenderer):
+class XLSRenderer(BaseRenderer):  # pylint: disable=R0903
+    """
+    XLSRenderer - renders .xls spreadsheet documents with
+                  application/vnd.openxmlformats.
+    """
     media_type = 'application/vnd.openxmlformats'
     format = 'xls'
     charset = None
@@ -66,17 +83,27 @@ class XLSRenderer(BaseRenderer):
         return data
 
 
-class XLSXRenderer(XLSRenderer):
+class XLSXRenderer(XLSRenderer):  # pylint: disable=too-few-public-methods
+    """
+    XLSRenderer - renders .xlsx spreadsheet documents with
+                  application/vnd.openxmlformats.
+    """
     format = 'xlsx'
 
 
-class CSVRenderer(BaseRenderer):
+class CSVRenderer(BaseRenderer):  # pylint: disable=abstract-method, R0903
+    """
+    XLSRenderer - renders comma separated files (CSV) with text/csv.
+    """
     media_type = 'text/csv'
     format = 'csv'
     charset = 'utf-8'
 
 
-class CSVZIPRenderer(BaseRenderer):
+class CSVZIPRenderer(BaseRenderer):  # pylint: disable=R0903
+    """
+    CSVZIPRenderer - renders a ZIP file that contains CSV files.
+    """
     media_type = 'application/octet-stream'
     format = 'csvzip'
     charset = None
@@ -85,7 +112,10 @@ class CSVZIPRenderer(BaseRenderer):
         return json.dumps(data) if isinstance(data, dict) else data
 
 
-class SAVZIPRenderer(BaseRenderer):
+class SAVZIPRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
+    """
+    SAVZIPRenderer - renders a ZIP file that contains SPSS SAV files.
+    """
     media_type = 'application/octet-stream'
     format = 'savzip'
     charset = None
@@ -94,17 +124,22 @@ class SAVZIPRenderer(BaseRenderer):
         return json.dumps(data) if isinstance(data, dict) else data
 
 
-class SurveyRenderer(BaseRenderer):
+class SurveyRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
+    """
+    SurveyRenderer - renders XML data.
+    """
     media_type = 'application/xml'
     format = 'xml'
     charset = 'utf-8'
 
     def render(self, data, accepted_media_type=None, renderer_context=None):
         return data
-# TODO add ZIP(attachments) support
 
 
-class KMLRenderer(BaseRenderer):
+class KMLRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
+    """
+    KMLRenderer - renders KML XML data.
+    """
     media_type = 'application/xml'
     format = 'kml'
     charset = 'utf-8'
@@ -113,12 +148,19 @@ class KMLRenderer(BaseRenderer):
         return data
 
 
-class GoogleSheetsRenderer(XLSRenderer):
+class GoogleSheetsRenderer(XLSRenderer):  # pylint: disable=R0903
+    """
+    GoogleSheetsRenderer = Google Sheets excel exports.
+    """
     format = 'gsheets'
 
 
 class MediaFileContentNegotiation(negotiation.DefaultContentNegotiation):
-    def filter_renderers(self, renderers, format):
+    """
+    MediaFileContentNegotiation - filters renders to only return renders with
+                                  matching format.
+    """
+    def filter_renderers(self, renderers, format):  # pylint: disable=W0622
         """
         If there is a '.json' style format suffix, filter the renderers
         so that we only negotiation against those that accept that format.
@@ -132,7 +174,10 @@ class MediaFileContentNegotiation(negotiation.DefaultContentNegotiation):
         return renderers
 
 
-class MediaFileRenderer(BaseRenderer):
+class MediaFileRenderer(BaseRenderer):  # pylint: disable=R0903
+    """
+    MediaFileRenderer - render binary media files.
+    """
     media_type = '*/*'
     format = None
     charset = None
@@ -142,7 +187,7 @@ class MediaFileRenderer(BaseRenderer):
         return data
 
 
-class XFormListRenderer(BaseRenderer):
+class XFormListRenderer(BaseRenderer):  # pylint: disable=R0903
     """
     Renderer which serializes to XML.
     """
@@ -197,13 +242,19 @@ class XFormListRenderer(BaseRenderer):
             xml.characters(smart_text(data))
 
 
-class XFormManifestRenderer(XFormListRenderer):
+class XFormManifestRenderer(XFormListRenderer):  # pylint: disable=R0903
+    """
+    XFormManifestRenderer - render XFormManifest XML.
+    """
     root_node = "manifest"
     element_node = "mediaFile"
     xmlns = "http://openrosa.org/xforms/xformsManifest"
 
 
-class TemplateXMLRenderer(TemplateHTMLRenderer):
+class TemplateXMLRenderer(TemplateHTMLRenderer):  # pylint: disable=R0903
+    """
+    TemplateXMLRenderer - Render XML template.
+    """
     format = 'xml'
     media_type = 'text/xml'
 
@@ -219,26 +270,35 @@ class TemplateXMLRenderer(TemplateHTMLRenderer):
             data, accepted_media_type, renderer_context)
 
 
-class StaticXMLRenderer(StaticHTMLRenderer):
+class StaticXMLRenderer(StaticHTMLRenderer):  # pylint: disable=R0903
+    """
+    StaticXMLRenderer - render static XML document.
+    """
     format = 'xml'
     media_type = 'text/xml'
 
 
-class GeoJsonRenderer(BaseRenderer):
+class GeoJsonRenderer(BaseRenderer):  # pylint: disable=R0903
+    """
+    GeoJsonRenderer - render .geojson data as json.
+    """
     media_type = 'application/json'
     format = 'geojson'
     charset = 'utf-8'
 
-    def render(self, data, media_type=None, renderer_context=None):
+    def render(self, data, accepted_media_type=None, renderer_context=None):
         return json.dumps(data)
 
 
-class OSMRenderer(BaseRenderer):
+class OSMRenderer(BaseRenderer):  # pylint: disable=R0903
+    """
+    OSMRenderer - render .osm data as XML.
+    """
     media_type = 'text/xml'
     format = 'osm'
     charset = 'utf-8'
 
-    def render(self, data, media_type=None, renderer_context=None):
+    def render(self, data, accepted_media_type=None, renderer_context=None):
         # Process error before making a list
         if isinstance(data, dict):
             if 'detail' in data:
@@ -256,13 +316,19 @@ class OSMRenderer(BaseRenderer):
         return get_combined_osm(data)
 
 
-class OSMExportRenderer(BaseRenderer):
+class OSMExportRenderer(BaseRenderer):  # pylint: disable=R0903, W0223
+    """
+    OSMExportRenderer - render .osm data as XML.
+    """
     media_type = 'text/xml'
     format = 'osm'
     charset = 'utf-8'
 
 
-class DebugToolbarRenderer(TemplateHTMLRenderer):
+class DebugToolbarRenderer(TemplateHTMLRenderer):  # pylint: disable=R0903
+    """
+    DebugToolbarRenderer - render .debug as HTML.
+    """
     media_type = 'text/html'
     charset = 'utf-8'
     format = 'debug'
@@ -280,7 +346,10 @@ class DebugToolbarRenderer(TemplateHTMLRenderer):
         )
 
 
-class ZipRenderer(BaseRenderer):
+class ZipRenderer(BaseRenderer):  # pylint: disable=R0903
+    """
+    ZipRenderer - render .zip files.
+    """
     media_type = 'application/octet-stream'
     format = 'zip'
     charset = None

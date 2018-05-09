@@ -4,6 +4,9 @@ Changelog for onadata
 1.14.2 (Unreleased)
 --------------------
 
+- Persist Flow Results Contact ID and Session ID
+  `Issue 1398 <https://github.com/onaio/onadata/pull/1398>`_
+  [ukanga]
 
 1.14.1 (2018-05-07)
 --------------------

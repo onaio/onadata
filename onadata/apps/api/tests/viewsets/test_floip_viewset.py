@@ -31,7 +31,7 @@ class TestFloipViewSet(TestAbstractViewSet):
                 **self.extra)
             response = view(request)
             if test:
-                self.assertEqual(response.status_code, 201, response.data)
+                self.assertEqual(response.status_code, 201)
                 self.assertEqual(response['Content-Type'],
                                  'application/vnd.api+json')
                 self.assertEqual(
@@ -124,7 +124,7 @@ class TestFloipViewSet(TestAbstractViewSet):
                 data=post_data, content_type='application/vnd.api+json',
                 **self.extra)
             response = view(request, uuid=data['id'])
-            self.assertEqual(response.status_code, 200, response.data)
+            self.assertEqual(response.status_code, 200)
             response.render()
             self.assertEqual(response['Content-Type'],
                              'application/vnd.api+json')
@@ -151,7 +151,21 @@ class TestFloipViewSet(TestAbstractViewSet):
                 content_type='application/vnd.api+json',
                 **self.extra)
             response = view(request, uuid=floip_data['id'])
-            self.assertEqual(response.status_code, 201, response.data)
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(response['Content-Type'],
+                             'application/vnd.api+json')
+            self.assertEqual(response['Location'],
+                             'http://testserver/api/v1/flow-results/packages/'
+                             + floip_data['id'] + '/responses')
+            self.assertEqual(count + 2, Instance.objects.count())
+
+            request = self.factory.post(
+                '/',
+                data=json.dumps(descriptor),
+                content_type='application/vnd.api+json',
+                **self.extra)
+            response = view(request, uuid=floip_data['id'])
+            self.assertEqual(response.status_code, 202)
             self.assertEqual(response['Content-Type'],
                              'application/vnd.api+json')
             self.assertEqual(response['Location'],

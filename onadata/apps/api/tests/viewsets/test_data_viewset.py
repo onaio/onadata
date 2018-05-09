@@ -2207,7 +2207,7 @@ class TestDataViewSet(TestBase):
         floip_row = [x for x in floip_list if x[-2] == 'none'][0]
         self.assertEqual(floip_row[0], response.data[0]['_submission_time'])
         self.assertEqual(floip_row[2], 'bob')
-        self.assertEqual(floip_row[3], response.data[0]['_id'])
+        self.assertEqual(floip_row[3], response.data[0]['_uuid'])
         self.assertEqual(
             floip_row[4],
             'transport/available_transportation_types_to_referral_facility')

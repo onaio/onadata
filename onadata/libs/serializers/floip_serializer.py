@@ -24,6 +24,7 @@ from onadata.apps.api.tools import do_publish_xlsform
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.logger_tools import dict2xform, safe_create_instance
 
+CONTACT_ID_INDEX = getattr(settings, 'FLOW_RESULTS_CONTACT_ID_INDEX', 2)
 SESSION_ID_INDEX = getattr(settings, 'FLOW_RESULTS_SESSION_ID_INDEX', 3)
 QUESTION_INDEX = getattr(settings, 'FLOW_RESULTS_QUESTION_INDEX', 4)
 ANSWER_INDEX = getattr(settings, 'FLOW_RESULTS_ANSWER_INDEX', 5)
@@ -49,7 +50,8 @@ def _get_owner(request):
 
 
 def parse_responses(responses, session_id_index=SESSION_ID_INDEX,
-                    question_index=QUESTION_INDEX, answer_index=ANSWER_INDEX):
+                    question_index=QUESTION_INDEX, answer_index=ANSWER_INDEX,
+                    contact_id_index=CONTACT_ID_INDEX):
     """
     Returns individual submission for all responses in a flow-results responses
     package.
@@ -61,6 +63,11 @@ def parse_responses(responses, session_id_index=SESSION_ID_INDEX,
             continue
         if current_key is None:
             current_key = row[session_id_index]
+        if 'meta' not in submission:
+            submission['meta'] = {
+                'instanceID': 'uuid:%s' % current_key,
+                'contactID': row[contact_id_index]
+            }
         if current_key != row[session_id_index]:
             yield submission
             submission = {}
@@ -197,10 +204,12 @@ class FlowResultsResponse(object):  # pylint: disable=too-few-public-methods
     """
     id = None  # pylint: disable=invalid-name
     responses = []
+    duplicates = 0
 
-    def __init__(self, uuid, responses):
+    def __init__(self, uuid, responses, duplicates=None):
         self.id = uuid  # pylint: disable=invalid-name
         self.responses = responses
+        self.duplicates = duplicates
 
 
 class FlowResultsResponseSerializer(serializers.Serializer):
@@ -210,6 +219,7 @@ class FlowResultsResponseSerializer(serializers.Serializer):
     """
     id = serializers.CharField()  # pylint: disable=invalid-name
     responses = serializers.ListField()
+    duplicates = serializers.IntegerField(read_only=True)
 
     class JSONAPIMeta:  # pylint: disable=old-style-class,no-init,R0903
         """
@@ -218,21 +228,22 @@ class FlowResultsResponseSerializer(serializers.Serializer):
         resource_name = 'responses'
 
     def create(self, validated_data):
+        duplicates = 0
         request = self.context['request']
         responses = validated_data['responses']
         xform = get_object_or_404(XForm, uuid=validated_data['id'])
-        processed = []
         for submission in parse_responses(responses):
             xml_file = BytesIO(dict2xform(
                 submission, xform.id_string, 'data').encode('utf-8'))
 
-            error, instance = safe_create_instance(
+            error, _instance = safe_create_instance(
                 request.user.username, xml_file, [], None, request)
-            processed.append(instance.pk)
-            if error:
+            if error and error.status_code != 202:
                 raise serializers.ValidationError(error)
+            if error and error.status_code == 202:
+                duplicates += 1
 
-        return FlowResultsResponse(xform.uuid, responses)
+        return FlowResultsResponse(xform.uuid, responses, duplicates)
 
     def update(self, instance, validated_data):
         pass
