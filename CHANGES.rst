@@ -1,8 +1,12 @@
 Changelog for onadata
 =====================
 
-(Unreleased)
+1.14.2 (2018-05-14)
 --------------------
+
+- Update check_xform_uuid() to only check for non deleted forms
+  `Issue 1403 <https://github.com/onaio/onadata/issues/1403>`_
+  [ukanga]
 
 - Persist Flow Results Contact ID and Session ID
   `Issue 1398 <https://github.com/onaio/onadata/pull/1398>`_
@@ -11,6 +15,10 @@ Changelog for onadata
 - Include form version in ODK formList endpoint
   `Issue 1195 <https://github.com/onaio/onadata/issues/1195>`_
   [ukanga]
+
+- Reorder how attachments are saved
+  `Issue 961 <https://github.com/onaio/onadata/issues/961>`_
+  [wambere]
 
 1.14.1 (2018-05-07)
 --------------------
