@@ -1,6 +1,14 @@
 Ubuntu installation instructions
 ================================
 
+Get the code
+------------
+
+.. code-block:: sh
+
+    git clone https://github.com/onaio/onadata.git
+    cd onadata
+
 Prepare OS
 ----------
 
@@ -21,58 +29,32 @@ Replace username and db name accordingly.
     sudo su postgres -c "psql -c \"CREATE USER onadata WITH PASSWORD 'onadata';\""
     sudo su postgres -c "psql -c \"CREATE DATABASE onadata OWNER onadata;\""
     sudo su postgres -c "psql -d onadata -c \"CREATE EXTENSION IF NOT EXISTS postgis;\""
-    sudo su postgres -c "psql -d onadata -c \"CREATE EXTENSION IF NOT EXISTS postgis;\""
     sudo su postgres -c "psql -d onadata -c \"CREATE EXTENSION IF NOT EXISTS postgis_topology;\""
-
-In Docker
-~~~~~~~~~
-To run Postgres 9.6.3 with postgis 2.3.0 in Docker:
-
-We shall use the Ona Docker builds `onaio/docker-builds <https://github.com/onaio/docker-builds>`
-
-.. code-block:: sh
-
-    git clone git@github.com:onaio/docker-builds.git
-    cd docker-builds/postgresql
-    mkdir ~/.postgresql/onadata/data
-    POSTGRES_PASSWORD=<password> docker-compose up -d
-
-Connect to postgres using psql with:
-
-.. code-block:: sh
-
-    psql -h localhost -p 5432 -U postgres
-
-From now onwards start the onadata database with ``docker start onadata-postgres``
-
-You can then initialize the users and database as explained above.
-
-Get the code
-------------
-
-.. code-block:: sh
-
-    git clone https://github.com/onaio/onadata.git
-
-Set up and start your virtual environment or sandbox
-----------------------------------------------------
-
-.. code-block:: sh
-
-    virtualenv <.venv>
-    source <.venv>/bin/activate
 
 Create a local_settings.py and update it accordingly
 ----------------------------------------------------
 
 Make sure you have a ``onadata/settings/local_settings.py`` file.
 
+.. code-block:: sh
+
+    cp onadata/settings/default_settings.py and onadata/settings/local_settings.py
+    # update the DATABASE and SECRET_KEY settings accordingly.
+
 .. note::
 
   This file is usually gitignored.
 
+Set up and start your virtual environment or sandbox
+----------------------------------------------------
+
+.. code-block:: sh
+
+    virtualenv .venv
+    source .venv/bin/activate
+
 Run make to set up onadata and for initial db setup
-------------------------------------------------
+---------------------------------------------------
 
 .. code-block:: sh
 
@@ -202,7 +184,7 @@ There is a known bug that prevents numpy from installing correctly when in requi
 Step 5: Install postgres and create your database
 -------------------------------------------------
 
-`Install postgres `<http://postgresapp.com/>`_ and access postgres in your
+`Install postgres <http://postgresapp.com/>`_ and access postgres in your
 terminal using the command ``psql`` and use the following commands to create
 your user and database:
 
