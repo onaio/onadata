@@ -23,6 +23,7 @@ from onadata.libs.utils.osm import get_combined_osm
 IGNORE_FIELDS = [
     'formhub/uuid',
     'meta/contactID',
+    'meta/deprecatedID',
     'meta/instanceID',
     'meta/sessionID',
 ]

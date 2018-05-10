@@ -4,10 +4,13 @@ test_xform module
 """
 import os
 from builtins import str as text
-from past.builtins import basestring
 
+from past.builtins import basestring  # pylint: disable=redefined-builtin
+
+from onadata.apps.logger.models import Instance, XForm
+from onadata.apps.logger.models.xform import (DuplicateUUIDError,
+                                              check_xform_uuid)
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.logger.models import XForm, Instance
 
 
 class TestXForm(TestBase):
@@ -146,3 +149,19 @@ class TestXForm(TestBase):
         self.assertEqual(fruitb_o.get_abbreviated_xpath(), "b/fruitb/orange")
 
         self.assertEqual(xform.get_child_elements('NoneExistent'), [])
+
+    def test_check_xform_uuid(self):
+        """
+        Test check_xform_uuid(new_uuid).
+        """
+        self._publish_transportation_form()
+        with self.assertRaises(DuplicateUUIDError):
+            check_xform_uuid(self.xform.uuid)
+
+        # soft delete xform
+        self.xform.soft_delete()
+
+        try:
+            check_xform_uuid(self.xform.uuid)
+        except DuplicateUUIDError as e:
+            self.fail("DuplicateUUIDError raised: %s" % e)

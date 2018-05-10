@@ -124,7 +124,7 @@ def get_xform_from_submission(xml, username, uuid=None):
         # try find the form by its uuid which is the ideal condition
         if XForm.objects.filter(
                 uuid=uuid, deleted_at__isnull=True).count() > 0:
-            xform = XForm.objects.get(uuid=uuid)
+            xform = XForm.objects.get(uuid=uuid, deleted_at__isnull=True)
 
             return xform
 

@@ -1021,7 +1021,8 @@ def check_xform_uuid(new_uuid):
     Checks if a new_uuid has already been used, if it has it raises the
     exception DuplicateUUIDError.
     """
-    count = XForm.objects.filter(uuid=new_uuid).count()
+    count = XForm.objects.filter(uuid=new_uuid,
+                                 deleted_at__isnull=True).count()
 
     if count > 0:
         raise DuplicateUUIDError(

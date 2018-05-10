@@ -232,7 +232,8 @@ class FlowResultsResponseSerializer(serializers.Serializer):
         duplicates = 0
         request = self.context['request']
         responses = validated_data['responses']
-        xform = get_object_or_404(XForm, uuid=validated_data['id'])
+        xform = get_object_or_404(XForm, uuid=validated_data['id'],
+                                  deleted_at__isnull=True)
         for submission in parse_responses(responses):
             xml_file = BytesIO(dict2xform(
                 submission, xform.id_string, 'data').encode('utf-8'))
