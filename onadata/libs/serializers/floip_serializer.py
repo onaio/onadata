@@ -66,6 +66,7 @@ def parse_responses(responses, session_id_index=SESSION_ID_INDEX,
         if 'meta' not in submission:
             submission['meta'] = {
                 'instanceID': 'uuid:%s' % current_key,
+                'sessionID': current_key,
                 'contactID': row[contact_id_index]
             }
         if current_key != row[session_id_index]:
@@ -206,8 +207,8 @@ class FlowResultsResponse(object):  # pylint: disable=too-few-public-methods
     responses = []
     duplicates = 0
 
-    def __init__(self, uuid, responses, duplicates=None):
-        self.id = uuid  # pylint: disable=invalid-name
+    def __init__(self, session_id, responses, duplicates=None):
+        self.id = session_id  # pylint: disable=invalid-name
         self.responses = responses
         self.duplicates = duplicates
 

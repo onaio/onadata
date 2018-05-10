@@ -31,15 +31,15 @@ class TestRenderers(TestCase):
         result = [_ for _ in floip_rows_list(data)]
         self.assertEquals(result, expected_data)
 
-    def test_floip_rows_list_w_uuid(self):
+    def test_floip_rows_list_w_flow_fields(self):  # pylint: disable=C0103
         """
-        Test floip_rows_list() function with instanceID/uuid and contactID
+        Test floip_rows_list() function with sessionID and contactID
         """
         data = OrderedDict([
             ('_id', 1),
-            ('_uuid', '345'),
             ('_submission_time', '2018-03-05T13:57:26'),
             ('meta/contactID', '789'),
+            ('meta/sessionID', '345'),
             ('name', 'Bob Bob'),
             ('age', 10)
         ])
