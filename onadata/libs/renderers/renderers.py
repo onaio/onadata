@@ -20,7 +20,12 @@ from rest_framework_xml.renderers import XMLRenderer
 
 from onadata.libs.utils.osm import get_combined_osm
 
-IGNORE_FIELDS = ['meta/contactID', 'meta/instanceID', 'formhub/uuid']
+IGNORE_FIELDS = [
+    'formhub/uuid',
+    'meta/contactID',
+    'meta/instanceID',
+    'meta/sessionID',
+]
 
 
 def pairing(val1, val2):
@@ -38,12 +43,12 @@ def floip_rows_list(data):
     """
     for i, key in enumerate(data, 1):
         if not (key.startswith('_') or key in IGNORE_FIELDS):
-            session_id = data['_id']
+            instance_id = data['_id']
             yield [
                 data['_submission_time'],  # Timestamp
-                int(pairing(session_id, i)),  # Row ID
+                int(pairing(instance_id, i)),  # Row ID
                 data.get('meta/contactID', data.get('_submitted_by')),
-                data.get('_uuid') or session_id,  # Session ID
+                data.get('meta/sessionID') or data.get('_uuid') or instance_id,
                 key,  # Question ID
                 data[key],  # Response
                 None,  # Response Metadata
@@ -63,6 +68,7 @@ class DecimalEncoder(JSONEncoder):
     """
     JSON DecimalEncoder that returns None for decimal nan json values.
     """
+
     def default(self, obj):  # pylint: disable=method-hidden
         # Handle Decimal NaN values
         if isinstance(obj, decimal.Decimal) and math.isnan(obj):
@@ -160,14 +166,16 @@ class MediaFileContentNegotiation(negotiation.DefaultContentNegotiation):
     MediaFileContentNegotiation - filters renders to only return renders with
                                   matching format.
     """
+
     def filter_renderers(self, renderers, format):  # pylint: disable=W0622
         """
         If there is a '.json' style format suffix, filter the renderers
         so that we only negotiation against those that accept that format.
         If there is no renderer available, we use MediaFileRenderer.
         """
-        renderers = [renderer for renderer in renderers
-                     if renderer.format == format]
+        renderers = [
+            renderer for renderer in renderers if renderer.format == format
+        ]
         if not renderers:
             renderers = [MediaFileRenderer()]
 
@@ -263,11 +271,11 @@ class TemplateXMLRenderer(TemplateHTMLRenderer):  # pylint: disable=R0903
         response = renderer_context['response']
 
         if response and response.exception:
-            return XMLRenderer().render(
-                data, accepted_media_type, renderer_context)
+            return XMLRenderer().render(data, accepted_media_type,
+                                        renderer_context)
 
-        return super(TemplateXMLRenderer, self).render(
-            data, accepted_media_type, renderer_context)
+        return super(TemplateXMLRenderer,
+                     self).render(data, accepted_media_type, renderer_context)
 
 
 class StaticXMLRenderer(StaticHTMLRenderer):  # pylint: disable=R0903
@@ -336,14 +344,12 @@ class DebugToolbarRenderer(TemplateHTMLRenderer):  # pylint: disable=R0903
 
     def render(self, data, accepted_media_type=None, renderer_context=None):
         data = {
-            'debug_data': JSONRenderer().render(
-                data, renderer_context=renderer_context
-            )
+            'debug_data':
+            JSONRenderer().render(data, renderer_context=renderer_context)
         }
 
         return super(DebugToolbarRenderer, self).render(
-            data, accepted_media_type, renderer_context
-        )
+            data, accepted_media_type, renderer_context)
 
 
 class ZipRenderer(BaseRenderer):  # pylint: disable=R0903
