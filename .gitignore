@@ -42,6 +42,7 @@ celerybeat-schedule
 celerybeat.pid
 *.swp
 .venv
+.virtualenv
 *.ropeproject
 .noseids
 
