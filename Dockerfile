@@ -28,7 +28,11 @@ RUN apt-get update \
     python-sphinx \
     openjdk-9-jre-headless \
     python-virtualenv \
-    locales
+    locales \
+    pkg-config \
+    gcc \
+    libtool \
+    automake
 
 RUN  locale-gen en_US.UTF-8
 RUN mkdir -p /srv/onadata/requirements
