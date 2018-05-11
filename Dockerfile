@@ -56,11 +56,14 @@ ENV DJANGO_SETTINGS_MODULE onadata.settings.docker
 USER root
 
 # for local development tmux is a nice to have
-RUN apt-get install -y tmux \
-    && echo "set-option -g default-shell /bin/bash" > ~/.tmux.conf
+RUN apt-get install -y tmux
 
 RUN rm -rf /var/lib/apt/lists/* \
   && find . -name '*.pyc' -type f -delete
+
 USER onadata
+
+# Run tmux to use bash shell.
+RUN echo "set-option -g default-shell /bin/bash" > ~/.tmux.conf
 
 CMD ["/srv/onadata/docker/docker-entrypoint.sh"]
