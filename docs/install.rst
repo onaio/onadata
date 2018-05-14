@@ -91,7 +91,7 @@ Setup uwsgi init script
 .. code-block:: sh
 
     pip install uwsgi
-    # edit uwsgi.ini accrodingly, change paths, user among other parmas
+    # edit uwsgi.ini and onadat.conf accrodingly, change paths and configurations accordingly.
     sudo cp script/etc/init/onadata.conf /etc/init/onadata.conf
     # start the onadata service
     sudo start onadata
@@ -105,14 +105,17 @@ Setup celery service
 
     sudo apt-get install rabbitmq-server
     # edit script/etc/default/celeryd-ona with correct paths and user, group
-    sudo cp script/etc/default/celeryd-ona /etc/default/celeryd-ona
+    sudo cp script/etc/default/celeryd-generic /etc/default/celeryd-onadata
+    sudo cp script/etc/default/celerybeat-generic /etc/default/celerybeat-onadata
     # copy init script celeryd-ona
-    sudo cp script/etc/init.d/celeryd-ona /etc/init.d/celeryd-ona
-    sudo chmod +x /etc/init.d/celeryd-ona
-    sudo update-rc.d -f celeryd-ona defaults
-    sudo service celeryd-ona start
-    # confirm that the service started successfully
-    cat /tmp/w1-ona.log
+    sudo cp script/etc/init.d/celeryd-generic /etc/init.d/celeryd-onadata
+    sudo cp script/etc/init.d/celerybeat-generic /etc/init.d/celerybeat-onadata
+    sudo chmod +x /etc/init.d/celeryd-onadata
+    sudo chmod +x /etc/init.d/celerybeat-onadata
+    sudo update-rc.d -f celeryd-onadata defaults
+    sudo update-rc.d -f celerybeat-onadata defaults
+    sudo service celeryd-onadata start
+    sudo service celerybeat-onadata start
 
 Setup nginx
 -----------
