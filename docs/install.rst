@@ -141,7 +141,6 @@ Step 1: Install dependencies using brew
 
 .. code-block:: sh
 
-    brew install mongo
     brew install postgis
     brew install gdal
     brew install rabbitmq
