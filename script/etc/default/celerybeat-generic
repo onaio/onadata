@@ -18,10 +18,10 @@ CELERYBEAT_GROUP="onadata"
 C_FORCE_ROOT=1
 CELERY_CREATE_DIRS=1
 CELERYBEAT_LOG_LEVEL="INFO"
-CELERYBEAT_LOG_FILE="/var/log/onadata/celerybeat.log"
-CELERYBEAT_SCHEDULE="/var/run/onadata/celerybeat-schedule"
-CELERYBEAT_STATE_DIR="/var/run/onadata/celerybeat"
-CELERYBEAT_PID_FILE="/var/run/onadata/celerybeat.pid"
+CELERYBEAT_LOG_FILE="/var/log/celery-onadata/beat.log"
+CELERYBEAT_SCHEDULE="/var/run/celery-onadata/beat-schedule"
+CELERYBEAT_STATE_DIR="/var/run/celery-onadata/beat"
+CELERYBEAT_PID_FILE="/var/run/celery-onadata/beat.pid"
 # Name of the projects settings module.
 # in this case is just settings and not the full path because it will change the dir to
 # the project folder first.

@@ -6,7 +6,7 @@ server {
     # server block/virtual host name
     server_name onadata.local;
 
-    access_log    /var/log/onadata/nginx-access.log timed_combined;
+    access_log    /var/log/onadata/nginx-access.log;
     error_log     /var/log/onadata/nginx-error.log;
 
     # entity size
@@ -19,10 +19,10 @@ server {
 
     location / {
         # uwsgi backend
-        uwsgi_pass unix:///var/run/onadaya/onadata.sock;
+        uwsgi_pass unix:///var/run/onadata/onadata.sock;
         include uwsgi_params;
         proxy_read_timeout 300s;
-        uwsgi_read_timeout 300s};
+        uwsgi_read_timeout 300s;
 
         # no redirects
         proxy_redirect     off;

@@ -1,0 +1,15 @@
+[Unit]
+Description=uWSGI onadata web app
+After=network.target
+
+[Service]
+Type=notify
+Restart=on-failure
+RuntimeDirectory=onadata
+WorkingDirectory=/srv/onadata
+User=onadata
+Group=www-data
+ExecStart=/srv/onadata/.virtualenv/bin/uwsgi --ini /srv/onadata/uwsgi.ini --env DJANGO_SETTINGS_MODULE=onadata.settings.common --socket=/var/run/onadata/onadata.sock --pidfile=/var/run/onadata/onadata.pid --chmod-socket=664
+
+[Install]
+WantedBy=multi-user.target

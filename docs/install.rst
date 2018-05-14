@@ -6,8 +6,16 @@ Get the code
 
 .. code-block:: sh
 
+    # create onadata user account
+    useradd -m onadata -G www-data
+
     git clone https://github.com/onaio/onadata.git
-    cd onadata
+
+    # move onadata to /srv/onadata and
+    # make sure onadata user has permissions
+    sudo mv onadata /srv/onadata
+    sudo chown -R onadata:www-data /srv/onadata/
+    cd /srv/onadata
 
 Prepare OS
 ----------
@@ -38,20 +46,16 @@ Make sure you have a ``onadata/settings/local_settings.py`` file.
 
 .. code-block:: sh
 
-    cp onadata/settings/default_settings.py and onadata/settings/local_settings.py
+    cp onadata/settings/default_settings.py onadata/settings/local_settings.py
     # update the DATABASE and SECRET_KEY settings accordingly.
-
-.. note::
-
-  This file is usually gitignored.
 
 Set up and start your virtual environment or sandbox
 ----------------------------------------------------
 
 .. code-block:: sh
 
-    virtualenv .venv
-    source .venv/bin/activate
+    virtualenv .virtualenv
+    source .virtualenv/bin/activate
 
 Run make to set up onadata and for initial db setup
 ---------------------------------------------------
@@ -91,19 +95,18 @@ Setup uwsgi init script
 .. code-block:: sh
 
     pip install uwsgi
-    # edit uwsgi.ini and onadat.conf accrodingly, change paths and configurations accordingly.
-    sudo cp script/etc/init/onadata.conf /etc/init/onadata.conf
+    # edit uwsgi.ini and onadata.service accrodingly, change paths and configurations accordingly.
+    sudo cp script/etc/systemd/system/onadata.service /etc/systemd/system/onadata.service
     # start the onadata service
-    sudo start onadata
+    sudo systemctl start onadata.servicea
     # check that it started ok
-    # cat /path/to/onadata.log
+    sudo systemctl status onadata.servicea
 
 Setup celery service
 --------------------
 
 .. code-block:: sh
 
-    sudo apt-get install rabbitmq-server
     # edit script/etc/default/celeryd-ona with correct paths and user, group
     sudo cp script/etc/default/celeryd-generic /etc/default/celeryd-onadata
     sudo cp script/etc/default/celerybeat-generic /etc/default/celerybeat-onadata

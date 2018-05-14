@@ -14,19 +14,19 @@ ENV_PYTHON="/srv/onadata/.virtualenv/bin/python"
 #CELERYCTL="$ENV_PYTHON $CELERYD_CHDIR/manage.py celeryctl"
 CELERY_BIN="/srv/onadata/.virtualenv/bin/celery"
 # Extra arguments to celeryd
-CELERYD_OPTS="-Ofair --concurrency=4 --autscalse=4,1 -Q:default celert -Q:export-node exports -Q:publish-xls-form-node publish_xlsform"
+CELERYD_OPTS="-Ofair --concurrency=4 --autoscale=4,1 -Q:default celert -Q:export-node exports -Q:publish-xls-form-node publish_xlsform"
 
 CELERY_APP="onadata.celery"
 # Name of the celery config module, don't change this.
 #CELERY_CONFIG_MODULE="celeryconfig"
 
 # %n will be replaced with the nodename.
-CELERYD_LOG_FILE="/var/log/onadata/celery-%n.log"
-CELERYD_PID_FILE="/run/onadata/celery-%n.pid"
+CELERYD_LOG_FILE="/var/log/celery-onadata/celery-%n.log"
+CELERYD_PID_FILE="/run/celery-onadata/celery-%n.pid"
 
 # Workers should run as an unprivileged user.
 CELERYD_USER="onadata"
-CELERYD_GROUP="onadata"
+CELERYD_GROUP="www-data"
 
 CELERY_CREATE_DIRS=1
 C_FORCE_ROOT=1
