@@ -28,24 +28,42 @@ RUN apt-get update \
     python-sphinx \
     openjdk-9-jre-headless \
     python-virtualenv \
-    locales
+    locales \
+    pkg-config \
+    gcc \
+    libtool \
+    automake
 
 RUN  locale-gen en_US.UTF-8
+
+RUN useradd -m onadata
+RUN mkdir -p /srv/onadata && chown -R onadata:onadata /srv/onadata
+USER onadata
 RUN mkdir -p /srv/onadata/requirements
 
 ADD requirements /srv/onadata/requirements/
 
 WORKDIR /srv/onadata
 
-RUN virtualenv /srv/.virtualenv
-RUN . /srv/.virtualenv/bin/activate; \
+RUN virtualenv /srv/onadata/.virtualenv
+RUN . /srv/onadata/.virtualenv/bin/activate; \
     pip install pip --upgrade && pip install -r requirements/base.pip
 
 ADD . /srv/onadata/
 
 ENV DJANGO_SETTINGS_MODULE onadata.settings.docker
 
+USER root
+
+# for local development tmux is a nice to have
+RUN apt-get install -y tmux
+
 RUN rm -rf /var/lib/apt/lists/* \
   && find . -name '*.pyc' -type f -delete
+
+USER onadata
+
+# Run tmux to use bash shell.
+RUN echo "set-option -g default-shell /bin/bash" > ~/.tmux.conf
 
 CMD ["/srv/onadata/docker/docker-entrypoint.sh"]

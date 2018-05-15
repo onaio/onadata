@@ -1,0 +1,28 @@
+# Where to chdir at start.
+CELERYBEAT_CHDIR="/srv/onadata"
+
+# Python interpreter from environment, if using virtualenv
+ENV_PYTHON="/srv/onadata/.virtualenv/bin/python"
+CELERY_BIN="/srv/onadata/.virtualenv/bin/celery"
+
+# Name of the celery config module, don't change this.
+CELERY_APP="onadata.celery"
+
+# %n will be replaced with the nodename.
+
+# Workers should run as an unprivileged user.
+CELERYBEAT_USER="onadata"
+CELERYBEAT_GROUP="onadata"
+
+# Set any other env vars here too!
+C_FORCE_ROOT=1
+CELERY_CREATE_DIRS=1
+CELERYBEAT_LOG_LEVEL="INFO"
+CELERYBEAT_LOG_FILE="/var/log/celery-onadata/beat.log"
+CELERYBEAT_SCHEDULE="/var/run/celery-onadata/beat-schedule"
+CELERYBEAT_STATE_DIR="/var/run/celery-onadata/beat"
+CELERYBEAT_PID_FILE="/var/run/celery-onadata/beat.pid"
+# Name of the projects settings module.
+# in this case is just settings and not the full path because it will change the dir to
+# the project folder first.
+DJANGO_SETTINGS_MODULE="onadata.settings.common"

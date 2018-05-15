@@ -1,0 +1,34 @@
+# Name of nodes to start, here we have a single node
+CELERYD_NODES="default export-node publish-xls-form-node"
+
+# Where to chdir at start.
+CELERYD_CHDIR="/srv/onadata"
+
+# Python interpreter from environment, if using virtualenv
+ENV_PYTHON="/srv/onadata/.virtualenv/bin/python"
+
+# How to call "manage.py celeryd_multi"
+#CELERYD_MULTI="{{ venv_path }}/bin/celeryd-multi"
+
+# How to call "manage.py celeryctl"
+#CELERYCTL="$ENV_PYTHON $CELERYD_CHDIR/manage.py celeryctl"
+CELERY_BIN="/srv/onadata/.virtualenv/bin/celery"
+# Extra arguments to celeryd
+CELERYD_OPTS="-Ofair --concurrency=4 --autoscale=4,1 -Q:default celert -Q:export-node exports -Q:publish-xls-form-node publish_xlsform"
+
+CELERY_APP="onadata.celery"
+# Name of the celery config module, don't change this.
+#CELERY_CONFIG_MODULE="celeryconfig"
+
+# %n will be replaced with the nodename.
+CELERYD_LOG_FILE="/var/log/celery-onadata/celery-%n.log"
+CELERYD_PID_FILE="/run/celery-onadata/celery-%n.pid"
+
+# Workers should run as an unprivileged user.
+CELERYD_USER="onadata"
+CELERYD_GROUP="www-data"
+
+CELERY_CREATE_DIRS=1
+C_FORCE_ROOT=1
+CELERYD_LOG_LEVEL="INFO"
+DJANGO_SETTINGS_MODULE="onadata.settings.common"

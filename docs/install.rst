@@ -1,6 +1,22 @@
 Ubuntu installation instructions
 ================================
 
+Get the code
+------------
+
+.. code-block:: sh
+
+    # create onadata user account
+    useradd -m onadata -G www-data
+
+    git clone https://github.com/onaio/onadata.git
+
+    # move onadata to /srv/onadata and
+    # make sure onadata user has permissions
+    sudo mv onadata /srv/onadata
+    sudo chown -R onadata:www-data /srv/onadata/
+    cd /srv/onadata
+
 Prepare OS
 ----------
 
@@ -21,58 +37,28 @@ Replace username and db name accordingly.
     sudo su postgres -c "psql -c \"CREATE USER onadata WITH PASSWORD 'onadata';\""
     sudo su postgres -c "psql -c \"CREATE DATABASE onadata OWNER onadata;\""
     sudo su postgres -c "psql -d onadata -c \"CREATE EXTENSION IF NOT EXISTS postgis;\""
-    sudo su postgres -c "psql -d onadata -c \"CREATE EXTENSION IF NOT EXISTS postgis;\""
     sudo su postgres -c "psql -d onadata -c \"CREATE EXTENSION IF NOT EXISTS postgis_topology;\""
-
-In Docker
-~~~~~~~~~
-To run Postgres 9.6.3 with postgis 2.3.0 in Docker:
-
-We shall use the Ona Docker builds `onaio/docker-builds <https://github.com/onaio/docker-builds>`
-
-.. code-block:: sh
-
-    git clone git@github.com:onaio/docker-builds.git
-    cd docker-builds/postgresql
-    mkdir ~/.postgresql/onadata/data
-    POSTGRES_PASSWORD=<password> docker-compose up -d
-
-Connect to postgres using psql with:
-
-.. code-block:: sh
-
-    psql -h localhost -p 5432 -U postgres
-
-From now onwards start the onadata database with ``docker start onadata-postgres``
-
-You can then initialize the users and database as explained above.
-
-Get the code
-------------
-
-.. code-block:: sh
-
-    git clone https://github.com/onaio/onadata.git
-
-Set up and start your virtual environment or sandbox
-----------------------------------------------------
-
-.. code-block:: sh
-
-    virtualenv <.venv>
-    source <.venv>/bin/activate
 
 Create a local_settings.py and update it accordingly
 ----------------------------------------------------
 
 Make sure you have a ``onadata/settings/local_settings.py`` file.
 
-.. note::
+.. code-block:: sh
 
-  This file is usually gitignored.
+    cp onadata/settings/default_settings.py onadata/settings/local_settings.py
+    # update the DATABASE and SECRET_KEY settings accordingly.
+
+Set up and start your virtual environment or sandbox
+----------------------------------------------------
+
+.. code-block:: sh
+
+    virtualenv .virtualenv
+    source .virtualenv/bin/activate
 
 Run make to set up onadata and for initial db setup
-------------------------------------------------
+---------------------------------------------------
 
 .. code-block:: sh
 
@@ -109,28 +95,30 @@ Setup uwsgi init script
 .. code-block:: sh
 
     pip install uwsgi
-    # edit uwsgi.ini accrodingly, change paths, user among other parmas
-    sudo cp script/etc/init/onadata.conf /etc/init/onadata.conf
+    # edit uwsgi.ini and onadata.service accrodingly, change paths and configurations accordingly.
+    sudo cp script/etc/systemd/system/onadata.service /etc/systemd/system/onadata.service
     # start the onadata service
-    sudo start onadata
+    sudo systemctl start onadata.servicea
     # check that it started ok
-    # cat /path/to/onadata.log
+    sudo systemctl status onadata.servicea
 
 Setup celery service
 --------------------
 
 .. code-block:: sh
 
-    sudo apt-get install rabbitmq-server
     # edit script/etc/default/celeryd-ona with correct paths and user, group
-    sudo cp script/etc/default/celeryd-ona /etc/default/celeryd-ona
+    sudo cp script/etc/default/celeryd-generic /etc/default/celeryd-onadata
+    sudo cp script/etc/default/celerybeat-generic /etc/default/celerybeat-onadata
     # copy init script celeryd-ona
-    sudo cp script/etc/init.d/celeryd-ona /etc/init.d/celeryd-ona
-    sudo chmod +x /etc/init.d/celeryd-ona
-    sudo update-rc.d -f celeryd-ona defaults
-    sudo service celeryd-ona start
-    # confirm that the service started successfully
-    cat /tmp/w1-ona.log
+    sudo cp script/etc/init.d/celeryd-generic /etc/init.d/celeryd-onadata
+    sudo cp script/etc/init.d/celerybeat-generic /etc/init.d/celerybeat-onadata
+    sudo chmod +x /etc/init.d/celeryd-onadata
+    sudo chmod +x /etc/init.d/celerybeat-onadata
+    sudo update-rc.d -f celeryd-onadata defaults
+    sudo update-rc.d -f celerybeat-onadata defaults
+    sudo service celeryd-onadata start
+    sudo service celerybeat-onadata start
 
 Setup nginx
 -----------
@@ -156,7 +144,6 @@ Step 1: Install dependencies using brew
 
 .. code-block:: sh
 
-    brew install mongo
     brew install postgis
     brew install gdal
     brew install rabbitmq
@@ -202,7 +189,7 @@ There is a known bug that prevents numpy from installing correctly when in requi
 Step 5: Install postgres and create your database
 -------------------------------------------------
 
-`Install postgres `<http://postgresapp.com/>`_ and access postgres in your
+`Install postgres <http://postgresapp.com/>`_ and access postgres in your
 terminal using the command ``psql`` and use the following commands to create
 your user and database:
 

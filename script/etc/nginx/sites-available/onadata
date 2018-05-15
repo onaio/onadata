@@ -1,0 +1,39 @@
+server {
+    # ports
+    listen 80;
+    listen [::]:80;
+
+    # server block/virtual host name
+    server_name onadata.local;
+
+    access_log    /var/log/onadata/nginx-access.log;
+    error_log     /var/log/onadata/nginx-error.log;
+
+    # entity size
+    client_max_body_size 10m;
+
+    # static files
+    location /static  {
+        alias /srv/onadata/static;
+    }
+
+    location / {
+        # uwsgi backend
+        uwsgi_pass unix:///var/run/onadata/onadata.sock;
+        include uwsgi_params;
+        proxy_read_timeout 300s;
+        uwsgi_read_timeout 300s;
+
+        # no redirects
+        proxy_redirect     off;
+
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Host $server_name;
+
+        # timeouts on unavailable backend(s)
+        proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+    }
+
+}

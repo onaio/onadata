@@ -9,6 +9,9 @@
 # settings.py)
 from staging_example import *  # noqa
 
+
+ALLOWED_HOSTS = ['*']
+
 # # # now override the settings which came from staging # # # #
 DATABASES = {
     'default': {

@@ -1,11 +1,9 @@
 sudo apt-get update \
-    && apt-get install -y wget \
+    && sudo apt-get install -y wget lsb-core \
     && sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list' \
     && wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add - \
     && sudo apt-get update \
-    && sudo apt-get install -y postgresql-9.4-postgis-2.1 binutils libproj-dev gdal-bin memcached libmemcached-dev python-pip \
+    && sudo apt-get install -y postgresql-9.6-postgis-2.3 binutils libproj-dev gdal-bin memcached libmemcached-dev python-pip \
     python-dev python-virtualenv git libssl-dev libpq-dev gfortran libatlas-base-dev libjpeg-dev libxml2-dev libxslt1-dev zlib1g-dev \
-    python-software-properties ghostscript openjdk-7-jre libffi-dev libssl-dev rabbitmq-server uwsgi
-
-sudo ln -s /usr/lib/`uname -i`-linux-gnu/libjpeg.so ~/virtualenv/python2.7/lib/
-sudo ln -s /usr/lib/`uname -i`-linux-gnu/libz.so ~/virtualenv/python2.7/lib/
+    python-software-properties ghostscript openjdk-9-jre libffi-dev libssl-dev rabbitmq-server uwsgi \
+    pkg-config gcc libtool automake
