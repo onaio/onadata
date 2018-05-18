@@ -225,6 +225,33 @@ class TestCSVDataFrameBuilder(TestBase):
                        if key in list(expected_result)])
         self.assertEqual(expected_result, result)
 
+    def test_split_select_multiples_values(self):
+        """
+        Test select multiples choices are split and their values as the data.
+        """
+        self._publish_nested_repeats_form()
+        self._submit_fixture_instance("nested_repeats", "01")
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username, self.xform.id_string, include_images=False)
+        # pylint: disable=protected-access
+        cursor = [k for k in csv_df_builder._query_data()]
+        record = cursor[0]
+        select_multiples = \
+            CSVDataFrameBuilder._collect_select_multiples(self.xform)
+        result = CSVDataFrameBuilder._split_select_multiples(
+            record, select_multiples, value_select_multiples=True)
+        expected_result = {
+            u'web_browsers/ie': u'ie',
+            u'web_browsers/safari': u'safari',
+            u'web_browsers/firefox': None,
+            u'web_browsers/chrome': None
+        }
+        # build a new dictionary only composed of the keys we want to use in
+        # the comparison
+        result = dict([(key, result[key]) for key in list(result)
+                       if key in list(expected_result)])
+        self.assertEqual(expected_result, result)
+
     # pylint: disable=invalid-name
     def test_split_select_multiples_within_repeats(self):
         """

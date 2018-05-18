@@ -146,6 +146,7 @@ class AbstractDataFrameBuilder(object):
         SUBMITTED_BY, TOTAL_MEDIA, MEDIA_COUNT,
         MEDIA_ALL_RECEIVED]
     BINARY_SELECT_MULTIPLES = False
+    VALUE_SELECT_MULTIPLES = False
     """
     Group functionality used by any DataFrameBuilder i.e. XLS, CSV and KML
     """
@@ -157,7 +158,7 @@ class AbstractDataFrameBuilder(object):
                  include_labels=False, include_labels_only=False,
                  include_images=True, include_hxl=False,
                  win_excel_utf8=False, total_records=None,
-                 index_tags=DEFAULT_INDEX_TAGS):
+                 index_tags=DEFAULT_INDEX_TAGS, value_select_multiples=False):
 
         self.username = username
         self.id_string = id_string
@@ -165,6 +166,7 @@ class AbstractDataFrameBuilder(object):
         self.group_delimiter = group_delimiter
         self.split_select_multiples = split_select_multiples
         self.BINARY_SELECT_MULTIPLES = binary_select_multiples
+        self.VALUE_SELECT_MULTIPLES = value_select_multiples
         self.start = start
         self.end = end
         self.remove_group_name = remove_group_name
@@ -221,7 +223,8 @@ class AbstractDataFrameBuilder(object):
 
     @classmethod
     def _split_select_multiples(cls, record, select_multiples,
-                                binary_select_multiples=False):
+                                binary_select_multiples=False,
+                                value_select_multiples=False):
         """ Prefix contains the xpath and slash if we are within a repeat so
         that we can figure out which select multiples belong to which repeat
         """
@@ -234,10 +237,13 @@ class AbstractDataFrameBuilder(object):
                 # element's xpath
                 selections = ["%s/%s" % (key, r)
                               for r in record[key].split(" ")]
-                # remove the column since we are adding separate columns
-                # for each choice
-                record.pop(key)
-                if not binary_select_multiples:
+                if value_select_multiples:
+                    record.update(dict([
+                        (choice,
+                         record[key].split()[selections.index(choice)]
+                         if choice in selections else None)
+                        for choice in choices]))
+                elif not binary_select_multiples:
                     # add columns to record for every choice, with default
                     # False and set to True for items in selections
                     record.update(dict([(choice, choice in selections)
@@ -248,6 +254,9 @@ class AbstractDataFrameBuilder(object):
                     record.update(
                         dict([(choice, YES if choice in selections else NO)
                               for choice in choices]))
+                # remove the column since we are adding separate columns
+                # for each choice
+                record.pop(key)
 
             # recurs into repeats
             for record_key, record_item in record.items():
@@ -255,7 +264,9 @@ class AbstractDataFrameBuilder(object):
                     for list_item in record_item:
                         if isinstance(list_item, dict):
                             cls._split_select_multiples(
-                                list_item, select_multiples)
+                                list_item, select_multiples,
+                                binary_select_multiples=binary_select_multiples,  # noqa
+                                value_select_multiples=value_select_multiples)
         return record
 
     @classmethod
@@ -348,15 +359,13 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                  include_labels=False, include_labels_only=False,
                  include_images=False, include_hxl=False,
                  win_excel_utf8=False, total_records=None,
-                 index_tags=DEFAULT_INDEX_TAGS):
+                 index_tags=DEFAULT_INDEX_TAGS, value_select_multiples=False):
         super(CSVDataFrameBuilder, self).__init__(
             username, id_string, filter_query, group_delimiter,
             split_select_multiples, binary_select_multiples, start, end,
             remove_group_name, xform, include_labels, include_labels_only,
             include_images, include_hxl, win_excel_utf8, total_records,
-            index_tags
-
-        )
+            index_tags, value_select_multiples)
 
         self.ordered_columns = OrderedDict()
 
@@ -506,7 +515,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             if self.split_select_multiples:
                 record = self._split_select_multiples(
                     record, self.select_multiples,
-                    self.BINARY_SELECT_MULTIPLES)
+                    self.BINARY_SELECT_MULTIPLES, self.VALUE_SELECT_MULTIPLES)
             # check for gps and split into components i.e. latitude, longitude,
             # altitude, precision
             self._split_gps_fields(record, self.gps_fields)
@@ -539,7 +548,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             if self.split_select_multiples:
                 record = self._split_select_multiples(
                     record, self.select_multiples,
-                    self.BINARY_SELECT_MULTIPLES)
+                    self.BINARY_SELECT_MULTIPLES, self.VALUE_SELECT_MULTIPLES)
             # check for gps and split into components i.e. latitude, longitude,
             # altitude, precision
             self._split_gps_fields(record, self.gps_fields)

@@ -839,8 +839,8 @@ class ExportBuilder(object):
             start, end, self.TRUNCATE_GROUP_TITLE, xform,
             self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY, self.INCLUDE_IMAGES,
             self.INCLUDE_HXL, win_excel_utf8=win_excel_utf8,
-            total_records=total_records, index_tags=index_tags
-        )
+            total_records=total_records, index_tags=index_tags,
+            value_select_multiples=self.VALUE_SELECT_MULTIPLES)
 
         csv_builder.export_to(path, dataview=dataview)
 
