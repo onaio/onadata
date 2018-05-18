@@ -307,6 +307,7 @@ class TestExportTools(TestBase):
         request = self.factory.get(
             '/export_async',
             data={
+                "binary_select_multiples": "true",
                 "do_not_split_select_multiples": "false",
                 "remove_group_name": "false",
                 "include_labels": "false",
@@ -317,6 +318,7 @@ class TestExportTools(TestBase):
         options = parse_request_export_options(request.GET)
 
         self.assertEqual(options['split_select_multiples'], True)
+        self.assertEqual(options['binary_select_multiples'], True)
         self.assertEqual(options['include_labels'], False)
         self.assertEqual(options['include_labels_only'], False)
         self.assertEqual(options['remove_group_name'], False)
