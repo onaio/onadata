@@ -37,7 +37,7 @@ def django_file(file_obj, field_name, content_type):
 def node_value(node, tag_name):
     tag = node.getElementsByTagName(tag_name)[0]
 
-    return tag.childNodes[0].nodeValue
+    return tag.childNodes[0].nodeValue if tag.childNodes else None
 
 
 def _get_form_list(xml_text):
@@ -131,7 +131,8 @@ class BriefcaseClient(object):
 
             self.logger.debug("Fetched %s." % download_url)
 
-            self.download_manifest(manifest_url, id_string)
+            if manifest_url:
+                self.download_manifest(manifest_url, id_string)
 
             if include_instances:
                 self.download_instances(id_string)
