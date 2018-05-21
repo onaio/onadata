@@ -5,12 +5,13 @@ Permissions module.
 import json
 from collections import defaultdict
 
-import six
 from django.db.models.base import ModelBase
-from guardian.shortcuts import (assign_perm, get_perms, get_users_with_perms,
-                                remove_perm)
 
-from onadata.apps.api.models import OrganizationProfile
+import six
+from guardian.shortcuts import (assign_perm, get_perms, get_users_with_perms,
+                                remove_perm, get_perms_for_model)
+
+from onadata.apps.api.models import OrganizationProfile, Team
 from onadata.apps.logger.models import MergedXForm, Project, XForm
 from onadata.apps.logger.models.project import (ProjectGroupObjectPermission,
                                                 ProjectUserObjectPermission)
@@ -99,6 +100,18 @@ class Role(object):
         cls._remove_obj_permissions(user, obj)
         for codename in cls.class_to_permissions.get(obj.__class__, []):
             assign_perm(codename, user, obj)
+
+        # if object is an organization, and the user is being assigned owner
+        # role, then the user is also assigned team roles
+        if isinstance(obj, OrganizationProfile) and cls.name == 'owner':
+            try:
+                team = Team.objects.get(name=u'%s#%s' % (obj.user.username,
+                                                         'members'))
+            except Team.DoesNotExist:
+                team = Team.objects.create(organization=obj, name='members')
+
+            for perm in get_perms_for_model(Team):
+                assign_perm(perm.codename, user, team)
 
     @classmethod
     def has_role(cls, permissions, obj):
