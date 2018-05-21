@@ -116,7 +116,7 @@ class ProjectViewSet(AuthenticateHeaderMixin,
     def share(self, request, *args, **kwargs):
         self.object = self.get_object()
         data = merge_dicts(request.data.dict(), {'project': self.object.pk})
-        if data.get("remove"):
+        if data.get("remove").lower() == 'true':
             serializer = RemoveUserFromProjectSerializer(data=data)
         else:
             serializer = ShareProjectSerializer(data=data)
