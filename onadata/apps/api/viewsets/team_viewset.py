@@ -77,7 +77,7 @@ class TeamViewSet(AuthenticateHeaderMixin,
         self.object = self.get_object()
         data = merge_dicts(request.data.items(), {'team': self.object.pk})
 
-        if data.get("remove").lower() == 'true':
+        if data.get("remove") and data.get("remove").lower() == 'true':
             serializer = RemoveTeamFromProjectSerializer(data=data)
         else:
             serializer = ShareTeamProjectSerializer(data=data)
