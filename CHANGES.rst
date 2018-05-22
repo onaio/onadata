@@ -1,6 +1,14 @@
 Changelog for onadata
 =====================
 
+(Unreleased)
+------------
+
+- Support value_select_multiples option in flat CSV,
+   support binary_select_multiples option in API exports.
+  `Issue 1409 <https://github.com/onaio/onadata/issues/1409>`_
+  [ukanga]
+
 1.14.2 (2018-05-14)
 --------------------
 
