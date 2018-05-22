@@ -116,7 +116,7 @@ class ProjectViewSet(AuthenticateHeaderMixin,
         if remove and remove is not isinstance(remove, bool):
             remove = strtobool(remove)
 
-        if remove == 1:
+        if remove:
             serializer = RemoveUserFromProjectSerializer(data=data)
         else:
             serializer = ShareProjectSerializer(data=data)
