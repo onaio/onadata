@@ -35,9 +35,13 @@ def django_file(file_obj, field_name, content_type):
 
 
 def node_value(node, tag_name):
-    tag = node.getElementsByTagName(tag_name)[0]
+    """
+    Returns the first nodeValue of of an elementin the node with the matching
+    tag_name otherwise returns empty list [].
+    """
+    child_nodes = node.getElementsByTagName(tag_name)[0].childNodes
 
-    return tag.childNodes[0].nodeValue
+    return child_nodes and child_nodes[0].nodeValue
 
 
 def _get_form_list(xml_text):
@@ -131,7 +135,8 @@ class BriefcaseClient(object):
 
             self.logger.debug("Fetched %s." % download_url)
 
-            self.download_manifest(manifest_url, id_string)
+            if manifest_url:
+                self.download_manifest(manifest_url, id_string)
 
             if include_instances:
                 self.download_instances(id_string)

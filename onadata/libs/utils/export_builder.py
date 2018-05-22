@@ -42,6 +42,9 @@ GEOPOINT_BIND_TYPE = 'geopoint'
 OSM_BIND_TYPE = 'osm'
 DEFAULT_UPDATE_BATCH = 100
 
+YES = 1
+NO = 0
+
 # savReaderWriter behaves differenlty depending on this
 IS_PY_3K = sys.version_info[0] > 2
 
@@ -508,7 +511,21 @@ class ExportBuilder(object):
 
     @classmethod
     def split_select_multiples(cls, row, select_multiples,
-                               select_values=False):
+                               select_values=False,
+                               binary_select_multiples=False):
+        """
+        Split select multiple choices in a submission to individual columns.
+
+        :param row: single submission dict
+        :param select_multiples: list of XPATHs and choices of select multiple
+                                 questions.
+        :param binary_select_multiples: if True the value of the split columns
+                                        will be 1 when the choice has been
+                                        selected otherwise it will be 0.
+        :select_values: the value of the split columns will be the name/value
+                        of the choice when selected otherwise blank/None.
+        :return: the row dict with select multiples choice as fields in the row
+        """
         # for each select_multiple, get the associated data and split it
         for (xpath, choices) in iteritems(select_multiples):
             # get the data matching this xpath
@@ -523,15 +540,13 @@ class ExportBuilder(object):
                     [(choice, data.split()[selections.index(choice)]
                       if selections and choice in selections else None)
                      for choice in choices]))
-            elif not cls.BINARY_SELECT_MULTIPLES:
-                row.update(dict(
-                    [(choice, choice in selections if selections else None)
-                     for choice in choices]))
-            else:
-                YES = 1
-                NO = 0
+            elif binary_select_multiples:
                 row.update(dict(
                     [(choice, YES if choice in selections else NO)
+                     for choice in choices]))
+            else:
+                row.update(dict(
+                    [(choice, choice in selections if selections else None)
                      for choice in choices]))
         return row
 
@@ -584,7 +599,7 @@ class ExportBuilder(object):
                 section_name in self.select_multiples:
             row = ExportBuilder.split_select_multiples(
                 row, self.select_multiples[section_name],
-                self.VALUE_SELECT_MULTIPLES)
+                self.VALUE_SELECT_MULTIPLES, self.BINARY_SELECT_MULTIPLES)
 
         if section_name in self.gps_fields:
             row = ExportBuilder.split_gps_components(
@@ -839,8 +854,8 @@ class ExportBuilder(object):
             start, end, self.TRUNCATE_GROUP_TITLE, xform,
             self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY, self.INCLUDE_IMAGES,
             self.INCLUDE_HXL, win_excel_utf8=win_excel_utf8,
-            total_records=total_records, index_tags=index_tags
-        )
+            total_records=total_records, index_tags=index_tags,
+            value_select_multiples=self.VALUE_SELECT_MULTIPLES)
 
         csv_builder.export_to(path, dataview=dataview)
 
