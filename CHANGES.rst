@@ -9,6 +9,12 @@ Changelog for onadata
   `Issue 1409 <https://github.com/onaio/onadata/issues/1409>`_
   [ukanga]
 
+
+- Check the value of the variable remove when sharing a project with team or
+  collaborators, and only remove if value is true
+  `Issue 1415 <https://github.com/onaio/onadata/pull/1415>`_
+  [wambere]
+
 1.14.2 (2018-05-14)
 --------------------
 
