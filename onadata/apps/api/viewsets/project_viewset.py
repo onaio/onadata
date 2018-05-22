@@ -1,5 +1,7 @@
-from django.shortcuts import get_object_or_404
+from distutils.util import strtobool
+
 from django.core.mail import send_mail
+from django.shortcuts import get_object_or_404
 
 from rest_framework import status
 from rest_framework.decorators import detail_route
@@ -9,35 +11,28 @@ from rest_framework.viewsets import ModelViewSet
 from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import ProjectPermissions
 from onadata.apps.api.tools import get_baseviewset_class
-from onadata.apps.logger.models import Project
-from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models import Project, XForm
 from onadata.apps.main.models import UserProfile
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.libs.filters import (
-    AnonUserProjectFilter,
-    ProjectOwnerFilter,
-    TagFilter)
+from onadata.libs.filters import (AnonUserProjectFilter, ProjectOwnerFilter,
+                                  TagFilter)
 from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
-from onadata.libs.mixins.profiler_mixin import ProfilerMixin
-from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
-from onadata.libs.serializers.user_profile_serializer import\
+from onadata.libs.mixins.labels_mixin import LabelsMixin
+from onadata.libs.mixins.profiler_mixin import ProfilerMixin
+from onadata.libs.serializers.project_serializer import \
+    (BaseProjectSerializer, ProjectSerializer)
+from onadata.libs.serializers.share_project_serializer import \
+    (RemoveUserFromProjectSerializer, ShareProjectSerializer)
+from onadata.libs.serializers.user_profile_serializer import \
     UserProfileSerializer
-from onadata.libs.serializers.project_serializer import (
-    BaseProjectSerializer,
-    ProjectSerializer)
-from onadata.libs.serializers.share_project_serializer import\
-    ShareProjectSerializer, RemoveUserFromProjectSerializer
-from onadata.libs.serializers.xform_serializer import XFormCreateSerializer,\
-    XFormSerializer
+from onadata.libs.serializers.xform_serializer import (XFormCreateSerializer,
+                                                       XFormSerializer)
 from onadata.libs.utils.common_tools import merge_dicts
 from onadata.libs.utils.export_tools import str_to_bool
-from onadata.settings.common import (
-    DEFAULT_FROM_EMAIL,
-    SHARE_PROJECT_SUBJECT)
-
+from onadata.settings.common import DEFAULT_FROM_EMAIL, SHARE_PROJECT_SUBJECT
 
 BaseViewset = get_baseviewset_class()
 
@@ -116,7 +111,12 @@ class ProjectViewSet(AuthenticateHeaderMixin,
     def share(self, request, *args, **kwargs):
         self.object = self.get_object()
         data = merge_dicts(request.data.dict(), {'project': self.object.pk})
-        if data.get("remove"):
+
+        remove = data.get("remove")
+        if remove and remove is not isinstance(remove, bool):
+            remove = strtobool(remove)
+
+        if remove:
             serializer = RemoveUserFromProjectSerializer(data=data)
         else:
             serializer = ShareProjectSerializer(data=data)

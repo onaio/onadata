@@ -290,6 +290,7 @@ class TestTeamViewSet(TestAbstractViewSet):
                                                   project))
         post_data = {'role': EditorRole.name,
                      'project': project.pk,
+                     'remove': False,
                      'org': 'denoinc'}
         request = self.factory.post(
             '/', data=post_data, **self.extra)

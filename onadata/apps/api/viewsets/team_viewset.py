@@ -1,24 +1,25 @@
+from distutils.util import strtobool
+
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext as _
 
-from rest_framework import filters
-from rest_framework import status
+from rest_framework import filters, status
 from rest_framework.decorators import detail_route
+from rest_framework.permissions import DjangoObjectPermissions
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.permissions import DjangoObjectPermissions
 
 from onadata.apps.api.models import Team
-from onadata.apps.api.tools import add_user_to_team, remove_user_from_team
-from onadata.apps.api.tools import get_baseviewset_class
+from onadata.apps.api.tools import (add_user_to_team, get_baseviewset_class,
+                                    remove_user_from_team)
 from onadata.libs.filters import TeamOrgFilter
 from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
+from onadata.libs.serializers.share_team_project_serializer import \
+    (RemoveTeamFromProjectSerializer, ShareTeamProjectSerializer)
 from onadata.libs.serializers.team_serializer import TeamSerializer
-from onadata.libs.serializers.share_team_project_serializer import (
-    ShareTeamProjectSerializer, RemoveTeamFromProjectSerializer)
 from onadata.libs.utils.common_tools import merge_dicts
 
 BaseViewset = get_baseviewset_class()
@@ -77,7 +78,11 @@ class TeamViewSet(AuthenticateHeaderMixin,
         self.object = self.get_object()
         data = merge_dicts(request.data.items(), {'team': self.object.pk})
 
-        if data.get("remove"):
+        remove = data.get("remove")
+        if remove and remove is not isinstance(remove, bool):
+            remove = strtobool(remove)
+
+        if remove:
             serializer = RemoveTeamFromProjectSerializer(data=data)
         else:
             serializer = ShareTeamProjectSerializer(data=data)
