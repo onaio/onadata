@@ -894,19 +894,20 @@ class ExportBuilder(object):
                 if choices is not None and q.get('itemset'):
                     choices = choices.get(q.get('itemset'))
             _value_labels = {}
-            is_numeric = is_all_numeric([c['name'] for c in choices])
-            for choice in choices:
-                name = choice['name'].strip()
-                # should skip select multiple and zero padded numbers e.g
-                # 009 or 09, they should be treated as strings
-                if q.type != 'select all that apply' and is_numeric:
-                    try:
-                        name = float(name) \
-                            if (float(name) > int(name)) else int(name)
-                    except ValueError:
-                        pass
-                label = self.get_choice_label_from_dict(choice['label'])
-                _value_labels[name] = label.strip()
+            if choices:
+                is_numeric = is_all_numeric([c['name'] for c in choices])
+                for choice in choices:
+                    name = choice['name'].strip()
+                    # should skip select multiple and zero padded numbers e.g
+                    # 009 or 09, they should be treated as strings
+                    if q.type != 'select all that apply' and is_numeric:
+                        try:
+                            name = float(name) \
+                                if (float(name) > int(name)) else int(name)
+                        except ValueError:
+                            pass
+                    label = self.get_choice_label_from_dict(choice['label'])
+                    _value_labels[name] = label.strip()
             sav_value_labels[var_name or q['name']] = _value_labels
 
         return sav_value_labels
