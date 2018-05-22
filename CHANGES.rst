@@ -18,6 +18,10 @@ Changelog for onadata
   `Issue 1410 <https://github.com/onaio/onadata/issues/1410>`_
   [ukanga]
 
+- Generate XForm hash after every XML change has been applied.
+  `Issue 1417 <https://github.com/onaio/onadata/issues/1417>`_
+  [ukanga]
+
 1.14.2 (2018-05-14)
 --------------------
 

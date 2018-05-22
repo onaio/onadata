@@ -519,6 +519,7 @@ def publish_xml_form(xml_file, user, project, id_string=None, created_by=None):
         dd._mark_start_time_boolean()
         set_uuid(dd)
         dd._set_uuid_in_xml()
+        dd._set_hash()
         dd.save()
 
         return dd
@@ -533,6 +534,7 @@ def publish_xml_form(xml_file, user, project, id_string=None, created_by=None):
         dd._mark_start_time_boolean()
         set_uuid(dd)
         dd._set_uuid_in_xml(file_name=xml_file.name)
+        dd._set_hash()
         dd.save()
 
         return dd

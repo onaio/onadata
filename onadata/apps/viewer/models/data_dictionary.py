@@ -165,9 +165,9 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
             self.last_updated_at = timezone.now()
             self.title = survey.get('title')
             self._mark_start_time_boolean()
-            self._set_hash()
             set_uuid(self)
             self._set_uuid_in_xml()
+            self._set_hash()
 
         if 'skip_xls_read' in kwargs:
             del kwargs['skip_xls_read']
