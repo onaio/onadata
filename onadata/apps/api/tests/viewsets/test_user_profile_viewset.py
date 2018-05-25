@@ -55,7 +55,11 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, [self.user_profile_data()])
+
+        data = self.user_profile_data()
+        del data['metadata']
+
+        self.assertEqual(response.data, [data])
 
     def test_user_profile_list(self):
         request = self.factory.post(
@@ -76,14 +80,17 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             'url': 'http://testserver/api/v1/profiles/%s' % user_deno.username,
             'user': 'http://testserver/api/v1/users/%s' % user_deno.username,
             'gravatar': user_deno.profile.gravatar,
-            'metadata': {},
             'joined_on': user_deno.date_joined
         })
 
         self.assertEqual(response.status_code, 200)
+
+        user_profile_data = self.user_profile_data()
+        del user_profile_data['metadata']
+
         self.assertEqual(
             sorted([dict(d) for d in response.data], key=lambda x: x['id']),
-            sorted([self.user_profile_data(), deno_profile_data],
+            sorted([user_profile_data, deno_profile_data],
                    key=lambda x: x['id']))
         self.assertEqual(len(response.data), 2)
 
@@ -113,7 +120,11 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
-        self.assertDictEqual(self.user_profile_data(), response.data[0])
+
+        user_profile_data = self.user_profile_data()
+        del user_profile_data['metadata']
+
+        self.assertDictEqual(user_profile_data, response.data[0])
 
         # authenicated user with blank users query param only gets his/her
         # profile
@@ -122,7 +133,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
-        self.assertDictEqual(self.user_profile_data(), response.data[0])
+        self.assertDictEqual(user_profile_data, response.data[0])
 
         # authenicated user with comma separated usernames as users query param
         # value gets profiles of the usernames provided
@@ -137,7 +148,6 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             'url': 'http://testserver/api/v1/profiles/%s' % user_deno.username,
             'user': 'http://testserver/api/v1/users/%s' % user_deno.username,
             'gravatar': user_deno.profile.gravatar,
-            'metadata': {},
             'joined_on': user_deno.date_joined
         })
 
@@ -145,7 +155,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(len(response.data), 2)
         self.assertEqual(
             [dict(i) for i in response.data],
-            [self.user_profile_data(), deno_profile_data]
+            [user_profile_data, deno_profile_data]
         )
 
     def test_profiles_get(self):
@@ -190,6 +200,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = view(request, user='bob')
         data = self.user_profile_data()
         del data['email']
+        del data['metadata']
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)

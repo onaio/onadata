@@ -1,6 +1,11 @@
-from past.builtins import basestring
+# -*- coding=utf-8 -*-
+"""
+Organization Serializer
+"""
+from past.builtins import basestring  # pylint: disable=redefined-builtin
 
 from django.contrib.auth.models import User
+from django.db.models.query import QuerySet
 from django.utils.translation import ugettext as _
 
 from rest_framework import serializers
@@ -15,6 +20,9 @@ from onadata.libs.serializers.fields.json_field import JsonField
 
 
 class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
+    """
+    Organization profile serializer
+    """
     url = serializers.HyperlinkedIdentityField(
         view_name='organizationprofile-detail', lookup_field='user')
     org = serializers.CharField(source='user.username', max_length=30)
@@ -29,6 +37,21 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = OrganizationProfile
         exclude = ('created_by', 'is_organization', 'organization')
+        owner_only_fields = ('metadata', )
+
+    def __init__(self, *args, **kwargs):
+        super(OrganizationSerializer, self).__init__(*args, **kwargs)
+
+        if self.instance and hasattr(self.Meta, 'owner_only_fields'):
+            request = self.context.get('request')
+            is_permitted = (
+                request and request.user and
+                request.user.has_perm('api.view_organizationprofile',
+                                      self.instance))
+            if isinstance(self.instance, QuerySet) or not is_permitted or \
+                    not request:
+                for field in getattr(self.Meta, 'owner_only_fields'):
+                    self.fields.pop(field)
 
     def update(self, instance, validated_data):
         # update the user model
@@ -62,7 +85,10 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
 
         return profile
 
-    def validate_org(self, value):
+    def validate_org(self, value):  # pylint: disable=no-self-use
+        """
+        Validate organization name.
+        """
         org = value.lower() if isinstance(value, basestring) else value
 
         if org in RegistrationFormUserProfile.RESERVED_USERNAMES:
@@ -83,7 +109,10 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
             u"Organization %s already exists." % org
         ))
 
-    def get_users(self, obj):
+    def get_users(self, obj):  # pylint: disable=no-self-use
+        """
+        Return organization members.
+        """
         members = get_organization_members(obj) if obj else []
 
         return [{
@@ -92,5 +121,4 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
             'first_name': u.first_name,
             'last_name': u.last_name,
             'gravatar': u.profile.gravatar,
-            'metadata': u.profile.metadata,
         } for u in members]

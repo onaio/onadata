@@ -1194,6 +1194,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         # ensure email not shared
         user_profile_data = self.user_profile_data()
         del user_profile_data['email']
+        del user_profile_data['metadata']
 
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
         self._login_user_and_profile(alice_data)
