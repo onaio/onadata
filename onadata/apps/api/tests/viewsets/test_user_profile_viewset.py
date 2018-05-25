@@ -553,7 +553,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=post_data, **self.extra)
         response = view(request, user='bob')
         user = User.objects.get(username__iexact=self.user.username)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 204)
         self.assertTrue(user.check_password(new_password))
 
     def test_change_password_wrong_current_password(self):
