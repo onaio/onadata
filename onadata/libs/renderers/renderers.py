@@ -5,12 +5,15 @@ Custom renderers for use with django rest_framework.
 import decimal
 import json
 import math
-from future.utils import iteritems
 from io import BytesIO
 
+from future.utils import iteritems
+
+from django.utils.dateparse import parse_datetime
 from django.utils.encoding import smart_text
 from django.utils.xmlutils import SimplerXMLGenerator
 
+import pytz
 from rest_framework import negotiation
 from rest_framework.compat import six
 from rest_framework.renderers import (BaseRenderer, JSONRenderer,
@@ -42,11 +45,13 @@ def floip_rows_list(data):
     """
     Yields a row of FLOIP results data from dict data.
     """
+    _submission_time = pytz.timezone('UTC').localize(
+        parse_datetime(data['_submission_time'])).isoformat()
     for i, key in enumerate(data, 1):
         if not (key.startswith('_') or key in IGNORE_FIELDS):
             instance_id = data['_id']
             yield [
-                data['_submission_time'],  # Timestamp
+                _submission_time,  # Timestamp
                 int(pairing(instance_id, i)),  # Row ID
                 data.get('meta/contactID', data.get('_submitted_by')),
                 data.get('meta/sessionID') or data.get('_uuid') or instance_id,

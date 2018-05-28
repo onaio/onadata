@@ -416,7 +416,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 self.set_object_list(
                     query, fields, sort, start, limit, is_public_request)
                 kwargs = {'instance__in': self.object_list}
-            osm_list = OsmData.objects.filter(**kwargs)
+            osm_list = OsmData.objects.filter(**kwargs).order_by('instance')
             page = self.paginate_queryset(osm_list)
             serializer = self.get_serializer(page)
 
