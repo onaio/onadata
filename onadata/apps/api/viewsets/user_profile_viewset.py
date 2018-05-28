@@ -184,11 +184,9 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
         year = year_param if year_param else str(now.year)
 
         instance_count = Instance.objects.filter(
-            xform__user=profile.user).filter(
-                xform__deleted_at__isnull=True).filter(
-                    date_created__year=year).filter(
-                        date_created__month=month).values(
-                            'xform__shared').annotate(
-                                num_instances=Count('id'))
+            xform__user=profile.user, xform__deleted_at__isnull=True,
+            date_created__year=year, date_created__month=month).values(
+                'xform__shared').annotate(num_instances=Count('id'))
+
         serializer = MonthlySubmissionsSerializer(instance_count, many=True)
         return Response(serializer.data)

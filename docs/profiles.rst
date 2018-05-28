@@ -234,3 +234,46 @@ Response
 ::
 
     HTTP 200 OK
+
+Get the total number of monthly submissions
+-------------------------------------------
+
+This gets the total number of submissions made in a month to a specific user's forms.
+The result is a count of the submissions to both private and public forms.
+Use the month and year as query parameters to get the total number of submissions for a specific month.
+If no query parameters are used, the result is the number of submissions of the current month.
+If one query parameter is used, then the other is assumed to be the current month or year.
+
+
+Example
+^^^^^^^
+
+::
+    curl -X GET https://api.ona.io/api/v1/profiles/demouser/monthly_submissions
+
+Response
+^^^^^^^^
+
+::
+    [
+        {
+            "public": 41,
+            "private": 185
+        }
+    ]
+
+Example
+^^^^^^^
+
+::
+    curl -X GET https://api.ona.io/api/v1/profiles/demouser/monthly_submissions?month=5&year=2018
+
+Response
+^^^^^^^^
+
+::
+    [
+        {
+            "public": 240
+        }
+    ]
