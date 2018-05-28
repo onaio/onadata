@@ -810,13 +810,15 @@ def parse_request_export_options(params):  # pylint: disable=too-many-branches
     options = {}
     remove_group_name = params.get('remove_group_name') and \
         params.get('remove_group_name').lower()
-    binary_select_multiples = params.get('binary_select_multiples')
+    binary_select_multiples = params.get('binary_select_multiples') and \
+        params.get('binary_select_multiples').lower()
     do_not_split_select_multiples = params.get(
         'do_not_split_select_multiples')
     include_labels = params.get('include_labels', False)
     include_labels_only = params.get('include_labels_only', False)
     include_hxl = params.get('include_hxl', True)
-    value_select_multiples = params.get('value_select_multiples')
+    value_select_multiples = params.get('value_select_multiples') and \
+        params.get('value_select_multiples').lower()
 
     if include_labels is not None:
         options['include_labels'] = str_to_bool(include_labels)
@@ -839,7 +841,7 @@ def parse_request_export_options(params):  # pylint: disable=too-many-branches
 
     options['split_select_multiples'] = \
         not str_to_bool(do_not_split_select_multiples)
-    if binary_select_multiples:
+    if binary_select_multiples and binary_select_multiples in boolean_list:
         options['binary_select_multiples'] = str_to_bool(
             binary_select_multiples)
 
