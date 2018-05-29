@@ -5,7 +5,7 @@ UserProfile Serializers.
 import copy
 import re
 
-from past.builtins import basestring
+from past.builtins import basestring  # pylint: disable=redefined-builtin
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -16,6 +16,7 @@ from django.utils.translation import ugettext as _
 
 import six
 from django_digest.backend.db import update_partial_digests
+from django.db.models.query import QuerySet
 from registration.models import RegistrationProfile
 from rest_framework import serializers
 
@@ -122,6 +123,18 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                   'last_name', 'email', 'city', 'country', 'organization',
                   'website', 'twitter', 'gravatar', 'require_auth', 'user',
                   'metadata', 'joined_on', 'name')
+        owner_only_fields = ('metadata', )
+
+    def __init__(self, *args, **kwargs):
+        super(UserProfileSerializer, self).__init__(*args, **kwargs)
+
+        if self.instance and hasattr(self.Meta, 'owner_only_fields'):
+            request = self.context.get('request')
+            if isinstance(self.instance, QuerySet) or \
+                    (request and request.user != self.instance.user) or \
+                    not request:
+                for field in getattr(self.Meta, 'owner_only_fields'):
+                    self.fields.pop(field)
 
     def get_is_org(self, obj):  # pylint: disable=no-self-use
         """

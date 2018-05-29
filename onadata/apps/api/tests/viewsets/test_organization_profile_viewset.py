@@ -54,6 +54,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
+        del self.company_data['metadata']
         self.assertEqual(response.data, [self.company_data])
 
         # inactive organization
@@ -77,6 +78,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
+        del self.company_data['metadata']
         self.assertEqual(response.data, [self.company_data])
 
     def test_orgs_list_shared_with_user(self):
@@ -163,6 +165,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user='denoinc')
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
+        del self.company_data['metadata']
         self.assertEqual(response.data, self.company_data)
         self.assertIn('users', list(response.data))
         for user in response.data['users']:
@@ -178,6 +181,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user='denoinc')
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
+        del self.company_data['metadata']
         self.assertEqual(response.data, self.company_data)
         self.assertIn('users', list(response.data))
         for user in response.data['users']:
@@ -336,8 +340,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             'role': 'member',
             'user': member,
             'gravatar': self.user.profile.gravatar,
-            'metadata': self.user.profile.metadata,
         })
+        del expected_data['metadata']
 
         request = self.factory.get('/', **self.extra)
         response = view(request)
