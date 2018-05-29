@@ -852,7 +852,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = view(request, user=self.user.username)
         self.assertEquals(response.status_code, 200)
         self.assertFalse(self.xform.shared)
-        self.assertEquals(response.data, [{'private': count1}])
+        self.assertEquals(response.data, {'private': count1})
 
         # publish another form, make submission and make it public
         self._publish_form_with_hxl_support()
@@ -867,8 +867,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = view(request, user=self.user.username)
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.data, [{'private': count1,
-                                           'public': count2}])
+        self.assertEquals(response.data, {'private': count1, 'public': count2})
 
     def test_get_monthly_submissions_with_year_and_month_params(self):
         """
@@ -892,7 +891,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = view(request, user=self.user.username)
         self.assertEquals(response.status_code, 200)
         self.assertFalse(self.xform.shared)
-        self.assertEquals(response.data, [{'private': count}])
+        self.assertEquals(response.data, {'private': count})
 
     def test_monthly_submissions_with_month_param(self):
         """
@@ -914,7 +913,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = view(request, user=self.user.username)
         self.assertEquals(response.status_code, 200)
         self.assertFalse(self.xform.shared)
-        self.assertEquals(response.data, [{'private': count}])
+        self.assertEquals(response.data, {'private': count})
 
     def test_monthly_submissions_with_year_param(self):
         """
@@ -942,4 +941,4 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = view(request, user=self.user.username)
         self.assertEquals(response.status_code, 200)
         self.assertFalse(self.xform.shared)
-        self.assertEquals(response.data, [{'private': count}])
+        self.assertEquals(response.data, {'private': count})

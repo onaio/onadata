@@ -13,7 +13,6 @@ class MonthlySubmissionsListSerializer(serializers.ListSerializer):
         for i in result:
             label = 'public' if i['xform__shared'] else 'private'
             result_dictionary[label] = i['num_instances']
-
         return [result_dictionary]
 
 

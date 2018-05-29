@@ -9,6 +9,7 @@ import json
 from past.builtins import basestring  # pylint: disable=redefined-builtin
 
 from django.conf import settings
+from django.core.validators import ValidationError
 from django.db.models import Count
 
 from rest_framework import serializers, status
@@ -177,11 +178,20 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
         month_param = self.request.query_params.get('month', None)
         year_param = self.request.query_params.get('year', None)
 
+        # check if parameters are valid
+        if month_param:
+            if not month_param.isdigit() or \
+               int(month_param) not in range(1, 13):
+                raise ValidationError(u'Invalid month provided as parameter')
+        if year_param:
+            if not year_param.isdigit() or len(year_param) != 4:
+                raise ValidationError(u'Invalid year provided as parameter')
+
         # Use query parameter values for month and year
         # if none, use the current month and year
         now = datetime.datetime.now()
-        month = month_param if month_param else str(now.month)
-        year = year_param if year_param else str(now.year)
+        month = month_param if month_param else now.month
+        year = year_param if year_param else now.year
 
         instance_count = Instance.objects.filter(
             xform__user=profile.user, xform__deleted_at__isnull=True,
@@ -189,4 +199,4 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
                 'xform__shared').annotate(num_instances=Count('id'))
 
         serializer = MonthlySubmissionsSerializer(instance_count, many=True)
-        return Response(serializer.data)
+        return Response(serializer.data[0])
