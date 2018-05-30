@@ -2205,7 +2205,8 @@ class TestDataViewSet(TestBase):
         floip_list = json.loads(response.content)
         self.assertTrue(isinstance(floip_list, list))
         floip_row = [x for x in floip_list if x[-2] == 'none'][0]
-        self.assertEqual(floip_row[0], response.data[0]['_submission_time'])
+        self.assertEqual(floip_row[0],
+                         response.data[0]['_submission_time'] + '+00:00')
         self.assertEqual(floip_row[2], 'bob')
         self.assertEqual(floip_row[3], response.data[0]['_uuid'])
         self.assertEqual(
@@ -2215,8 +2216,11 @@ class TestDataViewSet(TestBase):
 
 
 class TestOSM(TestAbstractViewSet):
+    """
+    Test OSM endpoints in data_viewset.
+    """
     def setUp(self):
-        super(self.__class__, self).setUp()
+        super(TestOSM, self).setUp()
         self._login_user_and_profile()
         self.factory = RequestFactory()
         self.extra = {
