@@ -1,11 +1,10 @@
 Changelog for onadata
 =====================
 
-(Unreleased)
-------------
+1.14.3 (2018-05-30)
+-------------------
 
-- Support value_select_multiples option in flat CSV,
-   support binary_select_multiples option in API exports.
+- Support value_select_multiples option in flat CSV, support binary_select_multiples option in API exports.
   `Issue 1409 <https://github.com/onaio/onadata/issues/1409>`_
   [ukanga]
 
@@ -20,6 +19,18 @@ Changelog for onadata
 
 - Generate XForm hash after every XML change has been applied.
   `Issue 1417 <https://github.com/onaio/onadata/issues/1417>`_
+  [ukanga]
+
+- Add api/v1/profiles/[username]/monthly_submissions endpoint.
+  `Issue 1423 <https://github.com/onaio/onadata/pull/1423>`_
+  [wambere]
+
+- Show metadata only to the owner
+  `Issue 1416 <https://github.com/onaio/onadata/issues/1416>`_
+  [ukanga]
+
+-  Return flow results response timestamp in rfc3339 format explicitly
+  `Issue 1420 <https://github.com/onaio/onadata/issues/1420>`_
   [ukanga]
 
 1.14.2 (2018-05-14)
