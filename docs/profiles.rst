@@ -260,12 +260,10 @@ Response
 ^^^^^^^^
 
 ::
-    [
-        {
-            "public": 41,
-            "private": 185
-        }
-    ]
+    {
+        "public": 41,
+        "private": 185
+    }
 
 Example
 ^^^^^^^
@@ -277,8 +275,6 @@ Response
 ^^^^^^^^
 
 ::
-    [
-        {
-            "public": 240
-        }
-    ]
+    {
+        "public": 240
+    }
