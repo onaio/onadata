@@ -3,11 +3,14 @@
 UserProfileViewSet module.
 """
 
+import datetime
 import json
 
 from past.builtins import basestring  # pylint: disable=redefined-builtin
 
 from django.conf import settings
+from django.core.validators import ValidationError
+from django.db.models import Count
 
 from rest_framework import serializers, status
 from rest_framework.decorators import detail_route
@@ -19,6 +22,7 @@ from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.api.permissions import UserProfilePermissions
 from onadata.apps.api.tools import get_baseviewset_class, load_class
+from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.models import UserProfile
 from onadata.libs import filters
 from onadata.libs.mixins.authenticate_header_mixin import \
@@ -26,6 +30,8 @@ from onadata.libs.mixins.authenticate_header_mixin import \
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
+from onadata.libs.serializers.monthly_submissions_serializer import \
+    MonthlySubmissionsSerializer
 from onadata.libs.serializers.user_profile_serializer import \
     UserProfileSerializer
 
@@ -164,3 +170,33 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
 
         return super(UserProfileViewSet, self).partial_update(request, *args,
                                                               **kwargs)
+
+    @detail_route(methods=['GET'])
+    def monthly_submissions(self, request, *args, **kwargs):
+        """ Get the total number of submissions for a user """
+        profile = self.get_object()
+        month_param = self.request.query_params.get('month', None)
+        year_param = self.request.query_params.get('year', None)
+
+        # check if parameters are valid
+        if month_param:
+            if not month_param.isdigit() or \
+               int(month_param) not in range(1, 13):
+                raise ValidationError(u'Invalid month provided as parameter')
+        if year_param:
+            if not year_param.isdigit() or len(year_param) != 4:
+                raise ValidationError(u'Invalid year provided as parameter')
+
+        # Use query parameter values for month and year
+        # if none, use the current month and year
+        now = datetime.datetime.now()
+        month = month_param if month_param else now.month
+        year = year_param if year_param else now.year
+
+        instance_count = Instance.objects.filter(
+            xform__user=profile.user, xform__deleted_at__isnull=True,
+            date_created__year=year, date_created__month=month).values(
+                'xform__shared').annotate(num_instances=Count('id'))
+
+        serializer = MonthlySubmissionsSerializer(instance_count, many=True)
+        return Response(serializer.data[0])
