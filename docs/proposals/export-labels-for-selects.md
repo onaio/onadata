@@ -28,13 +28,6 @@ With the export parameter `show_choice_labes=true` then we have the same export 
     | Orange | a1234567890abcd |
     | Mango  | b1234567789efgh |
 
-Or with the option to have an extra labels field column, with the export parameter `show_choice_labels=true` then we have the same export as:
-
-    | fruit | fruit:label | meta/instanceID |
-    | 2     | Orange      | a1234567890abcd |
-    | 1     | Mango       | b1234567789efgh |
-
-
 For select multiple questions:
 
     | survey  |
@@ -58,32 +51,14 @@ With the export parameter `show_choice_labes=true` then we have the same export 
     | Mango Orange | a1234567890ijkl |
     | Orange Apple | b1234567789mnop |
 
-Or with the option to have an extra labels field column, with the export parameter `show_choice_labels=true` then we have the same export as:
-
-    | fruit | fruit:label  | meta/instanceID |
-    | 1 2   | Mango Orange | a1234567890ijkl |
-    | 2 3   | Orange Apple | b1234567789mnop |
-
 For select multiple questions where the parameter `value_select_multiples` is `true` and `split_select_multiples` is also true, the export will be as:
 
     | fruit | fruit/1 | fruit/2  | fruit/3 | meta/instanceID |
     | 1 2   | Mango   | Orange   |         | a1234567890ijkl |
     | 2 3   |         | Orange   | Apple   | b1234567789mnop |
 
-With label as separate column:
-
-    | fruit | fruit/1 | fruit/1:label | fruit/2  | fruit/2:label | fruit/3 | fruit/3:label | meta/instanceID |
-    | 1 2   | 1       | Mango         | 2        | Orange        |         |               | a1234567890ijkl |
-    | 2 3   |         |               | 2        | Orange        | 3       | Apple         | b1234567789mnop |
-
 With `include_labels=true`:
 
     | fruit | fruit/Mango | fruit/Orange  | fruit/Apple | meta/instanceID |
     | 1 2   | Mango       | Orange        |             | a1234567890ijkl |
     | 2 3   |             | Orange        | Apple       | b1234567789mnop |
-
-With `include_labels=true` and label as a separate column:
-
-    | fruit | fruit/Mango | fruit/Mango:label | fruit/Orange  | fruit/Orange:label | fruit/Apple | fruit/Apple:label | meta/instanceID |
-    | 1 2   | 1           | Mango             | 2             | Orange             |             |                   | a1234567890ijkl |
-    | 2 3   |             |                   | 2             | Orange             | 3           | Apple             | b1234567789mnop |
