@@ -648,6 +648,19 @@ class XFormMixin(object):
 
         return self._select_one_xpaths
 
+    def get_select_multiple_xpaths(self):
+        """
+        Returns abbreviated_xpath for SELECT_ALL_THAT_APPLY questions in the
+        survey.
+        """
+        if not hasattr(self, '_select_multiple_xpaths'):
+            self._select_multiple_xpaths = [
+                e.get_abbreviated_xpath() for e in sum([
+                    self.get_survey_elements_of_type(select)
+                    for select in [constants.SELECT_ALL_THAT_APPLY]], [])]
+
+        return self._select_multiple_xpaths
+
     def get_media_survey_xpaths(self):
         return [
             e.get_abbreviated_xpath()
