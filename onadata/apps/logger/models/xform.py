@@ -636,6 +636,18 @@ class XFormMixin(object):
 
         return self._survey_elements_with_choices
 
+    def get_select_one_xpaths(self):
+        """
+        Returns abbreviated_xpath for SELECT_ONE questions in the survey.
+        """
+        if not hasattr(self, '_select_one_xpaths'):
+            self._select_one_xpaths = [
+                e.get_abbreviated_xpath() for e in sum([
+                    self.get_survey_elements_of_type(select)
+                    for select in [constants.SELECT_ONE]], [])]
+
+        return self._select_one_xpaths
+
     def get_media_survey_xpaths(self):
         return [
             e.get_abbreviated_xpath()
