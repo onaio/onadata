@@ -45,6 +45,9 @@ DEFAULT_OPEN_TAG = '['
 DEFAULT_CLOSE_TAG = ']'
 DEFAULT_INDEX_TAGS = (DEFAULT_OPEN_TAG, DEFAULT_CLOSE_TAG)
 
+YES = 1
+NO = 0
+
 
 def remove_dups_from_list_maintain_order(l):
     return list(OrderedDict.fromkeys(l))
@@ -214,10 +217,12 @@ class AbstractDataFrameBuilder(object):
         ]
         for e in select_multiple_elements:
             xpath = e.get_abbreviated_xpath()
-            choices = [c.get_abbreviated_xpath() for c in e.children]
+            choices = [(c.get_abbreviated_xpath(), c.name, c.label)
+                       for c in e.children]
             if not choices and e.choice_filter and e.itemset:
                 itemset = dd.survey.to_json_dict()['choices'].get(e.itemset)
-                choices = [u'/'.join([xpath, i.get('name')])
+                choices = [(u'/'.join([xpath, i.get('name')]), i.get('name'),
+                            i.get('label'))
                            for i in itemset] if itemset else choices
             select_multiples.append((xpath, choices))
 
@@ -226,7 +231,8 @@ class AbstractDataFrameBuilder(object):
     @classmethod
     def _split_select_multiples(cls, record, select_multiples,
                                 binary_select_multiples=False,
-                                value_select_multiples=False):
+                                value_select_multiples=False,
+                                show_choice_labels=False):
         """ Prefix contains the xpath and slash if we are within a repeat so
         that we can figure out which select multiples belong to which repeat
         """
@@ -241,34 +247,41 @@ class AbstractDataFrameBuilder(object):
                               for r in record[key].split(" ")]
                 if value_select_multiples:
                     record.update(dict([
-                        (choice,
-                         record[key].split()[selections.index(choice)]
+                        (choice.replace('/' + name, '/' + label)
+                         if show_choice_labels else choice,
+                         (label if show_choice_labels else
+                          record[key].split()[selections.index(choice)])
                          if choice in selections else None)
-                        for choice in choices]))
+                        for choice, name, label in choices]))
                 elif not binary_select_multiples:
                     # add columns to record for every choice, with default
                     # False and set to True for items in selections
-                    record.update(dict([(choice, choice in selections)
-                                        for choice in choices]))
+                    record.update(dict([
+                        (choice.replace('/' + name, '/' + label)
+                         if show_choice_labels else choice,
+                         choice in selections)
+                        for choice, name, label in choices]))
                 else:
-                    YES = 1
-                    NO = 0
                     record.update(
-                        dict([(choice, YES if choice in selections else NO)
-                              for choice in choices]))
+                        dict([
+                            (choice.replace('/' + name, '/' + label)
+                             if show_choice_labels else choice,
+                             YES if choice in selections else NO)
+                            for choice, name, label in choices]))
                 # remove the column since we are adding separate columns
                 # for each choice
                 record.pop(key)
 
             # recurs into repeats
-            for record_key, record_item in record.items():
+            for _record_key, record_item in record.items():
                 if isinstance(record_item, list):
                     for list_item in record_item:
                         if isinstance(list_item, dict):
                             cls._split_select_multiples(
                                 list_item, select_multiples,
                                 binary_select_multiples=binary_select_multiples,  # noqa
-                                value_select_multiples=value_select_multiples)
+                                value_select_multiples=value_select_multiples,
+                                show_choice_labels=show_choice_labels)
         return record
 
     @classmethod
@@ -458,12 +471,12 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                                     ordered_columns[key].append(new_xpath)
                             d[new_xpath] = get_value_or_attachment_uri(
                                 nested_key, nested_val, row, data_dictionary,
-                                include_images
-                            )
+                                include_images,
+                                show_choice_labels=show_choice_labels)
                 else:
                     d[key] = get_value_or_attachment_uri(
-                        key, value, row, data_dictionary, include_images
-                    )
+                        key, value, row, data_dictionary, include_images,
+                        show_choice_labels=show_choice_labels)
         else:
             # anything that's not a list will be in the top level dict so its
             # safe to simply assign
@@ -511,7 +524,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             for key, choices in self.select_multiples.items():
                 # HACK to ensure choices are NOT duplicated
                 self.ordered_columns[key] = \
-                    remove_dups_from_list_maintain_order(choices)
+                    remove_dups_from_list_maintain_order(
+                        [choice for choice, _name, _label in choices])
         # add ordered columns for gps fields
         for key in self.gps_fields:
             gps_xpaths = self.dd.get_additional_geopoint_xpaths(key)
@@ -524,7 +538,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             if self.split_select_multiples:
                 record = self._split_select_multiples(
                     record, self.select_multiples,
-                    self.BINARY_SELECT_MULTIPLES, self.VALUE_SELECT_MULTIPLES)
+                    self.BINARY_SELECT_MULTIPLES, self.VALUE_SELECT_MULTIPLES,
+                    show_choice_labels=self.show_choice_labels)
             # check for gps and split into components i.e. latitude, longitude,
             # altitude, precision
             self._split_gps_fields(record, self.gps_fields)
@@ -558,7 +573,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             if self.split_select_multiples:
                 record = self._split_select_multiples(
                     record, self.select_multiples,
-                    self.BINARY_SELECT_MULTIPLES, self.VALUE_SELECT_MULTIPLES)
+                    self.BINARY_SELECT_MULTIPLES, self.VALUE_SELECT_MULTIPLES,
+                    show_choice_labels=self.show_choice_labels)
             # check for gps and split into components i.e. latitude, longitude,
             # altitude, precision
             self._split_gps_fields(record, self.gps_fields)

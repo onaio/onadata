@@ -73,19 +73,33 @@ def get_choice_label_value(key, value, data_dictionary):
     Return the label of a choice matching the value if the key xpath is a
     SELECT_ONE otherwise it returns the value unchanged.
     """
+    def _get_choice_label_value(lookup):
+        _label = None
+        for choice in data_dictionary.get_survey_element(key).children:
+            if choice.name == lookup:
+                _label = choice.label
+                break
+
+        return _label
+
     label = None
     if key in data_dictionary.get_select_one_xpaths():
-        for choice in data_dictionary.get_survey_element(key).children:
-            if choice.name == value:
-                label = choice.label
-                break
+        label = _get_choice_label_value(value)
+
+    if key in data_dictionary.get_select_multiple_xpaths():
+        answers = []
+        for item in value.split(' '):
+            answer = _get_choice_label_value(item)
+            answers.append(answer or item)
+        if [_i for _i in answers if _i is not None]:
+            label = ' '.join(answers)
 
     return label or value
 
 
-def get_value_or_attachment_uri(
+def get_value_or_attachment_uri(  # pylint: disable=too-many-arguments
         key, value, row, data_dictionary, media_xpaths,
-        attachment_list=None, show_choice_labels=True):
+        attachment_list=None, show_choice_labels=False):
     """
      Gets either the attachment value or the attachment url
      :param key: used to retrieve survey element
@@ -865,6 +879,7 @@ class ExportBuilder(object):
         total_records = kwargs.get('total_records')
         win_excel_utf8 = options.get('win_excel_utf8') if options else False
         index_tags = options.get(REPEAT_INDEX_TAGS, self.REPEAT_INDEX_TAGS)
+        show_choice_labels = options.get('show_choice_labels', False)
 
         csv_builder = CSVDataFrameBuilder(
             username, id_string, filter_query, self.GROUP_DELIMITER,
@@ -873,7 +888,8 @@ class ExportBuilder(object):
             self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY, self.INCLUDE_IMAGES,
             self.INCLUDE_HXL, win_excel_utf8=win_excel_utf8,
             total_records=total_records, index_tags=index_tags,
-            value_select_multiples=self.VALUE_SELECT_MULTIPLES)
+            value_select_multiples=self.VALUE_SELECT_MULTIPLES,
+            show_choice_labels=show_choice_labels)
 
         csv_builder.export_to(path, dataview=dataview)
 

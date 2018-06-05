@@ -819,6 +819,8 @@ def parse_request_export_options(params):  # pylint: disable=too-many-branches
     include_hxl = params.get('include_hxl', True)
     value_select_multiples = params.get('value_select_multiples') and \
         params.get('value_select_multiples').lower()
+    show_choice_labels = params.get('show_choice_labels') and \
+        params.get('show_choice_labels').lower()
 
     if include_labels is not None:
         options['include_labels'] = str_to_bool(include_labels)
@@ -855,6 +857,9 @@ def parse_request_export_options(params):  # pylint: disable=too-many-branches
 
     if value_select_multiples and value_select_multiples in boolean_list:
         options['value_select_multiples'] = str_to_bool(value_select_multiples)
+
+    if show_choice_labels and show_choice_labels in boolean_list:
+        options['show_choice_labels'] = str_to_bool(show_choice_labels)
 
     index_tags = get_repeat_index_tags(params.get("repeat_index_tags"))
     if index_tags:

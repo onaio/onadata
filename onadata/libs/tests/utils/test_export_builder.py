@@ -2095,12 +2095,19 @@ class TestExportBuilder(TestBase):
         self.assertEqual(choices, expected_choices)
         select_multiples = {
             'children/fav_colors': [
-                'children/fav_colors/red', 'children/fav_colors/blue',
-                'children/fav_colors/pink'
+                ('children/fav_colors/red', 'red', {'english': 'Red',
+                                                    'swahili': 'Nyekundu'}),
+                ('children/fav_colors/blue', 'blue', {'english': 'Blue',
+                                                      'swahili': 'Bluu'}),
+                ('children/fav_colors/pink', 'pink', {'english': 'Pink',
+                                                      'swahili': 'Pink'})
             ], 'children/ice.creams': [
-                'children/ice.creams/vanilla',
-                'children/ice.creams/strawberry',
-                'children/ice.creams/chocolate'
+                ('children/ice.creams/vanilla', 'vanilla',
+                 {'english': 'Vanilla', 'swahili': 'Vanilla'}),
+                ('children/ice.creams/strawberry', 'strawberry',
+                 {'english': 'Strawberry', 'swahili': 'Strawberry'}),
+                ('children/ice.creams/chocolate', 'chocolate',
+                 {'english': 'Chocolate', 'swahili': 'Chocolate'}),
             ]
         }
         self.assertEqual(CSVDataFrameBuilder._collect_select_multiples(dd),
@@ -2152,10 +2159,10 @@ class TestExportBuilder(TestBase):
         self.assertEqual(choices, expected_choices)
         select_multiples = {
             'county': [
-                'county/king',
-                'county/pierce',
-                'county/king',
-                'county/cameron'
+                ('county/king', 'king', 'King'),
+                ('county/pierce', 'pierce', 'Pierce'),
+                ('county/king', 'king', 'King'),
+                ('county/cameron', 'cameron', 'Cameron')
             ]
         }
         self.assertEqual(CSVDataFrameBuilder._collect_select_multiples(dd),
