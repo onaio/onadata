@@ -68,9 +68,24 @@ def current_site_url(path):
     return url
 
 
+def get_choice_label_value(key, value, data_dictionary):
+    """
+    Return the label of a choice matching the value if the key xpath is a
+    SELECT_ONE otherwise it returns the value unchanged.
+    """
+    label = None
+    if key in data_dictionary.get_select_one_xpaths():
+        for choice in data_dictionary.get_survey_element(key).children:
+            if choice.name == value:
+                label = choice.label
+                break
+
+    return label or value
+
+
 def get_value_or_attachment_uri(
         key, value, row, data_dictionary, media_xpaths,
-        attachment_list=None):
+        attachment_list=None, show_choice_labels=True):
     """
      Gets either the attachment value or the attachment url
      :param key: used to retrieve survey element
@@ -81,6 +96,9 @@ def get_value_or_attachment_uri(
      :param attachment_list: to be used incase row doesn't have ATTACHMENTS key
      :return: value
     """
+    if show_choice_labels:
+        value = get_choice_label_value(key, value, data_dictionary)
+
     if not media_xpaths:
         return value
 

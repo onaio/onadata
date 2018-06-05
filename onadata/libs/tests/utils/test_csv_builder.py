@@ -692,7 +692,7 @@ class TestCSVDataFrameBuilder(TestBase):
     @patch.object(CSVDataFrameBuilder, '_query_data')
     def test_no_split_select_multiples(self, mock_query_data):
         """
-        Test selct multiples are not split within repeats.
+        Test select multiples are not split within repeats.
         """
         md_xform = """
         | survey |
@@ -853,5 +853,45 @@ class TestCSVDataFrameBuilder(TestBase):
             u'_media_all_received': True
         }
 
+        self.maxDiff = None
+        self.assertEqual(expected_result, result)
+
+    @patch.object(CSVDataFrameBuilder, '_query_data')
+    def test_show_choice_labels(self, mock_query_data):
+        """
+        Test show_choice_labels=true for select one questions.
+        """
+        md_xform = """
+        | survey  |
+        |         | type              | name  | label  |
+        |         | text              | name  | Name   |
+        |         | integer           | age   | Age    |
+        |         | select one fruits | fruit | Fruit  |
+        |         |                   |       |        |
+        | choices | list name         | name  | label  |
+        |         | fruits            | 1     | Mango  |
+        |         | fruits            | 2     | Orange |
+        |         | fruits            | 3     | Apple  |
+        """
+        xform = self._publish_markdown(md_xform, self.user, id_string='b')
+        data = [{
+            'name': 'Maria',
+            'age': 25,
+            'fruit': '1'
+        }]  # yapf: disable
+        mock_query_data.return_value = data
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username,
+            xform.id_string,
+            split_select_multiples=False,
+            include_images=False, show_choice_labels=True)
+        # pylint: disable=protected-access
+        cursor = [row for row in csv_df_builder._query_data()]
+        result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
+        expected_result = [{
+            'name': 'Maria',
+            'age': 25,
+            'fruit': "Mango"
+        }]
         self.maxDiff = None
         self.assertEqual(expected_result, result)

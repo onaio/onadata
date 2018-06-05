@@ -158,7 +158,8 @@ class AbstractDataFrameBuilder(object):
                  include_labels=False, include_labels_only=False,
                  include_images=True, include_hxl=False,
                  win_excel_utf8=False, total_records=None,
-                 index_tags=DEFAULT_INDEX_TAGS, value_select_multiples=False):
+                 index_tags=DEFAULT_INDEX_TAGS, value_select_multiples=False,
+                 show_choice_labels=True):
 
         self.username = username
         self.id_string = id_string
@@ -192,6 +193,7 @@ class AbstractDataFrameBuilder(object):
                 "expecting a tuple with opening and closing tags "
                 "e.g repeat_index_tags=('[', ']')" % index_tags))
         self.index_tags = index_tags
+        self.show_choice_labels = show_choice_labels
 
     def _setup(self):
         self.dd = self.xform
@@ -359,13 +361,14 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                  include_labels=False, include_labels_only=False,
                  include_images=False, include_hxl=False,
                  win_excel_utf8=False, total_records=None,
-                 index_tags=DEFAULT_INDEX_TAGS, value_select_multiples=False):
+                 index_tags=DEFAULT_INDEX_TAGS, value_select_multiples=False,
+                 show_choice_labels=False):
         super(CSVDataFrameBuilder, self).__init__(
             username, id_string, filter_query, group_delimiter,
             split_select_multiples, binary_select_multiples, start, end,
             remove_group_name, xform, include_labels, include_labels_only,
             include_images, include_hxl, win_excel_utf8, total_records,
-            index_tags, value_select_multiples)
+            index_tags, value_select_multiples, show_choice_labels)
 
         self.ordered_columns = OrderedDict()
 
@@ -376,11 +379,15 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
     def _reindex(cls, key, value, ordered_columns, row, data_dictionary,
                  parent_prefix=None,
                  include_images=True, split_select_multiples=True,
-                 index_tags=DEFAULT_INDEX_TAGS):
+                 index_tags=DEFAULT_INDEX_TAGS, show_choice_labels=False):
         """
         Flatten list columns by appending an index, otherwise return as is
         """
         def get_ordered_repeat_value(xpath, repeat_value):
+            """
+            Return OrderedDict of repeats in the order in which they appear in
+            the XForm.
+            """
             children = data_dictionary.get_child_elements(
                 xpath, split_select_multiples)
             item = OrderedDict()
@@ -439,7 +446,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                                 new_prefix,
                                 include_images=include_images,
                                 split_select_multiples=split_select_multiples,
-                                index_tags=index_tags))
+                                index_tags=index_tags,
+                                show_choice_labels=show_choice_labels))
                         else:
                             # it can only be a scalar
                             # collapse xpath
@@ -464,7 +472,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 d[key] = u""
             else:
                 d[key] = get_value_or_attachment_uri(
-                    key, value, row, data_dictionary, include_images
+                    key, value, row, data_dictionary, include_images,
+                    show_choice_labels=show_choice_labels
                 )
         return d
 
@@ -526,7 +535,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                     key, value, self.ordered_columns, record, self.dd,
                     include_images=image_xpaths,
                     split_select_multiples=self.split_select_multiples,
-                    index_tags=self.index_tags)
+                    index_tags=self.index_tags,
+                    show_choice_labels=self.show_choice_labels)
 
     def _format_for_dataframe(self, cursor):
         # TODO: check for and handle empty results
@@ -560,7 +570,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                     key, value, self.ordered_columns, record, self.dd,
                     include_images=image_xpaths,
                     split_select_multiples=self.split_select_multiples,
-                    index_tags=self.index_tags)
+                    index_tags=self.index_tags,
+                    show_choice_labels=self.show_choice_labels)
                 flat_dict.update(reindexed)
 
             yield flat_dict
