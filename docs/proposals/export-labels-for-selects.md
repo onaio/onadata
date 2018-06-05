@@ -22,7 +22,7 @@ The export currently will look like:
     | 2     | a1234567890abcd |
     | 1     | b1234567789efgh |
 
-With the export parameter `show_choice_labes=true` then we have the same export as:
+With the export parameter `show_choice_labels=true` then we have the same export as:
 
     | fruit  | meta/instanceID |
     | Orange | a1234567890abcd |
