@@ -50,9 +50,9 @@ With the export parameter `show_choice_labes=true` then we have the same export 
 
 For select multiple questions where the parameter `value_select_multiples` is `true` and `split_select_multiples` is also true, the export will be as:
 
-    | fruit | fruit/1 | fruit/2  | fruit/3 | meta/instanceID |
-    | 1 2   | Mango   | Orange   |         | a1234567890ijkl |
-    | 2 3   |         | Orange   | Apple   | b1234567789mnop |
+    | fruit        | fruit/1 | fruit/2  | fruit/3 | meta/instanceID |
+    | Mango Orange | Mango   | Orange   |         | a1234567890ijkl |
+    | Orange Apple |         | Orange   | Apple   | b1234567789mnop |
 
 With `include_labels=true`:
 
