@@ -1,9 +1,6 @@
 # Export select choices with their name or labels
 
-Add an boolean export parameter `show_choice_labels` that will accept `true` or `false`. This option will allow the labels of choices to be included in the submission data being exported. There are two possibilities:
-
-1. For each row where there is a choice was selected the user will see the label of the choice instead of the choice itself.
-2. We add an extra column, 'field_name:label' that will include the label of  the choice in the 'field_name'.
+Add an boolean export parameter `show_choice_labels` that will accept `true` or `false`. This option will allow the labels of choices to be included in the submission data being exported. For each row where there is a choice was selected the user will see the label of the choice instead of the choice itself.
 
 Given the XLSForm:
 
