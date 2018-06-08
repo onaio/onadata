@@ -24,7 +24,7 @@ RUN apt-get update \
     ghostscript \
     python-celery \
     python-sphinx \
-    openjdk-8-jre-headless \
+    openjdk-8-jre \
     locales \
     pkg-config \
     gcc \
