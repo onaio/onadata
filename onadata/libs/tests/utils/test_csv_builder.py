@@ -861,7 +861,8 @@ class TestCSVDataFrameBuilder(TestBase):
     @patch.object(CSVDataFrameBuilder, '_query_data')
     def test_show_choice_labels_multi_language(self, mock_query_data):
         """
-        Test show_choice_labels=true for select one questions.
+        Test show_choice_labels=true for select one questions - multi language
+        form.
         """
         md_xform = """
         | survey  |
@@ -901,7 +902,8 @@ class TestCSVDataFrameBuilder(TestBase):
     @patch.object(CSVDataFrameBuilder, '_query_data')
     def test_show_choice_labels_multi_language_1(self, mock_query_data):
         """
-        Test show_choice_labels=true for select one questions.
+        Test show_choice_labels=true for select one questions - multi language
+        form selected language.
         """
         md_xform = """
         | survey  |
@@ -1019,6 +1021,48 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertEqual(expected_result, result)
 
     @patch.object(CSVDataFrameBuilder, '_query_data')
+    def test_show_choice_labels_select_multiple_language(self,
+                                                         mock_query_data):
+        """
+        Test show_choice_labels=true for select multiple questions - multi
+        language form.
+        """
+        md_xform = """
+        | survey  |
+        |         | type                   | name  | label:Eng  | label:Fr |
+        |         | text                   | name  | Name       | Prénom   |
+        |         | integer                | age   | Age        | Âge      |
+        |         | select_multiple fruits | fruit | Fruit      | Fruit    |
+        |         |                        |       |            |          |
+        | choices | list name              | name  | label:Eng  | label:Fr |
+        |         | fruits                 | 1     | Mango      | Mangue   |
+        |         | fruits                 | 2     | Orange     | Orange   |
+        |         | fruits                 | 3     | Apple      | Pomme    |
+        """
+        xform = self._publish_markdown(md_xform, self.user, id_string='b')
+        data = [{
+            'name': 'Maria',
+            'age': 25,
+            'fruit': '1 2'
+        }]  # yapf: disable
+        mock_query_data.return_value = data
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username,
+            xform.id_string,
+            split_select_multiples=False,
+            include_images=False, show_choice_labels=True)
+        # pylint: disable=protected-access
+        cursor = [row for row in csv_df_builder._query_data()]
+        result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
+        expected_result = [{
+            'name': 'Maria',
+            'age': 25,
+            'fruit': 'Mangue Orange'
+        }]
+        self.maxDiff = None
+        self.assertEqual(expected_result, result)
+
+    @patch.object(CSVDataFrameBuilder, '_query_data')
     def test_show_choice_labels_select_multiple_1(self, mock_query_data):
         """
         Test show_choice_labels=true, split_select_multiples=true and
@@ -1059,6 +1103,52 @@ class TestCSVDataFrameBuilder(TestBase):
             'fruit/Mango': 'Mango',
             'fruit/Orange': 'Orange',
             'fruit/Apple': None
+        }]
+        self.assertEqual(expected_result, result)
+
+    @patch.object(CSVDataFrameBuilder, '_query_data')
+    def test_show_choice_labels_select_multiple_1_language(self,
+                                                           mock_query_data):
+        """
+        Test show_choice_labels=true, split_select_multiples=true and
+        value_select_multiples=true for select multiple questions - multi
+        language form.
+        """
+        md_xform = """
+        | survey  |
+        |         | type                   | name  | label:Eng  | label:Fr |
+        |         | text                   | name  | Name       | Prénom   |
+        |         | integer                | age   | Age        | Âge      |
+        |         | select_multiple fruits | fruit | Fruit      | Fruit    |
+        |         |                        |       |            |          |
+        | choices | list name              | name  | label:Eng  | label:Fr |
+        |         | fruits                 | 1     | Mango      | Mangue   |
+        |         | fruits                 | 2     | Orange     | Orange   |
+        |         | fruits                 | 3     | Apple      | Pomme    |
+        """
+        xform = self._publish_markdown(md_xform, self.user, id_string='b')
+        data = [{
+            'name': 'Maria',
+            'age': 25,
+            'fruit': '1 2'
+        }]  # yapf: disable
+        mock_query_data.return_value = data
+
+        # Split Select multiples, value_select_multiples is True
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username,
+            xform.id_string,
+            split_select_multiples=True, value_select_multiples=True,
+            include_images=False, show_choice_labels=True)
+        # pylint: disable=protected-access
+        cursor = [row for row in csv_df_builder._query_data()]
+        result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
+        expected_result = [{
+            'name': 'Maria',
+            'age': 25,
+            'fruit/Mangue': 'Mangue',
+            'fruit/Orange': 'Orange',
+            'fruit/Pomme': None
         }]
         self.assertEqual(expected_result, result)
 

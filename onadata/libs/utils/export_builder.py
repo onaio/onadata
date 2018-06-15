@@ -68,6 +68,20 @@ def current_site_url(path):
     return url
 
 
+def get_choice_label(label, data_dictionary, language=None):
+    """
+    Return the label matching selected language or simply just the label.
+    """
+    if isinstance(label, dict):
+        languages = label.keys()
+        _language = language if language in languages else \
+            data_dictionary.get_language(languages)
+
+        return label[_language]
+
+    return label
+
+
 def get_choice_label_value(key, value, data_dictionary, language=None):
     """
     Return the label of a choice matching the value if the key xpath is a
@@ -77,13 +91,8 @@ def get_choice_label_value(key, value, data_dictionary, language=None):
         _label = None
         for choice in data_dictionary.get_survey_element(key).children:
             if choice.name == lookup:
-                if isinstance(choice.label, dict):
-                    languages = choice.label.keys()
-                    _language = language if language in languages else \
-                        data_dictionary.get_language(languages)
-                    _label = choice.label[_language]
-                else:
-                    _label = choice.label
+                _label = get_choice_label(choice.label, data_dictionary,
+                                          language)
                 break
 
         return _label

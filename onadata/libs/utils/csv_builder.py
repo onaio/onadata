@@ -1,6 +1,8 @@
 from collections import OrderedDict
 from itertools import chain
+
 from future.utils import iteritems
+
 from past.builtins import basestring
 
 from django.conf import settings
@@ -25,7 +27,8 @@ from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID,
                                             SUBMISSION_TIME, SUBMITTED_BY,
                                             TAGS, TOTAL_MEDIA, UUID, VERSION,
                                             XFORM_ID_STRING)
-from onadata.libs.utils.export_builder import (get_value_or_attachment_uri,
+from onadata.libs.utils.export_builder import (get_choice_label,
+                                               get_value_or_attachment_uri,
                                                track_task_progress)
 from onadata.libs.utils.model_tools import get_columns_with_hxl
 
@@ -187,7 +190,6 @@ class AbstractDataFrameBuilder(object):
         self.include_images = include_images
         self.include_hxl = include_hxl
         self.win_excel_utf8 = win_excel_utf8
-        self._setup()
         self.total_records = total_records
         if index_tags != DEFAULT_INDEX_TAGS and \
                 not isinstance(index_tags, (tuple, list)):
@@ -199,9 +201,12 @@ class AbstractDataFrameBuilder(object):
         self.show_choice_labels = show_choice_labels
         self.language = language
 
+        self._setup()
+
     def _setup(self):
         self.dd = self.xform
-        self.select_multiples = self._collect_select_multiples(self.dd)
+        self.select_multiples = self._collect_select_multiples(self.dd,
+                                                               self.language)
         self.gps_fields = self._collect_gps_fields(self.dd)
 
     @classmethod
@@ -210,7 +215,7 @@ class AbstractDataFrameBuilder(object):
                 for c in dd.get_survey_elements() if isinstance(c, Question)]
 
     @classmethod
-    def _collect_select_multiples(cls, dd):
+    def _collect_select_multiples(cls, dd, language=None):
         select_multiples = []
         select_multiple_elements = [
             e for e in dd.get_survey_elements_with_choices()
@@ -218,12 +223,13 @@ class AbstractDataFrameBuilder(object):
         ]
         for e in select_multiple_elements:
             xpath = e.get_abbreviated_xpath()
-            choices = [(c.get_abbreviated_xpath(), c.name, c.label)
+            choices = [(c.get_abbreviated_xpath(), c.name,
+                        get_choice_label(c.label, dd, language))
                        for c in e.children]
             if not choices and e.choice_filter and e.itemset:
                 itemset = dd.survey.to_json_dict()['choices'].get(e.itemset)
                 choices = [(u'/'.join([xpath, i.get('name')]), i.get('name'),
-                            i.get('label'))
+                            get_choice_label(i.get('label'), dd, language))
                            for i in itemset] if itemset else choices
             select_multiples.append((xpath, choices))
 

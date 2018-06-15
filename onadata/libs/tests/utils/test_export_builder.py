@@ -2095,19 +2095,13 @@ class TestExportBuilder(TestBase):
         self.assertEqual(choices, expected_choices)
         select_multiples = {
             'children/fav_colors': [
-                ('children/fav_colors/red', 'red', {'english': 'Red',
-                                                    'swahili': 'Nyekundu'}),
-                ('children/fav_colors/blue', 'blue', {'english': 'Blue',
-                                                      'swahili': 'Bluu'}),
-                ('children/fav_colors/pink', 'pink', {'english': 'Pink',
-                                                      'swahili': 'Pink'})
+                ('children/fav_colors/red', 'red', 'Nyekundu'),
+                ('children/fav_colors/blue', 'blue', 'Bluu'),
+                ('children/fav_colors/pink', 'pink', 'Pink')
             ], 'children/ice.creams': [
-                ('children/ice.creams/vanilla', 'vanilla',
-                 {'english': 'Vanilla', 'swahili': 'Vanilla'}),
-                ('children/ice.creams/strawberry', 'strawberry',
-                 {'english': 'Strawberry', 'swahili': 'Strawberry'}),
-                ('children/ice.creams/chocolate', 'chocolate',
-                 {'english': 'Chocolate', 'swahili': 'Chocolate'}),
+                ('children/ice.creams/vanilla', 'vanilla', 'Vanilla'),
+                ('children/ice.creams/strawberry', 'strawberry', 'Strawberry'),
+                ('children/ice.creams/chocolate', 'chocolate', 'Chocolate'),
             ]
         }
         self.assertEqual(CSVDataFrameBuilder._collect_select_multiples(dd),
