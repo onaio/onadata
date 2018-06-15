@@ -162,7 +162,7 @@ class AbstractDataFrameBuilder(object):
                  include_images=True, include_hxl=False,
                  win_excel_utf8=False, total_records=None,
                  index_tags=DEFAULT_INDEX_TAGS, value_select_multiples=False,
-                 show_choice_labels=True):
+                 show_choice_labels=True, language=None):
 
         self.username = username
         self.id_string = id_string
@@ -197,6 +197,7 @@ class AbstractDataFrameBuilder(object):
                 "e.g repeat_index_tags=('[', ']')" % index_tags))
         self.index_tags = index_tags
         self.show_choice_labels = show_choice_labels
+        self.language = language
 
     def _setup(self):
         self.dd = self.xform
@@ -375,13 +376,13 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                  include_images=False, include_hxl=False,
                  win_excel_utf8=False, total_records=None,
                  index_tags=DEFAULT_INDEX_TAGS, value_select_multiples=False,
-                 show_choice_labels=False):
+                 show_choice_labels=False, language=None):
         super(CSVDataFrameBuilder, self).__init__(
             username, id_string, filter_query, group_delimiter,
             split_select_multiples, binary_select_multiples, start, end,
             remove_group_name, xform, include_labels, include_labels_only,
             include_images, include_hxl, win_excel_utf8, total_records,
-            index_tags, value_select_multiples, show_choice_labels)
+            index_tags, value_select_multiples, show_choice_labels, language)
 
         self.ordered_columns = OrderedDict()
 
@@ -392,7 +393,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
     def _reindex(cls, key, value, ordered_columns, row, data_dictionary,
                  parent_prefix=None,
                  include_images=True, split_select_multiples=True,
-                 index_tags=DEFAULT_INDEX_TAGS, show_choice_labels=False):
+                 index_tags=DEFAULT_INDEX_TAGS, show_choice_labels=False,
+                 language=None):
         """
         Flatten list columns by appending an index, otherwise return as is
         """
@@ -460,7 +462,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                                 include_images=include_images,
                                 split_select_multiples=split_select_multiples,
                                 index_tags=index_tags,
-                                show_choice_labels=show_choice_labels))
+                                show_choice_labels=show_choice_labels,
+                                language=language))
                         else:
                             # it can only be a scalar
                             # collapse xpath
@@ -472,11 +475,13 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                             d[new_xpath] = get_value_or_attachment_uri(
                                 nested_key, nested_val, row, data_dictionary,
                                 include_images,
-                                show_choice_labels=show_choice_labels)
+                                show_choice_labels=show_choice_labels,
+                                language=language)
                 else:
                     d[key] = get_value_or_attachment_uri(
                         key, value, row, data_dictionary, include_images,
-                        show_choice_labels=show_choice_labels)
+                        show_choice_labels=show_choice_labels,
+                        language=language)
         else:
             # anything that's not a list will be in the top level dict so its
             # safe to simply assign
@@ -486,8 +491,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             else:
                 d[key] = get_value_or_attachment_uri(
                     key, value, row, data_dictionary, include_images,
-                    show_choice_labels=show_choice_labels
-                )
+                    show_choice_labels=show_choice_labels, language=language)
         return d
 
     @classmethod
@@ -551,7 +555,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                     include_images=image_xpaths,
                     split_select_multiples=self.split_select_multiples,
                     index_tags=self.index_tags,
-                    show_choice_labels=self.show_choice_labels)
+                    show_choice_labels=self.show_choice_labels,
+                    language=self.language)
 
     def _format_for_dataframe(self, cursor):
         # TODO: check for and handle empty results
@@ -587,7 +592,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                     include_images=image_xpaths,
                     split_select_multiples=self.split_select_multiples,
                     index_tags=self.index_tags,
-                    show_choice_labels=self.show_choice_labels)
+                    show_choice_labels=self.show_choice_labels,
+                    language=self.language)
                 flat_dict.update(reindexed)
 
             yield flat_dict

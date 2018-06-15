@@ -68,7 +68,7 @@ def current_site_url(path):
     return url
 
 
-def get_choice_label_value(key, value, data_dictionary):
+def get_choice_label_value(key, value, data_dictionary, language=None):
     """
     Return the label of a choice matching the value if the key xpath is a
     SELECT_ONE otherwise it returns the value unchanged.
@@ -77,7 +77,13 @@ def get_choice_label_value(key, value, data_dictionary):
         _label = None
         for choice in data_dictionary.get_survey_element(key).children:
             if choice.name == lookup:
-                _label = choice.label
+                if isinstance(choice.label, dict):
+                    languages = choice.label.keys()
+                    _language = language if language in languages else \
+                        data_dictionary.get_language(languages)
+                    _label = choice.label[_language]
+                else:
+                    _label = choice.label
                 break
 
         return _label
@@ -99,7 +105,7 @@ def get_choice_label_value(key, value, data_dictionary):
 
 def get_value_or_attachment_uri(  # pylint: disable=too-many-arguments
         key, value, row, data_dictionary, media_xpaths,
-        attachment_list=None, show_choice_labels=False):
+        attachment_list=None, show_choice_labels=False, language=None):
     """
      Gets either the attachment value or the attachment url
      :param key: used to retrieve survey element
@@ -111,7 +117,7 @@ def get_value_or_attachment_uri(  # pylint: disable=too-many-arguments
      :return: value
     """
     if show_choice_labels:
-        value = get_choice_label_value(key, value, data_dictionary)
+        value = get_choice_label_value(key, value, data_dictionary, language)
 
     if not media_xpaths:
         return value
