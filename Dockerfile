@@ -34,7 +34,10 @@ RUN apt-get update \
     libtool \
     automake
 
-RUN  locale-gen en_US.UTF-8
+RUN locale-gen en_US.UTF-8
+ENV LC_ALL en_US.UTF-8
+ENV LC_CTYPE en_US.UTF-8
+RUN dpkg-reconfigure locales
 
 RUN useradd -m onadata
 RUN mkdir -p /srv/onadata && chown -R onadata:onadata /srv/onadata
