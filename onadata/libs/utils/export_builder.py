@@ -73,7 +73,7 @@ def get_choice_label(label, data_dictionary, language=None):
     Return the label matching selected language or simply just the label.
     """
     if isinstance(label, dict):
-        languages = label.keys()
+        languages = [i for i in label.keys()]
         _language = language if language in languages else \
             data_dictionary.get_language(languages)
 
