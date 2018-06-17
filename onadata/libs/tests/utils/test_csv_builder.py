@@ -887,7 +887,7 @@ class TestCSVDataFrameBuilder(TestBase):
             self.user.username,
             xform.id_string,
             split_select_multiples=False,
-            include_images=False, show_choice_labels=True)
+            include_images=False, show_choice_labels=True, language='French')
         # pylint: disable=protected-access
         cursor = [row for row in csv_df_builder._query_data()]
         result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
@@ -1050,7 +1050,7 @@ class TestCSVDataFrameBuilder(TestBase):
             self.user.username,
             xform.id_string,
             split_select_multiples=False,
-            include_images=False, show_choice_labels=True)
+            include_images=False, show_choice_labels=True, language='Fr')
         # pylint: disable=protected-access
         cursor = [row for row in csv_df_builder._query_data()]
         result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
@@ -1139,7 +1139,7 @@ class TestCSVDataFrameBuilder(TestBase):
             self.user.username,
             xform.id_string,
             split_select_multiples=True, value_select_multiples=True,
-            include_images=False, show_choice_labels=True)
+            include_images=False, show_choice_labels=True, language='Fr')
         # pylint: disable=protected-access
         cursor = [row for row in csv_df_builder._query_data()]
         result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
