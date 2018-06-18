@@ -38,6 +38,7 @@ from onadata.libs.utils.mongo import _decode_from_mongo, _is_invalid_for_mongo
 
 # the bind type of select multiples that we use to compare
 MULTIPLE_SELECT_BIND_TYPE = 'select'
+SELECT_ONE_BIND_TYPE = 'select1'
 GEOPOINT_BIND_TYPE = 'geopoint'
 OSM_BIND_TYPE = 'osm'
 DEFAULT_UPDATE_BATCH = 100
@@ -331,6 +332,8 @@ class ExportBuilder(object):
     INCLUDE_HXL = False
     INCLUDE_IMAGES = settings.EXPORT_WITH_IMAGE_DEFAULT
 
+    SHOW_CHOICE_LABELS = False
+
     TYPES_TO_CONVERT = ['int', 'decimal', 'date']  # , 'dateTime']
     CONVERT_FUNCS = {
         'int': int,
@@ -343,6 +346,7 @@ class ExportBuilder(object):
 
     XLS_SHEET_NAME_MAX_CHARS = 31
     url = None
+    language = None
 
     def __init__(self):
         self.extra_columns = (
@@ -384,9 +388,9 @@ class ExportBuilder(object):
             )
 
             return {
-                'label': field_delimiter.join([
-                    child.name, label or title
-                ]),
+                'label': label or title,
+                '_label_xpath': field_delimiter.join(
+                    xpath.split(field_delimiter)[:-1] + [label or title]),
                 'title': title,
                 'xpath': xpath,
                 'type': 'string'
@@ -413,8 +417,8 @@ class ExportBuilder(object):
 
         def build_sections(
                 current_section, survey_element, sections, select_multiples,
-                gps_fields, osm_fields, encoded_fields, field_delimiter='/',
-                remove_group_name=False):
+                gps_fields, osm_fields, encoded_fields, select_ones,
+                field_delimiter='/', remove_group_name=False):
 
             for child in survey_element.children:
                 current_section_name = current_section['name']
@@ -430,13 +434,13 @@ class ExportBuilder(object):
                         build_sections(
                             section, child, sections, select_multiples,
                             gps_fields, osm_fields, encoded_fields,
-                            field_delimiter, remove_group_name)
+                            select_ones, field_delimiter, remove_group_name)
                     else:
                         # its a group, recurs using the same section
                         build_sections(
                             current_section, child, sections, select_multiples,
                             gps_fields, osm_fields, encoded_fields,
-                            field_delimiter, remove_group_name)
+                            select_ones, field_delimiter, remove_group_name)
                 elif isinstance(child, Question) and \
                         (child.bind.get('type')
                          not in QUESTION_TYPES_TO_EXCLUDE and
@@ -464,20 +468,20 @@ class ExportBuilder(object):
                                 {child_xpath: _encode_for_mongo(child_xpath)})
 
                     # if its a select multiple, make columns out of its choices
-                    if child.bind.get('type') == MULTIPLE_SELECT_BIND_TYPE\
-                            and self.SPLIT_SELECT_MULTIPLES:
-                        choices = self._get_select_mulitples_choices(
-                            child, dd, field_delimiter, remove_group_name
-                        )
-                        for choice in choices:
-                            if choice not in current_section['elements']:
-                                current_section['elements'].append(choice)
+                    if child.bind.get('type') == MULTIPLE_SELECT_BIND_TYPE:
+                        choices = []
+                        if self.SPLIT_SELECT_MULTIPLES:
+                            choices = self._get_select_mulitples_choices(
+                                child, dd, field_delimiter, remove_group_name
+                            )
+                            for choice in choices:
+                                if choice not in current_section['elements']:
+                                    current_section['elements'].append(choice)
 
-                        choices_xpaths = [c['xpath'] for c in choices]
+                        # choices_xpaths = [c['xpath'] for c in choices]
                         _append_xpaths_to_section(
                             current_section_name, select_multiples,
-                            child.get_abbreviated_xpath(), choices_xpaths
-                        )
+                            child.get_abbreviated_xpath(), choices)
 
                     # split gps fields within this section
                     if child.bind.get('type') == GEOPOINT_BIND_TYPE:
@@ -516,6 +520,10 @@ class ExportBuilder(object):
                         _append_xpaths_to_section(
                             current_section_name, osm_fields,
                             child.get_abbreviated_xpath(), xpaths)
+                    if child.bind.get(u"type") == SELECT_ONE_BIND_TYPE:
+                        _append_xpaths_to_section(
+                            current_section_name, select_ones,
+                            child.get_abbreviated_xpath(), [])
 
         def _append_xpaths_to_section(current_section_name, field_list, xpath,
                                       xpaths):
@@ -539,6 +547,7 @@ class ExportBuilder(object):
         self.dd = dd
         self.survey = survey
         self.select_multiples = {}
+        self.select_ones = {}
         self.gps_fields = {}
         self.osm_fields = {}
         self.encoded_fields = {}
@@ -547,7 +556,7 @@ class ExportBuilder(object):
         build_sections(
             main_section, self.survey, self.sections,
             self.select_multiples, self.gps_fields, self.osm_fields,
-            self.encoded_fields, self.GROUP_DELIMITER,
+            self.encoded_fields, self.select_ones, self.GROUP_DELIMITER,
             self.TRUNCATE_GROUP_TITLE)
 
     def section_by_name(self, name):
@@ -556,10 +565,13 @@ class ExportBuilder(object):
 
         return matches[0]
 
+    # pylint: disable=too-many-arguments
     @classmethod
     def split_select_multiples(cls, row, select_multiples,
                                select_values=False,
-                               binary_select_multiples=False):
+                               binary_select_multiples=False,
+                               show_choice_labels=False, data_dictionary=None,
+                               language=None):
         """
         Split select multiple choices in a submission to individual columns.
 
@@ -569,8 +581,14 @@ class ExportBuilder(object):
         :param binary_select_multiples: if True the value of the split columns
                                         will be 1 when the choice has been
                                         selected otherwise it will be 0.
-        :select_values: the value of the split columns will be the name/value
-                        of the choice when selected otherwise blank/None.
+        :param select_values: the value of the split columns will be the
+                              name/value of the choice when selected otherwise
+                              blank/None.
+        :param show_choice_labels: Show a choice label instead of the
+                                   value/True/False/1/0.
+        :param data_dictionary: A DataDictionary/XForm object
+        :param language: specific language as defined in the XLSForm.
+
         :return: the row dict with select multiples choice as fields in the row
         """
         # for each select_multiple, get the associated data and split it
@@ -582,11 +600,24 @@ class ExportBuilder(object):
                 selections = [
                     '{0}/{1}'.format(
                         xpath, selection) for selection in data.split()]
+                if show_choice_labels and data_dictionary:
+                    row[xpath] = get_choice_label_value(
+                        xpath, data, data_dictionary, language)
             if select_values:
-                row.update(dict(
-                    [(choice, data.split()[selections.index(choice)]
-                      if selections and choice in selections else None)
-                     for choice in choices]))
+                if show_choice_labels:
+                    row.update(dict(
+                        [('/'.join(choice['xpath'].split('/')[:-1] +
+                                   [choice['label']]),
+                          choice['label'] if selections and
+                          choice['xpath'] in selections else None)
+                         for choice in choices]))
+                else:
+                    row.update(dict(
+                        [(choice['xpath'],
+                          data.split()[selections.index(choice['xpath'])]
+                          if selections and choice['xpath'] in selections
+                          else None)
+                         for choice in choices]))
             elif binary_select_multiples:
                 row.update(dict(
                     [(choice, YES if choice in selections else NO)
@@ -642,15 +673,31 @@ class ExportBuilder(object):
             row = ExportBuilder.decode_mongo_encoded_fields(
                 row, self.encoded_fields[section_name])
 
-        if self.SPLIT_SELECT_MULTIPLES and\
-                section_name in self.select_multiples:
-            row = ExportBuilder.split_select_multiples(
-                row, self.select_multiples[section_name],
-                self.VALUE_SELECT_MULTIPLES, self.BINARY_SELECT_MULTIPLES)
+        if section_name in self.select_multiples:
+            select_multiples = self.select_multiples[section_name]
+            if self.SPLIT_SELECT_MULTIPLES:
+                row = ExportBuilder.split_select_multiples(
+                    row, select_multiples, self.VALUE_SELECT_MULTIPLES,
+                    self.BINARY_SELECT_MULTIPLES,
+                    show_choice_labels=self.SHOW_CHOICE_LABELS,
+                    data_dictionary=self.dd, language=self.language)
+            if not self.SPLIT_SELECT_MULTIPLES and self.SHOW_CHOICE_LABELS:
+                for xpath in select_multiples:
+                    # get the data matching this xpath
+                    data = row.get(xpath) and text(row.get(xpath))
+                    if data:
+                        row[xpath] = get_choice_label_value(
+                            xpath, data, self.dd, self.language)
 
         if section_name in self.gps_fields:
             row = ExportBuilder.split_gps_components(
                 row, self.gps_fields[section_name])
+
+        if section_name in self.select_ones and self.SHOW_CHOICE_LABELS:
+            for key in self.select_ones[section_name]:
+                if key in row:
+                    row[key] = get_choice_label_value(key, row[key], self.dd,
+                                                      self.language)
 
         # convert to native types
         for elm in section['elements']:
@@ -1001,7 +1048,7 @@ class ExportBuilder(object):
                 parent_xpath = '/'.join(xpath.split('/')[:-1])
                 parent = data_dictionary.get_element(parent_xpath)
                 return (parent and parent.type == MULTIPLE_SELECT_TYPE)
-            elif element_type != 'select1':
+            elif element_type != SELECT_ONE_BIND_TYPE:
                 return False
 
             if var_name not in all_value_labels:
@@ -1187,10 +1234,16 @@ class ExportBuilder(object):
             sav_def['sav_file'].close()
 
     def get_fields(self, dataview, section, key):
+        """
+        Return list of element value with the key in section['elements'].
+        """
         if dataview:
-            return [element[key] for element in section['elements']
-                    if element['title'] in dataview.columns]\
-                    + self.extra_columns
-        else:
-            return [element[key] for element in
-                    section['elements']] + self.extra_columns
+            return [element.get('_label_xpath') or element[key]
+                    if self.SHOW_CHOICE_LABELS else element[key]
+                    for element in section['elements']
+                    if element['title'] in dataview.columns] + \
+                    self.extra_columns
+
+        return [element.get('_label_xpath') or element[key]
+                if self.SHOW_CHOICE_LABELS else element[key]
+                for element in section['elements']] + self.extra_columns
