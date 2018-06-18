@@ -407,8 +407,8 @@ class ExportBuilder(object):
         else:
             choices = [get_choice_dict(
                 c.get_abbreviated_xpath(),
-                dd.get_label(c.get_abbreviated_xpath(), elem=c)
-            ) for c in child.children]
+                get_choice_label(c.label, dd, language=self.language))
+                for c in child.children]
 
         return choices
 
@@ -620,11 +620,17 @@ class ExportBuilder(object):
                          for choice in choices]))
             elif binary_select_multiples:
                 row.update(dict(
-                    [(choice, YES if choice in selections else NO)
+                    [('/'.join(choice['xpath'].split('/')[:-1] +
+                               [choice['label']])
+                      if show_choice_labels else choice['xpath'],
+                      YES if choice['xpath'] in selections else NO)
                      for choice in choices]))
             else:
                 row.update(dict(
-                    [(choice, choice in selections if selections else None)
+                    [('/'.join(choice['xpath'].split('/')[:-1] +
+                               [choice['label']])
+                      if show_choice_labels else choice['xpath'],
+                      choice['xpath'] in selections if selections else None)
                      for choice in choices]))
         return row
 
