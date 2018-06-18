@@ -41,13 +41,14 @@ Without the group name, it will also match perfectly to the above form.
 4. The file MAY HAVE a `meta/instanceID` column which should uniquely identify a specific record. If present, the `meta/instanceID` will be used to identify whether the record is new or is an edit. If it does not exist, the system will create a new one for each new record added.
 
 Questions:
-1. What happens if an upload file has repeats?
-2. Which Excel sheet should have the data imported?
-3. Should an Excel template file be provided?
+1. What happens if an upload file has repeats? They will also be uploaded, they need to be in the flat csv format, e.g `fruits[1]/fruit`.
+
+2. Which Excel sheet should have the data imported? First sheet.
+3. Should an Excel template file be provided? Yes, need to implement a blank CSV format - it will be upto the user to convert the CSV to excel.
 
 ### Data upload expected behaviour
 
-When the upload is complete, three things could happen to the data.
+When the upload is complete, three things could happen to the data.2
 
 1. The upload will add new records to the existing form.
 2. The upload will edit existing records where there is a matching `meta/instanceID` and add new records if the existing `meta/instanceID` is either blank or missing or does not exist.
@@ -120,13 +121,12 @@ Depending on the query parameters, the data import will be taking into account t
 
 ## Questions
 
-1. What happens if an upload file has repeats?
-2. Which Excel sheet should have the data imported?
-3. Should an Excel template file be provided?
+1. What happens if an upload file has repeats? Repeats will be part of data.
+2. Which Excel sheet should have the data imported? The first sheet.
+3. Should an Excel template file be provided? Yes, API endpoint will be added.
 4. Should it be possible to REVERT this process? NO
-5. How should we notify the user of upload status/progress?
+5. How should we notify the user of upload status/progress? messaging notification, job status query?
 6. What limits should we impose on data file uploads? In megabytes or number rows?
-7. Is the process supposed to be atomic - i.e. all uploads go through, or partial uploads will do.
-8. Should data imports from exports link the submitted by the user?
+7. Is the process supposed to be atomic - i.e. all uploads go through, or partial uploads will do? Partial uploads to be supported.
+8. Should data imports from exports link the submitted by the user? Yes.
 9. Should media links be downloaded into the new submission? Only data will be imported; media attachments will not be imported.
-
