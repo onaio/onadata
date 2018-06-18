@@ -10,6 +10,7 @@ RUN apt-get update \
     memcached \
     libmemcached-dev \
     build-essential \
+    python \
     python-pip \
     python-virtualenv \
     python-dev \
@@ -27,7 +28,6 @@ RUN apt-get update \
     python-celery \
     python-sphinx \
     openjdk-9-jre-headless \
-    python-virtualenv \
     locales \
     pkg-config \
     gcc \
@@ -47,10 +47,6 @@ RUN mkdir -p /srv/onadata/requirements
 ADD requirements /srv/onadata/requirements/
 
 WORKDIR /srv/onadata
-
-RUN virtualenv /srv/onadata/.virtualenv
-RUN . /srv/onadata/.virtualenv/bin/activate; \
-    pip install pip --upgrade && pip install -r requirements/base.pip
 
 ADD . /srv/onadata/
 

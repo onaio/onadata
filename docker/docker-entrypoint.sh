@@ -10,10 +10,8 @@ virtualenv /srv/onadata/.virtualenv
 . /srv/onadata/.virtualenv/bin/activate
 
 cd /srv/onadata
+pip install --upgrade pip
 pip install -r requirements/base.pip
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput
 python manage.py runserver 0.0.0.0:8000
-
-# --fs-reload on code changes - only appropriate in a development environment
-# uwsgi --ini uwsgi.ini --fs-reload /srv/onadata/uwsgi.ini
