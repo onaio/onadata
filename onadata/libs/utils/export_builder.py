@@ -388,9 +388,10 @@ class ExportBuilder(object):
             )
 
             return {
-                'label': label or title,
-                '_label_xpath': field_delimiter.join(
-                    xpath.split(field_delimiter)[:-1] + [label or title]),
+                'label': field_delimiter.join([child.name, label or title]),
+                '_label': label or title,
+                '_label_xpath': field_delimiter.join([child.name,
+                                                      label or title]),
                 'title': title,
                 'xpath': xpath,
                 'type': 'string'
@@ -606,10 +607,9 @@ class ExportBuilder(object):
             if select_values:
                 if show_choice_labels:
                     row.update(dict(
-                        [('/'.join(choice['xpath'].split('/')[:-1] +
-                                   [choice['label']]),
-                          choice['label'] if selections and
-                          choice['xpath'] in selections else None)
+                        [(choice['label'], choice['_label']
+                          if selections and choice['xpath'] in selections
+                          else None)
                          for choice in choices]))
                 else:
                     row.update(dict(
@@ -620,15 +620,13 @@ class ExportBuilder(object):
                          for choice in choices]))
             elif binary_select_multiples:
                 row.update(dict(
-                    [('/'.join(choice['xpath'].split('/')[:-1] +
-                               [choice['label']])
+                    [(choice['label']
                       if show_choice_labels else choice['xpath'],
                       YES if choice['xpath'] in selections else NO)
                      for choice in choices]))
             else:
                 row.update(dict(
-                    [('/'.join(choice['xpath'].split('/')[:-1] +
-                               [choice['label']])
+                    [(choice['label']
                       if show_choice_labels else choice['xpath'],
                       choice['xpath'] in selections if selections else None)
                      for choice in choices]))

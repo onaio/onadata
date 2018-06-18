@@ -1012,20 +1012,35 @@ class TestExportBuilder(TestBase):
         self.assertTrue('children/fav_colors' in select_multiples['children'])
         self.assertTrue('children/ice.creams' in select_multiples['children'])
         self.assertEqual(
-            sorted(select_multiples['children']['children/fav_colors']),
+            sorted([
+                choice['xpath'] for choice in
+                select_multiples['children']['children/fav_colors']]),
             sorted(
                 expected_select_multiples['children']['children/fav_colors']))
         self.assertEqual(
-            sorted(select_multiples['children']['children/ice.creams']),
+            sorted([choice['xpath'] for choice in
+                    select_multiples['children']['children/ice.creams']]),
             sorted(
                 expected_select_multiples['children']['children/ice.creams']))
 
     def test_split_select_multiples_works(self):
+        """
+        Test split_select_multiples works as expected.
+        """
         select_multiples =\
             {
                 'children/fav_colors': [
-                    'children/fav_colors/red', 'children/fav_colors/blue',
-                    'children/fav_colors/pink']
+                    {
+                        'xpath': 'children/fav_colors/red',
+                        'label': 'fav_colors/Red',
+                    }, {
+                        'xpath': 'children/fav_colors/blue',
+                        'label': 'fav_colors/Blue',
+                    }, {
+                        'xpath': 'children/fav_colors/pink',
+                        'label': 'fav_colors/Pink',
+                    }
+                ]
             }
         row = \
             {
@@ -1064,9 +1079,15 @@ class TestExportBuilder(TestBase):
 
     def test_split_select_mutliples_works_with_int_value_in_row(self):
         select_multiples = {
-            'children/fav_number': ['children/fav_number/1',
-                                    'children/fav_number/2',
-                                    'children/fav_number/3']
+            'children/fav_number': [
+                {
+                    'xpath': 'children/fav_number/1',
+                }, {
+                    'xpath': 'children/fav_number/2',
+                }, {
+                    'xpath': 'children/fav_number/3',
+                }
+            ]
         }
         row = {'children/fav_number': 1}
 
@@ -1085,8 +1106,17 @@ class TestExportBuilder(TestBase):
         select_multiples =\
             {
                 'children/fav_colors': [
-                    'children/fav_colors/red', 'children/fav_colors/blue',
-                    'children/fav_colors/pink']
+                    {
+                        'xpath': 'children/fav_colors/red',
+                        'label': 'fav_colors/Red',
+                    }, {
+                        'xpath': 'children/fav_colors/blue',
+                        'label': 'fav_colors/Blue',
+                    }, {
+                        'xpath': 'children/fav_colors/pink',
+                        'label': 'fav_colors/Pink',
+                    }
+                ]
             }
         row = \
             {
@@ -2078,15 +2108,21 @@ class TestExportBuilder(TestBase):
         )
         expected_choices = [
             {
+                '_label': 'Nyekundu',
+                '_label_xpath': 'fav_colors/Nyekundu',
                 'xpath': 'children/fav_colors/red',
                 'title': 'children/fav_colors/red',
                 'type': 'string',
                 'label': 'fav_colors/Nyekundu'
             }, {
+                '_label': 'Bluu',
+                '_label_xpath': 'fav_colors/Bluu',
                 'xpath': 'children/fav_colors/blue',
                 'title': 'children/fav_colors/blue',
                 'type': 'string', 'label': 'fav_colors/Bluu'
             }, {
+                '_label': 'Pink',
+                '_label_xpath': 'fav_colors/Pink',
                 'xpath': 'children/fav_colors/pink',
                 'title': 'children/fav_colors/pink',
                 'type': 'string', 'label': 'fav_colors/Pink'
@@ -2126,24 +2162,32 @@ class TestExportBuilder(TestBase):
         self.assertEqual(child.children, [])
         expected_choices = [
             {
+                '_label': 'King',
+                '_label_xpath': 'county/King',
                 'label': 'county/King',
                 'title': 'county/king',
                 'type': 'string',
                 'xpath': 'county/king'
             },
             {
+                '_label': 'Pierce',
+                '_label_xpath': 'county/Pierce',
                 'label': 'county/Pierce',
                 'title': 'county/pierce',
                 'type': 'string',
                 'xpath': 'county/pierce'
             },
             {
+                '_label': 'King',
+                '_label_xpath': 'county/King',
                 'label': 'county/King',
                 'title': 'county/king',
                 'type': 'string',
                 'xpath': 'county/king'
             },
             {
+                '_label': 'Cameron',
+                '_label_xpath': 'county/Cameron',
                 'label': 'county/Cameron',
                 'title': 'county/cameron',
                 'type': 'string',
