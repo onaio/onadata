@@ -5,20 +5,22 @@ Test XFormSubmissionViewSet module.
 import os
 from builtins import open  # pylint: disable=redefined-builtin
 
-from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.test import TransactionTestCase
-from django_digest.test import DigestAuth
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-import simplejson as json
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.http import UnreadablePostError
+from django.test import TransactionTestCase
 
-from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
+import mock
+import simplejson as json
+from django_digest.test import DigestAuth
+
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
-from onadata.apps.api.viewsets.xform_submission_viewset import\
+from onadata.apps.api.viewsets.xform_submission_viewset import \
     XFormSubmissionViewSet
-from onadata.apps.logger.models import Attachment
+from onadata.apps.logger.models import Attachment, Instance
 from onadata.libs.permissions import DataEntryRole
-from onadata.apps.logger.models import Instance
 
 
 # pylint: disable=W0201,R0904,C0103
@@ -598,3 +600,29 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         data_responses = [i[4] for i in json.loads(data)]
         self.assertTrue(any(i in data_responses
                             for i in instance_json.values()))
+
+    @mock.patch('onadata.apps.api.viewsets.xform_submission_viewset.SubmissionSerializer')  # noqa
+    def test_post_submission_unreadable_post_error(self, MockSerializer):
+        """
+        Test UnreadablePostError exception during submission..
+        """
+        MockSerializer.side_effect = UnreadablePostError()
+        s = self.surveys[0]
+        media_file = "1335783522563.jpg"
+        path = os.path.join(self.main_directory, 'fixtures',
+                            'transportation', 'instances', s, media_file)
+        with open(path, 'rb') as f:
+            f = InMemoryUploadedFile(f, 'media_file', media_file, 'image/jpg',
+                                     os.path.getsize(path), None)
+            submission_path = os.path.join(
+                self.main_directory, 'fixtures',
+                'transportation', 'instances', s, s + '.xml')
+            with open(submission_path, 'rb') as sf:
+                data = {'xml_submission_file': sf, 'media_file': f}
+                request = self.factory.post(
+                    '/%s/submission' % self.user.username, data)
+                request.user = AnonymousUser()
+                response = self.view(request, username=self.user.username)
+                self.assertContains(response, 'Unable to read submitted file',
+                                    status_code=400)
+                self.assertTrue(response.has_header('X-OpenRosa-Version'))
