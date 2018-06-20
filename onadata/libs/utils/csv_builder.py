@@ -528,14 +528,15 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 ordered_columns[child.get_abbreviated_xpath()] = None
 
     def _update_columns_from_data(self, cursor):
-        # TODO: check for and handle empty results
         # add ordered columns for select multiples
         if self.split_select_multiples:
             for key, choices in self.select_multiples.items():
                 # HACK to ensure choices are NOT duplicated
                 self.ordered_columns[key] = \
                     remove_dups_from_list_maintain_order(
-                        [choice for choice, _name, _label in choices])
+                        [choice.replace('/' + name, '/' + label)
+                         if self.show_choice_labels else choice
+                         for choice, name, label in choices])
         # add ordered columns for gps fields
         for key in self.gps_fields:
             gps_xpaths = self.dd.get_additional_geopoint_xpaths(key)
