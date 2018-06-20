@@ -111,11 +111,13 @@ class Export(models.Model):
         "include_labels",
         "include_labels_only",
         "include_hxl",
+        "language",
         "query",
         "remove_group_name",
+        "show_choice_labels",
         "split_select_multiples",
         "value_select_multiples",
-        "win_excel_utf8"
+        "win_excel_utf8",
     ]
 
     EXPORT_TYPE_DICT = dict(export_type for export_type in EXPORT_TYPES)
