@@ -946,6 +946,7 @@ class ExportBuilder(object):
         win_excel_utf8 = options.get('win_excel_utf8') if options else False
         index_tags = options.get(REPEAT_INDEX_TAGS, self.REPEAT_INDEX_TAGS)
         show_choice_labels = options.get('show_choice_labels', False)
+        language = options.get('language')
 
         csv_builder = CSVDataFrameBuilder(
             username, id_string, filter_query, self.GROUP_DELIMITER,
@@ -955,7 +956,7 @@ class ExportBuilder(object):
             self.INCLUDE_HXL, win_excel_utf8=win_excel_utf8,
             total_records=total_records, index_tags=index_tags,
             value_select_multiples=self.VALUE_SELECT_MULTIPLES,
-            show_choice_labels=show_choice_labels)
+            show_choice_labels=show_choice_labels, language=language)
 
         csv_builder.export_to(path, dataview=dataview)
 

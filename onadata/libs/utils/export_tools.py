@@ -9,7 +9,7 @@ import json
 import os
 import re
 import sys
-from builtins import open
+import builtins
 from datetime import datetime, timedelta
 from future.moves.urllib.parse import urlparse
 from future.utils import iteritems
@@ -56,15 +56,18 @@ EXPORT_QUERY_KEY = 'query'
 MAX_RETRIES = 3
 
 
-def dict_to_flat_export(d, parent_index=0):
-    pass
-
-
 def md5hash(string):
+    """
+    Return the MD5 hex digest of the given string.
+    """
     return hashlib.md5(string).hexdigest()
 
 
 def get_export_options(options):
+    """
+    Returns expirt options as defined in Export.EXPORT_OPTION_FIELDS from a
+    list of provided options to be saved with each Export object.
+    """
     export_options = {
         key: value for (key, value) in iteritems(options)
         if key in Export.EXPORT_OPTION_FIELDS}
@@ -73,11 +76,15 @@ def get_export_options(options):
 
 
 def get_or_create_export(export_id, xform, export_type, options):
+    """
+    Returns an existing export object or creates a new one with the given
+    options.
+    """
     if export_id:
         try:
             return Export.objects.get(pk=export_id)
         except Export.DoesNotExist:
-            if len(getattr(settings, 'SLAVE_DATABASES', [])):
+            if getattr(settings, 'SLAVE_DATABASES', []):
                 from multidb.pinning import use_master
 
                 with use_master:
@@ -89,9 +96,9 @@ def get_or_create_export(export_id, xform, export_type, options):
     return create_export_object(xform, export_type, options)
 
 
+# pylint: disable=too-many-locals, too-many-branches, too-many-statements
 @retry(MAX_RETRIES)
-def generate_export(export_type, xform, export_id=None, options=None,
-                    retries=0):
+def generate_export(export_type, xform, export_id=None, options=None):
     """
     Create appropriate export object given the export type.
 
@@ -108,6 +115,8 @@ def generate_export(export_type, xform, export_id=None, options=None,
         remove_group_name: boolean flag
         split_select_multiples: boolean flag
         index_tag: ('[', ']') or ('_', '_')
+        show_choice_labels: boolean flag
+        language: language labels as in the XLSForm/XForm
     """
     username = xform.user.username
     id_string = xform.id_string
@@ -177,6 +186,11 @@ def generate_export(export_type, xform, export_id=None, options=None,
         "repeat_index_tags", DEFAULT_INDEX_TAGS
     )
 
+    export_builder.SHOW_CHOICE_LABELS = options.get('show_choice_labels',
+                                                    False)
+
+    export_builder.language = options.get('language')
+
     # 'win_excel_utf8' is only relevant for CSV exports
     if 'win_excel_utf8' in options and export_type != Export.CSV_EXPORT:
         del options['win_excel_utf8']
@@ -230,7 +244,6 @@ def generate_export(export_type, xform, export_id=None, options=None,
         export_type,
         filename)
 
-    # TODO: if s3 storage, make private - how will we protect local storage??
     # seek to the beginning as required by storage classes
     temp_file.seek(0)
     export_filename = default_storage.save(file_path,
@@ -257,6 +270,9 @@ def generate_export(export_type, xform, export_id=None, options=None,
 
 
 def create_export_object(xform, export_type, options):
+    """
+    Return an export object that has not been saved to the database.
+    """
     export_options = get_export_options(options)
     return Export(xform=xform, export_type=export_type, options=export_options,
                   created_on=timezone.now())
@@ -424,7 +440,7 @@ def generate_attachments_zip_export(export_type, username, id_string,
         zip_file = create_attachments_zipfile(attachments)
 
         try:
-            temp_file = open(zip_file.name, 'rb')
+            temp_file = builtins.open(zip_file.name, 'rb')
             filename = default_storage.save(
                 file_path,
                 File(temp_file, file_path))
@@ -784,17 +800,19 @@ def generate_external_export(export_type, username, id_string, export_id=None,
     return export
 
 
+# pylint: disable=invalid-name
 def upload_template_for_external_export(server, file_obj):
+    """
+    Uploads an Excel template to the XLSReport server.
 
-    try:
-        client = Client(server)
-        response = client.template.create(template_file=file_obj)
+    Returns the status code with the server response.
+    """
+    client = Client(server)
+    response = client.template.create(template_file=file_obj)
+    status_code = None
 
-        if hasattr(client.template.conn, 'last_response'):
-            status_code = client.template.conn.last_response.status_code
-    except Exception as e:
-        response = str(e)
-        status_code = 500
+    if hasattr(client.template.conn, 'last_response'):
+        status_code = client.template.conn.last_response.status_code
 
     return str(status_code) + '|' + response
 
@@ -864,6 +882,9 @@ def parse_request_export_options(params):  # pylint: disable=too-many-branches
     index_tags = get_repeat_index_tags(params.get("repeat_index_tags"))
     if index_tags:
         options['repeat_index_tags'] = index_tags
+
+    if 'language' in params:
+        options['language'] = params.get('language')
 
     return options
 
