@@ -16,7 +16,6 @@
 -e git+https://github.com/onaio/django-multidb-router.git@django-1.11#egg=django-multidb-router
 -e git+https://github.com/jbalogh/django-nose.git#egg=django-nose
 -e git+https://github.com/bfirsh/django-ordered-model.git@master#egg=django-ordered-model
-git+https://github.com/celery/librabbitmq@master
 -e git+https://github.com/onaio/floip-py.git@master#egg=floip
 -e git+https://github.com/onaio/python-json2xlsclient.git#egg=python-json2xlsclient
 alabaster==0.7.10         # via sphinx
@@ -84,6 +83,7 @@ jsonpickle==0.9.4
 jsonpointer==1.14         # via datapackage
 jsonschema==2.6.0         # via datapackage, tableschema
 kombu==3.0.37             # via celery
+librabbitmq==2.0.0
 linear-tsv==1.0.0         # via tabulator
 linecache2==1.0.0         # via traceback2
 lxml==3.7.3
