@@ -348,7 +348,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
     @never_cache
     def form(self, request, format='json', **kwargs):
         form = self.get_object()
-        if format not in ['json', 'xml', 'xls']:
+        if format not in ['json', 'xml', 'xls', 'csv']:
             return HttpResponseBadRequest('400 BAD REQUEST',
                                           content_type='application/json',
                                           status=400)

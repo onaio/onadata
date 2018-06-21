@@ -1,23 +1,33 @@
+# -*- coding: utf-8 -*-
+"""
+Test XFormSubmissionViewSet module.
+"""
 import os
-from builtins import open
+from builtins import open  # pylint: disable=redefined-builtin
 
-from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.test import TransactionTestCase
-from django_digest.test import DigestAuth
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.http import UnreadablePostError
+from django.test import TransactionTestCase
+
+import mock
 import simplejson as json
+from django_digest.test import DigestAuth
 
-from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
-from onadata.apps.api.viewsets.xform_submission_viewset import\
+from onadata.apps.api.viewsets.xform_submission_viewset import \
     XFormSubmissionViewSet
-from onadata.apps.logger.models import Attachment
+from onadata.apps.logger.models import Attachment, Instance
 from onadata.libs.permissions import DataEntryRole
-from onadata.apps.logger.models import Instance
 
 
+# pylint: disable=W0201,R0904,C0103
 class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
+    """
+    TestXFormSubmissionViewSet test class.
+    """
     def setUp(self):
         super(TestXFormSubmissionViewSet, self).setUp()
         self.view = XFormSubmissionViewSet.as_view({
@@ -27,6 +37,9 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         self._publish_xls_form_to_project()
 
     def test_unique_instanceid_per_form_only(self):
+        """
+        Test unique instanceID submissions per form.
+        """
         self._make_submissions()
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
         alice = self._create_user_profile(alice_data)
@@ -37,6 +50,9 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         self._make_submissions()
 
     def test_post_submission_anonymous(self):
+        """
+        Test anonymous user can make a submission.
+        """
         s = self.surveys[0]
         media_file = "1335783522563.jpg"
         path = os.path.join(self.main_directory, 'fixtures',
@@ -66,6 +82,9 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                                  % self.user.username)
 
     def test_post_submission_authenticated(self):
+        """
+        Test authenticated user can make a submission.
+        """
         s = self.surveys[0]
         media_file = "1335783522563.jpg"
         path = os.path.join(self.main_directory, 'fixtures',
@@ -96,6 +115,10 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                                  'http://testserver/submission')
 
     def test_post_submission_uuid_other_user_username_not_provided(self):
+        """
+        Test submission without formhub/uuid done by a different user who has
+        no permission to the form fails.
+        """
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
         self._create_user_profile(alice_data)
         s = self.surveys[0]
@@ -121,6 +144,9 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                 self.assertEqual(response.status_code, 403)
 
     def test_post_submission_authenticated_json(self):
+        """
+        Test authenticated user can make a JSON submission.
+        """
         path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             '..',
@@ -147,6 +173,10 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                              'http://testserver/submission')
 
     def test_post_submission_authenticated_bad_json_list(self):
+        """
+        Test authenticated user cannot make a badly formatted JSON list
+        submision.
+        """
         path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             '..',
@@ -173,6 +203,10 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                              'http://testserver/submission')
 
     def test_post_submission_authenticated_bad_json_submission_list(self):
+        """
+        Test authenticated user cannot make a badly formatted JSON submission
+        list.
+        """
         path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             '..',
@@ -200,6 +234,9 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                              'http://testserver/submission')
 
     def test_post_submission_authenticated_bad_json(self):
+        """
+        Test authenticated user cannot make a badly formatted JSON submission.
+        """
         path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             '..',
@@ -258,6 +295,10 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                              'http://testserver/submission')
 
     def test_post_submission_require_auth_anonymous_user(self):
+        """
+        Test anonymous user cannot make a submission if the form requires
+        authentication.
+        """
         self.user.profile.require_auth = True
         self.user.profile.save()
         count = Attachment.objects.count()
@@ -281,6 +322,10 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                 self.assertEqual(count, Attachment.objects.count())
 
     def test_post_submission_require_auth_other_user(self):
+        """
+        Test another authenticated user without permission to the form cannot
+        make a submission if the form requires authentication.
+        """
         self.user.profile.require_auth = True
         self.user.profile.save()
 
@@ -315,6 +360,10 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                     status_code=403)
 
     def test_post_submission_require_auth_data_entry_role(self):
+        """
+        Test authenticated user with the DataEntryRole role can make
+        submissions to a form with require_auth = True.
+        """
         self.user.profile.require_auth = True
         self.user.profile.save()
 
@@ -348,6 +397,9 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                                     status_code=201)
 
     def test_post_submission_json_without_submission_key(self):
+        """
+        Tesut JSON submission without the submission key fails.
+        """
         data = {"id": "transportation_2011_07_25"}
         request = self.factory.post('/submission', data, format='json')
         response = self.view(request)
@@ -360,6 +412,9 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                             status_code=400)
 
     def test_NaN_in_submission(self):
+        """
+        Test submissions with uuid as NaN are successful.
+        """
         xlsform_path = os.path.join(
             settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
             "tutorial.xls")
@@ -488,7 +543,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                              xform_pk=self.xform.pk)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data, {u'non_field_errors': [
-                         u'Invalid format. Expecting a list.']})
+            u'Invalid format. Expecting a list.']})
 
     def test_floip_format_submission_is_valid_json(self):
         """
@@ -545,3 +600,29 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         data_responses = [i[4] for i in json.loads(data)]
         self.assertTrue(any(i in data_responses
                             for i in instance_json.values()))
+
+    @mock.patch('onadata.apps.api.viewsets.xform_submission_viewset.SubmissionSerializer')  # noqa
+    def test_post_submission_unreadable_post_error(self, MockSerializer):
+        """
+        Test UnreadablePostError exception during submission..
+        """
+        MockSerializer.side_effect = UnreadablePostError()
+        s = self.surveys[0]
+        media_file = "1335783522563.jpg"
+        path = os.path.join(self.main_directory, 'fixtures',
+                            'transportation', 'instances', s, media_file)
+        with open(path, 'rb') as f:
+            f = InMemoryUploadedFile(f, 'media_file', media_file, 'image/jpg',
+                                     os.path.getsize(path), None)
+            submission_path = os.path.join(
+                self.main_directory, 'fixtures',
+                'transportation', 'instances', s, s + '.xml')
+            with open(submission_path, 'rb') as sf:
+                data = {'xml_submission_file': sf, 'media_file': f}
+                request = self.factory.post(
+                    '/%s/submission' % self.user.username, data)
+                request.user = AnonymousUser()
+                response = self.view(request, username=self.user.username)
+                self.assertContains(response, 'Unable to read submitted file',
+                                    status_code=400)
+                self.assertTrue(response.has_header('X-OpenRosa-Version'))
