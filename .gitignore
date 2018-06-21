@@ -75,3 +75,6 @@ bob
 # visual studio code
 .vscode/
 tags
+
+.bash_history
+.inputrc

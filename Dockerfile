@@ -10,6 +10,7 @@ RUN apt-get update \
     memcached \
     libmemcached-dev \
     build-essential \
+    python \
     python-pip \
     python-virtualenv \
     python-dev \
@@ -27,14 +28,16 @@ RUN apt-get update \
     python-celery \
     python-sphinx \
     openjdk-9-jre-headless \
-    python-virtualenv \
     locales \
     pkg-config \
     gcc \
     libtool \
     automake
 
-RUN  locale-gen en_US.UTF-8
+RUN locale-gen en_US.UTF-8
+ENV LC_ALL en_US.UTF-8
+ENV LC_CTYPE en_US.UTF-8
+RUN dpkg-reconfigure locales
 
 RUN useradd -m onadata
 RUN mkdir -p /srv/onadata && chown -R onadata:onadata /srv/onadata
@@ -44,10 +47,6 @@ RUN mkdir -p /srv/onadata/requirements
 ADD requirements /srv/onadata/requirements/
 
 WORKDIR /srv/onadata
-
-RUN virtualenv /srv/onadata/.virtualenv
-RUN . /srv/onadata/.virtualenv/bin/activate; \
-    pip install pip --upgrade && pip install -r requirements/base.pip
 
 ADD . /srv/onadata/
 

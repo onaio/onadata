@@ -1012,20 +1012,35 @@ class TestExportBuilder(TestBase):
         self.assertTrue('children/fav_colors' in select_multiples['children'])
         self.assertTrue('children/ice.creams' in select_multiples['children'])
         self.assertEqual(
-            sorted(select_multiples['children']['children/fav_colors']),
+            sorted([
+                choice['xpath'] for choice in
+                select_multiples['children']['children/fav_colors']]),
             sorted(
                 expected_select_multiples['children']['children/fav_colors']))
         self.assertEqual(
-            sorted(select_multiples['children']['children/ice.creams']),
+            sorted([choice['xpath'] for choice in
+                    select_multiples['children']['children/ice.creams']]),
             sorted(
                 expected_select_multiples['children']['children/ice.creams']))
 
     def test_split_select_multiples_works(self):
+        """
+        Test split_select_multiples works as expected.
+        """
         select_multiples =\
             {
                 'children/fav_colors': [
-                    'children/fav_colors/red', 'children/fav_colors/blue',
-                    'children/fav_colors/pink']
+                    {
+                        'xpath': 'children/fav_colors/red',
+                        'label': 'fav_colors/Red',
+                    }, {
+                        'xpath': 'children/fav_colors/blue',
+                        'label': 'fav_colors/Blue',
+                    }, {
+                        'xpath': 'children/fav_colors/pink',
+                        'label': 'fav_colors/Pink',
+                    }
+                ]
             }
         row = \
             {
@@ -1064,9 +1079,15 @@ class TestExportBuilder(TestBase):
 
     def test_split_select_mutliples_works_with_int_value_in_row(self):
         select_multiples = {
-            'children/fav_number': ['children/fav_number/1',
-                                    'children/fav_number/2',
-                                    'children/fav_number/3']
+            'children/fav_number': [
+                {
+                    'xpath': 'children/fav_number/1',
+                }, {
+                    'xpath': 'children/fav_number/2',
+                }, {
+                    'xpath': 'children/fav_number/3',
+                }
+            ]
         }
         row = {'children/fav_number': 1}
 
@@ -1085,8 +1106,17 @@ class TestExportBuilder(TestBase):
         select_multiples =\
             {
                 'children/fav_colors': [
-                    'children/fav_colors/red', 'children/fav_colors/blue',
-                    'children/fav_colors/pink']
+                    {
+                        'xpath': 'children/fav_colors/red',
+                        'label': 'fav_colors/Red',
+                    }, {
+                        'xpath': 'children/fav_colors/blue',
+                        'label': 'fav_colors/Blue',
+                    }, {
+                        'xpath': 'children/fav_colors/pink',
+                        'label': 'fav_colors/Pink',
+                    }
+                ]
             }
         row = \
             {
@@ -2078,15 +2108,21 @@ class TestExportBuilder(TestBase):
         )
         expected_choices = [
             {
+                '_label': 'Nyekundu',
+                '_label_xpath': 'fav_colors/Nyekundu',
                 'xpath': 'children/fav_colors/red',
                 'title': 'children/fav_colors/red',
                 'type': 'string',
                 'label': 'fav_colors/Nyekundu'
             }, {
+                '_label': 'Bluu',
+                '_label_xpath': 'fav_colors/Bluu',
                 'xpath': 'children/fav_colors/blue',
                 'title': 'children/fav_colors/blue',
                 'type': 'string', 'label': 'fav_colors/Bluu'
             }, {
+                '_label': 'Pink',
+                '_label_xpath': 'fav_colors/Pink',
                 'xpath': 'children/fav_colors/pink',
                 'title': 'children/fav_colors/pink',
                 'type': 'string', 'label': 'fav_colors/Pink'
@@ -2095,12 +2131,13 @@ class TestExportBuilder(TestBase):
         self.assertEqual(choices, expected_choices)
         select_multiples = {
             'children/fav_colors': [
-                'children/fav_colors/red', 'children/fav_colors/blue',
-                'children/fav_colors/pink'
+                ('children/fav_colors/red', 'red', 'Nyekundu'),
+                ('children/fav_colors/blue', 'blue', 'Bluu'),
+                ('children/fav_colors/pink', 'pink', 'Pink')
             ], 'children/ice.creams': [
-                'children/ice.creams/vanilla',
-                'children/ice.creams/strawberry',
-                'children/ice.creams/chocolate'
+                ('children/ice.creams/vanilla', 'vanilla', 'Vanilla'),
+                ('children/ice.creams/strawberry', 'strawberry', 'Strawberry'),
+                ('children/ice.creams/chocolate', 'chocolate', 'Chocolate'),
             ]
         }
         self.assertEqual(CSVDataFrameBuilder._collect_select_multiples(dd),
@@ -2125,24 +2162,32 @@ class TestExportBuilder(TestBase):
         self.assertEqual(child.children, [])
         expected_choices = [
             {
+                '_label': 'King',
+                '_label_xpath': 'county/King',
                 'label': 'county/King',
                 'title': 'county/king',
                 'type': 'string',
                 'xpath': 'county/king'
             },
             {
+                '_label': 'Pierce',
+                '_label_xpath': 'county/Pierce',
                 'label': 'county/Pierce',
                 'title': 'county/pierce',
                 'type': 'string',
                 'xpath': 'county/pierce'
             },
             {
+                '_label': 'King',
+                '_label_xpath': 'county/King',
                 'label': 'county/King',
                 'title': 'county/king',
                 'type': 'string',
                 'xpath': 'county/king'
             },
             {
+                '_label': 'Cameron',
+                '_label_xpath': 'county/Cameron',
                 'label': 'county/Cameron',
                 'title': 'county/cameron',
                 'type': 'string',
@@ -2152,10 +2197,10 @@ class TestExportBuilder(TestBase):
         self.assertEqual(choices, expected_choices)
         select_multiples = {
             'county': [
-                'county/king',
-                'county/pierce',
-                'county/king',
-                'county/cameron'
+                ('county/king', 'king', 'King'),
+                ('county/pierce', 'pierce', 'Pierce'),
+                ('county/king', 'king', 'King'),
+                ('county/cameron', 'cameron', 'Cameron')
             ]
         }
         self.assertEqual(CSVDataFrameBuilder._collect_select_multiples(dd),
@@ -2328,3 +2373,383 @@ class TestExportBuilder(TestBase):
             self.assertEqual(rows[1][4], b'tertiary')
             self.assertEqual(rows[1][6], b'Patuatuli Road')
             self.assertEqual(rows[1][13], b'kol')
+
+    def test_show_choice_labels(self):
+        """
+        Test show_choice_labels=true for select one questions.
+        """
+        md_xform = """
+        | survey  |
+        |         | type              | name  | label  |
+        |         | text              | name  | Name   |
+        |         | integer           | age   | Age    |
+        |         | select one fruits | fruit | Fruit  |
+        |         |                   |       |        |
+        | choices | list name         | name  | label  |
+        |         | fruits            | 1     | Mango  |
+        |         | fruits            | 2     | Orange |
+        |         | fruits            | 3     | Apple  |
+        """
+        survey = self.md_to_pyxform_survey(md_xform, {'name': 'data'})
+        export_builder = ExportBuilder()
+        export_builder.SHOW_CHOICE_LABELS = True
+        export_builder.set_survey(survey)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+        data = [{
+            'name': 'Maria',
+            'age': 25,
+            'fruit': '1'
+        }]  # yapf: disable
+        export_builder.to_xls_export(temp_xls_file, data)
+        temp_xls_file.seek(0)
+        children_sheet = load_workbook(temp_xls_file)["data"]
+        self.assertTrue(children_sheet)
+        result = [[col.value for col in row[:3]]
+                  for row in children_sheet.rows]
+        temp_xls_file.close()
+        expected_result = [['name', 'age', 'fruit'], ['Maria', 25, 'Mango']]
+
+        self.assertEqual(expected_result, result)
+
+    def test_show_choice_labels_multi_language(self):  # pylint: disable=C0103
+        """
+        Test show_choice_labels=true for select one questions - multi language
+        form.
+        """
+        md_xform = """
+        | survey  |
+        |         | type              | name  | label:English | label:French |
+        |         | text              | name  | Name          | Prénom       |
+        |         | integer           | age   | Age           | Âge          |
+        |         | select one fruits | fruit | Fruit         | Fruit        |
+        |         |                   |       |               |              |
+        | choices | list name         | name  | label:English | label:French |
+        |         | fruits            | 1     | Mango         | Mangue       |
+        |         | fruits            | 2     | Orange        | Orange       |
+        |         | fruits            | 3     | Apple         | Pomme        |
+        """
+        survey = self.md_to_pyxform_survey(md_xform, {'name': 'data'})
+        export_builder = ExportBuilder()
+        export_builder.SHOW_CHOICE_LABELS = True
+        export_builder.language = 'French'
+        export_builder.set_survey(survey)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+        data = [{
+            'name': 'Maria',
+            'age': 25,
+            'fruit': '1'
+        }]  # yapf: disable
+        export_builder.to_xls_export(temp_xls_file, data)
+        temp_xls_file.seek(0)
+        children_sheet = load_workbook(temp_xls_file)["data"]
+        self.assertTrue(children_sheet)
+        result = [[col.value for col in row[:3]]
+                  for row in children_sheet.rows]
+        temp_xls_file.close()
+        expected_result = [['name', 'age', 'fruit'], ['Maria', 25, 'Mangue']]
+
+        self.assertEqual(expected_result, result)
+
+    def test_show_choice_labels_select_multiple(self):  # pylint: disable=C0103
+        """
+        Test show_choice_labels=true for select multiple questions -
+        split_select_multiples=true.
+        """
+        md_xform = """
+        | survey  |
+        |         | type                   | name  | label  |
+        |         | text                   | name  | Name   |
+        |         | integer                | age   | Age    |
+        |         | select_multiple fruits | fruit | Fruit  |
+        |         |                        |       |        |
+        | choices | list name              | name  | label  |
+        |         | fruits                 | 1     | Mango  |
+        |         | fruits                 | 2     | Orange |
+        |         | fruits                 | 3     | Apple  |
+        """
+        survey = self.md_to_pyxform_survey(md_xform, {'name': 'data'})
+        export_builder = ExportBuilder()
+        export_builder.SHOW_CHOICE_LABELS = True
+        export_builder.SPLIT_SELECT_MULTIPLES = True
+        export_builder.set_survey(survey)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+        data = [{
+            'name': 'Maria',
+            'age': 25,
+            'fruit': '1 2'
+        }]  # yapf: disable
+        export_builder.to_xls_export(temp_xls_file, data)
+        temp_xls_file.seek(0)
+        children_sheet = load_workbook(temp_xls_file)["data"]
+        self.assertTrue(children_sheet)
+        result = [[col.value for col in row[:3]]
+                  for row in children_sheet.rows]
+        temp_xls_file.close()
+        expected_result = [['name', 'age', 'fruit'],
+                           ['Maria', 25, 'Mango Orange']]
+
+        self.assertEqual(expected_result, result)
+
+    # pylint: disable=C0103
+    def test_show_choice_labels_select_multiple_1(self):
+        """
+        Test show_choice_labels=true for select multiple questions
+        split_select_multiples=false.
+        """
+        md_xform = """
+        | survey  |
+        |         | type                   | name  | label  |
+        |         | text                   | name  | Name   |
+        |         | integer                | age   | Age    |
+        |         | select_multiple fruits | fruit | Fruit  |
+        |         |                        |       |        |
+        | choices | list name              | name  | label  |
+        |         | fruits                 | 1     | Mango  |
+        |         | fruits                 | 2     | Orange |
+        |         | fruits                 | 3     | Apple  |
+        """
+        survey = self.md_to_pyxform_survey(md_xform, {'name': 'data'})
+        export_builder = ExportBuilder()
+        export_builder.SHOW_CHOICE_LABELS = True
+        export_builder.SPLIT_SELECT_MULTIPLES = False
+        export_builder.set_survey(survey)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+        data = [{
+            'name': 'Maria',
+            'age': 25,
+            'fruit': '1 2'
+        }]  # yapf: disable
+        export_builder.to_xls_export(temp_xls_file, data)
+        temp_xls_file.seek(0)
+        children_sheet = load_workbook(temp_xls_file)["data"]
+        self.assertTrue(children_sheet)
+        result = [[col.value for col in row[:3]]
+                  for row in children_sheet.rows]
+        temp_xls_file.close()
+        expected_result = [['name', 'age', 'fruit'],
+                           ['Maria', 25, 'Mango Orange']]
+
+        self.assertEqual(expected_result, result)
+
+    # pylint: disable=C0103
+    def test_show_choice_labels_select_multiple_2(self):
+        """
+        Test show_choice_labels=true for select multiple questions
+        split_select_multiples=false.
+        """
+        md_xform = """
+        | survey  |
+        |         | type                   | name  | label  |
+        |         | text                   | name  | Name   |
+        |         | integer                | age   | Age    |
+        |         | select_multiple fruits | fruit | Fruit  |
+        |         |                        |       |        |
+        | choices | list name              | name  | label  |
+        |         | fruits                 | 1     | Mango  |
+        |         | fruits                 | 2     | Orange |
+        |         | fruits                 | 3     | Apple  |
+        """
+        survey = self.md_to_pyxform_survey(md_xform, {'name': 'data'})
+        export_builder = ExportBuilder()
+        export_builder.SHOW_CHOICE_LABELS = True
+        export_builder.SPLIT_SELECT_MULTIPLES = True
+        export_builder.VALUE_SELECT_MULTIPLES = True
+        export_builder.set_survey(survey)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+        data = [{
+            'name': 'Maria',
+            'age': 25,
+            'fruit': '1 2'
+        }]  # yapf: disable
+        export_builder.to_xls_export(temp_xls_file, data)
+        temp_xls_file.seek(0)
+        children_sheet = load_workbook(temp_xls_file)["data"]
+        self.assertTrue(children_sheet)
+        result = [[col.value for col in row[:6]]
+                  for row in children_sheet.rows]
+        temp_xls_file.close()
+        expected_result = [
+            ['name', 'age', 'fruit', 'fruit/Mango', 'fruit/Orange',
+             'fruit/Apple'],
+            ['Maria', 25, 'Mango Orange', 'Mango', 'Orange', None]]
+
+        self.maxDiff = None
+        self.assertEqual(expected_result, result)
+
+    # pylint: disable=C0103
+    def test_show_choice_labels_select_multiple_language(self):
+        """
+        Test show_choice_labels=true for select multiple questions - multi
+        language form.
+        """
+        md_xform = """
+        | survey  |
+        |         | type                   | name  | label:Eng  | label:Fr |
+        |         | text                   | name  | Name       | Prénom   |
+        |         | integer                | age   | Age        | Âge      |
+        |         | select_multiple fruits | fruit | Fruit      | Fruit    |
+        |         |                        |       |            |          |
+        | choices | list name              | name  | label:Eng  | label:Fr |
+        |         | fruits                 | 1     | Mango      | Mangue   |
+        |         | fruits                 | 2     | Orange     | Orange   |
+        |         | fruits                 | 3     | Apple      | Pomme    |
+        """
+        survey = self.md_to_pyxform_survey(md_xform, {'name': 'data'})
+        export_builder = ExportBuilder()
+        export_builder.SHOW_CHOICE_LABELS = True
+        export_builder.SPLIT_SELECT_MULTIPLES = False
+        export_builder.language = 'Fr'
+        export_builder.set_survey(survey)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+        data = [{
+            'name': 'Maria',
+            'age': 25,
+            'fruit': '1 3'
+        }]  # yapf: disable
+        export_builder.to_xls_export(temp_xls_file, data)
+        temp_xls_file.seek(0)
+        children_sheet = load_workbook(temp_xls_file)["data"]
+        self.assertTrue(children_sheet)
+        result = [[col.value for col in row[:3]]
+                  for row in children_sheet.rows]
+        temp_xls_file.close()
+        expected_result = [['name', 'age', 'fruit'],
+                           ['Maria', 25, 'Mangue Pomme']]
+
+        self.assertEqual(expected_result, result)
+
+    # pylint: disable=C0103
+    def test_show_choice_labels_select_multiple_language_1(self):
+        """
+        Test show_choice_labels=true, split_select_multiples=true, for select
+        multiple questions - multi language form.
+        """
+        md_xform = """
+        | survey  |
+        |         | type                   | name  | label:Eng  | label:Fr |
+        |         | text                   | name  | Name       | Prénom   |
+        |         | integer                | age   | Age        | Âge      |
+        |         | select_multiple fruits | fruit | Fruit      | Fruit    |
+        |         |                        |       |            |          |
+        | choices | list name              | name  | label:Eng  | label:Fr |
+        |         | fruits                 | 1     | Mango      | Mangue   |
+        |         | fruits                 | 2     | Orange     | Orange   |
+        |         | fruits                 | 3     | Apple      | Pomme    |
+        """
+        survey = self.md_to_pyxform_survey(md_xform, {'name': 'data'})
+        export_builder = ExportBuilder()
+        export_builder.SHOW_CHOICE_LABELS = True
+        export_builder.SPLIT_SELECT_MULTIPLES = True
+        export_builder.language = 'Fr'
+        export_builder.set_survey(survey)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+        data = [{
+            'name': 'Maria',
+            'age': 25,
+            'fruit': '1 3'
+        }]  # yapf: disable
+        export_builder.to_xls_export(temp_xls_file, data)
+        temp_xls_file.seek(0)
+        children_sheet = load_workbook(temp_xls_file)["data"]
+        self.assertTrue(children_sheet)
+        result = [[col.value for col in row[:6]]
+                  for row in children_sheet.rows]
+        temp_xls_file.close()
+        expected_result = [
+            ['name', 'age', 'fruit', 'fruit/Mangue', 'fruit/Orange',
+             'fruit/Pomme'],
+            ['Maria', 25, 'Mangue Pomme', True, False, True]]
+
+        self.assertEqual(expected_result, result)
+
+    # pylint: disable=C0103
+    def test_show_choice_labels_select_multiple_language_2(self):
+        """
+        Test show_choice_labels=true, split_select_multiples=true,
+        binary_select_multiples=true for select multiple questions - multi
+        language form.
+        """
+        md_xform = """
+        | survey  |
+        |         | type                   | name  | label:Eng  | label:Fr |
+        |         | text                   | name  | Name       | Prénom   |
+        |         | integer                | age   | Age        | Âge      |
+        |         | select_multiple fruits | fruit | Fruit      | Fruit    |
+        |         |                        |       |            |          |
+        | choices | list name              | name  | label:Eng  | label:Fr |
+        |         | fruits                 | 1     | Mango      | Mangue   |
+        |         | fruits                 | 2     | Orange     | Orange   |
+        |         | fruits                 | 3     | Apple      | Pomme    |
+        """
+        survey = self.md_to_pyxform_survey(md_xform, {'name': 'data'})
+        export_builder = ExportBuilder()
+        export_builder.SHOW_CHOICE_LABELS = True
+        export_builder.SPLIT_SELECT_MULTIPLES = True
+        export_builder.BINARY_SELECT_MULTIPLES = True
+        export_builder.language = 'Fr'
+        export_builder.set_survey(survey)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+        data = [{
+            'name': 'Maria',
+            'age': 25,
+            'fruit': '1 3'
+        }]  # yapf: disable
+        export_builder.to_xls_export(temp_xls_file, data)
+        temp_xls_file.seek(0)
+        children_sheet = load_workbook(temp_xls_file)["data"]
+        self.assertTrue(children_sheet)
+        result = [[col.value for col in row[:6]]
+                  for row in children_sheet.rows]
+        temp_xls_file.close()
+        expected_result = [
+            ['name', 'age', 'fruit', 'fruit/Mangue', 'fruit/Orange',
+             'fruit/Pomme'],
+            ['Maria', 25, 'Mangue Pomme', 1, 0, 1]]
+
+        self.assertEqual(expected_result, result)
+
+    # pylint: disable=C0103
+    def test_show_choice_labels_select_multiple_language_3(self):
+        """
+        Test show_choice_labels=true, split_select_multiples=true,
+        value_select_multiples=true for select multiple questions - multi
+        language form.
+        """
+        md_xform = """
+        | survey  |
+        |         | type                   | name  | label:Eng  | label:Fr |
+        |         | text                   | name  | Name       | Prénom   |
+        |         | integer                | age   | Age        | Âge      |
+        |         | select_multiple fruits | fruit | Fruit      | Fruit    |
+        |         |                        |       |            |          |
+        | choices | list name              | name  | label:Eng  | label:Fr |
+        |         | fruits                 | 1     | Mango      | Mangue   |
+        |         | fruits                 | 2     | Orange     | Orange   |
+        |         | fruits                 | 3     | Apple      | Pomme    |
+        """
+        survey = self.md_to_pyxform_survey(md_xform, {'name': 'data'})
+        export_builder = ExportBuilder()
+        export_builder.SHOW_CHOICE_LABELS = True
+        export_builder.SPLIT_SELECT_MULTIPLES = True
+        export_builder.VALUE_SELECT_MULTIPLES = True
+        export_builder.language = 'Fr'
+        export_builder.set_survey(survey)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+        data = [{
+            'name': 'Maria',
+            'age': 25,
+            'fruit': '1 3'
+        }]  # yapf: disable
+        export_builder.to_xls_export(temp_xls_file, data)
+        temp_xls_file.seek(0)
+        children_sheet = load_workbook(temp_xls_file)["data"]
+        self.assertTrue(children_sheet)
+        result = [[col.value for col in row[:6]]
+                  for row in children_sheet.rows]
+        temp_xls_file.close()
+        expected_result = [
+            ['name', 'age', 'fruit', 'fruit/Mangue', 'fruit/Orange',
+             'fruit/Pomme'],
+            ['Maria', 25, 'Mangue Pomme', 'Mangue', None, 'Pomme']]
+
+        self.assertEqual(expected_result, result)

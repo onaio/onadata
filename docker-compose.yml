@@ -15,6 +15,8 @@ services:
     image: onadata:master
     volumes:
       - .:/srv/onadata
+      - .inputrc:/home/onadata/.inputrc
+      - .bash_history:/home/onadata/.bash_history
     ports:
       - "3030:3030"
       - "8000:8000"

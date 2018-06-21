@@ -1,6 +1,8 @@
 from collections import OrderedDict
 from itertools import chain
+
 from future.utils import iteritems
+
 from past.builtins import basestring
 
 from django.conf import settings
@@ -25,7 +27,8 @@ from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID,
                                             SUBMISSION_TIME, SUBMITTED_BY,
                                             TAGS, TOTAL_MEDIA, UUID, VERSION,
                                             XFORM_ID_STRING)
-from onadata.libs.utils.export_builder import (get_value_or_attachment_uri,
+from onadata.libs.utils.export_builder import (get_choice_label,
+                                               get_value_or_attachment_uri,
                                                track_task_progress)
 from onadata.libs.utils.model_tools import get_columns_with_hxl
 
@@ -44,6 +47,9 @@ DEFAULT_NA_REP = getattr(settings, 'NA_REP', NA_REP)
 DEFAULT_OPEN_TAG = '['
 DEFAULT_CLOSE_TAG = ']'
 DEFAULT_INDEX_TAGS = (DEFAULT_OPEN_TAG, DEFAULT_CLOSE_TAG)
+
+YES = 1
+NO = 0
 
 
 def remove_dups_from_list_maintain_order(l):
@@ -158,7 +164,8 @@ class AbstractDataFrameBuilder(object):
                  include_labels=False, include_labels_only=False,
                  include_images=True, include_hxl=False,
                  win_excel_utf8=False, total_records=None,
-                 index_tags=DEFAULT_INDEX_TAGS, value_select_multiples=False):
+                 index_tags=DEFAULT_INDEX_TAGS, value_select_multiples=False,
+                 show_choice_labels=True, language=None):
 
         self.username = username
         self.id_string = id_string
@@ -183,7 +190,6 @@ class AbstractDataFrameBuilder(object):
         self.include_images = include_images
         self.include_hxl = include_hxl
         self.win_excel_utf8 = win_excel_utf8
-        self._setup()
         self.total_records = total_records
         if index_tags != DEFAULT_INDEX_TAGS and \
                 not isinstance(index_tags, (tuple, list)):
@@ -192,10 +198,15 @@ class AbstractDataFrameBuilder(object):
                 "expecting a tuple with opening and closing tags "
                 "e.g repeat_index_tags=('[', ']')" % index_tags))
         self.index_tags = index_tags
+        self.show_choice_labels = show_choice_labels
+        self.language = language
+
+        self._setup()
 
     def _setup(self):
         self.dd = self.xform
-        self.select_multiples = self._collect_select_multiples(self.dd)
+        self.select_multiples = self._collect_select_multiples(self.dd,
+                                                               self.language)
         self.gps_fields = self._collect_gps_fields(self.dd)
 
     @classmethod
@@ -204,7 +215,7 @@ class AbstractDataFrameBuilder(object):
                 for c in dd.get_survey_elements() if isinstance(c, Question)]
 
     @classmethod
-    def _collect_select_multiples(cls, dd):
+    def _collect_select_multiples(cls, dd, language=None):
         select_multiples = []
         select_multiple_elements = [
             e for e in dd.get_survey_elements_with_choices()
@@ -212,10 +223,13 @@ class AbstractDataFrameBuilder(object):
         ]
         for e in select_multiple_elements:
             xpath = e.get_abbreviated_xpath()
-            choices = [c.get_abbreviated_xpath() for c in e.children]
+            choices = [(c.get_abbreviated_xpath(), c.name,
+                        get_choice_label(c.label, dd, language))
+                       for c in e.children]
             if not choices and e.choice_filter and e.itemset:
                 itemset = dd.survey.to_json_dict()['choices'].get(e.itemset)
-                choices = [u'/'.join([xpath, i.get('name')])
+                choices = [(u'/'.join([xpath, i.get('name')]), i.get('name'),
+                            get_choice_label(i.get('label'), dd, language))
                            for i in itemset] if itemset else choices
             select_multiples.append((xpath, choices))
 
@@ -224,7 +238,8 @@ class AbstractDataFrameBuilder(object):
     @classmethod
     def _split_select_multiples(cls, record, select_multiples,
                                 binary_select_multiples=False,
-                                value_select_multiples=False):
+                                value_select_multiples=False,
+                                show_choice_labels=False):
         """ Prefix contains the xpath and slash if we are within a repeat so
         that we can figure out which select multiples belong to which repeat
         """
@@ -239,34 +254,41 @@ class AbstractDataFrameBuilder(object):
                               for r in record[key].split(" ")]
                 if value_select_multiples:
                     record.update(dict([
-                        (choice,
-                         record[key].split()[selections.index(choice)]
+                        (choice.replace('/' + name, '/' + label)
+                         if show_choice_labels else choice,
+                         (label if show_choice_labels else
+                          record[key].split()[selections.index(choice)])
                          if choice in selections else None)
-                        for choice in choices]))
+                        for choice, name, label in choices]))
                 elif not binary_select_multiples:
                     # add columns to record for every choice, with default
                     # False and set to True for items in selections
-                    record.update(dict([(choice, choice in selections)
-                                        for choice in choices]))
+                    record.update(dict([
+                        (choice.replace('/' + name, '/' + label)
+                         if show_choice_labels else choice,
+                         choice in selections)
+                        for choice, name, label in choices]))
                 else:
-                    YES = 1
-                    NO = 0
                     record.update(
-                        dict([(choice, YES if choice in selections else NO)
-                              for choice in choices]))
+                        dict([
+                            (choice.replace('/' + name, '/' + label)
+                             if show_choice_labels else choice,
+                             YES if choice in selections else NO)
+                            for choice, name, label in choices]))
                 # remove the column since we are adding separate columns
                 # for each choice
                 record.pop(key)
 
             # recurs into repeats
-            for record_key, record_item in record.items():
+            for _record_key, record_item in record.items():
                 if isinstance(record_item, list):
                     for list_item in record_item:
                         if isinstance(list_item, dict):
                             cls._split_select_multiples(
                                 list_item, select_multiples,
                                 binary_select_multiples=binary_select_multiples,  # noqa
-                                value_select_multiples=value_select_multiples)
+                                value_select_multiples=value_select_multiples,
+                                show_choice_labels=show_choice_labels)
         return record
 
     @classmethod
@@ -359,13 +381,14 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                  include_labels=False, include_labels_only=False,
                  include_images=False, include_hxl=False,
                  win_excel_utf8=False, total_records=None,
-                 index_tags=DEFAULT_INDEX_TAGS, value_select_multiples=False):
+                 index_tags=DEFAULT_INDEX_TAGS, value_select_multiples=False,
+                 show_choice_labels=False, language=None):
         super(CSVDataFrameBuilder, self).__init__(
             username, id_string, filter_query, group_delimiter,
             split_select_multiples, binary_select_multiples, start, end,
             remove_group_name, xform, include_labels, include_labels_only,
             include_images, include_hxl, win_excel_utf8, total_records,
-            index_tags, value_select_multiples)
+            index_tags, value_select_multiples, show_choice_labels, language)
 
         self.ordered_columns = OrderedDict()
 
@@ -376,11 +399,16 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
     def _reindex(cls, key, value, ordered_columns, row, data_dictionary,
                  parent_prefix=None,
                  include_images=True, split_select_multiples=True,
-                 index_tags=DEFAULT_INDEX_TAGS):
+                 index_tags=DEFAULT_INDEX_TAGS, show_choice_labels=False,
+                 language=None):
         """
         Flatten list columns by appending an index, otherwise return as is
         """
         def get_ordered_repeat_value(xpath, repeat_value):
+            """
+            Return OrderedDict of repeats in the order in which they appear in
+            the XForm.
+            """
             children = data_dictionary.get_child_elements(
                 xpath, split_select_multiples)
             item = OrderedDict()
@@ -439,7 +467,9 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                                 new_prefix,
                                 include_images=include_images,
                                 split_select_multiples=split_select_multiples,
-                                index_tags=index_tags))
+                                index_tags=index_tags,
+                                show_choice_labels=show_choice_labels,
+                                language=language))
                         else:
                             # it can only be a scalar
                             # collapse xpath
@@ -450,12 +480,14 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                                     ordered_columns[key].append(new_xpath)
                             d[new_xpath] = get_value_or_attachment_uri(
                                 nested_key, nested_val, row, data_dictionary,
-                                include_images
-                            )
+                                include_images,
+                                show_choice_labels=show_choice_labels,
+                                language=language)
                 else:
                     d[key] = get_value_or_attachment_uri(
-                        key, value, row, data_dictionary, include_images
-                    )
+                        key, value, row, data_dictionary, include_images,
+                        show_choice_labels=show_choice_labels,
+                        language=language)
         else:
             # anything that's not a list will be in the top level dict so its
             # safe to simply assign
@@ -464,8 +496,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 d[key] = u""
             else:
                 d[key] = get_value_or_attachment_uri(
-                    key, value, row, data_dictionary, include_images
-                )
+                    key, value, row, data_dictionary, include_images,
+                    show_choice_labels=show_choice_labels, language=language)
         return d
 
     @classmethod
@@ -496,13 +528,15 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 ordered_columns[child.get_abbreviated_xpath()] = None
 
     def _update_columns_from_data(self, cursor):
-        # TODO: check for and handle empty results
         # add ordered columns for select multiples
         if self.split_select_multiples:
             for key, choices in self.select_multiples.items():
                 # HACK to ensure choices are NOT duplicated
                 self.ordered_columns[key] = \
-                    remove_dups_from_list_maintain_order(choices)
+                    remove_dups_from_list_maintain_order(
+                        [choice.replace('/' + name, '/' + label)
+                         if self.show_choice_labels else choice
+                         for choice, name, label in choices])
         # add ordered columns for gps fields
         for key in self.gps_fields:
             gps_xpaths = self.dd.get_additional_geopoint_xpaths(key)
@@ -515,7 +549,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             if self.split_select_multiples:
                 record = self._split_select_multiples(
                     record, self.select_multiples,
-                    self.BINARY_SELECT_MULTIPLES, self.VALUE_SELECT_MULTIPLES)
+                    self.BINARY_SELECT_MULTIPLES, self.VALUE_SELECT_MULTIPLES,
+                    show_choice_labels=self.show_choice_labels)
             # check for gps and split into components i.e. latitude, longitude,
             # altitude, precision
             self._split_gps_fields(record, self.gps_fields)
@@ -526,7 +561,9 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                     key, value, self.ordered_columns, record, self.dd,
                     include_images=image_xpaths,
                     split_select_multiples=self.split_select_multiples,
-                    index_tags=self.index_tags)
+                    index_tags=self.index_tags,
+                    show_choice_labels=self.show_choice_labels,
+                    language=self.language)
 
     def _format_for_dataframe(self, cursor):
         # TODO: check for and handle empty results
@@ -548,7 +585,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             if self.split_select_multiples:
                 record = self._split_select_multiples(
                     record, self.select_multiples,
-                    self.BINARY_SELECT_MULTIPLES, self.VALUE_SELECT_MULTIPLES)
+                    self.BINARY_SELECT_MULTIPLES, self.VALUE_SELECT_MULTIPLES,
+                    show_choice_labels=self.show_choice_labels)
             # check for gps and split into components i.e. latitude, longitude,
             # altitude, precision
             self._split_gps_fields(record, self.gps_fields)
@@ -560,7 +598,9 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                     key, value, self.ordered_columns, record, self.dd,
                     include_images=image_xpaths,
                     split_select_multiples=self.split_select_multiples,
-                    index_tags=self.index_tags)
+                    index_tags=self.index_tags,
+                    show_choice_labels=self.show_choice_labels,
+                    language=self.language)
                 flat_dict.update(reindexed)
 
             yield flat_dict
