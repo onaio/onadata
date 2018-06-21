@@ -10,4 +10,3 @@
 -e git+https://github.com/jbalogh/django-nose.git#egg=django-nose
 -e git+https://github.com/XLSForm/pyxform.git@master#egg=pyxform
 # install librabbitmq from git as the python3 version is not yet on pypi
--e git+https://github.com/celery/librabbitmq@master#egg=librabbitmq
