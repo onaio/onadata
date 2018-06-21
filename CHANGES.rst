@@ -1,6 +1,21 @@
 Changelog for onadata
 =====================
 
+1.14.4 (2018-06-21)
+-------------------
+
+-  Support exporting labels for selects in the data.
+  `Issue 1427 <https://github.com/onaio/onadata/issues/1427>`_
+  [ukanga]
+
+-  Handle UnreadablePostError exception in submissions..
+  `Issue 847 <https://github.com/onaio/onadata/issues/847>`_
+  [ukanga]
+
+- Support download of CSV XLSForm,
+  `Commit 4abd30d <https://github.com/onaio/onadata/commit/4abd30d851512e1e8ab03a350f1869ebcbb4b9bf>`_
+  [ukanga]
+
 1.14.3 (2018-05-30)
 -------------------
 
