@@ -1,4 +1,8 @@
-from __future__ import absolute_import
+# -*- coding: utf-8 -*-
+"""
+Celery module for onadata.
+"""
+from __future__ import absolute_import, unicode_literals
 
 import os
 
@@ -13,6 +17,9 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'onadata.settings.common')
 
 
 class Celery(celery.Celery):
+    """
+    Celery class that allows Sentry configuration.
+    """
     def on_configure(self):
         if getattr(settings, 'RAVEN_CONFIG', None):
             client = raven.Client(settings.RAVEN_CONFIG['dsn'])
@@ -24,14 +31,9 @@ class Celery(celery.Celery):
             register_signal(client)
 
 
-app = Celery(__name__)
+app = Celery(__name__)  # pylint: disable=invalid-name
 
 # Using a string here means the worker will not have to
 # pickle the object when using Windows.
-app.config_from_object('django.conf:settings')
+app.config_from_object('django.conf:settings', namespace='CELERY')
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
-
-
-@app.task(bind=True)
-def debug_task(self):
-    print('Request: {0!r}'.format(self.request))

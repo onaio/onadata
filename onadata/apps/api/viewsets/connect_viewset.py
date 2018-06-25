@@ -3,7 +3,7 @@ from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache
 from rest_framework import status, viewsets
 from rest_framework.authtoken.models import Token
-from rest_framework.decorators import detail_route, list_route
+from rest_framework.decorators import action
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
@@ -56,7 +56,7 @@ class ConnectViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
 
         return Response(serializer.data)
 
-    @detail_route(methods=['GET'])
+    @action(methods=['GET'], detail=True)
     def starred(self, request, *args, **kwargs):
         """Return projects starred for this user."""
         user_profile = self.get_object()
@@ -67,7 +67,7 @@ class ConnectViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
 
         return Response(data=serializer.data)
 
-    @list_route(methods=['POST'])
+    @action(methods=['POST'], detail=False)
     def reset(self, request, *args, **kwargs):
         context = {'request': request}
         data = request.data if request.data is not None else {}
@@ -84,7 +84,7 @@ class ConnectViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @list_route(methods=['DELETE'])
+    @action(methods=['DELETE'], detail=False)
     def expire(self, request, *args, **kwargs):
         try:
             TempToken.objects.get(user=request.user).delete()
@@ -93,7 +93,7 @@ class ConnectViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @list_route(methods=['GET'])
+    @action(methods=['GET'], detail=False)
     def regenerate_auth_token(self, request, *args, **kwargs):
         try:
             Token.objects.get(user=request.user).delete()

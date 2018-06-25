@@ -13,7 +13,7 @@ from django.core.validators import ValidationError
 from django.db.models import Count
 
 from rest_framework import serializers, status
-from rest_framework.decorators import detail_route
+from rest_framework.decorators import action
 from rest_framework.exceptions import ParseError
 from rest_framework.filters import OrderingFilter
 from rest_framework.generics import get_object_or_404
@@ -130,7 +130,7 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
 
         return obj
 
-    @detail_route(methods=['POST'])
+    @action(methods=['POST'], detail=True)
     def change_password(self, request, user):  # pylint: disable=W0613
         """
         Change user's password.
@@ -171,7 +171,7 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
         return super(UserProfileViewSet, self).partial_update(request, *args,
                                                               **kwargs)
 
-    @detail_route(methods=['GET'])
+    @action(methods=['GET'], detail=True)
     def monthly_submissions(self, request, *args, **kwargs):
         """ Get the total number of submissions for a user """
         profile = self.get_object()

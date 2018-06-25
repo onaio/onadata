@@ -4,7 +4,7 @@ from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 
 from rest_framework import status
-from rest_framework.decorators import detail_route
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
@@ -71,7 +71,7 @@ class ProjectViewSet(AuthenticateHeaderMixin,
 
         return super(ProjectViewSet, self).get_queryset()
 
-    @detail_route(methods=['POST', 'GET'])
+    @action(methods=['POST', 'GET'], detail=True)
     def forms(self, request, **kwargs):
         """Add a form to a project or list forms for the project.
 
@@ -107,7 +107,7 @@ class ProjectViewSet(AuthenticateHeaderMixin,
 
         return Response(serializer.data)
 
-    @detail_route(methods=['PUT'])
+    @action(methods=['PUT'], detail=True)
     def share(self, request, *args, **kwargs):
         self.object = self.get_object()
         data = merge_dicts(request.data.dict(), {'project': self.object.pk})
@@ -135,7 +135,7 @@ class ProjectViewSet(AuthenticateHeaderMixin,
                             status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @detail_route(methods=['DELETE', 'GET', 'POST'])
+    @action(methods=['DELETE', 'GET', 'POST'], detail=True)
     def star(self, request, *args, **kwargs):
         user = request.user
         self.object = project = get_object_or_404(Project,

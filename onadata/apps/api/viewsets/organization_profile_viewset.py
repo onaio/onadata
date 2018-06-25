@@ -3,7 +3,7 @@ from django.conf import settings
 
 from rest_framework import status
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.decorators import detail_route
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
@@ -50,7 +50,7 @@ class OrganizationProfileViewSet(AuthenticateHeaderMixin,
     filter_backends = (OrganizationPermissionFilter,
                        OrganizationsSharedWithUserFilter)
 
-    @detail_route(methods=['DELETE', 'GET', 'POST', 'PUT'])
+    @action(methods=['DELETE', 'GET', 'POST', 'PUT'], detail=True)
     def members(self, request, *args, **kwargs):
         organization = self.get_object()
         data = merge_dicts(request.data,

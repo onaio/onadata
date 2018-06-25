@@ -5,7 +5,7 @@ from django.http import Http404, HttpResponseBadRequest
 
 from celery.result import AsyncResult
 from rest_framework import status
-from rest_framework.decorators import detail_route
+from rest_framework.decorators import action
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
@@ -72,7 +72,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
 
         return serializer_class
 
-    @detail_route(methods=['GET'])
+    @action(methods=['GET'], detail=True)
     def data(self, request, format='json', **kwargs):
         """Retrieve the data from the xform using this dataview"""
         start = request.GET.get("start")
@@ -99,7 +99,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
                                            export_type,
                                            dataview=self.object)
 
-    @detail_route(methods=['GET'])
+    @action(methods=['GET'], detail=True)
     def export_async(self, request, *args, **kwargs):
         params = request.query_params
         job_uuid = params.get('job_uuid')
@@ -158,7 +158,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
                         status=status.HTTP_202_ACCEPTED,
                         content_type="application/json")
 
-    @detail_route(methods=['GET'])
+    @action(methods=['GET'], detail=True)
     def form(self, request, format='json', **kwargs):
         dataview = self.get_object()
         xform = dataview.xform
@@ -172,7 +172,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
 
         return response
 
-    @detail_route(methods=['GET'])
+    @action(methods=['GET'], detail=True)
     def form_details(self, request, *args, **kwargs):
         dataview = self.get_object()
         xform = dataview.xform
@@ -181,7 +181,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
         return Response(data=serializer.data,
                         content_type="application/json")
 
-    @detail_route(methods=['GET'])
+    @action(methods=['GET'], detail=True)
     def charts(self, request, *args, **kwargs):
         dataview = self.get_object()
         xform = dataview.xform
@@ -227,7 +227,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
 
         return Response(data)
 
-    @detail_route(methods=['GET'])
+    @action(methods=['GET'], detail=True)
     def xls_export(self, request, *args, **kwargs):
         dataview = self.get_object()
         xform = dataview.xform

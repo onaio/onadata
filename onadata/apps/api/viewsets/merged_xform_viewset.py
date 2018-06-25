@@ -8,7 +8,7 @@ import json
 from django.db.models import Sum
 from django.http import HttpResponseBadRequest
 from rest_framework import viewsets, mixins
-from rest_framework.decorators import detail_route
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 
@@ -41,7 +41,7 @@ class MergedXFormViewSet(mixins.CreateModelMixin,
         [renderers.StaticXMLRenderer]
 
     # pylint: disable=unused-argument
-    @detail_route(methods=['get'])
+    @action(methods=['GET'], detail=True)
     def form(self, *args, **kwargs):
         """Return XForm JSON, XLS or XML representing"""
 
@@ -58,7 +58,7 @@ class MergedXFormViewSet(mixins.CreateModelMixin,
         return Response(data)
 
     # pylint: disable=unused-argument
-    @detail_route(methods=['get'])
+    @action(methods=['GET'], detail=True)
     def data(self, request, *args, **kwargs):
         """Return data from the merged xforms"""
         merged_xform = self.get_object()

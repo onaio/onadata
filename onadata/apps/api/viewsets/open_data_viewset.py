@@ -7,7 +7,7 @@ from django.http import StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
 from rest_framework import status
-from rest_framework.decorators import detail_route, list_route
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
@@ -100,7 +100,7 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
 
         return tableau_colulmn_headers
 
-    @detail_route(methods=['GET'])
+    @action(methods=['GET'], detail=True)
     def data(self, request, **kwargs):
         """
         Streams submission data response matching uuid in the request.
@@ -170,7 +170,7 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
         self.get_object().delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @detail_route(methods=['GET'])
+    @action(methods=['GET'], detail=True)
     def schema(self, request, **kwargs):
         self.object = self.get_object()
         if isinstance(self.object.content_object, XForm):
@@ -196,7 +196,7 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
 
         return Response(status=status.HTTP_404_NOT_FOUND)
 
-    @list_route(methods=['GET'])
+    @action(methods=['GET'], detail=False)
     def uuid(self, request, *args, **kwargs):
         data_type = request.query_params.get('data_type')
         object_id = request.query_params.get('object_id')

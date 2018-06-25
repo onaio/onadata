@@ -4,7 +4,7 @@ FloipViewSet: API endpoint for /api/floip
 """
 
 from rest_framework import mixins, status, viewsets
-from rest_framework.decorators import detail_route
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework_json_api.pagination import PageNumberPagination
@@ -77,7 +77,7 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
 
         return headers
 
-    @detail_route(methods=['get', 'post'])
+    @action(methods=['GET', 'POST'], detail=True)
     def responses(self, request, uuid=None):
         """
         Flow Results Responses endpoint.

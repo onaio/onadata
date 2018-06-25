@@ -11,7 +11,7 @@ virtualenv /srv/onadata/.virtualenv
 
 cd /srv/onadata
 pip install --upgrade pip
-pip install -r requirements/base.pip
+yes w | pip install -r requirements/base.pip
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput
 python manage.py runserver 0.0.0.0:8000

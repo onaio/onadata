@@ -23,10 +23,8 @@ from past.builtins import basestring
 from django.core.exceptions import SuspiciousOperation
 from django.utils.log import AdminEmailHandler
 
-import djcelery
 from celery.signals import after_setup_logger
 
-djcelery.setup_loader()
 
 # setting default encoding to utf-8
 if sys.version[0] == '2':
@@ -207,7 +205,6 @@ INSTALLED_APPS = (
     'onadata.apps.restservice',
     'onadata.apps.api',
     'guardian',
-    'djcelery',
     'onadata.apps.sms_support',
     'onadata.libs',
     'reversion',
@@ -238,7 +235,7 @@ REST_FRAMEWORK = {
         'onadata.libs.authentication.DigestAuthentication',
         'onadata.libs.authentication.TempTokenAuthentication',
         'onadata.libs.authentication.EnketoTokenAuthentication',
-        'oauth2_provider.ext.rest_framework.OAuth2Authentication',
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
     ),

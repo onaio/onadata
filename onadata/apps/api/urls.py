@@ -2,14 +2,11 @@
 """
 Custom rest_framework Router - MultiLookupRouter.
 """
-from django.conf import settings
 from django.conf.urls import url
 from django.contrib import admin
+
 from rest_framework import routers
-from rest_framework.response import Response
-from rest_framework.reverse import reverse
 from rest_framework.urlpatterns import format_suffix_patterns
-from rest_framework.views import APIView
 
 from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
 from onadata.apps.api.viewsets.briefcase_viewset import BriefcaseViewset
@@ -46,208 +43,73 @@ from onadata.apps.restservice.viewsets.restservices_viewset import \
 admin.autodiscover()
 
 
-def get_extra_lookup_regexes(route):
-    """
-    Given a route, return the portion of URL regex that adds an additoional
-    lookup field in the URL regex.
-    """
-    ret = []
-    base_regex = '(?P<{lookup_field}>[^/]+)'
-    if 'extra_lookup_fields' in route.initkwargs:
-        for lookup_field in route.initkwargs['extra_lookup_fields']:
-            ret.append(base_regex.format(lookup_field=lookup_field))
-    return '/'.join(ret)
-
-
-def get_lookup_regexes(viewset):
-    """
-    Given a viewset, returns a list containing a portion of URL regex that
-    is used to match against a single instance.
-    """
-    ret = []
-    lookup_fields = getattr(viewset, 'lookup_fields', None)
-    if lookup_fields:
-        for i in range(1, len(lookup_fields)):
-            tmp = []
-            for lookup_field in lookup_fields[:i + 1]:
-                if lookup_field == lookup_fields[i]:
-                    base_regex = '(?P<{lookup_field}>[^/.]+)'
-                else:
-                    base_regex = '(?P<{lookup_field}>[^/]+)'
-                tmp.append(base_regex.format(lookup_field=lookup_field))
-            ret.append(tmp)
-    return ret
-
-
-def make_routes(template_text, mapping):
-    """
-    Return a Route that substitutes the given template_text in the URL regex.
-    """
-    return routers.Route(
-        url=r'^{prefix}/{%s}{trailing_slash}$' % template_text,
-        mapping=mapping,
-        name='{basename}-list',
-        initkwargs={'suffix': 'List'})
-
-
 class MultiLookupRouter(routers.DefaultRouter):
     """
-    MultiLookupRouter - adds extra lookup field to the URL regex of viewsets.
+    Support multiple lookup keys e.g. /parent_pk/pk
     """
-    def __init__(self, *args, **kwargs):
-        super(MultiLookupRouter, self).__init__(*args, **kwargs)
-        lookup_mapping = {
-            'get': 'list',
-            'post': 'create',
-            'delete': 'destroy',
-        }
-        lookups_mapping = {
-            'get': 'list',
-            'post': 'create'
-        }
-        self.lookups_routes = []
-        self.lookups_routes.append(routers.Route(
-            url=r'^{prefix}/{lookups}{trailing_slash}$',
-            mapping={
-                'get': 'retrieve',
-                'put': 'update',
-                'patch': 'partial_update',
-                'delete': 'destroy'
-            },
-            name='{basename}-detail',
-            initkwargs={'suffix': 'Instance'}
-        ))
-        self.lookups_routes.append(make_routes('lookup', lookup_mapping))
-        self.lookups_routes.append(make_routes('lookups', lookups_mapping))
-        # Dynamically generated routes.
-        # Generated using @action or @link decorators on methods of the viewset
-        self.lookups_routes.append(routers.Route(
-            url=[
-                r'^{prefix}/{lookups}/{methodname}{trailing_slash}$',
-                r'^{prefix}/{lookups}/{methodname}/{extra}{trailing_slash}$'],
-            mapping={
-                '{httpmethod}': '{methodname}',
-            },
-            name='{basename}-{methodnamehyphen}',
-            initkwargs={}
-        ))
+    multi = False
 
-    def get_lookup_routes(self, viewset):
+    def get_lookup_regex(self, viewset, lookup_prefix=''):
         """
-        Given a viewset, returns a list of routes for the viewset.
+        Returns a lookup regex, this extends the default to allow for multiple
+        lookup keys as defined by a viewset.lookup_fields property.
         """
-        ret = [self.routes[0]]
-        # Determine any `@action` or `@link` decorated methods on the viewset
-        dynamic_routes = []
-        for methodname in dir(viewset):
-            attr = getattr(viewset, methodname)
-            httpmethods = getattr(attr, 'bind_to_methods', None)
-            if httpmethods:
-                httpmethods = [method.lower() for method in httpmethods]
-                dynamic_routes.append((httpmethods, methodname))
-
-        for route in self.lookups_routes:
-            if route.mapping == {'{httpmethod}': '{methodname}'}:
-                # Dynamic routes (@link or @action decorator)
-                for httpmethods, methodname in dynamic_routes:
-                    initkwargs = route.initkwargs.copy()
-                    initkwargs.update(getattr(viewset, methodname).kwargs)
-                    mapping = dict(
-                        (httpmethod, methodname) for httpmethod in httpmethods)
-                    name = routers.replace_methodname(route.name, methodname)
-                    if 'extra_lookup_fields' in initkwargs:
-                        uri = route.url[1]
-                        uri = routers.replace_methodname(uri, methodname)
-                        ret.append(routers.Route(
-                            url=uri, mapping=mapping, name='%s-extra' % name,
-                            initkwargs=initkwargs,
-                        ))
-                    uri = routers.replace_methodname(route.url[0], methodname)
-                    ret.append(routers.Route(
-                        url=uri, mapping=mapping, name=name,
-                        initkwargs=initkwargs,
-                    ))
-            else:
-                # Standard route
-                ret.append(route)
-        return ret
-
-    def get_routes(self, viewset):
-        ret = []
+        result = super(MultiLookupRouter, self).get_lookup_regex(
+            viewset, lookup_prefix)
         lookup_fields = getattr(viewset, 'lookup_fields', None)
-        if lookup_fields:
-            ret = self.get_lookup_routes(viewset)
-        else:
-            ret = super(MultiLookupRouter, self).get_routes(viewset)
-        return ret
+        if lookup_fields and not self.multi:
+            lookup_value = getattr(viewset, 'lookup_value_regex', '[^/.]+')
+            for lookup_field in lookup_fields[1:]:
+                result += '/(?P<{lookup_url_kwarg}>{lookup_value})'.format(
+                    lookup_url_kwarg=lookup_field, lookup_value=lookup_value)
 
-    def get_api_root_view(self, api_urls=None):
-        """
-        Return a view to use as the API root.
-        """
-        api_root_dict = {}
-        list_name = self.routes[0].name
-        for prefix, _viewset, basename in self.registry:
-            api_root_dict[prefix] = list_name.format(basename=basename)
-
-        class OnaApi(APIView):
-            """
-            ## Ona JSON Rest API endpoints:
-            """
-            _ignore_model_permissions = True
-
-            def get(self, request, format=None):  # pylint: disable=W0622,R0201
-                """
-                Return the list of implemented API endpoints.
-                """
-                ret = {}
-                for key, url_name in api_root_dict.items():
-                    ret[key] = reverse(
-                        url_name, request=request, format=format)
-
-                # Adding for static documentation
-                ret['api-docs'] = \
-                    request.build_absolute_uri(settings.STATIC_DOC)
-                return Response(ret)
-
-        return OnaApi.as_view()
+        return result
 
     def get_urls(self):
         """
-        Returns a list of url patterns.
+        Return a list of URL regexs, this extends the default by adding a
+        {prefix}-list route that accepts a lookup url kwarg.
         """
-        ret = []
+        urls = super(MultiLookupRouter, self).get_urls()
 
-        if self.include_root_view:
-            ret.append(url(r'^$', self.get_api_root_view(),
-                           name=self.root_view_name))
+        extra_urls = []
         for prefix, viewset, basename in self.registry:
-            lookup = self.get_lookup_regex(viewset)
-            lookup_list = get_lookup_regexes(viewset)
-            if lookup_list:
-                # lookup = lookups[0]
-                lookup_list = [u'/'.join(k) for k in lookup_list]
-            else:
-                lookup_list = [u'']
-            routes = self.get_routes(viewset)
-            for route in routes:
+            lookup_fields = getattr(viewset, 'lookup_fields', None)
+            if lookup_fields:
+                route = routers.Route(
+                    url=r'^{prefix}/{lookup}{trailing_slash}$',
+                    mapping={
+                        'get': 'list',
+                        'post': 'create'
+                    },
+                    name='{basename}-list',
+                    detail=False,
+                    initkwargs={'suffix': 'List'})
+                self.multi = True
+                lookup = self.get_lookup_regex(viewset)
+                # reset
+                self.multi = False
+                regex = route.url.format(
+                    prefix=prefix,
+                    lookup=lookup,
+                    trailing_slash=self.trailing_slash)
+
                 mapping = self.get_method_map(viewset, route.mapping)
                 if not mapping:
                     continue
-                for lookups in lookup_list:
-                    regex = route.url.format(
-                        prefix=prefix,
-                        lookup=lookup,
-                        lookups=lookups,
-                        trailing_slash=self.trailing_slash,
-                        extra=get_extra_lookup_regexes(route)
-                    )
-                    view = viewset.as_view(mapping, **route.initkwargs)
-                    name = route.name.format(basename=basename)
-                    ret.append(url(regex, view, name=name))
+                initkwargs = route.initkwargs.copy()
+                initkwargs.update({
+                    'basename': basename,
+                    'detail': route.detail,
+                })
+                view = viewset.as_view(mapping, **initkwargs)
+                name = route.name.format(basename=basename)
+                extra_urls.append(url(regex, view, name=name))
+
         if self.include_format_suffixes:
-            ret = format_suffix_patterns(ret, allowed=['[a-z]+[0-9]*'])
-        return ret
+            extra_urls = format_suffix_patterns(extra_urls)
+        urls.extend(extra_urls)
+        return urls
 
 
 router = MultiLookupRouter(trailing_slash=False)  # pylint: disable=c0103
@@ -257,28 +119,28 @@ router.register(r'data', DataViewSet, base_name='data')
 router.register(r'dataviews', DataViewViewSet, base_name='dataviews')
 router.register(r'export', ExportViewSet, base_name='export')
 router.register(r'files', MediaViewSet, base_name='files')
-router.register(r'flow-results/packages',
-                FloipViewSet, base_name='flow-results')
+router.register(
+    r'flow-results/packages', FloipViewSet, base_name='flow-results')
 router.register(r'formlist', XFormListViewSet, base_name='formlist')
 router.register(r'forms', XFormViewSet)
 router.register(r'media', AttachmentViewSet, base_name='attachment')
-router.register(r'merged-datasets', MergedXFormViewSet,
-                base_name='merged-xform')
+router.register(
+    r'merged-datasets', MergedXFormViewSet, base_name='merged-xform')
 router.register(r'metadata', MetaDataViewSet, base_name='metadata')
 router.register(r'notes', NoteViewSet)
 router.register(r'open-data', OpenDataViewSet, base_name='open-data')
 router.register(r'orgs', OrganizationProfileViewSet)
 router.register(r'osm', OsmViewSet, base_name='osm')
-router.register(r'private-data', AuthenticatedDataViewSet,
-                base_name='private-data')
+router.register(
+    r'private-data', AuthenticatedDataViewSet, base_name='private-data')
 router.register(r'profiles', UserProfileViewSet)
 router.register(r'projects', ProjectViewSet)
 router.register(r'restservices', RestServicesViewSet, base_name='restservices')
 router.register(r'stats', StatsViewSet, base_name='stats')
-router.register(r'stats/submissions', SubmissionStatsViewSet,
-                base_name='submissionstats')
-router.register(r'submissions', XFormSubmissionViewSet,
-                base_name='submissions')
+router.register(
+    r'stats/submissions', SubmissionStatsViewSet, base_name='submissionstats')
+router.register(
+    r'submissions', XFormSubmissionViewSet, base_name='submissions')
 router.register(r'teams', TeamViewSet)
 router.register(r'user', ConnectViewSet)
 router.register(r'users', UserViewSet)
