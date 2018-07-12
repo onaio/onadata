@@ -427,11 +427,9 @@ THUMB_ORDER = ['large', 'medium', 'small']
 IMG_FILE_TYPE = 'jpg'
 
 # celery
-BROKER_BACKEND = "librabbitmq"
-BROKER_URL = 'amqp://guest:guest@localhost:5672/'
-CELERY_RESULT_BACKEND = "amqp"  # telling Celery to report results to RabbitMQ
-CELERY_ALWAYS_EAGER = False
+CELERY_TASK_ALWAYS_EAGER = False
 CELERY_IMPORTS = ('onadata.libs.utils.csv_import',)
+
 CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD = 100000  # Bytes
 GOOGLE_SHEET_UPLOAD_BATCH = 1000
 
@@ -502,7 +500,6 @@ SUPPORTED_MEDIA_UPLOAD_TYPES = [
     'application/zip',
 ]
 
-CELERY_IMPORTS = ('onadata.libs.utils.csv_import',)
 CSV_ROW_IMPORT_ASYNC_THRESHOLD = 100
 SEND_EMAIL_ACTIVATION_API = False
 METADATA_SEPARATOR = "|"

@@ -32,10 +32,11 @@ else:
 if TESTING_MODE:
     MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'test_media/')
     subprocess.call(["rm", "-r", MEDIA_ROOT])
-    # need to have CELERY_ALWAYS_EAGER True and BROKER_BACKEND as memory
+    # need to have CELERY_TASK_ALWAYS_EAGER True and BROKER_BACKEND as memory
     # to run tasks immediately while testing
-    CELERY_ALWAYS_EAGER = True
-    BROKER_BACKEND = 'memory'
+    CELERY_TASK_ALWAYS_EAGER = True
+    CELERY_RESULT_BACKEND = 'cache'
+    CELERY_CACHE_BACKEND = 'memory'
     ENKETO_API_TOKEN = 'abc'
 else:
     MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'media/')

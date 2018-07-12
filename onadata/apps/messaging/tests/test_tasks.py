@@ -17,7 +17,7 @@ class TestTasks(TestCase):
     Test messaging tasks.
     """
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_call_backend_async(self):
         """
         Test messaging call_backend_async task.

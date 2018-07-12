@@ -20,7 +20,10 @@ class Celery(celery.Celery):
     """
     Celery class that allows Sentry configuration.
     """
-    def on_configure(self):
+    def on_configure(self):  # pylint: disable=method-hidden
+        """
+        Register Sentry for celery tasks.
+        """
         if getattr(settings, 'RAVEN_CONFIG', None):
             client = raven.Client(settings.RAVEN_CONFIG['dsn'])
 
@@ -37,3 +40,4 @@ app = Celery(__name__)  # pylint: disable=invalid-name
 # pickle the object when using Windows.
 app.config_from_object('django.conf:settings', namespace='CELERY')
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
+app.conf.broker_transport_options = {'visibility_timeout': 10}

@@ -654,7 +654,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         basename, ext = os.path.splitext(filename)
         self.assertEqual(ext, '.zip')
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.viewsets.dataview_viewset.AsyncResult')
     def test_export_csv_dataview_data_async(self, async_result):
         self._create_dataview()
@@ -691,7 +691,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         export = Export.objects.get(task_id=task_id)
         self.assertTrue(export.is_successful)
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.viewsets.dataview_viewset.AsyncResult')
     def test_export_csv_dataview_with_labels_async(self, async_result):
         self._create_dataview()
@@ -736,7 +736,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
                 'Gender', labels
             )
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.viewsets.dataview_viewset.AsyncResult')
     def test_export_xls_dataview_with_labels_async(self, async_result):
         self._create_dataview()
@@ -1401,7 +1401,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         response = self.client.get('/api/v1/dataviews/css/ona.css/')
         self.assertEquals(response.status_code, 404)
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.viewsets.dataview_viewset.AsyncResult')
     def test_export_xls_dataview_with_date_filter(self, async_result):
         """
@@ -1489,7 +1489,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         content = get_response_content(response)
         self.assertEqual(content, 'name,age,gender\nDennis Wambua,28,male\n')
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.viewsets.dataview_viewset.AsyncResult')
     def test_csv_export_async_dataview_date_filter(self, async_result):
         """

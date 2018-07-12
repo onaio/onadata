@@ -832,8 +832,8 @@ class TestExports(TestBase):
 
     def test_column_header_delimiter_export_option(self):
         self._publish_transportation_form()
-        settings.CELERY_ALWAYS_EAGER = True
-        current_app.conf.CELERY_ALWAYS_EAGER = True
+        settings.CELERY_TASK_ALWAYS_EAGER = True
+        current_app.conf.CELERY_TASK_ALWAYS_EAGER = True
 
         # survey 1 has ambulance and bicycle as values for
         # transport/available_transportation_types_to_referral_facility

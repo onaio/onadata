@@ -15,8 +15,8 @@ class TestExportTasks(TestBase):
 
     def setUp(self):
         super(TestExportTasks, self).setUp()
-        settings.CELERY_ALWAYS_EAGER = True
-        current_app.conf.CELERY_ALWAYS_EAGER = True
+        settings.CELERY_TASK_ALWAYS_EAGER = True
+        current_app.conf.CELERY_TASK_ALWAYS_EAGER = True
 
     def test_create_async(self):
 

@@ -52,21 +52,24 @@ if len(sys.argv) >= 2 and (sys.argv[1] == "test" or sys.argv[1] == "test_all"):
 else:
     TESTING_MODE = False
 
-BROKER_URL = 'amqp://guest:@queue:5672//'
-BROKER_TRANSPORT = 'librabbitmq'
-CELERY_ALWAYS_EAGER = False
+CELERY_BROKER_URL = 'amqp://guest:@queue:5672//'
+CELERY_TASK_ALWAYS_EAGER = False
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_BACKEND = 'cache'
+CELERY_CACHE_BACKEND = 'memory'
+CELERY_BROKER_CONNECTION_MAX_RETRIES = 2
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 if TESTING_MODE:
     MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'test_media/')  # noqa
     subprocess.call(["rm", "-r", MEDIA_ROOT])
-    # need to have CELERY_ALWAYS_EAGER True and BROKER_BACKEND as memory
+    # need to have TASK_ALWAYS_EAGERY True and BROKER_URL as memory
     # to run tasks immediately while testing
-    CELERY_ALWAYS_EAGER = True
-    BROKER_BACKEND = 'memory'
+    CELERY_TASK_ALWAYS_EAGER = True
+    CELERY_RESULT_BACKEND = 'cache'
+    CELERY_CACHE_BACKEND = 'memory'
     ENKETO_API_TOKEN = 'abc'
     ENKETO_PROTOCOL = 'https'
     ENKETO_URL = 'https://enketo.ona.io/'
