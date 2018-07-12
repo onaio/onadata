@@ -340,14 +340,15 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     def validate(self, attrs):
         name = attrs.get('name')
         organization = attrs.get('organization')
-        project_w_same_name = Project.objects.filter(  # pylint: disable=E1101
-            name__iexact=name,
-            organization=organization)
-        if not self.instance and project_w_same_name:
-            raise serializers.ValidationError({
-                'name':
-                _(u"Project {} already exists.".format(name))
-            })
+        if not self.instance and organization:
+            project_w_same_name = Project.objects.filter(
+                name__iexact=name,
+                organization=organization)
+            if project_w_same_name:
+                raise serializers.ValidationError({
+                    'name': _(u"Project {} already exists.".format(name))})
+        else:
+            organization = organization or self.instance.organization
         try:
             has_perm = can_add_project_to_profile(self.context['request'].user,
                                                   organization)
