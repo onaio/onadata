@@ -1,12 +1,9 @@
-from builtins import str as text
-from io import StringIO
 from tempfile import NamedTemporaryFile
 
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.storage import get_storage_class
 
-import requests
 from PIL import Image
 
 from onadata.libs.utils.viewer_tools import get_path
@@ -56,13 +53,10 @@ def _save_thumbnails(image, path, size, suffix):
 
 def resize(filename):
     default_storage = get_storage_class()()
-    path = default_storage.url(filename)
-    req = requests.get(path)
 
-    if req.status_code == 200:
-        try:
-            im = StringIO(text(req.content))
-            image = Image.open(im)
+    try:
+        with default_storage.open(filename) as image_file:
+            image = Image.open(image_file)
             conf = settings.THUMB_CONF
 
             for key in settings.THUMB_ORDER:
@@ -70,8 +64,8 @@ def resize(filename):
                     image, filename,
                     conf[key]['size'],
                     conf[key]['suffix'])
-        except IOError:
-            raise Exception("The image file couldn't be identified")
+    except IOError:
+        raise Exception("The image file couldn't be identified")
 
 
 def resize_local_env(filename):
