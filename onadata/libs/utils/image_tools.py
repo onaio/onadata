@@ -55,15 +55,15 @@ def resize(filename):
     default_storage = get_storage_class()()
 
     try:
-        path = default_storage.open(filename)
-        image = Image.open(path)
-        conf = settings.THUMB_CONF
+        with default_storage.open(filename) as image_file:
+            image = Image.open(image_file)
+            conf = settings.THUMB_CONF
 
-        for key in settings.THUMB_ORDER:
-            _save_thumbnails(
-                image, filename,
-                conf[key]['size'],
-                conf[key]['suffix'])
+            for key in settings.THUMB_ORDER:
+                _save_thumbnails(
+                    image, filename,
+                    conf[key]['size'],
+                    conf[key]['suffix'])
     except IOError:
         raise Exception("The image file couldn't be identified")
 
