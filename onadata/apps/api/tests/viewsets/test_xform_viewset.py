@@ -4391,35 +4391,6 @@ class TestXFormViewSet(TestAbstractViewSet):
             export = Export.objects.get(task_id=task_id)
             self.assertTrue(export.is_pending)
 
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-    @override_settings(EXPORT_TASK_PROGRESS_UPDATE_BATCH=1)
-    def test_export_async_progress_tracking(self):
-        with HTTMock(enketo_mock):
-            self._publish_xls_form_to_project()
-            self._make_submissions()
-
-            view = XFormViewSet.as_view({
-                'get': 'export_async',
-            })
-            formid = self.xform.pk
-            request = self.factory.get(
-                '/', data={"format": "xls"}, **self.extra)
-            response = view(request, pk=formid)
-            self.assertIsNotNone(response.data)
-            self.assertEqual(response.status_code, 202)
-            self.assertTrue('job_uuid' in response.data)
-            task_id = response.data.get('job_uuid')
-
-            get_data = {'job_uuid': task_id}
-            request = self.factory.get('/', data=get_data, **self.extra)
-            response = view(request, pk=formid)
-
-            self.assertEqual(response.status_code, 202)
-            self.assertIn('progress', response.data)
-            self.assertEqual(response.data.get('progress'), 4)
-            self.assertIn('total', response.data)
-            self.assertEqual(response.data.get('total'), 4)
-
     def test_form_publishing_floip(self):
         with HTTMock(enketo_mock):
             xforms = XForm.objects.count()

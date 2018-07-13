@@ -484,13 +484,14 @@ def get_async_response(job_uuid, request, xform, count=0):
     """
     Returns the status of an async task for the given job_uuid.
     """
+    def _get_response():
+        export = get_object_or_404(Export, task_id=job_uuid)
+        return export_async_export_response(request, export)
+
     try:
         job = AsyncResult(job_uuid)
         if job.state == 'SUCCESS':
-            export_id = job.result
-            export = get_object_or_404(Export, id=export_id)
-
-            resp = export_async_export_response(request, export)
+            resp = _get_response()
         else:
             resp = async_status(celery_state_to_status(job.state))
 
