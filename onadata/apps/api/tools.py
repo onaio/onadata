@@ -6,9 +6,9 @@ import importlib
 import os
 import tempfile
 from datetime import datetime
+
 from future.utils import listitems
 
-import librabbitmq
 from django import forms
 from django.conf import settings
 from django.contrib.auth.models import Permission, User
@@ -23,7 +23,9 @@ from django.db.utils import IntegrityError
 from django.http import HttpResponseNotFound, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
+
 from guardian.shortcuts import assign_perm, get_perms_for_model, remove_perm
+from kombu.exceptions import OperationalError
 from registration.models import RegistrationProfile
 from rest_framework import exceptions
 from taggit.forms import TagField
@@ -404,7 +406,7 @@ def publish_project_xform(request, project):
             try:
                 # Next run async task to apply all other perms
                 set_project_perms_to_xform_async.delay(xform.pk, project.pk)
-            except librabbitmq.ConnectionError:
+            except OperationalError:
                 # Apply permissions synchrounously
                 set_project_perms_to_xform(xform, project)
     else:

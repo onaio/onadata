@@ -4,21 +4,25 @@ Export tasks.
 """
 import sys
 from datetime import timedelta
+
 from future.utils import iteritems
 
-import librabbitmq
-from celery import task
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+
+from celery import task
+from kombu.exceptions import OperationalError
 from requests import ConnectionError
 
 from onadata.apps.viewer.models.export import Export, ExportTypeError
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.common_tools import get_boolean_value, report_exception
-from onadata.libs.utils.export_tools import (
-    generate_attachments_zip_export, generate_export, generate_external_export,
-    generate_kml_export, generate_osm_export)
+from onadata.libs.utils.export_tools import (generate_attachments_zip_export,
+                                             generate_export,
+                                             generate_external_export,
+                                             generate_kml_export,
+                                             generate_osm_export)
 
 EXPORT_QUERY_KEY = 'query'
 
@@ -96,7 +100,7 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
     if export_type in export_types:
         try:
             result = export_types[export_type].apply_async((), kwargs=options)
-        except librabbitmq.ConnectionError as e:
+        except OperationalError as e:
             export.internal_status = Export.FAILED
             export.error_message = "Error connecting to broker."
             export.save()

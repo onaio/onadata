@@ -7,15 +7,16 @@ import os
 import sys
 from datetime import datetime
 
-import httplib2
-import librabbitmq
-from celery.backends.amqp import BacklogLimitExceeded
-from celery.result import AsyncResult
 from django.conf import settings
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.utils import six
 from django.utils.translation import ugettext as _
+
+import httplib2
+from celery.backends.amqp import BacklogLimitExceeded
+from celery.result import AsyncResult
+from kombu.exceptions import OperationalError
 from oauth2client import client as google_client
 from oauth2client.client import (HttpAccessTokenRefreshError,
                                  OAuth2WebServerFlow, TokenRevokeError)
@@ -34,15 +35,22 @@ from onadata.libs.exceptions import (J2XException, NoRecordsFoundError,
                                      NoRecordsPermission, ServiceUnavailable)
 from onadata.libs.permissions import filter_queryset_xform_meta_perms_sql
 from onadata.libs.utils import log
-from onadata.libs.utils.async_status import (
-    FAILED, PENDING, SUCCESSFUL, async_status, celery_state_to_status)
-from onadata.libs.utils.common_tags import (
-    DATAVIEW_EXPORT, GROUPNAME_REMOVED_FLAG, OSM, SUBMISSION_TIME)
+from onadata.libs.utils.async_status import (FAILED, PENDING, SUCCESSFUL,
+                                             async_status,
+                                             celery_state_to_status)
+from onadata.libs.utils.common_tags import (DATAVIEW_EXPORT,
+                                            GROUPNAME_REMOVED_FLAG, OSM,
+                                            SUBMISSION_TIME)
 from onadata.libs.utils.common_tools import report_exception
-from onadata.libs.utils.export_tools import (
-    check_pending_export, generate_attachments_zip_export, generate_export,
-    generate_external_export, generate_kml_export, generate_osm_export,
-    newest_export_for, parse_request_export_options, should_create_new_export)
+from onadata.libs.utils.export_tools import (check_pending_export,
+                                             generate_attachments_zip_export,
+                                             generate_export,
+                                             generate_external_export,
+                                             generate_kml_export,
+                                             generate_osm_export,
+                                             newest_export_for,
+                                             parse_request_export_options,
+                                             should_create_new_export)
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.model_tools import get_columns_with_hxl
 
@@ -501,7 +509,7 @@ def get_async_response(job_uuid, request, xform, count=0):
                     resp.update(job.result)
                 else:
                     resp.update({'progress': str(job.result)})
-    except (librabbitmq.ConnectionError, ConnectionError) as e:
+    except (OperationalError, ConnectionError) as e:
         report_exception("Connection Error", e, sys.exc_info())
         if count > 0:
             raise ServiceUnavailable
