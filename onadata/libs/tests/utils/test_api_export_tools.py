@@ -59,8 +59,8 @@ class TestApiExportTools(TestBase):
         """
         Test process_async_export returns existing export.
         """
-        settings.CELERY_ALWAYS_EAGER = True
-        current_app.conf.CELERY_ALWAYS_EAGER = True
+        settings.CELERY_TASK_ALWAYS_EAGER = True
+        current_app.conf.CELERY_TASK_ALWAYS_EAGER = True
 
         self._publish_transportation_form_and_submit_instance()
         options = {
@@ -97,8 +97,8 @@ class TestApiExportTools(TestBase):
                 self.result = 1
 
         AsyncResult.return_value = MockAsyncResult()
-        settings.CELERY_ALWAYS_EAGER = True
-        current_app.conf.CELERY_ALWAYS_EAGER = True
+        settings.CELERY_TASK_ALWAYS_EAGER = True
+        current_app.conf.CELERY_TASK_ALWAYS_EAGER = True
         self._publish_transportation_form_and_submit_instance()
         request = self.factory.post('/')
         request.user = self.user
@@ -125,8 +125,8 @@ class TestApiExportTools(TestBase):
                 raise BacklogLimitExceeded()
 
         AsyncResult.return_value = MockAsyncResult()
-        settings.CELERY_ALWAYS_EAGER = True
-        current_app.conf.CELERY_ALWAYS_EAGER = True
+        settings.CELERY_TASK_ALWAYS_EAGER = True
+        current_app.conf.CELERY_TASK_ALWAYS_EAGER = True
         self._publish_transportation_form_and_submit_instance()
         request = self.factory.post('/')
         request.user = self.user
@@ -175,8 +175,8 @@ class TestApiExportTools(TestBase):
         Test get_async_response connection error.
         """
         AsyncResult.side_effect = librabbitmq.ConnectionError
-        settings.CELERY_ALWAYS_EAGER = True
-        current_app.conf.CELERY_ALWAYS_EAGER = True
+        settings.CELERY_TASK_ALWAYS_EAGER = True
+        current_app.conf.CELERY_TASK_ALWAYS_EAGER = True
         self._publish_transportation_form_and_submit_instance()
         request = self.factory.post('/')
         request.user = self.user

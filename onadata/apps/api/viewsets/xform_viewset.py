@@ -29,7 +29,7 @@ except ImportError:
 from pyxform.builder import create_survey_element_from_dict
 from pyxform.xls2json import parse_file_to_json
 from rest_framework import exceptions, status
-from rest_framework.decorators import detail_route, list_route
+from rest_framework.decorators import action
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
@@ -300,7 +300,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
-    @list_route(methods=['POST', 'GET'])
+    @action(methods=['POST', 'GET'], detail=False)
     def create_async(self, request, *args, **kwargs):
         """ Temporary Endpoint for Async form creation """
         resp = headers = {}
@@ -344,7 +344,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         return Response(data=resp, status=resp_code, headers=headers)
 
-    @detail_route()
+    @action(methods=['GET', 'HEAD'], detail=True)
     @never_cache
     def form(self, request, format='json', **kwargs):
         form = self.get_object()
@@ -359,7 +359,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         return response
 
-    @list_route(methods=['GET'])
+    @action(methods=['GET'], detail=False)
     def login(self, request, **kwargs):
         return_url = request.query_params.get('return')
 
@@ -378,7 +378,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         return HttpResponseForbidden(
             "Authentication failure, cannot redirect")
 
-    @detail_route()
+    @action(methods=['GET'], detail=True)
     def enketo(self, request, **kwargs):
         self.object = self.get_object()
         form_url = get_form_url(
@@ -407,7 +407,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         return Response(data, http_status)
 
-    @list_route(methods=['POST', 'GET'])
+    @action(methods=['POST', 'GET'], detail=False)
     def survey_preview(self, request, **kwargs):
         username = request.user.username
         if request.method.upper() == 'POST':
@@ -487,7 +487,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                                        token,
                                        meta)
 
-    @detail_route(methods=['POST'])
+    @action(methods=['POST'], detail=True)
     def share(self, request, *args, **kwargs):
         self.object = self.get_object()
 
@@ -514,7 +514,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @detail_route(methods=['POST'])
+    @action(methods=['POST'], detail=True)
     def clone(self, request, *args, **kwargs):
         self.object = self.get_object()
         data = {'xform': self.object.pk,
@@ -546,7 +546,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         return Response(data=serializer.errors,
                         status=status.HTTP_400_BAD_REQUEST)
 
-    @detail_route(methods=['POST', 'GET'])
+    @action(methods=['POST', 'GET'], detail=True)
     def csv_import(self, request, *args, **kwargs):
         """ Endpoint for CSV data imports
         Calls :py:func:`onadata.libs.utils.csv_import.submit_csv` for POST
@@ -610,7 +610,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         except XLSFormError as e:
             raise ParseError(str(e))
 
-    @detail_route(methods=['DELETE', 'GET'])
+    @action(methods=['DELETE', 'GET'], detail=True)
     def delete_async(self, request, *args, **kwargs):
         if request.method == 'DELETE':
             xform = self.get_object()
@@ -634,7 +634,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @detail_route(methods=['GET'])
+    @action(methods=['GET'], detail=True)
     def export_async(self, request, *args, **kwargs):
         job_uuid = request.query_params.get('job_uuid')
         export_type = request.query_params.get('format')

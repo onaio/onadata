@@ -1,3 +1,4 @@
+from django.urls import resolve
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 
@@ -11,7 +12,8 @@ class TestOnaApi(TestAbstractViewSet):
         Counts the number of viewsets
         '''
         view = router.get_api_root_view()
-
-        request = self.factory.get('/')
+        path = '/api/v1/'
+        request = self.factory.get(path)
+        request.resolver_match = resolve(path)
         response = view(request)
-        self.assertEquals(len(response.data), 28)
+        self.assertEquals(len(response.data), 27)

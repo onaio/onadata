@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.utils.translation import ugettext as _
 
 from rest_framework import filters, status
-from rest_framework.decorators import detail_route
+from rest_framework.decorators import action
 from rest_framework.permissions import DjangoObjectPermissions
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -40,7 +40,7 @@ class TeamViewSet(AuthenticateHeaderMixin,
     filter_backends = (filters.DjangoObjectPermissionsFilter,
                        TeamOrgFilter)
 
-    @detail_route(methods=['DELETE', 'GET', 'POST'])
+    @action(methods=['DELETE', 'GET', 'POST'], detail=True)
     def members(self, request, *args, **kwargs):
         team = self.get_object()
         data = {}
@@ -73,7 +73,7 @@ class TeamViewSet(AuthenticateHeaderMixin,
 
         return Response(data, status=status_code)
 
-    @detail_route(methods=['POST'])
+    @action(methods=['POST'], detail=True)
     def share(self, request, *args, **kwargs):
         self.object = self.get_object()
         data = merge_dicts(request.data.items(), {'team': self.object.pk})

@@ -6,7 +6,7 @@ from django_filters import rest_framework as django_filter_filters
 
 from rest_framework import viewsets
 from rest_framework import permissions
-from rest_framework.decorators import detail_route
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from onadata.apps.api.tools import get_media_file_response
@@ -124,7 +124,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
         return Response(self.object.xml,
                         headers=get_openrosa_headers(request, location=False))
 
-    @detail_route(methods=['GET', 'HEAD'])
+    @action(methods=['GET', 'HEAD'], detail=True)
     def manifest(self, request, *args, **kwargs):
         self.object = self.get_object()
         object_list = MetaData.objects.filter(data_type='media',
@@ -138,7 +138,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
         return Response(serializer.data,
                         headers=get_openrosa_headers(request, location=False))
 
-    @detail_route(methods=['GET', 'HEAD'])
+    @action(methods=['GET', 'HEAD'], detail=True)
     def media(self, request, *args, **kwargs):
         self.object = self.get_object()
         pk = kwargs.get('metadata')

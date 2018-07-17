@@ -67,7 +67,7 @@ class TestOSMViewSet(TestAbstractViewSet):
             Attachment.objects.filter(extension='osm').count() > count)
         self.assertEqual(OsmData.objects.count(), count_osm + 2)
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_data_retrieve_instance_osm_format(self):
         self._publish_osm_with_submission()
         formid = self.xform.pk
@@ -116,7 +116,7 @@ class TestOSMViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(response.data, [])
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_osm_csv_export(self):
         self._publish_osm_with_submission()
         count = Export.objects.all().count()

@@ -1896,7 +1896,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.data.get('additions'), 9)
             self.assertEqual(response.data.get('updates'), 0)
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @override_settings(CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD=20)
     def test_csv_import_async(self):
         with HTTMock(enketo_mock):
@@ -1945,7 +1945,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                               "Additional column(s) excluded from the upload:"
                               " '_additional'.")
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.viewsets.xform_viewset.submit_csv_async')
     def test_raise_error_when_task_is_none(self, mock_submit_csv_async):
         with HTTMock(enketo_mock):
@@ -1960,7 +1960,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.data.get('detail'), 'Task not found')
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.viewsets.xform_viewset.submit_csv_async')
     def test_import_csv_asynchronously(self, mock_submit_csv_async):
         with HTTMock(enketo_mock):
@@ -2550,7 +2550,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(self.user.username, 'alice')
             self.assertNotEqual(previous_user, self.user)
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.tasks.get_async_status')
     def test_publish_form_async(self, mock_get_status):
         mock_get_status.return_value = {'job_status': 'PENDING'}
@@ -2586,7 +2586,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 202)
         self.assertEquals(response.data, {'job_status': 'PENDING'})
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.tasks.tools.do_publish_xlsform',
            side_effect=[MemoryError(), MemoryError(), Mock()])
     @patch('onadata.apps.api.tasks.get_async_status')
@@ -2614,7 +2614,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(mock_publish_xlsform.call_count, 3)
             self.assertEqual(response.status_code, 202)
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.tasks.tools.do_publish_xlsform',
            side_effect=[MemoryError(), MemoryError(), MemoryError()])
     @patch('onadata.apps.api.tasks.get_async_status')
@@ -2718,7 +2718,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             'Subsequent characters can include numbers, dashes, and periods.'
         self.assertEqual(response.data.get('detail'), error_message)
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.tasks.get_async_status')
     def test_delete_xform_async(self, mock_get_status):
         with HTTMock(enketo_mock):
@@ -2763,7 +2763,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             self.assertEqual(response.status_code, 404)
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('onadata.libs.utils.api_export_tools.AsyncResult')
     def test_export_form_data_async(self, async_result):
         with HTTMock(enketo_mock):
@@ -2804,7 +2804,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=formid)
             self.assertEqual(response.status_code, 200)
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('onadata.libs.utils.api_export_tools.AsyncResult')
     def test_export_zip_async(self, async_result):
         with HTTMock(enketo_mock):
@@ -2844,7 +2844,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             basename, ext = os.path.splitext(filename)
             self.assertEqual(ext, '.zip')
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('onadata.libs.utils.api_export_tools.AsyncResult')
     def test_export_async_connection_error(self, async_result):
         with HTTMock(enketo_mock):
@@ -2879,7 +2879,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             export = Export.objects.get(task_id=task_id)
             self.assertTrue(export.is_successful)
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('onadata.libs.utils.api_export_tools.AsyncResult')
     def test_create_xls_report_async(self, async_result):
         with HTTMock(enketo_mock):
@@ -2921,7 +2921,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertTrue(async_result.called)
             self.assertEqual(response.status_code, 202)
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('onadata.libs.utils.api_export_tools.AsyncResult')
     def test_create_xls_report_async_with_data_id(self, async_result):
         with HTTMock(enketo_mock):
@@ -3449,7 +3449,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             basename, ext = os.path.splitext(filename)
             self.assertEqual(ext, '.csv')
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('onadata.libs.utils.api_export_tools.AsyncResult')
     def test_export_csv_data_async_with_remove_group_name(self, async_result):
         with HTTMock(enketo_mock):
@@ -4103,7 +4103,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         response = view(request, pk=self.xform.pk, format='savzip')
         self.assertEqual(response.status_code, 200)
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('onadata.libs.utils.api_export_tools.AsyncResult')
     def test_sav_zip_export_long_variable_length_async(self, async_result):
         self._publish_xls_form_to_project()
@@ -4355,7 +4355,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             cloned_form = XForm.objects.last()
             self.assertEqual(cloned_form.created_by.username, 'alice')
 
-    @override_settings(CELERY_ALWAYS_EAGER=False)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=False)
     @patch('onadata.libs.utils.api_export_tools.AsyncResult')
     def test_pending_export_async(self, async_result):
         with HTTMock(enketo_mock):
@@ -4390,35 +4390,6 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 202)
             export = Export.objects.get(task_id=task_id)
             self.assertTrue(export.is_pending)
-
-    @override_settings(CELERY_ALWAYS_EAGER=True)
-    @override_settings(EXPORT_TASK_PROGRESS_UPDATE_BATCH=1)
-    def test_export_async_progress_tracking(self):
-        with HTTMock(enketo_mock):
-            self._publish_xls_form_to_project()
-            self._make_submissions()
-
-            view = XFormViewSet.as_view({
-                'get': 'export_async',
-            })
-            formid = self.xform.pk
-            request = self.factory.get(
-                '/', data={"format": "xls"}, **self.extra)
-            response = view(request, pk=formid)
-            self.assertIsNotNone(response.data)
-            self.assertEqual(response.status_code, 202)
-            self.assertTrue('job_uuid' in response.data)
-            task_id = response.data.get('job_uuid')
-
-            get_data = {'job_uuid': task_id}
-            request = self.factory.get('/', data=get_data, **self.extra)
-            response = view(request, pk=formid)
-
-            self.assertEqual(response.status_code, 202)
-            self.assertIn('progress', response.data)
-            self.assertEqual(response.data.get('progress'), 4)
-            self.assertIn('total', response.data)
-            self.assertEqual(response.data.get('total'), 4)
 
     def test_form_publishing_floip(self):
         with HTTMock(enketo_mock):

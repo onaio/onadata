@@ -331,6 +331,14 @@ class FLOIPSubmissionSerializer(SubmissionSuccessMixin,
     """
     FLOIP SubmmissionSerializer - Handles a row of FLOIP specification format.
     """
+    def run_validators(self, value):
+        # Only run default run_validators if we have validators attached to the
+        # serializer.
+        if self.validators:
+            return super(FLOIPSubmissionSerializer, self).run_validators(value)
+
+        return []
+
     def validate(self, attrs):
         """
         Custom list data validator.

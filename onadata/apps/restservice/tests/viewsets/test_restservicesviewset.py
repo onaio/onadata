@@ -242,7 +242,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
 
         self.assertEquals(response.status_code, 400)
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('requests.post')
     def test_textit_flow(self, mock_http):
         rest = RestService(name="textit",
@@ -261,7 +261,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertTrue(mock_http.called)
         self.assertEquals(mock_http.call_count, 4)
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('requests.post')
     def test_textit_flow_without_parsed_instances(self, mock_http):
         rest = RestService(name="textit",

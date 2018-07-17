@@ -2,12 +2,7 @@
 -e .
 
 # installed from Git
--e git+https://github.com/bfirsh/django-ordered-model.git@master#egg=django-ordered-model
--e git+https://github.com/onaio/django-multidb-router.git@django-1.11#egg=django-multidb-router
--e git+https://github.com/onaio/django-digest.git@master#egg=django-digest
--e git+https://github.com/onaio/floip-py.git@master#egg=floip
--e git+https://github.com/onaio/python-json2xlsclient.git#egg=python-json2xlsclient
--e git+https://github.com/jbalogh/django-nose.git#egg=django-nose
--e git+https://github.com/XLSForm/pyxform.git@master#egg=pyxform
-# install librabbitmq from git as the python3 version is not yet on pypi
--e git+https://github.com/celery/librabbitmq@master#egg=librabbitmq
+-e git+https://github.com/onaio/python-digest.git@3af1bd0ef6114e24bf23d0e8fd9d7ebf389845d1#egg=python-digest
+-e git+https://github.com/onaio/django-digest.git@eb85c7ae19d70d4690eeb20983e94b9fde8ab8c2#egg=django-digest
+-e git+https://github.com/onaio/floip-py.git@3bbf5c76b34ec49c438a3099ab848870514d1e50#egg=floip
+-e git+https://github.com/onaio/python-json2xlsclient.git@62b4645f7b4f2684421a13ce98da0331a9dd66a0#egg=python-json2xlsclient

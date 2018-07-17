@@ -51,7 +51,7 @@ class TestProjectUtils(TestBase):
         self.assertFalse(DataEntryRole.user_has_role(alice, self.xform))
 
     # pylint: disable=invalid-name
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('onadata.libs.utils.project_utils.set_project_perms_to_xform')
     def test_set_project_perms_to_xform_async(self, mock):
         """
@@ -65,7 +65,7 @@ class TestProjectUtils(TestBase):
         self.assertEqual(args[0], self.xform)
         self.assertEqual(args[1], self.project)
 
-    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch(
         'onadata.libs.utils.project_utils.set_project_perms_to_xform_async.delay'  # noqa
     )

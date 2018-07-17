@@ -31,23 +31,23 @@ setup(
     },
     packages=find_packages(exclude=['docs', 'tests']),
     install_requires=[
-        "Django>=1.11,<2",
+        "Django<2",
         "django-guardian",
         "django-registration-redux",
         "django-templated-email",
         "django-reversion",
         "django-filter",
+        "django-multidb-router",
+        "django-nose",
+        "django-ordered-model",
         # generic relation
         "django-query-builder",
         "celery",
-        "django-celery",
         # cors
         "django-cors-headers",
         "django-debug-toolbar",
-        # digest authentication
-        "python-digest",
         # oauth2 support
-        "django-oauth-toolkit",
+        "django-oauth-toolkit<1.2",
         "oauth2client",
         "jsonpickle",
         # jwt
@@ -87,6 +87,7 @@ setup(
         "sphinx",
         "Markdown",
         # others
+        "librabbitmq",
         "unicodecsv",
         "xlrd",
         "xlwt",
@@ -109,12 +110,10 @@ setup(
         "paho-mqtt",
     ],
     dependency_links=[
-        'https://github.com/bfirsh/django-ordered-model/tarball/master#egg=django-ordered-model',  # noqa pylint: disable=line-too-long
-        'https://github.com/onaio/django-multidb-router/tarball/django-1.11#egg=django-multidb-router',  # noqa pylint: disable=line-too-long
-        'https://github.com/onaio/django-digest/tarball/django-1.9-fixes#egg=django-digest',  # noqa pylint: disable=line-too-long
-        'https://github.com/onaio/floip-py/tarball/master#egg=floip',
-        'https://github.com/onaio/python-json2xlsclient/tarball/master#egg=python-json2xlsclient',  # noqa pylint: disable=line-too-long
-        'https://github.com/jbalogh/django-nose/tarball/master#egg=django-nose',  # noqa pylint: disable=line-too-long
+        'https://github.com/onaio/python-digest/tarball/3af1bd0ef6114e24bf23d0e8fd9d7ebf389845d1#egg=python-digest',  # noqa pylint: disable=line-too-long
+        'https://github.com/onaio/django-digest/tarball/eb85c7ae19d70d4690eeb20983e94b9fde8ab8c2#egg=django-digest',  # noqa pylint: disable=line-too-long
+        'https://github.com/onaio/floip-py/tarball/3bbf5c76b34ec49c438a3099ab848870514d1e50#egg=floip',  # noqa pylint: disable=line-too-long
+        'https://github.com/onaio/python-json2xlsclient/tarball/62b4645f7b4f2684421a13ce98da0331a9dd66a0#egg=python-json2xlsclient',  # noqa pylint: disable=line-too-long
     ],
     extras_require={
         ':python_version=="2.7"': [

@@ -10,7 +10,7 @@ from rest_framework import mixins
 from rest_framework import status
 from rest_framework import viewsets
 from rest_framework import permissions
-from rest_framework.decorators import detail_route
+from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
 from rest_framework.renderers import BrowsableAPIRenderer
 from rest_framework.response import Response
@@ -224,7 +224,7 @@ class BriefcaseViewset(mixins.CreateModelMixin,
             template_name='downloadSubmission.xml'
         )
 
-    @detail_route(methods=['GET'])
+    @action(methods=['GET'], detail=True)
     def manifest(self, request, *args, **kwargs):
         self.object = self.get_object()
         object_list = MetaData.objects.filter(data_type='media',
@@ -236,7 +236,7 @@ class BriefcaseViewset(mixins.CreateModelMixin,
         return Response(serializer.data,
                         headers=get_openrosa_headers(request, location=False))
 
-    @detail_route(methods=['GET'])
+    @action(methods=['GET'], detail=True)
     def media(self, request, *args, **kwargs):
         self.object = self.get_object()
         pk = kwargs.get('metadata')

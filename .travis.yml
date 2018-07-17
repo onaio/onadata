@@ -45,6 +45,6 @@ install:
   - pip install -r requirements/base.pip
   - pip install flake8
 script:
-  - python manage.py test $TESTFOLDER --noinput --settings=onadata.settings.travis_test --parallel 4
+  - python manage.py test $TESTFOLDER --noinput --settings=onadata.settings.travis_test --parallel 4 --verbosity=2
 notifications:
   slack: onaio:snkNXgprD498qQv4DgRREKJF

@@ -13,7 +13,7 @@ from django.utils.translation import ugettext as _
 from django.core.exceptions import PermissionDenied
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.decorators import detail_route
+from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -209,8 +209,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
         return qs
 
-    @detail_route(methods=['GET', 'POST', 'DELETE'],
-                  extra_lookup_fields=['label', ])
+    @action(methods=['GET', 'POST', 'DELETE'], detail=True,
+            extra_lookup_fields=['label', ])
     def labels(self, request, *args, **kwargs):
         http_status = status.HTTP_400_BAD_REQUEST
         self.object = instance = self.get_object()
@@ -245,7 +245,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
         return Response(data, status=http_status)
 
-    @detail_route(methods=['GET'])
+    @action(methods=['GET'], detail=True)
     def enketo(self, request, *args, **kwargs):
         self.object = self.get_object()
         data = {}
@@ -334,7 +334,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 _(u"'%(_format)s' format unknown or not implemented!" %
                   {'_format': _format}))
 
-    @detail_route(methods=['GET'])
+    @action(methods=['GET'], detail=True)
     def history(self, request, *args, **kwargs):
         data_id, _format = get_data_and_form(kwargs)
         instance = self.get_object()
