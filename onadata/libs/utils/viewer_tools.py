@@ -178,10 +178,10 @@ def enketo_url(form_url,
     """
     Returns Enketo webform URL.
     """
-    if not hasattr(settings, 'ENKETO_URL')\
-            and not hasattr(settings, 'ENKETO_API_SURVEY_PATH')\
-            and (not hasattr(settings, 'ENKETO_API_TOKEN') or
-                 settings.ENKETO_API_TOKEN == ''):
+    if (not hasattr(settings, 'ENKETO_URL') or
+            not hasattr(settings, 'ENKETO_API_SURVEY_PATH') or
+            not hasattr(settings, 'ENKETO_API_TOKEN') or
+            settings.ENKETO_API_TOKEN == ''):
         return False
 
     url = urljoin(settings.ENKETO_URL, settings.ENKETO_API_SURVEY_PATH)
