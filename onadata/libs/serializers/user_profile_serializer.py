@@ -28,6 +28,7 @@ from onadata.libs.authentication import expired
 from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.cache_tools import IS_ORG
+from onadata.libs.utils.email import get_verification_email_data
 
 RESERVED_NAMES = RegistrationFormUserProfile.RESERVED_USERNAMES
 LEGAL_USERNAMES_REGEX = RegistrationFormUserProfile.legal_usernames_re
@@ -229,9 +230,12 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             verification_key = (new_user.registrationprofile
                                         .create_new_activation_key())
 
-            send_verification_email.delay(
-                verification_key, new_user, request
+            email_data = get_verification_email_data(
+                new_user.email, new_user.username,
+                verification_key, request
             )
+
+            send_verification_email.delay(email_data)
 
         created_by = request.user
         created_by = None if created_by.is_anonymous() else created_by

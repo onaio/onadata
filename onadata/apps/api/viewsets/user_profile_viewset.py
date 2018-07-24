@@ -29,6 +29,7 @@ from onadata.apps.api.permissions import UserProfilePermissions
 from onadata.apps.api.tools import get_baseviewset_class, load_class
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.models import UserProfile
+from onadata.libs.utils.email import get_verification_email_data
 from onadata.libs import filters
 from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
@@ -272,9 +273,11 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
                                           .registrationprofile
                                           .create_new_activation_key())
 
-                send_verification_email.delay(
-                    verification_key, rp.user, request
+                email_data = get_verification_email_data(
+                    rp.user.email, rp.user.username, verification_key, request
                 )
+
+                send_verification_email.delay(email_data)
 
                 response_message = "Verification email has been sent"
 
