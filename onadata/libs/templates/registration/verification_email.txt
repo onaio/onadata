@@ -1,0 +1,10 @@
+{% load i18n %}
+{% blocktrans with expiration_days=expiration_days username=username expiration_days_p=expiration_days|pluralize %}
+Hi {{ username }},
+
+To verify your email please click on the link below:
+
+{{ verification_url }}
+
+The link above is valid for {{ expiration_days }} day{{ expiration_days_p }}.
+{% endblocktrans %}
