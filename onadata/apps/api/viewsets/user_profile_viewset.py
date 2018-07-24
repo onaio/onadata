@@ -5,6 +5,7 @@ UserProfileViewSet module.
 
 import datetime
 import json
+import requests
 
 from past.builtins import basestring  # pylint: disable=redefined-builtin
 
@@ -12,7 +13,9 @@ from django.conf import settings
 from django.core.validators import ValidationError
 from django.db.models import Count
 from django.utils import timezone
+from django.http import HttpResponseRedirect, HttpResponseBadRequest
 
+from registration.models import RegistrationProfile
 from rest_framework import serializers, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ParseError
@@ -21,6 +24,7 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+from onadata.apps.api.tasks import send_verification_email
 from onadata.apps.api.permissions import UserProfilePermissions
 from onadata.apps.api.tools import get_baseviewset_class, load_class
 from onadata.apps.logger.models.instance import Instance
@@ -214,3 +218,64 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
 
         serializer = MonthlySubmissionsSerializer(instance_count, many=True)
         return Response(serializer.data[0])
+
+    @action(detail=False)
+    def verify_email(self, request, *args, **kwargs):
+        webhook = settings.EMAIL_VERIFICATION_WEBHOOK
+        redirect_url = settings.POST_EMAIL_VERIFICATION_REDIRECT_URL
+        verification_key = request.query_params.get('verification_key')
+        response_message = "Missing or invalid verification key"
+        if verification_key:
+            try:
+                rp = RegistrationProfile.objects.get(
+                    activation_key=verification_key
+                )
+            except RegistrationProfile.DoesNotExist:
+                pass
+            else:
+                response_message = "Email was NOT verified"
+                if webhook:
+                    payload = {
+                        'username': rp.user.username,
+                        'verified': True
+                    }
+                    r = requests.post(webhook, data=payload)
+                    if r.status_code == 200:
+                        rp.activation_key = settings.VERIFIED_KEY_TEXT
+                        rp.save()
+                        if redirect_url:
+                            return HttpResponseRedirect(redirect_url)
+
+                        response_message = "Email has been verified."
+
+                        return Response(response_message)
+
+        return HttpResponseBadRequest(response_message)
+
+    @action(methods=['POST'], detail=False)
+    def send_verification_email(self, request, *args, **kwargs):
+        verified_key_text = settings.VERIFIED_KEY_TEXT
+        username = request.data.get('username')
+        response_message = "Verification email has NOT been sent"
+
+        if username:
+            try:
+                rp = RegistrationProfile.objects.get(
+                    user__username=username
+                )
+            except RegistrationProfile.DoesNotExist:
+                pass
+            else:
+                verification_key = rp.activation_key
+                if verification_key == verified_key_text:
+                    verification_key = (rp.user
+                                          .registrationprofile
+                                          .create_new_activation_key())
+
+                send_verification_email.delay(
+                    verification_key, rp.user, request
+                )
+
+                response_message = "Verification email has been sent"
+
+        return Response(response_message)
