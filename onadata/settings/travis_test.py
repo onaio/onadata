@@ -64,3 +64,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
     'onadata.libs.utils.middleware.HTTPResponseNotAllowedMiddleware',
 )
+
+EMAIL_VERIFICATION_WEBHOOK = "http://localhost:3000/email-verification"
+VERIFIED_KEY_TEXT = 'ALREADY_ACTIVATED'
+POST_EMAIL_VERIFICATION_REDIRECT_URL = "http://localhost:3000"
