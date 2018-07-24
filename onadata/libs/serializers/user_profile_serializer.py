@@ -20,6 +20,7 @@ from django.db.models.query import QuerySet
 from registration.models import RegistrationProfile
 from rest_framework import serializers
 
+from onadata.apps.api.tasks import send_verification_email
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models import UserProfile
@@ -207,6 +208,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
     def create(self, validated_data):
         params = validated_data
+        request = self.context.get('request')
 
         site = Site.objects.get(pk=settings.SITE_ID)
         new_user = RegistrationProfile.objects.create_inactive_user(
@@ -220,7 +222,18 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         new_user.last_name = params.get('last_name')
         new_user.save()
 
-        created_by = self.context['request'].user
+        enable_email_verification = getattr(
+            settings, 'ENABLE_EMAIL_VERIFICATION', False
+        )
+        if enable_email_verification:
+            verification_key = (new_user.registrationprofile
+                                        .create_new_activation_key())
+
+            send_verification_email.delay(
+                verification_key, new_user, request
+            )
+
+        created_by = request.user
         created_by = None if created_by.is_anonymous() else created_by
         profile = UserProfile(
             user=new_user, name=params.get('first_name'),
