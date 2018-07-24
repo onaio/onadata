@@ -167,9 +167,7 @@ class UserProfilePermissions(DjangoObjectPermissions):
                 return False
 
             if view.action == 'send_verification_email':
-                if request.user.username == request.data.get('username'):
-                    return True
-                return False
+                return request.user.username == request.data.get('username')
 
         return \
             super(UserProfilePermissions, self).has_permission(request, view)
