@@ -5,6 +5,7 @@ API permissions module.
 from django.contrib.auth.models import User
 from django.http import Http404
 from django.shortcuts import get_object_or_404
+from django.conf import settings
 from rest_framework import exceptions
 from rest_framework.permissions import (
     BasePermission, DjangoModelPermissionsOrAnonReadOnly,
@@ -156,6 +157,19 @@ class UserProfilePermissions(DjangoObjectPermissions):
         # allow anonymous users to create new profiles
         if request.user.is_anonymous() and view.action == 'create':
             return True
+
+        if view.action in ['send_verification_email', 'verify_email']:
+            enable_email_verification = getattr(
+                settings, 'ENABLE_EMAIL_VERIFICATION', False
+            )
+            if enable_email_verification is None or\
+                    not enable_email_verification:
+                return False
+
+            if view.action == 'send_verification_email':
+                if request.user.username == request.data.get('username'):
+                    return True
+                return False
 
         return \
             super(UserProfilePermissions, self).has_permission(request, view)
