@@ -12,6 +12,7 @@ import requests
 from django_digest.test import DigestAuth
 from httmock import HTTMock, all_requests
 from mock import patch
+from registration.models import RegistrationProfile
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
@@ -225,7 +226,13 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertIn('is_org', response.data)
         self.assertEqual(response.data['is_org'], True)
 
-    def test_profile_create(self):
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @override_settings(ENABLE_EMAIL_VERIFICATION=True)
+    @patch(
+        ('onadata.libs.serializers.user_profile_serializer.'
+         'send_verification_email.delay')
+    )
+    def test_profile_create(self, mock_send_verification_email):
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
@@ -250,9 +257,76 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['name'] = "%s %s" % ('Dennis', 'erama')
         self.assertEqual(response.data, data)
 
+        self.assertTrue(mock_send_verification_email.called)
         user = User.objects.get(username='deno')
         self.assertTrue(user.is_active)
         self.assertTrue(user.check_password(password), password)
+
+    def _create_user_using_profiles_endpoint(self, data):
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+
+    @override_settings(ENABLE_EMAIL_VERIFICATION=True)
+    @patch('onadata.apps.api.viewsets.user_profile_viewset.requests.post')
+    def test_verification_key_is_valid(self, mock_request_post):
+        return_value = type('MockResponse', (), {'status_code': 200})
+        mock_request_post.return_value = return_value
+
+        data = _profile_data()
+        self._create_user_using_profiles_endpoint(data)
+
+        view = UserProfileViewSet.as_view({'get': 'verify_email'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request, user=self.user.username)
+        self.assertEquals(response.status_code, 400)
+
+        rp = RegistrationProfile.objects.get(
+            user__username=data.get('username')
+        )
+        data = {'verification_key': rp.activation_key}
+        request = self.factory.get('/', data=data, **self.extra)
+        response = view(request)
+        self.assertEquals(response.status_code, 302)
+
+    @override_settings(ENABLE_EMAIL_VERIFICATION=True)
+    @patch(
+        ('onadata.apps.api.viewsets.user_profile_viewset.'
+         'send_verification_email.delay')
+    )
+    def test_sending_verification_email_succeeds(
+            self, mock_send_verification_email):
+        data = _profile_data()
+        self._create_user_using_profiles_endpoint(data)
+
+        data = {'username': data.get('username')}
+        view = UserProfileViewSet.as_view({'post': 'send_verification_email'})
+
+        user = User.objects.get(username=data.get('username'))
+        extra = {'HTTP_AUTHORIZATION': 'Token %s' % user.auth_token}
+        request = self.factory.post('/', data=data, **extra)
+        response = view(request)
+        self.assertTrue(mock_send_verification_email.called)
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.data, "Verification email has been sent")
+
+    @override_settings(VERIFIED_KEY_TEXT=None)
+    @override_settings(ENABLE_EMAIL_VERIFICATION=True)
+    def test_sending_verification_email_fails(self):
+        data = _profile_data()
+        self._create_user_using_profiles_endpoint(data)
+
+        view = UserProfileViewSet.as_view({'post': 'send_verification_email'})
+
+        # trigger permission error when username of requesting user is
+        # different from username in post details
+        request = self.factory.post('/',
+                                    data={'username': 'None'},
+                                    **self.extra)
+        response = view(request)
+        self.assertEquals(response.status_code, 403)
 
     @override_settings(REQUIRE_ODK_AUTHENTICATION=True)
     def test_profile_require_auth(self):
