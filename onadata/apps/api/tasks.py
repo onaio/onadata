@@ -11,8 +11,6 @@ from django.core.files.uploadedfile import (InMemoryUploadedFile,
 from django.utils.datastructures import MultiValueDict
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
-from django.template.loader import render_to_string
-from rest_framework.reverse import reverse
 
 from onadata.apps.api import tools
 from onadata.apps.logger.models.xform import XForm
@@ -82,30 +80,17 @@ def get_async_status(job_uuid):
 
 
 @task()
-def send_verification_email(activation_key, user, request):
-    url = reverse('userprofile-verify-email', request=request)
+def send_verification_email(data):
+    subject = data.get('subject')
+    message_txt = data.get('message_txt')
+    email = data.get('email')
 
-    ctx_dict = {
-        'username': user.username,
-        'expiration_days': settings.ACCOUNT_ACTIVATION_DAYS,
-        'verification_url': '%s?verification_key=%s' % (url, activation_key)
-    }
-
-    subject = render_to_string(
-        'registration/verification_email_subject.txt',
-        ctx_dict,
-        request=request)
     from_email = settings.DEFAULT_FROM_EMAIL
-    message_txt = render_to_string(
-        'registration/verification_email.txt',
-        ctx_dict,
-        request=request)
-
     email_message = EmailMultiAlternatives(
         subject,
         message_txt,
         from_email,
-        [user.email]
+        [email]
     )
 
     email_message.send()
