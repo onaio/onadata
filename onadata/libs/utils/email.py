@@ -19,7 +19,7 @@ def get_verification_email_data(email, username, verification_key, request):
         'subject': 'registration/verification_email_subject.txt',
         'message_txt': 'registration/verification_email.txt'
     }
-    for key, template_path in key_template_path_dict.iteritems():
+    for key, template_path in key_template_path_dict.items():
         email_data.update({
             key: render_to_string(
                 template_path,
