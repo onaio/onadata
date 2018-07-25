@@ -14,6 +14,7 @@ from django.core.validators import ValidationError
 from django.db.models import Count
 from django.utils import timezone
 from django.http import HttpResponseRedirect, HttpResponseBadRequest
+from django.utils.translation import ugettext as _
 
 from registration.models import RegistrationProfile
 from rest_framework import serializers, status
@@ -225,7 +226,7 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
         webhook = settings.EMAIL_VERIFICATION_WEBHOOK
         redirect_url = settings.POST_EMAIL_VERIFICATION_REDIRECT_URL
         verification_key = request.query_params.get('verification_key')
-        response_message = "Missing or invalid verification key"
+        response_message = _("Missing or invalid verification key")
         if verification_key:
             try:
                 rp = RegistrationProfile.objects.get(
@@ -234,7 +235,7 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
             except RegistrationProfile.DoesNotExist:
                 pass
             else:
-                response_message = "Email was NOT verified"
+                response_message = _("Email was NOT verified")
                 if webhook:
                     payload = {
                         'username': rp.user.username,
@@ -247,7 +248,7 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
                         if redirect_url:
                             return HttpResponseRedirect(redirect_url)
 
-                        response_message = "Email has been verified."
+                        response_message = _("Email has been verified.")
 
                         return Response(response_message)
 
@@ -257,7 +258,7 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
     def send_verification_email(self, request, *args, **kwargs):
         verified_key_text = settings.VERIFIED_KEY_TEXT
         username = request.data.get('username')
-        response_message = "Verification email has NOT been sent"
+        response_message = _("Verification email has NOT been sent")
 
         if username:
             try:
@@ -279,6 +280,6 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
 
                 send_verification_email.delay(email_data)
 
-                response_message = "Verification email has been sent"
+                response_message = _("Verification email has been sent")
 
         return Response(response_message)
