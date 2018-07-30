@@ -249,17 +249,18 @@ If no query parameters are used, the result is the number of submissions of the 
 If only month is used, then the year is assumed to be the current year. And if only year is passed, then the month is
 assumed to be the current year.
 
-
 Example
 ^^^^^^^
 
 ::
+
     curl -X GET https://api.ona.io/api/v1/profiles/demouser/monthly_submissions
 
 Response
 ^^^^^^^^
 
 ::
+
     {
         "public": 41,
         "private": 185
@@ -269,12 +270,37 @@ Example
 ^^^^^^^
 
 ::
+
     curl -X GET https://api.ona.io/api/v1/profiles/demouser/monthly_submissions?month=5&year=2018
 
 Response
 ^^^^^^^^
 
 ::
+
     {
         "public": 240
     }
+
+Email verification
+-------------------------------------------
+
+By default the email verification functionality is disabled when a user account
+is created. To enable this feature, set ``ENABLE_EMAIL_VERIFICATION``
+in your settings file to ``True``. You also need to set 3 other variables:
+
+::
+
+    EMAIL_VERIFICATION_WEBHOOK = ""
+    VERIFIED_KEY_TEXT = 'ALREADY_ACTIVATED'
+    POST_EMAIL_VERIFICATION_REDIRECT_URL = "/"
+
+``EMAIL_VERIFICATION_WEBHOOK`` is the url that will be used to notify an app that
+a user's email has been verified.
+``VERIFIED_KEY_TEXT`` is set to ``ALREADY_ACTIVATED`` by default because that's
+the text set by django when an account is activated. We use the same text to confirm
+that a user's email has been verified.
+``POST_EMAIL_VERIFICATION_REDIRECT_URL`` is the url that onadata will redirect to
+when the app providing the webhook has acknowledged that it has recieved the user
+email verification notification from onadata. It will redirect to onadata's homepage
+by default.
