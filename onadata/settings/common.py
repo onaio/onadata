@@ -549,3 +549,9 @@ try:
     from local_settings import *  # noqa
 except ImportError:
     pass
+
+# email verification
+ENABLE_EMAIL_VERIFICATION = False
+EMAIL_VERIFICATION_WEBHOOK = ""
+VERIFIED_KEY_TEXT = 'ALREADY_ACTIVATED'
+POST_EMAIL_VERIFICATION_REDIRECT_URL = "/"
