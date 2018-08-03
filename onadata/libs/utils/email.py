@@ -3,9 +3,13 @@ from django.template.loader import render_to_string
 from rest_framework.reverse import reverse
 
 
-def get_verification_email_data(email, username, verification_key, request):
+def get_verification_email_data(
+        email, username, verification_key, verification_url, request
+    ):
     email_data = {'email': email}
-    url = reverse('userprofile-verify-email', request=request)
+
+    url = verification_url or reverse('userprofile-verify-email',
+                                      request=request)
     verification_url = '{}?verification_key={}'.format(
         url, verification_key
     )
