@@ -304,3 +304,7 @@ that a user's email has been verified.
 when the app providing the webhook has acknowledged that it has recieved the user
 email verification notification from onadata. It will redirect to onadata's homepage
 by default.
+
+If you'd prefer a custom verification url in the email, set the ``VERIFICATION_URL``
+settings variable with the custom url. The ``verification_key`` will be appended to
+the url as a query param.
