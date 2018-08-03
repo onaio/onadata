@@ -223,8 +223,16 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
 
     @action(detail=False)
     def verify_email(self, request, *args, **kwargs):
-        webhook = settings.EMAIL_VERIFICATION_WEBHOOK
-        redirect_url = settings.POST_EMAIL_VERIFICATION_REDIRECT_URL
+        webhook = getattr(settings, "EMAIL_VERIFICATION_WEBHOOK", None)
+        redirect_url = getattr(
+            settings, "POST_EMAIL_VERIFICATION_REDIRECT_URL", None
+        )
+        verified_key_text = getattr(settings, "VERIFIED_KEY_TEXT", None)
+
+        # if any of the variables above is None, return a 204 respnse
+        if any(not a for a in [webhook, redirect_url, verified_key_text]):
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
         verification_key = request.query_params.get('verification_key')
         response_message = _("Missing or invalid verification key")
         if verification_key:
@@ -243,7 +251,7 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
                     }
                     r = requests.post(webhook, data=payload)
                     if r.status_code == 200:
-                        rp.activation_key = settings.VERIFIED_KEY_TEXT
+                        rp.activation_key = verified_key_text
                         rp.save()
                         if redirect_url:
                             return HttpResponseRedirect(redirect_url)
@@ -256,7 +264,10 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
 
     @action(methods=['POST'], detail=False)
     def send_verification_email(self, request, *args, **kwargs):
-        verified_key_text = settings.VERIFIED_KEY_TEXT
+        verified_key_text = getattr(settings, "VERIFIED_KEY_TEXT", None)
+        if not verified_key_text:
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
         username = request.data.get('username')
         response_message = _("Verification email has NOT been sent")
 
