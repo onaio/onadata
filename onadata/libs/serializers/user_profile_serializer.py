@@ -226,13 +226,14 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         enable_email_verification = getattr(
             settings, 'ENABLE_EMAIL_VERIFICATION', False
         )
+        verification_url = getattr(settings, "VERIFICATION_URL", None)
         if enable_email_verification:
             verification_key = (new_user.registrationprofile
                                         .create_new_activation_key())
 
             email_data = get_verification_email_data(
                 new_user.email, new_user.username,
-                verification_key, request
+                verification_key, verification_url, request
             )
 
             send_verification_email.delay(email_data)
