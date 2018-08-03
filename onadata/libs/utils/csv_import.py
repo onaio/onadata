@@ -27,7 +27,8 @@ from onadata.libs.utils.async_status import (FAILED, async_status,
 from onadata.libs.utils.common_tags import MULTIPLE_SELECT_TYPE
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
-from onadata.libs.utils.logger_tools import dict2xml, safe_create_instance
+from onadata.libs.utils.logger_tools import (
+    dict2xml, safe_create_instance, OpenRosaResponse)
 
 DEFAULT_UPDATE_BATCH = 100
 PROGRESS_BATCH_UPDATE = getattr(settings, 'EXPORT_TASK_PROGRESS_UPDATE_BATCH',
@@ -218,7 +219,7 @@ def submit_csv(username, xform, csv_file):
     submission_time = datetime.utcnow().isoformat()
     ona_uuid = {'formhub': {'uuid': xform.uuid}}
     error = None
-    additions = inserts = 0
+    additions = duplicates = inserts = 0
     try:
         for row in csv_reader:
             # remove the additional columns
@@ -285,9 +286,13 @@ def submit_csv(username, xform, csv_file):
                 error = e
 
             if error:
-                Instance.objects.filter(
-                    uuid__in=rollback_uuids, xform=xform).delete()
-                return async_status(FAILED, text(error))
+                if not (isinstance(error, OpenRosaResponse) and
+                        error.status_code == 202):
+                    Instance.objects.filter(uuid__in=rollback_uuids,
+                                            xform=xform).delete()
+                    return async_status(FAILED, text(error))
+                else:
+                    duplicates += 1
             else:
                 additions += 1
                 if additions % PROGRESS_BATCH_UPDATE == 0:
@@ -320,14 +325,12 @@ def submit_csv(username, xform, csv_file):
         xform.submission_count(True)
 
     return {
-        u"additions":
-        additions - inserts,
-        u"updates":
-        inserts,
-        u"info":
-        u"Additional column(s) excluded from the upload: '{0}'."
+        "additions": additions - inserts,
+        "duplicates": duplicates,
+        u"updates": inserts,
+        u"info": u"Additional column(s) excluded from the upload: '{0}'."
         .format(', '.join(list(addition_col)))
-    }
+    }  # yapf: disable
 
 
 def get_async_csv_submission_status(job_uuid):
