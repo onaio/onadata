@@ -265,6 +265,7 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
     @action(methods=['POST'], detail=False)
     def send_verification_email(self, request, *args, **kwargs):
         verified_key_text = getattr(settings, "VERIFIED_KEY_TEXT", None)
+        verification_url = getattr(settings, "VERIFICATION_URL", None)
         if not verified_key_text:
             return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -286,7 +287,8 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
                                           .create_new_activation_key())
 
                 email_data = get_verification_email_data(
-                    rp.user.email, rp.user.username, verification_key, request
+                    rp.user.email, rp.user.username, verification_key,
+                    verification_url,  request
                 )
 
                 send_verification_email.delay(email_data)
