@@ -13,6 +13,7 @@ from celery.backends.amqp import BacklogLimitExceeded
 from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils import csv_import
+from onadata.libs.utils.csv_import import get_submission_meta_dict
 
 
 def strip_xml_uuid(s):
@@ -27,6 +28,20 @@ class CSVImportTestCase(TestBase):
         self.good_csv = open(os.path.join(self.fixtures_dir, 'good.csv'), 'rb')
         self.bad_csv = open(os.path.join(self.fixtures_dir, 'bad.csv'), 'rb')
         self.xls_file_path = os.path.join(self.fixtures_dir, 'tutorial.xls')
+
+    def test_get_submission_meta_dict(self):
+        self._publish_xls_file(self.xls_file_path)
+        xform = XForm.objects.get()
+        meta = get_submission_meta_dict(xform, None)
+        self.assertEqual(len(meta), 2)
+        self.assertTrue('instanceID' in meta[0])
+        self.assertEqual(meta[1], 0)
+
+        instance_id = '9118a3fc-ab99-44cf-9a97-1bb1482d8e2b'
+        meta = get_submission_meta_dict(xform, instance_id)
+        self.assertTrue('instanceID' in meta[0])
+        self.assertEqual(meta[0]['instanceID'], 'uuid:' + instance_id)
+        self.assertEqual(meta[1], 0)
 
     def test_submit_csv_param_sanity_check(self):
         resp = csv_import.submit_csv('userX', XForm(), 123456)

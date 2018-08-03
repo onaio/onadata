@@ -47,7 +47,7 @@ def get_submission_meta_dict(xform, instance_id):
     :return: The metadata dict
     :rtype:  dict
     """
-    uuid_arg = 'uuid:{}'.format(uuid.uuid4())
+    uuid_arg = 'uuid:{}'.format(instance_id or uuid.uuid4())
     meta = {'instanceID': uuid_arg}
 
     update = 0
@@ -188,11 +188,6 @@ def submit_csv(username, xform, csv_file):
     # remove all metadata columns
     missing = [col for col in missing_col if not col.startswith("_")]
 
-    # remove all meta/instanceid columns
-
-    while 'meta/instanceID' in missing:
-        missing.remove('meta/instanceID')
-
     # remove all metadata inside groups
     missing = [col for col in missing if not ("/_" in col)]
 
@@ -231,7 +226,7 @@ def submit_csv(username, xform, csv_file):
                 del row[index]
 
             # fetch submission uuid before purging row metadata
-            row_uuid = row.get('_uuid')
+            row_uuid = row.get('meta/instanceID') or row.get('_uuid')
             submitted_by = row.get('_submitted_by')
             submission_date = row.get('_submission_time', submission_time)
 
