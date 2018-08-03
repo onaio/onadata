@@ -4,8 +4,7 @@ from rest_framework.reverse import reverse
 
 
 def get_verification_email_data(
-        email, username, verification_key, verification_url, request
-    ):
+        email, username, verification_key, verification_url, request):
     email_data = {'email': email}
 
     url = verification_url or reverse('userprofile-verify-email',
