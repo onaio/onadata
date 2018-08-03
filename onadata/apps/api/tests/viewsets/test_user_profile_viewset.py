@@ -270,6 +270,30 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
 
     @override_settings(ENABLE_EMAIL_VERIFICATION=True)
+    @override_settings(POST_EMAIL_VERIFICATION_REDIRECT_URL=None)
+    @override_settings(VERIFIED_KEY_TEXT=None)
+    def test_return_204_if_email_verification_variables_are_not_set(self):
+        data = _profile_data()
+        self._create_user_using_profiles_endpoint(data)
+
+        view = UserProfileViewSet.as_view({'get': 'verify_email',
+                                           'post': 'send_verification_email'})
+        rp = RegistrationProfile.objects.get(
+            user__username=data.get('username')
+        )
+        _data = {'verification_key': rp.activation_key}
+        request = self.factory.get('/', data=_data, **self.extra)
+        response = view(request)
+        self.assertEquals(response.status_code, 204)
+
+        data = {'username': data.get('username')}
+        user = User.objects.get(username=data.get('username'))
+        extra = {'HTTP_AUTHORIZATION': 'Token %s' % user.auth_token}
+        request = self.factory.post('/', data=data, **extra)
+        response = view(request)
+        self.assertEquals(response.status_code, 204)
+
+    @override_settings(ENABLE_EMAIL_VERIFICATION=True)
     @patch('onadata.apps.api.viewsets.user_profile_viewset.requests.post')
     def test_verification_key_is_valid(self, mock_request_post):
         return_value = type('MockResponse', (), {'status_code': 200})
