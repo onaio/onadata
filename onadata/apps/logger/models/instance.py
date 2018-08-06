@@ -423,6 +423,8 @@ class Instance(models.Model, InstanceBaseClass):
 
     # this will end up representing "date instance was deleted"
     deleted_at = models.DateTimeField(null=True, default=None)
+    deleted_by = models.ForeignKey(User, related_name='deleted_instances',
+                                   null=True)
 
     # this will be edited when we need to create a new InstanceHistory object
     last_edited = models.DateTimeField(null=True, default=None)
@@ -459,13 +461,13 @@ class Instance(models.Model, InstanceBaseClass):
         unique_together = ('xform', 'uuid')
 
     @classmethod
-    def set_deleted_at(cls, instance_id, deleted_at=timezone.now()):
+    def set_deleted_at(cls, instance_id, deleted_at=timezone.now(), user=None):
         try:
             instance = cls.objects.get(id=instance_id)
         except cls.DoesNotExist:
             pass
         else:
-            instance.set_deleted(deleted_at)
+            instance.set_deleted(deleted_at, user)
 
     def _check_active(self, force):
         """Check that form is active and raise exception if not.
@@ -544,7 +546,9 @@ class Instance(models.Model, InstanceBaseClass):
         super(Instance, self).save(*args, **kwargs)
 
     # pylint: disable=E1101
-    def set_deleted(self, deleted_at=timezone.now()):
+    def set_deleted(self, deleted_at=timezone.now(), user=None):
+        if user:
+            self.deleted_by = user
         self.deleted_at = deleted_at
         self.save()
         # force submission count re-calculation
