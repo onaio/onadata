@@ -309,6 +309,7 @@ def create_instance(username,
     # get new and deprecated UUIDs
     history = InstanceHistory.objects.filter(
         xform_instance__xform_id=xform.pk,
+        xform_instance__deleted_at__isnull=True,
         uuid=new_uuid).only('xform_instance').first()
 
     if history:

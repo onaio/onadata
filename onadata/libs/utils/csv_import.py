@@ -20,12 +20,14 @@ from past.builtins import basestring
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.storage import default_storage
+from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 import unicodecsv as ucsv
 from celery import current_task, task
 from celery.backends.amqp import BacklogLimitExceeded
 from celery.result import AsyncResult
+from multidb.pinning import use_master
 
 from onadata.apps.logger.models import Instance
 from onadata.libs.utils.async_status import (FAILED, async_status,
@@ -132,9 +134,10 @@ def dict_pathkeys_to_nested_dicts(dictionary):
 
 
 @task()
-def submit_csv_async(username, xform, file_path):
+def submit_csv_async(username, xform, file_path, overwrite=False):
+    """Imports CSV data to an existing xform asynchrounously."""
     with default_storage.open(file_path) as csv_file:
-        return submit_csv(username, xform, csv_file)
+        return submit_csv(username, xform, csv_file, overwrite)
 
 
 def failed_import(rollback_uuids, xform, exception, status_message):
@@ -152,8 +155,9 @@ def failed_import(rollback_uuids, xform, exception, status_message):
     return async_status(FAILED, status_message)
 
 
-def submit_csv(username, xform, csv_file):
-    """ Imports CSV data to an existing form
+@use_master
+def submit_csv(username, xform, csv_file, overwrite=False):
+    """Imports CSV data to an existing form
 
     Takes a csv formatted file or string containing rows of submission/instance
     and converts those to xml submissions and finally submits them by calling
@@ -222,6 +226,11 @@ def submit_csv(username, xform, csv_file):
                             u"Sorry uploaded file does not match the form. "
                             u"The file is missing the column(s): "
                             u"{0}.".format(', '.join(missing)))
+
+    if overwrite:
+        xform.instances.filter(deleted_at__isnull=True)\
+            .update(deleted_at=timezone.now(),
+                    deleted_by=User.objects.get(username=username))
 
     rollback_uuids = []
     submission_time = datetime.utcnow().isoformat()
