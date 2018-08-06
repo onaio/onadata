@@ -1,15 +1,20 @@
+# -*- coding: utf-8 -*-
+"""
+CSV data import module.
+"""
 import json
 import logging
 import sys
-import unicodecsv as ucsv
 import uuid
 from builtins import str as text
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
 from functools import reduce
-from future.utils import iteritems
 from io import BytesIO
+
+from future.utils import iteritems
+
 from past.builtins import basestring
 
 from django.conf import settings
@@ -17,6 +22,7 @@ from django.contrib.auth.models import User
 from django.core.files.storage import default_storage
 from django.utils.translation import ugettext as _
 
+import unicodecsv as ucsv
 from celery import current_task, task
 from celery.backends.amqp import BacklogLimitExceeded
 from celery.result import AsyncResult
@@ -27,12 +33,13 @@ from onadata.libs.utils.async_status import (FAILED, async_status,
 from onadata.libs.utils.common_tags import MULTIPLE_SELECT_TYPE
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
-from onadata.libs.utils.logger_tools import (
-    dict2xml, safe_create_instance, OpenRosaResponse)
+from onadata.libs.utils.logger_tools import (OpenRosaResponse, dict2xml,
+                                             safe_create_instance)
 
 DEFAULT_UPDATE_BATCH = 100
 PROGRESS_BATCH_UPDATE = getattr(settings, 'EXPORT_TASK_PROGRESS_UPDATE_BATCH',
                                 DEFAULT_UPDATE_BATCH)
+IGNORED_COLUMNS = ['formhub/uuid', 'meta/instanceID']
 
 
 def get_submission_meta_dict(xform, instance_id):
@@ -187,10 +194,11 @@ def submit_csv(username, xform, csv_file):
     missing_col = list(missing_col)
     addition_col = list(addition_col)
     # remove all metadata columns
-    missing = [col for col in missing_col if not col.startswith("_")]
+    missing = [col for col in missing_col
+               if not col.startswith("_") and col not in IGNORED_COLUMNS]
 
     # remove all metadata inside groups
-    missing = [col for col in missing if not ("/_" in col)]
+    missing = [col for col in missing if '/_' not in col]
 
     # ignore if is multiple select question
     for col in csv_header:
