@@ -75,7 +75,6 @@ jsonpickle==0.9.6
 jsonpointer==1.14         # via datapackage
 jsonschema==2.6.0         # via datapackage, tableschema
 kombu==4.2.1              # via celery
-librabbitmq==2.0.0
 linear-tsv==1.1.0         # via tabulator
 linecache2==1.0.0         # via traceback2
 lxml==4.2.2

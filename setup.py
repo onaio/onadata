@@ -86,7 +86,6 @@ setup(
         "sphinx",
         "Markdown",
         # others
-        "librabbitmq",
         "unicodecsv",
         "xlrd",
         "xlwt",
