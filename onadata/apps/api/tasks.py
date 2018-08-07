@@ -57,7 +57,9 @@ def publish_xlsform_async(self, user, post_data, owner, file_data):
 
 
 @task()
-def delete_xform_async(xform):
+def delete_xform_async(xform_id):
+    """Soft delete an XForm asynchrounous task"""
+    xform = XForm.objects.get(pk=xform_id)
     xform.soft_delete()
 
 
