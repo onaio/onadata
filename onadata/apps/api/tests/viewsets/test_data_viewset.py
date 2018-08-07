@@ -1538,6 +1538,7 @@ class TestDataViewSet(TestBase):
                         format='geojson')
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.xform.instances.count(), 4)
 
         test_geo = {
             'type': 'Feature',
