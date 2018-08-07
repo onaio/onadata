@@ -4,19 +4,19 @@
 #
 #    pip-compile --output-file requirements/base.pip requirements/base.in
 #
--e git+https://github.com/onaio/python-digest.git@3af1bd0ef6114e24bf23d0e8fd9d7ebf389845d1#egg=python-digest
 -e git+https://github.com/onaio/django-digest.git@eb85c7ae19d70d4690eeb20983e94b9fde8ab8c2#egg=django-digest
 -e git+https://github.com/onaio/django-multidb-router.git@9cf0a0c6c9f796e5bd14637fafeb5a1a5507ed37#egg=django-multidb-router
 -e git+https://github.com/onaio/floip-py.git@3bbf5c76b34ec49c438a3099ab848870514d1e50#egg=floip
+-e git+https://github.com/onaio/python-digest.git@3af1bd0ef6114e24bf23d0e8fd9d7ebf389845d1#egg=python-digest
 -e git+https://github.com/onaio/python-json2xlsclient.git@62b4645f7b4f2684421a13ce98da0331a9dd66a0#egg=python-json2xlsclient
 alabaster==0.7.11         # via sphinx
-amqp==2.3.2               # via kombu, librabbitmq
+amqp==2.3.2               # via kombu
 argparse==1.4.0           # via unittest2
 babel==2.6.0              # via sphinx
 billiard==3.5.0.3         # via celery
 cachetools==2.1.0         # via google-auth
 cchardet==1.1.3           # via datapackage, tabulator
-celery==4.2.0
+celery==4.2.0             # via django-celery-results
 certifi==2018.4.16        # via requests
 chardet==3.0.4            # via requests
 click==6.7                # via datapackage, tableschema, tabulator
@@ -26,6 +26,7 @@ datapackage==1.2.6
 defusedxml==0.5.0         # via djangorestframework-xml
 dict2xml==1.6
 django-activity-stream==0.6.5
+django-celery-results==1.0.1
 django-cors-headers==2.2.0
 django-debug-toolbar==1.9.1
 django-filter==1.1.0
@@ -113,7 +114,7 @@ rfc3986==1.1.0            # via tableschema
 rsa==3.4.2                # via google-auth, oauth2client
 savreaderwriter==3.4.2
 simplejson==3.15.0
-six==1.11.0               # via datapackage, dict2xml, django-guardian, django-query-builder, django-templated-email, djangorestframework-csv, djangorestframework-gis, djangorestframework-jsonapi, google-api-python-client, google-auth, isodate, jsonlines, librabbitmq, linear-tsv, mock, oauth2client, packaging, python-dateutil, python-memcached, sphinx, tableschema, tabulator, unittest2
+six==1.11.0               # via datapackage, dict2xml, django-guardian, django-query-builder, django-templated-email, djangorestframework-csv, djangorestframework-gis, djangorestframework-jsonapi, google-api-python-client, google-auth, isodate, jsonlines, linear-tsv, mock, oauth2client, packaging, python-dateutil, python-memcached, sphinx, tableschema, tabulator, unittest2
 snowballstemmer==1.2.1    # via sphinx
 sphinx==1.7.5
 sphinxcontrib-websupport==1.1.0  # via sphinx

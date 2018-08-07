@@ -210,6 +210,7 @@ INSTALLED_APPS = (
     'reversion',
     'actstream',
     'onadata.apps.messaging.apps.MessagingConfig',
+    'django_celery_results',
 )
 
 OAUTH2_PROVIDER = {
@@ -427,8 +428,12 @@ THUMB_ORDER = ['large', 'medium', 'small']
 IMG_FILE_TYPE = 'jpg'
 
 # celery
+CELERY_RESULT_BACKEND = 'django-db'
 CELERY_TASK_ALWAYS_EAGER = False
+CELERY_TASK_IGNORE_RESULT = False
+CELERY_TASK_TRACK_STARTED = True
 CELERY_IMPORTS = ('onadata.libs.utils.csv_import',)
+
 
 CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD = 100000  # Bytes
 GOOGLE_SHEET_UPLOAD_BATCH = 1000

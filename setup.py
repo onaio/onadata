@@ -42,6 +42,7 @@ setup(
         # generic relation
         "django-query-builder",
         "celery",
+        "django-celery-results",
         # cors
         "django-cors-headers",
         "django-debug-toolbar",

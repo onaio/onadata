@@ -2,6 +2,7 @@
 """
 CSV data import module.
 """
+import functools
 import json
 import logging
 import sys
@@ -10,12 +11,9 @@ from builtins import str as text
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
-from functools import reduce
 from io import BytesIO
 
 from future.utils import iteritems
-
-from past.builtins import basestring
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -124,13 +122,15 @@ def dict_pathkeys_to_nested_dicts(dictionary):
     :return: A nested dict
     :rtype: dict
     """
-    d = dictionary.copy()
-    for key in list(d):
+    data = dictionary.copy()
+    for key in list(data):
         if r'/' in key:
-            d = dict_merge(
-                reduce(lambda v, k: {k: v},
-                       (key.split('/') + [d.pop(key)])[::-1]), d)
-    return d
+            data = dict_merge(
+                functools.reduce(lambda v, k: {k: v},
+                                 (key.split('/') + [data.pop(key)])[::-1]),
+                data)
+
+    return data
 
 
 @task()
@@ -150,10 +150,10 @@ def failed_import(rollback_uuids, xform, exception, status_message):
     :return: The async_status result
     """
     Instance.objects.filter(uuid__in=rollback_uuids, xform=xform).delete()
-    report_exception('CSV Import Failed : %d - %s - %s' %
-                     (xform.pk, xform.id_string, xform.title),
-                     exception,
-                     sys.exc_info())
+    report_exception(
+        'CSV Import Failed : %d - %s - %s' % (xform.pk, xform.id_string,
+                                              xform.title), exception,
+        sys.exc_info())
     return async_status(FAILED, status_message)
 
 
@@ -200,8 +200,10 @@ def submit_csv(username, xform, csv_file, overwrite=False):
     missing_col = list(missing_col)
     addition_col = list(addition_col)
     # remove all metadata columns
-    missing = [col for col in missing_col
-               if not col.startswith("_") and col not in IGNORED_COLUMNS]
+    missing = [
+        col for col in missing_col
+        if not col.startswith("_") and col not in IGNORED_COLUMNS
+    ]
 
     # remove all metadata inside groups
     missing = [col for col in missing if '/_' not in col]
@@ -224,10 +226,10 @@ def submit_csv(username, xform, csv_file, overwrite=False):
     addition_col = [a for a in addition_col if a.find('[') == -1]
 
     if missing:
-        return async_status(FAILED,
-                            u"Sorry uploaded file does not match the form. "
-                            u"The file is missing the column(s): "
-                            u"{0}.".format(', '.join(missing)))
+        return async_status(
+            FAILED, u"Sorry uploaded file does not match the form. "
+            u"The file is missing the column(s): "
+            u"{0}.".format(', '.join(missing)))
 
     if overwrite:
         xform.instances.filter(deleted_at__isnull=True)\
@@ -305,10 +307,10 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                 error = e
 
             if error:
-                if not (isinstance(error, OpenRosaResponse) and
-                        error.status_code == 202):
-                    Instance.objects.filter(uuid__in=rollback_uuids,
-                                            xform=xform).delete()
+                if not (isinstance(error, OpenRosaResponse)
+                        and error.status_code == 202):
+                    Instance.objects.filter(
+                        uuid__in=rollback_uuids, xform=xform).delete()
                     return async_status(FAILED, text(error))
                 else:
                     duplicates += 1
@@ -324,8 +326,9 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                                 'info': addition_col
                             })
                     except Exception:
-                        logging.exception(_(u'Could not update state of '
-                                            'import CSV batch process.'))
+                        logging.exception(
+                            _(u'Could not update state of '
+                              'import CSV batch process.'))
                     finally:
                         xform.submission_count(True)
 
@@ -336,8 +339,8 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                     instance.save()
 
     except UnicodeDecodeError as e:
-        return failed_import(
-            rollback_uuids, xform, e, u'CSV file must be utf-8 encoded')
+        return failed_import(rollback_uuids, xform, e,
+                             u'CSV file must be utf-8 encoded')
     except Exception as e:
         return failed_import(rollback_uuids, xform, e, text(e))
     finally:
@@ -348,7 +351,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):
         "duplicates": duplicates,
         u"updates": inserts,
         u"info": u"Additional column(s) excluded from the upload: '{0}'."
-        .format(', '.join(list(addition_col)))
+                 .format(', '.join(list(addition_col)))
     }  # yapf: disable
 
 
@@ -364,16 +367,15 @@ def get_async_csv_submission_status(job_uuid):
 
     job = AsyncResult(job_uuid)
     try:
-        result = (job.result or job.state)
+        # result = (job.result or job.state)
+        if job.state not in ['SUCCESS', 'FAILURE']:
+            return async_status(celery_state_to_status(job.state))
 
-        if isinstance(result, (Exception)):
+        if job.state == 'FAILURE':
             return async_status(
                 celery_state_to_status(job.state), text(job.result))
-
-        if isinstance(result, basestring):
-            return async_status(celery_state_to_status(job.state))
 
     except BacklogLimitExceeded:
         return async_status(celery_state_to_status('PENDING'))
 
-    return result
+    return job.get()

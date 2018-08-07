@@ -41,3 +41,10 @@ app = Celery(__name__)  # pylint: disable=invalid-name
 app.config_from_object('django.conf:settings', namespace='CELERY')
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 app.conf.broker_transport_options = {'visibility_timeout': 10}
+
+
+@app.task
+def debug_task():
+    """A test task"""
+    print("Hello!")
+    return True
