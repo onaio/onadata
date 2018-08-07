@@ -6,6 +6,7 @@
 #
 -e git+https://github.com/onaio/python-digest.git@3af1bd0ef6114e24bf23d0e8fd9d7ebf389845d1#egg=python-digest
 -e git+https://github.com/onaio/django-digest.git@eb85c7ae19d70d4690eeb20983e94b9fde8ab8c2#egg=django-digest
+-e git+https://github.com/onaio/django-multidb-router.git@9cf0a0c6c9f796e5bd14637fafeb5a1a5507ed37#egg=django-multidb-router
 -e git+https://github.com/onaio/floip-py.git@3bbf5c76b34ec49c438a3099ab848870514d1e50#egg=floip
 -e git+https://github.com/onaio/python-json2xlsclient.git@62b4645f7b4f2684421a13ce98da0331a9dd66a0#egg=python-json2xlsclient
 alabaster==0.7.11         # via sphinx
@@ -29,7 +30,6 @@ django-cors-headers==2.2.0
 django-debug-toolbar==1.9.1
 django-filter==1.1.0
 django-guardian==1.4.9
-django-multidb-router==0.7
 django-nose==1.4.5
 django-oauth-toolkit==1.1.2
 django-ordered-model==2.0.0
