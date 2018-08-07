@@ -29,7 +29,7 @@ from celery.backends.amqp import BacklogLimitExceeded
 from celery.result import AsyncResult
 from multidb.pinning import use_master
 
-from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models import Instance, XForm
 from onadata.libs.utils.async_status import (FAILED, async_status,
                                              celery_state_to_status)
 from onadata.libs.utils.common_tags import MULTIPLE_SELECT_TYPE
@@ -134,8 +134,10 @@ def dict_pathkeys_to_nested_dicts(dictionary):
 
 
 @task()
-def submit_csv_async(username, xform, file_path, overwrite=False):
+def submit_csv_async(username, xform_id, file_path, overwrite=False):
     """Imports CSV data to an existing xform asynchrounously."""
+    xform = XForm.objects.get(pk=xform_id)
+
     with default_storage.open(file_path) as csv_file:
         return submit_csv(username, xform, csv_file, overwrite)
 
