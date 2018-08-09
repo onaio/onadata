@@ -325,6 +325,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                                 'total': num_rows,
                                 'info': addition_col
                             })
+                        print(current_task)
                     except Exception:
                         logging.exception(
                             _(u'Could not update state of '
@@ -369,7 +370,10 @@ def get_async_csv_submission_status(job_uuid):
     try:
         # result = (job.result or job.state)
         if job.state not in ['SUCCESS', 'FAILURE']:
-            return async_status(celery_state_to_status(job.state))
+            response = async_status(celery_state_to_status(job.state))
+            response.update(job.info)
+
+            return response
 
         if job.state == 'FAILURE':
             return async_status(

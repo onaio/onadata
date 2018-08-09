@@ -261,14 +261,18 @@ class CSVImportTestCase(TestBase):
 
         class MockAsyncResult2(object):
             def __init__(self):
-                self.result = self.state = 'SUCCESS'
-
-            def get(self):
-                return {'job_status': 'SUCCESS'}
+                self.result = self.state = 'PROGRESS'
+                self.info = {
+                    "info": [],
+                    "job_status": "PROGRESS",
+                    "progress": 4000,
+                    "total": 70605
+                }
 
         AsyncResult.return_value = MockAsyncResult2()
         result = csv_import.get_async_csv_submission_status('x-y-z')
-        self.assertEqual(result, {'job_status': 'SUCCESS'})
+        self.assertEqual(result, {'info': [], 'job_status': 'PROGRESS',
+                                  'progress': 4000, 'total': 70605})
 
         class MockAsyncResultIOError(object):
             def __init__(self):
