@@ -285,26 +285,84 @@ Response
 Email verification
 -------------------------------------------
 
-By default the email verification functionality is disabled when a user account
-is created. To enable this feature, set ``ENABLE_EMAIL_VERIFICATION``
-in your settings file to ``True``. You also need to set 3 other variables:
+By default the email verification functionality is disabled. To enable this feature,
+set ``ENABLE_EMAIL_VERIFICATION`` in your settings file to ``True``. ``VERIFIED_KEY_TEXT``
+should also be set to ``ALREADY_ACTIVATED``. Once enabled, a verification email will be
+sent when a new user is registered using the user profiles endpoint. The email verification
+endpoint expects ``verification_key`` query param as well as an optional ``redirect_url``
+query param.
+
+- ``verification_key`` - A REQUIRED query param which is a hexadecimal associated with a user that expires after 1 day. The expiration day limit can be changed by resetting the ``ACCOUNT_ACTIVATION_DAYS`` settings variable.
+- ``redirect_url`` - An OPTIONAL query param that contains the url to redirect to when the ``verification_key`` has successfully been verified 
+
+
+Example
+^^^^^^^
 
 ::
 
-    EMAIL_VERIFICATION_WEBHOOK = ""
-    VERIFIED_KEY_TEXT = 'ALREADY_ACTIVATED'
-    POST_EMAIL_VERIFICATION_REDIRECT_URL = "/"
+    curl -X GET https://api.ona.io/api/v1/profiles/verify_email?verification_key=abc&redirect_url=https://red.ir.ect
 
-``EMAIL_VERIFICATION_WEBHOOK`` is the url that will be used to notify an app that
-a user's email has been verified.
-``VERIFIED_KEY_TEXT`` is set to ``ALREADY_ACTIVATED`` by default because that's
-the text set by django when an account is activated. We use the same text to confirm
-that a user's email has been verified.
-``POST_EMAIL_VERIFICATION_REDIRECT_URL`` is the url that onadata will redirect to
-when the app providing the webhook has acknowledged that it has recieved the user
-email verification notification from onadata. It will redirect to onadata's homepage
-by default.
 
-If you'd prefer a custom verification url in the email, set the ``VERIFICATION_URL``
-settings variable with the custom url. The ``verification_key`` will be appended to
-the url as a query param.
+Successful Response
+^^^^^^^^^^^^^^^^^^^
+
+A succesful response or redirect includes 2 values:
+
+- ``ona_verified_username`` - the account username of the verified email
+- ``ona_verified_email_status`` - the status of the verified email. It will be ``True`` for a successful response
+
+if there is a redirect url, 2 query params will be appended to the url
+
+::
+
+    <redirect-url>?ona_verified_username=johndoe&ona_verified_email_status=true
+
+If there isn't a redirect url, the response will be
+
+::
+
+    {
+        'ona_verified_username': 'johndoe',
+        'ona_verified_email_status': 'true'
+    }
+
+
+
+
+Failed Response
+^^^^^^^^^^^^^^^
+
+::
+
+    Missing or invalid verification key
+
+Send verification email
+^^^^^^^^^^^^^^^^^^^^^^^
+
+To send a verification email, for example when a user has changed his/her email address, the user making the request should
+authenticate and provide ``username`` - which should be the same as the user making the request - in the post data. The
+requesting user can also provide ``redirect_url`` as part of the post data. The ``redirect_url`` will be appended as query
+param to the verification url and used to redirect the user to that url once the ``verification_key`` has successfully been verified.
+
+Example
+^^^^^^^
+
+::
+
+    curl -X POST -d username=johndoe -d redirect_url="https://red.ir.ect" https://api.ona.io/api/v1/profiles/send_verification_email
+
+
+Successful Response
+^^^^^^^^^^^^^^^^^^^
+
+::
+
+    Verification email has been sent
+
+Failed Response
+^^^^^^^^^^^^^^^
+
+::
+
+    Verification email has NOT been sent
