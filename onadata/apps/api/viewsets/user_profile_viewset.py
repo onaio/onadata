@@ -5,7 +5,7 @@ UserProfileViewSet module.
 
 import datetime
 import json
-import requests
+import urllib
 
 from past.builtins import basestring  # pylint: disable=redefined-builtin
 
@@ -30,7 +30,9 @@ from onadata.apps.api.permissions import UserProfilePermissions
 from onadata.apps.api.tools import get_baseviewset_class, load_class
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.models import UserProfile
-from onadata.libs.utils.email import get_verification_email_data
+from onadata.libs.utils.email import (
+    get_verification_email_data, get_verification_url
+)
 from onadata.libs import filters
 from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
@@ -223,16 +225,12 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
 
     @action(detail=False)
     def verify_email(self, request, *args, **kwargs):
-        webhook = getattr(settings, "EMAIL_VERIFICATION_WEBHOOK", None)
-        redirect_url = getattr(
-            settings, "POST_EMAIL_VERIFICATION_REDIRECT_URL", None
-        )
         verified_key_text = getattr(settings, "VERIFIED_KEY_TEXT", None)
 
-        # if any of the variables above is None, return a 204 respnse
-        if any(not a for a in [webhook, redirect_url, verified_key_text]):
+        if not verified_key_text:
             return Response(status=status.HTTP_204_NO_CONTENT)
 
+        redirect_url = request.query_params.get('redirect_url')
         verification_key = request.query_params.get('verification_key')
         response_message = _("Missing or invalid verification key")
         if verification_key:
@@ -243,33 +241,37 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
             except RegistrationProfile.DoesNotExist:
                 pass
             else:
-                response_message = _("Email was NOT verified")
-                if webhook:
-                    payload = {
-                        'username': rp.user.username,
-                        'verified': True
-                    }
-                    r = requests.post(webhook, data=payload)
-                    if r.status_code == 200:
-                        rp.activation_key = verified_key_text
-                        rp.save()
-                        if redirect_url:
-                            return HttpResponseRedirect(redirect_url)
+                rp.activation_key = verified_key_text
+                rp.save()
 
-                        response_message = _("Email has been verified.")
+                rp.user.profile.metadata.update({"is_email_verified": True})
+                rp.user.profile.save()
 
-                        return Response(response_message)
+                response_data = {
+                    'ona_verified_username': rp.user.username,
+                    'ona_verified_email_status': True
+                }
+
+                if redirect_url:
+                    query_params_string = urllib.urlencode(response_data)
+                    redirect_url = '{}?{}'.format(
+                        redirect_url, query_params_string
+                    )
+
+                    return HttpResponseRedirect(redirect_url)
+
+                return Response(response_data)
 
         return HttpResponseBadRequest(response_message)
 
     @action(methods=['POST'], detail=False)
     def send_verification_email(self, request, *args, **kwargs):
         verified_key_text = getattr(settings, "VERIFIED_KEY_TEXT", None)
-        verification_url = getattr(settings, "VERIFICATION_URL", None)
         if not verified_key_text:
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         username = request.data.get('username')
+        redirect_url = request.data.get('redirect_url')
         response_message = _("Verification email has NOT been sent")
 
         if username:
@@ -286,13 +288,16 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
                                           .registrationprofile
                                           .create_new_activation_key())
 
+                verification_url = get_verification_url(
+                    redirect_url, request, verification_key
+                )
+
                 email_data = get_verification_email_data(
-                    rp.user.email, rp.user.username, verification_key,
-                    verification_url,  request
+                    rp.user.email, rp.user.username, verification_url, request
                 )
 
                 send_verification_email.delay(email_data)
 
                 response_message = _("Verification email has been sent")
 
-        return Response(response_message)
+        return HttpResponseBadRequest(response_message)
