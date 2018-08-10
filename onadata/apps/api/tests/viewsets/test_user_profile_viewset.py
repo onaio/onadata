@@ -2,6 +2,7 @@ import datetime
 import json
 import os
 from builtins import str
+from urlparse import urlparse, parse_qs
 
 from django.contrib.auth.models import User
 from django.db.models import signals
@@ -294,26 +295,61 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEquals(response.status_code, 204)
 
     @override_settings(ENABLE_EMAIL_VERIFICATION=True)
-    @patch('onadata.apps.api.viewsets.user_profile_viewset.requests.post')
-    def test_verification_key_is_valid(self, mock_request_post):
-        return_value = type('MockResponse', (), {'status_code': 200})
-        mock_request_post.return_value = return_value
-
+    def test_verification_key_is_valid(self):
         data = _profile_data()
         self._create_user_using_profiles_endpoint(data)
 
         view = UserProfileViewSet.as_view({'get': 'verify_email'})
-        request = self.factory.get('/', **self.extra)
-        response = view(request, user=self.user.username)
-        self.assertEquals(response.status_code, 400)
-
         rp = RegistrationProfile.objects.get(
             user__username=data.get('username')
         )
-        data = {'verification_key': rp.activation_key}
-        request = self.factory.get('/', data=data, **self.extra)
+        _data = {'verification_key': rp.activation_key}
+        request = self.factory.get('/', data=_data)
         response = view(request)
+        self.assertEquals(response.status_code, 200)
+        self.assertIn('ona_verified_email_status', response.data)
+        self.assertIn('ona_verified_username', response.data)
+        self.assertTrue(response.data.get('ona_verified_email_status'))
+        self.assertEquals(
+            response.data.get('ona_verified_username'), data.get('username')
+        )
+
+        up = UserProfile.objects.get(user__username=data.get('username'))
+        self.assertIn('is_email_verified', up.metadata)
+        self.assertTrue(up.metadata.get('is_email_verified'))
+
+    @override_settings(ENABLE_EMAIL_VERIFICATION=True)
+    def test_verification_key_is_valid_with_redirect_url_set(self):
+        data = _profile_data()
+        self._create_user_using_profiles_endpoint(data)
+
+        view = UserProfileViewSet.as_view({'get': 'verify_email'})
+        rp = RegistrationProfile.objects.get(
+            user__username=data.get('username')
+        )
+        _data = {
+            'verification_key': rp.activation_key,
+            'redirect_url': 'http://red.ir.ect'
+        }
+        request = self.factory.get('/', data=_data)
+        response = view(request)
+
         self.assertEquals(response.status_code, 302)
+        self.assertIn('ona_verified_email_status', response.url)
+        self.assertIn('ona_verified_username', response.url)
+
+        string_query_params = urlparse(response.url).query
+        dict_query_params = parse_qs(string_query_params)
+        self.assertEquals(dict_query_params.get(
+            'ona_verified_email_status'), ['True'])
+        self.assertEquals(
+            dict_query_params.get('ona_verified_username'),
+            [data.get('username')]
+        )
+
+        up = UserProfile.objects.get(user__username=data.get('username'))
+        self.assertIn('is_email_verified', up.metadata)
+        self.assertTrue(up.metadata.get('is_email_verified'))
 
     @override_settings(ENABLE_EMAIL_VERIFICATION=True)
     @patch(
