@@ -1,20 +1,28 @@
+import urllib
+
 from django.conf import settings
 from django.template.loader import render_to_string
 from rest_framework.reverse import reverse
 
 
-def get_verification_email_data(
-        email, username, verification_key, verification_url, request):
+def get_verification_url(redirect_url, request, verification_key):
+    verification_url = getattr(settings, "VERIFICATION_URL", None)
+    url = verification_url or reverse(
+        'userprofile-verify-email', request=request
+    )
+    query_params_dict = {'verification_key': verification_key}
+    query_params_string = urllib.urlencode(query_params_dict)
+    verification_url = '{}?{}'.format(url, query_params_string)
+
+    return verification_url
+
+
+def get_verification_email_data(email, username, verification_url, request):
     email_data = {'email': email}
 
-    url = verification_url or reverse('userprofile-verify-email',
-                                      request=request)
-    verification_url = '{}?verification_key={}'.format(
-        url, verification_key
-    )
     ctx_dict = {
         'username': username,
-        'expiration_days': settings.ACCOUNT_ACTIVATION_DAYS,
+        'expiration_days': getattr(settings, "ACCOUNT_ACTIVATION_DAYS", 1),
         'verification_url': verification_url
     }
 
