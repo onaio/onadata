@@ -28,7 +28,9 @@ from onadata.libs.authentication import expired
 from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.cache_tools import IS_ORG
-from onadata.libs.utils.email import get_verification_email_data
+from onadata.libs.utils.email import (
+    get_verification_url, get_verification_email_data
+)
 
 RESERVED_NAMES = RegistrationFormUserProfile.RESERVED_USERNAMES
 LEGAL_USERNAMES_REGEX = RegistrationFormUserProfile.legal_usernames_re
@@ -200,6 +202,10 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         instance.metadata = params.get('metadata', instance.metadata)
 
         instance.user.save()
+
+        if email:
+            instance.metadata.update({"is_email_verified": False})
+            instance.save()
 
         if password:
             # force django-digest to regenerate its stored partial digests
