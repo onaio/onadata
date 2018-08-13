@@ -11,6 +11,9 @@ def get_verification_url(redirect_url, request, verification_key):
         'userprofile-verify-email', request=request
     )
     query_params_dict = {'verification_key': verification_key}
+    redirect_url and query_params_dict.update({
+        'redirect_url': redirect_url
+    })
     query_params_string = urllib.urlencode(query_params_dict)
     verification_url = '{}?{}'.format(url, query_params_string)
 
