@@ -1,4 +1,4 @@
-import urllib
+from future.moves.urllib.parse import urlencode
 
 from django.conf import settings
 from django.template.loader import render_to_string
@@ -14,7 +14,7 @@ def get_verification_url(redirect_url, request, verification_key):
     redirect_url and query_params_dict.update({
         'redirect_url': redirect_url
     })
-    query_params_string = urllib.urlencode(query_params_dict)
+    query_params_string = urlencode(query_params_dict)
     verification_url = '{}?{}'.format(url, query_params_string)
 
     return verification_url

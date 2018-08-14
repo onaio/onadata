@@ -5,7 +5,7 @@ UserProfileViewSet module.
 
 import datetime
 import json
-import urllib
+from future.moves.urllib.parse import urlencode
 
 from past.builtins import basestring  # pylint: disable=redefined-builtin
 
@@ -253,7 +253,7 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
                 }
 
                 if redirect_url:
-                    query_params_string = urllib.urlencode(response_data)
+                    query_params_string = urlencode(response_data)
                     redirect_url = '{}?{}'.format(
                         redirect_url, query_params_string
                     )
@@ -297,7 +297,8 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
                 )
 
                 send_verification_email.delay(email_data)
-
                 response_message = _("Verification email has been sent")
+
+                return Response(response_message)
 
         return HttpResponseBadRequest(response_message)

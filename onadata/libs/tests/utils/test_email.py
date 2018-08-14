@@ -1,4 +1,4 @@
-from urllib import urlencode
+from future.moves.urllib.parse import urlencode
 
 from django.test import RequestFactory
 from django.test.utils import override_settings

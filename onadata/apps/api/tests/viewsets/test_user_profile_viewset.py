@@ -2,7 +2,7 @@ import datetime
 import json
 import os
 from builtins import str
-from urlparse import urlparse, parse_qs
+from future.moves.urllib.parse import urlparse, parse_qs
 
 from django.contrib.auth.models import User
 from django.db.models import signals
