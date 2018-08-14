@@ -572,18 +572,21 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             if csv_file is None:
                 resp.update({u'error': u'csv_file field empty'})
             else:
+                overwrite = request.query_params.get('overwrite')
+                overwrite = True \
+                    if overwrite and overwrite.lower() == 'true' else False
                 size_threshold = settings.CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD
                 if csv_file.size < size_threshold:
                     resp.update(submit_csv(request.user.username,
-                                           self.object, csv_file))
+                                           self.object, csv_file, overwrite))
                 else:
                     csv_file.seek(0)
                     upload_to = os.path.join(request.user.username,
                                              'csv_imports', csv_file.name)
                     file_name = default_storage.save(upload_to, csv_file)
                     task = submit_csv_async.delay(request.user.username,
-                                                  self.object,
-                                                  file_name)
+                                                  self.object.pk, file_name,
+                                                  overwrite)
                     if task is None:
                         raise ParseError('Task not found')
                     else:
@@ -615,7 +618,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         if request.method == 'DELETE':
             xform = self.get_object()
             resp = {
-                u'job_uuid': tasks.delete_xform_async.delay(xform).task_id,
+                u'job_uuid': tasks.delete_xform_async.delay(xform.pk).task_id,
                 u'time_async_triggered': datetime.now()}
             resp_code = status.HTTP_202_ACCEPTED
 

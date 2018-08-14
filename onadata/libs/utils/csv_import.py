@@ -1,37 +1,45 @@
+# -*- coding: utf-8 -*-
+"""
+CSV data import module.
+"""
+import functools
 import json
 import logging
 import sys
-import unicodecsv as ucsv
 import uuid
 from builtins import str as text
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
-from functools import reduce
-from future.utils import iteritems
 from io import BytesIO
-from past.builtins import basestring
+
+from future.utils import iteritems
 
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.storage import default_storage
+from django.utils import timezone
 from django.utils.translation import ugettext as _
 
+import unicodecsv as ucsv
 from celery import current_task, task
 from celery.backends.amqp import BacklogLimitExceeded
 from celery.result import AsyncResult
+from multidb.pinning import use_master
 
-from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models import Instance, XForm
 from onadata.libs.utils.async_status import (FAILED, async_status,
                                              celery_state_to_status)
 from onadata.libs.utils.common_tags import MULTIPLE_SELECT_TYPE
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
-from onadata.libs.utils.logger_tools import dict2xml, safe_create_instance
+from onadata.libs.utils.logger_tools import (OpenRosaResponse, dict2xml,
+                                             safe_create_instance)
 
 DEFAULT_UPDATE_BATCH = 100
 PROGRESS_BATCH_UPDATE = getattr(settings, 'EXPORT_TASK_PROGRESS_UPDATE_BATCH',
                                 DEFAULT_UPDATE_BATCH)
+IGNORED_COLUMNS = ['formhub/uuid', 'meta/instanceID']
 
 
 def get_submission_meta_dict(xform, instance_id):
@@ -47,7 +55,7 @@ def get_submission_meta_dict(xform, instance_id):
     :return: The metadata dict
     :rtype:  dict
     """
-    uuid_arg = 'uuid:{}'.format(uuid.uuid4())
+    uuid_arg = 'uuid:{}'.format(instance_id or uuid.uuid4())
     meta = {'instanceID': uuid_arg}
 
     update = 0
@@ -114,19 +122,24 @@ def dict_pathkeys_to_nested_dicts(dictionary):
     :return: A nested dict
     :rtype: dict
     """
-    d = dictionary.copy()
-    for key in list(d):
+    data = dictionary.copy()
+    for key in list(data):
         if r'/' in key:
-            d = dict_merge(
-                reduce(lambda v, k: {k: v},
-                       (key.split('/') + [d.pop(key)])[::-1]), d)
-    return d
+            data = dict_merge(
+                functools.reduce(lambda v, k: {k: v},
+                                 (key.split('/') + [data.pop(key)])[::-1]),
+                data)
+
+    return data
 
 
 @task()
-def submit_csv_async(username, xform, file_path):
+def submit_csv_async(username, xform_id, file_path, overwrite=False):
+    """Imports CSV data to an existing xform asynchrounously."""
+    xform = XForm.objects.get(pk=xform_id)
+
     with default_storage.open(file_path) as csv_file:
-        return submit_csv(username, xform, csv_file)
+        return submit_csv(username, xform, csv_file, overwrite)
 
 
 def failed_import(rollback_uuids, xform, exception, status_message):
@@ -137,15 +150,16 @@ def failed_import(rollback_uuids, xform, exception, status_message):
     :return: The async_status result
     """
     Instance.objects.filter(uuid__in=rollback_uuids, xform=xform).delete()
-    report_exception('CSV Import Failed : %d - %s - %s' %
-                     (xform.pk, xform.id_string, xform.title),
-                     exception,
-                     sys.exc_info())
+    report_exception(
+        'CSV Import Failed : %d - %s - %s' % (xform.pk, xform.id_string,
+                                              xform.title), exception,
+        sys.exc_info())
     return async_status(FAILED, status_message)
 
 
-def submit_csv(username, xform, csv_file):
-    """ Imports CSV data to an existing form
+@use_master
+def submit_csv(username, xform, csv_file, overwrite=False):
+    """Imports CSV data to an existing form
 
     Takes a csv formatted file or string containing rows of submission/instance
     and converts those to xml submissions and finally submits them by calling
@@ -186,15 +200,13 @@ def submit_csv(username, xform, csv_file):
     missing_col = list(missing_col)
     addition_col = list(addition_col)
     # remove all metadata columns
-    missing = [col for col in missing_col if not col.startswith("_")]
-
-    # remove all meta/instanceid columns
-
-    while 'meta/instanceID' in missing:
-        missing.remove('meta/instanceID')
+    missing = [
+        col for col in missing_col
+        if not col.startswith("_") and col not in IGNORED_COLUMNS
+    ]
 
     # remove all metadata inside groups
-    missing = [col for col in missing if not ("/_" in col)]
+    missing = [col for col in missing if '/_' not in col]
 
     # ignore if is multiple select question
     for col in csv_header:
@@ -214,16 +226,21 @@ def submit_csv(username, xform, csv_file):
     addition_col = [a for a in addition_col if a.find('[') == -1]
 
     if missing:
-        return async_status(FAILED,
-                            u"Sorry uploaded file does not match the form. "
-                            u"The file is missing the column(s): "
-                            u"{0}.".format(', '.join(missing)))
+        return async_status(
+            FAILED, u"Sorry uploaded file does not match the form. "
+            u"The file is missing the column(s): "
+            u"{0}.".format(', '.join(missing)))
+
+    if overwrite:
+        xform.instances.filter(deleted_at__isnull=True)\
+            .update(deleted_at=timezone.now(),
+                    deleted_by=User.objects.get(username=username))
 
     rollback_uuids = []
     submission_time = datetime.utcnow().isoformat()
     ona_uuid = {'formhub': {'uuid': xform.uuid}}
     error = None
-    additions = inserts = 0
+    additions = duplicates = inserts = 0
     try:
         for row in csv_reader:
             # remove the additional columns
@@ -231,7 +248,7 @@ def submit_csv(username, xform, csv_file):
                 del row[index]
 
             # fetch submission uuid before purging row metadata
-            row_uuid = row.get('_uuid')
+            row_uuid = row.get('meta/instanceID') or row.get('_uuid')
             submitted_by = row.get('_submitted_by')
             submission_date = row.get('_submission_time', submission_time)
 
@@ -290,9 +307,13 @@ def submit_csv(username, xform, csv_file):
                 error = e
 
             if error:
-                Instance.objects.filter(
-                    uuid__in=rollback_uuids, xform=xform).delete()
-                return async_status(FAILED, text(error))
+                if not (isinstance(error, OpenRosaResponse)
+                        and error.status_code == 202):
+                    Instance.objects.filter(
+                        uuid__in=rollback_uuids, xform=xform).delete()
+                    return async_status(FAILED, text(error))
+                else:
+                    duplicates += 1
             else:
                 additions += 1
                 if additions % PROGRESS_BATCH_UPDATE == 0:
@@ -304,9 +325,11 @@ def submit_csv(username, xform, csv_file):
                                 'total': num_rows,
                                 'info': addition_col
                             })
+                        print(current_task)
                     except Exception:
-                        logging.exception(_(u'Could not update state of '
-                                            'import CSV batch process.'))
+                        logging.exception(
+                            _(u'Could not update state of '
+                              'import CSV batch process.'))
                     finally:
                         xform.submission_count(True)
 
@@ -317,22 +340,20 @@ def submit_csv(username, xform, csv_file):
                     instance.save()
 
     except UnicodeDecodeError as e:
-        return failed_import(
-            rollback_uuids, xform, e, u'CSV file must be utf-8 encoded')
+        return failed_import(rollback_uuids, xform, e,
+                             u'CSV file must be utf-8 encoded')
     except Exception as e:
         return failed_import(rollback_uuids, xform, e, text(e))
     finally:
         xform.submission_count(True)
 
     return {
-        u"additions":
-        additions - inserts,
-        u"updates":
-        inserts,
-        u"info":
-        u"Additional column(s) excluded from the upload: '{0}'."
-        .format(', '.join(list(addition_col)))
-    }
+        "additions": additions - inserts,
+        "duplicates": duplicates,
+        u"updates": inserts,
+        u"info": u"Additional column(s) excluded from the upload: '{0}'."
+                 .format(', '.join(list(addition_col)))
+    }  # yapf: disable
 
 
 def get_async_csv_submission_status(job_uuid):
@@ -347,16 +368,18 @@ def get_async_csv_submission_status(job_uuid):
 
     job = AsyncResult(job_uuid)
     try:
-        result = (job.result or job.state)
+        # result = (job.result or job.state)
+        if job.state not in ['SUCCESS', 'FAILURE']:
+            response = async_status(celery_state_to_status(job.state))
+            response.update(job.info)
 
-        if isinstance(result, (Exception)):
+            return response
+
+        if job.state == 'FAILURE':
             return async_status(
                 celery_state_to_status(job.state), text(job.result))
-
-        if isinstance(result, basestring):
-            return async_status(celery_state_to_status(job.state))
 
     except BacklogLimitExceeded:
         return async_status(celery_state_to_status('PENDING'))
 
-    return result
+    return job.get()

@@ -13,8 +13,8 @@ services:
   web:
     build:
       context: .
-      dockerfile: Dockerfile
-    image: onadata:py3
+      dockerfile: Dockerfile.py2
+    image: onadata:py2
     volumes:
       - .:/srv/onadata
       - .inputrc:/home/onadata/.inputrc
@@ -26,4 +26,5 @@ services:
       - db
       - queue
     environment:
-      - SELECTED_PYTHON=python3.6
+      - SELECTED_PYTHON=python2
+

@@ -2,8 +2,9 @@
 """
 Test onadata.libs.utils.project_utils
 """
-import librabbitmq
 from django.test.utils import override_settings
+
+from kombu.exceptions import OperationalError
 from mock import patch
 
 from onadata.apps.logger.models import Project
@@ -75,8 +76,7 @@ class TestProjectUtils(TestBase):
         """
         Test rabbitmq connection error.
         """
-        mock_set_perms_async.side_effect = \
-            librabbitmq.ConnectionError("connection error")
+        mock_set_perms_async.side_effect = OperationalError("connection error")
         self._publish_transportation_form()
         self.assertFalse(mock_set_perms_async.called)
         self.assertTrue(mock_set_perms.called)

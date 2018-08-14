@@ -5,7 +5,8 @@ Test api_export_tools module.
 from collections import OrderedDict, defaultdict
 
 import mock
-import librabbitmq
+
+from kombu.exceptions import OperationalError
 from celery import current_app
 from celery.backends.amqp import BacklogLimitExceeded
 from django.conf import settings
@@ -174,7 +175,7 @@ class TestApiExportTools(TestBase):
         """
         Test get_async_response connection error.
         """
-        AsyncResult.side_effect = librabbitmq.ConnectionError
+        AsyncResult.side_effect = OperationalError
         settings.CELERY_TASK_ALWAYS_EAGER = True
         current_app.conf.CELERY_TASK_ALWAYS_EAGER = True
         self._publish_transportation_form_and_submit_instance()

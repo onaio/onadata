@@ -13,6 +13,7 @@ from celery.backends.amqp import BacklogLimitExceeded
 from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils import csv_import
+from onadata.libs.utils.csv_import import get_submission_meta_dict
 
 
 def strip_xml_uuid(s):
@@ -27,6 +28,20 @@ class CSVImportTestCase(TestBase):
         self.good_csv = open(os.path.join(self.fixtures_dir, 'good.csv'), 'rb')
         self.bad_csv = open(os.path.join(self.fixtures_dir, 'bad.csv'), 'rb')
         self.xls_file_path = os.path.join(self.fixtures_dir, 'tutorial.xls')
+
+    def test_get_submission_meta_dict(self):
+        self._publish_xls_file(self.xls_file_path)
+        xform = XForm.objects.get()
+        meta = get_submission_meta_dict(xform, None)
+        self.assertEqual(len(meta), 2)
+        self.assertTrue('instanceID' in meta[0])
+        self.assertEqual(meta[1], 0)
+
+        instance_id = '9118a3fc-ab99-44cf-9a97-1bb1482d8e2b'
+        meta = get_submission_meta_dict(xform, instance_id)
+        self.assertTrue('instanceID' in meta[0])
+        self.assertEqual(meta[0]['instanceID'], 'uuid:' + instance_id)
+        self.assertEqual(meta[1], 0)
 
     def test_submit_csv_param_sanity_check(self):
         resp = csv_import.submit_csv('userX', XForm(), 123456)
@@ -237,22 +252,32 @@ class CSVImportTestCase(TestBase):
             def __init__(self):
                 self.result = self.state = 'SUCCESS'
 
+            def get(self):
+                return {'job_status': 'SUCCESS'}
+
         AsyncResult.return_value = MockAsyncResult()
         result = csv_import.get_async_csv_submission_status('x-y-z')
         self.assertEqual(result, {'job_status': 'SUCCESS'})
 
         class MockAsyncResult2(object):
             def __init__(self):
-                self.result = self.state = 1
+                self.result = self.state = 'PROGRESS'
+                self.info = {
+                    "info": [],
+                    "job_status": "PROGRESS",
+                    "progress": 4000,
+                    "total": 70605
+                }
 
         AsyncResult.return_value = MockAsyncResult2()
         result = csv_import.get_async_csv_submission_status('x-y-z')
-        self.assertEqual(result, 1)
+        self.assertEqual(result, {'info': [], 'job_status': 'PROGRESS',
+                                  'progress': 4000, 'total': 70605})
 
         class MockAsyncResultIOError(object):
             def __init__(self):
                 self.result = IOError("File not found!")
-                self.state = 2
+                self.state = 'FAILURE'
 
         AsyncResult.return_value = MockAsyncResultIOError()
         result = csv_import.get_async_csv_submission_status('x-y-z')

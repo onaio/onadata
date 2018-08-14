@@ -309,6 +309,7 @@ def create_instance(username,
     # get new and deprecated UUIDs
     history = InstanceHistory.objects.filter(
         xform_instance__xform_id=xform.pk,
+        xform_instance__deleted_at__isnull=True,
         uuid=new_uuid).only('xform_instance').first()
 
     if history:
@@ -372,7 +373,8 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
     except DuplicateInstance:
         response = OpenRosaResponse(_(u"Duplicate submission"))
         response.status_code = 202
-        response['Location'] = request.build_absolute_uri(request.path)
+        if request:
+            response['Location'] = request.build_absolute_uri(request.path)
         error = response
     except PermissionDenied as e:
         error = OpenRosaResponseForbidden(e)
@@ -393,7 +395,8 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
     if isinstance(instance, DuplicateInstance):
         response = OpenRosaResponse(_(u"Duplicate submission"))
         response.status_code = 202
-        response['Location'] = request.build_absolute_uri(request.path)
+        if request:
+            response['Location'] = request.build_absolute_uri(request.path)
         error = response
         instance = None
 

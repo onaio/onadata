@@ -3,26 +3,25 @@
 DataDictionary model.
 """
 import os
-import unicodecsv as csv
 from builtins import str as text
 from io import BytesIO, StringIO
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
-from django.utils.translation import ugettext as _
 from django.utils.encoding import python_2_unicode_compatible
+from django.utils.translation import ugettext as _
 
-import librabbitmq
+import unicodecsv as csv
 import xlrd
 from floip import FloipSurvey
+from kombu.exceptions import OperationalError
 from pyxform.builder import create_survey_element_from_dict
 from pyxform.utils import has_external_choices
 from pyxform.xls2json import parse_file_to_json
 
-from onadata.apps.logger.models.xform import (XForm,
-                                              check_xform_uuid,
-                                              check_version_set)
+from onadata.apps.logger.models.xform import (XForm, check_version_set,
+                                              check_xform_uuid)
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.libs.utils.cache_tools import (PROJ_BASE_FORMS_CACHE,
                                             PROJ_FORMS_CACHE, safe_delete)
@@ -204,7 +203,7 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
         try:
             set_project_perms_to_xform_async.delay(xform.pk,
                                                    instance.project.pk)
-        except librabbitmq.ConnectionError:
+        except OperationalError:
             from onadata.libs.utils.project_utils import set_project_perms_to_xform  # noqa
             set_project_perms_to_xform(xform, instance.project)
 

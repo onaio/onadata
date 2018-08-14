@@ -70,15 +70,16 @@ def get_data_and_form(kwargs):
     return (data_id, kwargs.get('format'))
 
 
-def delete_instance(instance):
+def delete_instance(instance, user):
     """
     Function that calls Instance.set_deleted and catches any exception that may
      occur.
     :param instance:
+    :param user:
     :return:
     """
     try:
-        instance.set_deleted(timezone.now())
+        instance.set_deleted(timezone.now(), user)
     except FormInactiveError as e:
         raise ParseError(text(e))
 
@@ -307,7 +308,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
             if request.user.has_perm(
                     CAN_DELETE_SUBMISSION, self.object.xform):
-                delete_instance(self.object)
+                delete_instance(self.object, request.user)
             else:
                 raise PermissionDenied(_(u"You do not have delete "
                                          u"permissions."))
