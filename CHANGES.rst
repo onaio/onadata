@@ -1,6 +1,20 @@
 Changelog for onadata
 =====================
 
+1.14.5 (2018-08-15)
+-------------------
+
+- Fix Image resize() function to use file object directly.
+  `Issue #1439 <https://github.com/onaio/onadata/pull/1439>`_
+  [wambere]
+
+- CSV upload updates
+  `Issue #1444 <https://github.com/onaio/onadata/pull/1444>`_
+  [ukanga]
+
+- Updated/upgraded packages
+
+
 1.14.4 (2018-06-21)
 -------------------
 
