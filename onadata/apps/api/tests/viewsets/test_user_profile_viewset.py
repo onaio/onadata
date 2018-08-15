@@ -880,20 +880,41 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = self.view(request, user=self.user.username)
         self.assertEqual(response.status_code, 400)
 
-    def test_partial_update_email(self):
+    @patch(
+        ('onadata.libs.serializers.user_profile_serializer.'
+         'send_verification_email.delay')
+    )
+    def test_partial_update_email(self, mock_send_verification_email):
+        profile_data = _profile_data()
+        self._create_user_using_profiles_endpoint(profile_data)
+
+        rp = RegistrationProfile.objects.get(
+            user__username=profile_data.get('username')
+        )
+        deno_extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % rp.user.auth_token
+        }
+
         data = {'email': 'user@example.com',
                 'password': "invalid_password"}
-        request = self.factory.patch('/', data=data, **self.extra)
-        response = self.view(request, user=self.user.username)
+        request = self.factory.patch('/', data=data, **deno_extra)
+        response = self.view(request, user=profile_data.get('username'))
         self.assertEqual(response.status_code, 400)
 
         data = {'email': 'user@example.com',
-                'password': 'bobbob'}
-        request = self.factory.patch('/', data=data, **self.extra)
-        response = self.view(request, user=self.user.username)
-        profile = UserProfile.objects.get(user=self.user)
+                'password': profile_data.get('password')}
+        request = self.factory.patch('/', data=data, **deno_extra)
+        response = self.view(request, user=profile_data.get('username'))
+        profile = UserProfile.objects.get(user=rp.user)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(profile.user.email, 'user@example.com')
+
+        rp = RegistrationProfile.objects.get(
+            user__username=profile_data.get('username')
+        )
+        self.assertIn('is_email_verified', rp.user.profile.metadata)
+        self.assertFalse(rp.user.profile.metadata.get('is_email_verified'))
+        self.assertTrue(mock_send_verification_email.called)
 
     def test_update_first_last_name_password_not_affected(self):
         data = {'first_name': 'update_first',
@@ -915,15 +936,51 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = view(request)
         self.assertEqual(response.status_code, 200)
 
-    def test_partial_update_unique_email_api(self):
+    @patch(
+        ('onadata.libs.serializers.user_profile_serializer.'
+         'send_verification_email.delay')
+    )
+    def test_partial_update_unique_email_api(
+            self, mock_send_verification_email):
+        profile_data = {
+            'username': u'bobby',
+            'first_name': u'Bob',
+            'last_name': u'Blender',
+            'email': u'bobby@columbia.edu',
+            'city': u'Bobville',
+            'country': u'US',
+            'organization': u'Bob Inc.',
+            'website': u'bob.com',
+            'twitter': u'boberama',
+            'require_auth': False,
+            'password': 'bobbob',
+            'is_org': False,
+            'name': u'Bob Blender'
+        }
+        self._create_user_using_profiles_endpoint(profile_data)
+
+        rp = RegistrationProfile.objects.get(
+            user__username=profile_data.get('username')
+        )
+        deno_extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % rp.user.auth_token
+        }
+
         data = {'email': 'example@gmail.com',
-                'password': 'bobbob'}
+                'password': profile_data.get('password')}
         request = self.factory.patch(
             '/api/v1/profiles', data=json.dumps(data),
-            content_type="application/json", **self.extra)
-        response = self.view(request, user=self.user.username)
+            content_type="application/json", **deno_extra)
+        response = self.view(request, user=rp.user.username)
 
         self.assertEqual(response.status_code, 200)
+
+        rp = RegistrationProfile.objects.get(
+            user__username=profile_data.get('username')
+        )
+        self.assertIn('is_email_verified', rp.user.profile.metadata)
+        self.assertFalse(rp.user.profile.metadata.get('is_email_verified'))
+        self.assertTrue(mock_send_verification_email.called)
 
         self.assertEqual(response.data['email'], data['email'])
         # create User
