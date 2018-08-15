@@ -287,10 +287,12 @@ Email verification
 
 By default the email verification functionality is disabled. To enable this feature,
 set ``ENABLE_EMAIL_VERIFICATION`` in your settings file to ``True``. ``VERIFIED_KEY_TEXT``
-should also be set to ``ALREADY_ACTIVATED``. Once enabled, a verification email will be
-sent when a new user is registered using the user profiles endpoint. The email verification
-endpoint expects ``verification_key`` query param as well as an optional ``redirect_url``
-query param.
+should also be set to ``ALREADY_ACTIVATED``. If you have a custom verification url that
+you would prefer to be use instead of the default verification url, set it in ``VERIFICATION_URL``
+settings variable. The verification url will be appended with the verificaiton key as query
+param. Once ``ENABLE_EMAIL_VERIFICATION`` has been set, a verification email will be sent when
+a new user is registered using the user profiles endpoint. The email verification endpoint expects
+``verification_key`` query param as well as an optional ``redirect_url`` query param.
 
 - ``verification_key`` - A REQUIRED query param which is a hexadecimal associated with a user that expires after 1 day. The expiration day limit can be changed by resetting the ``ACCOUNT_ACTIVATION_DAYS`` settings variable.
 - ``redirect_url`` - An OPTIONAL query param that contains the url to redirect to when the ``verification_key`` has successfully been verified 
