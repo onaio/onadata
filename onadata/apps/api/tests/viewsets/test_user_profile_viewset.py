@@ -372,6 +372,9 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.data, "Verification email has been sent")
 
+        user = User.objects.get(username=data.get('username'))
+        self.assertFalse(user.profile.metadata.get('is_email_verified'))
+
     @override_settings(VERIFIED_KEY_TEXT=None)
     @override_settings(ENABLE_EMAIL_VERIFICATION=True)
     def test_sending_verification_email_fails(self):
