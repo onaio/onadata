@@ -223,6 +223,10 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
         serializer = MonthlySubmissionsSerializer(instance_count, many=True)
         return Response(serializer.data[0])
 
+    def set_is_email_verified(self, profile, boolean):
+        profile.metadata.update({"is_email_verified": boolean})
+        profile.save()
+
     @action(detail=False)
     def verify_email(self, request, *args, **kwargs):
         verified_key_text = getattr(settings, "VERIFIED_KEY_TEXT", None)
@@ -244,8 +248,7 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
                 rp.activation_key = verified_key_text
                 rp.save()
 
-                rp.user.profile.metadata.update({"is_email_verified": True})
-                rp.user.profile.save()
+                self.set_is_email_verified(rp.user.profile, True)
 
                 response_data = {
                     'ona_verified_username': rp.user.username,
@@ -282,6 +285,8 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
             except RegistrationProfile.DoesNotExist:
                 pass
             else:
+                self.set_is_email_verified(rp.user.profile, False)
+
                 verification_key = rp.activation_key
                 if verification_key == verified_key_text:
                     verification_key = (rp.user
