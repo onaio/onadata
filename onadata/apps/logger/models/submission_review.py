@@ -5,6 +5,8 @@ from __future__ import absolute_import
 
 from django.conf import settings
 from django.db import models
+from django.utils.translation import ugettext_lazy as _
+
 
 class SubmissionReview(models.Model):
     """
@@ -16,9 +18,9 @@ class SubmissionReview(models.Model):
     PENDING = '3'
 
     STATUS_CHOICES = (
-        (APPROVED, 'Approved'),
-        (PENDING, 'Pending'),
-        (REJECTED, 'Rejected')
+        (APPROVED, _('Approved')),
+        (PENDING, _('Pending')),
+        (REJECTED, _('Rejected'))
     )
 
     instance = models.ForeignKey(
@@ -28,7 +30,8 @@ class SubmissionReview(models.Model):
     note = models.ForeignKey(
         'logger.Note',
         related_name='notes',
-        blank=True,null=True,
+        blank=True,
+        null=True,
         default=None,
         on_delete=models.SET_NULL)
     created_by = models.ForeignKey(
@@ -51,4 +54,3 @@ class SubmissionReview(models.Model):
         Meta Options for SubmissionReview
         """
         app_label = 'logger'
-    
