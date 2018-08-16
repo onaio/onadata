@@ -79,8 +79,9 @@ class MultiLookupRouter(routers.DefaultRouter):
                 route = routers.Route(
                     url=r'^{prefix}/{lookup}{trailing_slash}$',
                     mapping={
+                        'delete': 'destroy',
                         'get': 'list',
-                        'post': 'create'
+                        'post': 'create',
                     },
                     name='{basename}-list',
                     detail=False,

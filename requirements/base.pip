@@ -5,7 +5,7 @@
 #    pip-compile --output-file requirements/base.pip requirements/base.in
 #
 -e git+https://github.com/onaio/django-digest.git@eb85c7ae19d70d4690eeb20983e94b9fde8ab8c2#egg=django-digest
--e git+https://github.com/onaio/django-multidb-router.git@9cf0a0c6c9f796e5bd14637fafeb5a1a5507ed37#egg=django-multidb-router
+-e git+https://github.com/onaio/django-multidb-router.git@f711368180d58eef87eda54fadfd5f8355623d52#egg=django-multidb-router
 -e git+https://github.com/onaio/floip-py.git@3bbf5c76b34ec49c438a3099ab848870514d1e50#egg=floip
 -e git+https://github.com/onaio/python-digest.git@3af1bd0ef6114e24bf23d0e8fd9d7ebf389845d1#egg=python-digest
 -e git+https://github.com/onaio/python-json2xlsclient.git@62b4645f7b4f2684421a13ce98da0331a9dd66a0#egg=python-json2xlsclient
@@ -106,7 +106,7 @@ pyparsing==2.2.0          # via packaging
 python-dateutil==2.7.3    # via fleming, tableschema
 python-memcached==1.59
 pytz==2018.4              # via babel, celery, django, django-query-builder, fleming
-pyxform==0.11.2
+pyxform==0.11.5
 raven==6.9.0
 recaptcha-client==1.0.6
 requests==2.19.1          # via datapackage, django-oauth-toolkit, httmock, sphinx, tableschema, tabulator

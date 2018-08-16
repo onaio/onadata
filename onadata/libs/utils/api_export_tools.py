@@ -213,7 +213,8 @@ def _generate_new_export(request, xform, query, export_type,
 
     options["dataview_pk"] = dataview_pk
     if export_type == Export.GOOGLE_SHEETS_EXPORT:
-        options['google_credentials'] = _get_google_credential(request)
+        options['google_credentials'] = \
+            _get_google_credential(request).to_json()
 
     try:
         if export_type == Export.EXTERNAL_EXPORT:
@@ -408,7 +409,7 @@ def process_async_export(request, xform, export_type, options=None):
 
         if isinstance(credential, HttpResponseRedirect):
             return credential
-        options['google_credentials'] = credential
+        options['google_credentials'] = credential.to_json()
 
     if should_create_new_export(xform, export_type, options, request=request)\
             or export_type == Export.EXTERNAL_EXPORT:

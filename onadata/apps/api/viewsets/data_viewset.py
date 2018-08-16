@@ -156,18 +156,21 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                                    % {'dataid': dataid}))
 
             if not obj.is_merged_dataset:
-                obj = get_object_or_404(Instance, pk=dataid, xform__pk=pk)
+                obj = get_object_or_404(Instance, pk=dataid, xform__pk=pk,
+                                        deleted_at__isnull=True)
             else:
                 xforms = obj.mergedxform.xforms.filter(deleted_at__isnull=True)
                 pks = [xform_id
                        for xform_id in xforms.values_list('pk', flat=True)]
 
-                obj = get_object_or_404(Instance, pk=dataid, xform_id__in=pks)
+                obj = get_object_or_404(Instance, pk=dataid, xform_id__in=pks,
+                                        deleted_at__isnull=True)
 
         return obj
 
     def _get_public_forms_queryset(self):
-        return XForm.objects.filter(Q(shared=True) | Q(shared_data=True))
+        return XForm.objects.filter(Q(shared=True) | Q(shared_data=True),
+                                    deleted_at__isnull=True)
 
     def _filtered_or_shared_qs(self, qs, pk):
         filter_kwargs = {self.lookup_field: pk}
