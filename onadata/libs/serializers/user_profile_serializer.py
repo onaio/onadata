@@ -92,6 +92,20 @@ def _get_registration_params(attrs):
     return params
 
 
+def _send_verification_email(redirect_url, user, request):
+    verification_key = (user.registrationprofile
+                            .create_new_activation_key())
+    verification_url = get_verification_url(
+        redirect_url, request, verification_key
+    )
+
+    email_data = get_verification_email_data(
+        user.email, user.username, verification_url, request
+    )
+
+    send_verification_email.delay(email_data)
+
+
 class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
     """
     UserProfile serializer.
@@ -175,19 +189,6 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
         return ret
 
-    def _send_verification_email(self, redirect_url, user, request):
-        verification_key = (user.registrationprofile
-                                .create_new_activation_key())
-        verification_url = get_verification_url(
-            redirect_url, request, verification_key
-        )
-
-        email_data = get_verification_email_data(
-            user.email, user.username, verification_url, request
-        )
-
-        send_verification_email.delay(email_data)
-
     def update(self, instance, validated_data):
         params = validated_data
         password = params.get("password1")
@@ -222,7 +223,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
             request = self.context.get('request')
             redirect_url = params.get('redirect_url')
-            self._send_verification_email(redirect_url, instance.user, request)
+            _send_verification_email(redirect_url, instance.user, request)
 
         if password:
             # force django-digest to regenerate its stored partial digests
@@ -252,7 +253,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
         if enable_email_verification:
             redirect_url = params.get('redirect_url')
-            self._send_verification_email(redirect_url, new_user, request)
+            _send_verification_email(redirect_url, new_user, request)
 
         created_by = request.user
         created_by = None if created_by.is_anonymous() else created_by
