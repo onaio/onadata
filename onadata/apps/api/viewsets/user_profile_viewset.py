@@ -252,8 +252,7 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
                 set_is_email_verified(rp.user.profile, True)
 
                 response_data = {
-                    'ona_verified_username': rp.user.username,
-                    'ona_verified_email_status': True
+                    'username': rp.user.username, 'is_email_verified': True
                 }
 
                 if redirect_url:
@@ -302,7 +301,7 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
                     rp.user.email, rp.user.username, verification_url, request
                 )
 
-                send_verification_email.delay(email_data)
+                send_verification_email.delay(**email_data)
                 response_message = _("Verification email has been sent")
 
                 return Response(response_message)
