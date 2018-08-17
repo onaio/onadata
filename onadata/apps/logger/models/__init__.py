@@ -9,4 +9,5 @@ from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.survey_type import SurveyType
 from onadata.apps.logger.models.widget import Widget
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.models.submission_review import SubmissionReview
 from onadata.apps.logger.xform_instance_parser import InstanceParseError
