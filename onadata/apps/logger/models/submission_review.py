@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Submission Review Model Module
 """
