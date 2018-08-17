@@ -25,8 +25,8 @@ class SubmissionReviewSerializer(serializers.ModelSerializer):
             'created_by',
             'status',
             'date_created',
+            'note_text',
             'date_modified')
-        read_only_fields = ['note_text']
 
     def validate(self, attrs):
         """
