@@ -80,10 +80,14 @@ def get_async_status(job_uuid):
 
 
 @task()
-def send_verification_email(data):
-    subject = data.get('subject')
-    message_txt = data.get('message_txt')
-    email = data.get('email')
+def send_verification_email(email, message_txt, subject):
+    """
+    Sends a verification email
+    """
+    if any(a in [None, ''] for a in [email, message_txt, subject]):
+        raise ValueError(
+            "email, message_txt amd subject arguments are ALL required."
+        )
 
     from_email = settings.DEFAULT_FROM_EMAIL
     email_message = EmailMultiAlternatives(
