@@ -4,8 +4,6 @@ Submission Review Serializer Test Module
 """
 from __future__ import unicode_literals
 
-from django.utils import six
-
 from rest_framework.exceptions import ValidationError
 
 from onadata.apps.logger.models import Instance, SubmissionReview
