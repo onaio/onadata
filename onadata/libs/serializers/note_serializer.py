@@ -1,4 +1,9 @@
+# -*- coding: utf-8 -*-
+"""
+Note Serializers Module
+"""
 from django.utils.translation import ugettext as _
+
 from guardian.shortcuts import assign_perm
 from rest_framework import exceptions, serializers
 
@@ -6,14 +11,24 @@ from onadata.apps.logger.models import Note
 
 
 class NoteSerializer(serializers.ModelSerializer):
+    """
+    NoteSerializer class
+    """
     owner = serializers.SerializerMethodField()
 
     class Meta:
+        """
+        Meta Options for NoteSerializer
+        """
         model = Note
         fields = ('id', 'note', 'instance', 'instance_field', 'created_by',
                   'date_created', 'date_modified', 'owner')
 
     def get_owner(self, obj):
+        """
+        Custom method return the username of Note
+        creator
+        """
         if obj and obj.created_by_id:
             return obj.created_by.username
 
