@@ -1,7 +1,9 @@
 """
 Submission Review Serializer Module
 """
-from rest_framework import serializers, exceptions
+from __future__ import unicode_literals
+
+from rest_framework import exceptions, serializers
 
 from onadata.apps.logger.models import SubmissionReview
 
@@ -36,6 +38,6 @@ class SubmissionReviewSerializer(serializers.ModelSerializer):
         if status == SubmissionReview.REJECTED:
             if note is None:
                 raise exceptions.ValidationError(
-                    {"note": "Can\'t reject a submission without a comment."}
+                    {'note': 'Can\'t reject a submission without a comment.'}
                 )
         return attrs
