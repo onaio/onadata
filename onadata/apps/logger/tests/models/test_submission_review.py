@@ -26,20 +26,14 @@ class TestSubmissionReview(TestBase):
             instance_field="",
         )
 
-        submission_review = SubmissionReview(
-            instance=instance
-        )
+        submission_review = SubmissionReview(instance=instance)
 
         # Returns None if Submission_Review has no note_text
         self.assertIsNone(submission_review.get_note_text())
         self.assertIsNone(submission_review.note_text)
 
-        submission_review = SubmissionReview(
-            instance=instance,
-            note=note
-        )
+        submission_review = SubmissionReview(instance=instance, note=note)
 
         # Returns correct note text when note is present
-        self.assertEqual(
-            note.note, submission_review.get_note_text())
+        self.assertEqual(note.note, submission_review.get_note_text())
         self.assertEqual(note.note, submission_review.note_text)
