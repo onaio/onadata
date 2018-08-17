@@ -55,3 +55,20 @@ class SubmissionReview(models.Model):
         Meta Options for SubmissionReview
         """
         app_label = 'logger'
+
+    def get_note_text(self):
+        """
+        Custom Method Gets the SubmissionReviews Related
+        Note Text
+        """
+        if self.notes is not None:
+            return self.notes.note
+        return None
+
+    @property
+    def note_text(self):
+        """
+        Custom Property Returns the Text for the Submission Reviews
+        Associated Note
+        """
+        return self.get_note_text
