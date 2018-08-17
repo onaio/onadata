@@ -17,6 +17,39 @@ class TestSubmissionReviewSerializer(TestBase):
     TestSubmissionReviewSerializer Class
     """
 
+    def _create_submission_review(self):
+        """
+        Utility to create a submission review
+        """
+
+        self._publish_transportation_form_and_submit_instance()
+
+        instance = Instance.objects.first()
+
+        data = {
+            "instance": instance.id,
+            "note_text": "Hey there",
+            "status": SubmissionReview.APPROVED
+        }
+
+        serializer_instance = SubmissionReviewSerializer(data=data)
+        self.assertFalse(Note.objects.filter(instance=instance).exists())
+
+        self.assertTrue(serializer_instance.is_valid())
+
+        submission_review = serializer_instance.save()
+
+        # Creates Note Object
+        self.assertTrue(Note.objects.filter(instance=instance).exists())
+
+        note = submission_review.note
+        self.assertEqual(instance, submission_review.instance)
+        self.assertEqual(submission_review.note_text, "Hey there")
+        self.assertEqual(note.instance_field, "_review_status")
+        self.assertEqual(note.instance, submission_review.instance)
+
+        return serializer_instance.data
+
     def test_validate_bad_data(self):
         """
         Test:
@@ -27,64 +60,48 @@ class TestSubmissionReviewSerializer(TestBase):
 
         instance = Instance.objects.first()
 
-        data = {
-            "instance": instance.id,
-            "status": SubmissionReview.REJECTED
-        }
+        data = {"instance": instance.id, "status": SubmissionReview.REJECTED}
 
         with self.assertRaises(ValidationError) as no_comment:
             SubmissionReviewSerializer().validate(data)
 
         no_comment_error_detail = no_comment.exception.detail['note']
-        self.assertEqual(
-            no_comment_error_detail,
-            'Can\'t reject a submission without a comment.'
-        )
+        self.assertEqual(no_comment_error_detail,
+                         'Can\'t reject a submission without a comment.')
 
     def test_submission_review_create(self):
         """
         Test:
             - Can create a Submission Review
         """
-        self._publish_transportation_form_and_submit_instance()
-
-        instance = Instance.objects.first()
-        note = Note(
-            instance=instance,
-            instance_field="",
-            created_by=None,
-            note='Hey there.'
-        )
-
-        note.save()
-
-        data = {
-            "instance": instance.id,
-            "note": note.id,
-            "status": SubmissionReview.APPROVED
-        }
-
-        serializer_instance = SubmissionReviewSerializer(data=data)
-
-        self.assertTrue(serializer_instance.is_valid())
-
-        submission_review = serializer_instance.save()
-
-        self.assertEqual(instance, submission_review.instance)
-        self.assertEqual(note, submission_review.note)
-        self.assertEqual(note.note, submission_review.note_text)
+        serializer_instance = self._create_submission_review()
 
         expected_fields = [
-            'id',
-            'instance',
-            'note',
-            'created_by',
-            'status',
-            'date_created',
-            'date_modified',
-            'note_text'
+            'id', 'instance', 'created_by', 'status', 'date_created',
+            'date_modified', 'note_text'
         ]
 
-        self.assertEqual(
-            set(expected_fields),
-            set(list(serializer_instance.data)))
+        self.assertEqual(set(expected_fields), set(list(serializer_instance)))
+
+    def test_submission_review_update(self):
+        """
+        Test:
+            - We can update a submission review
+            - Updating a Submission Review Doesnt Create
+              a new Note
+        """
+        data = self._create_submission_review()
+        submission_review = SubmissionReview.objects.first()
+        old_note_text = submission_review.note_text
+
+        data['note_text'] = "Goodbye"
+
+        self.assertEqual(len(Note.objects.all()), 1)
+        serializer_instance = SubmissionReviewSerializer(
+            instance=submission_review, data=data)
+        self.assertTrue(serializer_instance.is_valid())
+        new_review = serializer_instance.save()
+
+        # Doesnt create a new note
+        self.assertEqual(len(Note.objects.all()), 1)
+        self.assertNotEqual(new_review.note_text, old_note_text)
