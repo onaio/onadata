@@ -60,8 +60,8 @@ class SubmissionReview(models.Model):
         """
         Returns related note text
         """
-        if self.notes is not None:
-            return self.notes.note
+        if self.note is not None:
+            return self.note.note
         return None
 
     @property
@@ -69,4 +69,4 @@ class SubmissionReview(models.Model):
         """
         Custom Property returns associated note text
         """
-        return self.get_note_text
+        return self.get_note_text()
