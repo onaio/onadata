@@ -307,11 +307,11 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         request = self.factory.get('/', data=_data)
         response = view(request)
         self.assertEquals(response.status_code, 200)
-        self.assertIn('ona_verified_email_status', response.data)
-        self.assertIn('ona_verified_username', response.data)
-        self.assertTrue(response.data.get('ona_verified_email_status'))
+        self.assertIn('is_email_verified', response.data)
+        self.assertIn('username', response.data)
+        self.assertTrue(response.data.get('is_email_verified'))
         self.assertEquals(
-            response.data.get('ona_verified_username'), data.get('username')
+            response.data.get('username'), data.get('username')
         )
 
         up = UserProfile.objects.get(user__username=data.get('username'))
@@ -335,15 +335,15 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = view(request)
 
         self.assertEquals(response.status_code, 302)
-        self.assertIn('ona_verified_email_status', response.url)
-        self.assertIn('ona_verified_username', response.url)
+        self.assertIn('is_email_verified', response.url)
+        self.assertIn('username', response.url)
 
         string_query_params = urlparse(response.url).query
         dict_query_params = parse_qs(string_query_params)
         self.assertEquals(dict_query_params.get(
-            'ona_verified_email_status'), ['True'])
+            'is_email_verified'), ['True'])
         self.assertEquals(
-            dict_query_params.get('ona_verified_username'),
+            dict_query_params.get('username'),
             [data.get('username')]
         )
 
