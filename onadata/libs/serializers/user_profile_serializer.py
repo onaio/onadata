@@ -103,7 +103,7 @@ def _send_verification_email(redirect_url, user, request):
         user.email, user.username, verification_url, request
     )
 
-    send_verification_email.delay(email_data)
+    send_verification_email.delay(**email_data)
 
 
 class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
@@ -247,11 +247,9 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         new_user.last_name = params.get('last_name')
         new_user.save()
 
-        enable_email_verification = getattr(
+        if getattr(
             settings, 'ENABLE_EMAIL_VERIFICATION', False
-        )
-
-        if enable_email_verification:
+        ):
             redirect_url = params.get('redirect_url')
             _send_verification_email(redirect_url, new_user, request)
 
