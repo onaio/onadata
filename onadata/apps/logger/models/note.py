@@ -30,8 +30,7 @@ class Note(models.Model):
 
     def get_data(self):
         """
-        Custom Method that returns a Dict Containing
-        Note Data
+        Returns Note data as a dictionary
         """
         owner = ""
         created_by_id = ""
