@@ -58,8 +58,7 @@ class SubmissionReview(models.Model):
 
     def get_note_text(self):
         """
-        Custom Method Gets the SubmissionReviews Related
-        Note Text
+        Returns related note text
         """
         if self.notes is not None:
             return self.notes.note
@@ -68,7 +67,6 @@ class SubmissionReview(models.Model):
     @property
     def note_text(self):
         """
-        Custom Property Returns the Text for the Submission Reviews
-        Associated Note
+        Custom Property returns associated note text
         """
         return self.get_note_text
