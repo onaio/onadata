@@ -7,6 +7,8 @@ from rest_framework import exceptions, serializers
 
 from onadata.apps.logger.models import SubmissionReview
 from onadata.libs.serializers.note_serializer import NoteSerializer
+from onadata.libs.utils.common_tags import (COMMENT_REQUIRED,
+                                            SUBMISSION_REVIEW_INSTANCE_FIELD)
 
 
 class SubmissionReviewSerializer(serializers.ModelSerializer):
@@ -33,10 +35,7 @@ class SubmissionReviewSerializer(serializers.ModelSerializer):
 
         if status == SubmissionReview.REJECTED:
             if note_text is None:
-                raise exceptions.ValidationError({
-                    'note':
-                    'Can\'t reject a submission without a comment.'
-                })
+                raise exceptions.ValidationError({'note': COMMENT_REQUIRED})
         return attrs
 
     def create(self, validated_data):
@@ -46,7 +45,7 @@ class SubmissionReviewSerializer(serializers.ModelSerializer):
         note_data = validated_data.pop('note')
         note_data['instance'] = validated_data.get('instance')
         note_data['created_by'] = validated_data.get('created_by')
-        note_data['instance_field'] = "_review_status"
+        note_data['instance_field'] = SUBMISSION_REVIEW_INSTANCE_FIELD
 
         note = NoteSerializer.create(
             NoteSerializer(), validated_data=note_data)
