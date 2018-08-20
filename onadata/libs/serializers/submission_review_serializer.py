@@ -47,7 +47,6 @@ class SubmissionReviewSerializer(serializers.ModelSerializer):
         note_data['instance_field'] = SUBMISSION_REVIEW_INSTANCE_FIELD
 
         note = Note.objects.create(**note_data)
-
         validated_data['note'] = note
 
         return SubmissionReview.objects.create(**validated_data)
