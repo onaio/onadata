@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 
@@ -42,6 +43,9 @@ class SubmissionReview(models.Model):
         choices=STATUS_CHOICES,
         default=PENDING,
         db_index=True)
+    deleted_at = models.DateTimeField(null=True, default=None)
+    deleted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name='deleted_reviews', null=True)
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
 
@@ -51,6 +55,19 @@ class SubmissionReview(models.Model):
         """
         app_label = 'logger'
 
+    @classmethod
+    def set_deleted_at(cls, review_id, deleted_at=timezone.now(), user=None):
+        """
+        Retrieves the submission_review object and calls
+        set_deleted with it
+        """
+        try:
+            submission_review = cls.objects.get(id=review_id)
+        except cls.DoesNotExist:
+            pass
+        else:
+            submission_review.set_deleted(deleted_at, user)
+
     def get_note_text(self):
         """
         Custom Property returns associated note text
@@ -58,5 +75,14 @@ class SubmissionReview(models.Model):
         if self.note is not None:
             return self.note.note  # pylint: disable=no-member
         return None
+
+    def set_deleted(self, deleted_at=timezone.now(), user=None):
+        """
+        Sets the deleted_at and deleted_by fields
+        """
+        if user:
+            self.deleted_by = user
+        self.deleted_at = deleted_at
+        self.save()
 
     note_text = property(get_note_text)
