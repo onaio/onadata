@@ -67,8 +67,8 @@ class TestSubmissionReviewSerializer(TestBase):
         with self.assertRaises(ValidationError) as no_comment:
             SubmissionReviewSerializer().validate(data)
 
-        no_comment_error_detail = no_comment.exception.detail['note']
-        self.assertEqual(COMMENT_REQUIRED, no_comment_error_detail)
+            no_comment_error_detail = no_comment.exception.detail['note']
+            self.assertEqual(COMMENT_REQUIRED, no_comment_error_detail)
 
     def test_submission_review_create(self):
         """
