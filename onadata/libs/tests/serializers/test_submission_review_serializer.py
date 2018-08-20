@@ -10,6 +10,8 @@ from onadata.apps.logger.models import Instance, Note, SubmissionReview
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.serializers.submission_review_serializer import \
     SubmissionReviewSerializer
+from onadata.libs.utils.common_tags import (COMMENT_REQUIRED,
+                                            SUBMISSION_REVIEW_INSTANCE_FIELD)
 
 
 class TestSubmissionReviewSerializer(TestBase):
@@ -44,8 +46,8 @@ class TestSubmissionReviewSerializer(TestBase):
 
         note = submission_review.note
         self.assertEqual(instance, submission_review.instance)
-        self.assertEqual(submission_review.note_text, "Hey there")
-        self.assertEqual(note.instance_field, "_review_status")
+        self.assertEqual("Hey there", submission_review.note_text)
+        self.assertEqual(SUBMISSION_REVIEW_INSTANCE_FIELD, note.instance_field)
         self.assertEqual(note.instance, submission_review.instance)
 
         return serializer_instance.data
@@ -66,8 +68,7 @@ class TestSubmissionReviewSerializer(TestBase):
             SubmissionReviewSerializer().validate(data)
 
         no_comment_error_detail = no_comment.exception.detail['note']
-        self.assertEqual(no_comment_error_detail,
-                         'Can\'t reject a submission without a comment.')
+        self.assertEqual(COMMENT_REQUIRED, no_comment_error_detail)
 
     def test_submission_review_create(self):
         """
@@ -104,4 +105,4 @@ class TestSubmissionReviewSerializer(TestBase):
 
         # Doesnt create a new note
         self.assertEqual(len(Note.objects.all()), 1)
-        self.assertNotEqual(new_review.note_text, old_note_text)
+        self.assertNotEqual(old_note_text, new_review.note_text)
