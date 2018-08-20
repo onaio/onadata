@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 
 from rest_framework import exceptions, serializers
 
-from onadata.apps.logger.models import SubmissionReview
+from onadata.apps.logger.models import Note, SubmissionReview
 from onadata.libs.serializers.note_serializer import NoteSerializer
 from onadata.libs.utils.common_tags import (COMMENT_REQUIRED,
                                             SUBMISSION_REVIEW_INSTANCE_FIELD)
@@ -47,8 +47,7 @@ class SubmissionReviewSerializer(serializers.ModelSerializer):
         note_data['created_by'] = validated_data.get('created_by')
         note_data['instance_field'] = SUBMISSION_REVIEW_INSTANCE_FIELD
 
-        note = NoteSerializer.create(
-            NoteSerializer(), validated_data=note_data)
+        note = Note.objects.create(**note_data)
 
         validated_data['note'] = note
 
