@@ -18,16 +18,11 @@ class SubmissionReview(models.Model):
     REJECTED = '2'
     PENDING = '3'
 
-    STATUS_CHOICES = (
-        (APPROVED, _('Approved')),
-        (PENDING, _('Pending')),
-        (REJECTED, _('Rejected'))
-    )
+    STATUS_CHOICES = ((APPROVED, _('Approved')), (PENDING, _('Pending')),
+                      (REJECTED, _('Rejected')))
 
     instance = models.ForeignKey(
-        'logger.Instance',
-        related_name='reviews',
-        on_delete=models.CASCADE)
+        'logger.Instance', related_name='reviews', on_delete=models.CASCADE)
     note = models.ForeignKey(
         'logger.Note',
         related_name='notes',
@@ -55,3 +50,13 @@ class SubmissionReview(models.Model):
         Meta Options for SubmissionReview
         """
         app_label = 'logger'
+
+    def get_note_text(self):
+        """
+        Custom Property returns associated note text
+        """
+        if self.note is not None:
+            return self.note.note  # pylint: disable=no-member
+        return None
+
+    note_text = property(get_note_text)
