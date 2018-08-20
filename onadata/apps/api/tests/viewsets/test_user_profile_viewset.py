@@ -243,7 +243,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['gravatar'] = profile.gravatar
         data['url'] = 'http://testserver/api/v1/profiles/deno'
         data['user'] = 'http://testserver/api/v1/users/deno'
-        data['metadata'] = {}
+        data['metadata'] = profile.metadata
         data['joined_on'] = profile.user.date_joined
         data['name'] = "%s %s" % ('Dennis', 'erama')
         self.assertEqual(response.data, data)
@@ -251,6 +251,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         user = User.objects.get(username='deno')
         self.assertTrue(user.is_active)
         self.assertTrue(user.check_password(password), password)
+
 
     @override_settings(REQUIRE_ODK_AUTHENTICATION=True)
     def test_profile_require_auth(self):
@@ -315,7 +316,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['gravatar'] = profile.gravatar
         data['url'] = 'http://testserver/api/v1/profiles/nguyenquynh'
         data['user'] = 'http://testserver/api/v1/users/nguyenquynh'
-        data['metadata'] = {}
+        data['metadata'] = profile.metadata
         data['joined_on'] = profile.user.date_joined
         data['name'] = "%s %s" % (
             u'Nguy\u1ec5n Th\u1ecb', u'Di\u1ec5m Qu\u1ef3nh')
@@ -355,7 +356,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['gravatar'] = profile.gravatar
         data['url'] = 'http://testserver/api/v1/profiles/deno'
         data['user'] = 'http://testserver/api/v1/users/deno'
-        data['metadata'] = {}
+        data['metadata'] = profile.metadata
         data['joined_on'] = profile.user.date_joined
         self.assertEqual(response.data, data)
         self.assertNotIn('email', response.data)
@@ -544,7 +545,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['url'] = 'http://testserver/api/v1/profiles/deno'
         data['user'] = 'http://testserver/api/v1/users/deno'
         data['username'] = u'deno'
-        data['metadata'] = {}
+        data['metadata'] = profile.metadata
         data['joined_on'] = profile.user.date_joined
         self.assertEqual(response.data, data)
 
@@ -614,7 +615,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['gravatar'] = profile.gravatar
         data['url'] = 'http://testserver/api/v1/profiles/deno'
         data['user'] = 'http://testserver/api/v1/users/deno'
-        data['metadata'] = {}
+        data['metadata'] = profile.metadata
         data['joined_on'] = profile.user.date_joined
 
         self.assertEqual(response.data, data)

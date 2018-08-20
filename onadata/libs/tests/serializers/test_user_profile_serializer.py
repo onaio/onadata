@@ -1,3 +1,4 @@
+import datetime
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.test import TransactionTestCase
@@ -5,7 +6,7 @@ from datetime import timedelta
 from django.utils.timezone import now
 
 from onadata.libs.serializers.user_profile_serializer import\
-    UserProfileWithTokenSerializer
+    UserProfileWithTokenSerializer, UserProfileSerializer
 from onadata.apps.main.models import UserProfile
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.libs.authentication import expired
@@ -45,7 +46,7 @@ def create_user_profile(profile_data):
     return new_profile
 
 
-class TestUserProfileSerializer(TransactionTestCase):
+class TestUserProfileWithTokenSerializer(TransactionTestCase):
 
     def setUp(self):
         self.serializer = UserProfileWithTokenSerializer()

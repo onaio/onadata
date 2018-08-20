@@ -130,6 +130,16 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
 
         return obj
 
+    def create(self, request, *args, **kwargs):
+        data = request.data
+        data['metadata'] = {'last_password_edit':
+                                datetime.datetime.now().isoformat()}
+        serializer = self.serializer_class(
+            data=data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
     @action(methods=['POST'], detail=True)
     def change_password(self, request, user):  # pylint: disable=W0613
         """
@@ -142,6 +152,9 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
         if new_password:
             if user_profile.user.check_password(current_password):
                 user_profile.user.set_password(new_password)
+                user_profile.metadata['last_password_edit'] = \
+                    datetime.datetime.now().isoformat()
+                user_profile.save()
                 user_profile.user.save()
 
                 return Response(status=status.HTTP_204_NO_CONTENT)
