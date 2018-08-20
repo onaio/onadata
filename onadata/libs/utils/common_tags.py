@@ -119,3 +119,7 @@ EXPORT_MIMES = {
     'kml': 'vnd.google-earth.kml+xml',
     OSM: OSM
 }
+
+# Submission Review Tags
+COMMENT_REQUIRED = 'Can\'t reject a submission without a comment.'
+SUBMISSION_REVIEW_INSTANCE_FIELD = '_review_status'
