@@ -121,5 +121,5 @@ EXPORT_MIMES = {
 }
 
 # Submission Review Tags
-COMMENT_REQUIRED = 'Can\'t reject a submission without a comment.'
+COMMENT_REQUIRED = 'Cannot reject a submission without a comment.'
 SUBMISSION_REVIEW_INSTANCE_FIELD = '_review_status'
