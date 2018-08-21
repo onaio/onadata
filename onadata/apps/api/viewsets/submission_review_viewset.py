@@ -31,11 +31,12 @@ class SubmissionReviewViewSet(AuthenticateHeaderMixin, CacheControlMixin,
     ]
     filter_fields = ['instance', 'created_by', 'status']
 
-    def destroy(self, request, *args, **kwards):
+    def destroy(self, request, *args, **kwargs):
         """
         Custom destroy method
         """
         obj = self.get_object()
-        obj.set_deleted()
+        user = request.user
+        obj.set_deleted(user=user)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
