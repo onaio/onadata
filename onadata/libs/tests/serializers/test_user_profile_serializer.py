@@ -85,14 +85,18 @@ class TestUserProfileSerializer(TestAbstractViewSet):
     def test_metadata_view_for_owner_only(self):
         request = APIRequestFactory().get('/')
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
-        user_profile1 = self._create_user_profile()
-        user_profile2 = self._create_user_profile(extra_post_data=alice_data)
-        request.user = user_profile1.user
-        serializer = UserProfileSerializer(
-            instance=user_profile1,
+        bob_profile = self._create_user_profile()
+        alice_profile = self._create_user_profile(extra_post_data=alice_data)
+        request.user = bob_profile.user
+        bob_serializer = UserProfileSerializer(
+            instance=bob_profile,
             context={'request': request})
-        self.assertIn('metadata', serializer.data.keys())
-        serializer = UserProfileSerializer(
-            instance=user_profile2,
+        self.assertIn('metadata', bob_serializer.data.keys())
+        alice_serializer = UserProfileSerializer(
+            instance=alice_profile,
             context={'request': request})
-        self.assertNotIn('metadata', serializer.data.keys())
+        self.assertNotIn('metadata', alice_serializer.data.keys())
+        self.assertEqual(bob_profile.user.username,
+                         bob_serializer.data['username'])
+        self.assertEqual(alice_profile.user.username,
+                         alice_serializer.data['username'])
