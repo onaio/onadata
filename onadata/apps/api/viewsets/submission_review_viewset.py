@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from onadata.apps.api import permissions
+from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import SubmissionReview
 from onadata.libs.mixins.authenticate_header_mixin import \
@@ -26,9 +26,7 @@ class SubmissionReviewViewSet(AuthenticateHeaderMixin, CacheControlMixin,
     """
     queryset = SubmissionReview.objects.filter(deleted_at__isnull=True)
     serializer_class = SubmissionReviewSerializer
-    permission_classes = [
-        permissions.ViewDjangoObjectPermissions, permissions.IsAuthenticated
-    ]
+    permission_classes = [XFormPermissions]
     filter_fields = ['instance', 'created_by', 'status']
 
     def destroy(self, request, *args, **kwargs):
