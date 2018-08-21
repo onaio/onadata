@@ -3,26 +3,23 @@ Submission Review ViewSet Tests Module
 """
 from __future__ import unicode_literals
 
-from django.test import RequestFactory
+from guardian.shortcuts import assign_perm
 
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
+    TestAbstractViewSet
 from onadata.apps.api.viewsets.submission_review_viewset import \
     SubmissionReviewViewSet
 from onadata.apps.logger.models import SubmissionReview
-from onadata.apps.main.tests.test_base import TestBase
 
 
-class TestSubmissionReviewViewSet(TestBase):
+class TestSubmissionReviewViewSet(TestAbstractViewSet):
     """
     Test SubmissionReviewViewset Class
     """
 
     def setUp(self):
         super(TestSubmissionReviewViewSet, self).setUp()
-        self._create_user_and_login()
-        self._publish_transportation_form()
-        self._make_submissions()
-        self.factory = RequestFactory()
-        self.extra = {'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        self._publish_form_with_hxl_support()
 
     @property
     def _first_xform_instance(self):
@@ -90,8 +87,10 @@ class TestSubmissionReviewViewSet(TestBase):
         """
         Test that we can update submission_reviews
         """
-        # TODO: Pass Test
+        # TODO: Pass Text
         data = self._create_submission_review()
+
+        assign_perm('logger.change_submissionreview', self.user)
 
         new_data = {
             'note_text': "My name is Davis!",
@@ -99,7 +98,7 @@ class TestSubmissionReviewViewSet(TestBase):
         }
 
         view = SubmissionReviewViewSet.as_view({'patch': 'partial_update'})
-        request = self.factory.patch('/', data=new_data)
+        request = self.factory.patch('/', data=new_data, **self.extra)
         response = view(request=request, pk=data['id'])
 
         self.assertEqual(200, response.status_code)
@@ -114,11 +113,13 @@ class TestSubmissionReviewViewSet(TestBase):
         # TODO: Pass Test
         submission_review_data = self._create_submission_review()
 
-        submission_review = SubmissionReview.objects.get(
-            id=submission_review_data['id'])
+        assign_perm('logger.delete_submissionreview', self.user)
 
         # Shows up on list
-        view = SubmissionReviewViewSet.as_view({'get': 'list'})
+        view = SubmissionReviewViewSet.as_view({
+            'get': 'list',
+            'delete': 'destroy'
+        })
         request = self.factory.get('/', **self.extra)
 
         response = view(request=request)
@@ -126,16 +127,13 @@ class TestSubmissionReviewViewSet(TestBase):
         self.assertEqual(200, response.status_code)
         self.assertEqual(1, len(response.data))
 
-        view = SubmissionReviewViewSet.as_view({'delete': 'destroy'})
         request = self.factory.delete('/', **self.extra)
-        response = view(request=request, pk=submission_review.id)
+        response = view(request=request, pk=submission_review_data['id'])
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(200, response.status_code)
 
         # Doesn't show up on list after deletion
-        view = SubmissionReviewViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
-
         response = view(request=request)
 
         self.assertEqual(200, response.status_code)
