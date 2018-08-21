@@ -244,6 +244,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['url'] = 'http://testserver/api/v1/profiles/deno'
         data['user'] = 'http://testserver/api/v1/users/deno'
         data['metadata'] = {}
+        data['metadata']['last_password_edit'] = \
+            profile.metadata['last_password_edit']
         data['joined_on'] = profile.user.date_joined
         data['name'] = "%s %s" % ('Dennis', 'erama')
         self.assertEqual(response.data, data)
@@ -316,6 +318,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['url'] = 'http://testserver/api/v1/profiles/nguyenquynh'
         data['user'] = 'http://testserver/api/v1/users/nguyenquynh'
         data['metadata'] = {}
+        data['metadata']['last_password_edit'] = \
+            profile.metadata['last_password_edit']
         data['joined_on'] = profile.user.date_joined
         data['name'] = "%s %s" % (
             u'Nguy\u1ec5n Th\u1ecb', u'Di\u1ec5m Qu\u1ef3nh')
@@ -356,6 +360,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['url'] = 'http://testserver/api/v1/profiles/deno'
         data['user'] = 'http://testserver/api/v1/users/deno'
         data['metadata'] = {}
+        data['metadata']['last_password_edit'] = \
+            profile.metadata['last_password_edit']
         data['joined_on'] = profile.user.date_joined
         self.assertEqual(response.data, data)
         self.assertNotIn('email', response.data)
@@ -545,6 +551,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['user'] = 'http://testserver/api/v1/users/deno'
         data['username'] = u'deno'
         data['metadata'] = {}
+        data['metadata']['last_password_edit'] = \
+            profile.metadata['last_password_edit']
         data['joined_on'] = profile.user.date_joined
         self.assertEqual(response.data, data)
 
@@ -615,6 +623,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['url'] = 'http://testserver/api/v1/profiles/deno'
         data['user'] = 'http://testserver/api/v1/users/deno'
         data['metadata'] = {}
+        data['metadata']['last_password_edit'] = \
+            profile.metadata['last_password_edit']
         data['joined_on'] = profile.user.date_joined
 
         self.assertEqual(response.data, data)
