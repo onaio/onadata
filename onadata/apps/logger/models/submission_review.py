@@ -63,7 +63,7 @@ class SubmissionReview(models.Model):
         """
         try:
             submission_review = cls.objects.get(id=review_id)
-        except cls.DoesNotExist:
+        except SubmissionReview.DoesNotExist:
             pass
         else:
             submission_review.set_deleted(deleted_at, user)
