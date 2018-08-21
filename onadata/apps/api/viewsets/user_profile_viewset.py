@@ -11,6 +11,7 @@ from past.builtins import basestring  # pylint: disable=redefined-builtin
 from django.conf import settings
 from django.core.validators import ValidationError
 from django.db.models import Count
+from django.utils import timezone
 
 from rest_framework import serializers, status
 from rest_framework.decorators import action
@@ -133,7 +134,7 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
     def create(self, request, *args, **kwargs):
         data = request.data
         data['metadata'] = {'last_password_edit':
-                                datetime.datetime.now().isoformat()}
+                            timezone.now().isoformat()}
         serializer = self.serializer_class(
             data=data, context={'request': request})
         serializer.is_valid(raise_exception=True)
@@ -153,7 +154,7 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
             if user_profile.user.check_password(current_password):
                 user_profile.user.set_password(new_password)
                 user_profile.metadata['last_password_edit'] = \
-                    datetime.datetime.now().isoformat()
+                    timezone.now().isoformat()
                 user_profile.save()
                 user_profile.user.save()
 

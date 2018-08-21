@@ -195,6 +195,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
         instance.user.username = params.get('username', instance.user.username)
 
+        instance.metadata = params.get('metadata', instance.metadata)
+
         instance.user.save()
 
         if password:
@@ -227,7 +229,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             country=params.get('country', u''),
             organization=params.get('organization', u''),
             home_page=params.get('home_page', u''),
-            twitter=params.get('twitter', u'')
+            twitter=params.get('twitter', u''),
+            metadata=params.get('metadata', dict)
         )
         profile.save()
 

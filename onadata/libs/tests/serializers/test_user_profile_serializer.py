@@ -3,9 +3,12 @@ from django.contrib.auth.models import User
 from django.test import TransactionTestCase
 from datetime import timedelta
 from django.utils.timezone import now
+from rest_framework.test import APIRequestFactory
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
+    TestAbstractViewSet
 
 from onadata.libs.serializers.user_profile_serializer import\
-    UserProfileWithTokenSerializer
+    UserProfileWithTokenSerializer, UserProfileSerializer
 from onadata.apps.main.models import UserProfile
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.libs.authentication import expired
@@ -75,3 +78,21 @@ class TestUserProfileWithTokenSerializer(TransactionTestCase):
         is_expired = expired(temp_token.created)
 
         self.assertFalse(is_expired)
+
+
+class TestUserProfileSerializer(TestAbstractViewSet):
+
+    def test_metadata_view_for_owner_only(self):
+        request = APIRequestFactory().get('/')
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        user_profile1 = self._create_user_profile()
+        user_profile2 = self._create_user_profile(extra_post_data=alice_data)
+        request.user = user_profile1.user
+        serializer = UserProfileSerializer(
+            instance=user_profile1,
+            context={'request': request})
+        self.assertIn('metadata', serializer.data.keys())
+        serializer = UserProfileSerializer(
+            instance=user_profile2,
+            context={'request': request})
+        self.assertNotIn('metadata', serializer.data.keys())
