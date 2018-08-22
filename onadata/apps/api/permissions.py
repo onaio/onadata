@@ -86,8 +86,8 @@ class ExportDjangoObjectPermission(AlternateHasObjectPermissionMixin,
     }
 
     def has_permission(self, request, view):
-        is_authenticated = (request and request.user
-                            and request.user.is_authenticated())
+        is_authenticated = (request and request.user and
+                            request.user.is_authenticated())
 
         if not is_authenticated:
             view._ignore_model_permissions = True  # pylint: disable=W0212
