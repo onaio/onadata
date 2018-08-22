@@ -58,19 +58,6 @@ class SubmissionReview(models.Model):
         """
         app_label = 'logger'
 
-    @classmethod
-    def set_deleted_at(cls, review_id, deleted_at=timezone.now(), user=None):
-        """
-        Retrieves the submission_review object and calls
-        set_deleted with it
-        """
-        try:
-            submission_review = cls.objects.get(id=review_id)
-        except SubmissionReview.DoesNotExist:
-            pass
-        else:
-            submission_review.set_deleted(deleted_at, user)
-
     def get_note_text(self):
         """
         Custom Property returns associated note text
