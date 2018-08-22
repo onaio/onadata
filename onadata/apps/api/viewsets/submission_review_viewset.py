@@ -1,6 +1,7 @@
 """
 Submission Review Viewset Module
 """
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -27,7 +28,8 @@ class SubmissionReviewViewSet(AuthenticateHeaderMixin, CacheControlMixin,
     queryset = SubmissionReview.objects.filter(deleted_at__isnull=True)
     serializer_class = SubmissionReviewSerializer
     permission_classes = [SubmissionReviewPermissions]
-    filter_fields = ['instance', 'created_by', 'status']
+    filter_backends = (DjangoFilterBackend, )
+    filter_fields = ('instance', 'created_by', 'status')
 
     def destroy(self, request, *args, **kwargs):
         """
