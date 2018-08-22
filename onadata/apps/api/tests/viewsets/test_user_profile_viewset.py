@@ -271,7 +271,6 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
 
     @override_settings(ENABLE_EMAIL_VERIFICATION=True)
-    @override_settings(POST_EMAIL_VERIFICATION_REDIRECT_URL=None)
     @override_settings(VERIFIED_KEY_TEXT=None)
     def test_return_204_if_email_verification_variables_are_not_set(self):
         data = _profile_data()
