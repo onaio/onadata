@@ -29,11 +29,6 @@ class SubmissionReviewSerializer(serializers.ModelSerializer):
         """
         Custom Validate Method for SubmissionReviewSerializer
         """
-        if not self.instance:
-            # Runs only on creation of a Submission Review
-            request = self.context.get('request')
-            attrs['created_by'] = request.user
-
         status = attrs.get('status')
         note_text = attrs.get('note_text')
 
@@ -46,6 +41,11 @@ class SubmissionReviewSerializer(serializers.ModelSerializer):
         """
         Custom create method for SubmissionReviewSerializer
         """
+        request = self.context.get('request')
+
+        if request:
+            validated_data['created_by'] = request.user
+
         note_data = validated_data.pop('note')
         note_data['instance'] = validated_data.get('instance')
         note_data['created_by'] = validated_data.get('created_by')
