@@ -32,20 +32,18 @@ from taggit.forms import TagField
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.models.team import Team
-from onadata.apps.logger.models.data_view import DataView
-from onadata.apps.logger.models.project import Project
-from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.models import (DataView, Instance, Project,
+                                        SubmissionReview, XForm)
 from onadata.apps.main.forms import QuickConverter
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import datetime_from_str
 from onadata.libs.baseviewset import DefaultBaseViewset
 from onadata.libs.models.share_project import ShareProject
-from onadata.libs.permissions import (ROLES, DataEntryMinorRole,
-                                      DataEntryOnlyRole, DataEntryRole,
-                                      EditorMinorRole, EditorRole, ManagerRole,
-                                      OwnerRole, get_role, get_role_in_org,
-                                      is_organization)
+from onadata.libs.permissions import (
+    ROLES, DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole,
+    EditorMinorRole, EditorRole, ManagerRole, OwnerRole, get_role,
+    get_role_in_org, is_organization)
 from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.utils.cache_tools import (PROJ_BASE_FORMS_CACHE,
                                             PROJ_FORMS_CACHE, safe_delete)
@@ -119,15 +117,21 @@ def create_organization_object(org_name, creator, attrs=None):
     name = attrs.get('name', org_name) if attrs else org_name
     first_name, last_name = _get_first_last_names(name)
     email = attrs.get('email', u'') if attrs else u''
-    new_user = User(username=org_name, first_name=first_name,
-                    last_name=last_name, email=email, is_active=True)
+    new_user = User(
+        username=org_name,
+        first_name=first_name,
+        last_name=last_name,
+        email=email,
+        is_active=True)
     new_user.save()
     registration_profile = RegistrationProfile.objects.create_profile(new_user)
     if email:
         site = Site.objects.get(pk=settings.SITE_ID)
         registration_profile.send_activation_email(site)
     profile = OrganizationProfile(
-        user=new_user, name=name, creator=creator,
+        user=new_user,
+        name=name,
+        creator=creator,
         created_by=creator,
         city=attrs.get('city', u''),
         country=attrs.get('country', u''),
@@ -161,8 +165,8 @@ def get_organization_members_team(organization):
     create members team if it does not exist and add organization owner
     to the members team"""
     try:
-        team = Team.objects.get(
-            name=u'%s#%s' % (organization.user.username, 'members'))
+        team = Team.objects.get(name=u'%s#%s' % (organization.user.username,
+                                                 'members'))
     except Team.DoesNotExist:
         team = create_organization_team(organization, 'members')
         add_user_to_team(team, organization.user)
@@ -176,9 +180,9 @@ def get_organization_owners_team(org):
     :param org: organization
     :return: Owners team of the organization
     """
-    return Team.objects.get(name="{}#{}".format(org.user.username,
-                                                Team.OWNER_TEAM_NAME),
-                            organization=org.user)
+    return Team.objects.get(
+        name="{}#{}".format(org.user.username, Team.OWNER_TEAM_NAME),
+        organization=org.user)
 
 
 def remove_user_from_organization(organization, user):
@@ -252,11 +256,12 @@ def get_organization_members(organization):
 def _get_owners(organization):
     # Get users with owners perms and not the org itself
 
-    return [user
-            for user in get_organization_owners_team(
-                organization).user_set.all()
-            if get_role_in_org(user, organization) == 'owner' and
-            organization.user != user]
+    return [
+        user
+        for user in get_organization_owners_team(organization).user_set.all()
+        if get_role_in_org(user, organization) == 'owner'
+        and organization.user != user
+    ]
 
 
 def create_organization_project(organization, project_name, created_by):
@@ -273,10 +278,11 @@ def create_organization_project(organization, project_name, created_by):
     if not profile.is_organization_owner(created_by):
         return None
 
-    project = Project.objects.create(name=project_name,
-                                     organization=organization,
-                                     created_by=created_by,
-                                     metadata='{}')
+    project = Project.objects.create(
+        name=project_name,
+        organization=organization,
+        created_by=created_by,
+        metadata='{}')
 
     return project
 
@@ -300,9 +306,8 @@ def publish_xlsform(request, owner, id_string=None, project=None):
     """
     Publishes XLSForm given a request.
     """
-    return do_publish_xlsform(
-        request.user, request.data, request.FILES, owner, id_string,
-        project)
+    return do_publish_xlsform(request.user, request.data, request.FILES, owner,
+                              id_string, project)
 
 
 # pylint: disable=too-many-arguments
@@ -311,17 +316,19 @@ def do_publish_xlsform(user, post, files, owner, id_string=None, project=None):
     Publishes XLSForm.
     """
     if id_string and project:
-        xform = get_object_or_404(XForm, user=owner, id_string=id_string,
-                                  project=project)
+        xform = get_object_or_404(
+            XForm, user=owner, id_string=id_string, project=project)
         if not ManagerRole.user_has_role(user, xform):
-            raise exceptions.PermissionDenied(_(
-                "{} has no manager/owner role to the form {}". format(
+            raise exceptions.PermissionDenied(
+                _("{} has no manager/owner role to the form {}".format(
                     user, xform)))
     elif not user.has_perm('can_add_xform', owner.profile):
         raise exceptions.PermissionDenied(
             detail=_(u"User %(user)s has no permission to add xforms to "
-                     "account %(account)s" % {'user': user.username,
-                                              'account': owner.username}))
+                     "account %(account)s" % {
+                         'user': user.username,
+                         'account': owner.username
+                     }))
 
     def set_form():
         """
@@ -381,8 +388,8 @@ def publish_project_xform(request, project):
         safe_delete('{}{}'.format(PROJ_FORMS_CACHE, xform.project.pk))
         safe_delete('{}{}'.format(PROJ_BASE_FORMS_CACHE, xform.project.pk))
         if not ManagerRole.user_has_role(request.user, xform):
-            raise exceptions.PermissionDenied(_(
-                "{} has no manager/owner role to the form {}". format(
+            raise exceptions.PermissionDenied(
+                _("{} has no manager/owner role to the form {}".format(
                     request.user, xform)))
 
         msg = 'Form with the same id_string already exists in this account'
@@ -429,8 +436,8 @@ def get_xform(formid, request, username=None):
         xform = check_and_set_form_by_id(int(formid), request)
 
     if not xform:
-        raise exceptions.PermissionDenied(_(
-            "You do not have permission to view data from this form."))
+        raise exceptions.PermissionDenied(
+            _("You do not have permission to view data from this form."))
 
     return xform
 
@@ -451,10 +458,27 @@ def get_user_profile_or_none(username):
     return profile
 
 
+def get_instance_xform_or_none(instance_id):
+    """
+    Returns an The XForm an Instance belongs to
+    """
+    xform = None
+
+    try:
+        instance = Instance.objects.get(id=instance_id)
+    except Instance.DoesNotExist:
+        pass
+    else:
+        xform = instance.xform
+
+    return xform
+
+
 def add_tags_to_instance(request, instance):
     """
     Add tags to an instance.
     """
+
     class TagForm(forms.Form):
         """
         Simple TagForm class to validate tags in a request.
@@ -512,8 +536,11 @@ def get_media_file_response(metadata, request=None):
         if dfs.exists(file_path):
             response = response_with_mimetype_and_name(
                 metadata.data_file_type,
-                filename, extension=extension, show_date=False,
-                file_path=file_path, full_mime=True)
+                filename,
+                extension=extension,
+                show_date=False,
+                file_path=file_path,
+                full_mime=True)
 
             return response
         return HttpResponseNotFound()
@@ -526,9 +553,11 @@ def get_media_file_response(metadata, request=None):
             xform = obj.xform if isinstance(obj, DataView) else obj
 
             return custom_response_handler(
-                request, xform, {}, Export.CSV_EXPORT, filename=filename,
-                dataview=dataview
-            )
+                request,
+                xform, {},
+                Export.CSV_EXPORT,
+                filename=filename,
+                dataview=dataview)
 
     return HttpResponseRedirect(metadata.data_value)
 
@@ -550,8 +579,7 @@ def check_inherit_permission_from_project(xform_id, user):
 
     # get the project_xform
     xform = XForm.objects.filter(pk=xform_id).select_related('project').only(
-        'project_id', 'id'
-    ).first()
+        'project_id', 'id').first()
 
     if not xform:
         return
@@ -638,9 +666,7 @@ def get_xform_users(xform):
                 'user': user.username
             }
         if perm.user in data:
-            data[perm.user]['permissions'].append(
-                perm.permission.codename
-            )
+            data[perm.user]['permissions'].append(perm.permission.codename)
 
     for k in data:
         data[k]['permissions'].sort()
@@ -659,8 +685,9 @@ def update_role_by_meta_xform_perms(xform):
     editor_role_list = [EditorRole, EditorMinorRole]
     editor_role = {role.name: role for role in editor_role_list}
 
-    dataentry_role_list = [DataEntryMinorRole, DataEntryOnlyRole,
-                           DataEntryRole]
+    dataentry_role_list = [
+        DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole
+    ]
     dataentry_role = {role.name: role for role in dataentry_role_list}
 
     if metadata:
