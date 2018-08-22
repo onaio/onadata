@@ -14,7 +14,7 @@ class SubmissionReviewSerializer(serializers.ModelSerializer):
     """
     SubmissionReviewSerializer Class
     """
-    note_text = serializers.CharField(source='note.note')
+    note = serializers.CharField(source='note.note')
 
     class Meta:
         """
@@ -22,18 +22,17 @@ class SubmissionReviewSerializer(serializers.ModelSerializer):
         """
         model = SubmissionReview
         fields = ('id', 'instance', 'created_by', 'status', 'date_created',
-                  'note_text', 'date_modified')
-        read_only_fields = ['note']
+                  'note', 'date_modified')
 
     def validate(self, attrs):
         """
         Custom Validate Method for SubmissionReviewSerializer
         """
         status = attrs.get('status')
-        note_text = attrs.get('note_text')
+        note = attrs.get('note')
 
         if status == SubmissionReview.REJECTED:
-            if note_text is None:
+            if note is None:
                 raise exceptions.ValidationError({'note': COMMENT_REQUIRED})
         return attrs
 
