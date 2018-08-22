@@ -30,7 +30,7 @@ class TestSubmissionReviewSerializer(TestBase):
 
         data = {
             "instance": instance.id,
-            "note_text": "Hey there",
+            "note": "Hey there",
             "status": SubmissionReview.APPROVED
         }
 
@@ -79,7 +79,7 @@ class TestSubmissionReviewSerializer(TestBase):
 
         expected_fields = [
             'id', 'instance', 'created_by', 'status', 'date_created',
-            'date_modified', 'note_text'
+            'date_modified', 'note'
         ]
 
         self.assertEqual(set(expected_fields), set(list(serializer_instance)))
@@ -95,7 +95,7 @@ class TestSubmissionReviewSerializer(TestBase):
         submission_review = SubmissionReview.objects.first()
         old_note_text = submission_review.note_text
 
-        data['note_text'] = "Goodbye"
+        data['note'] = "Goodbye"
 
         self.assertEqual(len(Note.objects.all()), 1)
         serializer_instance = SubmissionReviewSerializer(
