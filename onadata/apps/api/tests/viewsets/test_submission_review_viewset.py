@@ -3,23 +3,26 @@ Submission Review ViewSet Tests Module
 """
 from __future__ import unicode_literals
 
-from guardian.shortcuts import assign_perm
+from rest_framework.test import APIRequestFactory
 
-from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
-    TestAbstractViewSet
 from onadata.apps.api.viewsets.submission_review_viewset import \
     SubmissionReviewViewSet
 from onadata.apps.logger.models import SubmissionReview
+from onadata.apps.main.tests.test_base import TestBase
 
 
-class TestSubmissionReviewViewSet(TestAbstractViewSet):
+class TestSubmissionReviewViewSet(TestBase):
     """
     Test SubmissionReviewViewset Class
     """
 
     def setUp(self):
         super(TestSubmissionReviewViewSet, self).setUp()
-        self._publish_form_with_hxl_support()
+        self._create_user_and_login()
+        self._publish_transportation_form()
+        self._make_submissions()
+        self.factory = APIRequestFactory()
+        self.extra = {'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
 
     @property
     def _first_xform_instance(self):
@@ -87,10 +90,7 @@ class TestSubmissionReviewViewSet(TestAbstractViewSet):
         """
         Test that we can update submission_reviews
         """
-        # TODO: Pass Text
         data = self._create_submission_review()
-
-        assign_perm('logger.change_submissionreview', self.user)
 
         new_data = {
             'note_text': "My name is Davis!",
@@ -103,6 +103,53 @@ class TestSubmissionReviewViewSet(TestAbstractViewSet):
 
         self.assertEqual(200, response.status_code)
 
+    def test_submission_review_permission(self):
+        """
+        Test that submission review access to unauthorized users
+        """
+        data = self._create_submission_review()
+        self._create_user_and_login('dave', '1234')
+        extra = {'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+
+        view = SubmissionReviewViewSet.as_view({
+            'post': 'create',
+            'get': 'list',
+            'patch': 'partial_update',
+            'delete': 'destroy'
+        })
+
+        # `dave` user should not be able to create reviews on
+        # an xform where he/she has no Admin privileges
+        review = {
+            'note_text': "Hey there!",
+            'status': SubmissionReview.APPROVED,
+            'instance': data['instance']
+        }
+
+        request = self.factory.post('/', data=review, **extra)
+        response = view(request=request)
+
+        self.assertEqual(403, response.status_code)
+
+        # `dave` user should not be able to update reviews on
+        # an xform where he/she has no Admin privileges
+        new_data = {
+            'note_text': "Hey there!",
+            'status': SubmissionReview.APPROVED
+        }
+
+        request = self.factory.patch('/', data=new_data, **extra)
+        response = view(request=request, pk=data['id'])
+
+        self.assertEqual(403, response.status_code)
+
+        # `dave` user should not be able to delete reviews on
+        # an xform they have no Admin Privileges on
+        request = self.factory.delete('/', **extra)
+        response = view(request=request, pk=data['id'])
+
+        self.assertEqual(403, response.status_code)
+
     def test_delete_submission_review(self):
         """
         Test:
@@ -110,10 +157,7 @@ class TestSubmissionReviewViewSet(TestAbstractViewSet):
             - Deleted Submission Reviews Do not show up on
               on list
         """
-        # TODO: Pass Test
         submission_review_data = self._create_submission_review()
-
-        assign_perm('logger.delete_submissionreview', self.user)
 
         # Shows up on list
         view = SubmissionReviewViewSet.as_view({
@@ -130,7 +174,7 @@ class TestSubmissionReviewViewSet(TestAbstractViewSet):
         request = self.factory.delete('/', **self.extra)
         response = view(request=request, pk=submission_review_data['id'])
 
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(204, response.status_code)
 
         # Doesn't show up on list after deletion
         request = self.factory.get('/', **self.extra)
