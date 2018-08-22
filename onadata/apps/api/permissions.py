@@ -18,7 +18,7 @@ from onadata.apps.logger.models import DataView, Instance, Project, XForm
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.permissions import (CAN_ADD_XFORM_TO_PROFILE,
                                       CAN_CHANGE_XFORM, CAN_DELETE_SUBMISSION,
-                                      ReadOnlyRoleNoDownload)
+                                      ManagerRole, ReadOnlyRoleNoDownload)
 
 SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
 
@@ -145,6 +145,33 @@ class XFormPermissions(DjangoObjectPermissions):
             return request.user.has_perm(CAN_DELETE_SUBMISSION, obj)
 
         return super(XFormPermissions, self).has_object_permission(
+            request, view, obj)
+
+
+class SubmissionReviewPermissions(XFormPermissions):
+    """
+    Custom Permission Checks for SubmissionReviews
+    """
+    perms_map = {
+        'GET': [],
+        'OPTIONS': [],
+        'HEAD': [],
+        'POST': ['logger.add_xform'],
+        'PUT': ['logger.change_xform'],
+        'PATCH': ['logger.change_xform'],
+        'DELETE': ['logger.delete_xform'],
+    }
+
+    def has_object_permission(self, request, view, obj):
+        """
+        Custom has_object_permission method
+        """
+
+        if (request.method == 'DELETE' and view.action == 'destroy') or (
+                request.method == 'PATCH' and view.action == 'partial_update'):
+            return ManagerRole.user_has_role(request.user, obj.instance.xform)
+
+        return super(SubmissionReviewPermissions, self).has_object_permission(
             request, view, obj)
 
 
