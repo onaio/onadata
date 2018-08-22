@@ -39,7 +39,7 @@ class TestSubmissionReviewViewSet(TestBase):
         """
         instance_id = self._first_xform_instance.id
         submission_data = {
-            'note_text': "Supreme Overload!",
+            'note': "Supreme Overload!",
             'instance': instance_id
         }
 
@@ -48,7 +48,7 @@ class TestSubmissionReviewViewSet(TestBase):
         response = view(request=request)
 
         self.assertEqual(201, response.status_code)
-        self.assertEqual("Supreme Overload!", response.data['note_text'])
+        self.assertEqual("Supreme Overload!", response.data['note'])
         self.assertEqual(instance_id, response.data['instance'])
 
         return response.data
@@ -95,7 +95,7 @@ class TestSubmissionReviewViewSet(TestBase):
         data = self._create_submission_review()
 
         new_data = {
-            'note_text': "My name is Davis!",
+            'note': "My name is Davis!",
             'status': SubmissionReview.APPROVED
         }
 
@@ -123,7 +123,7 @@ class TestSubmissionReviewViewSet(TestBase):
         # `dave` user should not be able to create reviews on
         # an xform where he/she has no Admin privileges
         review = {
-            'note_text': "Hey there!",
+            'note': "Hey there!",
             'status': SubmissionReview.APPROVED,
             'instance': data['instance']
         }
@@ -136,7 +136,7 @@ class TestSubmissionReviewViewSet(TestBase):
         # `dave` user should not be able to update reviews on
         # an xform where he/she has no Admin privileges
         new_data = {
-            'note_text': "Hey there!",
+            'note': "Hey there!",
             'status': SubmissionReview.APPROVED
         }
 
@@ -192,7 +192,7 @@ class TestSubmissionReviewViewSet(TestBase):
         review_one_data = self._create_submission_review()
 
         review_two_data = {
-            'note_text': "Sup ?",
+            'note': "Sup ?",
             'instance': self.xform.instances.all().order_by('pk')[1].id
         }
 
@@ -221,7 +221,7 @@ class TestSubmissionReviewViewSet(TestBase):
         review_one_data = self._create_submission_review()
 
         review_two_data = {
-            'note_text': "Sup ?",
+            'note': "Sup ?",
             'instance': review_one_data['instance'],
             'status': SubmissionReview.APPROVED
         }
@@ -258,7 +258,7 @@ class TestSubmissionReviewViewSet(TestBase):
                     submission_review.instance.xform)
 
         review_two_data = {
-            'note_text': "Sup ?",
+            'note': "Sup ?",
             'instance': review_one_data['instance'],
             'status': SubmissionReview.APPROVED
         }
