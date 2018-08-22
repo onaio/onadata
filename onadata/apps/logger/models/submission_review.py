@@ -45,7 +45,10 @@ class SubmissionReview(models.Model):
         db_index=True)
     deleted_at = models.DateTimeField(null=True, default=None)
     deleted_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, related_name='deleted_reviews', null=True)
+        settings.AUTH_USER_MODEL,
+        related_name='deleted_reviews',
+        null=True,
+        on_delete=models.SET_NULL)
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
 
