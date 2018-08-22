@@ -13,6 +13,7 @@ from rest_framework.permissions import (
     DjangoObjectPermissions, IsAuthenticated)
 
 from onadata.apps.api.tools import (check_inherit_permission_from_project,
+                                    get_instance_xform_or_none,
                                     get_user_profile_or_none)
 from onadata.apps.logger.models import DataView, Instance, Project, XForm
 from onadata.apps.main.models.user_profile import UserProfile
@@ -162,11 +163,24 @@ class SubmissionReviewPermissions(XFormPermissions):
         'DELETE': ['logger.delete_xform'],
     }
 
+    def has_permission(self, request, view):
+        """
+        Custom has_permission method
+        """
+        is_authenticated = request and request.user.is_authenticated()
+
+        if is_authenticated and view.action == 'create':
+            instance_id = request.data.get('instance')
+            xform = get_instance_xform_or_none(instance_id)
+            return request.user.has_perm(CAN_CHANGE_XFORM, xform)
+
+        return super(SubmissionReviewPermissions, self).has_permission(
+            request, view)
+
     def has_object_permission(self, request, view, obj):
         """
         Custom has_object_permission method
         """
-
         if (request.method == 'DELETE' and view.action == 'destroy') or (
                 request.method == 'PATCH' and view.action == 'partial_update'):
             return ManagerRole.user_has_role(request.user, obj.instance.xform)
