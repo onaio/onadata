@@ -32,8 +32,7 @@ from taggit.forms import TagField
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.models.team import Team
-from onadata.apps.logger.models import (DataView, Instance, Project,
-                                        SubmissionReview, XForm)
+from onadata.apps.logger.models import DataView, Instance, Project, XForm
 from onadata.apps.main.forms import QuickConverter
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.export import Export
