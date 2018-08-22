@@ -325,8 +325,8 @@ If there isn't a redirect url, the response will be
 ::
 
     {
-        'ona_verified_username': 'johndoe',
-        'ona_verified_email_status': 'true'
+        'username': 'johndoe',
+        'is_email_verified': 'true'
     }
 
 
