@@ -5,18 +5,20 @@ API permissions module.
 from django.contrib.auth.models import User
 from django.http import Http404
 from django.shortcuts import get_object_or_404
+
 from rest_framework import exceptions
 from rest_framework.permissions import (
     BasePermission, DjangoModelPermissionsOrAnonReadOnly,
     DjangoObjectPermissions, IsAuthenticated)
 
 from onadata.apps.api.tools import (check_inherit_permission_from_project,
+                                    get_instance_xform_or_none,
                                     get_user_profile_or_none)
 from onadata.apps.logger.models import DataView, Instance, Project, XForm
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.permissions import (CAN_ADD_XFORM_TO_PROFILE,
                                       CAN_CHANGE_XFORM, CAN_DELETE_SUBMISSION,
-                                      ReadOnlyRoleNoDownload)
+                                      ManagerRole, ReadOnlyRoleNoDownload)
 
 SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
 
@@ -25,6 +27,7 @@ class AlternateHasObjectPermissionMixin(object):  # pylint: disable=R0903
     """
     AlternateHasObjectPermissionMixin - checks if user has read permissions.
     """
+
     def _has_object_permission(self, request, model_cls, user, obj):
         perms = self.get_required_object_permissions(request.method, model_cls)
 
@@ -145,6 +148,46 @@ class XFormPermissions(DjangoObjectPermissions):
             request, view, obj)
 
 
+class SubmissionReviewPermissions(XFormPermissions):
+    """
+    Custom Permission Checks for SubmissionReviews
+    """
+    perms_map = {
+        'GET': [],
+        'OPTIONS': [],
+        'HEAD': [],
+        'POST': ['logger.add_xform'],
+        'PUT': ['logger.change_xform'],
+        'PATCH': ['logger.change_xform'],
+        'DELETE': ['logger.delete_xform'],
+    }
+
+    def has_permission(self, request, view):
+        """
+        Custom has_permission method
+        """
+        is_authenticated = request and request.user.is_authenticated()
+
+        if is_authenticated and view.action == 'create':
+            instance_id = request.data.get('instance')
+            xform = get_instance_xform_or_none(instance_id)
+            return request.user.has_perm(CAN_CHANGE_XFORM, xform)
+
+        return super(SubmissionReviewPermissions, self).has_permission(
+            request, view)
+
+    def has_object_permission(self, request, view, obj):
+        """
+        Custom has_object_permission method
+        """
+        if (request.method == 'DELETE' and view.action == 'destroy') or (
+                request.method == 'PATCH' and view.action == 'partial_update'):
+            return ManagerRole.user_has_role(request.user, obj.instance.xform)
+
+        return super(SubmissionReviewPermissions, self).has_object_permission(
+            request, view, obj)
+
+
 class UserProfilePermissions(DjangoObjectPermissions):
     """
     UserProfilePermissions - allows anonymous users to create a profile.
@@ -245,6 +288,7 @@ class MetaDataObjectPermissions(AlternateHasObjectPermissionMixin,
     """
     MetaData ObjectPermissions - apply Xform permision for given response.
     """
+
     def has_object_permission(self, request, view, obj):
         model_cls = obj.content_object.__class__
         user = request.user
@@ -280,6 +324,7 @@ class ConnectViewsetPermissions(IsAuthenticated):
     """
     ConnectViewsetPermissions - allows reset passwords to all users.
     """
+
     def has_permission(self, request, view):
         if view.action == 'reset':
             return True
@@ -292,6 +337,7 @@ class UserViewSetPermissions(DjangoModelPermissionsOrAnonReadOnly):
     """
     User ViewSetPermissions - do not allow user search for anonymous users.
     """
+
     def has_permission(self, request, view):
 
         if request.user.is_anonymous() and view.action == 'list':
@@ -335,6 +381,7 @@ class RestServiceObjectPermissions(AlternateHasObjectPermissionMixin,
     RestService ObjectPermissions - apply XForm permisions for a RestService
     model.
     """
+
     def has_object_permission(self, request, view, obj):
         model_cls = XForm
         user = request.user
@@ -386,6 +433,7 @@ class OrganizationProfilePermissions(DjangoObjectPermissionsAllowAnon):
     """
     OrganizationProfilePermissions - allow authenticated users to delete an org
     """
+
     def has_object_permission(self, request, view, obj):
         is_authenticated = request and request.user.is_authenticated() and \
                            request.user.username == request.data.get(
@@ -404,6 +452,7 @@ class OpenDataViewSetPermissions(IsAuthenticated,
     OpenDataViewSetPermissions - allow anonymous access to schema and data
     end-points of an open dataset.
     """
+
     def has_permission(self, request, view):
         if request.user.is_anonymous() and view.action in ['schema', 'data']:
             return True
@@ -424,6 +473,7 @@ class IsAuthenticatedSubmission(BasePermission):
     IsAuthenticatedSubmission - checks if profile requires authentication
     during a submission request.
     """
+
     def has_permission(self, request, view):
         username = view.kwargs.get('username')
         if request.method in ['HEAD', 'POST'] and request.user.is_anonymous():
