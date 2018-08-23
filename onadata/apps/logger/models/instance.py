@@ -4,7 +4,9 @@ Instance model class
 """
 import math
 from datetime import datetime
+
 from future.utils import python_2_unicode_compatible
+
 from past.builtins import basestring  # pylint: disable=W0622
 
 from django.conf import settings
@@ -21,6 +23,7 @@ from django.utils.translation import ugettext as _
 from celery import task
 from taggit.managers import TaggableManager
 
+from onadata.apps.logger.models.submission_review import SubmissionReview
 from onadata.apps.logger.models.survey_type import SurveyType
 from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH, XForm
 from onadata.apps.logger.xform_instance_parser import (XFormInstanceParser,
@@ -35,11 +38,11 @@ from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID,
                                             DELETEDAT, DURATION, EDITED, END,
                                             GEOLOCATION, ID, LAST_EDITED,
                                             MEDIA_ALL_RECEIVED, MEDIA_COUNT,
-                                            MONGO_STRFTIME, NOTES, START,
-                                            STATUS, SUBMISSION_TIME,
-                                            SUBMITTED_BY, TAGS, TOTAL_MEDIA,
-                                            UUID, VERSION, XFORM_ID,
-                                            XFORM_ID_STRING)
+                                            MONGO_STRFTIME, NOTES,
+                                            REVIEW_STATUS, START, STATUS,
+                                            SUBMISSION_TIME, SUBMITTED_BY,
+                                            TAGS, TOTAL_MEDIA, UUID, VERSION,
+                                            XFORM_ID, XFORM_ID_STRING)
 from onadata.libs.utils.dict_tools import get_values_matching_key
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.timing import calculate_duration
@@ -316,6 +319,7 @@ class InstanceBaseClass(object):
                 STATUS: self.status,
                 TAGS: list(self.tags.names()),
                 NOTES: self.get_notes(),
+                REVIEW_STATUS: self.get_review_status(),
                 VERSION: self.version,
                 DURATION: self.get_duration(),
                 XFORM_ID_STRING: self._parser.get_xform_id_string(),
@@ -384,6 +388,15 @@ class InstanceBaseClass(object):
     def get_notes(self):
         # pylint: disable=E1101
         return [note.get_data() for note in self.notes.all()]
+
+    def get_review_status(self):
+        """
+        Returns current review status of an Instance
+        """
+        try:
+            return self.reviews.latest('date_modified').get_status_display()
+        except SubmissionReview.DoesNotExist:
+            return ''
 
     def get_root_node(self):
         self._set_parser()
@@ -618,6 +631,10 @@ class InstanceHistory(models.Model, InstanceBaseClass):
     @property
     def notes(self):
         return self.xform_instance.notes.all()
+
+    @property
+    def reviews(self):
+        return self.xform_instance.instances.all()
 
     @property
     def version(self):
