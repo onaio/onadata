@@ -23,11 +23,13 @@ from onadata.libs.utils.cache_tools import (DATAVIEW_COUNT,
                                             safe_delete)
 from onadata.libs.utils.common_tags import (ATTACHMENTS, EDITED, GEOLOCATION,
                                             ID, LAST_EDITED, MONGO_STRFTIME,
-                                            NOTES, SUBMISSION_TIME)
+                                            NOTES, REVIEW_STATUS,
+                                            SUBMISSION_TIME)
 
 SUPPORTED_FILTERS = ['=', '>', '<', '>=', '<=', '<>', '!=']
 ATTACHMENT_TYPES = ['photo', 'audio', 'video']
-DEFAULT_COLUMNS = [ID, SUBMISSION_TIME, EDITED, LAST_EDITED, NOTES]
+DEFAULT_COLUMNS = [
+    ID, SUBMISSION_TIME, EDITED, LAST_EDITED, NOTES, REVIEW_STATUS]
 
 
 def _json_sql_str(key, known_integers=None, known_dates=None,
