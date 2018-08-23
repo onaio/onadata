@@ -11,6 +11,7 @@ from django.db import models
 from django.utils.translation import ugettext as _
 from django.db.models.query import EmptyQuerySet
 
+from onadata.apps.logger.models.submission_review import SubmissionReview
 from onadata.apps.logger.models.note import Note
 from onadata.apps.logger.models.instance import _get_attachments_from_instance
 from onadata.apps.logger.models.instance import Instance
@@ -364,5 +365,8 @@ class ParsedInstance(models.Model):
         """
         Returns Review Status
         """
-        return self.instance.reviews.latest(
-            'date_modified').get_status_display()
+        try:
+            return self.instance.reviews.latest(
+                'date_modified').get_status_display()
+        except SubmissionReview.DoesNotExist:
+            return ''
