@@ -576,7 +576,7 @@ class TestCSVDataFrameBuilder(TestBase):
             'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
             'instanceID', '_id', '_uuid', '_submission_time', '_tags',
             '_notes', '_version', '_duration', '_submitted_by', '_total_media',
-            '_media_count', '_media_all_received'
+            '_media_count', '_review_status', '_media_all_received'
         ]
         self.assertEqual(expected_header, header)
         rows = []
@@ -620,7 +620,7 @@ class TestCSVDataFrameBuilder(TestBase):
             'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
             'instanceID', '_id', '_uuid', '_submission_time', '_tags',
             '_notes', '_version', '_duration', '_submitted_by', '_total_media',
-            '_media_count', '_media_all_received'
+            '_media_count', '_review_status', '_media_all_received'
         ]
         self.assertEqual(expected_header, header)
         labels = next(csv_reader)
@@ -634,7 +634,7 @@ class TestCSVDataFrameBuilder(TestBase):
             'web_browsers/Safari', 'instanceID', '_id', '_uuid',
             '_submission_time', '_tags', '_notes', '_version', '_duration',
             '_submitted_by', '_total_media', '_media_count',
-            '_media_all_received'
+            '_media_all_received', '_review_status'
         ]
         self.assertEqual(expected_labels, labels)
         rows = []
@@ -680,7 +680,7 @@ class TestCSVDataFrameBuilder(TestBase):
             'web_browsers/Safari', 'instanceID', '_id', '_uuid',
             '_submission_time', '_tags', '_notes', '_version', '_duration',
             '_submitted_by', '_total_media', '_media_count',
-            '_media_all_received'
+            '_media_all_received', '_review_status'
         ]
         self.assertEqual(expected_labels, labels)
         rows = []
@@ -776,7 +776,8 @@ class TestCSVDataFrameBuilder(TestBase):
             'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
             'instanceID', '_id', '_uuid', '_submission_time', '_tags',
             '_notes', '_version', '_duration', '_submitted_by', '_total_media',
-            '_media_count', '_media_all_received', '_xform_id'
+            '_media_count', '_review_status', '_media_all_received',
+            '_xform_id'
         ]
         self.assertEqual(expected_header, header)
         # close and delete file
