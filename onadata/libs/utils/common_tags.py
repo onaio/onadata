@@ -65,6 +65,7 @@ NA_REP = 'n/a'
 TAGS = u"_tags"
 
 NOTES = u"_notes"
+REVIEW_STATUS = u"_review_status"
 
 # statistics
 MEAN = u"mean"
