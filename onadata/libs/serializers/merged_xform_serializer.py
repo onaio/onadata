@@ -11,10 +11,12 @@ from django.db import transaction
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
+from pyxform.builder import create_survey_element_from_dict
+from pyxform.errors import PyXFormError
+
 from onadata.apps.logger.models import MergedXForm, XForm
 from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
 from onadata.libs.utils.common_tags import MULTIPLE_SELECT_TYPE, SELECT_ONE
-from pyxform.builder import create_survey_element_from_dict
 
 SELECTS = [SELECT_ONE, MULTIPLE_SELECT_TYPE]
 
@@ -34,9 +36,9 @@ def _get_elements(elements, intersect, parent_prefix=None):
         if name in intersect:
             k = element.copy()
             if 'children' in element and element['type'] not in SELECTS:
-                k['children'] = _get_elements(element['children'], [
-                    __ for __ in intersect if __.startswith(name)
-                ], name)
+                k['children'] = _get_elements(
+                    element['children'],
+                    [__ for __ in intersect if __.startswith(name)], name)
                 if not k['children']:
                     continue
             new_elements.append(k)
@@ -120,8 +122,7 @@ class XFormListField(serializers.ManyRelatedField):
 
     def to_representation(self, iterable):
         return [
-            dict(i)
-            for i in XFormSerializer(
+            dict(i) for i in XFormSerializer(
                 iterable, many=True, context=self.context).data
         ]
 
@@ -136,8 +137,8 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
         allow_empty=False,
         child_relation=serializers.HyperlinkedRelatedField(
             allow_empty=False,
-            queryset=XForm.objects.filter(is_merged_dataset=False,
-                                          deleted_at__isnull=True),
+            queryset=XForm.objects.filter(
+                is_merged_dataset=False, deleted_at__isnull=True),
             view_name='xform-detail'),
         validators=[minimum_two_xforms, has_matching_fields])
     num_of_submissions = serializers.SerializerMethodField()
@@ -174,12 +175,18 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
         xforms = validated_data['xforms']
         # create merged xml, json with non conflicting id_string
         survey = get_merged_xform_survey(xforms)
-        survey['id_string'] = base64.b64encode(uuid.uuid4().hex[:6].encode(
-            'utf-8')).decode('utf-8')
+        survey['id_string'] = base64.b64encode(
+            uuid.uuid4().hex[:6].encode('utf-8')).decode('utf-8')
         survey['sms_keyword'] = survey['id_string']
         survey['title'] = validated_data.pop('name')
         validated_data['json'] = survey.to_json()
-        validated_data['xml'] = survey.to_xml()
+        try:
+            validated_data['xml'] = survey.to_xml()
+        except PyXFormError as error:
+            raise serializers.ValidationError({
+                'xforms':
+                _("Problem Merging the Form: {}".format(error))
+            })
         validated_data['user'] = validated_data['project'].user
         validated_data['created_by'] = request.user
         validated_data['is_merged_dataset'] = True

@@ -26,7 +26,6 @@ from onadata.apps.restservice.viewsets.restservices_viewset import \
 from onadata.libs.utils.export_tools import get_osm_data_kwargs
 from onadata.libs.utils.user_auth import get_user_default_project
 
-
 MD = """
 | survey  |
 |         | type              | name  | label   |
@@ -49,13 +48,26 @@ NOT_MATCHING = """
 |         | fruits            | mango  | Mango  |
 """
 
+# https://github.com/onaio/onadata/issues/1153
+REFERENCE_ISSUE = """
+| survey  |
+|         | type              | name  | label            |
+|         | select one fruits | tunda | Tunda            |
+|         | select one fruits | fruit | Fruit ${tunda}   |
+
+| choices |
+|         | list name         | name   | label           |
+|         | fruits            | orange | Orange          |
+|         | fruits            | mango  | Mango           |
+"""
+
 
 def streaming_data(response):
     """
     Iterates through a streaming response to return a json list object
     """
-    return json.loads(u''.join([
-        i.decode('utf-8') for i in response.streaming_content]))
+    return json.loads(u''.join(
+        [i.decode('utf-8') for i in response.streaming_content]))
 
 
 def _make_submissions_merged_datasets(merged_xform):
@@ -372,8 +384,10 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         merged_xform.xforms.all().delete()
         request = self.factory.get(
             '/',
-            data={'sort': '{"_submission_time":1}',
-                  'limit': '10'},
+            data={
+                'sort': '{"_submission_time":1}',
+                'limit': '10'
+            },
             **self.extra)
         data_view = DataViewSet.as_view({
             'get': 'list',
@@ -405,8 +419,8 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         response = view(request, pk=merged_dataset['id'], format='csv')
         self.assertEqual(response.status_code, 200)
 
-        csv_file_obj = StringIO(''.join([
-            c.decode('utf-8') for c in response.streaming_content]))
+        csv_file_obj = StringIO(''.join(
+            [c.decode('utf-8') for c in response.streaming_content]))
         csv_reader = csv.reader(csv_file_obj)
         # jump over headers first
         headers = next(csv_reader)
@@ -574,9 +588,9 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=data, **self.extra)
         response = view(request)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, {
-            'xforms': [u'Invalid hyperlink - Object does not exist.']
-        })
+        self.assertEqual(
+            response.data,
+            {'xforms': [u'Invalid hyperlink - Object does not exist.']})
 
     def test_md_has_no_matching_fields(self):
         """
@@ -661,3 +675,38 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         })
         response = data_view(request, pk=merged_dataset['id'], dataid=dataid)
         self.assertEqual(response.status_code, 404)
+
+    def test_xform_has_uncommon_reference(self):
+        """
+        Test creating a merged dataset that has matching fields but with
+        uncommon reference variable.
+        """
+        view = MergedXFormViewSet.as_view({
+            'post': 'create',
+        })
+        # pylint: disable=attribute-defined-outside-init
+        self.project = get_user_default_project(self.user)
+        xform1 = self._publish_markdown(MD, self.user, id_string='a')
+        xform2 = self._publish_markdown(
+            REFERENCE_ISSUE, self.user, id_string='b')
+
+        data = {
+            'xforms': [
+                "http://testserver/api/v1/forms/%s" % xform2.pk,
+                "http://testserver/api/v1/forms/%s" % xform1.pk,
+            ],
+            'name':
+            'Merged Dataset',
+            'project':
+            "http://testserver/api/v1/projects/%s" % self.project.pk,
+        }
+
+        request = self.factory.post('/', data=data, **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 400)
+        error_message = (
+            "There has been a problem trying to replace ${tunda} with the "
+            "XPath to the survey element named 'tunda'. There is no survey "
+            "element with this name.")
+        self.assertIn('xforms', response.data)
+        self.assertIn(error_message, response.data['xforms'])
