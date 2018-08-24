@@ -295,7 +295,7 @@ a new user is registered using the user profiles endpoint. The email verificatio
 ``verification_key`` query param as well as an optional ``redirect_url`` query param.
 
 - ``verification_key`` - A REQUIRED query param which is a hexadecimal associated with a user that expires after 1 day. The expiration day limit can be changed by resetting the ``ACCOUNT_ACTIVATION_DAYS`` settings variable.
-- ``redirect_url`` - An OPTIONAL query param that contains the url to redirect to when the ``verification_key`` has successfully been verified 
+- ``redirect_url`` - An OPTIONAL query param that contains the url to redirect to when the ``verification_key`` has successfully been verified
 
 
 Example
@@ -311,14 +311,14 @@ Successful Response
 
 A succesful response or redirect includes 2 values:
 
-- ``ona_verified_username`` - the account username of the verified email
-- ``ona_verified_email_status`` - the status of the verified email. It will be ``True`` for a successful response
+- ``username`` - the account username of the verified email
+- ``is_email_verified`` - the status of the verified email. It will be ``True`` for a successful response
 
 if there is a redirect url, 2 query params will be appended to the url
 
 ::
 
-    <redirect-url>?ona_verified_username=johndoe&ona_verified_email_status=true
+    <redirect-url>?username=johndoe&is_email_verified=true
 
 If there isn't a redirect url, the response will be
 
