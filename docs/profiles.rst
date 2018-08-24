@@ -249,17 +249,18 @@ If no query parameters are used, the result is the number of submissions of the 
 If only month is used, then the year is assumed to be the current year. And if only year is passed, then the month is
 assumed to be the current year.
 
-
 Example
 ^^^^^^^
 
 ::
+
     curl -X GET https://api.ona.io/api/v1/profiles/demouser/monthly_submissions
 
 Response
 ^^^^^^^^
 
 ::
+
     {
         "public": 41,
         "private": 185
@@ -269,12 +270,101 @@ Example
 ^^^^^^^
 
 ::
+
     curl -X GET https://api.ona.io/api/v1/profiles/demouser/monthly_submissions?month=5&year=2018
 
 Response
 ^^^^^^^^
 
 ::
+
     {
         "public": 240
     }
+
+Email verification
+-------------------------------------------
+
+By default the email verification functionality is disabled. To enable this feature,
+set ``ENABLE_EMAIL_VERIFICATION`` in your settings file to ``True``. ``VERIFIED_KEY_TEXT``
+should also be set to ``ALREADY_ACTIVATED``. If you have a custom verification url that
+you would prefer to be use instead of the default verification url, set it in ``VERIFICATION_URL``
+settings variable. The verification url will be appended with the verificaiton key as query
+param. Once ``ENABLE_EMAIL_VERIFICATION`` has been set, a verification email will be sent when
+a new user is registered using the user profiles endpoint. The email verification endpoint expects
+``verification_key`` query param as well as an optional ``redirect_url`` query param.
+
+- ``verification_key`` - A REQUIRED query param which is a hexadecimal associated with a user that expires after 1 day. The expiration day limit can be changed by resetting the ``ACCOUNT_ACTIVATION_DAYS`` settings variable.
+- ``redirect_url`` - An OPTIONAL query param that contains the url to redirect to when the ``verification_key`` has successfully been verified
+
+
+Example
+^^^^^^^
+
+::
+
+    curl -X GET https://api.ona.io/api/v1/profiles/verify_email?verification_key=abc&redirect_url=https://red.ir.ect
+
+
+Successful Response
+^^^^^^^^^^^^^^^^^^^
+
+A succesful response or redirect includes 2 values:
+
+- ``username`` - the account username of the verified email
+- ``is_email_verified`` - the status of the verified email. It will be ``True`` for a successful response
+
+if there is a redirect url, 2 query params will be appended to the url
+
+::
+
+    <redirect-url>?username=johndoe&is_email_verified=true
+
+If there isn't a redirect url, the response will be
+
+::
+
+    {
+        'username': 'johndoe',
+        'is_email_verified': 'true'
+    }
+
+
+
+
+Failed Response
+^^^^^^^^^^^^^^^
+
+::
+
+    Missing or invalid verification key
+
+Send verification email
+^^^^^^^^^^^^^^^^^^^^^^^
+
+To send a verification email, for example when a user has changed his/her email address, the user making the request should
+authenticate and provide ``username`` - which should be the same as the user making the request - in the post data. The
+requesting user can also provide ``redirect_url`` as part of the post data. The ``redirect_url`` will be appended as query
+param to the verification url and used to redirect the user to that url once the ``verification_key`` has successfully been verified.
+
+Example
+^^^^^^^
+
+::
+
+    curl -X POST -d username=johndoe -d redirect_url="https://red.ir.ect" https://api.ona.io/api/v1/profiles/send_verification_email
+
+
+Successful Response
+^^^^^^^^^^^^^^^^^^^
+
+::
+
+    Verification email has been sent
+
+Failed Response
+^^^^^^^^^^^^^^^
+
+::
+
+    Verification email has NOT been sent

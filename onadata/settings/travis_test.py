@@ -64,3 +64,5 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
     'onadata.libs.utils.middleware.HTTPResponseNotAllowedMiddleware',
 )
+
+VERIFIED_KEY_TEXT = 'ALREADY_ACTIVATED'

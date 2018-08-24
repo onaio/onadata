@@ -5,6 +5,7 @@ UserProfileViewSet module.
 
 import datetime
 import json
+from future.moves.urllib.parse import urlencode
 
 from past.builtins import basestring  # pylint: disable=redefined-builtin
 
@@ -12,7 +13,10 @@ from django.conf import settings
 from django.core.validators import ValidationError
 from django.db.models import Count
 from django.utils import timezone
+from django.http import HttpResponseRedirect, HttpResponseBadRequest
+from django.utils.translation import ugettext as _
 
+from registration.models import RegistrationProfile
 from rest_framework import serializers, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ParseError
@@ -21,10 +25,13 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+from onadata.apps.api.tasks import send_verification_email
 from onadata.apps.api.permissions import UserProfilePermissions
 from onadata.apps.api.tools import get_baseviewset_class, load_class
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.models import UserProfile
+from onadata.libs.utils.email import (get_verification_email_data,
+                                      get_verification_url)
 from onadata.libs import filters
 from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
@@ -82,9 +89,18 @@ def serializer_from_settings():
     return UserProfileSerializer
 
 
-class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
-                         CacheControlMixin, ETagsMixin,
-                         ObjectLookupMixin, BaseViewset, ModelViewSet):
+def set_is_email_verified(profile, is_email_verified):
+    profile.metadata.update({"is_email_verified": is_email_verified})
+    profile.save()
+
+
+class UserProfileViewSet(
+        AuthenticateHeaderMixin,  # pylint: disable=R0901
+        CacheControlMixin,
+        ETagsMixin,
+        ObjectLookupMixin,
+        BaseViewset,
+        ModelViewSet):
     """
     List, Retrieve, Update, Create/Register users.
     """
@@ -101,8 +117,7 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
         """Lookup user profile by pk or username"""
         if self.kwargs.get(self.lookup_field, None) is None:
             raise ParseError(
-                'Expected URL keyword argument `%s`.' % self.lookup_field
-            )
+                'Expected URL keyword argument `%s`.' % self.lookup_field)
         if queryset is None:
             queryset = self.filter_queryset(self.get_queryset())
 
@@ -133,8 +148,7 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
 
     def create(self, request, *args, **kwargs):
         data = request.data
-        data['metadata'] = {'last_password_edit':
-                            timezone.now().isoformat()}
+        data['metadata'] = {'last_password_edit': timezone.now().isoformat()}
         serializer = self.serializer_class(
             data=data, context={'request': request})
         serializer.is_valid(raise_exception=True)
@@ -182,8 +196,8 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
             profile.save()
             return Response(data=profile.metadata, status=status.HTTP_200_OK)
 
-        return super(UserProfileViewSet, self).partial_update(request, *args,
-                                                              **kwargs)
+        return super(UserProfileViewSet, self).partial_update(
+            request, *args, **kwargs)
 
     @action(methods=['GET'], detail=True)
     def monthly_submissions(self, request, *args, **kwargs):
@@ -208,9 +222,85 @@ class UserProfileViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
         year = year_param if year_param else now.year
 
         instance_count = Instance.objects.filter(
-            xform__user=profile.user, xform__deleted_at__isnull=True,
-            date_created__year=year, date_created__month=month).values(
-                'xform__shared').annotate(num_instances=Count('id'))
+            xform__user=profile.user,
+            xform__deleted_at__isnull=True,
+            date_created__year=year,
+            date_created__month=month).values('xform__shared').annotate(
+                num_instances=Count('id'))
 
         serializer = MonthlySubmissionsSerializer(instance_count, many=True)
         return Response(serializer.data[0])
+
+    @action(detail=False)
+    def verify_email(self, request, *args, **kwargs):
+        verified_key_text = getattr(settings, "VERIFIED_KEY_TEXT", None)
+
+        if not verified_key_text:
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        redirect_url = request.query_params.get('redirect_url')
+        verification_key = request.query_params.get('verification_key')
+        response_message = _("Missing or invalid verification key")
+        if verification_key:
+            try:
+                rp = RegistrationProfile.objects.get(
+                    activation_key=verification_key)
+            except RegistrationProfile.DoesNotExist:
+                pass
+            else:
+                rp.activation_key = verified_key_text
+                rp.save()
+
+                set_is_email_verified(rp.user.profile, True)
+
+                response_data = {
+                    'username': rp.user.username,
+                    'is_email_verified': True
+                }
+
+                if redirect_url:
+                    query_params_string = urlencode(response_data)
+                    redirect_url = '{}?{}'.format(redirect_url,
+                                                  query_params_string)
+
+                    return HttpResponseRedirect(redirect_url)
+
+                return Response(response_data)
+
+        return HttpResponseBadRequest(response_message)
+
+    @action(methods=['POST'], detail=False)
+    def send_verification_email(self, request, *args, **kwargs):
+        verified_key_text = getattr(settings, "VERIFIED_KEY_TEXT", None)
+        if not verified_key_text:
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        username = request.data.get('username')
+        redirect_url = request.data.get('redirect_url')
+        response_message = _("Verification email has NOT been sent")
+
+        if username:
+            try:
+                rp = RegistrationProfile.objects.get(user__username=username)
+            except RegistrationProfile.DoesNotExist:
+                pass
+            else:
+                set_is_email_verified(rp.user.profile, False)
+
+                verification_key = rp.activation_key
+                if verification_key == verified_key_text:
+                    verification_key = (rp.user.registrationprofile.
+                                        create_new_activation_key())
+
+                verification_url = get_verification_url(
+                    redirect_url, request, verification_key)
+
+                email_data = get_verification_email_data(
+                    rp.user.email, rp.user.username, verification_url, request)
+
+                send_verification_email.delay(**email_data)
+                response_message = _("Verification email has been sent")
+
+                return Response(response_message)
+
+        return HttpResponseBadRequest(response_message)

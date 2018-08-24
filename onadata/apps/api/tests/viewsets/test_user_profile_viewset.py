@@ -2,6 +2,7 @@ import datetime
 import json
 import os
 from builtins import str
+from future.moves.urllib.parse import urlparse, parse_qs
 
 from django.contrib.auth.models import User
 from django.db.models import signals
@@ -12,6 +13,7 @@ import requests
 from django_digest.test import DigestAuth
 from httmock import HTTMock, all_requests
 from mock import patch
+from registration.models import RegistrationProfile
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
@@ -225,7 +227,13 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertIn('is_org', response.data)
         self.assertEqual(response.data['is_org'], True)
 
-    def test_profile_create(self):
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @override_settings(ENABLE_EMAIL_VERIFICATION=True)
+    @patch(
+        ('onadata.libs.serializers.user_profile_serializer.'
+         'send_verification_email.delay')
+    )
+    def test_profile_create(self, mock_send_verification_email):
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
@@ -250,9 +258,137 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['name'] = "%s %s" % ('Dennis', 'erama')
         self.assertEqual(response.data, data)
 
+        self.assertTrue(mock_send_verification_email.called)
         user = User.objects.get(username='deno')
         self.assertTrue(user.is_active)
         self.assertTrue(user.check_password(password), password)
+
+    def _create_user_using_profiles_endpoint(self, data):
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+
+    @override_settings(ENABLE_EMAIL_VERIFICATION=True)
+    @override_settings(VERIFIED_KEY_TEXT=None)
+    def test_return_204_if_email_verification_variables_are_not_set(self):
+        data = _profile_data()
+        self._create_user_using_profiles_endpoint(data)
+
+        view = UserProfileViewSet.as_view({'get': 'verify_email',
+                                           'post': 'send_verification_email'})
+        rp = RegistrationProfile.objects.get(
+            user__username=data.get('username')
+        )
+        _data = {'verification_key': rp.activation_key}
+        request = self.factory.get('/', data=_data, **self.extra)
+        response = view(request)
+        self.assertEquals(response.status_code, 204)
+
+        data = {'username': data.get('username')}
+        user = User.objects.get(username=data.get('username'))
+        extra = {'HTTP_AUTHORIZATION': 'Token %s' % user.auth_token}
+        request = self.factory.post('/', data=data, **extra)
+        response = view(request)
+        self.assertEquals(response.status_code, 204)
+
+    @override_settings(ENABLE_EMAIL_VERIFICATION=True)
+    def test_verification_key_is_valid(self):
+        data = _profile_data()
+        self._create_user_using_profiles_endpoint(data)
+
+        view = UserProfileViewSet.as_view({'get': 'verify_email'})
+        rp = RegistrationProfile.objects.get(
+            user__username=data.get('username')
+        )
+        _data = {'verification_key': rp.activation_key}
+        request = self.factory.get('/', data=_data)
+        response = view(request)
+        self.assertEquals(response.status_code, 200)
+        self.assertIn('is_email_verified', response.data)
+        self.assertIn('username', response.data)
+        self.assertTrue(response.data.get('is_email_verified'))
+        self.assertEquals(
+            response.data.get('username'), data.get('username')
+        )
+
+        up = UserProfile.objects.get(user__username=data.get('username'))
+        self.assertIn('is_email_verified', up.metadata)
+        self.assertTrue(up.metadata.get('is_email_verified'))
+
+    @override_settings(ENABLE_EMAIL_VERIFICATION=True)
+    def test_verification_key_is_valid_with_redirect_url_set(self):
+        data = _profile_data()
+        self._create_user_using_profiles_endpoint(data)
+
+        view = UserProfileViewSet.as_view({'get': 'verify_email'})
+        rp = RegistrationProfile.objects.get(
+            user__username=data.get('username')
+        )
+        _data = {
+            'verification_key': rp.activation_key,
+            'redirect_url': 'http://red.ir.ect'
+        }
+        request = self.factory.get('/', data=_data)
+        response = view(request)
+
+        self.assertEquals(response.status_code, 302)
+        self.assertIn('is_email_verified', response.url)
+        self.assertIn('username', response.url)
+
+        string_query_params = urlparse(response.url).query
+        dict_query_params = parse_qs(string_query_params)
+        self.assertEquals(dict_query_params.get(
+            'is_email_verified'), ['True'])
+        self.assertEquals(
+            dict_query_params.get('username'),
+            [data.get('username')]
+        )
+
+        up = UserProfile.objects.get(user__username=data.get('username'))
+        self.assertIn('is_email_verified', up.metadata)
+        self.assertTrue(up.metadata.get('is_email_verified'))
+
+    @override_settings(ENABLE_EMAIL_VERIFICATION=True)
+    @patch(
+        ('onadata.apps.api.viewsets.user_profile_viewset.'
+         'send_verification_email.delay')
+    )
+    def test_sending_verification_email_succeeds(
+            self, mock_send_verification_email):
+        data = _profile_data()
+        self._create_user_using_profiles_endpoint(data)
+
+        data = {'username': data.get('username')}
+        view = UserProfileViewSet.as_view({'post': 'send_verification_email'})
+
+        user = User.objects.get(username=data.get('username'))
+        extra = {'HTTP_AUTHORIZATION': 'Token %s' % user.auth_token}
+        request = self.factory.post('/', data=data, **extra)
+        response = view(request)
+        self.assertTrue(mock_send_verification_email.called)
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.data, "Verification email has been sent")
+
+        user = User.objects.get(username=data.get('username'))
+        self.assertFalse(user.profile.metadata.get('is_email_verified'))
+
+    @override_settings(VERIFIED_KEY_TEXT=None)
+    @override_settings(ENABLE_EMAIL_VERIFICATION=True)
+    def test_sending_verification_email_fails(self):
+        data = _profile_data()
+        self._create_user_using_profiles_endpoint(data)
+
+        view = UserProfileViewSet.as_view({'post': 'send_verification_email'})
+
+        # trigger permission error when username of requesting user is
+        # different from username in post details
+        request = self.factory.post('/',
+                                    data={'username': 'None'},
+                                    **self.extra)
+        response = view(request)
+        self.assertEquals(response.status_code, 403)
 
     @override_settings(REQUIRE_ODK_AUTHENTICATION=True)
     def test_profile_require_auth(self):
@@ -743,20 +879,41 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = self.view(request, user=self.user.username)
         self.assertEqual(response.status_code, 400)
 
-    def test_partial_update_email(self):
+    @patch(
+        ('onadata.libs.serializers.user_profile_serializer.'
+         'send_verification_email.delay')
+    )
+    def test_partial_update_email(self, mock_send_verification_email):
+        profile_data = _profile_data()
+        self._create_user_using_profiles_endpoint(profile_data)
+
+        rp = RegistrationProfile.objects.get(
+            user__username=profile_data.get('username')
+        )
+        deno_extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % rp.user.auth_token
+        }
+
         data = {'email': 'user@example.com',
                 'password': "invalid_password"}
-        request = self.factory.patch('/', data=data, **self.extra)
-        response = self.view(request, user=self.user.username)
+        request = self.factory.patch('/', data=data, **deno_extra)
+        response = self.view(request, user=profile_data.get('username'))
         self.assertEqual(response.status_code, 400)
 
         data = {'email': 'user@example.com',
-                'password': 'bobbob'}
-        request = self.factory.patch('/', data=data, **self.extra)
-        response = self.view(request, user=self.user.username)
-        profile = UserProfile.objects.get(user=self.user)
+                'password': profile_data.get('password')}
+        request = self.factory.patch('/', data=data, **deno_extra)
+        response = self.view(request, user=profile_data.get('username'))
+        profile = UserProfile.objects.get(user=rp.user)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(profile.user.email, 'user@example.com')
+
+        rp = RegistrationProfile.objects.get(
+            user__username=profile_data.get('username')
+        )
+        self.assertIn('is_email_verified', rp.user.profile.metadata)
+        self.assertFalse(rp.user.profile.metadata.get('is_email_verified'))
+        self.assertTrue(mock_send_verification_email.called)
 
     def test_update_first_last_name_password_not_affected(self):
         data = {'first_name': 'update_first',
@@ -778,15 +935,51 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = view(request)
         self.assertEqual(response.status_code, 200)
 
-    def test_partial_update_unique_email_api(self):
+    @patch(
+        ('onadata.libs.serializers.user_profile_serializer.'
+         'send_verification_email.delay')
+    )
+    def test_partial_update_unique_email_api(
+            self, mock_send_verification_email):
+        profile_data = {
+            'username': u'bobby',
+            'first_name': u'Bob',
+            'last_name': u'Blender',
+            'email': u'bobby@columbia.edu',
+            'city': u'Bobville',
+            'country': u'US',
+            'organization': u'Bob Inc.',
+            'website': u'bob.com',
+            'twitter': u'boberama',
+            'require_auth': False,
+            'password': 'bobbob',
+            'is_org': False,
+            'name': u'Bob Blender'
+        }
+        self._create_user_using_profiles_endpoint(profile_data)
+
+        rp = RegistrationProfile.objects.get(
+            user__username=profile_data.get('username')
+        )
+        deno_extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % rp.user.auth_token
+        }
+
         data = {'email': 'example@gmail.com',
-                'password': 'bobbob'}
+                'password': profile_data.get('password')}
         request = self.factory.patch(
             '/api/v1/profiles', data=json.dumps(data),
-            content_type="application/json", **self.extra)
-        response = self.view(request, user=self.user.username)
+            content_type="application/json", **deno_extra)
+        response = self.view(request, user=rp.user.username)
 
         self.assertEqual(response.status_code, 200)
+
+        rp = RegistrationProfile.objects.get(
+            user__username=profile_data.get('username')
+        )
+        self.assertIn('is_email_verified', rp.user.profile.metadata)
+        self.assertFalse(rp.user.profile.metadata.get('is_email_verified'))
+        self.assertTrue(mock_send_verification_email.called)
 
         self.assertEqual(response.data['email'], data['email'])
         # create User

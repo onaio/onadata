@@ -20,6 +20,7 @@ from django.db.models.query import QuerySet
 from registration.models import RegistrationProfile
 from rest_framework import serializers
 
+from onadata.apps.api.tasks import send_verification_email
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models import UserProfile
@@ -27,6 +28,9 @@ from onadata.libs.authentication import expired
 from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.cache_tools import IS_ORG
+from onadata.libs.utils.email import (
+    get_verification_url, get_verification_email_data
+)
 
 RESERVED_NAMES = RegistrationFormUserProfile.RESERVED_USERNAMES
 LEGAL_USERNAMES_REGEX = RegistrationFormUserProfile.legal_usernames_re
@@ -86,6 +90,20 @@ def _get_registration_params(attrs):
         params['last_name'] = last_name
 
     return params
+
+
+def _send_verification_email(redirect_url, user, request):
+    verification_key = (user.registrationprofile
+                            .create_new_activation_key())
+    verification_url = get_verification_url(
+        redirect_url, request, verification_key
+    )
+
+    email_data = get_verification_email_data(
+        user.email, user.username, verification_url, request
+    )
+
+    send_verification_email.delay(**email_data)
 
 
 class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
@@ -199,6 +217,14 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
         instance.user.save()
 
+        if email:
+            instance.metadata.update({"is_email_verified": False})
+            instance.save()
+
+            request = self.context.get('request')
+            redirect_url = params.get('redirect_url')
+            _send_verification_email(redirect_url, instance.user, request)
+
         if password:
             # force django-digest to regenerate its stored partial digests
             update_partial_digests(instance.user, password)
@@ -207,6 +233,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
     def create(self, validated_data):
         params = validated_data
+        request = self.context.get('request')
 
         site = Site.objects.get(pk=settings.SITE_ID)
         new_user = RegistrationProfile.objects.create_inactive_user(
@@ -220,7 +247,13 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         new_user.last_name = params.get('last_name')
         new_user.save()
 
-        created_by = self.context['request'].user
+        if getattr(
+            settings, 'ENABLE_EMAIL_VERIFICATION', False
+        ):
+            redirect_url = params.get('redirect_url')
+            _send_verification_email(redirect_url, new_user, request)
+
+        created_by = request.user
         created_by = None if created_by.is_anonymous() else created_by
         profile = UserProfile(
             user=new_user, name=params.get('first_name'),

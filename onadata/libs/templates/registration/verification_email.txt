@@ -1,0 +1,13 @@
+{% load i18n %}
+{% blocktrans with expiration_days=expiration_days username=username expiration_days_p=expiration_days|pluralize %}
+Hi {{ username }},
+
+You're almost done! Please make sure to verify your email address and we'll finish setting up your account on Ona for you.
+{{ verification_url }}
+The link above is valid for {{ expiration_days }} day{{ expiration_days_p }}.
+Thank you for choosing Ona!
+Please contact us with any questions, we're always happy to help.
+
+Thanks,
+The team at Ona
+{% endblocktrans %}
