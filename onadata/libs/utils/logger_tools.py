@@ -105,6 +105,17 @@ def dict2xform(jsform, form_id, root=None):
         root, form_id, dict2xml(jsform))
 
 
+def get_first_record(queryset):
+    """
+    Returns the first item in a queryset sorted by id.
+    """
+    records = sorted([record for record in queryset], key=lambda k: k.id)
+    if records:
+        return records[0]
+
+    return None
+
+
 def get_uuid_from_submission(xml):
     # parse UUID from uploaded XML
     split_xml = uuid_regex.split(xml.decode('utf-8'))
@@ -292,7 +303,7 @@ def create_instance(username,
     new_uuid = get_uuid_from_xml(xml)
     filtered_instances = get_filtered_instances(
         Q(checksum=checksum) | Q(uuid=new_uuid), xform_id=xform.pk)
-    existing_instance = filtered_instances.only('id').first()
+    existing_instance = get_first_record(filtered_instances.only('id'))
     if existing_instance and \
             (new_uuid or existing_instance.xform.has_start_time):
         # ensure we have saved the extra attachments
@@ -327,9 +338,9 @@ def create_instance(username,
                                        submitted_by, status,
                                        date_created_override, checksum)
     except IntegrityError:
-        instance = Instance.objects.filter(
+        instance = get_first_record(Instance.objects.filter(
             Q(checksum=checksum) | Q(uuid=new_uuid),
-            xform_id=xform.pk).first()
+            xform_id=xform.pk))
 
         if instance:
             attachment_names = [

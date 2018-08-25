@@ -8,11 +8,10 @@ from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
 from onadata.apps.logger.import_tools import django_file
 from onadata.apps.logger.models import Instance
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.utils.common_tags import MEDIA_ALL_RECEIVED
-from onadata.libs.utils.common_tags import MEDIA_COUNT
-from onadata.libs.utils.common_tags import TOTAL_MEDIA
-from onadata.libs.utils.logger_tools import create_instance
-from onadata.libs.utils.logger_tools import generate_content_disposition_header
+from onadata.libs.utils.common_tags import (MEDIA_ALL_RECEIVED, MEDIA_COUNT,
+                                            TOTAL_MEDIA)
+from onadata.libs.utils.logger_tools import (
+    create_instance, generate_content_disposition_header, get_first_record)
 
 
 class TestLoggerTools(PyxformTestCase, TestBase):
@@ -30,13 +29,15 @@ class TestLoggerTools(PyxformTestCase, TestBase):
 
         return_value_with_name_and_no_show_date = \
             generate_content_disposition_header(file_name, extension)
-        self.assertTrue(re.search(file_name_with_timestamp_pattern,
-                                  return_value_with_name_and_no_show_date))
+        self.assertTrue(
+            re.search(file_name_with_timestamp_pattern,
+                      return_value_with_name_and_no_show_date))
 
         return_value_with_name_and_false_show_date = \
             generate_content_disposition_header(file_name, extension, False)
-        self.assertTrue(re.search(file_name_pattern,
-                                  return_value_with_name_and_false_show_date))
+        self.assertTrue(
+            re.search(file_name_pattern,
+                      return_value_with_name_and_false_show_date))
 
     def test_attachment_tracking(self):
         """
@@ -65,12 +66,12 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         file_path = "{}/apps/logger/tests/Health_2011_03_13."\
                     "xml_2011-03-15_20-30-28/1300221157303"\
                     ".jpg".format(settings.PROJECT_ROOT)
-        media_file = django_file(path=file_path,
-                                 field_name="image1",
-                                 content_type="image/jpeg")
-        instance = create_instance(self.user.username,
-                                   BytesIO(xml_string.strip().encode('utf-8')),
-                                   media_files=[media_file])
+        media_file = django_file(
+            path=file_path, field_name="image1", content_type="image/jpeg")
+        instance = create_instance(
+            self.user.username,
+            BytesIO(xml_string.strip().encode('utf-8')),
+            media_files=[media_file])
         self.assertFalse(instance.json[MEDIA_ALL_RECEIVED])
         self.assertEquals(instance.json[TOTAL_MEDIA], 2)
         self.assertEquals(instance.json[MEDIA_COUNT], 1)
@@ -80,12 +81,12 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                           instance.media_all_received)
         file2_path = "{}/apps/logger/tests/Water_2011_03_17_2011-03-17_16-29"\
                      "-59/1300375832136.jpg".format(settings.PROJECT_ROOT)
-        media2_file = django_file(path=file2_path,
-                                  field_name="image2",
-                                  content_type="image/jpeg")
-        create_instance(self.user.username,
-                        BytesIO(xml_string.strip().encode('utf-8')),
-                        media_files=[media2_file])
+        media2_file = django_file(
+            path=file2_path, field_name="image2", content_type="image/jpeg")
+        create_instance(
+            self.user.username,
+            BytesIO(xml_string.strip().encode('utf-8')),
+            media_files=[media2_file])
         instance2 = Instance.objects.get(pk=instance.pk)
         self.assertTrue(instance2.json[MEDIA_ALL_RECEIVED])
         self.assertEquals(instance2.json[TOTAL_MEDIA], 2)
@@ -94,12 +95,12 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         self.assertEquals(instance2.json[MEDIA_COUNT], instance2.media_count)
         self.assertEquals(instance2.json[MEDIA_ALL_RECEIVED],
                           instance2.media_all_received)
-        media2_file = django_file(path=file2_path,
-                                  field_name="image2",
-                                  content_type="image/jpeg")
-        create_instance(self.user.username,
-                        BytesIO(xml_string.strip().encode('utf-8')),
-                        media_files=[media2_file])
+        media2_file = django_file(
+            path=file2_path, field_name="image2", content_type="image/jpeg")
+        create_instance(
+            self.user.username,
+            BytesIO(xml_string.strip().encode('utf-8')),
+            media_files=[media2_file])
         instance3 = Instance.objects.get(pk=instance.pk)
         self.assertTrue(instance3.json[MEDIA_ALL_RECEIVED])
         self.assertEquals(instance3.json[TOTAL_MEDIA], 2)
@@ -141,12 +142,12 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         file_path = "{}/apps/logger/tests/Health_2011_03_13."\
                     "xml_2011-03-15_20-30-28/1300221157303"\
                     ".jpg".format(settings.PROJECT_ROOT)
-        media_file = django_file(path=file_path,
-                                 field_name="image1",
-                                 content_type="image/jpeg")
-        instance = create_instance(self.user.username,
-                                   BytesIO(xml_string.strip().encode('utf-8')),
-                                   media_files=[media_file])
+        media_file = django_file(
+            path=file_path, field_name="image1", content_type="image/jpeg")
+        instance = create_instance(
+            self.user.username,
+            BytesIO(xml_string.strip().encode('utf-8')),
+            media_files=[media_file])
         self.assertFalse(instance.json[MEDIA_ALL_RECEIVED])
         self.assertEquals(instance.json[TOTAL_MEDIA], 2)
         self.assertEquals(instance.json[MEDIA_COUNT], 1)
@@ -156,12 +157,12 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                           instance.media_all_received)
         file2_path = "{}/apps/logger/tests/Water_2011_03_17_2011-03-17_16-29"\
                      "-59/1300375832136.jpg".format(settings.PROJECT_ROOT)
-        media2_file = django_file(path=file2_path,
-                                  field_name="image1",
-                                  content_type="image/jpeg")
-        create_instance(self.user.username,
-                        BytesIO(xml_string.strip().encode('utf-8')),
-                        media_files=[media2_file])
+        media2_file = django_file(
+            path=file2_path, field_name="image1", content_type="image/jpeg")
+        create_instance(
+            self.user.username,
+            BytesIO(xml_string.strip().encode('utf-8')),
+            media_files=[media2_file])
         instance2 = Instance.objects.get(pk=instance.pk)
         self.assertTrue(instance2.json[MEDIA_ALL_RECEIVED])
         self.assertEquals(instance2.json[TOTAL_MEDIA], 2)
@@ -205,12 +206,12 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         file_path = "{}/apps/logger/tests/Health_2011_03_13."\
                     "xml_2011-03-15_20-30-28/1300221157303"\
                     ".jpg".format(settings.PROJECT_ROOT)
-        media_file = django_file(path=file_path,
-                                 field_name="image1",
-                                 content_type="image/jpeg")
-        instance = create_instance(self.user.username,
-                                   BytesIO(xml_string.strip().encode('utf-8')),
-                                   media_files=[media_file])
+        media_file = django_file(
+            path=file_path, field_name="image1", content_type="image/jpeg")
+        instance = create_instance(
+            self.user.username,
+            BytesIO(xml_string.strip().encode('utf-8')),
+            media_files=[media_file])
         self.assertFalse(instance.json[MEDIA_ALL_RECEIVED])
         self.assertEquals(instance.json[TOTAL_MEDIA], 2)
         self.assertEquals(instance.json[MEDIA_COUNT], 1)
@@ -220,12 +221,12 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                           instance.media_all_received)
         file2_path = "{}/apps/logger/tests/Water_2011_03_17_2011-03-17_16-29"\
                      "-59/1300375832136.jpg".format(settings.PROJECT_ROOT)
-        media2_file = django_file(path=file2_path,
-                                  field_name="image1",
-                                  content_type="image/jpeg")
-        create_instance(self.user.username,
-                        BytesIO(xml_string.strip().encode('utf-8')),
-                        media_files=[media2_file])
+        media2_file = django_file(
+            path=file2_path, field_name="image1", content_type="image/jpeg")
+        create_instance(
+            self.user.username,
+            BytesIO(xml_string.strip().encode('utf-8')),
+            media_files=[media2_file])
         instance2 = Instance.objects.get(pk=instance.pk)
         self.assertTrue(instance2.json[MEDIA_ALL_RECEIVED])
         self.assertEquals(instance2.json[TOTAL_MEDIA], 2)
@@ -261,12 +262,12 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         file_path = "{}/apps/logger/tests/Health_2011_03_13."\
                     "xml_2011-03-15_20-30-28/1300221157303"\
                     ".jpg".format(settings.PROJECT_ROOT)
-        media_file = django_file(path=file_path,
-                                 field_name="image1",
-                                 content_type="image/jpeg")
-        instance = create_instance(self.user.username,
-                                   BytesIO(xml_string.strip().encode('utf-8')),
-                                   media_files=[media_file])
+        media_file = django_file(
+            path=file_path, field_name="image1", content_type="image/jpeg")
+        instance = create_instance(
+            self.user.username,
+            BytesIO(xml_string.strip().encode('utf-8')),
+            media_files=[media_file])
         self.assertFalse(instance.json[MEDIA_ALL_RECEIVED])
         self.assertEquals(instance.json[TOTAL_MEDIA], 2)
         self.assertEquals(instance.json[MEDIA_COUNT], 1)
@@ -274,12 +275,12 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         self.assertEquals(instance.json[MEDIA_COUNT], instance.media_count)
         self.assertEquals(instance.json[MEDIA_ALL_RECEIVED],
                           instance.media_all_received)
-        media2_file = django_file(path=file_path,
-                                  field_name="image1",
-                                  content_type="image/jpeg")
-        create_instance(self.user.username,
-                        BytesIO(xml_string.strip().encode('utf-8')),
-                        media_files=[media2_file])
+        media2_file = django_file(
+            path=file_path, field_name="image1", content_type="image/jpeg")
+        create_instance(
+            self.user.username,
+            BytesIO(xml_string.strip().encode('utf-8')),
+            media_files=[media2_file])
         instance2 = Instance.objects.get(pk=instance.pk)
         self.assertFalse(instance2.json[MEDIA_ALL_RECEIVED])
         self.assertEquals(instance2.json[TOTAL_MEDIA], 2)
@@ -316,15 +317,14 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                     ".jpg".format(settings.PROJECT_ROOT)
         file2_path = "{}/libs/tests/utils/fixtures/tutorial/instances/uuid1/"\
                      "1442323232322.jpg".format(settings.PROJECT_ROOT)
-        media_file = django_file(path=file_path,
-                                 field_name="image1",
-                                 content_type="image/jpeg")
-        media2_file = django_file(path=file2_path,
-                                  field_name="image1",
-                                  content_type="image/jpeg")
-        instance = create_instance(self.user.username,
-                                   BytesIO(xml_string.strip().encode('utf-8')),
-                                   media_files=[media_file, media2_file])
+        media_file = django_file(
+            path=file_path, field_name="image1", content_type="image/jpeg")
+        media2_file = django_file(
+            path=file2_path, field_name="image1", content_type="image/jpeg")
+        instance = create_instance(
+            self.user.username,
+            BytesIO(xml_string.strip().encode('utf-8')),
+            media_files=[media_file, media2_file])
         self.assertFalse(instance.json[MEDIA_ALL_RECEIVED])
         self.assertEquals(instance.json[TOTAL_MEDIA], 2)
         self.assertEquals(instance.json[MEDIA_COUNT], 1)
@@ -332,3 +332,30 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         self.assertEquals(instance.json[MEDIA_COUNT], instance.media_count)
         self.assertEquals(instance.json[MEDIA_ALL_RECEIVED],
                           instance.media_all_received)
+
+    def test_get_first_record(self):
+        """
+        Test get_first_record() function.
+        """
+        xform_md = """
+        | survey |       |        |       |
+        |        | type  | name   | label |
+        |        | text  | name   | Photo |
+        """
+        self._create_user_and_login()
+        xform = self._publish_markdown(xform_md, self.user)
+
+        self.assertIsNone(get_first_record(Instance.objects.all().only('id')))
+
+        xml_string = """
+        <data id="{}">
+            <name>Alice</name>
+        </data>
+        """.format(xform.id_string)
+        instance = create_instance(
+            self.user.username,
+            BytesIO(xml_string.strip().encode('utf-8')),
+            media_files=[])
+        record = get_first_record(Instance.objects.all().only('id'))
+        self.assertIsNotNone(record)
+        self.assertEqual(record.id, instance.id)
