@@ -481,9 +481,9 @@ class XFormMixin(object):
 
         header_list = [shorten(xpath) for xpath in self.xpaths()]
         header_list += [
-            ID, UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION, DURATION,
-            SUBMITTED_BY, TOTAL_MEDIA, MEDIA_COUNT, MEDIA_ALL_RECEIVED,
-            REVIEW_STATUS
+            ID, UUID, SUBMISSION_TIME, TAGS, NOTES, REVIEW_STATUS, VERSION,
+            DURATION, SUBMITTED_BY, TOTAL_MEDIA, MEDIA_COUNT,
+            MEDIA_ALL_RECEIVED
         ]
         if include_additional_headers:
             header_list += self._additional_headers()
