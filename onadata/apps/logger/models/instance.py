@@ -42,7 +42,8 @@ from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID,
                                             REVIEW_STATUS, START, STATUS,
                                             SUBMISSION_TIME, SUBMITTED_BY,
                                             TAGS, TOTAL_MEDIA, UUID, VERSION,
-                                            XFORM_ID, XFORM_ID_STRING)
+                                            XFORM_ID, XFORM_ID_STRING,
+                                            REVIEW_COMMENT)
 from onadata.libs.utils.dict_tools import get_values_matching_key
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.timing import calculate_duration
@@ -319,7 +320,6 @@ class InstanceBaseClass(object):
                 STATUS: self.status,
                 TAGS: list(self.tags.names()),
                 NOTES: self.get_notes(),
-                REVIEW_STATUS: self.get_review_status(),
                 VERSION: self.version,
                 DURATION: self.get_duration(),
                 XFORM_ID_STRING: self._parser.get_xform_id_string(),
@@ -334,6 +334,13 @@ class InstanceBaseClass(object):
 
             if isinstance(self.deleted_at, datetime):
                 doc[DELETEDAT] = self.deleted_at.strftime(MONGO_STRFTIME)
+
+            if self.get_review_status():
+                doc[REVIEW_STATUS] = self.get_review_status()
+
+            if self.get_review_comment():
+                doc[REVIEW_COMMENT] = self.get_review_comment()
+
 
             # pylint: disable=E0203
             if not self.date_created:
@@ -396,7 +403,16 @@ class InstanceBaseClass(object):
         try:
             return self.reviews.latest('date_modified').get_status_display()
         except SubmissionReview.DoesNotExist:
-            return ''
+            return None
+
+    def get_review_comment(self):
+        """
+        Return the current review comment of an instance
+        """
+        try:
+            return self.reviews.latest('date_modified').get_note_text()
+        except SubmissionReview.DoesNotExist:
+            return None
 
     def get_root_node(self):
         self._set_parser()
@@ -634,7 +650,7 @@ class InstanceHistory(models.Model, InstanceBaseClass):
 
     @property
     def reviews(self):
-        return self.xform_instance.instances.all()
+        return self.xform_instance.reviews.all()
 
     @property
     def version(self):
