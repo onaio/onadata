@@ -139,6 +139,8 @@ class TestCSVDataFrameBuilder(TestBase):
             AbstractDataFrameBuilder.IGNORED_COLUMNS
         try:
             expected_columns.remove(u'_deleted_at')
+            expected_columns.remove(u'_review_status')
+            expected_columns.remove(u'_review_comment')
         except ValueError:
             pass
         self.maxDiff = None
