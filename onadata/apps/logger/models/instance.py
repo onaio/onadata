@@ -401,6 +401,7 @@ class InstanceBaseClass(object):
         Returns current review status of an Instance
         """
         try:
+            # pylint: disable=E1101
             return self.reviews.latest('date_modified').get_status_display()
         except SubmissionReview.DoesNotExist:
             return None
@@ -410,6 +411,7 @@ class InstanceBaseClass(object):
         Return the current review comment of an instance
         """
         try:
+            # pylint: disable=E1101
             return self.reviews.latest('date_modified').get_note_text()
         except SubmissionReview.DoesNotExist:
             return None
