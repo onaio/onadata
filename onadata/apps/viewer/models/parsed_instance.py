@@ -381,6 +381,7 @@ class ParsedInstance(models.Model):
         Return the current review comment of an instance
         """
         try:
-            return self.reviews.latest('date_modified').get_note_text()
+            return self.instance.reviews.latest(
+                'date_modified').get_note_text()
         except SubmissionReview.DoesNotExist:
             return None
