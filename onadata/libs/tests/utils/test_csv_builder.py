@@ -634,7 +634,7 @@ class TestCSVDataFrameBuilder(TestBase):
             'web_browsers/Safari', 'instanceID', '_id', '_uuid',
             '_submission_time', '_tags', '_notes', '_version', '_duration',
             '_submitted_by', '_total_media', '_media_count',
-            '_media_all_received', '_review_status'
+            '_review_status', '_media_all_received'
         ]
         self.assertEqual(expected_labels, labels)
         rows = []
@@ -680,7 +680,7 @@ class TestCSVDataFrameBuilder(TestBase):
             'web_browsers/Safari', 'instanceID', '_id', '_uuid',
             '_submission_time', '_tags', '_notes', '_version', '_duration',
             '_submitted_by', '_total_media', '_media_count',
-            '_media_all_received', '_review_status'
+            '_review_status', '_media_all_received'
         ]
         self.assertEqual(expected_labels, labels)
         rows = []
