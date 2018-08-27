@@ -440,8 +440,6 @@ class TestProcess(TestBase):
                     this_list.append((k, v))
                 else:
                     this_list.append(("transport/" + k, v))
-            import ipdb
-            ipdb.set_trace()
             self.assertEqual(test_dict, dict(this_list))
 
     def test_xls_export_content(self):
