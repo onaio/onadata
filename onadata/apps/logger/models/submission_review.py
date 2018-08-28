@@ -6,8 +6,17 @@ from __future__ import unicode_literals
 
 from django.conf import settings
 from django.db import models
+from django.db.models.signals import post_save
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+
+
+def update_instance_json_on_save(sender, instance, **kwargs):
+    """
+    Signal handler to update Instance Json with the submission review on save
+    """
+    submission_instance = instance.instance
+    submission_instance.save()
 
 
 class SubmissionReview(models.Model):
@@ -76,3 +85,8 @@ class SubmissionReview(models.Model):
         self.save()
 
     note_text = property(get_note_text)
+
+
+post_save.connect(
+    update_instance_json_on_save, sender=SubmissionReview,
+    dispatch_uid='update_instance_json_on_save')
