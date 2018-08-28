@@ -243,7 +243,9 @@ class TestInstance(TestBase):
         self.assertIn(u'_review_comment', instance.json.keys())
         self.assertIn(u'_review_status', instance.json.keys())
         self.assertEqual("Hey there", instance.json[u'_review_comment'])
-        self.assertEqual("Approved", instance.json[u'_review_status'])
+        self.assertEqual(SubmissionReview.APPROVED,
+                         instance.json[u'_review_status'])
 
         self.assertEqual("Hey there", instance.get_review_comment())
-        self.assertEqual("Approved", instance.get_review_status())
+        self.assertEqual(SubmissionReview.APPROVED,
+                         instance.get_review_status())
