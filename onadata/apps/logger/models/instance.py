@@ -401,7 +401,7 @@ class InstanceBaseClass(object):
         """
         try:
             # pylint: disable=E1101
-            return self.reviews.latest('date_modified').get_status_display()
+            return self.reviews.latest('date_modified').status
         except SubmissionReview.DoesNotExist:
             return None
 
