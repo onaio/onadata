@@ -341,7 +341,6 @@ class InstanceBaseClass(object):
             if self.get_review_comment():
                 doc[REVIEW_COMMENT] = self.get_review_comment()
 
-
             # pylint: disable=E0203
             if not self.date_created:
                 self.date_created = submission_time()
