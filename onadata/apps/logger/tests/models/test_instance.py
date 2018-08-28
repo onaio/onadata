@@ -7,7 +7,7 @@ from django_digest.test import DigestAuth
 from mock import patch
 
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.logger.models import XForm, Instance, SubmissionReview, Note
+from onadata.apps.logger.models import XForm, Instance, SubmissionReview
 from onadata.apps.logger.models.instance import get_id_string_from_xml_str
 from onadata.apps.viewer.models.parsed_instance import (
     ParsedInstance, query_data)
