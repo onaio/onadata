@@ -7,7 +7,7 @@ from django_digest.test import DigestAuth
 from mock import patch
 
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.logger.models import XForm, Instance
+from onadata.apps.logger.models import XForm, Instance, SubmissionReview, Note
 from onadata.apps.logger.models.instance import get_id_string_from_xml_str
 from onadata.apps.viewer.models.parsed_instance import (
     ParsedInstance, query_data)
@@ -209,3 +209,22 @@ class TestInstance(TestBase):
         self.assertEqual(self.xform.instances.count(), 4)
         self.assertEqual(len(data), 3)
         self.assertNotIn(atime, data)
+
+    def test_instance_json_updated_on_review(self):
+        self._publish_transportation_form_and_submit_instance()
+        instance = Instance.objects.first()
+        self.assertNotIn(u'_review_status', instance.json.keys())
+        self.assertNotIn(u'_review_comment', instance.json.keys())
+        review = SubmissionReview.objects.create(instance=instance)
+        instance.reviews.add(review)
+        instance.save()
+        self.assertNotIn(u'_review_comment', instance.json.keys())
+        note = Note.objects.create(
+            instance=instance,
+            note='Good',
+            instance_field="",)
+        review = SubmissionReview.objects.create(instance=instance, note=note)
+        instance.reviews.add(review)
+        instance.save()
+        self.assertIn(u'_review_comment', instance.json.keys())
+        self.assertIn(u'_review_status', instance.json.keys())
