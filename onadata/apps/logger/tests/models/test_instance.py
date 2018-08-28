@@ -217,11 +217,16 @@ class TestInstance(TestBase):
             -no review comment or status on instance json
             before submission review
             -instance json review fields update on review save
+            -instance review methods
             """
         self._publish_transportation_form_and_submit_instance()
         instance = Instance.objects.first()
+
         self.assertNotIn(u'_review_status', instance.json.keys())
         self.assertNotIn(u'_review_comment', instance.json.keys())
+
+        self.assertEqual(None, instance.get_review_comment())
+        self.assertEqual(None, instance.get_review_status())
 
         data = {
             "instance": instance.id,
@@ -232,6 +237,13 @@ class TestInstance(TestBase):
         serializer_instance = SubmissionReviewSerializer(data=data)
         serializer_instance.is_valid()
         serializer_instance.save()
+
         instance.refresh_from_db()
+
         self.assertIn(u'_review_comment', instance.json.keys())
         self.assertIn(u'_review_status', instance.json.keys())
+        self.assertEqual("Hey there", instance.json[u'_review_comment'])
+        self.assertEqual("Approved", instance.json[u'_review_status'])
+
+        self.assertEqual("Hey there", instance.get_review_comment())
+        self.assertEqual("Approved", instance.get_review_status())
