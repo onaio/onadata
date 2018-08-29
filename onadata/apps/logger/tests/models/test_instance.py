@@ -227,6 +227,7 @@ class TestInstance(TestBase):
 
         self.assertEqual(None, instance.get_review_comment())
         self.assertEqual(None, instance.get_review_status())
+        self.assertFalse(instance.has_a_review)
 
         data = {
             "instance": instance.id,
@@ -249,3 +250,4 @@ class TestInstance(TestBase):
         self.assertEqual("Hey there", instance.get_review_comment())
         self.assertEqual(SubmissionReview.APPROVED,
                          instance.get_review_status())
+        self.assertTrue(instance.has_a_review)
