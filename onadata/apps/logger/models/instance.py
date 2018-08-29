@@ -671,6 +671,10 @@ class InstanceHistory(models.Model, InstanceBaseClass):
         return self.xform_instance.total_media
 
     @property
+    def has_a_review(self):
+        return self.xform_instance.has_a_review
+
+    @property
     def media_count(self):
         return self.xform_instance.media_count
 
