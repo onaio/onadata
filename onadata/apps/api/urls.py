@@ -27,6 +27,8 @@ from onadata.apps.api.viewsets.organization_profile_viewset import \
 from onadata.apps.api.viewsets.osm_viewset import OsmViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.stats_viewset import StatsViewSet
+from onadata.apps.api.viewsets.submission_review_viewset import \
+    SubmissionReviewViewSet
 from onadata.apps.api.viewsets.submissionstats_viewset import \
     SubmissionStatsViewSet
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
@@ -138,6 +140,8 @@ router.register(r'profiles', UserProfileViewSet)
 router.register(r'projects', ProjectViewSet)
 router.register(r'restservices', RestServicesViewSet, base_name='restservices')
 router.register(r'stats', StatsViewSet, base_name='stats')
+router.register(
+    r'submissionreview', SubmissionReviewViewSet, base_name='submissionreview')
 router.register(
     r'stats/submissions', SubmissionStatsViewSet, base_name='submissionstats')
 router.register(
