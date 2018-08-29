@@ -335,10 +335,9 @@ class InstanceBaseClass(object):
             if isinstance(self.deleted_at, datetime):
                 doc[DELETEDAT] = self.deleted_at.strftime(MONGO_STRFTIME)
 
-            if self.get_review_status():
+            # pylint: disable=E1101
+            if self.has_a_review:
                 doc[REVIEW_STATUS] = self.get_review_status()
-
-            if self.get_review_comment():
                 doc[REVIEW_COMMENT] = self.get_review_comment()
 
             # pylint: disable=E0203
@@ -483,6 +482,8 @@ class Instance(models.Model, InstanceBaseClass):
                                               default=0)
     checksum = models.CharField(max_length=64, null=True, blank=True,
                                 db_index=True)
+    # Keep track of submission reviews, only query reviews if true
+    has_a_review = models.BooleanField(_("Has Had A Review"), default=False)
 
     tags = TaggableManager()
 
