@@ -16,6 +16,8 @@ def update_instance_json_on_save(sender, instance, **kwargs):
     Signal handler to update Instance Json with the submission review on save
     """
     submission_instance = instance.instance
+    if not submission_instance.has_a_review:
+        submission_instance.has_a_review = True
     submission_instance.save()
 
 
