@@ -259,7 +259,7 @@ class InstanceBaseClass(object):
 
     def numeric_converter(self, json_dict, numeric_fields=None):
         if numeric_fields is None:
-            # pylint: disable=E1101
+            # pylint: disable=no-member
             numeric_fields = get_numeric_fields(self.xform)
         for key, value in json_dict.items():
             if isinstance(value, basestring) and key in numeric_fields:
@@ -281,7 +281,7 @@ class InstanceBaseClass(object):
         return json_dict
 
     def _set_geom(self):
-        # pylint: disable=E1101
+        # pylint: disable=no-member
         xform = self.xform
         geo_xpaths = xform.geopoint_xpaths()
         doc = self.get_dict()
@@ -310,7 +310,7 @@ class InstanceBaseClass(object):
         doc = self.json or {} if load_existing else {}
         # Get latest dict
         doc = self.get_dict()
-        # pylint: disable=E1101
+        # pylint: disable=no-member
         if self.id:
             doc.update({
                 UUID: self.uuid,
@@ -335,7 +335,7 @@ class InstanceBaseClass(object):
             if isinstance(self.deleted_at, datetime):
                 doc[DELETEDAT] = self.deleted_at.strftime(MONGO_STRFTIME)
 
-            # pylint: disable=E1101
+            # pylint: disable=no-member
             if self.has_a_review:
                 doc[REVIEW_STATUS] = self.get_review_status()
                 doc[REVIEW_COMMENT] = self.get_review_comment()
@@ -362,7 +362,7 @@ class InstanceBaseClass(object):
 
     def _set_parser(self):
         if not hasattr(self, "_parser"):
-            # pylint: disable=E1101
+            # pylint: disable=no-member
             self._parser = XFormInstanceParser(self.xml, self.xform)
 
     def _set_survey_type(self):
@@ -370,9 +370,9 @@ class InstanceBaseClass(object):
             SurveyType.objects.get_or_create(slug=self.get_root_node_name())
 
     def _set_uuid(self):
-        # pylint: disable=E1101, E0203
+        # pylint: disable=no-member, E0203
         if self.xml and not self.uuid:
-            # pylint: disable=E1101
+            # pylint: disable=no-member
             uuid = get_uuid_from_xml(self.xml)
             if uuid is not None:
                 self.uuid = uuid
@@ -391,7 +391,7 @@ class InstanceBaseClass(object):
         return self.numeric_converter(instance_dict)
 
     def get_notes(self):
-        # pylint: disable=E1101
+        # pylint: disable=no-member
         return [note.get_data() for note in self.notes.all()]
 
     def get_review_status(self):
@@ -399,7 +399,7 @@ class InstanceBaseClass(object):
         Returns current review status of an Instance
         """
         try:
-            # pylint: disable=E1101
+            # pylint: disable=no-member
             return self.reviews.latest('date_modified').status
         except SubmissionReview.DoesNotExist:
             return None
@@ -409,7 +409,7 @@ class InstanceBaseClass(object):
         Return the current review comment of an instance
         """
         try:
-            # pylint: disable=E1101
+            # pylint: disable=no-member
             return self.reviews.latest('date_modified').get_note_text()
         except SubmissionReview.DoesNotExist:
             return None
@@ -424,7 +424,7 @@ class InstanceBaseClass(object):
 
     def get_duration(self):
         data = self.get_dict()
-        # pylint: disable=E1101
+        # pylint: disable=no-member
         start_name = _get_tag_or_element_type_xpath(self.xform, START)
         end_name = _get_tag_or_element_type_xpath(self.xform, END)
         start_time, end_time = data.get(start_name), data.get(end_name)
@@ -505,7 +505,7 @@ class Instance(models.Model, InstanceBaseClass):
 
         :param force: Ignore restrictions on saving.
         """
-        # pylint: disable=E1101
+        # pylint: disable=no-member
         if not force and self.xform and not self.xform.downloadable:
             raise FormInactiveError()
 
@@ -514,7 +514,7 @@ class Instance(models.Model, InstanceBaseClass):
 
         Raises an exception to prevent datasubmissions
         """
-        # pylint: disable=E1101
+        # pylint: disable=no-member
         if self.xform and self.xform.is_merged_dataset:
             raise FormIsMergedDatasetError()
 
@@ -523,13 +523,13 @@ class Instance(models.Model, InstanceBaseClass):
         Returns a list of expected media files from the submission data.
         """
         if not hasattr(self, '_expected_media'):
-            # pylint: disable=E1101
+            # pylint: disable=no-member
             data = self.get_dict()
             media_list = []
             if 'encryptedXmlFile' in data and self.xform.encrypted:
                 media_list.append(data['encryptedXmlFile'])
                 if 'media' in data:
-                    # pylint: disable=E1101
+                    # pylint: disable=no-member
                     media_list.extend([i['media/file'] for i in data['media']])
             else:
                 media_xpaths = (self.xform.get_media_survey_xpaths() +
@@ -571,12 +571,12 @@ class Instance(models.Model, InstanceBaseClass):
         self._set_json()
         self._set_survey_type()
         self._set_uuid()
-        # pylint: disable=E1101
+        # pylint: disable=no-member
         self.version = self.json.get(VERSION, self.xform.version)
 
         super(Instance, self).save(*args, **kwargs)
 
-    # pylint: disable=E1101
+    # pylint: disable=no-member
     def set_deleted(self, deleted_at=timezone.now(), user=None):
         if user:
             self.deleted_by = user
