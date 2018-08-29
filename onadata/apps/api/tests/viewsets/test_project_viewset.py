@@ -263,8 +263,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data, {
-            'owner': [u'You do not have permmission to create a project in '
-                      'this organization.']})
+            'owner': [u'You do not have permission to create a project in '
+                      'the organization {}.'.format(bob)]})
         self.assertEqual(Project.objects.count(), 0)
 
         # Give Alice the permission to create a project in Bob's account.

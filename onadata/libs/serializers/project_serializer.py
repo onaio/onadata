@@ -349,9 +349,9 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
                     'name': _(u"Project {} already exists.".format(name))})
         else:
             organization = organization or self.instance.organization
+        request = self.context['request']
         try:
-            has_perm = can_add_project_to_profile(self.context['request'].user,
-                                                  organization)
+            has_perm = can_add_project_to_profile(request.user, organization)
         except OrganizationProfile.DoesNotExist:
             # most likely when transfering a project to an individual account
             # A user does not require permissions to the user's account forms.
@@ -359,8 +359,9 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         if not has_perm:
             raise serializers.ValidationError({
                 'owner':
-                _("You do not have permmission to create a project "
-                  "in this organization.")
+                _("You do not have permission to create a project "
+                  "in the organization %(organization)s." % {
+                      'organization': organization})
             })
         return attrs
 
