@@ -340,7 +340,7 @@ class InstanceBaseClass(object):
                 doc[REVIEW_STATUS] = self.get_review_status()
                 doc[REVIEW_COMMENT] = self.get_review_comment()
 
-            # pylint: disable=E0203
+            # pylint: disable=attribute-defined-outside-init
             if not self.date_created:
                 self.date_created = submission_time()
 
@@ -370,7 +370,7 @@ class InstanceBaseClass(object):
             SurveyType.objects.get_or_create(slug=self.get_root_node_name())
 
     def _set_uuid(self):
-        # pylint: disable=no-member, E0203
+        # pylint: disable=no-member, attribute-defined-outside-init
         if self.xml and not self.uuid:
             # pylint: disable=no-member
             uuid = get_uuid_from_xml(self.xml)
@@ -483,7 +483,7 @@ class Instance(models.Model, InstanceBaseClass):
     checksum = models.CharField(max_length=64, null=True, blank=True,
                                 db_index=True)
     # Keep track of submission reviews, only query reviews if true
-    has_a_review = models.BooleanField(_("Has Had A Review"), default=False)
+    has_a_review = models.BooleanField(_("has_a_review"), default=False)
 
     tags = TaggableManager()
 
