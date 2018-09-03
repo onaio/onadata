@@ -213,8 +213,6 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
         instance.user.username = params.get('username', instance.user.username)
 
-        instance.metadata = params.get('metadata', instance.metadata)
-
         instance.user.save()
 
         if email:
@@ -262,8 +260,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             country=params.get('country', u''),
             organization=params.get('organization', u''),
             home_page=params.get('home_page', u''),
-            twitter=params.get('twitter', u''),
-            metadata=params.get('metadata', dict)
+            twitter=params.get('twitter', u'')
         )
         profile.save()
 
