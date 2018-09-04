@@ -31,9 +31,8 @@ class SubmissionReviewSerializer(serializers.ModelSerializer):
         status = attrs.get('status')
         note = attrs.get('note')
 
-        if status == SubmissionReview.REJECTED:
-            if note is None:
-                raise exceptions.ValidationError({'note': COMMENT_REQUIRED})
+        if status == SubmissionReview.REJECTED and not note:
+            raise exceptions.ValidationError({'note': COMMENT_REQUIRED})
         return attrs
 
     def create(self, validated_data):

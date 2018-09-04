@@ -459,7 +459,7 @@ def get_user_profile_or_none(username):
 
 def get_instance_xform_or_none(instance_id):
     """
-    Returns an The XForm an Instance belongs to
+    Returns the XForm an Instance belongs to
     """
     xform = None
 

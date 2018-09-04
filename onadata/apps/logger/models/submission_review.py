@@ -54,7 +54,7 @@ class SubmissionReview(models.Model):
         choices=STATUS_CHOICES,
         default=PENDING,
         db_index=True)
-    deleted_at = models.DateTimeField(null=True, default=None)
+    deleted_at = models.DateTimeField(null=True, default=None, db_index=True)
     deleted_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         related_name='deleted_reviews',

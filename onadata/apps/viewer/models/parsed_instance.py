@@ -293,11 +293,9 @@ class ParsedInstance(models.Model):
         if isinstance(self.instance.deleted_at, datetime.datetime):
             data[DELETEDAT] = self.instance.deleted_at.strftime(MONGO_STRFTIME)
 
-        if self.get_review_status():
-            data[REVIEW_STATUS] = self.get_review_status()
-
-        if self.get_review_comment():
-            data[REVIEW_COMMENT] = self.get_review_comment()
+        if self.instance.has_a_review:
+            data[REVIEW_STATUS] = self.instance.get_review_status()
+            data[REVIEW_COMMENT] = self.instance.get_review_comment()
 
         data[EDITED] = (True if self.instance.submission_history.count() > 0
                         else False)
@@ -366,22 +364,3 @@ class ParsedInstance(models.Model):
             notes.append(note)
         return notes
 
-    def get_review_status(self):
-        """
-        Returns Review Status
-        """
-        try:
-            return self.instance.reviews.latest(
-                'date_modified').get_status_display()
-        except SubmissionReview.DoesNotExist:
-            return None
-
-    def get_review_comment(self):
-        """
-        Return the current review comment of an instance
-        """
-        try:
-            return self.instance.reviews.latest(
-                'date_modified').get_note_text()
-        except SubmissionReview.DoesNotExist:
-            return None
