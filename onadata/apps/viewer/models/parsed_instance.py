@@ -364,4 +364,3 @@ class ParsedInstance(models.Model):
                 MONGO_STRFTIME)
             notes.append(note)
         return notes
-
