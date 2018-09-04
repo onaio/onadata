@@ -337,8 +337,10 @@ class InstanceBaseClass(object):
 
             # pylint: disable=no-member
             if self.has_a_review:
-                doc[REVIEW_STATUS] = self.get_review_status()
-                doc[REVIEW_COMMENT] = self.get_review_comment()
+                status, comment = self.get_review_status_and_comment()
+                doc[REVIEW_STATUS] = status
+                if comment:
+                    doc[REVIEW_COMMENT] = comment
 
             # pylint: disable=attribute-defined-outside-init
             if not self.date_created:
@@ -394,23 +396,15 @@ class InstanceBaseClass(object):
         # pylint: disable=no-member
         return [note.get_data() for note in self.notes.all()]
 
-    def get_review_status(self):
+    def get_review_status_and_comment(self):
         """
-        Returns current review status of an Instance
-        """
-        try:
-            # pylint: disable=no-member
-            return self.reviews.latest('date_modified').status
-        except SubmissionReview.DoesNotExist:
-            return None
-
-    def get_review_comment(self):
-        """
-        Return the current review comment of an instance
+        Return a tuple of review status and comment
         """
         try:
             # pylint: disable=no-member
-            return self.reviews.latest('date_modified').get_note_text()
+            status = self.reviews.latest('date_modified').status
+            comment = self.reviews.latest('date_modified').get_note_text()
+            return status, comment
         except SubmissionReview.DoesNotExist:
             return None
 

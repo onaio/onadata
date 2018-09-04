@@ -221,33 +221,45 @@ class TestInstance(TestBase):
             """
         self._publish_transportation_form_and_submit_instance()
         instance = Instance.objects.first()
-
         self.assertNotIn(u'_review_status', instance.json.keys())
         self.assertNotIn(u'_review_comment', instance.json.keys())
-
-        self.assertEqual(None, instance.get_review_comment())
-        self.assertEqual(None, instance.get_review_status())
         self.assertFalse(instance.has_a_review)
 
         data = {
             "instance": instance.id,
-            "note": "Hey there",
             "status": SubmissionReview.APPROVED
         }
 
         serializer_instance = SubmissionReviewSerializer(data=data)
         serializer_instance.is_valid()
         serializer_instance.save()
-
         instance.refresh_from_db()
+        status, comment = instance.get_review_status_and_comment()
+
+        self.assertNotIn(u'_review_comment', instance.json.keys())
+        self.assertIn(u'_review_status', instance.json.keys())
+        self.assertEqual(SubmissionReview.APPROVED,
+                         instance.json[u'_review_status'])
+        self.assertEqual(SubmissionReview.APPROVED, status)
+        self.assertEqual(None, comment)
+        self.assertTrue(instance.has_a_review)
+
+        data = {
+            "instance": instance.id,
+            "note": "Hey There",
+            "status": SubmissionReview.APPROVED
+        }
+
+        serializer_instance = SubmissionReviewSerializer(data=data)
+        serializer_instance.is_valid()
+        serializer_instance.save()
+        instance.refresh_from_db()
+        status, comment = instance.get_review_status_and_comment()
 
         self.assertIn(u'_review_comment', instance.json.keys())
         self.assertIn(u'_review_status', instance.json.keys())
-        self.assertEqual("Hey there", instance.json[u'_review_comment'])
         self.assertEqual(SubmissionReview.APPROVED,
                          instance.json[u'_review_status'])
-
-        self.assertEqual("Hey there", instance.get_review_comment())
-        self.assertEqual(SubmissionReview.APPROVED,
-                         instance.get_review_status())
+        self.assertEqual(SubmissionReview.APPROVED, status)
+        self.assertEqual("Hey There", comment)
         self.assertTrue(instance.has_a_review)

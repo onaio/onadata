@@ -73,7 +73,7 @@ class SubmissionReview(models.Model):
         """
         Custom Property returns associated note text
         """
-        if self.note is not None:
+        if self.note:
             return self.note.note  # pylint: disable=no-member
         return None
 

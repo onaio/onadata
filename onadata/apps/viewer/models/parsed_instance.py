@@ -11,7 +11,6 @@ from django.db import models
 from django.utils.translation import ugettext as _
 from django.db.models.query import EmptyQuerySet
 
-from onadata.apps.logger.models.submission_review import SubmissionReview
 from onadata.apps.logger.models.note import Note
 from onadata.apps.logger.models.instance import _get_attachments_from_instance
 from onadata.apps.logger.models.instance import Instance
@@ -294,8 +293,10 @@ class ParsedInstance(models.Model):
             data[DELETEDAT] = self.instance.deleted_at.strftime(MONGO_STRFTIME)
 
         if self.instance.has_a_review:
-            data[REVIEW_STATUS] = self.instance.get_review_status()
-            data[REVIEW_COMMENT] = self.instance.get_review_comment()
+            status, comment = self.instance.get_review_status_and_comment()
+            data[REVIEW_STATUS] = status
+            if comment:
+                data[REVIEW_COMMENT] = comment
 
         data[EDITED] = (True if self.instance.submission_history.count() > 0
                         else False)
