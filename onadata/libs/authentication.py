@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+"""Authentication classes.
+"""
 from __future__ import unicode_literals
 
 import jwt
@@ -18,6 +21,11 @@ from rest_framework.authtoken.models import Token
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.libs.utils.common_tags import API_TOKEN
 
+ENKETO_AUTH_COOKIE = getattr(settings, 'ENKETO_AUTH_COOKIE', '__enketo')
+JWT_SECRET_KEY = getattr(settings, 'JWT_SECRET_KEY', 'jwt')
+JWT_ALGORITHM = getattr(settings, 'JWT_ALGORITHM', 'HS256')
+TEMP_TOKEN_EXPIRY_TIME = getattr(settings, 'DEFAULT_TEMP_TOKEN_EXPIRY_TIME')
+
 
 def expired(time_token_created):
     """Checks if the time between when time_token_created and current time
@@ -26,8 +34,6 @@ def expired(time_token_created):
     :params time_token_created: The time the token we are checking was created.
     :returns: Boolean True if not passed expired time, otherwise False.
     """
-    TEMP_TOKEN_EXPIRY_TIME = getattr(settings,
-                                     'DEFAULT_TEMP_TOKEN_EXPIRY_TIME')
     time_diff = (timezone.now() - time_token_created).total_seconds()
     token_expiry_time = TEMP_TOKEN_EXPIRY_TIME
 
@@ -38,8 +44,6 @@ def get_api_token(json_web_token):
     """Get API Token from JSON Web Token"""
     # having this here allows the values to be mocked easily as oppossed to
     # being on the global scope
-    JWT_SECRET_KEY = getattr(settings, 'JWT_SECRET_KEY', 'jwt')
-    JWT_ALGORITHM = getattr(settings, 'JWT_ALGORITHM', 'HS256')
     try:
         jwt_payload = jwt.decode(json_web_token,
                                  JWT_SECRET_KEY,
@@ -56,6 +60,8 @@ def get_api_token(json_web_token):
 
 
 class DigestAuthentication(BaseAuthentication):
+    """Digest authentication
+    """
 
     def __init__(self):
         self.authenticator = HttpDigestAuthenticator()
@@ -82,6 +88,8 @@ class DigestAuthentication(BaseAuthentication):
 
 
 class TempTokenAuthentication(TokenAuthentication):
+    """TempToken authentication using "Authorization: TempToken xxxx" header.
+    """
     model = TempToken
 
     def authenticate(self, request):
@@ -91,12 +99,12 @@ class TempTokenAuthentication(TokenAuthentication):
             return None
 
         if len(auth) == 1:
-            m = _(u'Invalid token header. No credentials provided.')
-            raise exceptions.AuthenticationFailed(m)
+            error_msg = _(u'Invalid token header. No credentials provided.')
+            raise exceptions.AuthenticationFailed(error_msg)
         elif len(auth) > 2:
-            m = _(u'Invalid token header. '
-                  'Token string should not contain spaces.')
-            raise exceptions.AuthenticationFailed(m)
+            error_msg = _(u'Invalid token header. '
+                          'Token string should not contain spaces.')
+            raise exceptions.AuthenticationFailed(error_msg)
 
         return self.authenticate_credentials(auth[1])
 
@@ -120,12 +128,15 @@ class TempTokenAuthentication(TokenAuthentication):
 
 
 class EnketoTokenAuthentication(TokenAuthentication):
+    """Enketo Token Authentication via JWT shared domain cookie name.
+    """
     model = Token
 
     def authenticate(self, request):
         try:
             cookie_jwt = request.get_signed_cookie(
-                '__enketo', salt=getattr(settings, 'ENKETO_API_SALT')
+                ENKETO_AUTH_COOKIE,
+                salt=getattr(settings, 'ENKETO_API_SALT')
             )
             api_token = get_api_token(cookie_jwt)
 
@@ -138,7 +149,7 @@ class EnketoTokenAuthentication(TokenAuthentication):
         except BadSignature:
             # if the cookie wasn't signed it means zebra might have
             # generated it
-            cookie_jwt = request.COOKIES.get('__enketo')
+            cookie_jwt = request.COOKIES.get(ENKETO_AUTH_COOKIE)
             api_token = get_api_token(cookie_jwt)
             if getattr(api_token, 'user'):
                 return api_token.user, api_token
@@ -150,6 +161,8 @@ class EnketoTokenAuthentication(TokenAuthentication):
 
 
 class TempTokenURLParameterAuthentication(TempTokenAuthentication):
+    """TempToken URL via temp_token request parameter.
+    """
     model = TempToken
 
     def authenticate(self, request):
