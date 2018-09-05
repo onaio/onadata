@@ -75,6 +75,11 @@ from onadata.libs.utils.viewer_tools import (enketo_url,
                                              get_form_url)
 from onadata.libs.exceptions import EnketoError
 
+ENKETO_AUTH_COOKIE = getattr(settings, 'ENKETO_AUTH_COOKIE',
+                             '__enketo')
+ENKETO_META_UID_COOKIE = getattr(settings, 'ENKETO_META_UID_COOKIE',
+                                 '__enketo_meta_uid')
+
 BaseViewset = get_baseviewset_class()
 
 
@@ -147,23 +152,24 @@ def get_survey_xml(csv_name):
 
 
 def set_enketo_signed_cookies(resp, username=None, json_web_token=None):
+    """Set signed cookies for JWT token in the HTTPResponse resp object.
+    """
     if not username and not json_web_token:
         return
 
     max_age = 30 * 24 * 60 * 60 * 1000
-
-    __enketo_meta_uid = {'max_age': max_age, 'salt': settings.ENKETO_API_SALT}
-    __enketo = {'secure': False, 'salt': settings.ENKETO_API_SALT}
+    enketo_meta_uid = {'max_age': max_age, 'salt': settings.ENKETO_API_SALT}
+    enketo = {'secure': False, 'salt': settings.ENKETO_API_SALT}
 
     # add domain attribute if ENKETO_AUTH_COOKIE_DOMAIN is set in settings
     # i.e. don't add in development environment because cookie automatically
     # assigns 'localhost' as domain
     if getattr(settings, 'ENKETO_AUTH_COOKIE_DOMAIN', None):
-        __enketo_meta_uid['domain'] = settings.ENKETO_AUTH_COOKIE_DOMAIN
-        __enketo['domain'] = settings.ENKETO_AUTH_COOKIE_DOMAIN
+        enketo_meta_uid['domain'] = settings.ENKETO_AUTH_COOKIE_DOMAIN
+        enketo['domain'] = settings.ENKETO_AUTH_COOKIE_DOMAIN
 
-    resp.set_signed_cookie('__enketo_meta_uid', username, **__enketo_meta_uid)
-    resp.set_signed_cookie('__enketo', json_web_token, **__enketo)
+    resp.set_signed_cookie(ENKETO_META_UID_COOKIE, username, **enketo_meta_uid)
+    resp.set_signed_cookie(ENKETO_AUTH_COOKIE, json_web_token, **enketo)
 
     return resp
 

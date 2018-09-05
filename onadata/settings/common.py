@@ -109,6 +109,8 @@ ENKETO_API_TOKEN = ''
 ENKETO_API_INSTANCE_IFRAME_URL = ENKETO_URL + "api_v2/instance/iframe"
 ENKETO_API_SALT = 'secretsalt'
 VERIFY_SSL = True
+ENKETO_AUTH_COOKIE = '__enketo'
+ENKETO_META_UID_COOKIE = '__enketo_meta_uid'
 
 # Login URLs
 LOGIN_URL = '/accounts/login/'
