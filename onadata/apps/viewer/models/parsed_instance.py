@@ -22,7 +22,7 @@ from onadata.libs.models.sorting import (
 from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
     SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS,\
     NOTES, SUBMITTED_BY, VERSION, DURATION, EDITED, MEDIA_COUNT, TOTAL_MEDIA,\
-    MEDIA_ALL_RECEIVED, XFORM_ID
+    MEDIA_ALL_RECEIVED, XFORM_ID, REVIEW_STATUS, REVIEW_COMMENT
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.mongo import _is_invalid_for_mongo
 
@@ -291,6 +291,12 @@ class ParsedInstance(models.Model):
 
         if isinstance(self.instance.deleted_at, datetime.datetime):
             data[DELETEDAT] = self.instance.deleted_at.strftime(MONGO_STRFTIME)
+
+        if self.instance.has_a_review:
+            status, comment = self.instance.get_review_status_and_comment()
+            data[REVIEW_STATUS] = status
+            if comment:
+                data[REVIEW_COMMENT] = comment
 
         data[EDITED] = (True if self.instance.submission_history.count() > 0
                         else False)

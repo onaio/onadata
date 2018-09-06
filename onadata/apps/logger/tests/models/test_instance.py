@@ -7,12 +7,14 @@ from django_digest.test import DigestAuth
 from mock import patch
 
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.logger.models import XForm, Instance
+from onadata.apps.logger.models import XForm, Instance, SubmissionReview
 from onadata.apps.logger.models.instance import get_id_string_from_xml_str
 from onadata.apps.viewer.models.parsed_instance import (
     ParsedInstance, query_data)
 from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMISSION_TIME,\
                                            XFORM_ID_STRING, SUBMITTED_BY
+from onadata.libs.serializers.submission_review_serializer import \
+    SubmissionReviewSerializer
 
 
 class TestInstance(TestBase):
@@ -209,3 +211,55 @@ class TestInstance(TestBase):
         self.assertEqual(self.xform.instances.count(), 4)
         self.assertEqual(len(data), 3)
         self.assertNotIn(atime, data)
+
+    def test_instance_json_updated_on_review(self):
+        """Test:
+            -no review comment or status on instance json
+            before submission review
+            -instance json review fields update on review save
+            -instance review methods
+            """
+        self._publish_transportation_form_and_submit_instance()
+        instance = Instance.objects.first()
+        self.assertNotIn(u'_review_status', instance.json.keys())
+        self.assertNotIn(u'_review_comment', instance.json.keys())
+        self.assertFalse(instance.has_a_review)
+
+        data = {
+            "instance": instance.id,
+            "status": SubmissionReview.APPROVED
+        }
+
+        serializer_instance = SubmissionReviewSerializer(data=data)
+        serializer_instance.is_valid()
+        serializer_instance.save()
+        instance.refresh_from_db()
+        status, comment = instance.get_review_status_and_comment()
+
+        self.assertNotIn(u'_review_comment', instance.json.keys())
+        self.assertIn(u'_review_status', instance.json.keys())
+        self.assertEqual(SubmissionReview.APPROVED,
+                         instance.json[u'_review_status'])
+        self.assertEqual(SubmissionReview.APPROVED, status)
+        self.assertEqual(None, comment)
+        self.assertTrue(instance.has_a_review)
+
+        data = {
+            "instance": instance.id,
+            "note": "Hey There",
+            "status": SubmissionReview.APPROVED
+        }
+
+        serializer_instance = SubmissionReviewSerializer(data=data)
+        serializer_instance.is_valid()
+        serializer_instance.save()
+        instance.refresh_from_db()
+        status, comment = instance.get_review_status_and_comment()
+
+        self.assertIn(u'_review_comment', instance.json.keys())
+        self.assertIn(u'_review_status', instance.json.keys())
+        self.assertEqual(SubmissionReview.APPROVED,
+                         instance.json[u'_review_status'])
+        self.assertEqual(SubmissionReview.APPROVED, status)
+        self.assertEqual("Hey There", comment)
+        self.assertTrue(instance.has_a_review)

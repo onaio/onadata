@@ -26,6 +26,8 @@
     "_submission_time",
     "_tags",
     "_notes",
+    "_review_status",
+    "_review_comment",
     "_version",
     "_duration",
     "_submitted_by",

@@ -4,7 +4,9 @@ Instance model class
 """
 import math
 from datetime import datetime
+
 from future.utils import python_2_unicode_compatible
+
 from past.builtins import basestring  # pylint: disable=W0622
 
 from django.conf import settings
@@ -21,6 +23,7 @@ from django.utils.translation import ugettext as _
 from celery import task
 from taggit.managers import TaggableManager
 
+from onadata.apps.logger.models.submission_review import SubmissionReview
 from onadata.apps.logger.models.survey_type import SurveyType
 from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH, XForm
 from onadata.apps.logger.xform_instance_parser import (XFormInstanceParser,
@@ -35,11 +38,12 @@ from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID,
                                             DELETEDAT, DURATION, EDITED, END,
                                             GEOLOCATION, ID, LAST_EDITED,
                                             MEDIA_ALL_RECEIVED, MEDIA_COUNT,
-                                            MONGO_STRFTIME, NOTES, START,
-                                            STATUS, SUBMISSION_TIME,
-                                            SUBMITTED_BY, TAGS, TOTAL_MEDIA,
-                                            UUID, VERSION, XFORM_ID,
-                                            XFORM_ID_STRING)
+                                            MONGO_STRFTIME, NOTES,
+                                            REVIEW_STATUS, START, STATUS,
+                                            SUBMISSION_TIME, SUBMITTED_BY,
+                                            TAGS, TOTAL_MEDIA, UUID, VERSION,
+                                            XFORM_ID, XFORM_ID_STRING,
+                                            REVIEW_COMMENT)
 from onadata.libs.utils.dict_tools import get_values_matching_key
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.timing import calculate_duration
@@ -255,7 +259,7 @@ class InstanceBaseClass(object):
 
     def numeric_converter(self, json_dict, numeric_fields=None):
         if numeric_fields is None:
-            # pylint: disable=E1101
+            # pylint: disable=no-member
             numeric_fields = get_numeric_fields(self.xform)
         for key, value in json_dict.items():
             if isinstance(value, basestring) and key in numeric_fields:
@@ -277,7 +281,7 @@ class InstanceBaseClass(object):
         return json_dict
 
     def _set_geom(self):
-        # pylint: disable=E1101
+        # pylint: disable=no-member
         xform = self.xform
         geo_xpaths = xform.geopoint_xpaths()
         doc = self.get_dict()
@@ -306,7 +310,7 @@ class InstanceBaseClass(object):
         doc = self.json or {} if load_existing else {}
         # Get latest dict
         doc = self.get_dict()
-        # pylint: disable=E1101
+        # pylint: disable=no-member
         if self.id:
             doc.update({
                 UUID: self.uuid,
@@ -331,7 +335,14 @@ class InstanceBaseClass(object):
             if isinstance(self.deleted_at, datetime):
                 doc[DELETEDAT] = self.deleted_at.strftime(MONGO_STRFTIME)
 
-            # pylint: disable=E0203
+            # pylint: disable=no-member
+            if self.has_a_review:
+                status, comment = self.get_review_status_and_comment()
+                doc[REVIEW_STATUS] = status
+                if comment:
+                    doc[REVIEW_COMMENT] = comment
+
+            # pylint: disable=attribute-defined-outside-init
             if not self.date_created:
                 self.date_created = submission_time()
 
@@ -353,7 +364,7 @@ class InstanceBaseClass(object):
 
     def _set_parser(self):
         if not hasattr(self, "_parser"):
-            # pylint: disable=E1101
+            # pylint: disable=no-member
             self._parser = XFormInstanceParser(self.xml, self.xform)
 
     def _set_survey_type(self):
@@ -361,9 +372,9 @@ class InstanceBaseClass(object):
             SurveyType.objects.get_or_create(slug=self.get_root_node_name())
 
     def _set_uuid(self):
-        # pylint: disable=E1101, E0203
+        # pylint: disable=no-member, attribute-defined-outside-init
         if self.xml and not self.uuid:
-            # pylint: disable=E1101
+            # pylint: disable=no-member
             uuid = get_uuid_from_xml(self.xml)
             if uuid is not None:
                 self.uuid = uuid
@@ -382,8 +393,20 @@ class InstanceBaseClass(object):
         return self.numeric_converter(instance_dict)
 
     def get_notes(self):
-        # pylint: disable=E1101
+        # pylint: disable=no-member
         return [note.get_data() for note in self.notes.all()]
+
+    def get_review_status_and_comment(self):
+        """
+        Return a tuple of review status and comment
+        """
+        try:
+            # pylint: disable=no-member
+            status = self.reviews.latest('date_modified').status
+            comment = self.reviews.latest('date_modified').get_note_text()
+            return status, comment
+        except SubmissionReview.DoesNotExist:
+            return None
 
     def get_root_node(self):
         self._set_parser()
@@ -395,7 +418,7 @@ class InstanceBaseClass(object):
 
     def get_duration(self):
         data = self.get_dict()
-        # pylint: disable=E1101
+        # pylint: disable=no-member
         start_name = _get_tag_or_element_type_xpath(self.xform, START)
         end_name = _get_tag_or_element_type_xpath(self.xform, END)
         start_time, end_time = data.get(start_name), data.get(end_name)
@@ -453,6 +476,8 @@ class Instance(models.Model, InstanceBaseClass):
                                               default=0)
     checksum = models.CharField(max_length=64, null=True, blank=True,
                                 db_index=True)
+    # Keep track of submission reviews, only query reviews if true
+    has_a_review = models.BooleanField(_("has_a_review"), default=False)
 
     tags = TaggableManager()
 
@@ -474,7 +499,7 @@ class Instance(models.Model, InstanceBaseClass):
 
         :param force: Ignore restrictions on saving.
         """
-        # pylint: disable=E1101
+        # pylint: disable=no-member
         if not force and self.xform and not self.xform.downloadable:
             raise FormInactiveError()
 
@@ -483,7 +508,7 @@ class Instance(models.Model, InstanceBaseClass):
 
         Raises an exception to prevent datasubmissions
         """
-        # pylint: disable=E1101
+        # pylint: disable=no-member
         if self.xform and self.xform.is_merged_dataset:
             raise FormIsMergedDatasetError()
 
@@ -492,13 +517,13 @@ class Instance(models.Model, InstanceBaseClass):
         Returns a list of expected media files from the submission data.
         """
         if not hasattr(self, '_expected_media'):
-            # pylint: disable=E1101
+            # pylint: disable=no-member
             data = self.get_dict()
             media_list = []
             if 'encryptedXmlFile' in data and self.xform.encrypted:
                 media_list.append(data['encryptedXmlFile'])
                 if 'media' in data:
-                    # pylint: disable=E1101
+                    # pylint: disable=no-member
                     media_list.extend([i['media/file'] for i in data['media']])
             else:
                 media_xpaths = (self.xform.get_media_survey_xpaths() +
@@ -540,12 +565,12 @@ class Instance(models.Model, InstanceBaseClass):
         self._set_json()
         self._set_survey_type()
         self._set_uuid()
-        # pylint: disable=E1101
+        # pylint: disable=no-member
         self.version = self.json.get(VERSION, self.xform.version)
 
         super(Instance, self).save(*args, **kwargs)
 
-    # pylint: disable=E1101
+    # pylint: disable=no-member
     def set_deleted(self, deleted_at=timezone.now(), user=None):
         if user:
             self.deleted_by = user
@@ -620,6 +645,10 @@ class InstanceHistory(models.Model, InstanceBaseClass):
         return self.xform_instance.notes.all()
 
     @property
+    def reviews(self):
+        return self.xform_instance.reviews.all()
+
+    @property
     def version(self):
         return self.xform_instance.version
 
@@ -634,6 +663,10 @@ class InstanceHistory(models.Model, InstanceBaseClass):
     @property
     def total_media(self):
         return self.xform_instance.total_media
+
+    @property
+    def has_a_review(self):
+        return self.xform_instance.has_a_review
 
     @property
     def media_count(self):

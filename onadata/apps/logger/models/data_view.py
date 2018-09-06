@@ -27,7 +27,8 @@ from onadata.libs.utils.common_tags import (ATTACHMENTS, EDITED, GEOLOCATION,
 
 SUPPORTED_FILTERS = ['=', '>', '<', '>=', '<=', '<>', '!=']
 ATTACHMENT_TYPES = ['photo', 'audio', 'video']
-DEFAULT_COLUMNS = [ID, SUBMISSION_TIME, EDITED, LAST_EDITED, NOTES]
+DEFAULT_COLUMNS = [
+    ID, SUBMISSION_TIME, EDITED, LAST_EDITED, NOTES]
 
 
 def _json_sql_str(key, known_integers=None, known_dates=None,

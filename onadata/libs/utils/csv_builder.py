@@ -26,7 +26,8 @@ from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID,
                                             NA_REP, NOTES, STATUS,
                                             SUBMISSION_TIME, SUBMITTED_BY,
                                             TAGS, TOTAL_MEDIA, UUID, VERSION,
-                                            XFORM_ID_STRING)
+                                            XFORM_ID_STRING, REVIEW_STATUS,
+                                            REVIEW_COMMENT)
 from onadata.libs.utils.export_builder import (get_choice_label,
                                                get_value_or_attachment_uri,
                                                track_task_progress)
@@ -149,7 +150,7 @@ class AbstractDataFrameBuilder(object):
     # fields NOT within the form def that we want to include
     ADDITIONAL_COLUMNS = [
         ID, UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION, DURATION,
-        SUBMITTED_BY, TOTAL_MEDIA, MEDIA_COUNT,
+        SUBMITTED_BY, TOTAL_MEDIA, MEDIA_COUNT, REVIEW_STATUS, REVIEW_COMMENT,
         MEDIA_ALL_RECEIVED]
     BINARY_SELECT_MULTIPLES = False
     VALUE_SELECT_MULTIPLES = False

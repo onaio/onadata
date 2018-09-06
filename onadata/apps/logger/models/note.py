@@ -1,10 +1,17 @@
-from __future__ import absolute_import
+# -*- coding: utf-8 -*-
+"""
+Note Model Module
+"""
+from __future__ import unicode_literals
 
 from django.conf import settings
 from django.db import models
 
 
 class Note(models.Model):
+    """
+    Note Model Class
+    """
     note = models.TextField()
     instance = models.ForeignKey(
         'logger.Instance', related_name='notes')
@@ -15,10 +22,16 @@ class Note(models.Model):
     date_modified = models.DateTimeField(auto_now=True)
 
     class Meta:
+        """
+        Meta Options for Note Model
+        """
         app_label = 'logger'
         permissions = (('view_note', 'View note'), )
 
     def get_data(self):
+        """
+        Returns Note data as a dictionary
+        """
         owner = ""
         created_by_id = ""
         if self.created_by:
