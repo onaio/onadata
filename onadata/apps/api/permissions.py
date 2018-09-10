@@ -177,7 +177,8 @@ class SubmissionReviewPermissions(XFormPermissions):
             if isinstance(request.data, list):
                 instance_ids = list(set([_['instance'] for _ in request.data]))
                 xforms = XForm.objects.filter(
-                    instances__in=instance_ids).distinct()
+                    instances__in=instance_ids).only(
+                        'id').order_by().distinct()
                 for xform in xforms:
                     if not request.user.has_perm(CAN_CHANGE_XFORM, xform):
                         return False
