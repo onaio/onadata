@@ -59,6 +59,40 @@ class TestSubmissionReviewViewSet(TestBase):
         """
         self._create_submission_review()
 
+    def test_bulk_create_submission_review(self):
+        """
+        Test that we can bulk create submission reviews
+        """
+        instances = self.xform.instances.all()
+        submission_data = [
+            {
+                'note': 'This is not very good, is it?',
+                'instance': _.id,
+                'status': SubmissionReview.REJECTED
+            } for _ in instances
+        ]
+        view = SubmissionReviewViewSet.as_view({'post': 'create'})
+
+        # get DRF to use the JSON renderer as other renderes are likely to fail
+        self.extra['format'] = 'json'
+
+        request = self.factory.post('/', data=submission_data, **self.extra)
+        response = view(request=request)
+
+        self.assertEqual(201, response.status_code)
+        self.assertEqual(4, len(response.data))
+        already_seen = []
+        for item in response.data:
+            # the note sjould match what we provided
+            self.assertEqual('This is not very good, is it?', item['note'])
+            # the status should be rejected
+            self.assertEqual(SubmissionReview.REJECTED, item['status'])
+            # the instance id must be valid
+            self.assertTrue(instances.filter(id=item['instance']).exists())
+            # all the submission reviews must have different isntance fields
+            self.assertFalse(item['instance'] in already_seen)
+            already_seen.append(item['instance'])
+
     def test_submission_review_list(self):
         """
         Test we can list submission reviews
