@@ -83,13 +83,13 @@ class TestSubmissionReviewViewSet(TestBase):
         self.assertEqual(4, len(response.data))
         already_seen = []
         for item in response.data:
-            # the note sjould match what we provided
+            # the note should match what we provided
             self.assertEqual('This is not very good, is it?', item['note'])
             # the status should be rejected
             self.assertEqual(SubmissionReview.REJECTED, item['status'])
             # the instance id must be valid
             self.assertTrue(instances.filter(id=item['instance']).exists())
-            # all the submission reviews must have different isntance fields
+            # all the submission reviews must have different instance fields
             self.assertFalse(item['instance'] in already_seen)
             already_seen.append(item['instance'])
 
