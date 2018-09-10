@@ -8,9 +8,10 @@ from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.viewsets.submission_review_viewset import \
     SubmissionReviewViewSet
-from onadata.apps.logger.models import SubmissionReview
+from onadata.apps.logger.models import SubmissionReview, Instance
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.permissions import CAN_CHANGE_XFORM
+from onadata.libs.utils.common_tags import REVIEW_STATUS, REVIEW_COMMENT
 
 
 class TestSubmissionReviewViewSet(TestBase):
@@ -92,6 +93,13 @@ class TestSubmissionReviewViewSet(TestBase):
             # all the submission reviews must have different instance fields
             self.assertFalse(item['instance'] in already_seen)
             already_seen.append(item['instance'])
+            # ensure that the instance JSON has the submission fields
+            instance = Instance.objects.get(pk=item['instance'])
+            self.assertEqual(
+                'This is not very good, is it?',
+                instance.json[REVIEW_COMMENT])
+            self.assertEqual(
+                SubmissionReview.REJECTED, instance.json[REVIEW_STATUS])
 
     def test_bulk_create_submission_review_permissions(self):
         """
