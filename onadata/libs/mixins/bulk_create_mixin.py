@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-API mixins module
+BulkCreateMixin module
 """
 from __future__ import unicode_literals
 
