@@ -93,6 +93,34 @@ class TestSubmissionReviewViewSet(TestBase):
             self.assertFalse(item['instance'] in already_seen)
             already_seen.append(item['instance'])
 
+    def test_bulk_create_submission_review_permissions(self):
+        """
+        Test that bulk create fails when the user has no permission to
+        any submission
+        """
+        instances = self.xform.instances.all()
+        submission_data = [
+            {
+                'note': 'Nope!!',
+                'instance': _.id,
+                'status': SubmissionReview.REJECTED
+            } for _ in instances
+        ]
+
+        self._create_user_and_login('dave', '1234')
+        extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token,
+            'format': 'json'
+        }
+
+        view = SubmissionReviewViewSet.as_view({'post': 'create'})
+
+        # dave should not be able to bulk create submission reviews
+        request = self.factory.post('/', data=submission_data, **extra)
+        response = view(request=request)
+
+        self.assertEqual(403, response.status_code)
+
     def test_submission_review_list(self):
         """
         Test we can list submission reviews
