@@ -9,7 +9,6 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from onadata.apps.api.mixins import BulkCreateMixin
 from onadata.apps.api.permissions import SubmissionReviewPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import SubmissionReview
@@ -17,6 +16,7 @@ from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
+from onadata.libs.mixins.bulk_create_mixin import BulkCreateMixin
 from onadata.libs.serializers.submission_review_serializer import \
     SubmissionReviewSerializer
 
