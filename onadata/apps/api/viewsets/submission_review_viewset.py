@@ -1,11 +1,15 @@
+# -*- coding: utf-8 -*-
 """
 Submission Review Viewset Module
 """
+from __future__ import unicode_literals
+
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+from onadata.apps.api.mixins import BulkCreateMixin
 from onadata.apps.api.permissions import SubmissionReviewPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import SubmissionReview
@@ -21,7 +25,8 @@ BaseViewset = get_baseviewset_class()
 
 # pylint: disable=too-many-ancestors
 class SubmissionReviewViewSet(AuthenticateHeaderMixin, CacheControlMixin,
-                              ETagsMixin, BaseViewset, ModelViewSet):
+                              ETagsMixin, BulkCreateMixin, BaseViewset,
+                              ModelViewSet):
     """
     Submission Review ViewSet class
     """
