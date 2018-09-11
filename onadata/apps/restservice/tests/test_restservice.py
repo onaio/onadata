@@ -166,3 +166,11 @@ class RestServiceTest(TestBase):
 
         self.assertEquals(expected_data,
                           service.clean_keys_of_slashes(test_data))
+
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch('requests.post')
+    def test_slack(self, mock_http):
+        service_url = 'https://hooks.slack.com/services/This/Is/Test'
+        self._add_rest_service(service_url, 'slack')
+        
