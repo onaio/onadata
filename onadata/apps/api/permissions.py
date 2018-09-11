@@ -170,6 +170,21 @@ class SubmissionReviewPermissions(XFormPermissions):
         is_authenticated = request and request.user.is_authenticated()
 
         if is_authenticated and view.action == 'create':
+
+            # Handle bulk create
+            # if doing a bulk create we will fail the entire process if the
+            # user lacks permissions for even one instance
+            if isinstance(request.data, list):
+                instance_ids = list(set([_['instance'] for _ in request.data]))
+                instances = Instance.objects.filter(
+                    id__in=instance_ids).only('xform').order_by().distinct()
+                for instance in instances:
+                    if not request.user.has_perm(
+                            CAN_CHANGE_XFORM, instance.xform):
+                        return False
+                return True  # everything is okay
+
+            # Handle single create like normal
             instance_id = request.data.get('instance')
             xform = get_instance_xform_or_none(instance_id)
             return request.user.has_perm(CAN_CHANGE_XFORM, xform)

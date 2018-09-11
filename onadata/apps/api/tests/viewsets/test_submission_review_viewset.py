@@ -8,9 +8,10 @@ from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.viewsets.submission_review_viewset import \
     SubmissionReviewViewSet
-from onadata.apps.logger.models import SubmissionReview
+from onadata.apps.logger.models import SubmissionReview, Instance
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.permissions import CAN_CHANGE_XFORM
+from onadata.libs.utils.common_tags import REVIEW_STATUS, REVIEW_COMMENT
 
 
 class TestSubmissionReviewViewSet(TestBase):
@@ -58,6 +59,75 @@ class TestSubmissionReviewViewSet(TestBase):
         Test we can create a submission review
         """
         self._create_submission_review()
+
+    def test_bulk_create_submission_review(self):
+        """
+        Test that we can bulk create submission reviews
+        """
+        instances = self.xform.instances.all()
+        submission_data = [
+            {
+                'note': 'This is not very good, is it?',
+                'instance': _.id,
+                'status': SubmissionReview.REJECTED
+            } for _ in instances
+        ]
+        view = SubmissionReviewViewSet.as_view({'post': 'create'})
+
+        # get DRF to use the JSON renderer as other renderes are likely to fail
+        self.extra['format'] = 'json'
+
+        request = self.factory.post('/', data=submission_data, **self.extra)
+        response = view(request=request)
+
+        self.assertEqual(201, response.status_code)
+        self.assertEqual(4, len(response.data))
+        already_seen = []
+        for item in response.data:
+            # the note should match what we provided
+            self.assertEqual('This is not very good, is it?', item['note'])
+            # the status should be rejected
+            self.assertEqual(SubmissionReview.REJECTED, item['status'])
+            # the instance id must be valid
+            self.assertTrue(instances.filter(id=item['instance']).exists())
+            # all the submission reviews must have different instance fields
+            self.assertFalse(item['instance'] in already_seen)
+            already_seen.append(item['instance'])
+            # ensure that the instance JSON has the submission fields
+            instance = Instance.objects.get(pk=item['instance'])
+            self.assertEqual(
+                'This is not very good, is it?',
+                instance.json[REVIEW_COMMENT])
+            self.assertEqual(
+                SubmissionReview.REJECTED, instance.json[REVIEW_STATUS])
+
+    def test_bulk_create_submission_review_permissions(self):
+        """
+        Test that bulk create fails when the user has no permission to
+        any submission
+        """
+        instances = self.xform.instances.all()
+        submission_data = [
+            {
+                'note': 'Nope!!',
+                'instance': _.id,
+                'status': SubmissionReview.REJECTED
+            } for _ in instances
+        ]
+
+        self._create_user_and_login('dave', '1234')
+        extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token,
+            'format': 'json'
+        }
+
+        view = SubmissionReviewViewSet.as_view({'post': 'create'})
+
+        # dave should not be able to bulk create submission reviews
+        request = self.factory.post('/', data=submission_data, **extra)
+        response = view(request=request)
+
+        self.assertEqual(403, response.status_code)
 
     def test_submission_review_list(self):
         """
