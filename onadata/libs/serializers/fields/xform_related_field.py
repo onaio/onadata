@@ -1,6 +1,10 @@
-from onadata.apps.logger.models import XForm
+from django.contrib.contenttypes.models import ContentType
+from django.core.cache import cache
+
 from rest_framework import serializers
 from rest_framework.fields import SkipField
+
+from onadata.apps.logger.models import XForm
 
 
 class XFormRelatedField(serializers.RelatedField):
@@ -8,8 +12,22 @@ class XFormRelatedField(serializers.RelatedField):
 
     def get_attribute(self, instance):
         # xform is not an attribute of the MetaData object
-        if instance and isinstance(instance.content_object, XForm):
-            return instance.content_object
+        content_type_id = cache.get("xform_content_type_id")
+        if not content_type_id:
+            try:
+                content_type_id = ContentType.objects.get(
+                    app_label="logger", model="xform"
+                ).id
+            except ContentType.DoesNotExist:
+                pass
+            else:
+                cache.set("xform_content_type_id", content_type_id)
+        if not content_type_id:
+            if instance and isinstance(instance.content_object, XForm):
+                return instance.object_id
+        else:
+            if instance and instance.content_type_id == content_type_id:
+                return instance.object_id
 
         raise SkipField()
 
@@ -23,4 +41,4 @@ class XFormRelatedField(serializers.RelatedField):
 
     def to_representation(self, instance):
         """Serialize xform object"""
-        return instance.pk
+        return instance
