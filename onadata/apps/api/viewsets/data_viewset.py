@@ -90,6 +90,17 @@ def delete_instance(instance, user):
         raise ParseError(text(e))
 
 
+def is_pagination_request(request, paginator):
+    """Return True if request contains a pagination request."""
+    pagination_keys = [
+        paginator.page_query_param,
+        paginator.page_size_query_param,
+    ]
+    query_param_keys = request.query_params
+
+    return any([k in query_param_keys for k in pagination_keys])
+
+
 class DataViewSet(
     AnonymousUserPublicFormsMixin,
     AuthenticateHeaderMixin,
@@ -517,7 +528,8 @@ class DataViewSet(
                     self.object_list = []
 
             if isinstance(self.object_list, QuerySet):
-                self.etag_hash = get_etag_hash_from_query(self.object_list)
+                if not is_pagination_request(self.request, self.paginator):
+                    self.etag_hash = get_etag_hash_from_query(self.object_list)
             else:
                 sql, params, records = get_sql_with_params(
                     xform,
@@ -538,12 +550,7 @@ class DataViewSet(
             query, fields, sort, start, limit, is_public_request
         )
 
-        pagination_keys = [
-            self.paginator.page_query_param,
-            self.paginator.page_size_query_param,
-        ]
-        query_param_keys = self.request.query_params
-        should_paginate = any([k in query_param_keys for k in pagination_keys])
+        should_paginate = is_pagination_request(self.request, self.paginator)
         if (
             not isinstance(self.object_list, types.GeneratorType)
             and should_paginate
