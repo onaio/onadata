@@ -14,6 +14,7 @@ from django.core.validators import ValidationError
 from django.db.models import Count
 from django.http import HttpResponseRedirect, HttpResponseBadRequest
 from django.utils.translation import ugettext as _
+from django.utils import timezone
 
 from registration.models import RegistrationProfile
 from rest_framework import serializers, status
@@ -154,10 +155,14 @@ class UserProfileViewSet(
         current_password = request.data.get('current_password', None)
         new_password = request.data.get('new_password', None)
 
+        metadata = user_profile.metadata or {}
+        metadata['last_password_edit'] = timezone.now().isoformat()
         if new_password:
             if user_profile.user.check_password(current_password):
                 user_profile.user.set_password(new_password)
+                user_profile.metadata = metadata
                 user_profile.user.save()
+                user_profile.save()
 
                 return Response(status=status.HTTP_204_NO_CONTENT)
 

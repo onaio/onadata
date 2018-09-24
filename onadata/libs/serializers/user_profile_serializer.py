@@ -13,6 +13,7 @@ from django.contrib.sites.models import Site
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.utils.translation import ugettext as _
+from django.utils import timezone
 
 import six
 from django_digest.backend.db import update_partial_digests
@@ -232,6 +233,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
     def create(self, validated_data):
         params = validated_data
         request = self.context.get('request')
+        metadata = {}
 
         site = Site.objects.get(pk=settings.SITE_ID)
         new_user = RegistrationProfile.objects.create_inactive_user(
@@ -253,6 +255,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
         created_by = request.user
         created_by = None if created_by.is_anonymous() else created_by
+        metadata['last_password_edit'] = timezone.now().isoformat()
         profile = UserProfile(
             user=new_user, name=params.get('first_name'),
             created_by=created_by,
@@ -260,7 +263,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             country=params.get('country', u''),
             organization=params.get('organization', u''),
             home_page=params.get('home_page', u''),
-            twitter=params.get('twitter', u'')
+            twitter=params.get('twitter', u''),
+            metadata=metadata
         )
         profile.save()
 
