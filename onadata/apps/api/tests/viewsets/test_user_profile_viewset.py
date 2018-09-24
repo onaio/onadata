@@ -717,8 +717,9 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         user = User.objects.get(username__iexact=self.user.username)
         user_profile = UserProfile.objects.get(user_id=user.id)
         self.assertEqual(response.status_code, 204)
-        self.assertEqual(type(user_profile.metadata['last_password_edit']),
-                         type(parse_datetime(now)))
+        self.assertEqual(
+            type(parse_datetime(user_profile.metadata['last_password_edit'])),
+            type(parse_datetime(now)))
         self.assertTrue(user.check_password(new_password))
 
     def test_change_password_wrong_current_password(self):
