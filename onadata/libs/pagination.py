@@ -20,8 +20,8 @@ class InstancePaginator(Paginator):
     @cached_property
     def count(self):
         try:
-            return self.object_list.order_by().first().xform.num_of_submissions
-        except (AttributeError, TypeError):
+            return self.object_list.order_by()[0].xform.num_of_submissions
+        except (AttributeError, TypeError, IndexError):
             pass
 
         return super(InstancePaginator, self).count
