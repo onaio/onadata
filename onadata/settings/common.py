@@ -115,6 +115,8 @@ ENKETO_META_UID_COOKIE = '__enketo_meta_uid'
 # Login URLs
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/login_redirect/'
+USE_CUSTOM_LOGIN_TEMPLATE = True
+PASSWORD_RESET_URL = '/request-password-reset/'
 
 # URL prefix for admin static files -- CSS, JavaScript and images.
 # Make sure to use a trailing slash.

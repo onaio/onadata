@@ -20,6 +20,7 @@ from django.http import (HttpResponse, HttpResponseBadRequest,
                          HttpResponseRedirect, HttpResponseServerError)
 from django.shortcuts import get_object_or_404, render
 from django.template import RequestContext, loader
+from django.contrib.auth.views import LoginView
 from django.utils.translation import ugettext as _
 from django.views.decorators.http import (require_GET, require_http_methods,
                                           require_POST)
@@ -1445,3 +1446,25 @@ class OnaAuthorizationView(AuthorizationView):
         context['user'] = self.request.user
         context['request_path'] = self.request.get_full_path()
         return context
+
+
+class CustomLoginView(LoginView):
+    """
+    Custom LoginView subclass 
+    """
+
+    def get_template_names(self):
+        """
+        get custom login template name if use_custom_login_template is true
+        """
+        if settings.USE_CUSTOM_LOGIN_TEMPLATE:
+            return ['registration/custom/login.html']
+        return super(CustomLoginView, self).get_template_names()
+
+    def get_context_data(self, **kwargs):
+        """
+        get context data i.e password_reset_url for the custom login view 
+        """
+        context = super(CustomLoginView, self).get_context_data(**kwargs)
+        if settings.USE_CUSTOM_LOGIN_TEMPLATE:
+            context['PASSWORD_RESET_URL'] = settings.PASSWORD_RESET_URL

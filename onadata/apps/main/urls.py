@@ -41,6 +41,12 @@ urlpatterns = [
         RedirectView.as_view(url=settings.STATIC_DOC, permanent=True)),
     url(r'^api/v1$', RedirectView.as_view(url='/api/v1/', permanent=True)),
 
+    # Custom login view
+    url(
+        r'^accounts/login/$',
+        main_views.CustomLoginView.as_view(),
+        name='auth_login'),
+
     # django default stuff
     url(r'^accounts/', include(registration_patterns)),
     url(r'^admin/', include(admin.site.urls)),
