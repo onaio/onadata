@@ -1450,7 +1450,7 @@ class OnaAuthorizationView(AuthorizationView):
 
 class CustomLoginView(LoginView):
     """
-    Custom LoginView subclass 
+    Custom LoginView subclass
     """
 
     def get_template_names(self):
@@ -1463,7 +1463,7 @@ class CustomLoginView(LoginView):
 
     def get_context_data(self, **kwargs):
         """
-        get context data i.e password_reset_url for the custom login view 
+        get context data i.e password_reset_url for the custom login view
         """
         context = super(CustomLoginView, self).get_context_data(**kwargs)
         if settings.USE_CUSTOM_LOGIN_TEMPLATE:
