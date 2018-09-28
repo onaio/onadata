@@ -1468,3 +1468,4 @@ class CustomLoginView(LoginView):
         context = super(CustomLoginView, self).get_context_data(**kwargs)
         if settings.USE_CUSTOM_LOGIN_TEMPLATE:
             context['PASSWORD_RESET_URL'] = settings.PASSWORD_RESET_URL
+        return context

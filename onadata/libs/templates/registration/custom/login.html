@@ -27,9 +27,7 @@
         <a id="logo-link" href="/" class="pure-menu-heading left">
              <span><img id="ona-logo" src="{% static 'custom_login_assets/onadata-logo.png' %}" alt="ONA" /></span>
         </a>
-        <ul id="user" class="right">
-           
-        </ul>
+       
     </div>
 </div>
 
@@ -66,10 +64,10 @@
 </div> <!-- end wrapper-->
 
 <div id="footer" class="footer-simple cfix"><div class="container footer-links">
-        <p><a href="#" id="homepage">Go to Ona homepage</a></p>
+        <p><a href="{{ONA_LOGIN}}" id="homepage">Go to Ona homepage</a></p>
       <span>© Ona Systems</span> |
-      <a href="#" id="privacy" data-i18n-key="main-footer/privacy-policy-link-text">Privacy</a> |
-      <a href="#" id="tos" data-i18n-key="main-footer/terms-link-text">Terms</a>
+      <a href="{{ settings.ONA_LOGIN }}" id="privacy" data-i18n-key="main-footer/privacy-policy-link-text">Privacy</a> |
+      <a href="{{ settings.ONA_LOGIN }}" id="tos" data-i18n-key="main-footer/terms-link-text">Terms</a>
     </div></div>
 </body>
 

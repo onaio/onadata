@@ -114,8 +114,9 @@ ENKETO_META_UID_COOKIE = '__enketo_meta_uid'
 
 # Login URLs
 LOGIN_URL = '/accounts/login/'
+ONA_LOGIN = '/login'
 LOGIN_REDIRECT_URL = '/login_redirect/'
-USE_CUSTOM_LOGIN_TEMPLATE = False
+USE_CUSTOM_LOGIN_TEMPLATE = True
 PASSWORD_RESET_URL = '/request-password-reset/'
 
 # URL prefix for admin static files -- CSS, JavaScript and images.
@@ -156,6 +157,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'onadata.apps.main.context_processors.google_analytics',
                 'onadata.apps.main.context_processors.site_name',
+                'onadata.apps.main.context_processors.ona_login'
             ],
         },
     },
