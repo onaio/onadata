@@ -1453,12 +1453,14 @@ class CustomLoginView(LoginView):
     Custom LoginView subclass
     """
 
-    def get_template_names(self):
+    def get_template_names(self, **kwargs):
         """
         get custom login template name if use_custom_login_template is true
         """
+        context = super(CustomLoginView, self).get_context_data(**kwargs)
         if settings.USE_CUSTOM_LOGIN_TEMPLATE:
-            return ['registration/custom/login.html']
+            page = context['CUSTOM_LOGIN_TEMPLATE_PAGE'] = settings.CUSTOM_LOGIN_TEMPLATE_PAGE
+            return page
         return super(CustomLoginView, self).get_template_names()
 
     def get_context_data(self, **kwargs):
@@ -1468,4 +1470,7 @@ class CustomLoginView(LoginView):
         context = super(CustomLoginView, self).get_context_data(**kwargs)
         if settings.USE_CUSTOM_LOGIN_TEMPLATE:
             context['PASSWORD_RESET_URL'] = settings.PASSWORD_RESET_URL
+            context['ONA_LOGIN_LINK'] = settings.ONA_LOGIN_LINK
+            context['ONA_PRIVACY_LINK'] = settings.ONA_PRIVACY_LINK
+            context['ONA_TERMS_LINK'] = settings.ONA_TERMS_LINK
         return context

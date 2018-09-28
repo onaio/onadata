@@ -21,6 +21,3 @@ def site_name(request):
     else:
         site_name = site.name
     return {'SITE_NAME': site_name}
-
-def ona_login(request):
-    return {'ONA_LOGIN': settings.ONA_LOGIN}
