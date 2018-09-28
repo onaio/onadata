@@ -12,6 +12,7 @@ def google_analytics(request):
         'GOOGLE_SITE_VERIFICATION': ga_site_verification
     }
 
+
 def site_name(request):
     site_id = getattr(settings, 'SITE_ID', None)
     try:
