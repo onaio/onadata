@@ -155,10 +155,10 @@ class UserProfileViewSet(
         current_password = request.data.get('current_password', None)
         new_password = request.data.get('new_password', None)
 
-        metadata = user_profile.metadata or {}
-        metadata['last_password_edit'] = timezone.now().isoformat()
         if new_password:
             if user_profile.user.check_password(current_password):
+                metadata = user_profile.metadata or {}
+                metadata['last_password_edit'] = timezone.now().isoformat()
                 user_profile.user.set_password(new_password)
                 user_profile.metadata = metadata
                 user_profile.user.save()
