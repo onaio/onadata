@@ -1461,6 +1461,7 @@ class CustomLoginView(LoginView):
         if settings.USE_CUSTOM_LOGIN_TEMPLATE:
             context['CUSTOM_LOGIN_TEMPLATE_PAGE'] = \
                 settings.CUSTOM_LOGIN_TEMPLATE_PAGE
+            return context['CUSTOM_LOGIN_TEMPLATE_PAGE']
         return super(CustomLoginView, self).get_template_names()
 
     def get_context_data(self, **kwargs):
