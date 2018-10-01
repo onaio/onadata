@@ -1,74 +1,75 @@
-
 <!DOCTYPE html>
 {% load staticfiles %}
 <html>
- <head>
-  <title>Login</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="walkthroughs-to-show" content="" /><link rel="stylesheet" href="{% static 'custom_login_assets/styles.css'%}"/>
-    <link href="{% static 'custom_login_assets/favicon-32x32.png' %}" rel="shortcut icon" type="image/png" />
-
-</head>
-<body class="account-page">
-<div id="outdated" style="display:none;"><div id="outdated-message">
-        <div class="container clearfix pure-g-r">
-			<div class="pure-u-1-6 t-center">
-                <br />
-                <img src="{% static 'images/onadata-logo.png' %}" alt="warning" id="warning-icon" />
-			</div>
-		</div>
-    </div>
-</div>
-<div class="wrapper cfix">
-<div id="main-menu" class="cfix login-menu"><div class="vw-menu pure-menu-horizontal container cfix">
-        <a id="logo-link" href="/" class="pure-menu-heading left">
-             <span><img id="ona-logo" src="{% static 'custom_login_assets/onadata-logo.png' %}" alt="ONA" /></span>
-        </a>
-       
-    </div>
-</div>
-
-<div id="content-wrap">
-<div class="content container">
-   <div class="standard-account-form login-form pure-u-1 pure-u-md-2-3">
- 
-    <h2 data-i18n-key="outside-pages/login-header-title">Sign in to <span id="app-name">Ona</span></h2>
-    <form action="{% url 'auth_login' %}" method="post" class="pure-form pure-form-stacked ie-form">
-         {% csrf_token %}
-        <input name="return-url" id="return-url" type="hidden" value="" />
-        <div class="pure-u-1">
-            <label>Username or Email</label>
-            <input type="text" name="username" placeholder="Username or Email" autofocus="autofocus" />
+    <head>
+        <title>Login</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="walkthroughs-to-show" content="" /><link rel="stylesheet" href="{% static 'custom_login_assets/styles.css'%}"/>
+        <link href="{% static 'custom_login_assets/favicon-32x32.png' %}" rel="shortcut icon" type="image/png" />
+    </head>
+    <body class="account-page">
+        <div id="outdated" style="display:none;">
+            <div id="outdated-message">
+                <div class="container clearfix pure-g-r">
+                    <div class="pure-u-1-6 t-center">
+                        <br />
+                        <img src="{% static 'images/onadata-logo.png' %}" alt="warning" id="warning-icon" />
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="pure-u-1">
-            <label>Password</label>
-            <input type="password" name="password" placeholder="Password" />
-        </div>
-        <div class="pure-u-1">
-            <button type="submit" data-i18n-key="outside-pages/sign-in-button-text" class="pure-button btn-warning btn-large">
-                Sign In
-            </button>
-        </div>
-        <p class="login-links">
-            <a href="{{ PASSWORD_RESET_URL }}" id="password-recovery-link" data-i18n-key="forgot-your-password-link">Forgot your password?</a>
-          
-        </p>
-    <input type="hidden" name="__anti-forgery-token" value="" /></form>
-  </div>
-</div> <!-- end content holder -->
-</div>
-<div id="wizard-view" style="display:none"></div>
-</div> <!-- end wrapper-->
+        <div class="wrapper cfix">
+            <div id="main-menu" class="cfix login-menu">
+                <div class="vw-menu pure-menu-horizontal container cfix">
+                        <a id="logo-link" href="/" class="pure-menu-heading left">
+                            <span><img id="ona-logo" src="{% static 'custom_login_assets/onadata-logo.png' %}" alt="ONA" /></span>
+                        </a>
+                    
+                </div>
+            </div>
+            <div id="content-wrap">
+                <div class="content container">
+                    <div class="standard-account-form login-form pure-u-1 pure-u-md-2-3">
+                
+                        <h2 data-i18n-key="outside-pages/login-header-title">Sign in to <span id="app-name">Ona</span></h2>
+                        <form action="{% url 'auth_login' %}" method="post" class="pure-form pure-form-stacked ie-form">
+                            {% csrf_token %}
+                            <input name="return-url" id="return-url" type="hidden" value="" />
+                            <div class="pure-u-1">
+                                <label>Username or Email</label>
+                                <input type="text" name="username" placeholder="Username or Email" autofocus="autofocus" />
+                            </div>
+                            <div class="pure-u-1">
+                                <label>Password</label>
+                                <input type="password" name="password" placeholder="Password" />
+                            </div>
+                            <div class="pure-u-1">
+                                <button type="submit" data-i18n-key="outside-pages/sign-in-button-text" class="pure-button btn-warning btn-large">
+                                    Sign In
+                                </button>
+                            </div>
+                            <p class="login-links">
+                                <a href="{{ PASSWORD_RESET_URL }}" id="password-recovery-link" data-i18n-key="forgot-your-password-link">Forgot your password?</a>
+                            
+                            </p>
+                        <input type="hidden" name="__anti-forgery-token" value="" /></form>
+                    </div>
+                </div> <!-- end content holder -->
+            </div>
+            <div id="wizard-view" style="display:none"></div>
+        </div> <!-- end wrapper-->
 
-<div id="footer" class="footer-simple cfix"><div class="container footer-links">
-        <p><a href="{{ONA_LOGIN_LINK}}" id="homepage">Go to Ona homepage</a></p>
-      <span>© Ona Systems</span> |
-      <a href="{{ ONA_PRIVACY_LINK }}" id="privacy" data-i18n-key="main-footer/privacy-policy-link-text">Privacy</a> |
-      <a href="{{ ONA_TERMS_LINK }}" id="tos" data-i18n-key="main-footer/terms-link-text">Terms</a>
-    </div></div>
-</body>
+        <div id="footer" class="footer-simple cfix">
+            <div class="container footer-links">
+                <p><a href="{{ONA_LOGIN_LINK}}" id="homepage">Go to Ona homepage</a></p>
+                <span>© Ona Systems</span> |
+                <a href="{{ ONA_PRIVACY_LINK }}" id="privacy" data-i18n-key="main-footer/privacy-policy-link-text">Privacy</a> |
+                <a href="{{ ONA_TERMS_LINK }}" id="tos" data-i18n-key="main-footer/terms-link-text">Terms</a>
+            </div>
+        </div>
+    </body>
 
 </html>
