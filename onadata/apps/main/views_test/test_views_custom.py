@@ -15,7 +15,7 @@ if settings.USE_CUSTOM_LOGIN_TEMPLATE:
             # Check that the response is 200 OK.
             self.assertEqual(response.status_code, 200)
             # Check that the rendered context contains links.
-            self.assertEqual(response.context['ONA_LOGIN_LINK'], '/login/')
+            self.assertEqual(response.context['ONA_LOGIN_LINK'], 'https://ona.io')
             self.assertEqual(response.context['ONA_PRIVACY_LINK'],
                              '/privacy.html/')
             self.assertEqual(response.context['ONA_TERMS_LINK'], '/tos.html/')

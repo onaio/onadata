@@ -114,9 +114,9 @@ ENKETO_META_UID_COOKIE = '__enketo_meta_uid'
 
 # Login URLs
 LOGIN_URL = '/accounts/login/'
-ONA_LOGIN_LINK = '/login'
-ONA_PRIVACY_LINK = '/privacy.html'
-ONA_TERMS_LINK = '/tos.html'
+ONA_LOGIN_LINK = 'https://ona.io'
+ONA_PRIVACY_LINK = '/privacy.html/'
+ONA_TERMS_LINK = '/tos.html/'
 CUSTOM_LOGIN_TEMPLATE_PAGE = 'registration/custom/login.html'
 LOGIN_REDIRECT_URL = '/login_redirect/'
 USE_CUSTOM_LOGIN_TEMPLATE = False

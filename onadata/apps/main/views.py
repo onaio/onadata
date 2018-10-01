@@ -1458,7 +1458,7 @@ class CustomLoginView(LoginView):
         get custom login template name if use_custom_login_template is true
         """
         if settings.USE_CUSTOM_LOGIN_TEMPLATE:
-            return settings.CUSTOM_LOGIN_TEMPLATE_PAGE
+            return [settings.CUSTOM_LOGIN_TEMPLATE_PAGE]
         return super(CustomLoginView, self).get_template_names()
 
     def get_context_data(self, **kwargs):
