@@ -1,19 +1,12 @@
 import unittest
-from django.test import RequestFactory
 from django.test import Client
 from django.conf import settings
-from onadata.apps.main.views import CustomLoginView
 
 if settings.USE_CUSTOM_LOGIN_TEMPLATE:
     class TestCustomLoginView(unittest.TestCase):
         def setUp(self):
             super(TestCustomLoginView, self).setUp()
             self.client = Client()
-            self.factory = RequestFactory()
-            request = (self.factory.get('registration:custom:login'))
-            self.view = CustomLoginView()
-            self.view.request = request
-            self.response = CustomLoginView.as_view()(request)
 
         def test_get_context_data(self):
             # Issue a GET request.
