@@ -6,7 +6,7 @@ visualization.
 """
 from __future__ import absolute_import, unicode_literals
 
-__version__ = '1.14.6'
+__version__ = '1.15.0'
 
 
 # This will make sure the app is always imported when

@@ -1,6 +1,25 @@
 Changelog for onadata
 =====================
 
+1.15.0 (2018-10-10)
+-------------------
+
+- Submission Reviews
+  `Issue #1428 <https://github.com/onaio/onadata/issues/1428>`_
+  [DavisRayM, lincmba, moshthepitt]
+
+- Track password edits.
+  `Issue #1454 <https://github.com/onaio/onadata/issues/1453>`_
+  [lincmba]
+
+1.14.6 (2018-09-03)
+-------------------
+
+- Revert Track password edits.
+  `Issue #1456 <https://github.com/onaio/onadata/pull/1456>`_
+  [lincmba]
+
+
 1.14.6 (2018-09-03)
 -------------------
 
