@@ -8,6 +8,7 @@ from django.contrib.auth.models import User
 from django.db.models import signals
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
+from django.utils import timezone
 
 import requests
 from django_digest.test import DigestAuth
@@ -252,6 +253,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['url'] = 'http://testserver/api/v1/profiles/deno'
         data['user'] = 'http://testserver/api/v1/users/deno'
         data['metadata'] = {}
+        data['metadata']['last_password_edit'] = \
+            profile.metadata['last_password_edit']
         data['joined_on'] = profile.user.date_joined
         data['name'] = "%s %s" % ('Dennis', 'erama')
         self.assertEqual(response.data, data)
@@ -452,6 +455,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['url'] = 'http://testserver/api/v1/profiles/nguyenquynh'
         data['user'] = 'http://testserver/api/v1/users/nguyenquynh'
         data['metadata'] = {}
+        data['metadata']['last_password_edit'] = \
+            profile.metadata['last_password_edit']
         data['joined_on'] = profile.user.date_joined
         data['name'] = "%s %s" % (
             u'Nguy\u1ec5n Th\u1ecb', u'Di\u1ec5m Qu\u1ef3nh')
@@ -492,6 +497,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['url'] = 'http://testserver/api/v1/profiles/deno'
         data['user'] = 'http://testserver/api/v1/users/deno'
         data['metadata'] = {}
+        data['metadata']['last_password_edit'] = \
+            profile.metadata['last_password_edit']
         data['joined_on'] = profile.user.date_joined
         self.assertEqual(response.data, data)
         self.assertNotIn('email', response.data)
@@ -681,6 +688,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['user'] = 'http://testserver/api/v1/users/deno'
         data['username'] = u'deno'
         data['metadata'] = {}
+        data['metadata']['last_password_edit'] = \
+            profile.metadata['last_password_edit']
         data['joined_on'] = profile.user.date_joined
         self.assertEqual(response.data, data)
 
@@ -704,8 +713,13 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
         request = self.factory.post('/', data=post_data, **self.extra)
         response = view(request, user='bob')
+        now = timezone.now().isoformat()
         user = User.objects.get(username__iexact=self.user.username)
+        user_profile = UserProfile.objects.get(user_id=user.id)
         self.assertEqual(response.status_code, 204)
+        self.assertEqual(
+            type(parse_datetime(user_profile.metadata['last_password_edit'])),
+            type(parse_datetime(now)))
         self.assertTrue(user.check_password(new_password))
 
     def test_change_password_wrong_current_password(self):
@@ -751,6 +765,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['url'] = 'http://testserver/api/v1/profiles/deno'
         data['user'] = 'http://testserver/api/v1/users/deno'
         data['metadata'] = {}
+        data['metadata']['last_password_edit'] = \
+            profile.metadata['last_password_edit']
         data['joined_on'] = profile.user.date_joined
 
         self.assertEqual(response.data, data)

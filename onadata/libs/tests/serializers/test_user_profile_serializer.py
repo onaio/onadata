@@ -3,9 +3,12 @@ from django.contrib.auth.models import User
 from django.test import TransactionTestCase
 from datetime import timedelta
 from django.utils.timezone import now
+from rest_framework.test import APIRequestFactory
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
+    TestAbstractViewSet
 
 from onadata.libs.serializers.user_profile_serializer import\
-    UserProfileWithTokenSerializer
+    UserProfileWithTokenSerializer, UserProfileSerializer
 from onadata.apps.main.models import UserProfile
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.libs.authentication import expired
@@ -45,7 +48,7 @@ def create_user_profile(profile_data):
     return new_profile
 
 
-class TestUserProfileSerializer(TransactionTestCase):
+class TestUserProfileWithTokenSerializer(TransactionTestCase):
 
     def setUp(self):
         self.serializer = UserProfileWithTokenSerializer()
@@ -75,3 +78,28 @@ class TestUserProfileSerializer(TransactionTestCase):
         is_expired = expired(temp_token.created)
 
         self.assertFalse(is_expired)
+
+
+class TestUserProfileSerializer(TestAbstractViewSet):
+
+    def test_metadata_view_for_owner_only(self):
+        """
+        Test owner only views metadata field
+        """
+        request = APIRequestFactory().get('/')
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        bob_profile = self._create_user_profile()
+        alice_profile = self._create_user_profile(extra_post_data=alice_data)
+        request.user = bob_profile.user
+        bob_serializer = UserProfileSerializer(
+            instance=bob_profile,
+            context={'request': request})
+        self.assertIn('metadata', bob_serializer.data.keys())
+        alice_serializer = UserProfileSerializer(
+            instance=alice_profile,
+            context={'request': request})
+        self.assertNotIn('metadata', alice_serializer.data.keys())
+        self.assertEqual(bob_profile.user.username,
+                         bob_serializer.data['username'])
+        self.assertEqual(alice_profile.user.username,
+                         alice_serializer.data['username'])
