@@ -33,7 +33,7 @@ from onadata.libs.utils.common_tags import (
     ID, INDEX, MULTIPLE_SELECT_TYPE, NOTES, PARENT_INDEX,
     PARENT_TABLE_NAME, REPEAT_INDEX_TAGS, SAV_255_BYTES_TYPE,
     SAV_NUMERIC_TYPE, STATUS, SUBMISSION_TIME, SUBMITTED_BY, TAGS, UUID,
-    VERSION, XFORM_ID_STRING)
+    VERSION, XFORM_ID_STRING, REVIEW_STATUS, REVIEW_COMMENT)
 from onadata.libs.utils.mongo import _decode_from_mongo, _is_invalid_for_mongo
 
 # the bind type of select multiples that we use to compare
@@ -313,7 +313,7 @@ class ExportBuilder(object):
     EXTRA_FIELDS = [
         ID, UUID, SUBMISSION_TIME, INDEX, PARENT_TABLE_NAME, PARENT_INDEX,
         TAGS, NOTES, VERSION, DURATION,
-        SUBMITTED_BY]
+        SUBMITTED_BY,  REVIEW_STATUS, REVIEW_COMMENT]
     SPLIT_SELECT_MULTIPLES = True
     BINARY_SELECT_MULTIPLES = False
     VALUE_SELECT_MULTIPLES = False

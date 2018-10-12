@@ -242,7 +242,6 @@ class TestExportBuilder(TestBase):
         ))
         self.dd = DataDictionary()
         self.dd._survey = survey
-
         return survey
 
     def test_build_sections_from_survey(self):
@@ -2251,22 +2250,11 @@ class TestExportBuilder(TestBase):
         """
         self._create_user_and_login('dave', '1234')
         username = self.login_username
-        survey = self._create_osm_survey()
-        xform = self.xform
-        instance = Instance.objects.get(xform = xform)
-        data = {
-            "instance": instance.id,
-            "note": "Hey there",
-            "status": SubmissionReview.APPROVED
-        }
-        serializer_instance = SubmissionReviewSerializer(data=data)
-        serializer_instance.is_valid()
-        serializer_instance.save()
-        instance.refresh_from_db()
+        survey = self._create_childrens_survey()
         export_builder = ExportBuilder()
-        export_builder.set_survey(survey, xform)
+        export_builder.set_survey(survey)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
-        export_builder.to_zipped_csv(temp_zip_file.name, data)
+        export_builder.to_zipped_csv(temp_zip_file.name, self.data)
         temp_zip_file.seek(0)
         temp_dir = tempfile.mkdtemp()
         zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
@@ -2274,7 +2262,7 @@ class TestExportBuilder(TestBase):
         zip_file.close()
         temp_zip_file.close()
         # check file's contents
-        with open(os.path.join(temp_dir, "osm.csv")) as csv_file:
+        with open(os.path.join(temp_dir, "childrens_survey.csv")) as csv_file:
             reader = csv.reader(csv_file)
             rows = [row for row in reader]
             actual_headers = rows[0]
@@ -2285,7 +2273,7 @@ class TestExportBuilder(TestBase):
 
     def test_xls_export_has_comment_and_status_field(self):
         """
-        Test that comment and status field are in csv exports
+        Test that comment and status field are in xls exports
         """
         self._create_user_and_login('dave', '1234')
         username = self.login_username
@@ -2310,8 +2298,8 @@ class TestExportBuilder(TestBase):
         rows = [row for row in osm_data_sheet.rows]
         xls_headers = [a.value for a in rows[0]]
         temp_xls_file.close()
-        expected_column_headers = ['status', 'note']
-        self.assertEqual(sorted(xls_headers), sorted(expected_column_headers))
+        expected_column_headers = '_review_comment'
+        self.assertIn(expected_column_headers, sorted(xls_headers))
 
     def test_zipped_sav_has_comment_and_status_fields(self):
         """
@@ -2319,21 +2307,11 @@ class TestExportBuilder(TestBase):
         """
         self._create_user_and_login('dave', '1234')
         username = self.login_username
-        survey = self._create_osm_survey()
-        xform = self.xform
-        instance = Instance.objects.get(xform = xform)
-        data = {
-            "instance": instance.id,
-            "note": "Hey there",
-            "status": SubmissionReview.APPROVED
-        }
-        serializer_instance = SubmissionReviewSerializer(data=data)
-        serializer_instance.is_valid()
-        serializer_instance.save()
+        survey = self._create_childrens_survey()
         export_builder = ExportBuilder()
-        export_builder.set_survey(survey, xform)
+        export_builder.set_survey(survey)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
-        export_builder.to_zipped_sav(temp_zip_file.name, data)
+        export_builder.to_zipped_sav(temp_zip_file.name, self.data)
         temp_zip_file.seek(0)
         temp_dir = tempfile.mkdtemp()
         zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
@@ -2341,11 +2319,11 @@ class TestExportBuilder(TestBase):
         zip_file.close()
         temp_zip_file.close()
 
-        with SavReader(os.path.join(temp_dir, "osm.sav"),
+        with SavReader(os.path.join(temp_dir, "childrens_survey.sav"),
                        returnHeader=True) as reader:
             rows = [r for r in reader]
-            expected_column_headers = ['status', 'note']
-            self.assertEqual(sorted(rows[0]), sorted(expected_column_headers))
+            expected_column_headers = '@_review_comment'
+            self.assertIn(expected_column_headers, sorted(rows[0]))
 
     def test_xls_export_with_osm_data(self):
         """
