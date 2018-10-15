@@ -416,14 +416,15 @@ class ExportBuilder(object):
 
     def set_survey(self, survey, xform=None):
         EXPORT_SUBMISSION_REVIEW = False
-        instance = Instance.objects.filter(xform = xform, has_a_review = True)
+        instance = Instance.objects.filter(xform=xform, has_a_review=True)
         if (instance.count() >= 1):
             EXPORT_SUBMISSION_REVIEW = True
-        
         if (EXPORT_SUBMISSION_REVIEW):
-            self.EXTRA_FIELDS = self.EXTRA_FIELDS + [REVIEW_STATUS, REVIEW_COMMENT]
+            self.EXTRA_FIELDS = self.EXTRA_FIELDS + [REVIEW_STATUS,
+                                                     REVIEW_COMMENT]
             self.__init__()
         dd = get_data_dictionary_from_survey(survey)
+
         def build_sections(
                 current_section, survey_element, sections, select_multiples,
                 gps_fields, osm_fields, encoded_fields, select_ones,

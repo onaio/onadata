@@ -56,6 +56,8 @@ class TestExportBuilder(TestBase):
             'name': 'Abe',
             'age': 35,
             'tel/telLg==office': '020123456',
+            '_review_status': 'Active',
+            '_review_comment': 'Hey there',
             'children':
             [
                 {
@@ -232,7 +234,9 @@ class TestExportBuilder(TestBase):
             'osm_building:building:levels': 4,
             'osm_building:ctr:lat': '23.707316084046038',
             'osm_building:ctr:lon': '90.40849938337506',
-            'osm_building:name': 'kol'
+            'osm_building:name': 'kol',
+            '_review_status': 'Active',
+            '_review_comment': 'Hey there'
         }
     ]
 
@@ -2226,7 +2230,7 @@ class TestExportBuilder(TestBase):
         Creates survey for osm tests
         """
         # publish form
-        
+
         osm_fixtures_dir = os.path.join(settings.PROJECT_ROOT, 'apps', 'api',
                                         'tests', 'fixtures', 'osm')
         xlsform_path = os.path.join(osm_fixtures_dir, 'osm.xlsx')
@@ -2246,13 +2250,22 @@ class TestExportBuilder(TestBase):
 
     def test_zip_csv_export_has_comment_and_status_field(self):
         """
-        Test that comment and status field are in csv exports
+        Test comment and status fields in csv exports
         """
         self._create_user_and_login('dave', '1234')
-        username = self.login_username
-        survey = self._create_childrens_survey()
+        survey = self._create_osm_survey()
+        xform = self.xform
+        instance = Instance.objects.get(xform=xform)
+        data = {
+            "instance": instance.id,
+            "note": "Hey there",
+            "status": SubmissionReview.APPROVED
+        }
+        serializer_instance = SubmissionReviewSerializer(data=data)
+        serializer_instance.is_valid()
+        serializer_instance.save()
         export_builder = ExportBuilder()
-        export_builder.set_survey(survey)
+        export_builder.set_survey(survey, xform)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
         export_builder.to_zipped_csv(temp_zip_file.name, self.data)
         temp_zip_file.seek(0)
@@ -2262,12 +2275,15 @@ class TestExportBuilder(TestBase):
         zip_file.close()
         temp_zip_file.close()
         # check file's contents
-        with open(os.path.join(temp_dir, "childrens_survey.csv")) as csv_file:
+        with open(os.path.join(temp_dir, "osm.csv")) as csv_file:
             reader = csv.reader(csv_file)
             rows = [row for row in reader]
             actual_headers = rows[0]
             expected_headers = '_review_comment'
-            self.assertIn( expected_headers, sorted(actual_headers))
+            self.assertIn(expected_headers, sorted(actual_headers))
+            submission = rows[1]
+            self.assertEqual(submission[29], 'Active')
+            self.assertEqual(submission[30], 'Hey there')
             # check that red and blue are set to true
         shutil.rmtree(temp_dir)
 
@@ -2276,10 +2292,9 @@ class TestExportBuilder(TestBase):
         Test that comment and status field are in xls exports
         """
         self._create_user_and_login('dave', '1234')
-        username = self.login_username
         survey = self._create_osm_survey()
         xform = self.xform
-        instance = Instance.objects.get(xform = xform)
+        instance = Instance.objects.get(xform=xform)
         data = {
             "instance": instance.id,
             "note": "Hey there",
@@ -2297,19 +2312,31 @@ class TestExportBuilder(TestBase):
         osm_data_sheet = wb["osm"]
         rows = [row for row in osm_data_sheet.rows]
         xls_headers = [a.value for a in rows[0]]
+        xls_data = [a.value for a in rows[1]]
         temp_xls_file.close()
         expected_column_headers = '_review_comment'
         self.assertIn(expected_column_headers, sorted(xls_headers))
+        self.assertEqual(xls_data[29], 'Active')
+        self.assertEqual(xls_data[30], 'Hey there')
 
     def test_zipped_sav_has_comment_and_status_fields(self):
         """
         Test that comment and status field are in csv exports
         """
         self._create_user_and_login('dave', '1234')
-        username = self.login_username
-        survey = self._create_childrens_survey()
+        survey = self._create_osm_survey()
+        xform = self.xform
+        instance = Instance.objects.get(xform=xform)
+        data = {
+            "instance": instance.id,
+            "note": "Hey there",
+            "status": SubmissionReview.APPROVED
+        }
+        serializer_instance = SubmissionReviewSerializer(data=data)
+        serializer_instance.is_valid()
+        serializer_instance.save()
         export_builder = ExportBuilder()
-        export_builder.set_survey(survey)
+        export_builder.set_survey(survey, xform)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
         export_builder.to_zipped_sav(temp_zip_file.name, self.data)
         temp_zip_file.seek(0)
@@ -2319,11 +2346,14 @@ class TestExportBuilder(TestBase):
         zip_file.close()
         temp_zip_file.close()
 
-        with SavReader(os.path.join(temp_dir, "childrens_survey.sav"),
+        with SavReader(os.path.join(temp_dir, "osm.sav"),
                        returnHeader=True) as reader:
             rows = [r for r in reader]
             expected_column_headers = '@_review_comment'
             self.assertIn(expected_column_headers, sorted(rows[0]))
+            submission = rows[1]
+            self.assertEqual(submission[29], 'Active')
+            self.assertEqual(submission[30], 'Hey there')
 
     def test_xls_export_with_osm_data(self):
         """
