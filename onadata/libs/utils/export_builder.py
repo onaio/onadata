@@ -24,6 +24,7 @@ from pyxform.question import Question
 from pyxform.section import RepeatingSection, Section
 from savReaderWriter import SavWriter
 
+from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.osmdata import OsmData
 from onadata.apps.logger.models.xform import (QUESTION_TYPES_TO_EXCLUDE,
                                               _encode_for_mongo)
@@ -313,7 +314,7 @@ class ExportBuilder(object):
     EXTRA_FIELDS = [
         ID, UUID, SUBMISSION_TIME, INDEX, PARENT_TABLE_NAME, PARENT_INDEX,
         TAGS, NOTES, VERSION, DURATION,
-        SUBMITTED_BY,  REVIEW_STATUS, REVIEW_COMMENT]
+        SUBMITTED_BY]
     SPLIT_SELECT_MULTIPLES = True
     BINARY_SELECT_MULTIPLES = False
     VALUE_SELECT_MULTIPLES = False
@@ -414,8 +415,15 @@ class ExportBuilder(object):
         return choices
 
     def set_survey(self, survey, xform=None):
+        EXPORT_SUBMISSION_REVIEW = False
+        instance = Instance.objects.filter(xform = xform, has_a_review = True)
+        if (instance.count() >= 1):
+            EXPORT_SUBMISSION_REVIEW = True
+        
+        if (EXPORT_SUBMISSION_REVIEW):
+            self.EXTRA_FIELDS = self.EXTRA_FIELDS + [REVIEW_STATUS, REVIEW_COMMENT]
+            self.__init__()
         dd = get_data_dictionary_from_survey(survey)
-
         def build_sections(
                 current_section, survey_element, sections, select_multiples,
                 gps_fields, osm_fields, encoded_fields, select_ones,
