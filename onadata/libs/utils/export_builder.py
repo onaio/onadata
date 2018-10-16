@@ -330,7 +330,6 @@ class ExportBuilder(object):
     INCLUDE_LABELS = False
     INCLUDE_LABELS_ONLY = False
     INCLUDE_HXL = False
-    INCLUDE_REVIEWS = False
     INCLUDE_IMAGES = settings.EXPORT_WITH_IMAGE_DEFAULT
 
     SHOW_CHOICE_LABELS = False
@@ -349,12 +348,12 @@ class ExportBuilder(object):
     url = None
     language = None
 
-    def __init__(self):
+    def __init__(self, submission_review=False):
         self.extra_columns = (
             self.EXTRA_FIELDS + getattr(settings, 'EXTRA_COLUMNS', []))
-        if self.INCLUDE_REVIEWS:
-                self.extra_columns = self.extra_columns + [REVIEW_STATUS,
-                                                           REVIEW_COMMENT]
+        if submission_review:
+            self.extra_columns = self.extra_columns + [REVIEW_STATUS,
+                                                       REVIEW_COMMENT]
         self.osm_columns = []
 
     @classmethod

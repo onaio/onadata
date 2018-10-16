@@ -386,6 +386,44 @@ class TestExportBuilder(TestBase):
 
         shutil.rmtree(temp_dir)
 
+    def test_xls_export_with_osm_data(self):
+        """
+        Tests that osm data is included in xls export
+        """
+        survey = self._create_osm_survey()
+        xform = self.xform
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey, xform)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+        export_builder.to_xls_export(temp_xls_file.name, self.osm_data)
+        temp_xls_file.seek(0)
+        wb = load_workbook(temp_xls_file.name)
+        osm_data_sheet = wb["osm"]
+        rows = [row for row in osm_data_sheet.rows]
+        xls_headers = [a.value for a in rows[0]]
+        temp_xls_file.close()
+
+        expected_column_headers = [
+            'photo', 'osm_road', 'osm_building', 'fav_color',
+            'form_completed', 'meta/instanceID', '_id', '_uuid',
+            '_submission_time', '_index', '_parent_table_name',
+            '_parent_index', '_tags', '_notes', '_version', '_duration',
+            '_submitted_by', 'osm_road:ctr:lat', 'osm_road:ctr:lon',
+            'osm_road:highway', 'osm_road:lanes', 'osm_road:name',
+            'osm_road:way:id', 'osm_building:building',
+            'osm_building:building:levels', 'osm_building:ctr:lat',
+            'osm_building:ctr:lon', 'osm_building:name',
+            'osm_building:way:id']
+        self.assertEqual(sorted(expected_column_headers), sorted(xls_headers))
+
+        submission = [a.value for a in rows[1]]
+        self.assertEqual(submission[0], '1424308569120.jpg')
+        self.assertEqual(submission[2], '23.708174238006087')
+        self.assertEqual(submission[4], 'tertiary')
+        self.assertEqual(submission[6], 'Patuatuli Road')
+        self.assertEqual(submission[11], '23.707316084046038')
+        self.assertEqual(submission[13], 'kol')
+
     def test_decode_mongo_encoded_section_names(self):
         data = {
             'main_section': [1, 2, 3, 4],
@@ -2264,8 +2302,7 @@ class TestExportBuilder(TestBase):
         serializer_instance = SubmissionReviewSerializer(data=data)
         serializer_instance.is_valid()
         serializer_instance.save()
-        ExportBuilder.INCLUDE_REVIEWS = True
-        export_builder = ExportBuilder()
+        export_builder = ExportBuilder(submission_review=True)
         export_builder.set_survey(survey, xform)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
         export_builder.to_zipped_csv(temp_zip_file.name, self.data)
@@ -2304,8 +2341,7 @@ class TestExportBuilder(TestBase):
         serializer_instance = SubmissionReviewSerializer(data=data)
         serializer_instance.is_valid()
         serializer_instance.save()
-        ExportBuilder.INCLUDE_REVIEWS = True
-        export_builder = ExportBuilder()
+        export_builder = ExportBuilder(submission_review=True)
         export_builder.set_survey(survey, xform)
         temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
         export_builder.to_xls_export(temp_xls_file.name, self.osm_data)
@@ -2337,8 +2373,7 @@ class TestExportBuilder(TestBase):
         serializer_instance = SubmissionReviewSerializer(data=data)
         serializer_instance.is_valid()
         serializer_instance.save()
-        ExportBuilder.INCLUDE_REVIEWS = True
-        export_builder = ExportBuilder()
+        export_builder = ExportBuilder(submission_review=True)
         export_builder.set_survey(survey, xform)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
         export_builder.to_zipped_sav(temp_zip_file.name, self.data)
@@ -2357,44 +2392,6 @@ class TestExportBuilder(TestBase):
             submission = rows[1]
             self.assertEqual(submission[29], 'Active')
             self.assertEqual(submission[30], 'Hey there')
-
-    def test_xls_export_with_osm_data(self):
-        """
-        Tests that osm data is included in xls export
-        """
-        survey = self._create_osm_survey()
-        xform = self.xform
-        export_builder = ExportBuilder()
-        export_builder.set_survey(survey, xform)
-        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
-        export_builder.to_xls_export(temp_xls_file.name, self.osm_data)
-        temp_xls_file.seek(0)
-        wb = load_workbook(temp_xls_file.name)
-        osm_data_sheet = wb["osm"]
-        rows = [row for row in osm_data_sheet.rows]
-        xls_headers = [a.value for a in rows[0]]
-        temp_xls_file.close()
-
-        expected_column_headers = [
-            'photo', 'osm_road', 'osm_building', 'fav_color',
-            'form_completed', 'meta/instanceID', '_id', '_uuid',
-            '_submission_time', '_index', '_parent_table_name',
-            '_parent_index', '_tags', '_notes', '_version', '_duration',
-            '_submitted_by', 'osm_road:ctr:lat', 'osm_road:ctr:lon',
-            'osm_road:highway', 'osm_road:lanes', 'osm_road:name',
-            'osm_road:way:id', 'osm_building:building',
-            'osm_building:building:levels', 'osm_building:ctr:lat',
-            'osm_building:ctr:lon', 'osm_building:name',
-            'osm_building:way:id']
-        self.assertEqual(sorted(expected_column_headers), sorted(xls_headers))
-
-        submission = [a.value for a in rows[1]]
-        self.assertEqual(submission[0], '1424308569120.jpg')
-        self.assertEqual(submission[2], '23.708174238006087')
-        self.assertEqual(submission[4], 'tertiary')
-        self.assertEqual(submission[6], 'Patuatuli Road')
-        self.assertEqual(submission[11], '23.707316084046038')
-        self.assertEqual(submission[13], 'kol')
 
     def test_zipped_csv_export_with_osm_data(self):
         """
