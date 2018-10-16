@@ -23,11 +23,6 @@ import xlrd
 from openpyxl import load_workbook
 from pyxform.builder import create_survey_from_xls
 from savReaderWriter import SavHeaderReader, SavReader
-
-from onadata.apps.logger.models.submission_review import SubmissionReview
-from onadata.apps.logger.models.instance import Instance
-from onadata.libs.serializers.submission_review_serializer import \
-    SubmissionReviewSerializer
 from onadata.apps.logger.import_tools import django_file
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
