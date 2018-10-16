@@ -158,7 +158,7 @@ def generate_export(export_type, xform, export_id=None, options=None):
         records = records.iterator()
 
     export_builder = ExportBuilder()
-    reviews = Instance.objects.filter(xform=xform, has_a_review = True).count()
+    reviews = Instance.objects.filter(xform=xform, has_a_review=True).count()
     if reviews >= 1:
         export_builder = ExportBuilder(submission_review=True)
 

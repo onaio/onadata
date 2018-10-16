@@ -2293,15 +2293,6 @@ class TestExportBuilder(TestBase):
         self._create_user_and_login('dave', '1234')
         survey = self._create_osm_survey()
         xform = self.xform
-        instance = Instance.objects.get(xform=xform)
-        data = {
-            "instance": instance.id,
-            "note": "Hey there",
-            "status": SubmissionReview.APPROVED
-        }
-        serializer_instance = SubmissionReviewSerializer(data=data)
-        serializer_instance.is_valid()
-        serializer_instance.save()
         export_builder = ExportBuilder(submission_review=True)
         export_builder.set_survey(survey, xform)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
@@ -2332,15 +2323,6 @@ class TestExportBuilder(TestBase):
         self._create_user_and_login('dave', '1234')
         survey = self._create_osm_survey()
         xform = self.xform
-        instance = Instance.objects.get(xform=xform)
-        data = {
-            "instance": instance.id,
-            "note": "Hey there",
-            "status": SubmissionReview.APPROVED
-        }
-        serializer_instance = SubmissionReviewSerializer(data=data)
-        serializer_instance.is_valid()
-        serializer_instance.save()
         export_builder = ExportBuilder(submission_review=True)
         export_builder.set_survey(survey, xform)
         temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
@@ -2364,15 +2346,6 @@ class TestExportBuilder(TestBase):
         self._create_user_and_login('dave', '1234')
         survey = self._create_osm_survey()
         xform = self.xform
-        instance = Instance.objects.get(xform=xform)
-        data = {
-            "instance": instance.id,
-            "note": "Hey there",
-            "status": SubmissionReview.APPROVED
-        }
-        serializer_instance = SubmissionReviewSerializer(data=data)
-        serializer_instance.is_valid()
-        serializer_instance.save()
         export_builder = ExportBuilder(submission_review=True)
         export_builder.set_survey(survey, xform)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
