@@ -24,7 +24,6 @@ from pyxform.question import Question
 from pyxform.section import RepeatingSection, Section
 from savReaderWriter import SavWriter
 
-from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.osmdata import OsmData
 from onadata.apps.logger.models.xform import (QUESTION_TYPES_TO_EXCLUDE,
                                               _encode_for_mongo)
@@ -331,6 +330,7 @@ class ExportBuilder(object):
     INCLUDE_LABELS = False
     INCLUDE_LABELS_ONLY = False
     INCLUDE_HXL = False
+    INCLUDE_REVIEWS = False
     INCLUDE_IMAGES = settings.EXPORT_WITH_IMAGE_DEFAULT
 
     SHOW_CHOICE_LABELS = False
@@ -415,11 +415,7 @@ class ExportBuilder(object):
         return choices
 
     def set_survey(self, survey, xform=None):
-        EXPORT_SUBMISSION_REVIEW = False
-        instance = Instance.objects.filter(xform=xform, has_a_review=True)
-        if (instance.count() >= 1):
-            EXPORT_SUBMISSION_REVIEW = True
-        if (EXPORT_SUBMISSION_REVIEW):
+        if self.INCLUDE_REVIEWS:
             self.EXTRA_FIELDS = self.EXTRA_FIELDS + [REVIEW_STATUS,
                                                      REVIEW_COMMENT]
             self.__init__()

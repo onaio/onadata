@@ -2265,6 +2265,7 @@ class TestExportBuilder(TestBase):
         serializer_instance.is_valid()
         serializer_instance.save()
         export_builder = ExportBuilder()
+        export_builder.INCLUDE_REVIEWS = True
         export_builder.set_survey(survey, xform)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
         export_builder.to_zipped_csv(temp_zip_file.name, self.data)
@@ -2304,6 +2305,7 @@ class TestExportBuilder(TestBase):
         serializer_instance.is_valid()
         serializer_instance.save()
         export_builder = ExportBuilder()
+        export_builder.INCLUDE_REVIEWS = True
         export_builder.set_survey(survey, xform)
         temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
         export_builder.to_xls_export(temp_xls_file.name, self.osm_data)
@@ -2336,6 +2338,7 @@ class TestExportBuilder(TestBase):
         serializer_instance.is_valid()
         serializer_instance.save()
         export_builder = ExportBuilder()
+        export_builder.INCLUDE_REVIEWS = True
         export_builder.set_survey(survey, xform)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
         export_builder.to_zipped_sav(temp_zip_file.name, self.data)
