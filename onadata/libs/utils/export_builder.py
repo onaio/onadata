@@ -352,6 +352,9 @@ class ExportBuilder(object):
     def __init__(self):
         self.extra_columns = (
             self.EXTRA_FIELDS + getattr(settings, 'EXTRA_COLUMNS', []))
+        if self.INCLUDE_REVIEWS:
+                self.extra_columns = self.extra_columns + [REVIEW_STATUS,
+                                                           REVIEW_COMMENT]
         self.osm_columns = []
 
     @classmethod
@@ -415,10 +418,6 @@ class ExportBuilder(object):
         return choices
 
     def set_survey(self, survey, xform=None):
-        if self.INCLUDE_REVIEWS:
-            self.EXTRA_FIELDS = self.EXTRA_FIELDS + [REVIEW_STATUS,
-                                                     REVIEW_COMMENT]
-            self.__init__()
         dd = get_data_dictionary_from_survey(survey)
 
         def build_sections(
