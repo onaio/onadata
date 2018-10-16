@@ -330,6 +330,7 @@ class ExportBuilder(object):
     INCLUDE_LABELS = False
     INCLUDE_LABELS_ONLY = False
     INCLUDE_HXL = False
+    INCLUDE_REVIEW = False
     INCLUDE_IMAGES = settings.EXPORT_WITH_IMAGE_DEFAULT
 
     SHOW_CHOICE_LABELS = False
@@ -348,12 +349,9 @@ class ExportBuilder(object):
     url = None
     language = None
 
-    def __init__(self, submission_review=False):
+    def __init__(self):
         self.extra_columns = (
             self.EXTRA_FIELDS + getattr(settings, 'EXTRA_COLUMNS', []))
-        if submission_review:
-            self.extra_columns = self.extra_columns + [REVIEW_STATUS,
-                                                       REVIEW_COMMENT]
         self.osm_columns = []
 
     @classmethod
@@ -417,6 +415,10 @@ class ExportBuilder(object):
         return choices
 
     def set_survey(self, survey, xform=None):
+        if self.INCLUDE_REVIEW:
+            self.EXTRA_FIELDS = self.EXTRA_FIELDS + [REVIEW_STATUS,
+                                                     REVIEW_COMMENT]
+            self.__init__()
         dd = get_data_dictionary_from_survey(survey)
 
         def build_sections(

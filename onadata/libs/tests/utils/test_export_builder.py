@@ -2288,7 +2288,8 @@ class TestExportBuilder(TestBase):
         self._create_user_and_login('dave', '1234')
         survey = self._create_osm_survey()
         xform = self.xform
-        export_builder = ExportBuilder(submission_review=True)
+        export_builder = ExportBuilder()
+        export_builder.INCLUDE_REVIEW = True
         export_builder.set_survey(survey, xform)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
         export_builder.to_zipped_csv(temp_zip_file.name, self.data)
@@ -2318,7 +2319,8 @@ class TestExportBuilder(TestBase):
         self._create_user_and_login('dave', '1234')
         survey = self._create_osm_survey()
         xform = self.xform
-        export_builder = ExportBuilder(submission_review=True)
+        export_builder = ExportBuilder()
+        export_builder.INCLUDE_REVIEW = True
         export_builder.set_survey(survey, xform)
         temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
         export_builder.to_xls_export(temp_xls_file.name, self.osm_data)
@@ -2341,7 +2343,8 @@ class TestExportBuilder(TestBase):
         self._create_user_and_login('dave', '1234')
         survey = self._create_osm_survey()
         xform = self.xform
-        export_builder = ExportBuilder(submission_review=True)
+        export_builder = ExportBuilder()
+        export_builder.INCLUDE_REVIEW = True
         export_builder.set_survey(survey, xform)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
         export_builder.to_zipped_sav(temp_zip_file.name, self.data)
