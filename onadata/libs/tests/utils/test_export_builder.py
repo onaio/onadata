@@ -2362,7 +2362,7 @@ class TestExportBuilder(TestBase):
                 'photo', 'osm_road', 'osm_building', 'fav_color',
                 'form_completed', 'meta.instanceID', '@_id', '@_uuid',
                 '@_submission_time', '@_index', '@_parent_table_name',
-                '@_review_comment', '@_review_status','@_parent_index',
+                '@_review_comment', '@_review_status', '@_parent_index',
                 '@_tags', '@_notes', '@_version', '@_duration',
                 '@_submitted_by', 'osm_road_ctr_lat',
                 'osm_road_ctr_lon', 'osm_road_highway', 'osm_road_lanes',
