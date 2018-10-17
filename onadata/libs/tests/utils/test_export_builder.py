@@ -2347,7 +2347,7 @@ class TestExportBuilder(TestBase):
         export_builder.INCLUDE_REVIEW = True
         export_builder.set_survey(survey, xform)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
-        export_builder.to_zipped_sav(temp_zip_file.name, self.data)
+        export_builder.to_zipped_sav(temp_zip_file.name, self.osm_data)
         temp_zip_file.seek(0)
         temp_dir = tempfile.mkdtemp()
         zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
@@ -2358,11 +2358,21 @@ class TestExportBuilder(TestBase):
         with SavReader(os.path.join(temp_dir, "osm.sav"),
                        returnHeader=True) as reader:
             rows = [r for r in reader]
-            expected_column_headers = '@_review_comment'
-            self.assertIn(expected_column_headers, sorted(rows[0]))
-            submission = rows[1]
-            self.assertEqual(submission[29], 'Active')
-            self.assertEqual(submission[30], 'Hey there')
+            expected_column_headers = [x.encode('utf-8') for x in [
+                'photo', 'osm_road', 'osm_building', 'fav_color',
+                'form_completed', 'meta.instanceID', '@_id', '@_uuid',
+                '@_submission_time', '@_index', '@_parent_table_name',
+                '@_review_comment', '@_review_status','@_parent_index',
+                '@_tags', '@_notes', '@_version', '@_duration',
+                '@_submitted_by', 'osm_road_ctr_lat',
+                'osm_road_ctr_lon', 'osm_road_highway', 'osm_road_lanes',
+                'osm_road_name', 'osm_road_way_id', 'osm_building_building',
+                'osm_building_building_levels', 'osm_building_ctr_lat',
+                'osm_building_ctr_lon', 'osm_building_name',
+                'osm_building_way_id']]
+            self.assertEqual(sorted(rows[0]), sorted(expected_column_headers))
+            self.assertEqual(rows[1][29], b'Active')
+            self.assertEqual(rows[1][30], b'Hey there')
 
     def test_zipped_csv_export_with_osm_data(self):
         """
