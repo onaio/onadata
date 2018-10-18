@@ -158,10 +158,6 @@ def generate_export(export_type, xform, export_id=None, options=None):
         records = records.iterator()
 
     export_builder = ExportBuilder()
-    reviews = Instance.objects.filter(xform=xform, has_a_review=True).count()
-    if reviews >= 1:
-        export_builder.INCLUDE_REVIEWS = True
-
     export_builder.TRUNCATE_GROUP_TITLE = True \
         if export_type == Export.SAV_ZIP_EXPORT else remove_group_name
     export_builder.GROUP_DELIMITER = options.get(

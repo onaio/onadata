@@ -330,7 +330,6 @@ class ExportBuilder(object):
     INCLUDE_LABELS = False
     INCLUDE_LABELS_ONLY = False
     INCLUDE_HXL = False
-    INCLUDE_REVIEW = False
     INCLUDE_IMAGES = settings.EXPORT_WITH_IMAGE_DEFAULT
 
     SHOW_CHOICE_LABELS = False
@@ -414,8 +413,8 @@ class ExportBuilder(object):
 
         return choices
 
-    def set_survey(self, survey, xform=None):
-        if self.INCLUDE_REVIEW:
+    def set_survey(self, survey, xform=None, include_reviews=False):
+        if include_reviews:
             self.EXTRA_FIELDS = self.EXTRA_FIELDS + [REVIEW_STATUS,
                                                      REVIEW_COMMENT]
             self.__init__()

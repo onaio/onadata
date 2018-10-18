@@ -2290,7 +2290,7 @@ class TestExportBuilder(TestBase):
         xform = self.xform
         export_builder = ExportBuilder()
         export_builder.INCLUDE_REVIEW = True
-        export_builder.set_survey(survey, xform)
+        export_builder.set_survey(survey, xform, include_reviews=True)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
         export_builder.to_zipped_csv(temp_zip_file.name, self.data)
         temp_zip_file.seek(0)
@@ -2321,7 +2321,7 @@ class TestExportBuilder(TestBase):
         xform = self.xform
         export_builder = ExportBuilder()
         export_builder.INCLUDE_REVIEW = True
-        export_builder.set_survey(survey, xform)
+        export_builder.set_survey(survey, xform, include_reviews=True)
         temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
         export_builder.to_xls_export(temp_xls_file.name, self.osm_data)
         temp_xls_file.seek(0)
@@ -2345,7 +2345,7 @@ class TestExportBuilder(TestBase):
         xform = self.xform
         export_builder = ExportBuilder()
         export_builder.INCLUDE_REVIEW = True
-        export_builder.set_survey(survey, xform)
+        export_builder.set_survey(survey, xform, include_reviews=True)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
         export_builder.to_zipped_sav(temp_zip_file.name, self.osm_data)
         temp_zip_file.seek(0)
