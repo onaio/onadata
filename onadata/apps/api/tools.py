@@ -40,7 +40,9 @@ from onadata.apps.viewer.models.parsed_instance import datetime_from_str
 from onadata.libs.baseviewset import DefaultBaseViewset
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.permissions import (
-    ROLES, ManagerRole, OwnerRole, get_role, get_role_in_org, is_organization)
+    ROLES, DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole,
+    EditorMinorRole, EditorRole, ManagerRole, OwnerRole, ReadOnlyRole,
+    get_role, get_role_in_org, is_organization)
 from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.utils.cache_tools import (PROJ_BASE_FORMS_CACHE,
                                             PROJ_FORMS_CACHE, safe_delete)
@@ -679,13 +681,33 @@ def update_role_by_meta_xform_perms(xform):
     """
     # load meta xform perms
     metadata = MetaData.xform_meta_permission(xform)
+    editor_role_list = [EditorRole, EditorMinorRole]
+    editor_role = {role.name: role for role in editor_role_list}
+
+    dataentry_role_list = [
+        DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole
+    ]
+    dataentry_role = {role.name: role for role in dataentry_role_list}
+    readonly_role_list = [ReadOnlyRole]
+    readonly_role = {role.name: role for role in readonly_role_list}
 
     if metadata:
         meta_perms = metadata.data_value.split('|')
+
+        # update roles
         users = get_xform_users(xform)
 
-        # update user roles with xform meta permissions
         for user in users:
-            for role in meta_perms:
-                role = ROLES.get(role)
+            role = users.get(user).get('role')
+            print(role)
+            if role in editor_role:
+                role = ROLES.get(meta_perms[0])
+                role.add(user, xform)
+
+            if role in dataentry_role:
+                role = ROLES.get(meta_perms[1])
+                role.add(user, xform)
+
+            if role in readonly_role:
+                role = ROLES.get(meta_perms[1])
                 role.add(user, xform)
