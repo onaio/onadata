@@ -699,7 +699,6 @@ def update_role_by_meta_xform_perms(xform):
 
         for user in users:
             role = users.get(user).get('role')
-            print(role)
             if role in editor_role:
                 role = ROLES.get(meta_perms[0])
                 role.add(user, xform)
