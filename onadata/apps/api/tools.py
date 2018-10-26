@@ -681,26 +681,14 @@ def update_role_by_meta_xform_perms(xform):
     """
     # load meta xform perms
     metadata = MetaData.xform_meta_permission(xform)
-    editor_role_list = [EditorRole, EditorMinorRole]
-    editor_role = {role.name: role for role in editor_role_list}
-
-    dataentry_role_list = [
-        DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole
-    ]
-    dataentry_role = {role.name: role for role in dataentry_role_list}
 
     if metadata:
         meta_perms = metadata.data_value.split('|')
-
-        # update roles
         users = get_xform_users(xform)
 
+        # update user roles with xform meta permissions
         for user in users:
-            role = users.get(user).get('role')
-            if role in editor_role:
-                role = ROLES.get(meta_perms[0])
-                role.add(user, xform)
-
-            if role in dataentry_role:
-                role = ROLES.get(meta_perms[1])
+            for role in meta_perms:
+                __import__('ipdb').set_trace()
+                role = ROLES.get(role)
                 role.add(user, xform)
