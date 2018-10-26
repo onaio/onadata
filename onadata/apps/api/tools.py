@@ -40,9 +40,7 @@ from onadata.apps.viewer.models.parsed_instance import datetime_from_str
 from onadata.libs.baseviewset import DefaultBaseViewset
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.permissions import (
-    ROLES, DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole,
-    EditorMinorRole, EditorRole, ManagerRole, OwnerRole, get_role,
-    get_role_in_org, is_organization)
+    ROLES, ManagerRole, OwnerRole, get_role, get_role_in_org, is_organization)
 from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.utils.cache_tools import (PROJ_BASE_FORMS_CACHE,
                                             PROJ_FORMS_CACHE, safe_delete)
@@ -689,6 +687,5 @@ def update_role_by_meta_xform_perms(xform):
         # update user roles with xform meta permissions
         for user in users:
             for role in meta_perms:
-                __import__('ipdb').set_trace()
                 role = ROLES.get(role)
                 role.add(user, xform)
