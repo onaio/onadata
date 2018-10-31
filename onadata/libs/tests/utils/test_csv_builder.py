@@ -560,7 +560,8 @@ class TestCSVDataFrameBuilder(TestBase):
             self.user.username,
             self.xform.id_string,
             remove_group_name=True,
-            include_images=False)
+            include_images=False,
+            include_review=True)
         # pylint: disable=protected-access
         record_count = csv_df_builder._query_data(count=True)
         self.assertEqual(record_count, 7)
@@ -577,8 +578,7 @@ class TestCSVDataFrameBuilder(TestBase):
             'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
             'instanceID', '_id', '_uuid', '_submission_time', '_tags',
             '_notes', '_version', '_duration', '_submitted_by', '_total_media',
-            '_media_count', '_review_status', '_review_comment',
-            '_media_all_received'
+            '_media_count', '_media_all_received', '_review_status', '_review_comment'
         ]
         self.assertEqual(expected_header, header)
         rows = []
@@ -605,7 +605,8 @@ class TestCSVDataFrameBuilder(TestBase):
             self.user.username,
             self.xform.id_string,
             remove_group_name=True,
-            include_labels=True)
+            include_labels=True,
+            include_review=True)
         # pylint: disable=protected-access
         record_count = csv_df_builder._query_data(count=True)
         self.assertEqual(record_count, 7)
@@ -622,8 +623,8 @@ class TestCSVDataFrameBuilder(TestBase):
             'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
             'instanceID', '_id', '_uuid', '_submission_time', '_tags',
             '_notes', '_version', '_duration', '_submitted_by', '_total_media',
-            '_media_count', '_review_status', '_review_comment',
-            '_media_all_received'
+            '_media_count', '_media_all_received', '_review_status',
+            '_review_comment'
         ]
         self.assertEqual(expected_header, header)
         labels = next(csv_reader)
@@ -637,7 +638,7 @@ class TestCSVDataFrameBuilder(TestBase):
             'web_browsers/Safari', 'instanceID', '_id', '_uuid',
             '_submission_time', '_tags', '_notes', '_version', '_duration',
             '_submitted_by', '_total_media', '_media_count',
-            '_review_status', '_review_comment', '_media_all_received'
+            '_media_all_received', '_review_status', '_review_comment'
         ]
         self.assertEqual(expected_labels, labels)
         rows = []
@@ -664,7 +665,8 @@ class TestCSVDataFrameBuilder(TestBase):
             self.user.username,
             self.xform.id_string,
             remove_group_name=True,
-            include_labels_only=True)
+            include_labels_only=True,
+            include_review=True)
         # pylint: disable=protected-access
         record_count = csv_df_builder._query_data(count=True)
         self.assertEqual(record_count, 7)
@@ -683,7 +685,7 @@ class TestCSVDataFrameBuilder(TestBase):
             'web_browsers/Safari', 'instanceID', '_id', '_uuid',
             '_submission_time', '_tags', '_notes', '_version', '_duration',
             '_submitted_by', '_total_media', '_media_count',
-            '_review_status', '_review_comment', '_media_all_received'
+            '_media_all_received', '_review_status', '_review_comment'
         ]
         self.assertEqual(expected_labels, labels)
         rows = []
@@ -765,7 +767,8 @@ class TestCSVDataFrameBuilder(TestBase):
             self.user.username,
             self.xform.id_string,
             remove_group_name=True,
-            include_labels=True)
+            include_labels=True,
+            include_review=True)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
         csv_df_builder.export_to(temp_file.name)
         csv_file = open(temp_file.name, 'r')
@@ -779,8 +782,8 @@ class TestCSVDataFrameBuilder(TestBase):
             'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
             'instanceID', '_id', '_uuid', '_submission_time', '_tags',
             '_notes', '_version', '_duration', '_submitted_by', '_total_media',
-            '_media_count', '_review_status', '_review_comment',
-            '_media_all_received', '_xform_id'
+            '_media_count', '_media_all_received', '_review_status',
+            '_review_comment', '_xform_id'
         ]
         self.assertEqual(expected_header, header)
         # close and delete file
