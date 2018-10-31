@@ -578,7 +578,8 @@ class TestCSVDataFrameBuilder(TestBase):
             'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
             'instanceID', '_id', '_uuid', '_submission_time', '_tags',
             '_notes', '_version', '_duration', '_submitted_by', '_total_media',
-            '_media_count', '_media_all_received', '_review_status', '_review_comment'
+            '_media_count', '_media_all_received', '_review_status',
+            '_review_comment'
         ]
         self.assertEqual(expected_header, header)
         rows = []

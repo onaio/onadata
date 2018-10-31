@@ -383,12 +383,14 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                  include_images=False, include_hxl=False,
                  win_excel_utf8=False, total_records=None,
                  index_tags=DEFAULT_INDEX_TAGS, value_select_multiples=False,
-                 show_choice_labels=False, language=None, include_review=False):
+                 show_choice_labels=False, language=None,
+                 include_review=False):
 
         if include_review:
-            if not all(elem in self.ADDITIONAL_COLUMNS for elem in [REVIEW_STATUS,
-            REVIEW_COMMENT] ):
-                    self.ADDITIONAL_COLUMNS += [REVIEW_STATUS, REVIEW_COMMENT] 
+            if not all(
+                elem in self.ADDITIONAL_COLUMNS for elem in [REVIEW_STATUS,
+                                                             REVIEW_COMMENT]):
+                    self.ADDITIONAL_COLUMNS += [REVIEW_STATUS, REVIEW_COMMENT]
         super(CSVDataFrameBuilder, self).__init__(
             username, id_string, filter_query, group_delimiter,
             split_select_multiples, binary_select_multiples, start, end,
