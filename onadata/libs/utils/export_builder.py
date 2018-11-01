@@ -328,6 +328,7 @@ class ExportBuilder(object):
     REPEAT_INDEX_TAGS = ('[', ']')
 
     INCLUDE_LABELS = False
+    INCLUDE_REVIEWS = False
     INCLUDE_LABELS_ONLY = False
     INCLUDE_HXL = False
     INCLUDE_IMAGES = settings.EXPORT_WITH_IMAGE_DEFAULT
@@ -414,7 +415,7 @@ class ExportBuilder(object):
         return choices
 
     def set_survey(self, survey, xform=None, include_reviews=False):
-        if include_reviews:
+        if self.INCLUDE_REVIEWS or include_reviews:
             self.EXTRA_FIELDS = self.EXTRA_FIELDS + [
                 REVIEW_STATUS, REVIEW_COMMENT]
             self.__init__()
@@ -956,7 +957,8 @@ class ExportBuilder(object):
             username, id_string, filter_query, self.GROUP_DELIMITER,
             self.SPLIT_SELECT_MULTIPLES, self.BINARY_SELECT_MULTIPLES,
             start, end, self.TRUNCATE_GROUP_TITLE, xform,
-            self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY, self.INCLUDE_IMAGES,
+            self.INCLUDE_LABELS, self.INCLUDE_REVIEWS,
+            self.INCLUDE_LABELS_ONLY, self.INCLUDE_IMAGES,
             self.INCLUDE_HXL, win_excel_utf8=win_excel_utf8,
             total_records=total_records, index_tags=index_tags,
             value_select_multiples=self.VALUE_SELECT_MULTIPLES,

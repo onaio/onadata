@@ -109,6 +109,7 @@ class Export(models.Model):
         "group_delimiter",
         "include_images",
         "include_labels",
+        "include_reviews"
         "include_labels_only",
         "include_hxl",
         "language",
