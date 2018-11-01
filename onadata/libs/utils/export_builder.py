@@ -415,7 +415,8 @@ class ExportBuilder(object):
 
     def set_survey(self, survey, xform=None, include_reviews=False):
         if include_reviews:
-            self.EXTRA_FIELDS += [REVIEW_STATUS, REVIEW_COMMENT]
+            self.EXTRA_FIELDS = self.EXTRA_FIELDS + [
+                REVIEW_STATUS, REVIEW_COMMENT]
             self.__init__()
         dd = get_data_dictionary_from_survey(survey)
 
