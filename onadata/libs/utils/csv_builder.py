@@ -162,9 +162,9 @@ class AbstractDataFrameBuilder(object):
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
                  split_select_multiples=True, binary_select_multiples=False,
                  start=None, end=None, remove_group_name=False, xform=None,
-                 include_labels=False, include_labels_only=False,
-                 include_images=True, include_hxl=False, include_reviews=False,
-                 win_excel_utf8=False, total_records=None,
+                 include_labels=False, include_reviews=False,
+                 include_labels_only=False, include_images=True,
+                 include_hxl=False, win_excel_utf8=False, total_records=None,
                  index_tags=DEFAULT_INDEX_TAGS, value_select_multiples=False,
                  show_choice_labels=True, language=None):
 
@@ -383,9 +383,9 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
                  split_select_multiples=True, binary_select_multiples=False,
                  start=None, end=None, remove_group_name=False, xform=None,
-                 include_labels=False, include_labels_only=False,
-                 include_images=False, include_hxl=False,
-                 include_reviews=False, win_excel_utf8=False,
+                 include_labels=False, include_reviews=False,
+                 include_labels_only=False, include_images=False,
+                 include_hxl=False, win_excel_utf8=False,
                  total_records=None, index_tags=DEFAULT_INDEX_TAGS,
                  value_select_multiples=False, show_choice_labels=False,
                  language=None):
@@ -393,10 +393,10 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         super(CSVDataFrameBuilder, self).__init__(
             username, id_string, filter_query, group_delimiter,
             split_select_multiples, binary_select_multiples, start, end,
-            remove_group_name, xform, include_labels, include_labels_only,
-            include_images, include_hxl, include_reviews, win_excel_utf8,
-            total_records, index_tags, value_select_multiples,
-            show_choice_labels, language)
+            remove_group_name, xform, include_labels, include_reviews,
+            include_labels_only, include_images, include_hxl,
+            win_excel_utf8, total_records, index_tags,
+            value_select_multiples, show_choice_labels, language)
 
         self.ordered_columns = OrderedDict()
 
