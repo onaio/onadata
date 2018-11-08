@@ -529,6 +529,20 @@ Example
      curl -X GET https://api.ona.io/api/v1/forms/28058.xls?include_labels=true
 
 
+Include review fields in CSV, SAVZIP, XLS and zipped CSV exports
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Forms that have review enabled have review fields included by default on exports. To make reviews optional in the exports, we use
+ the `include_reviews` param, acceptable values are `true` and `false`.
+
+Example
+^^^^^^^
+
+::
+
+     curl -X GET https://api.ona.io/api/v1/forms/28058/export_async?format=xls&include_reviews=true
+     curl -X GET https://api.ona.io/api/v1/forms/28058.xls?include_reviews=true
+
+
 Include labels as column headers in CSV, SAVZIP, XLS and zipped CSV exports
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 By default labels are not included in exports. To include labels as column headers in the exports, use
