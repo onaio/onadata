@@ -24,7 +24,8 @@ from onadata.libs.utils.common_tags import API_TOKEN
 ENKETO_AUTH_COOKIE = getattr(settings, 'ENKETO_AUTH_COOKIE', '__enketo')
 JWT_SECRET_KEY = getattr(settings, 'JWT_SECRET_KEY', 'jwt')
 JWT_ALGORITHM = getattr(settings, 'JWT_ALGORITHM', 'HS256')
-TEMP_TOKEN_EXPIRY_TIME = getattr(settings, 'DEFAULT_TEMP_TOKEN_EXPIRY_TIME')
+TEMP_TOKEN_EXPIRY_TIME = getattr(
+    settings, 'DEFAULT_TEMP_TOKEN_EXPIRY_TIME', 60 * 60 * 6)
 
 
 def expired(time_token_created):
