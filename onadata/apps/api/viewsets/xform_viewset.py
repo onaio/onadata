@@ -64,7 +64,8 @@ from onadata.libs.utils.api_export_tools import (custom_response_handler,
                                                  response_for_format)
 from onadata.libs.utils.common_tools import json_stream
 from onadata.libs.utils.csv_import import (get_async_csv_submission_status,
-                                           submit_csv, submit_csv_async)
+                                           submit_csv, submit_csv_async,
+                                           convert_submission_xls_file_to_csv)
 from onadata.libs.utils.export_tools import parse_request_export_options
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.model_tools import queryset_iterator
@@ -554,13 +555,16 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
     @action(methods=['POST', 'GET'], detail=True)
     def csv_import(self, request, *args, **kwargs):
-        """ Endpoint for CSV data imports
+        """ Endpoint for CSV and XLS data imports
         Calls :py:func:`onadata.libs.utils.csv_import.submit_csv` for POST
         requests passing the `request.FILES.get('csv_file')` upload
         for import and
         :py:func:onadata.libs.utils.csv_import.get_async_csv_submission_status
         for GET requests passing `job_uuid` query param for job progress
-        polling
+        polling and
+        :py:func:`onadata.libs.utils.csv_import.convert_submission_xls_file_to_csv`
+        for POST request passing the `request.FILES.get('xls_file')` upload for
+        import if xls_file is provided instead of csv_file
         """
         self.object = self.get_object()
         resp = {}
@@ -575,6 +579,11 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                                   'be incorrect'))
         else:
             csv_file = request.FILES.get('csv_file', None)
+            xls_file = request.FILES.get('xls_file', None)
+
+            if xls_file:
+                csv_file = convert_submission_xls_file_to_csv(xls_file)
+
             if csv_file is None:
                 resp.update({u'error': u'csv_file field empty'})
             else:
@@ -582,7 +591,11 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                 overwrite = True \
                     if overwrite and overwrite.lower() == 'true' else False
                 size_threshold = settings.CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD
-                if csv_file.size < size_threshold:
+                try:
+                    csv_size = csv_file.size
+                except AttributeError:
+                    csv_size = csv_file.__sizeof__()
+                if csv_size < size_threshold:
                     resp.update(submit_csv(request.user.username,
                                            self.object, csv_file, overwrite))
                 else:
