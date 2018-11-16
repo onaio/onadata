@@ -7,6 +7,7 @@ import json
 import logging
 import sys
 import uuid
+import xlrd
 from builtins import str as text
 from collections import defaultdict
 from copy import deepcopy
@@ -30,7 +31,8 @@ from multidb.pinning import use_master
 from onadata.apps.logger.models import Instance, XForm
 from onadata.libs.utils.async_status import (FAILED, async_status,
                                              celery_state_to_status)
-from onadata.libs.utils.common_tags import MULTIPLE_SELECT_TYPE
+from onadata.libs.utils.common_tags import (MULTIPLE_SELECT_TYPE,
+                                            SUBMISSION_TIME)
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
 from onadata.libs.utils.logger_tools import (OpenRosaResponse, dict2xml,
@@ -266,8 +268,9 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                         location_prop:
                         row.get(key, '0')
                     })
-                # remove 'n/a' values
-                if not key.startswith('_') and row[key] == 'n/a':
+                # remove 'n/a' values and '' values for xls
+                if not key.startswith('_') and \
+                        (row[key] == 'n/a' or row[key] == ''):
                     del row[key]
 
             # collect all location K-V pairs into single geopoint field(s)
@@ -383,3 +386,38 @@ def get_async_csv_submission_status(job_uuid):
         return async_status(celery_state_to_status('PENDING'))
 
     return job.get()
+
+
+def convert_submission_xls_file_to_csv(xls_file):
+    """
+    Convert a submission xls file to submissions
+    :param xls_file: submissions xls file
+    :return: csv_file
+    """
+    xls_file.seek(0)
+    xls_file_content = xls_file.read()
+    xl_workbook = xlrd.open_workbook(file_contents=xls_file_content)
+    first_sheet = xl_workbook.sheet_by_index(0)
+
+    csv_file = BytesIO()
+    csv_writer = ucsv.writer(csv_file)
+
+    if SUBMISSION_TIME in first_sheet.row_values(0):
+        # only do conversion if there's _submission_time.
+        # Excel dates in decimal, convert them to datetime isoformat
+        csv_writer.writerow(first_sheet.row_values(0))
+        col_index = first_sheet.row_values(0).index(
+            SUBMISSION_TIME, -20)
+
+        for row in range(1, first_sheet.nrows):
+            row_values = first_sheet.row_values(row)
+            row_values[col_index] = xlrd.xldate.xldate_as_datetime(
+                row_values[col_index], datemode=1).isoformat()
+            csv_writer.writerow(row_values)
+
+        return csv_file
+
+    for row in range(first_sheet.nrows):
+        csv_writer.writerow(first_sheet.row_values(row))
+
+    return csv_file
