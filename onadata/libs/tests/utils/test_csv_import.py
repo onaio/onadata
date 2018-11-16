@@ -4,6 +4,7 @@ import os
 import re
 from builtins import open
 from io import BytesIO
+import unicodecsv as ucsv
 
 from django.conf import settings
 
@@ -28,6 +29,7 @@ class CSVImportTestCase(TestBase):
         self.good_csv = open(os.path.join(self.fixtures_dir, 'good.csv'), 'rb')
         self.bad_csv = open(os.path.join(self.fixtures_dir, 'bad.csv'), 'rb')
         self.xls_file_path = os.path.join(self.fixtures_dir, 'tutorial.xls')
+        self.good_xls = open(os.path.join(self.fixtures_dir, 'good.xls'), 'rb')
 
     def test_get_submission_meta_dict(self):
         self._publish_xls_file(self.xls_file_path)
@@ -284,3 +286,15 @@ class CSVImportTestCase(TestBase):
         self.assertEqual(result,
                          {'error': 'File not found!',
                           'job_status': 'FAILURE'})
+
+    def test_convert_submission_xls_file_to_csv(self):
+        """Test that convert_submission_xls_file_to_csv converts to csv"""
+        c_csv_file = csv_import.convert_submission_xls_file_to_csv(
+            self.good_xls)
+
+        c_csv_file.seek(0)
+        c_csv_reader = ucsv.DictReader(c_csv_file, encoding='utf-8-sig')
+        g_csv_reader = ucsv.DictReader(self.good_csv, encoding='utf-8-sig')
+
+        self.assertAlmostEqual(
+            g_csv_reader.fieldnames[10], c_csv_reader.fieldnames[10])
