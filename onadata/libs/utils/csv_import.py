@@ -7,32 +7,29 @@ import json
 import logging
 import sys
 import uuid
-import xlrd
-from builtins import str as text
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
 from io import BytesIO
 
-from future.utils import iteritems
-
+import unicodecsv as ucsv
+import xlrd
+from builtins import str as text
+from celery import current_task, task
+from celery.backends.amqp import BacklogLimitExceeded
+from celery.result import AsyncResult
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.storage import default_storage
 from django.utils import timezone
 from django.utils.translation import ugettext as _
-
-import unicodecsv as ucsv
-from celery import current_task, task
-from celery.backends.amqp import BacklogLimitExceeded
-from celery.result import AsyncResult
+from future.utils import iteritems
 from multidb.pinning import use_master
 
 from onadata.apps.logger.models import Instance, XForm
 from onadata.libs.utils.async_status import (FAILED, async_status,
                                              celery_state_to_status)
-from onadata.libs.utils.common_tags import (MULTIPLE_SELECT_TYPE,
-                                            SUBMISSION_TIME)
+from onadata.libs.utils.common_tags import (MULTIPLE_SELECT_TYPE)
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
 from onadata.libs.utils.logger_tools import (OpenRosaResponse, dict2xml,
@@ -402,22 +399,26 @@ def convert_submission_xls_file_to_csv(xls_file):
     csv_file = BytesIO()
     csv_writer = ucsv.writer(csv_file)
 
-    if SUBMISSION_TIME in first_sheet.row_values(0):
-        # only do conversion if there's _submission_time.
-        # Excel dates in decimal, convert them to datetime isoformat
-        csv_writer.writerow(first_sheet.row_values(0))
-        col_index = first_sheet.row_values(0).index(
-            SUBMISSION_TIME, -20)
+    date_columns = []
 
-        for row in range(1, first_sheet.nrows):
-            row_values = first_sheet.row_values(row)
-            row_values[col_index] = xlrd.xldate.xldate_as_datetime(
-                row_values[col_index], datemode=1).isoformat()
-            csv_writer.writerow(row_values)
+    # write the header
+    csv_writer.writerow(first_sheet.row_values(0))
 
-        return csv_file
+    # check for any dates in the first row of data
+    for index, value in enumerate(first_sheet.row_values(1)):
+        if first_sheet.cell_type(1, index) == xlrd.XL_CELL_DATE:
+            date_columns.append(index)
 
-    for row in range(first_sheet.nrows):
-        csv_writer.writerow(first_sheet.row_values(row))
+    for row in range(1, first_sheet.nrows):
+        row_values = first_sheet.row_values(row)
+        if date_columns:
+            for date_column in date_columns:
+                try:
+                    row_values[date_column] = xlrd.xldate.xldate_as_datetime(
+                        row_values[date_column],
+                        xl_workbook.datemode).isoformat()
+                except:  # noqa: E722
+                    pass
+        csv_writer.writerow(row_values)
 
     return csv_file
