@@ -328,12 +328,12 @@ class ExportBuilder(object):
     REPEAT_INDEX_TAGS = ('[', ']')
 
     INCLUDE_LABELS = False
-    INCLUDE_REVIEWS = False
     INCLUDE_LABELS_ONLY = False
     INCLUDE_HXL = False
     INCLUDE_IMAGES = settings.EXPORT_WITH_IMAGE_DEFAULT
 
     SHOW_CHOICE_LABELS = False
+    INCLUDE_REVIEWS = False
 
     TYPES_TO_CONVERT = ['int', 'decimal', 'date']  # , 'dateTime']
     CONVERT_FUNCS = {
@@ -957,12 +957,13 @@ class ExportBuilder(object):
             username, id_string, filter_query, self.GROUP_DELIMITER,
             self.SPLIT_SELECT_MULTIPLES, self.BINARY_SELECT_MULTIPLES,
             start, end, self.TRUNCATE_GROUP_TITLE, xform,
-            self.INCLUDE_LABELS, self.INCLUDE_REVIEWS,
-            self.INCLUDE_LABELS_ONLY, self.INCLUDE_IMAGES,
-            self.INCLUDE_HXL, win_excel_utf8=win_excel_utf8,
-            total_records=total_records, index_tags=index_tags,
+            self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY,
+            self.INCLUDE_IMAGES, self.INCLUDE_HXL,
+            win_excel_utf8=win_excel_utf8, total_records=total_records,
+            index_tags=index_tags,
             value_select_multiples=self.VALUE_SELECT_MULTIPLES,
-            show_choice_labels=show_choice_labels, language=language)
+            show_choice_labels=show_choice_labels,
+            include_reviews=self.INCLUDE_REVIEWS, language=language)
 
         csv_builder.export_to(path, dataview=dataview)
 
