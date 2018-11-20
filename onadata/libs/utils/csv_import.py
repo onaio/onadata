@@ -405,20 +405,24 @@ def convert_submission_xls_file_to_csv(xls_file):
     csv_writer.writerow(first_sheet.row_values(0))
 
     # check for any dates in the first row of data
-    for index, value in enumerate(first_sheet.row_values(1)):
+    for index in range(first_sheet.ncols):
         if first_sheet.cell_type(1, index) == xlrd.XL_CELL_DATE:
             date_columns.append(index)
 
     for row in range(1, first_sheet.nrows):
         row_values = first_sheet.row_values(row)
+
+        # convert excel dates(floats) to datetime
         if date_columns:
             for date_column in date_columns:
                 try:
-                    row_values[date_column] = xlrd.xldate.xldate_as_datetime(
+                    row_values[date_column] = xlrd.xldate_as_datetime(
                         row_values[date_column],
                         xl_workbook.datemode).isoformat()
-                except:  # noqa: E722
-                    pass
+                except (ValueError, TypeError):
+                    row_values[date_column] = first_sheet.cell_value(
+                        row, date_column)
+
         csv_writer.writerow(row_values)
 
     return csv_file

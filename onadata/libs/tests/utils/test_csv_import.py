@@ -2,14 +2,13 @@ from __future__ import unicode_literals
 
 import os
 import re
-from builtins import open
 from io import BytesIO
-import unicodecsv as ucsv
-
-from django.conf import settings
 
 import mock
+import unicodecsv as ucsv
+from builtins import open
 from celery.backends.amqp import BacklogLimitExceeded
+from django.conf import settings
 
 from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.main.tests.test_base import TestBase
@@ -296,5 +295,5 @@ class CSVImportTestCase(TestBase):
         c_csv_reader = ucsv.DictReader(c_csv_file, encoding='utf-8-sig')
         g_csv_reader = ucsv.DictReader(self.good_csv, encoding='utf-8-sig')
 
-        self.assertAlmostEqual(
+        self.assertEqual(
             g_csv_reader.fieldnames[10], c_csv_reader.fieldnames[10])
