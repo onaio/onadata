@@ -1,32 +1,19 @@
-from django.contrib.contenttypes.models import ContentType
-from django.core.cache import cache
-
+# -*- coding: utf-8 -*-
+"""InstanceRelatedField"""
 from rest_framework import serializers
 from rest_framework.fields import SkipField
 
 from onadata.apps.logger.models import Instance
+from onadata.libs.serializers.fields.utils import get_object_id_by_content_type
 
 
 class InstanceRelatedField(serializers.RelatedField):
     """A custom field to represent the content_object generic relationship"""
 
     def get_attribute(self, instance):
-        content_type_id = cache.get("instance_content_type_id")
-        if not content_type_id:
-            try:
-                content_type_id = ContentType.objects.get(
-                    app_label="logger", model="instance"
-                ).id
-            except ContentType.DoesNotExist:
-                pass
-            else:
-                cache.set("instance_content_type_id", content_type_id)
-        if not content_type_id:
-            if instance and isinstance(instance.content_object, Instance):
-                return instance.object_id
-        else:
-            if instance and instance.content_type_id == content_type_id:
-                return instance.object_id
+        val = get_object_id_by_content_type(instance, Instance)
+        if val:
+            return val
 
         raise SkipField()
 
@@ -34,8 +21,8 @@ class InstanceRelatedField(serializers.RelatedField):
         try:
             return Instance.objects.get(pk=data)
         except ValueError:
-            raise Exception("project id should be an integer")
+            raise Exception("instance id should be an integer")
 
-    def to_representation(self, instance):
-        """Serialize project object"""
-        return instance
+    def to_representation(self, value):
+        """Serialize instance object"""
+        return value
