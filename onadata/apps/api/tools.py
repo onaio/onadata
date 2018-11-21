@@ -673,6 +673,21 @@ def get_xform_users(xform):
     return data
 
 
+def get_team(organisation):
+    """Return team if it exists else none.
+
+    :param organisation: organisation name
+    :return: team
+    """
+    team = None
+    try:
+        team = Team.objects.get(organisation=organisation)
+    except Team.DoesNotExist:
+        pass
+
+    return team
+
+
 def update_role_by_meta_xform_perms(xform):
     """
     Updates users role in a xform based on meta permissions set on the form.
@@ -686,6 +701,7 @@ def update_role_by_meta_xform_perms(xform):
         DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole
     ]
     dataentry_role = {role.name: role for role in dataentry_role_list}
+    team = None
 
     if metadata:
         meta_perms = metadata.data_value.split('|')
@@ -694,11 +710,18 @@ def update_role_by_meta_xform_perms(xform):
         users = get_xform_users(xform)
 
         for user in users:
+            if user.get('is_org'):
+                team = get_team(user.get('user'))
+
             role = users.get(user).get('role')
             if role in editor_role:
                 role = ROLES.get(meta_perms[0])
                 role.add(user, xform)
+                if team:
+                    role.add(team, xform)
 
             if role in dataentry_role:
                 role = ROLES.get(meta_perms[1])
                 role.add(user, xform)
+                if team:
+                    role.add(team, xform)
