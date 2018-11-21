@@ -1,6 +1,6 @@
 import os
-from builtins import open
 
+from builtins import open
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -11,12 +11,11 @@ from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.libs.serializers.xform_serializer import XFormSerializer
-from onadata.libs.serializers.metadata_serializer import UNIQUE_TOGETHER_ERROR
-from onadata.libs.utils.common_tags import XFORM_META_PERMS
 from onadata.libs.permissions import (DataEntryRole, DataEntryOnlyRole,
-                                      EditorRole, EditorMinorRole,
-                                      ReadOnlyRole)
+                                      EditorRole, EditorMinorRole)
+from onadata.libs.serializers.metadata_serializer import UNIQUE_TOGETHER_ERROR
+from onadata.libs.serializers.xform_serializer import XFormSerializer
+from onadata.libs.utils.common_tags import XFORM_META_PERMS
 
 
 class TestMetaDataViewSet(TestAbstractViewSet):
@@ -516,21 +515,6 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
         self.assertTrue(
             DataEntryOnlyRole.user_has_role(alice_profile.user, self.xform))
-
-        # additional tests incase user added as readonly
-        ReadOnlyRole.add(alice_profile.user, self.xform)
-        data = {
-            'data_type': XFORM_META_PERMS,
-            'data_value': 'editor-minor|dataentry',
-            'xform': self.xform.pk
-        }
-        request = self.factory.post('/', data, **self.extra)
-        response = view(request)
-
-        self.assertEqual(response.status_code, 201)
-
-        self.assertTrue(
-            DataEntryRole.user_has_role(alice_profile.user, self.xform))
 
     def test_xform_meta_perms_duplicates(self):
         view = MetaDataViewSet.as_view({

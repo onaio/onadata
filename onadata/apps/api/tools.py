@@ -7,8 +7,6 @@ import os
 import tempfile
 from datetime import datetime
 
-from future.utils import listitems
-
 from django import forms
 from django.conf import settings
 from django.contrib.auth.models import Permission, User
@@ -23,7 +21,7 @@ from django.db.utils import IntegrityError
 from django.http import HttpResponseNotFound, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
-
+from future.utils import listitems
 from guardian.shortcuts import assign_perm, get_perms_for_model, remove_perm
 from kombu.exceptions import OperationalError
 from registration.models import RegistrationProfile
@@ -41,8 +39,8 @@ from onadata.libs.baseviewset import DefaultBaseViewset
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.permissions import (
     ROLES, DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole,
-    EditorMinorRole, EditorRole, ManagerRole, OwnerRole, ReadOnlyRole,
-    get_role, get_role_in_org, is_organization)
+    EditorMinorRole, EditorRole, ManagerRole, OwnerRole, get_role,
+    get_role_in_org, is_organization)
 from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.utils.cache_tools import (PROJ_BASE_FORMS_CACHE,
                                             PROJ_FORMS_CACHE, safe_delete)
@@ -688,8 +686,6 @@ def update_role_by_meta_xform_perms(xform):
         DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole
     ]
     dataentry_role = {role.name: role for role in dataentry_role_list}
-    readonly_role_list = [ReadOnlyRole]
-    readonly_role = {role.name: role for role in readonly_role_list}
 
     if metadata:
         meta_perms = metadata.data_value.split('|')
@@ -704,9 +700,5 @@ def update_role_by_meta_xform_perms(xform):
                 role.add(user, xform)
 
             if role in dataentry_role:
-                role = ROLES.get(meta_perms[1])
-                role.add(user, xform)
-
-            if role in readonly_role:
                 role = ROLES.get(meta_perms[1])
                 role.add(user, xform)
