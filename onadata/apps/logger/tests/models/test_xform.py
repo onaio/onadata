@@ -3,8 +3,8 @@
 test_xform module
 """
 import os
-from builtins import str as text
 
+from builtins import str as text
 from past.builtins import basestring  # pylint: disable=redefined-builtin
 
 from onadata.apps.logger.models import Instance, XForm
@@ -165,3 +165,47 @@ class TestXForm(TestBase):
             check_xform_uuid(self.xform.uuid)
         except DuplicateUUIDError as e:
             self.fail("DuplicateUUIDError raised: %s" % e)
+
+    def test_id_string_max_length_on_soft_delete(self):
+        """
+        Test XForm soft delete with long id_string or sms_id_string
+        """
+        self._publish_transportation_form_and_submit_instance()
+        xform = XForm.objects.get(pk=self.xform.id)
+        new_string = "transportation_twenty_fifth_july_two_thousand_and_" \
+                     "eleven_test_for_long_sms_id_string_and_id_string"
+        xform.id_string = new_string
+        xform.sms_id_string = new_string
+
+        # deleted_at is None
+        self.assertIsNone(xform.deleted_at)
+
+        # deleted-at suffix not present
+        self.assertNotIn("-deleted-at-", xform.id_string)
+        self.assertNotIn("-deleted-at-", xform.sms_id_string)
+
+        # '&' should raise an XLSFormError exception when being changed, for
+        # deletions this should not raise any exception however
+        xform.title = 'Trial & Error'
+
+        xform.soft_delete(self.user)
+        xform.refresh_from_db()
+
+        d_id_string = new_string + xform.deleted_at.strftime(
+            '-deleted-at-%s')
+        d_sms_id_string = new_string + xform.deleted_at.strftime(
+            '-deleted-at-%s')
+
+        # deleted_at is not None
+        self.assertIsNotNone(xform.deleted_at)
+
+        # is inactive, no submissions will be allowed
+        self.assertFalse(xform.downloadable)
+
+        self.assertGreater(len(d_sms_id_string), 100)
+        self.assertGreater(len(d_id_string), 100)
+        self.assertIn(xform.sms_id_string, d_id_string)
+        self.assertIn(xform.sms_id_string, d_sms_id_string)
+        self.assertEqual(xform.id_string, d_id_string[:100])
+        self.assertEqual(xform.sms_id_string, d_sms_id_string[:100])
+        self.assertEqual(xform.deleted_by.username, 'bob')

@@ -1,14 +1,12 @@
 import json
 import os
 import re
-from builtins import bytes as b, str as text
 from datetime import datetime
-from future.utils import iteritems
-from future.utils import listvalues
 from hashlib import md5
-from past.builtins import cmp
 from xml.dom import Node
 
+import pytz
+from builtins import bytes as b, str as text
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericRelation
@@ -21,9 +19,10 @@ from django.utils import timezone
 from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy
-
-import pytz
+from future.utils import iteritems
+from future.utils import listvalues
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
+from past.builtins import cmp
 from pyxform import SurveyElementBuilder, constants
 from pyxform.question import Question
 from pyxform.section import RepeatingSection
@@ -890,6 +889,11 @@ class XForm(XFormMixin, BaseModel):
         self.id_string += deletion_suffix
         self.sms_id_string += deletion_suffix
         self.downloadable = False
+
+        # only take the first 100 characters (within the set max_length)
+        self.id_string = self.id_string[:self.MAX_ID_LENGTH]
+        self.sms_id_string = self.sms_id_string[:self.MAX_ID_LENGTH]
+
         update_fields = ['date_modified', 'deleted_at', 'id_string',
                          'sms_id_string', 'downloadable']
         if user is not None:
