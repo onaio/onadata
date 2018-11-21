@@ -158,7 +158,6 @@ def generate_export(export_type, xform, export_id=None, options=None):
         records = records.iterator()
 
     export_builder = ExportBuilder()
-
     export_builder.TRUNCATE_GROUP_TITLE = True \
         if export_type == Export.SAV_ZIP_EXPORT else remove_group_name
     export_builder.GROUP_DELIMITER = options.get(
@@ -171,6 +170,7 @@ def generate_export(export_type, xform, export_id=None, options=None):
         "binary_select_multiples", False
     )
     export_builder.INCLUDE_LABELS = options.get('include_labels', False)
+    include_reviews = options.get('include_reviews', False)
     export_builder.INCLUDE_LABELS_ONLY = options.get(
         'include_labels_only', False
     )
@@ -194,8 +194,9 @@ def generate_export(export_type, xform, export_id=None, options=None):
     # 'win_excel_utf8' is only relevant for CSV exports
     if 'win_excel_utf8' in options and export_type != Export.CSV_EXPORT:
         del options['win_excel_utf8']
-
-    export_builder.set_survey(xform.survey, xform)
+    export_builder.INCLUDE_REVIEWS = include_reviews
+    export_builder.set_survey(xform.survey, xform,
+                              include_reviews=include_reviews)
 
     temp_file = NamedTemporaryFile(suffix=("." + extension))
 
@@ -833,6 +834,7 @@ def parse_request_export_options(params):  # pylint: disable=too-many-branches
     do_not_split_select_multiples = params.get(
         'do_not_split_select_multiples')
     include_labels = params.get('include_labels', False)
+    include_reviews = params.get('include_reviews', False)
     include_labels_only = params.get('include_labels_only', False)
     include_hxl = params.get('include_hxl', True)
     value_select_multiples = params.get('value_select_multiples') and \
@@ -842,6 +844,9 @@ def parse_request_export_options(params):  # pylint: disable=too-many-branches
 
     if include_labels is not None:
         options['include_labels'] = str_to_bool(include_labels)
+
+    if include_reviews is not None:
+        options['include_reviews'] = str_to_bool(include_reviews)
 
     if include_labels_only is not None:
         options['include_labels_only'] = str_to_bool(include_labels_only)

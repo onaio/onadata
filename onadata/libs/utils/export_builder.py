@@ -33,7 +33,7 @@ from onadata.libs.utils.common_tags import (
     ID, INDEX, MULTIPLE_SELECT_TYPE, NOTES, PARENT_INDEX,
     PARENT_TABLE_NAME, REPEAT_INDEX_TAGS, SAV_255_BYTES_TYPE,
     SAV_NUMERIC_TYPE, STATUS, SUBMISSION_TIME, SUBMITTED_BY, TAGS, UUID,
-    VERSION, XFORM_ID_STRING)
+    VERSION, XFORM_ID_STRING, REVIEW_STATUS, REVIEW_COMMENT)
 from onadata.libs.utils.mongo import _decode_from_mongo, _is_invalid_for_mongo
 
 # the bind type of select multiples that we use to compare
@@ -333,6 +333,7 @@ class ExportBuilder(object):
     INCLUDE_IMAGES = settings.EXPORT_WITH_IMAGE_DEFAULT
 
     SHOW_CHOICE_LABELS = False
+    INCLUDE_REVIEWS = False
 
     TYPES_TO_CONVERT = ['int', 'decimal', 'date']  # , 'dateTime']
     CONVERT_FUNCS = {
@@ -413,7 +414,11 @@ class ExportBuilder(object):
 
         return choices
 
-    def set_survey(self, survey, xform=None):
+    def set_survey(self, survey, xform=None, include_reviews=False):
+        if self.INCLUDE_REVIEWS or include_reviews:
+            self.EXTRA_FIELDS = self.EXTRA_FIELDS + [
+                REVIEW_STATUS, REVIEW_COMMENT]
+            self.__init__()
         dd = get_data_dictionary_from_survey(survey)
 
         def build_sections(
@@ -952,11 +957,13 @@ class ExportBuilder(object):
             username, id_string, filter_query, self.GROUP_DELIMITER,
             self.SPLIT_SELECT_MULTIPLES, self.BINARY_SELECT_MULTIPLES,
             start, end, self.TRUNCATE_GROUP_TITLE, xform,
-            self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY, self.INCLUDE_IMAGES,
-            self.INCLUDE_HXL, win_excel_utf8=win_excel_utf8,
-            total_records=total_records, index_tags=index_tags,
+            self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY,
+            self.INCLUDE_IMAGES, self.INCLUDE_HXL,
+            win_excel_utf8=win_excel_utf8, total_records=total_records,
+            index_tags=index_tags,
             value_select_multiples=self.VALUE_SELECT_MULTIPLES,
-            show_choice_labels=show_choice_labels, language=language)
+            show_choice_labels=show_choice_labels,
+            include_reviews=self.INCLUDE_REVIEWS, language=language)
 
         csv_builder.export_to(path, dataview=dataview)
 

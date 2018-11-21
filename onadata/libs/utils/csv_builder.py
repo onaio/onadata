@@ -150,7 +150,7 @@ class AbstractDataFrameBuilder(object):
     # fields NOT within the form def that we want to include
     ADDITIONAL_COLUMNS = [
         ID, UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION, DURATION,
-        SUBMITTED_BY, TOTAL_MEDIA, MEDIA_COUNT, REVIEW_STATUS, REVIEW_COMMENT,
+        SUBMITTED_BY, TOTAL_MEDIA, MEDIA_COUNT,
         MEDIA_ALL_RECEIVED]
     BINARY_SELECT_MULTIPLES = False
     VALUE_SELECT_MULTIPLES = False
@@ -166,7 +166,8 @@ class AbstractDataFrameBuilder(object):
                  include_images=True, include_hxl=False,
                  win_excel_utf8=False, total_records=None,
                  index_tags=DEFAULT_INDEX_TAGS, value_select_multiples=False,
-                 show_choice_labels=True, language=None):
+                 show_choice_labels=True, include_reviews=False,
+                 language=None):
 
         self.username = username
         self.id_string = id_string
@@ -180,6 +181,10 @@ class AbstractDataFrameBuilder(object):
         self.remove_group_name = remove_group_name
         self.extra_columns = (
             self.ADDITIONAL_COLUMNS + getattr(settings, 'EXTRA_COLUMNS', []))
+
+        if include_reviews:
+            self.extra_columns = self.extra_columns + [
+                REVIEW_STATUS, REVIEW_COMMENT]
 
         if xform:
             self.xform = xform
@@ -383,13 +388,16 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                  include_images=False, include_hxl=False,
                  win_excel_utf8=False, total_records=None,
                  index_tags=DEFAULT_INDEX_TAGS, value_select_multiples=False,
-                 show_choice_labels=False, language=None):
+                 show_choice_labels=False, include_reviews=False,
+                 language=None):
+
         super(CSVDataFrameBuilder, self).__init__(
             username, id_string, filter_query, group_delimiter,
             split_select_multiples, binary_select_multiples, start, end,
             remove_group_name, xform, include_labels, include_labels_only,
             include_images, include_hxl, win_excel_utf8, total_records,
-            index_tags, value_select_multiples, show_choice_labels, language)
+            index_tags, value_select_multiples,
+            show_choice_labels, include_reviews, language)
 
         self.ordered_columns = OrderedDict()
 

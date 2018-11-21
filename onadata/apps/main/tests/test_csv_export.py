@@ -166,7 +166,6 @@ class TestCsvExport(TestBase):
             expected_headers = [
                 'chnum', 'chrepeat[1]/chname', 'chrepeat[2]/chname',
                 'meta/instanceID', '_id', '_uuid', '_submission_time',
-                '_tags', '_notes', '_review_status', '_review_comment',
-                '_version', '_duration', '_submitted_by', '_total_media',
-                '_media_count', '_media_all_received']
+                '_tags', '_notes', '_version', '_duration', '_submitted_by',
+                '_total_media', '_media_count', '_media_all_received']
             self.assertEqual(sorted(expected_headers), sorted(actual_headers))

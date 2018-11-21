@@ -23,7 +23,6 @@ import xlrd
 from openpyxl import load_workbook
 from pyxform.builder import create_survey_from_xls
 from savReaderWriter import SavHeaderReader, SavReader
-
 from onadata.apps.logger.import_tools import django_file
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
@@ -52,6 +51,8 @@ class TestExportBuilder(TestBase):
             'name': 'Abe',
             'age': 35,
             'tel/telLg==office': '020123456',
+            '_review_status': 'Rejected',
+            '_review_comment': 'Wrong Location',
             'children':
             [
                 {
@@ -228,7 +229,9 @@ class TestExportBuilder(TestBase):
             'osm_building:building:levels': 4,
             'osm_building:ctr:lat': '23.707316084046038',
             'osm_building:ctr:lon': '90.40849938337506',
-            'osm_building:name': 'kol'
+            'osm_building:name': 'kol',
+            '_review_status': 'Rejected',
+            '_review_comment': 'Wrong Location'
         }
     ]
 
@@ -238,7 +241,6 @@ class TestExportBuilder(TestBase):
         ))
         self.dd = DataDictionary()
         self.dd._survey = survey
-
         return survey
 
     def test_build_sections_from_survey(self):
@@ -378,6 +380,44 @@ class TestExportBuilder(TestBase):
                 self.assertEqual(rows, expected_rows)
 
         shutil.rmtree(temp_dir)
+
+    def test_xls_export_with_osm_data(self):
+        """
+        Tests that osm data is included in xls export
+        """
+        survey = self._create_osm_survey()
+        xform = self.xform
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey, xform)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+        export_builder.to_xls_export(temp_xls_file.name, self.osm_data)
+        temp_xls_file.seek(0)
+        wb = load_workbook(temp_xls_file.name)
+        osm_data_sheet = wb["osm"]
+        rows = [row for row in osm_data_sheet.rows]
+        xls_headers = [a.value for a in rows[0]]
+        temp_xls_file.close()
+
+        expected_column_headers = [
+            'photo', 'osm_road', 'osm_building', 'fav_color',
+            'form_completed', 'meta/instanceID', '_id', '_uuid',
+            '_submission_time', '_index', '_parent_table_name',
+            '_parent_index', '_tags', '_notes', '_version', '_duration',
+            '_submitted_by', 'osm_road:ctr:lat', 'osm_road:ctr:lon',
+            'osm_road:highway', 'osm_road:lanes', 'osm_road:name',
+            'osm_road:way:id', 'osm_building:building',
+            'osm_building:building:levels', 'osm_building:ctr:lat',
+            'osm_building:ctr:lon', 'osm_building:name',
+            'osm_building:way:id']
+        self.assertEqual(sorted(expected_column_headers), sorted(xls_headers))
+
+        submission = [a.value for a in rows[1]]
+        self.assertEqual(submission[0], '1424308569120.jpg')
+        self.assertEqual(submission[2], '23.708174238006087')
+        self.assertEqual(submission[4], 'tertiary')
+        self.assertEqual(submission[6], 'Patuatuli Road')
+        self.assertEqual(submission[11], '23.707316084046038')
+        self.assertEqual(submission[13], 'kol')
 
     def test_decode_mongo_encoded_section_names(self):
         data = {
@@ -2223,6 +2263,7 @@ class TestExportBuilder(TestBase):
         Creates survey for osm tests
         """
         # publish form
+
         osm_fixtures_dir = os.path.join(settings.PROJECT_ROOT, 'apps', 'api',
                                         'tests', 'fixtures', 'osm')
         xlsform_path = os.path.join(osm_fixtures_dir, 'osm.xlsx')
@@ -2240,14 +2281,47 @@ class TestExportBuilder(TestBase):
         survey = create_survey_from_xls(xlsform_path)
         return survey
 
-    def test_xls_export_with_osm_data(self):
+    def test_zip_csv_export_has_comment_and_status_field(self):
         """
-        Tests that osm data is included in xls export
+        Test comment and status fields in csv exports
         """
+        self._create_user_and_login('dave', '1234')
         survey = self._create_osm_survey()
         xform = self.xform
         export_builder = ExportBuilder()
-        export_builder.set_survey(survey, xform)
+        export_builder.INCLUDE_REVIEW = True
+        export_builder.set_survey(survey, xform, include_reviews=True)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        export_builder.to_zipped_csv(temp_zip_file.name, self.data)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+        # check file's contents
+        with open(os.path.join(temp_dir, "osm.csv")) as csv_file:
+            reader = csv.reader(csv_file)
+            rows = [row for row in reader]
+            actual_headers = rows[0]
+            expected_headers = '_review_comment'
+            self.assertIn(expected_headers, sorted(actual_headers))
+            submission = rows[1]
+            self.assertEqual(submission[29], 'Rejected')
+            self.assertEqual(submission[30], 'Wrong Location')
+            # check that red and blue are set to true
+        shutil.rmtree(temp_dir)
+
+    def test_xls_export_has_comment_and_status_field(self):
+        """
+        Test that comment and status field are in xls exports
+        """
+        self._create_user_and_login('dave', '1234')
+        survey = self._create_osm_survey()
+        xform = self.xform
+        export_builder = ExportBuilder()
+        export_builder.INCLUDE_REVIEW = True
+        export_builder.set_survey(survey, xform, include_reviews=True)
         temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
         export_builder.to_xls_export(temp_xls_file.name, self.osm_data)
         temp_xls_file.seek(0)
@@ -2255,28 +2329,50 @@ class TestExportBuilder(TestBase):
         osm_data_sheet = wb["osm"]
         rows = [row for row in osm_data_sheet.rows]
         xls_headers = [a.value for a in rows[0]]
+        xls_data = [a.value for a in rows[1]]
         temp_xls_file.close()
+        expected_column_headers = '_review_comment'
+        self.assertIn(expected_column_headers, sorted(xls_headers))
+        self.assertEqual(xls_data[29], 'Rejected')
+        self.assertEqual(xls_data[30], 'Wrong Location')
 
-        expected_column_headers = [
-            'photo', 'osm_road', 'osm_building', 'fav_color',
-            'form_completed', 'meta/instanceID', '_id', '_uuid',
-            '_submission_time', '_index', '_parent_table_name',
-            '_parent_index', '_tags', '_notes', '_version', '_duration',
-            '_submitted_by', 'osm_road:ctr:lat', 'osm_road:ctr:lon',
-            'osm_road:highway', 'osm_road:lanes', 'osm_road:name',
-            'osm_road:way:id', 'osm_building:building',
-            'osm_building:building:levels', 'osm_building:ctr:lat',
-            'osm_building:ctr:lon', 'osm_building:name',
-            'osm_building:way:id']
-        self.assertEqual(sorted(expected_column_headers), sorted(xls_headers))
+    def test_zipped_sav_has_comment_and_status_fields(self):
+        """
+        Test that comment and status field are in csv exports
+        """
+        self._create_user_and_login('dave', '1234')
+        survey = self._create_osm_survey()
+        xform = self.xform
+        export_builder = ExportBuilder()
+        export_builder.INCLUDE_REVIEW = True
+        export_builder.set_survey(survey, xform, include_reviews=True)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        export_builder.to_zipped_sav(temp_zip_file.name, self.osm_data)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
 
-        submission = [a.value for a in rows[1]]
-        self.assertEqual(submission[0], '1424308569120.jpg')
-        self.assertEqual(submission[2], '23.708174238006087')
-        self.assertEqual(submission[4], 'tertiary')
-        self.assertEqual(submission[6], 'Patuatuli Road')
-        self.assertEqual(submission[11], '23.707316084046038')
-        self.assertEqual(submission[13], 'kol')
+        with SavReader(os.path.join(temp_dir, "osm.sav"),
+                       returnHeader=True) as reader:
+            rows = [r for r in reader]
+            expected_column_headers = [x.encode('utf-8') for x in [
+                'photo', 'osm_road', 'osm_building', 'fav_color',
+                'form_completed', 'meta.instanceID', '@_id', '@_uuid',
+                '@_submission_time', '@_index', '@_parent_table_name',
+                '@_review_comment', '@_review_status', '@_parent_index',
+                '@_tags', '@_notes', '@_version', '@_duration',
+                '@_submitted_by', 'osm_road_ctr_lat',
+                'osm_road_ctr_lon', 'osm_road_highway', 'osm_road_lanes',
+                'osm_road_name', 'osm_road_way_id', 'osm_building_building',
+                'osm_building_building_levels', 'osm_building_ctr_lat',
+                'osm_building_ctr_lon', 'osm_building_name',
+                'osm_building_way_id']]
+            self.assertEqual(sorted(rows[0]), sorted(expected_column_headers))
+            self.assertEqual(rows[1][29], b'Rejected')
+            self.assertEqual(rows[1][30], b'Wrong Location')
 
     def test_zipped_csv_export_with_osm_data(self):
         """

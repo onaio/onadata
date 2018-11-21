@@ -115,6 +115,7 @@ class Export(models.Model):
         "query",
         "remove_group_name",
         "show_choice_labels",
+        "include_reviews",
         "split_select_multiples",
         "value_select_multiples",
         "win_excel_utf8",

@@ -276,6 +276,9 @@ class TestProcess(TestBase):
 
         # test to make sure the headers in the actual csv are as expected
         actual_csv = self._get_csv_()
+        with open(os.path.join(self.this_directory, "fixtures",
+                               "transportation", "headers_csv.json")) as f:
+            expected_list = json.load(f)
         self.assertEqual(sorted(next(actual_csv)), sorted(expected_list))
 
     def _check_data_for_csv_export(self):
