@@ -51,8 +51,8 @@ class TestExportBuilder(TestBase):
             'name': 'Abe',
             'age': 35,
             'tel/telLg==office': '020123456',
-            '_review_status': 'Active',
-            '_review_comment': 'Hey there',
+            '_review_status': 'Rejected',
+            '_review_comment': 'Wrong Location',
             'children':
             [
                 {
@@ -230,8 +230,8 @@ class TestExportBuilder(TestBase):
             'osm_building:ctr:lat': '23.707316084046038',
             'osm_building:ctr:lon': '90.40849938337506',
             'osm_building:name': 'kol',
-            '_review_status': 'Active',
-            '_review_comment': 'Hey there'
+            '_review_status': 'Rejected',
+            '_review_comment': 'Wrong Location'
         }
     ]
 
@@ -2307,8 +2307,8 @@ class TestExportBuilder(TestBase):
             expected_headers = '_review_comment'
             self.assertIn(expected_headers, sorted(actual_headers))
             submission = rows[1]
-            self.assertEqual(submission[29], 'Active')
-            self.assertEqual(submission[30], 'Hey there')
+            self.assertEqual(submission[29], 'Rejected')
+            self.assertEqual(submission[30], 'Wrong Location')
             # check that red and blue are set to true
         shutil.rmtree(temp_dir)
 
@@ -2333,8 +2333,8 @@ class TestExportBuilder(TestBase):
         temp_xls_file.close()
         expected_column_headers = '_review_comment'
         self.assertIn(expected_column_headers, sorted(xls_headers))
-        self.assertEqual(xls_data[29], 'Active')
-        self.assertEqual(xls_data[30], 'Hey there')
+        self.assertEqual(xls_data[29], 'Rejected')
+        self.assertEqual(xls_data[30], 'Wrong Location')
 
     def test_zipped_sav_has_comment_and_status_fields(self):
         """
@@ -2371,8 +2371,8 @@ class TestExportBuilder(TestBase):
                 'osm_building_ctr_lon', 'osm_building_name',
                 'osm_building_way_id']]
             self.assertEqual(sorted(rows[0]), sorted(expected_column_headers))
-            self.assertEqual(rows[1][29], b'Active')
-            self.assertEqual(rows[1][30], b'Hey there')
+            self.assertEqual(rows[1][29], b'Rejected')
+            self.assertEqual(rows[1][30], b'Wrong Location')
 
     def test_zipped_csv_export_with_osm_data(self):
         """
