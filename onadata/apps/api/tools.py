@@ -673,15 +673,16 @@ def get_xform_users(xform):
     return data
 
 
-def get_team(organisation):
-    """Return team if it exists else none.
+def get_team_members(org_username):
+    """Return members team if it exists else none.
 
-    :param organisation: organisation name
+    :param org_username: organization name
     :return: team
     """
     team = None
     try:
-        team = Team.objects.get(organisation=organisation)
+        team = Team.objects.get(
+            name="{}#{}".format(org_username, 'members'))
     except Team.DoesNotExist:
         pass
 
@@ -701,7 +702,7 @@ def update_role_by_meta_xform_perms(xform):
         DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole
     ]
     dataentry_role = {role.name: role for role in dataentry_role_list}
-    team = None
+    members_team = None
 
     if metadata:
         meta_perms = metadata.data_value.split('|')
@@ -710,18 +711,19 @@ def update_role_by_meta_xform_perms(xform):
         users = get_xform_users(xform)
 
         for user in users:
-            if user.get('is_org'):
-                team = get_team(user.get('user'))
+            if users.get(user).get('is_org'):
+                members_team = get_team_members(
+                    users.get(user).get('user'))
 
             role = users.get(user).get('role')
             if role in editor_role:
                 role = ROLES.get(meta_perms[0])
                 role.add(user, xform)
-                if team:
-                    role.add(team, xform)
+                if members_team:
+                    role.add(members_team, xform)
 
             if role in dataentry_role:
                 role = ROLES.get(meta_perms[1])
                 role.add(user, xform)
-                if team:
-                    role.add(team, xform)
+                if members_team:
+                    role.add(members_team, xform)
