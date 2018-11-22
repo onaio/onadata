@@ -23,6 +23,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
 from future.utils import listitems
 from guardian.shortcuts import assign_perm, get_perms_for_model, remove_perm
+from guardian.shortcuts import get_perms
 from kombu.exceptions import OperationalError
 from registration.models import RegistrationProfile
 from rest_framework import exceptions
@@ -650,9 +651,13 @@ def get_xform_users(xform):
     :return:
     """
     data = {}
+    org_members = None
     for perm in xform.xformuserobjectpermission_set.all():
         if perm.user not in data:
             user = perm.user
+
+            if is_organization(user.profile):
+                org_members = get_team_members(user.username)
 
             data[user] = {
                 'permissions': [],
@@ -664,6 +669,18 @@ def get_xform_users(xform):
             }
         if perm.user in data:
             data[perm.user]['permissions'].append(perm.permission.codename)
+
+    if org_members:
+        for user in org_members:
+            if user not in data:
+                data[user] = {
+                    'permissions': get_perms(user, xform),
+                    'is_org': is_organization(user.profile),
+                    'metadata': user.profile.metadata,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'user': user.username
+                }
 
     for k in data:
         data[k]['permissions'].sort()
@@ -679,14 +696,16 @@ def get_team_members(org_username):
     :param org_username: organization name
     :return: team
     """
-    team = None
+    members = None
     try:
         team = Team.objects.get(
             name="{}#{}".format(org_username, 'members'))
     except Team.DoesNotExist:
         pass
+    else:
+        members = team.user_set.all()
 
-    return team
+    return members
 
 
 def update_role_by_meta_xform_perms(xform):
@@ -702,7 +721,6 @@ def update_role_by_meta_xform_perms(xform):
         DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole
     ]
     dataentry_role = {role.name: role for role in dataentry_role_list}
-    members_team = None
 
     if metadata:
         meta_perms = metadata.data_value.split('|')
@@ -711,19 +729,12 @@ def update_role_by_meta_xform_perms(xform):
         users = get_xform_users(xform)
 
         for user in users:
-            if users.get(user).get('is_org'):
-                members_team = get_team_members(
-                    users.get(user).get('user'))
 
             role = users.get(user).get('role')
             if role in editor_role:
                 role = ROLES.get(meta_perms[0])
                 role.add(user, xform)
-                if members_team:
-                    role.add(members_team, xform)
 
             if role in dataentry_role:
                 role = ROLES.get(meta_perms[1])
                 role.add(user, xform)
-                if members_team:
-                    role.add(members_team, xform)
