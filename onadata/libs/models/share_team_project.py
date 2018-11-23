@@ -1,6 +1,7 @@
 from onadata.libs.permissions import DataEntryRole, DataEntryMinorRole, \
     DataEntryOnlyRole, EditorMinorRole, EditorRole, ROLES
 from onadata.libs.utils.cache_tools import PROJ_PERM_CACHE, safe_delete
+from onadata.libs.utils.common_tags import XFORM_META_PERMS
 
 
 class ShareTeamProject(object):
@@ -22,7 +23,7 @@ class ShareTeamProject(object):
             for xform in self.project.xform_set.all():
                 # check if there is xform meta perms set
                 meta_perms = xform.metadata_set \
-                    .filter(data_type='xform_meta_perms')
+                    .filter(data_type=XFORM_META_PERMS)
                 if meta_perms:
                     meta_perm = meta_perms[0].data_value.split("|")
 

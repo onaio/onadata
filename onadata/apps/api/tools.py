@@ -45,6 +45,7 @@ from onadata.libs.permissions import (
 from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.utils.cache_tools import (PROJ_BASE_FORMS_CACHE,
                                             PROJ_FORMS_CACHE, safe_delete)
+from onadata.libs.utils.common_tags import MEMBERS, XFORM_META_PERMS
 from onadata.libs.utils.logger_tools import (publish_form,
                                              response_with_mimetype_and_name)
 from onadata.libs.utils.project_utils import (set_project_perms_to_xform,
@@ -164,9 +165,9 @@ def get_organization_members_team(organization):
     to the members team"""
     try:
         team = Team.objects.get(name=u'%s#%s' % (organization.user.username,
-                                                 'members'))
+                                                 MEMBERS))
     except Team.DoesNotExist:
-        team = create_organization_team(organization, 'members')
+        team = create_organization_team(organization, MEMBERS)
         add_user_to_team(team, organization.user)
 
     return team
@@ -583,7 +584,7 @@ def check_inherit_permission_from_project(xform_id, user):
         return
 
     # ignore if forms has meta perms set
-    if xform.metadata_set.filter(data_type='xform_meta_perms'):
+    if xform.metadata_set.filter(data_type=XFORM_META_PERMS):
         return
 
     # get and compare the project role to the xform role
@@ -651,7 +652,7 @@ def get_xform_users(xform):
     :return:
     """
     data = {}
-    org_members = None
+    org_members = []
     for perm in xform.xformuserobjectpermission_set.all():
         if perm.user not in data:
             user = perm.user
@@ -670,17 +671,16 @@ def get_xform_users(xform):
         if perm.user in data:
             data[perm.user]['permissions'].append(perm.permission.codename)
 
-    if org_members:
-        for user in org_members:
-            if user not in data:
-                data[user] = {
-                    'permissions': get_perms(user, xform),
-                    'is_org': is_organization(user.profile),
-                    'metadata': user.profile.metadata,
-                    'first_name': user.first_name,
-                    'last_name': user.last_name,
-                    'user': user.username
-                }
+    for user in org_members:
+        if user not in data:
+            data[user] = {
+                'permissions': get_perms(user, xform),
+                'is_org': is_organization(user.profile),
+                'metadata': user.profile.metadata,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'user': user.username
+            }
 
     for k in data:
         data[k]['permissions'].sort()
@@ -696,10 +696,10 @@ def get_team_members(org_username):
     :param org_username: organization name
     :return: team
     """
-    members = None
+    members = []
     try:
         team = Team.objects.get(
-            name="{}#{}".format(org_username, 'members'))
+            name="{}#{}".format(org_username, MEMBERS))
     except Team.DoesNotExist:
         pass
     else:
