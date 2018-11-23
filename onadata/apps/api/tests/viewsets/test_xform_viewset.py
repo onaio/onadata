@@ -4249,7 +4249,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             request = self.factory.get('/', **alices_extra)
             response = view(request, pk=self.xform.pk, format='csv')
-            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.status_code, 404)
 
     def test_csv_export_cache(self):
         with HTTMock(enketo_mock):
