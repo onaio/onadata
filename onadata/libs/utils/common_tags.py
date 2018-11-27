@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 from django.utils.translation import ugettext_lazy as _
+
 # WE SHOULD PUT MORE STRUCTURE ON THESE TAGS SO WE CAN ACCESS DOCUMENT
 # FIELDS ELEGANTLY
 
@@ -129,3 +130,5 @@ EXPORT_MIMES = {
 # Submission Review Tags
 COMMENT_REQUIRED = _('Cannot reject a submission without a comment.')
 SUBMISSION_REVIEW_INSTANCE_FIELD = '_review_status'
+EXCEL_TRUE = 1
+EXCEL_FALSE = 0

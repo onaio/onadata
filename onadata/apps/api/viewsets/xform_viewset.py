@@ -640,7 +640,6 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                                   'be incorrect'))
         else:
             csv_file = request.FILES.get('csv_file', None)
-
             if csv_file is None:
                 resp.update({u'error': u'csv_file field empty'})
             else:

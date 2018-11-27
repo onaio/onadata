@@ -29,7 +29,7 @@ from multidb.pinning import use_master
 from onadata.apps.logger.models import Instance, XForm
 from onadata.libs.utils.async_status import (FAILED, async_status,
                                              celery_state_to_status)
-from onadata.libs.utils.common_tags import (MULTIPLE_SELECT_TYPE)
+from onadata.libs.utils.common_tags import (MULTIPLE_SELECT_TYPE, EXCEL_TRUE)
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
 from onadata.libs.utils.logger_tools import (OpenRosaResponse, dict2xml,
@@ -386,8 +386,8 @@ def get_async_csv_submission_status(job_uuid):
 
 
 def submission_xls_to_csv(xls_file):
-    """
-    Convert a submission xls file to submissions
+    """Convert a submission xls file to submissions
+
     :param xls_file: submissions xls file
     :return: csv_file
     """
@@ -400,28 +400,37 @@ def submission_xls_to_csv(xls_file):
     csv_writer = ucsv.writer(csv_file)
 
     date_columns = []
+    boolean_columns = []
 
     # write the header
     csv_writer.writerow(first_sheet.row_values(0))
 
-    # check for any dates in the first row of data
+    # check for any dates or boolean in the first row of data
     for index in range(first_sheet.ncols):
         if first_sheet.cell_type(1, index) == xlrd.XL_CELL_DATE:
             date_columns.append(index)
+        elif first_sheet.cell_type(1, index) == xlrd.XL_CELL_BOOLEAN:
+            boolean_columns.append(index)
 
     for row in range(1, first_sheet.nrows):
         row_values = first_sheet.row_values(row)
 
         # convert excel dates(floats) to datetime
-        if date_columns:
-            for date_column in date_columns:
-                try:
-                    row_values[date_column] = xlrd.xldate_as_datetime(
-                        row_values[date_column],
-                        xl_workbook.datemode).isoformat()
-                except (ValueError, TypeError):
-                    row_values[date_column] = first_sheet.cell_value(
-                        row, date_column)
+        for date_column in date_columns:
+            try:
+                row_values[date_column] = xlrd.xldate_as_datetime(
+                    row_values[date_column],
+                    xl_workbook.datemode).isoformat()
+            except (ValueError, TypeError):
+                row_values[date_column] = first_sheet.cell_value(
+                    row, date_column)
+
+        # convert excel boolean to true/false
+        for boolean_column in boolean_columns:
+            if row_values[boolean_column] == EXCEL_TRUE:
+                row_values[boolean_column] = True
+            else:
+                row_values[boolean_column] = False
 
         csv_writer.writerow(row_values)
 
