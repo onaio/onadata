@@ -286,9 +286,9 @@ class CSVImportTestCase(TestBase):
                          {'error': 'File not found!',
                           'job_status': 'FAILURE'})
 
-    def test_convert_submission_xls_file_to_csv(self):
-        """Test that convert_submission_xls_file_to_csv converts to csv"""
-        c_csv_file = csv_import.convert_submission_xls_file_to_csv(
+    def test_submission_xls_to_csv(self):
+        """Test that submission_xls_to_csv converts to csv"""
+        c_csv_file = csv_import.submission_xls_to_csv(
             self.good_xls)
 
         c_csv_file.seek(0)

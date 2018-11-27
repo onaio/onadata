@@ -385,7 +385,7 @@ def get_async_csv_submission_status(job_uuid):
     return job.get()
 
 
-def convert_submission_xls_file_to_csv(xls_file):
+def submission_xls_to_csv(xls_file):
     """
     Convert a submission xls file to submissions
     :param xls_file: submissions xls file
