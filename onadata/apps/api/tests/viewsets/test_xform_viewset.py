@@ -4411,7 +4411,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
                                     "tests", "fixtures", "tutorial.xls")
             self._publish_xls_form_to_project(xlsform_path=xls_path)
-            view = XFormViewSet.as_view({'post': 'import'})
+            view = XFormViewSet.as_view({'post': 'data_import'})
             xls_import = fixtures_path('good.xls')
 
             post_data = {'xls_file': xls_import}
