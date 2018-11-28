@@ -427,10 +427,8 @@ def submission_xls_to_csv(xls_file):
 
         # convert excel boolean to true/false
         for boolean_column in boolean_columns:
-            if row_values[boolean_column] == EXCEL_TRUE:
-                row_values[boolean_column] = True
-            else:
-                row_values[boolean_column] = False
+            row_values[boolean_column] = bool(
+                row_values[boolean_column] == EXCEL_TRUE)
 
         csv_writer.writerow(row_values)
 
