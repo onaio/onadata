@@ -1,15 +1,19 @@
-from onadata.apps.logger.models import Instance
+# -*- coding: utf-8 -*-
+"""InstanceRelatedField"""
 from rest_framework import serializers
 from rest_framework.fields import SkipField
+
+from onadata.apps.logger.models import Instance
+from onadata.libs.serializers.fields.utils import get_object_id_by_content_type
 
 
 class InstanceRelatedField(serializers.RelatedField):
     """A custom field to represent the content_object generic relationship"""
 
     def get_attribute(self, instance):
-        # xform is not an attribute of the MetaData object
-        if instance and isinstance(instance.content_object, Instance):
-            return instance.content_object
+        val = get_object_id_by_content_type(instance, Instance)
+        if val:
+            return val
 
         raise SkipField()
 
@@ -17,8 +21,8 @@ class InstanceRelatedField(serializers.RelatedField):
         try:
             return Instance.objects.get(pk=data)
         except ValueError:
-            raise Exception("project id should be an integer")
+            raise Exception("instance id should be an integer")
 
-    def to_representation(self, instance):
-        """Serialize project object"""
-        return instance.pk
+    def to_representation(self, value):
+        """Serialize instance object"""
+        return value
