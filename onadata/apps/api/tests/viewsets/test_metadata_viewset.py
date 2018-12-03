@@ -1,6 +1,6 @@
 import os
-from builtins import open
 
+from builtins import open
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -11,11 +11,11 @@ from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.libs.serializers.xform_serializer import XFormSerializer
+from onadata.libs.permissions import (DataEntryRole, DataEntryOnlyRole,
+                                      EditorRole, EditorMinorRole)
 from onadata.libs.serializers.metadata_serializer import UNIQUE_TOGETHER_ERROR
+from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.utils.common_tags import XFORM_META_PERMS
-from onadata.libs.permissions import (EditorRole, EditorMinorRole,
-                                      DataEntryRole, DataEntryOnlyRole)
 
 
 class TestMetaDataViewSet(TestAbstractViewSet):

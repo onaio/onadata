@@ -7,8 +7,6 @@ import os
 import tempfile
 from datetime import datetime
 
-from future.utils import listitems
-
 from django import forms
 from django.conf import settings
 from django.contrib.auth.models import Permission, User
@@ -23,8 +21,9 @@ from django.db.utils import IntegrityError
 from django.http import HttpResponseNotFound, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
-
+from future.utils import listitems
 from guardian.shortcuts import assign_perm, get_perms_for_model, remove_perm
+from guardian.shortcuts import get_perms
 from kombu.exceptions import OperationalError
 from registration.models import RegistrationProfile
 from rest_framework import exceptions
@@ -46,6 +45,7 @@ from onadata.libs.permissions import (
 from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.utils.cache_tools import (PROJ_BASE_FORMS_CACHE,
                                             PROJ_FORMS_CACHE, safe_delete)
+from onadata.libs.utils.common_tags import MEMBERS, XFORM_META_PERMS
 from onadata.libs.utils.logger_tools import (publish_form,
                                              response_with_mimetype_and_name)
 from onadata.libs.utils.project_utils import (set_project_perms_to_xform,
@@ -165,9 +165,9 @@ def get_organization_members_team(organization):
     to the members team"""
     try:
         team = Team.objects.get(name=u'%s#%s' % (organization.user.username,
-                                                 'members'))
+                                                 MEMBERS))
     except Team.DoesNotExist:
-        team = create_organization_team(organization, 'members')
+        team = create_organization_team(organization, MEMBERS)
         add_user_to_team(team, organization.user)
 
     return team
@@ -584,7 +584,7 @@ def check_inherit_permission_from_project(xform_id, user):
         return
 
     # ignore if forms has meta perms set
-    if xform.metadata_set.filter(data_type='xform_meta_perms'):
+    if xform.metadata_set.filter(data_type=XFORM_META_PERMS):
         return
 
     # get and compare the project role to the xform role
@@ -652,9 +652,13 @@ def get_xform_users(xform):
     :return:
     """
     data = {}
+    org_members = []
     for perm in xform.xformuserobjectpermission_set.all():
         if perm.user not in data:
             user = perm.user
+
+            if is_organization(user.profile):
+                org_members = get_team_members(user.username)
 
             data[user] = {
                 'permissions': [],
@@ -667,12 +671,41 @@ def get_xform_users(xform):
         if perm.user in data:
             data[perm.user]['permissions'].append(perm.permission.codename)
 
+    for user in org_members:
+        if user not in data:
+            data[user] = {
+                'permissions': get_perms(user, xform),
+                'is_org': is_organization(user.profile),
+                'metadata': user.profile.metadata,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'user': user.username
+            }
+
     for k in data:
         data[k]['permissions'].sort()
         data[k]['role'] = get_role(data[k]['permissions'], xform)
         del data[k]['permissions']
 
     return data
+
+
+def get_team_members(org_username):
+    """Return members team if it exists else none.
+
+    :param org_username: organization name
+    :return: team
+    """
+    members = []
+    try:
+        team = Team.objects.get(
+            name="{}#{}".format(org_username, MEMBERS))
+    except Team.DoesNotExist:
+        pass
+    else:
+        members = team.user_set.all()
+
+    return members
 
 
 def update_role_by_meta_xform_perms(xform):
@@ -696,6 +729,7 @@ def update_role_by_meta_xform_perms(xform):
         users = get_xform_users(xform)
 
         for user in users:
+
             role = users.get(user).get('role')
             if role in editor_role:
                 role = ROLES.get(meta_perms[0])

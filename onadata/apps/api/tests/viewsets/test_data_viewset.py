@@ -1,42 +1,43 @@
 from __future__ import unicode_literals
 
-import geojson
+import datetime
 import json
 import os
-import requests
-import datetime
-from builtins import open
-from mock import patch
 from datetime import timedelta
-from django.utils import timezone
-from django.test import RequestFactory
-from django.test.utils import override_settings
-from django_digest.test import DigestAuth
-from django_digest.test import Client as DigestClient
-from httmock import urlmatch, HTTMock
 from tempfile import NamedTemporaryFile
 
-from onadata.apps.api.viewsets.data_viewset import DataViewSet
-from onadata.apps.main import tests as main_tests
-from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
-from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
+import geojson
+import requests
+from builtins import open
+from django.test import RequestFactory
+from django.test.utils import override_settings
+from django.utils import timezone
+from django_digest.test import Client as DigestClient
+from django_digest.test import DigestAuth
+from httmock import urlmatch, HTTMock
+from mock import patch
+
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
-from onadata.apps.main.models import UserProfile
-from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.utils.logger_tools import create_instance
-from onadata.apps.logger.models import Attachment
-from onadata.apps.logger.models import Instance, SurveyType
-from onadata.apps.main.models.meta_data import MetaData
-from onadata.apps.logger.models.instance import InstanceHistory
-from onadata.apps.logger.models import XForm
-from onadata.libs.permissions import ReadOnlyRole, EditorRole, \
-    EditorMinorRole, DataEntryOnlyRole, DataEntryMinorRole
-from onadata.libs import permissions as role
-from onadata.libs.utils.common_tags import MONGO_STRFTIME
-from onadata.apps.logger.models.instance import get_attachment_url
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     enketo_preview_url_mock
+from onadata.apps.api.viewsets.data_viewset import DataViewSet
+from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
+from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
+from onadata.apps.logger.models import Attachment
+from onadata.apps.logger.models import Instance, SurveyType
+from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models.instance import InstanceHistory
+from onadata.apps.logger.models.instance import get_attachment_url
+from onadata.apps.main import tests as main_tests
+from onadata.apps.main.models import UserProfile
+from onadata.apps.main.models.meta_data import MetaData
+from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs import permissions as role
+from onadata.libs.permissions import ReadOnlyRole, EditorRole, \
+    EditorMinorRole, DataEntryOnlyRole, DataEntryMinorRole
+from onadata.libs.utils.common_tags import MONGO_STRFTIME
+from onadata.libs.utils.logger_tools import create_instance
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
@@ -425,8 +426,7 @@ class TestDataViewSet(TestBase):
         formid = self.xform.pk
         request = self.factory.get('/', **alices_extra)
         response = view(request, pk=formid)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 0)
+        self.assertEqual(response.status_code, 404)
 
         DataEntryMinorRole.add(user_alice, self.xform)
         DataEntryMinorRole.add(user_alice, self.project)

@@ -171,7 +171,7 @@ class DataEntryOnlyRole(Role):
         OrganizationProfile: [CAN_VIEW_ORGANIZATION_PROFILE],
         Project:
         [CAN_ADD_SUBMISSIONS_PROJECT, CAN_EXPORT_PROJECT, CAN_VIEW_PROJECT],
-        XForm: [CAN_ADD_SUBMISSIONS, CAN_EXPORT_XFORM, CAN_VIEW_XFORM],
+        XForm: [CAN_ADD_SUBMISSIONS],
     }
 
 

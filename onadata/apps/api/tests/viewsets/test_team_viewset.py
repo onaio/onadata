@@ -1,22 +1,28 @@
 import json
 
-from onadata.apps.api.models import Team
-from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
-    TestAbstractViewSet
+from guardian.shortcuts import get_perms
 
 from onadata.apps.api import tools
-from onadata.apps.logger.models import Project
-from onadata.apps.api.viewsets.team_viewset import TeamViewSet
-from onadata.apps.api.viewsets.organization_profile_viewset import\
-    OrganizationProfileViewSet
-from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
-from onadata.libs.permissions import ReadOnlyRole, EditorRole
-from onadata.libs.permissions import OwnerRole
+from onadata.apps.api.models import Team
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
+    TestAbstractViewSet
+from onadata.apps.api.tools import add_user_to_team
 from onadata.apps.api.tools import get_organization_owners_team, \
     get_organization_members_team
+from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
+from onadata.apps.api.viewsets.organization_profile_viewset import \
+    OrganizationProfileViewSet
+from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
+from onadata.apps.api.viewsets.team_viewset import TeamViewSet
+from onadata.apps.logger.models import Project
+from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.permissions import OwnerRole
+from onadata.libs.permissions import ReadOnlyRole, EditorRole, EditorMinorRole
+from onadata.libs.permissions import get_role
+from onadata.libs.utils.common_tags import XFORM_META_PERMS
 
 
-class TestTeamViewSet(TestAbstractViewSet):
+class TestTeamViewSet(TestAbstractViewSet, TestBase):
 
     def setUp(self):
         super(self.__class__, self).setUp()
@@ -434,3 +440,57 @@ class TestTeamViewSet(TestAbstractViewSet):
             '/', data=post_data, **extra)
         response = view(request, pk=member_team.pk)
         self.assertEqual(response.status_code, 204)
+
+    def test_team_members_meta_perms_restrictions(self):
+        self._team_create()
+        self._publish_xls_form_to_project()
+        user_alice = self._create_user('alice', 'alice')
+
+        members_team = Team.objects.get(
+            name='%s#%s' % (self.organization.user.username, 'members'))
+
+        # add alice to members team
+        add_user_to_team(members_team, user_alice)
+
+        # confirm that the team and members have no permissions on form
+        self.assertFalse(get_perms(members_team, self.xform))
+        self.assertFalse(get_perms(user_alice, self.xform))
+
+        # share project to team
+        view = TeamViewSet.as_view({
+            'get': 'list',
+            'post': 'share'})
+
+        post_data = {
+            'role': EditorRole.name,
+            'project': self.project.pk,
+            'remove': False
+        }
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request, pk=members_team.pk)
+        self.assertEqual(response.status_code, 204)
+
+        # team members should have editor permissions now
+        alice_perms = get_perms(user_alice, self.xform)
+        alice_role = get_role(alice_perms, self.xform)
+        self.assertEqual(EditorRole.name, alice_role)
+        self.assertTrue(EditorRole.user_has_role(user_alice, self.xform))
+
+        # change meta permissions
+        meta_view = MetaDataViewSet.as_view({
+            'post': 'create',
+            'put': 'update'
+        })
+
+        data = {
+            'data_type': XFORM_META_PERMS,
+            'data_value': 'editor-minor|dataentry',
+            'xform': self.xform.pk
+        }
+
+        request = self.factory.post('/', data, **self.extra)
+        response = meta_view(request)
+        self.assertEqual(response.status_code, 201)
+
+        # members should now have EditorMinor role
+        self.assertTrue(EditorMinorRole.user_has_role(user_alice, self.xform))

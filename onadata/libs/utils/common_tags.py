@@ -132,3 +132,4 @@ COMMENT_REQUIRED = _('Cannot reject a submission without a comment.')
 SUBMISSION_REVIEW_INSTANCE_FIELD = '_review_status'
 EXCEL_TRUE = 1
 EXCEL_FALSE = 0
+MEMBERS = 'members'
