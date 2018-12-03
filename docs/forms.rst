@@ -1252,6 +1252,95 @@ If the import is still running:
         "total": 100000
     }
 
+Import XLS, XLSX and CSV data to existing form
+----------------------------------------------
+
+- `csv_file` a valid csv file with exported data (instance/submission per row)
+- `xls_file` a valid xls or xlsx file with exported data (instance/submission per row)
+
+.. raw:: html
+
+    <pre class="prettyprint">
+    <b>POST</b> /api/v1/forms/<code>{pk}</code>/import
+    </pre>
+
+Example
+^^^^^^^
+
+::
+
+    curl -X POST https://api.ona.io/api/v1/forms/123/import -F xls_file=@/path/to/xls_import.xls
+
+or
+
+::
+
+    curl -X POST https://api.ona.io/api/v1/forms/123/import -F csv_file=@/path/to/csv_import.csv
+
+If the job was executed immediately:
+
+Response
+^^^^^^^^
+::
+
+    HTTP 200 OK
+    {
+        "additions": 9,
+        "updates": 0
+    }
+
+If the import is a long running task:
+
+Response
+^^^^^^^^
+::
+
+    HTTP 200 OK
+    {"task_id": "04874cee-5fea-4552-a6c1-3c182b8b511f"}
+
+You can use the `task_id` value to check on the import progress (see below)
+
+Check on CSV, XLS, XLSX data import progress
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- `job_uuid` a valid csv import job_uuid returned by a long running import \
+    previous call
+
+.. raw:: html
+
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/forms/<code>{pk}</code>/import?job_uuid=UUID
+    </pre>
+
+Example
+^^^^^^^
+::
+
+    curl -X GET https://api.ona.io/api/v1/forms/123/import?job_uuid=UUID
+
+Response
+^^^^^^^^
+
+If the job is done:
+
+::
+
+    HTTP 200 OK
+    {
+        "additions": 90000,
+        "updates": 10000
+    }
+
+If the import is still running:
+
+::
+
+    HTTP 200 OK
+    {
+        "current": 100,
+        "total": 100000
+    }
+
 Upload a XLS form async
 -----------------------
 

@@ -8,7 +8,6 @@ import csv
 import json
 import os
 import re
-from builtins import open
 from collections import OrderedDict
 from datetime import datetime
 from datetime import timedelta
@@ -16,6 +15,8 @@ from io import StringIO
 from xml.dom import Node
 from xml.dom import minidom
 
+import jwt
+from builtins import open
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
@@ -25,8 +26,6 @@ from django.http import HttpResponseRedirect
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import utc
-
-import jwt
 from django_digest.test import DigestAuth
 from httmock import HTTMock
 from mock import Mock, patch
@@ -1891,6 +1890,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             post_data = {'csv_file': csv_import}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request, pk=self.xform.id)
+
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.data.get('additions'), 9)
@@ -4405,3 +4405,19 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response = view(request)
                 self.assertEqual(response.status_code, 201, response.data)
                 self.assertEqual(xforms + 1, XForm.objects.count())
+
+    def test_xls_import(self):
+        with HTTMock(enketo_mock):
+            xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
+                                    "tests", "fixtures", "tutorial.xls")
+            self._publish_xls_form_to_project(xlsform_path=xls_path)
+            view = XFormViewSet.as_view({'post': 'data_import'})
+            xls_import = fixtures_path('good.xls')
+
+            post_data = {'xls_file': xls_import}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request, pk=self.xform.id)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.get('Cache-Control'), None)
+            self.assertEqual(response.data.get('additions'), 9)
+            self.assertEqual(response.data.get('updates'), 0)

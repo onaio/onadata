@@ -2,7 +2,6 @@ import json
 import os
 import random
 from datetime import datetime
-from future.moves.urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -18,8 +17,8 @@ from django.utils import six, timezone
 from django.utils.http import urlencode
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache
-
 from django_filters.rest_framework import DjangoFilterBackend
+from future.moves.urllib.parse import urlparse
 
 try:
     from multidb.pinning import use_master
@@ -64,7 +63,8 @@ from onadata.libs.utils.api_export_tools import (custom_response_handler,
                                                  response_for_format)
 from onadata.libs.utils.common_tools import json_stream
 from onadata.libs.utils.csv_import import (get_async_csv_submission_status,
-                                           submit_csv, submit_csv_async)
+                                           submit_csv, submit_csv_async,
+                                           submission_xls_to_csv)
 from onadata.libs.utils.export_tools import parse_request_export_options
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.model_tools import queryset_iterator
@@ -551,6 +551,71 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         return Response(data=serializer.errors,
                         status=status.HTTP_400_BAD_REQUEST)
+
+    @action(
+        methods=['POST', 'GET'], detail=True,
+        url_name='import', url_path='import')
+    def data_import(self, request, *args, **kwargs):
+        """ Endpoint for CSV and XLS data imports
+        Calls :py:func:`onadata.libs.utils.csv_import.submit_csv` for POST
+        requests passing the `request.FILES.get('csv_file')` upload
+        for import and
+        :py:func:onadata.libs.utils.csv_import.get_async_csv_submission_status
+        for GET requests passing `job_uuid` query param for job progress
+        polling and
+        :py:func:`onadata.libs.utils.csv_import.submission_xls_to_csv`
+        for POST request passing the `request.FILES.get('xls_file')` upload for
+        import if xls_file is provided instead of csv_file
+        """
+        self.object = self.get_object()
+        resp = {}
+        if request.method == 'GET':
+            try:
+                resp.update(get_async_csv_submission_status(
+                    request.query_params.get('job_uuid')))
+                self.last_modified_date = timezone.now()
+            except ValueError:
+                raise ParseError(('The instance of the result is not a '
+                                  'basestring; the job_uuid variable might '
+                                  'be incorrect'))
+        else:
+            csv_file = request.FILES.get('csv_file', None)
+            xls_file = request.FILES.get('xls_file', None)
+
+            if xls_file:
+                csv_file = submission_xls_to_csv(xls_file)
+
+            if csv_file is None:
+                resp.update({u'error': u'csv_file field empty'})
+            else:
+                overwrite = request.query_params.get('overwrite')
+                overwrite = True \
+                    if overwrite and overwrite.lower() == 'true' else False
+                size_threshold = settings.CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD
+                try:
+                    csv_size = csv_file.size
+                except AttributeError:
+                    csv_size = csv_file.__sizeof__()
+                if csv_size < size_threshold:
+                    resp.update(submit_csv(request.user.username,
+                                           self.object, csv_file, overwrite))
+                else:
+                    csv_file.seek(0)
+                    upload_to = os.path.join(request.user.username,
+                                             'csv_imports', csv_file.name)
+                    file_name = default_storage.save(upload_to, csv_file)
+                    task = submit_csv_async.delay(request.user.username,
+                                                  self.object.pk, file_name,
+                                                  overwrite)
+                    if task is None:
+                        raise ParseError('Task not found')
+                    else:
+                        resp.update({u'task_id': task.task_id})
+
+        return Response(
+            data=resp,
+            status=status.HTTP_200_OK if resp.get('error') is None else
+            status.HTTP_400_BAD_REQUEST)
 
     @action(methods=['POST', 'GET'], detail=True)
     def csv_import(self, request, *args, **kwargs):

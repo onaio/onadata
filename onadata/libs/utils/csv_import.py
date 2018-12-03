@@ -7,30 +7,29 @@ import json
 import logging
 import sys
 import uuid
-from builtins import str as text
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
 from io import BytesIO
 
-from future.utils import iteritems
-
+import unicodecsv as ucsv
+import xlrd
+from builtins import str as text
+from celery import current_task, task
+from celery.backends.amqp import BacklogLimitExceeded
+from celery.result import AsyncResult
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.storage import default_storage
 from django.utils import timezone
 from django.utils.translation import ugettext as _
-
-import unicodecsv as ucsv
-from celery import current_task, task
-from celery.backends.amqp import BacklogLimitExceeded
-from celery.result import AsyncResult
+from future.utils import iteritems
 from multidb.pinning import use_master
 
 from onadata.apps.logger.models import Instance, XForm
 from onadata.libs.utils.async_status import (FAILED, async_status,
                                              celery_state_to_status)
-from onadata.libs.utils.common_tags import MULTIPLE_SELECT_TYPE
+from onadata.libs.utils.common_tags import (MULTIPLE_SELECT_TYPE, EXCEL_TRUE)
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
 from onadata.libs.utils.logger_tools import (OpenRosaResponse, dict2xml,
@@ -266,8 +265,9 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                         location_prop:
                         row.get(key, '0')
                     })
-                # remove 'n/a' values
-                if not key.startswith('_') and row[key] == 'n/a':
+                # remove 'n/a' values and '' values for xls
+                if not key.startswith('_') and \
+                        (row[key] == 'n/a' or row[key] == ''):
                     del row[key]
 
             # collect all location K-V pairs into single geopoint field(s)
@@ -383,3 +383,53 @@ def get_async_csv_submission_status(job_uuid):
         return async_status(celery_state_to_status('PENDING'))
 
     return job.get()
+
+
+def submission_xls_to_csv(xls_file):
+    """Convert a submission xls file to submissions csv file
+
+    :param xls_file: submissions xls file
+    :return: csv_file
+    """
+    xls_file.seek(0)
+    xls_file_content = xls_file.read()
+    xl_workbook = xlrd.open_workbook(file_contents=xls_file_content)
+    first_sheet = xl_workbook.sheet_by_index(0)
+
+    csv_file = BytesIO()
+    csv_writer = ucsv.writer(csv_file)
+
+    date_columns = []
+    boolean_columns = []
+
+    # write the header
+    csv_writer.writerow(first_sheet.row_values(0))
+
+    # check for any dates or boolean in the first row of data
+    for index in range(first_sheet.ncols):
+        if first_sheet.cell_type(1, index) == xlrd.XL_CELL_DATE:
+            date_columns.append(index)
+        elif first_sheet.cell_type(1, index) == xlrd.XL_CELL_BOOLEAN:
+            boolean_columns.append(index)
+
+    for row in range(1, first_sheet.nrows):
+        row_values = first_sheet.row_values(row)
+
+        # convert excel dates(floats) to datetime
+        for date_column in date_columns:
+            try:
+                row_values[date_column] = xlrd.xldate_as_datetime(
+                    row_values[date_column],
+                    xl_workbook.datemode).isoformat()
+            except (ValueError, TypeError):
+                row_values[date_column] = first_sheet.cell_value(
+                    row, date_column)
+
+        # convert excel boolean to true/false
+        for boolean_column in boolean_columns:
+            row_values[boolean_column] = bool(
+                row_values[boolean_column] == EXCEL_TRUE)
+
+        csv_writer.writerow(row_values)
+
+    return csv_file
