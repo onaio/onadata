@@ -1277,7 +1277,7 @@ class TestCSVDataFrameBuilder(TestBase):
         |         | food                 | Chocolate     | Chocolate   |              |                            |
         |         | food                 | Salad         | Salad       |              |                            |
         |         | food                 | Sandwich      | Sandwich    |              |                            |
-        """
+        """  # noqa: E501
         self.xform = self._publish_markdown(md_xform, self.user, id_string='b')
 
         data = [{
