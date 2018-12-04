@@ -1,15 +1,12 @@
 from collections import OrderedDict
 from itertools import chain
 
-from future.utils import iteritems
-
-from past.builtins import basestring
-
+import unicodecsv as csv
 from django.conf import settings
 from django.db.models.query import QuerySet
 from django.utils.translation import ugettext as _
-
-import unicodecsv as csv
+from future.utils import iteritems
+from past.builtins import basestring
 from pyxform.question import Question
 from pyxform.section import RepeatingSection, Section
 
@@ -541,11 +538,13 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         if self.split_select_multiples:
             for key, choices in self.select_multiples.items():
                 # HACK to ensure choices are NOT duplicated
-                self.ordered_columns[key] = \
-                    remove_dups_from_list_maintain_order(
-                        [choice.replace('/' + name, '/' + label)
-                         if self.show_choice_labels else choice
-                         for choice, name, label in choices])
+                if key in self.ordered_columns.keys():
+                    self.ordered_columns[key] = \
+                        remove_dups_from_list_maintain_order(
+                            [choice.replace('/' + name, '/' + label)
+                             if self.show_choice_labels else choice
+                             for choice, name, label in choices])
+
         # add ordered columns for gps fields
         for key in self.gps_fields:
             gps_xpaths = self.dd.get_additional_geopoint_xpaths(key)

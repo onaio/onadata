@@ -4,9 +4,9 @@ Test CSVDataFrameBuilder
 """
 import csv
 import os
-from builtins import chr, open
 from tempfile import NamedTemporaryFile
 
+from builtins import chr, open
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
 from mock import patch
@@ -1249,3 +1249,110 @@ class TestCSVDataFrameBuilder(TestBase):
             'fruit/Apple': 0
         }]
         self.assertEqual(expected_result, result)
+
+    @patch.object(CSVDataFrameBuilder, '_query_data')
+    def test_multiple_repeats_column_order(self, mock_query_data):
+        """Test the order of the columns in a multiple repeats form export"""
+        md_xform = """
+        | survey  |
+        |         | type                 | name          | label       | repeat_count | relevant                   |
+        |         | select_multiple food | food          | Food:       |              |                            |
+        |         | integer              | no_food       | No. Food    |              |                            |
+        |         | begin repeat         | food_repeat   | Food Repeat | ${no_food}   |                            |
+        |         | select_multiple food | food_group    | Food:       |              |                            |
+        |         | end repeat           |               |             |              |                            |
+        |         | integer              | no_food_2     | No. Food    |              |                            |
+        |         | begin repeat         | food_repeat_2 | Food Repeat | ${no_food_2} | selected(${food}, 'Apple') |
+        |         | select_multiple food | food_group_2  | Food:       |              |                            |
+        |         | end repeat           |               |             |              |                            |
+        |         | geopoint             | gps           | GPS         |              |                            |
+        |         |                      |               |             |              |                            |
+        | choices | list name            | name          | label       |              |                            |
+        |         | food                 | Apple         | Apple       |              |                            |
+        |         | food                 | Orange        | Orange      |              |                            |
+        |         | food                 | Banana        | Banana      |              |                            |
+        |         | food                 | Pizza         | Pizza       |              |                            |
+        |         | food                 | Lasgna        | Lasgna      |              |                            |
+        |         | food                 | Cake          | Cake        |              |                            |
+        |         | food                 | Chocolate     | Chocolate   |              |                            |
+        |         | food                 | Salad         | Salad       |              |                            |
+        |         | food                 | Sandwich      | Sandwich    |              |                            |
+        """  # noqa: E501
+        self.xform = self._publish_markdown(md_xform, self.user, id_string='b')
+
+        data = [{
+            'food': 'Orange',
+            'no_food': 2,
+            'food_repeat': [{
+                'food_repeat/food_group': 'Banana'
+            }, {
+                'food_repeat/food_group': 'Lasgna'
+            }]
+        }, {
+            'food': 'Apple',
+            'no_food_2': 2,
+            'food_repeat_2': [{
+                'food_repeat_2/food_group_2': 'Cake'
+            }, {
+                'food_repeat_2/food_group_2': 'Salad'
+            }]
+        }]
+
+        mock_query_data.return_value = data
+
+        expected_header = [
+            'food/Apple', 'food/Orange', 'food/Banana', 'food/Pizza',
+            'food/Lasgna', 'food/Cake', 'food/Chocolate', 'food/Salad',
+            'food/Sandwich', 'no_food', 'food_repeat_count',
+            'food_repeat[1]/food_group/Apple',
+            'food_repeat[1]/food_group/Orange',
+            'food_repeat[1]/food_group/Banana',
+            'food_repeat[1]/food_group/Pizza',
+            'food_repeat[1]/food_group/Lasgna',
+            'food_repeat[1]/food_group/Cake',
+            'food_repeat[1]/food_group/Chocolate',
+            'food_repeat[1]/food_group/Salad',
+            'food_repeat[1]/food_group/Sandwich',
+            'food_repeat[2]/food_group/Apple',
+            'food_repeat[2]/food_group/Orange',
+            'food_repeat[2]/food_group/Banana',
+            'food_repeat[2]/food_group/Pizza',
+            'food_repeat[2]/food_group/Lasgna',
+            'food_repeat[2]/food_group/Cake',
+            'food_repeat[2]/food_group/Chocolate',
+            'food_repeat[2]/food_group/Salad',
+            'food_repeat[2]/food_group/Sandwich', 'no_food_2',
+            'food_repeat_2_count', 'food_repeat_2[1]/food_group_2/Apple',
+            'food_repeat_2[1]/food_group_2/Orange',
+            'food_repeat_2[1]/food_group_2/Banana',
+            'food_repeat_2[1]/food_group_2/Pizza',
+            'food_repeat_2[1]/food_group_2/Lasgna',
+            'food_repeat_2[1]/food_group_2/Cake',
+            'food_repeat_2[1]/food_group_2/Chocolate',
+            'food_repeat_2[1]/food_group_2/Salad',
+            'food_repeat_2[1]/food_group_2/Sandwich',
+            'food_repeat_2[2]/food_group_2/Apple',
+            'food_repeat_2[2]/food_group_2/Orange',
+            'food_repeat_2[2]/food_group_2/Banana',
+            'food_repeat_2[2]/food_group_2/Pizza',
+            'food_repeat_2[2]/food_group_2/Lasgna',
+            'food_repeat_2[2]/food_group_2/Cake',
+            'food_repeat_2[2]/food_group_2/Chocolate',
+            'food_repeat_2[2]/food_group_2/Salad',
+            'food_repeat_2[2]/food_group_2/Sandwich', 'gps', '_gps_latitude',
+            '_gps_longitude', '_gps_altitude', '_gps_precision',
+            'meta/instanceID', '_id', '_uuid', '_submission_time', '_tags',
+            '_notes', '_version', '_duration', '_submitted_by', '_total_media',
+            '_media_count', '_media_all_received']
+
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username, self.xform.id_string, include_images=False)
+        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
+        csv_df_builder.export_to(temp_file.name)
+        csv_file = open(temp_file.name, 'r')
+        csv_reader = csv.reader(csv_file)
+        header = next(csv_reader)
+
+        self.assertEqual(header, expected_header)
+
+        csv_file.close()
