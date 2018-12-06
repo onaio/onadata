@@ -1,6 +1,37 @@
 Changelog for onadata
 =====================
 
+1.16.0 (2018-12-06)
+-------------------
+
+- Fix order extra columns in multiple select exports.
+  `Fixes #873 <https://github.com/onaio/onadata/issues/873>`_
+  [lincmba]
+
+- Update user roles according to xform meta permissions provided.
+  `Fixes #1479 <https://github.com/onaio/onadata/issues/1479>`_
+  [lincmba]
+
+- Performance optimisation - use content_type to determine metadata content_object type.
+  `Issue #2475 <https://github.com/onaio/onadata/issues/2475>`_
+  [ukanga]
+
+- Excel bulk data import support.
+  `Issue #1432 <https://github.com/onaio/onadata/issues/1432>`_
+  [lincmba]
+
+- Add submission fields to data exports.
+  `Issue #1477 <https://github.com/onaio/onadata/issues/1477>`_
+  [kahummer]
+
+- Fix error on deleting xform with long id_string or sms_id_string.
+  `Issue #1430 <https://github.com/onaio/onadata/issues/1430>`_
+  [lincmba]
+
+- Set Default TEMP_TOKEN_EXPIRY_TIME.
+  `Issue #1500 <https://github.com/onaio/onadata/issues/1500>`_
+  [lincmba]
+
 1.15.0 (2018-10-10)
 -------------------
 
