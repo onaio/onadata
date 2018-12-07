@@ -4,6 +4,7 @@ Tests the XForm viewset.
 """
 from __future__ import unicode_literals
 
+import codecs
 import csv
 import json
 import os
@@ -4421,3 +4422,36 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.data.get('additions'), 9)
             self.assertEqual(response.data.get('updates'), 0)
+
+    def test_external_choice_integer_name_xlsform(self):
+        """Test that names with integers are converted to strings"""
+        with HTTMock(enketo_mock):
+            view = XFormViewSet.as_view({
+                'post': 'create'
+            })
+            path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "api", "tests", "fixtures",
+                "integer_name_test.xlsx")
+            with open(path, 'rb') as xls_file:
+                # pylint: disable=no-member
+                meta_count = MetaData.objects.count()
+                post_data = {'xls_file': xls_file}
+                request = self.factory.post('/', data=post_data, **self.extra)
+                response = view(request)
+                self.assertEqual(response.status_code, 201)
+                self.assertEqual(meta_count + 3, MetaData.objects.count())
+                xform = self.user.xforms.all()[0]
+                metadata = MetaData.objects.get(
+                    object_id=xform.id, data_value='itemsets.csv')
+                self.assertIsNotNone(metadata)
+
+                csv_reader = csv.reader(
+                    codecs.iterdecode(metadata.data_file, 'utf-8'))
+                header = next(csv_reader)
+                name_index = header.index('name')
+                for row in csv_reader:
+                    try:
+                        int(row[name_index])
+                        self.assertTrue(isinstance(row[name_index], str))
+                    except ValueError:
+                        self.assertTrue(isinstance(row[name_index], str))
