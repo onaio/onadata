@@ -91,31 +91,38 @@ def sheet_to_csv(xls_content, sheet_name):
     header = [v for v, m in zip(sheet.row_values(0), mask) if m]
     writer.writerow(header)
 
-    name_index = None
+    name_column = None
     try:
-        name_index = header.index('name')
+        name_column = header.index('name')
     except ValueError:
         pass
 
-    integer_names = False
-    if name_index:
-        name_column_values = sheet.col_values(name_index)
-        for nc_value in name_column_values:
-            if nc_value == xlrd.XL_CELL_NUMBER:
-                integer_names = True
+    integer_fields = False
+    date_fields = False
+    if name_column:
+        name_column_values = sheet.col_values(name_column)
+        for index, nc_value in enumerate(name_column_values):
+            if sheet.cell_type(index, name_column) == xlrd.XL_CELL_NUMBER:
+                integer_fields = True
+            elif sheet.cell_type(index, name_column) == xlrd.XL_CELL_DATE:
+                date_fields = True
 
     for row in range(1, sheet.nrows):
-        if integer_names:
-            # convert integers to string if name has numbers
+        if integer_fields or date_fields:
+            # convert integers to string/datetime if name has numbers/dates
             row_values = []
-            for val in sheet.row_values(row):
-                try:
-                    val = str(
-                        float(val) if (float(val) > int(val)) else int(val))
-                except ValueError:
-                    pass
+            for index, val in enumerate(sheet.row_values(row)):
+                if sheet.cell_type(row, index) == xlrd.XL_CELL_NUMBER:
+                    try:
+                        val = str(
+                            float(val) if (
+                                    float(val) > int(val)) else int(val))
+                    except ValueError:
+                        pass
+                elif sheet.cell_type(row, index) == xlrd.XL_CELL_DATE:
+                    val = xlrd.xldate_as_datetime(
+                        val, workbook.datemode).isoformat()
                 row_values.append(val)
-
             writer.writerow([v for v, m in zip(row_values, mask) if m])
         else:
             writer.writerow(
