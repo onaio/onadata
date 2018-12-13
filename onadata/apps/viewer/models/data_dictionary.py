@@ -101,7 +101,7 @@ def sheet_to_csv(xls_content, sheet_name):
     date_fields = False
     if name_column:
         name_column_values = sheet.col_values(name_column)
-        for index, nc_value in enumerate(name_column_values):
+        for index in range(len(name_column_values)):
             if sheet.cell_type(index, name_column) == xlrd.XL_CELL_NUMBER:
                 integer_fields = True
             elif sheet.cell_type(index, name_column) == xlrd.XL_CELL_DATE:
