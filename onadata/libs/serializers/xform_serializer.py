@@ -1,21 +1,22 @@
-import os
 import logging
+import os
 from hashlib import md5
-from future.moves.urllib.parse import urlparse
-from future.utils import listvalues
 
-from django.core.exceptions import ValidationError
-from django.core.validators import URLValidator
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
 from django.db.models import Count
+from future.moves.urllib.parse import urlparse
+from future.utils import listvalues
 from requests.exceptions import ConnectionError
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
 from onadata.apps.logger.models import DataView, Instance, XForm
 from onadata.apps.main.models.meta_data import MetaData
+from onadata.libs.exceptions import EnketoError
 from onadata.libs.permissions import get_role, is_organization
 from onadata.libs.serializers.dataview_serializer import \
     DataViewMinimalSerializer
@@ -25,12 +26,11 @@ from onadata.libs.utils.cache_tools import (
     ENKETO_PREVIEW_URL_CACHE, ENKETO_URL_CACHE, XFORM_DATA_VERSIONS,
     XFORM_LINKED_DATAVIEWS, XFORM_METADATA_CACHE, XFORM_PERMISSIONS_CACHE,
     XFORM_COUNT)
+from onadata.libs.utils.common_tags import (GROUP_DELIMETER_TAG,
+                                            REPEAT_INDEX_TAGS)
 from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.viewer_tools import (
     enketo_url, get_enketo_preview_url, get_form_url)
-from onadata.libs.exceptions import EnketoError
-from onadata.libs.utils.common_tags import (GROUP_DELIMETER_TAG,
-                                            REPEAT_INDEX_TAGS)
 
 
 def _create_enketo_url(request, xform):
@@ -394,7 +394,8 @@ class XFormManifestSerializer(serializers.Serializer):
         parts = filename.split(' ')
         # filtered dataset is of the form "xform PK name", xform pk is the
         # second item
-        if len(parts) > 2:
+        # other file uploads other than linked datasets have a data_file
+        if len(parts) > 2 and obj.data_file == '':
             dataset_type = parts[0]
             pk = parts[1]
             xform = None
