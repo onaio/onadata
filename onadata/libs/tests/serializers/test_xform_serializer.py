@@ -52,7 +52,7 @@ class TestXFormManifestSerializer(TestCase, TestBase):
         obj = MagicMock()
         serializer = XFormManifestSerializer()
 
-        obj.data_value = "xform 1 test_dataset"
+        obj.data_value = "xform {} test_dataset".format(self.xform.id)
 
         obj.file_hash = u'md5:b9cc8695c526f3c7aaa882234f3b9484'
         obj.data_file = ""
