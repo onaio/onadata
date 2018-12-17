@@ -3,17 +3,16 @@
 DataDictionary model.
 """
 import os
-from builtins import str as text
 from io import BytesIO, StringIO
 
+import unicodecsv as csv
+import xlrd
+from builtins import str as text
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
 from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext as _
-
-import unicodecsv as csv
-import xlrd
 from floip import FloipSurvey
 from kombu.exceptions import OperationalError
 from pyxform.builder import create_survey_element_from_dict
@@ -89,8 +88,45 @@ def sheet_to_csv(xls_content, sheet_name):
     writer = csv.writer(csv_file, encoding='utf-8', quoting=csv.QUOTE_ALL)
     mask = [v and len(v.strip()) > 0 for v in sheet.row_values(0)]
 
-    for row in range(sheet.nrows):
-        writer.writerow([v for v, m in zip(sheet.row_values(row), mask) if m])
+    header = [v for v, m in zip(sheet.row_values(0), mask) if m]
+    writer.writerow(header)
+
+    name_column = None
+    try:
+        name_column = header.index('name')
+    except ValueError:
+        pass
+
+    integer_fields = False
+    date_fields = False
+    if name_column:
+        name_column_values = sheet.col_values(name_column)
+        for index in range(len(name_column_values)):
+            if sheet.cell_type(index, name_column) == xlrd.XL_CELL_NUMBER:
+                integer_fields = True
+            elif sheet.cell_type(index, name_column) == xlrd.XL_CELL_DATE:
+                date_fields = True
+
+    for row in range(1, sheet.nrows):
+        if integer_fields or date_fields:
+            # convert integers to string/datetime if name has numbers/dates
+            row_values = []
+            for index, val in enumerate(sheet.row_values(row)):
+                if sheet.cell_type(row, index) == xlrd.XL_CELL_NUMBER:
+                    try:
+                        val = str(
+                            float(val) if (
+                                    float(val) > int(val)) else int(val))
+                    except ValueError:
+                        pass
+                elif sheet.cell_type(row, index) == xlrd.XL_CELL_DATE:
+                    val = xlrd.xldate_as_datetime(
+                        val, workbook.datemode).isoformat()
+                row_values.append(val)
+            writer.writerow([v for v, m in zip(row_values, mask) if m])
+        else:
+            writer.writerow(
+                [v for v, m in zip(sheet.row_values(row), mask) if m])
 
     return csv_file
 
