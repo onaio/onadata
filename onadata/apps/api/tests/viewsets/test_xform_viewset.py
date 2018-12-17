@@ -1463,7 +1463,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             self.xform.refresh_from_db()
             self.assertFalse(self.xform.__getattribute__(key))
-            shared = [u'"String" is not a valid boolean.']
+            shared = [u'Must be a valid boolean.']
             self.assertEqual(response.data, {'public': shared})
 
     def test_set_form_bad_key(self):
