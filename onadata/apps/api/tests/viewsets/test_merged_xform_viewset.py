@@ -709,3 +709,40 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             "element with this name.")
         self.assertIn('xforms', response.data)
         self.assertIn(error_message, response.data['xforms'])
+
+    def test_merged_datasets_deleted_parent_retrieve(self):
+        """Test retrieving a specific merged dataset when the parent is deleted
+        """
+        merged_dataset = self._create_merged_dataset(geo=True)
+        merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
+
+        # make submission to form b
+        form_b = merged_xform.xforms.all()[1]
+        xml = '<data id="b"><fruit>mango</fruit></data>'
+        instance = Instance(xform=form_b, xml=xml)
+        instance.save()
+        form_b.refresh_from_db()
+        form_b.last_submission_time = instance.date_created
+        form_b.save()
+        view = MergedXFormViewSet.as_view({'get': 'retrieve'})
+
+        # status_code is 200 when: pk exists, user is authenticated
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=merged_dataset['id'])
+        self.assertEqual(response.status_code, 200)
+
+        # delete parents
+        [parent.delete() for parent in merged_xform.xforms.all()]
+        merged_xform.refresh_from_db()
+
+        # merged dataset should be available at api/forms/[pk] endpoint
+        request = self.factory.get('/', **self.extra)
+        view = XFormViewSet.as_view({'get': 'retrieve'})
+        response = view(request, pk=merged_dataset['id'])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(merged_dataset['id'], response.data['formid'])
+        self.assertTrue(response.data['is_merged_dataset'])
+        self.assertTrue(response.data['instances_with_geopoints'])
+        # deleted parents, 0 submissions
+        self.assertEqual(response.data['num_of_submissions'], 0)
