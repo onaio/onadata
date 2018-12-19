@@ -1,6 +1,29 @@
 Changelog for onadata
 =====================
 
+1.17.0 (2018-12-19)
+-------------------
+
+- Fix external Choices with number names
+  `Fixes #1485 <https://github.com/onaio/onadata/issues/1485>`_
+  [lincmba]
+
+- Remove link expiration message on verification email
+  `Fixes #1489 <https://github.com/onaio/onadata/issues/1489>`_
+  [lincmba]
+
+- Only generate hash for linked datasets
+  `Fixes #1411 <https://github.com/onaio/onadata/issues/1411>`_
+  [lincmba]
+
+- Fix merged dataset with deleted parent
+  `Fixes #1511 <https://github.com/onaio/onadata/issues/1511>`_
+  [lincmba]
+
+- Update/upgrade packages
+  `PR 1522 <https://github.com/onaio/onadata/pull/1522>`_
+  [lincmba, ukanga]
+
 1.16.0 (2018-12-06)
 -------------------
 
