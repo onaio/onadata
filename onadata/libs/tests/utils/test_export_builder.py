@@ -10,19 +10,19 @@ import os
 import shutil
 import tempfile
 import zipfile
-from builtins import open
 from collections import OrderedDict
 from ctypes import ArgumentError
 from io import BytesIO
-from past.builtins import basestring
-
-from django.conf import settings
-from django.core.files.temp import NamedTemporaryFile
 
 import xlrd
+from builtins import open
+from django.conf import settings
+from django.core.files.temp import NamedTemporaryFile
 from openpyxl import load_workbook
+from past.builtins import basestring
 from pyxform.builder import create_survey_from_xls
 from savReaderWriter import SavHeaderReader, SavReader
+
 from onadata.apps.logger.import_tools import django_file
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
@@ -2199,7 +2199,7 @@ class TestExportBuilder(TestBase):
             child, dd, ExportBuilder.GROUP_DELIMITER,
             ExportBuilder.TRUNCATE_GROUP_TITLE
         )
-        self.assertEqual(child.children, [])
+
         expected_choices = [
             {
                 '_label': 'King',

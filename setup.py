@@ -36,7 +36,7 @@ setup(
         "django-registration-redux",
         "django-templated-email",
         "django-reversion",
-        "django-filter",
+        "django-filter<2.0",
         "django-nose",
         "django-ordered-model",
         # generic relation

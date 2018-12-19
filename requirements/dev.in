@@ -3,8 +3,7 @@
 
 django-extensions
 ipdb
-pylint
-pylint-django
-pylint-celery
+pylint<2
+pylint-django==0.11.1
 yapf
 isort
