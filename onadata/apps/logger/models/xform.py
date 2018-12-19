@@ -908,7 +908,7 @@ class XForm(XFormMixin, BaseModel):
         if self.num_of_submissions == 0 or force_update:
             if self.is_merged_dataset:
                 count = self.mergedxform.xforms.aggregate(
-                    num=Sum('num_of_submissions')).get('num')
+                    num=Sum('num_of_submissions')).get('num') or 0
             else:
                 count = self.instances.filter(deleted_at__isnull=True).count()
 
