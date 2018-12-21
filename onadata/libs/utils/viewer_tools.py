@@ -374,3 +374,17 @@ def get_enketo_preview_url(request, username, id_string, xform_pk=None):
             raise EnketoError(response['message'])
 
     return False
+
+
+def get_submission_url(request, username, id_string, xform_pk=None):
+    """Return submission url of the submission instance."""
+    submission_url = get_form_url(
+        request, username, settings.ENKETO_PROTOCOL, True, xform_pk=xform_pk)
+    values = {'form_id': id_string, 'server_url': submission_url}
+
+    url = requests.post(
+        data=values,
+        auth=(settings.ENKETO_API_TOKEN, ''),
+        verify=getattr(settings, 'VERIFY_SSL', True))
+
+    return url

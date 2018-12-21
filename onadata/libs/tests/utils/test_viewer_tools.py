@@ -18,6 +18,7 @@ from onadata.libs.utils.viewer_tools import (export_def_from_filename,
                                              get_client_ip, get_form,
                                              get_form_url,
                                              create_attachments_zipfile)
+                                             get_submission_url)
 
 
 class TestViewerTools(TestBase):
@@ -193,3 +194,10 @@ class TestViewerTools(TestBase):
 
         self.assertTrue(rpt_mock.called)
         rpt_mock.assert_called_with(message[0], message[1])
+    def test_get_submissions_url(self):
+
+        request = RequestFactory().get('/')
+
+        __import__('ipdb').set_trace()
+        url = get_submission_url(request)
+        self.assertEqual(url, "https://enketo-stage.ona.io/single/::XZqoZ94y")
