@@ -6,6 +6,7 @@ import json
 import os
 import sys
 import zipfile
+import logging
 from builtins import open
 from future.utils import iteritems
 from tempfile import NamedTemporaryFile
@@ -26,6 +27,7 @@ from onadata.libs.utils.common_tags import EXPORT_MIMES
 from onadata.libs.utils.common_tools import report_exception
 
 SLASH = u"/"
+logger = logging.getLogger(__name__)
 
 
 def image_urls_for_form(xform):
@@ -378,13 +380,27 @@ def get_enketo_preview_url(request, username, id_string, xform_pk=None):
 
 def get_submission_url(request, username, id_string, xform_pk=None):
     """Return submission url of the submission instance."""
-    submission_url = get_form_url(
+    enketo_url = "https://enketo-stage.ona.io/api/v2/survey/single/once"
+    form_id = id_string
+    server_url = get_form_url(
         request, username, settings.ENKETO_PROTOCOL, True, xform_pk=xform_pk)
-    values = {'form_id': id_string, 'server_url': submission_url}
 
-    url = requests.post(
-        data=values,
-        auth=(settings.ENKETO_API_TOKEN, ''),
-        verify=getattr(settings, 'VERIFY_SSL', True))
+    url = '{}?server_url={}&form_id={}'.format(
+        enketo_url, server_url, form_id)
 
-    return url
+    response = requests.get(url, auth=(settings.ENKETO_API_TOKEN, ''))
+    __import__('ipdb').set_trace()
+
+    if response.status_code == 200:
+        data = response.json()
+        submission_url = data['single_url']
+        return submission_url
+    elif response.status_code == 400:
+        logger.info(
+            "Malformed request. \
+            Kindly check the parameters you have passed in.")
+    elif response.status_code == 401:
+        logger.info(
+            "Invalid API Token")
+    else:
+        logger.info("Improper request")

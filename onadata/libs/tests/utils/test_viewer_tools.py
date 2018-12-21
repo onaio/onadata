@@ -194,10 +194,12 @@ class TestViewerTools(TestBase):
 
         self.assertTrue(rpt_mock.called)
         rpt_mock.assert_called_with(message[0], message[1])
+    @override_settings(TESTING_MODE=False)
     def test_get_submissions_url(self):
-
+        """Test get_submissions_url()."""
         request = RequestFactory().get('/')
-
+        url = get_submission_url(
+            request, username="milly", id_string="tag_team")
         __import__('ipdb').set_trace()
-        url = get_submission_url(request)
-        self.assertEqual(url, "https://enketo-stage.ona.io/single/::XZqoZ94y")
+        self.assertEqual(
+            url, None)
