@@ -1,4 +1,5 @@
 from mock import patch
+
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.media_viewset import MediaViewSet
@@ -75,3 +76,16 @@ class TestMediaViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = self.retrieve_view(request, self.attachment.pk)
         self.assertEqual(response.status_code, 404)
+
+    def test_retrieve_small_png(self):
+        self._submit_transport_instance_w_attachment(
+            survey_at=4, media_file="ona_png_image.png")
+        request = self.factory.get(
+            '/',
+            {'filename': self.attachment.media_file.name, 'suffix': 'small'},
+            **self.extra
+        )
+        response = self.retrieve_view(request, self.attachment.pk)
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response['Location'],
+                        attachment_url(self.attachment, 'small'))
