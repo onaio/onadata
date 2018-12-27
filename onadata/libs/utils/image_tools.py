@@ -1,10 +1,9 @@
 from tempfile import NamedTemporaryFile
 
+from PIL import Image
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.storage import get_storage_class
-
-from PIL import Image
 
 from onadata.libs.utils.viewer_tools import get_path
 
@@ -34,8 +33,8 @@ def get_dimensions(size, longest_side):
     return flat(width, height)
 
 
-def _save_thumbnails(image, path, size, suffix):
-    nm = NamedTemporaryFile(suffix='.%s' % settings.IMG_FILE_TYPE)
+def _save_thumbnails(image, path, size, suffix, extension):
+    nm = NamedTemporaryFile(suffix='.%s' % extension)
     default_storage = get_storage_class()()
 
     try:
@@ -51,7 +50,7 @@ def _save_thumbnails(image, path, size, suffix):
     nm.close()
 
 
-def resize(filename):
+def resize(filename, extension):
     default_storage = get_storage_class()()
 
     try:
@@ -63,12 +62,13 @@ def resize(filename):
                 _save_thumbnails(
                     image, filename,
                     conf[key]['size'],
-                    conf[key]['suffix'])
+                    conf[key]['suffix'],
+                    extension)
     except IOError:
         raise Exception("The image file couldn't be identified")
 
 
-def resize_local_env(filename):
+def resize_local_env(filename, extension):
     default_storage = get_storage_class()()
     path = default_storage.path(filename)
     image = Image.open(path)
@@ -76,7 +76,7 @@ def resize_local_env(filename):
 
     [_save_thumbnails(
         image, path, conf[key]['size'],
-        conf[key]['suffix']) for key in settings.THUMB_ORDER]
+        conf[key]['suffix'], extension) for key in settings.THUMB_ORDER]
 
 
 def image_url(attachment, suffix):
@@ -102,9 +102,10 @@ def image_url(attachment, suffix):
                         get_path(filename, size))
                 else:
                     if default_storage.__class__ != fs.__class__:
-                        resize(filename)
+                        resize(filename, extension=attachment.extension)
                     else:
-                        resize_local_env(filename)
+                        resize_local_env(filename,
+                                         extension=attachment.extension)
 
                     return image_url(attachment, suffix)
             else:
