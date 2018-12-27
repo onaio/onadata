@@ -1,10 +1,10 @@
 import json
 import os
 import re
-import requests
-from builtins import open
 from tempfile import NamedTemporaryFile
 
+import requests
+from builtins import open
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import Permission, User
@@ -59,7 +59,8 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
     surveys = ['transport_2011-07-25_19-05-49',
                'transport_2011-07-25_19-05-36',
                'transport_2011-07-25_19-06-01',
-               'transport_2011-07-25_19-06-14']
+               'transport_2011-07-25_19-06-14',
+               'transport_2011-07-25_19-05-49_1']
     main_directory = os.path.dirname(main_tests.__file__)
 
     profile_data = {
