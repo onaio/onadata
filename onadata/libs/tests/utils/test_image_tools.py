@@ -1,13 +1,13 @@
 import os
 import shutil
+
 import requests
+from django.core.files.storage import get_storage_class
 from httmock import urlmatch, HTTMock
 
-from django.core.files.storage import get_storage_class
-
-from onadata.libs.utils.image_tools import resize
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.attachment import Attachment
+from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.utils.image_tools import resize
 
 storage = get_storage_class()()
 
@@ -24,7 +24,7 @@ class TestImageTools(TestBase):
     def test_resize_exception_is_handled(self):
         with HTTMock(image_url_mock):
             with self.assertRaises(Exception) as io_error:
-                resize('test.jpg')
+                resize('test.jpg', 'jpg')
 
         self.assertEqual(str(io_error.exception),
                          u'The image file couldn\'t be identified')
@@ -34,7 +34,7 @@ class TestImageTools(TestBase):
         self._submit_transport_instance_w_attachment()
         attachment = Attachment.objects.first()
         media_filename = attachment.media_file.name
-        resize(media_filename)
+        resize(media_filename, attachment.extension)
         # small
         path = os.path.join(
             storage.path(''), media_filename[0:-4] + '-small.jpg')
