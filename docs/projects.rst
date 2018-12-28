@@ -196,11 +196,12 @@ Example
 Response
 ^^^^^^^^^
 ::
+
        HTTP 204 NO CONTENT
 
 Remove a user from a project
 -------------------------------
-You can remove a specific user from a project using `POST` with payload:
+You can remove a specific user from a project using `PUT` with payload:
 
 - ``username`` of the user you want to remove
 - ``role`` the user has on the project
@@ -210,7 +211,7 @@ Example
 ^^^^^^^^
 ::
 
-    curl -X POST -d "username=alice" -d "role=readonly" -d "remove=True" http://api.ona.io/api/v1/projects/1/share
+    curl -X PUT -d "username=alice" -d "role=readonly" -d "remove=True" http://api.ona.io/api/v1/projects/1/share
 
 Response
 ^^^^^^^^^
