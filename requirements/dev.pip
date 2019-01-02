@@ -86,7 +86,7 @@ jsonlines==1.2.0          # via tabulator
 jsonpickle==1.0
 jsonpointer==1.14         # via datapackage
 jsonschema==2.6.0         # via datapackage, tableschema
-kombu==4.2.2              # via celery
+kombu==4.2.2.post1        # via celery
 lazy-object-proxy==1.3.1  # via astroid
 linear-tsv==1.1.0         # via tabulator
 linecache2==1.0.0         # via traceback2
