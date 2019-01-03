@@ -4,7 +4,6 @@ Custom rest_framework Router - MultiLookupRouter.
 """
 from django.conf.urls import url
 from django.contrib import admin
-
 from rest_framework import routers
 from rest_framework.urlpatterns import format_suffix_patterns
 
@@ -148,5 +147,5 @@ router.register(
     r'submissions', XFormSubmissionViewSet, base_name='submissions')
 router.register(r'teams', TeamViewSet)
 router.register(r'user', ConnectViewSet)
-router.register(r'users', UserViewSet)
+router.register(r'users', UserViewSet, base_name='user')
 router.register(r'widgets', WidgetViewSet, base_name='widgets')
