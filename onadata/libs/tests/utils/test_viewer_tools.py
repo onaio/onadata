@@ -203,11 +203,12 @@ class TestViewerTools(TestBase):
     @override_settings(TESTING_MODE=False, ENKETO_URL='https://enketo.ona.io')
     @requests_mock.Mocker()
     def test_get_submissions_url(self, mocked):
-        request = RequestFactory().get('/')
         """Test get_submissions_url().
 
-        Ensures appropriate data is being received.
+        Ensures appropriate url is being received.
         """
+        request = RequestFactory().get('/')
+
         mocked_response = {
             "single_url": "https://enketo.ona.io/single/::XZqoZ94y",
             "code": 200
@@ -226,3 +227,12 @@ class TestViewerTools(TestBase):
 
         self.assertEqual(
             response, 'https://enketo.ona.io/single/::XZqoZ94y')
+
+    @override_settings(TESTING_MODE=False)
+    def test_get_submissions_url_error_action(self):
+        """Test get_submissions_url()."""
+        request = RequestFactory().get('/')
+
+        with self.assertRaises(EnketoError):
+            get_submission_url(
+                request, username='Milly', id_string="tag_team", xform_pk=1)
