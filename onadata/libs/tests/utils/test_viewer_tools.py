@@ -200,6 +200,5 @@ class TestViewerTools(TestBase):
         request = RequestFactory().get('/')
         url = get_submission_url(
             request, username="milly", id_string="tag_team")
-        __import__('ipdb').set_trace()
         self.assertEqual(
             url, None)

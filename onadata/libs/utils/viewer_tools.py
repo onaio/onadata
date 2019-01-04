@@ -389,7 +389,6 @@ def get_submission_url(request, username, id_string, xform_pk=None):
         enketo_url, server_url, form_id)
 
     response = requests.get(url, auth=(settings.ENKETO_API_TOKEN, ''))
-    __import__('ipdb').set_trace()
 
     if response.status_code == 200:
         data = response.json()
