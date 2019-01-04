@@ -779,9 +779,9 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertIn('Gender', labels)
         self.assertEqual(main_sheet.nrows, 5)
 
-    def _test_csv_export_with_hxl_support(self, columns, expected_output):
+    def _test_csv_export_with_hxl_support(self, name, columns, expected_output): # noqa
         data = {
-            'name': "Hxl example dataview",
+            'name': name,
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
             'project': 'http://testserver/api/v1/projects/%s'
                        % self.project.pk,
@@ -809,14 +809,17 @@ class TestDataViewViewSet(TestAbstractViewSet):
     def test_csv_export_with_hxl_support(self):
         self._publish_form_with_hxl_support()
         self._test_csv_export_with_hxl_support(
+            'test name 1',
             '["name"]',
-            'name\nCristiano Ronaldo\nLionel Messi\n'
+            'name\nCristiano Ronaldo 1\nLionel Messi\n'
         )
         self._test_csv_export_with_hxl_support(
+            'test name 2',
             '["age"]',
             'age\n#age,\n31\n29\n'
         )
         self._test_csv_export_with_hxl_support(
+            'test name 3',
             '["age", "name"]',
             'age,name\n#age,\n31,Cristiano Ronaldo\n29,Lionel Messi\n'
         )

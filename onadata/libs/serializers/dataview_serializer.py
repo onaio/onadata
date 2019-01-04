@@ -102,6 +102,12 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
                   'matches_parent', 'count', 'instances_with_geopoints',
                   'last_submission_time', 'has_hxl_support', 'url',
                   'date_created', 'deleted_at', 'deleted_by')
+        validators = [
+            serializers.UniqueTogetherValidator(
+                queryset=DataView.objects.all(),
+                fields=('name', 'xform')
+            )
+        ]
 
     def create(self, validated_data):
         validated_data = match_columns(validated_data)
