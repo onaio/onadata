@@ -6,7 +6,6 @@ import json
 import os
 import sys
 import zipfile
-import logging
 from builtins import open
 from future.utils import iteritems
 from tempfile import NamedTemporaryFile
@@ -27,8 +26,6 @@ from onadata.libs.utils.common_tags import EXPORT_MIMES
 from onadata.libs.utils.common_tools import report_exception
 
 SLASH = u"/"
-logger = logging.getLogger(__name__)
-
 
 def image_urls_for_form(xform):
     """
@@ -380,7 +377,7 @@ def get_enketo_preview_url(request, username, id_string, xform_pk=None):
 
 def get_submission_url(request, username, id_string, xform_pk=None):
     """Return submission url of the submission instance."""
-    enketo_url = "https://enketo-stage.ona.io/api/v2/survey/single/once"
+    enketo_url = settings.ENKETO_URL + "/api/v2/survey/single/once"
     form_id = id_string
     server_url = get_form_url(
         request, username, settings.ENKETO_PROTOCOL, True, xform_pk=xform_pk)
@@ -395,11 +392,8 @@ def get_submission_url(request, username, id_string, xform_pk=None):
         submission_url = data['single_url']
         return submission_url
     elif response.status_code == 400:
-        logger.info(
-            "Malformed request. \
-            Kindly check the parameters you have passed in.")
+        raise EnketoError()
     elif response.status_code == 401:
-        logger.info(
-            "Invalid API Token")
+        raise EnketoError()
     else:
-        logger.info("Improper request")
+        raise EnketoError()

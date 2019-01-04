@@ -6,10 +6,13 @@ import os
 from mock import patch
 
 from django.core.files.base import File
+import requests_mock
+from django.conf import settings
 from django.http import Http404
 from django.test.client import RequestFactory
 from django.test.utils import override_settings
 from django.utils import timezone
+from onadata.libs.exceptions import EnketoError
 
 from onadata.apps.logger.models import XForm, Instance, Attachment
 from onadata.apps.main.tests.test_base import TestBase
@@ -80,7 +83,7 @@ class TestViewerTools(TestBase):
         """
         Test generate_enketo_form_defaults() with multiple params
         """
-        # create xform
+        # create xformtest_create_attachments_zipfile_file_too_big
         self._publish_transportation_form()
         # create kwargs with existing xform variable
         transportation_types = \
@@ -197,8 +200,29 @@ class TestViewerTools(TestBase):
     @override_settings(TESTING_MODE=False)
     def test_get_submissions_url(self):
         """Test get_submissions_url()."""
+    @override_settings(TESTING_MODE=False, ENKETO_URL='https://enketo.ona.io')
+    @requests_mock.Mocker()
+    def test_get_submissions_url(self, mocked):
         request = RequestFactory().get('/')
-        url = get_submission_url(
-            request, username="milly", id_string="tag_team")
+        """Test get_submissions_url().
+
+        Ensures appropriate data is being received.
+        """
+        mocked_response = {
+            "single_url": "https://enketo.ona.io/single/::XZqoZ94y",
+            "code": 200
+        }
+
+        enketo_url = settings.ENKETO_URL + "/api/v2/survey/single/once"
+        username = "bob"
+        server_url = get_form_url(
+            request, username, settings.ENKETO_PROTOCOL, True, xform_pk=1)
+
+        url = '{}?server_url={}&form_id={}'.format(
+            enketo_url, server_url, "tag_team")
+        mocked.get(url, json=mocked_response)
+        response = get_submission_url(
+            request, username, id_string="tag_team", xform_pk=1)
+
         self.assertEqual(
-            url, None)
+            response, 'https://enketo.ona.io/single/::XZqoZ94y')
