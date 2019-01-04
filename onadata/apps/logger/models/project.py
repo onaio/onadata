@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Prefetch
 from django.db.models.signals import post_save
 from django.utils import timezone
@@ -113,6 +113,7 @@ class Project(BaseModel):
     def user(self):
         return self.created_by
 
+    @transaction.atomic()
     def soft_delete(self, user=None):
         """
         Soft deletes a project by adding a deleted_at timestamp and renaming
