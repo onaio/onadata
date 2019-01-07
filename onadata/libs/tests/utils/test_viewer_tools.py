@@ -22,6 +22,7 @@ from onadata.libs.utils.viewer_tools import (export_def_from_filename,
                                              get_form_url,
                                              create_attachments_zipfile)
                                              get_submission_url)
+                                             get_single_submit_url)
 
 
 class TestViewerTools(TestBase):
@@ -202,10 +203,10 @@ class TestViewerTools(TestBase):
         """Test get_submissions_url()."""
     @override_settings(TESTING_MODE=False, ENKETO_URL='https://enketo.ona.io')
     @requests_mock.Mocker()
-    def test_get_submissions_url(self, mocked):
-        """Test get_submissions_url().
+    def test_get_single_submit_url(self, mocked):
+        """Test get_single_submit_url.
 
-        Ensures appropriate url is being received.
+        Ensures single submit url is being received.
         """
         request = RequestFactory().get('/')
 
@@ -222,17 +223,17 @@ class TestViewerTools(TestBase):
         url = '{}?server_url={}&form_id={}'.format(
             enketo_url, server_url, "tag_team")
         mocked.get(url, json=mocked_response)
-        response = get_submission_url(
+        response = get_single_submit_url(
             request, username, id_string="tag_team", xform_pk=1)
 
         self.assertEqual(
             response, 'https://enketo.ona.io/single/::XZqoZ94y')
 
     @override_settings(TESTING_MODE=False)
-    def test_get_submissions_url_error_action(self):
-        """Test get_submissions_url()."""
+    def test_get_single_submit_url_error_action(self):
+        """Test get_single_submit_url to return appropriate error message."""
         request = RequestFactory().get('/')
 
         with self.assertRaises(EnketoError):
-            get_submission_url(
+            get_single_submit_url(
                 request, username='Milly', id_string="tag_team", xform_pk=1)
