@@ -1,6 +1,21 @@
 Changelog for onadata
 =====================
 
+Unreleased (2019-01-XX)
+----------------------
+
+- Update to pyxform 0.12.2, performance regression fix.
+  `Fixes https://github.com/XLSForm/pyxform/issues/247 <https://github.com/XLSForm/pyxform/issues/247>`_
+  [ukanga]
+
+- Update projects endpoint API documentation.
+  `Fixes #1520 <https://github.com/onaio/onadata/issues/1520>`_
+  [lincmba]
+
+- Fix improperly configured URL exception.
+  `Fixes #1518 <https://github.com/onaio/onadata/issues/1518>`_
+  [lincmba]
+
 1.17.0 (2018-12-19)
 -------------------
 
