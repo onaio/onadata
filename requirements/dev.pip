@@ -130,6 +130,7 @@ pyxform==0.12.2
 raven==6.9.0
 recaptcha-client==1.0.6
 requests==2.20.1          # via datapackage, django-oauth-toolkit, httmock, sphinx, tableschema, tabulator
+requests-mock==1.5.2
 rfc3986==1.2.0            # via tableschema
 rsa==4.0                  # via google-auth, oauth2client
 savreaderwriter==3.4.2
