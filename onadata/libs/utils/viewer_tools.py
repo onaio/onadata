@@ -207,23 +207,26 @@ def enketo_url(form_url,
                    data.get('url'))
             if url:
                 return url
-    else:
-        try:
-            data = json.loads(response.content)
-        except ValueError:
-            report_exception("HTTP Error {}".format(response.status_code),
-                             response.text, sys.exc_info())
-            if response.status_code == 502:
-                raise EnketoError(
-                    u"Sorry, we cannot load your form right now.  Please try "
-                    "again later.")
-            raise EnketoError()
-        else:
-            if 'message' in data:
-                raise EnketoError(data['message'])
-            raise EnketoError(response.text)
 
-    raise EnketoError()
+    handle_enketo_error(response)
+
+
+def handle_enketo_error(response):
+    """Handle enketo error response."""
+    try:
+        data = json.loads(response.content)
+    except ValueError:
+        report_exception("HTTP Error {}".format(response.status_code),
+                         response.text, sys.exc_info())
+        if response.status_code == 502:
+            raise EnketoError(
+                u"Sorry, we cannot load your form right now.  Please try "
+                "again later.")
+        raise EnketoError()
+    else:
+        if 'message' in data:
+            raise EnketoError(data['message'])
+        raise EnketoError(response.text)
 
 
 def generate_enketo_form_defaults(xform, **kwargs):
@@ -374,5 +377,5 @@ def get_single_submit_url(request, username, id_string, xform_pk=None):
         data = response.json()
         submission_url = data['single_url']
         return submission_url
-    else:
-        raise EnketoError()
+
+    handle_enketo_error(response)
