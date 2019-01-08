@@ -51,6 +51,8 @@ def _save_thumbnails(image, path, size, suffix, extension):
 
 
 def resize(filename, extension):
+    if extension == 'non':
+        extension = settings.DEFAULT_IMG_FILE_TYPE
     default_storage = get_storage_class()()
 
     try:
@@ -69,6 +71,8 @@ def resize(filename, extension):
 
 
 def resize_local_env(filename, extension):
+    if extension == 'non':
+        extension = settings.DEFAULT_IMG_FILE_TYPE
     default_storage = get_storage_class()()
     path = default_storage.path(filename)
     image = Image.open(path)
