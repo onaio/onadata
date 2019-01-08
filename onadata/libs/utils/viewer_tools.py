@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Util functions for data views.
-"""
+"""Util functions for data views."""
 import json
 import os
 import sys
@@ -27,10 +25,9 @@ from onadata.libs.utils.common_tools import report_exception
 
 SLASH = u"/"
 
+
 def image_urls_for_form(xform):
-    """
-    Returns image urls of all image attachments of the xform.
-    """
+    """Return image urls of all image attachments of the xform."""
     return sum(
         [
             image_urls(s)
@@ -39,18 +36,14 @@ def image_urls_for_form(xform):
 
 
 def get_path(path, suffix):
-    """
-    Apply the suffix to the path.
-    """
+    """Apply the suffix to the path."""
     filename, file_extension = os.path.splitext(path)
 
     return filename + suffix + file_extension
 
 
 def image_urls(instance):
-    """
-    Returns image urls of all image attachments of the submission instance.
-    """
+    """Return image urls of all image attachments of the submission instance."""
     default_storage = get_storage_class()()
     urls = []
     suffix = settings.THUMB_CONF['medium']['suffix']
@@ -66,9 +59,9 @@ def image_urls(instance):
 
 
 def parse_xform_instance(xml_str):
-    """
-    'xml_str' is a str object holding the XML of an XForm
-    instance. Return a python object representation of this XML file.
+    """'xml_str' is a str object holding the XML of an XForm instance.
+
+    Return a python object representation of this XML file.
     """
     xml_obj = minidom.parseString(xml_str)
     root_node = xml_obj.documentElement
@@ -118,9 +111,7 @@ def _path_value_pairs(node):
 
 
 def _all_attributes(node):
-    """
-    Go through an XML document returning all the attributes we see.
-    """
+    """Go through an XML document returning all the attributes we see."""
     if hasattr(node, "hasAttributes") and node.hasAttributes():
         for key in list(node.attributes):
             yield key, node.getAttribute(key)
@@ -130,9 +121,7 @@ def _all_attributes(node):
 
 
 def django_file(path, field_name, content_type):
-    """
-    Returns an InMemoryUploadedFile object for file uploads.
-    """
+    """Return an InMemoryUploadedFile object for file uploads."""
     # adapted from here: http://groups.google.com/group/django-users/browse_th\
     # read/thread/834f988876ff3c45/
     file_object = open(path, 'rb')
@@ -147,9 +136,7 @@ def django_file(path, field_name, content_type):
 
 
 def export_def_from_filename(filename):
-    """
-    Returns file extension and mimetype from filename.
-    """
+    """Return file extension and mimetype from filename."""
     __, ext = os.path.splitext(filename)
     ext = ext[1:]
     mime_type = EXPORT_MIMES[ext]
@@ -158,9 +145,7 @@ def export_def_from_filename(filename):
 
 
 def get_client_ip(request):
-    """
-    Returns an IP from HTTP_X_FORWARDED_FOR or REMOTE_ADDR request headers.
-    """
+    """Return an IP from HTTP_X_FORWARDED_FOR or REMOTE_ADDR request headers."""
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
         return x_forwarded_for.split(',')[0]
@@ -174,9 +159,7 @@ def enketo_url(form_url,
                instance_id=None,
                return_url=None,
                **kwargs):
-    """
-    Returns Enketo webform URL.
-    """
+    """Return Enketo webform URL."""
     if (not hasattr(settings, 'ENKETO_URL') or
             not hasattr(settings, 'ENKETO_API_SURVEY_PATH') or
             not hasattr(settings, 'ENKETO_API_TOKEN') or
@@ -235,9 +218,7 @@ def enketo_url(form_url,
 
 
 def generate_enketo_form_defaults(xform, **kwargs):
-    """
-    Returns Enketo default options for preloading data into a web form.
-    """
+    """Return Enketo default options for preloading data into a web form."""
     defaults = {}
 
     if kwargs:
@@ -250,9 +231,7 @@ def generate_enketo_form_defaults(xform, **kwargs):
 
 
 def create_attachments_zipfile(attachments):
-    """
-    Returns a zip file with submission attachments.
-    """
+    """Return a zip file with submission attachments."""
     # create zip_file
     tmp = NamedTemporaryFile()
     with zipfile.ZipFile(tmp, 'w', zipfile.ZIP_DEFLATED, allowZip64=True) as z:
@@ -278,9 +257,7 @@ def create_attachments_zipfile(attachments):
 
 
 def get_form(kwargs):
-    """
-    Returns XForm object by applying kwargs on an XForm queryset.
-    """
+    """Return XForm object by applying kwargs on an XForm queryset."""
     # adding inline imports here because adding them at the top of the file
     # triggers the following error:
     # django.core.exceptions.AppRegistryNotReady: Apps aren't loaded yet.
@@ -302,7 +279,7 @@ def get_form_url(request,
                  preview=False,
                  xform_pk=None):
     """
-    Returns a form list url endpoint to be used to make a request to Enketo.
+    Return a form list url endpoint to be used to make a request to Enketo.
 
     For example, it will return https://example.com and Enketo will know to
     look for the form list at https://example.com/formList. If a username is
@@ -330,10 +307,8 @@ def get_form_url(request,
 
 
 def get_enketo_edit_url(request, instance, return_url):
-    """
-    Given a submssion instance, returns an Enketo link to edit the specified
-    submission.
-    """
+    """Given a submssion instance,
+    returns an Enketo link to edit the specified submission."""
     form_url = get_form_url(
         request,
         instance.xform.user.username,
@@ -349,9 +324,7 @@ def get_enketo_edit_url(request, instance, return_url):
 
 
 def get_enketo_preview_url(request, username, id_string, xform_pk=None):
-    """
-    Returns an Enketo preview URL.
-    """
+    """Return an Enketo preview URL."""
     form_url = get_form_url(
         request, username, settings.ENKETO_PROTOCOL, True, xform_pk=xform_pk)
     values = {'form_id': id_string, 'server_url': form_url}
