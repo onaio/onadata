@@ -43,7 +43,12 @@ def get_path(path, suffix):
 
 
 def image_urls(instance):
-    """Return image urls of all image attachments of the submission instance."""
+    """
+    Return image urls of all image attachments of the submission instance.
+
+    arguments:
+    instance -- Instance submission object.
+    """
     default_storage = get_storage_class()()
     urls = []
     suffix = settings.THUMB_CONF['medium']['suffix']
@@ -145,7 +150,11 @@ def export_def_from_filename(filename):
 
 
 def get_client_ip(request):
-    """Return an IP from HTTP_X_FORWARDED_FOR or REMOTE_ADDR request headers."""
+    """Return an IP from HTTP_X_FORWARDED_FOR or REMOTE_ADDR request headers.
+
+    arguments:
+    request -- HttpRequest object.
+    """
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
         return x_forwarded_for.split(',')[0]
