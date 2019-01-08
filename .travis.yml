@@ -41,7 +41,7 @@ before_install:
   - ./script/database/install_postgis onadata_test postgres 127.0.0.1
 
 install:
-  - pip install --upgrade pip
+  - pip install --upgrade pip setuptools
   - pip install -r requirements/base.pip
   - pip install flake8
 script:
