@@ -81,8 +81,7 @@ class TestMediaViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 404)
 
     def test_retrieve_small_png(self):
-        # self._submit_transport_instance_w_attachment(
-        #     survey_at=4, media_file="ona_png_image.png")
+        """Test retrieve png images"""
         s = 'transport_2011-07-25_19-05-49_1'
         media_file = "ona_png_image.png"
 
