@@ -1,8 +1,11 @@
+import os
+
 from mock import patch
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.media_viewset import MediaViewSet
+from onadata.apps.logger.models import Attachment
 
 
 def attachment_url(attachment, suffix=None):
@@ -78,8 +81,19 @@ class TestMediaViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 404)
 
     def test_retrieve_small_png(self):
-        self._submit_transport_instance_w_attachment(
-            survey_at=4, media_file="ona_png_image.png")
+        # self._submit_transport_instance_w_attachment(
+        #     survey_at=4, media_file="ona_png_image.png")
+        s = 'transport_2011-07-25_19-05-49_1'
+        media_file = "ona_png_image.png"
+
+        path = os.path.join(self.main_directory, 'fixtures',
+                            'transportation', 'instances', s, media_file)
+        with open(path, 'rb') as f:
+            self._make_submission(os.path.join(
+                self.main_directory, 'fixtures',
+                'transportation', 'instances', s, s + '.xml'), media_file=f)
+        attachment = Attachment.objects.all().reverse()[0]
+        self.attachment = attachment
         request = self.factory.get(
             '/',
             {'filename': self.attachment.media_file.name, 'suffix': 'small'},

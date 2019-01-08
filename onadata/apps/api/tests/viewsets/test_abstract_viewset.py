@@ -59,8 +59,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
     surveys = ['transport_2011-07-25_19-05-49',
                'transport_2011-07-25_19-05-36',
                'transport_2011-07-25_19-06-01',
-               'transport_2011-07-25_19-06-14',
-               'transport_2011-07-25_19-05-49_1']
+               'transport_2011-07-25_19-06-14']
     main_directory = os.path.dirname(main_tests.__file__)
 
     profile_data = {
