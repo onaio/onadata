@@ -3506,7 +3506,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self._create_dataview()
 
         data = {
-            'name': "My DataView",
+            'name': "Another DataView",
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
             'project': 'http://testserver/api/v1/projects/%s'
                        % self.project.pk,
@@ -3548,7 +3548,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         # create dataview
         self._create_dataview()
         data = {
-            'name': "My DataView",
+            'name': "Another DataView",
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
             'project': 'http://testserver/api/v1/projects/%s'
                        % self.project.pk,
