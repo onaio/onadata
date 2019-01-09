@@ -12,7 +12,7 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericRelation
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Sum
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.utils import timezone
@@ -874,6 +874,7 @@ class XForm(XFormMixin, BaseModel):
     def __str__(self):
         return getattr(self, "id_string", "")
 
+    @transaction.atomic()
     def soft_delete(self, user=None):
         """
         Return the soft deletion timestamp
