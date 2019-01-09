@@ -1,10 +1,10 @@
 import json
 import os
 import re
-import requests
-from builtins import open
 from tempfile import NamedTemporaryFile
 
+import requests
+from builtins import open
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import Permission, User

@@ -67,9 +67,9 @@ class Command(BaseCommand):
             if not default_storage.exists(full_path):
                 try:
                     if default_storage.__class__ != fs.__class__:
-                        resize(filename)
+                        resize(filename, att.extension)
                     else:
-                        resize_local_env(filename)
+                        resize_local_env(filename, att.extension)
                     path = get_path(
                         filename, '%s' % THUMB_CONF['small']['suffix'])
                     if default_storage.exists(path):
