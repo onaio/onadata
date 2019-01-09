@@ -1,5 +1,5 @@
 """
-Setup file for onadata
+Setup file for onadata.
 
 Onadata is a Django application that provides APIs for data collection and
 aggregation.
@@ -100,6 +100,7 @@ setup(
         "python-dateutil",
         "pytz",
         "requests",
+        "requests-mock==1.5.2",
         "simplejson",
         "google-api-python-client",
         "uwsgi",
