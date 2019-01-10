@@ -206,11 +206,23 @@ class TestViewerTools(TestBase):
         self.assertEqual(
             response, 'https://enketo.ona.io/single/::XZqoZ94y')
 
-    @override_settings(TESTING_MODE=False)
-    def test_get_single_submit_url_error_action(self):
-        """Test get_single_submit_url to return appropriate error message."""
+    @override_settings(TESTING_MODE=False, ENKETO_URL='https://enketo.ona.io')
+    @requests_mock.Mocker()
+    def test_get_single_submit_url_error_action(self, mocked):
+        """Test get_single_submit_url to raises EnketoError."""
         request = RequestFactory().get('/')
 
-        with self.assertRaises(EnketoError):
-            get_single_submit_url(
-                request, username='Milly', id_string="tag_team", xform_pk=1)
+        enketo_url = settings.ENKETO_URL + "/api/v2/survey/single/once"
+        username = "Milly"
+        server_url = get_form_url(
+            request, username, settings.ENKETO_PROTOCOL, True, xform_pk=1)
+
+        url = '{}?server_url={}&form_id={}'.format(
+            enketo_url, server_url, "tag_team")
+        mocked.get(url, status_code=401)
+        msg = "There was a problem with your submissionor form. \
+        Please contact support."
+        self.assertRaisesMessage(
+            EnketoError,
+            msg, get_single_submit_url,
+            request, username, "tag_team", 1)
