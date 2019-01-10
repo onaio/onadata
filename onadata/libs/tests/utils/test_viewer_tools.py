@@ -220,8 +220,8 @@ class TestViewerTools(TestBase):
         url = '{}?server_url={}&form_id={}'.format(
             enketo_url, server_url, "tag_team")
         mocked.get(url, status_code=401)
-        msg = "There was a problem with your submissionor form. \
-        Please contact support."
+        msg = "There was a problem with your submissionor form."\
+            " Please contact support."
         self.assertRaisesMessage(
             EnketoError,
             msg, get_single_submit_url,
