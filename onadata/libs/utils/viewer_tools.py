@@ -374,7 +374,7 @@ def get_single_submit_url(request, username, id_string, xform_pk=None):
     response = requests.get(url, auth=(settings.ENKETO_API_TOKEN, ''))
 
     if response.status_code == 200:
-        data = response.json()
+        data = json.loads(response.content)
         submission_url = data['single_url']
         return submission_url
 

@@ -693,7 +693,9 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get('/', **self.extra)
             with HTTMock(enketo_single_submission_mock):
                 response = view(request, pk=form_id)
-                url = response.data['single_url']
+                data = response.render()
+                data_content = json.loads(data.content)
+                url = data_content['single_url']
                 self.assertEqual(response.data['single_url'], url)
                 self.assertEqual(response.status_code, 200)
 
