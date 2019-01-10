@@ -4455,3 +4455,27 @@ class TestXFormViewSet(TestAbstractViewSet):
                         self.assertTrue(isinstance(row[name_index], str))
                     except ValueError:
                         self.assertTrue(isinstance(row[name_index], str))
+
+    def test_csv_xls_import_errors(self):
+        with HTTMock(enketo_mock):
+            xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
+                                    "tests", "fixtures", "tutorial.xls")
+            self._publish_xls_form_to_project(xlsform_path=xls_path)
+            view = XFormViewSet.as_view({'post': 'data_import'})
+
+            csv_import = fixtures_path('good.csv')
+            xls_import = fixtures_path('good.xls')
+
+            post_data = {'xls_file': csv_import}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request, pk=self.xform.id)
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(
+                response.data.get('error'), 'xls_file not an excel file')
+
+            post_data = {'csv_file': xls_import}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request, pk=self.xform.id)
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(
+                response.data.get('error'), 'csv_file not a csv file')
