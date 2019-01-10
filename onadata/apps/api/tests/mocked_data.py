@@ -77,6 +77,18 @@ def enketo_mock(url, request):  # pylint: disable=unused-argument
     return response
 
 
+@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
+def enketo_single_submission_mock(url, request):
+    """Return mocked enketo single submission Response object."""
+    response = requests.Response()
+    response.status_code = 200
+    # pylint: disable=protected-access
+    response._content = \
+        '{\n  "single_url": "https://enketo.ona.io/single/::XZqoZ94y",\n'\
+        '  "code": "200"\n}'
+    return response
+
+
 @urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$', path=r'^/api_v1/survey/preview$')
 def enketo_preview_url_mock(url, request):  # pylint: disable=unused-argument
     """

@@ -416,11 +416,11 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         return Response(data, http_status)
 
     @action(methods=['GET'], detail=True)
-    def submit_url_preview(self, request, **kwargs):
+    def submit_url(self, request, **kwargs):
         """Expose single submit url."""
         self.object = self.get_object()
         form_id = self.object.id_string
-        username = self.object.username
+        username = self.object.user
         xform_pk = self.object.pk
         try:
             submission_url = get_single_submit_url(
@@ -433,7 +433,6 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                 data = {"single_url": submission_url}
 
         return Response(data)
-
 
     @action(methods=['POST', 'GET'], detail=False)
     def survey_preview(self, request, **kwargs):

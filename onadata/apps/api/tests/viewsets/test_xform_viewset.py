@@ -39,7 +39,8 @@ from onadata.apps.api.tests.mocked_data import (
     enketo_url_mock, external_mock, external_mock_single_instance,
     external_mock_single_instance2, xls_url_no_extension_mock,
     xls_url_no_extension_mock_content_disposition_attr_jumbled_v1,
-    xls_url_no_extension_mock_content_disposition_attr_jumbled_v2)
+    xls_url_no_extension_mock_content_disposition_attr_jumbled_v2,
+    enketo_single_submission_mock)
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
@@ -677,6 +678,27 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.data, [])
+
+    @override_settings(TESTING_MODE=False)
+    def test_single_submit_url(self):
+        """Test submission url."""
+        with HTTMock(enketo_single_submission_mock):
+            self._publish_xls_form_to_project()
+            form_id = self.xform.pk
+
+            view = XFormViewSet.as_view({
+                'get': 'submit_url'
+            })
+
+            request = self.factory.get('/', **self.extra)
+            with HTTMock(enketo_single_submission_mock):
+                response = view(request, pk=form_id)
+                url = response.data['single_url']
+                self.assertEqual(response.data['single_url'], url)
+                self.assertEqual(response.status_code, 200)
+
+                response = self.view(request, pk=form_id)
+                self.assertEqual(response.status_code, 200)
 
     def test_enketo_url_no_account(self):
         with HTTMock(enketo_mock):
