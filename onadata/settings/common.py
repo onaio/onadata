@@ -9,14 +9,22 @@
 # imports this one.
 # The local files should be used as the value for your DJANGO_SETTINGS_MODULE
 # environment variable as needed.
+import logging
 import os
 import socket
+import subprocess  # noqa, used by included files
 import sys
 from imp import reload
 
-from celery.signals import after_setup_logger
 from future.moves.urllib.parse import urljoin
+
 from past.builtins import basestring
+
+from django.core.exceptions import SuspiciousOperation
+from django.utils.log import AdminEmailHandler
+
+from celery.signals import after_setup_logger
+
 
 # setting default encoding to utf-8
 if sys.version[0] == '2':
