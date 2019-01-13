@@ -555,3 +555,10 @@ except ImportError:
 # email verification
 ENABLE_EMAIL_VERIFICATION = False
 VERIFIED_KEY_TEXT = 'ALREADY_ACTIVATED'
+
+XLS_MIME_TYPES = [
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+]
+
+CSV_MIME_TYPE = 'text/csv'
