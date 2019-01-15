@@ -424,8 +424,8 @@ def generate_attachments_zip_export(export_type, username, id_string,
             attachments = attachments.filter(
                 instance__xform_id__in=[
                     i for i in xform.mergedxform.xforms.filter(
-                        deleted_at__isnull=True).values_list('id',
-                                                             flat=True)]).filter(
+                        deleted_at__isnull=True).values_list(
+                        'id', flat=True)]).filter(
                 instance_id__in=[i_id['_id'] for i_id in instance_ids])
         else:
             attachments = attachments.filter(
