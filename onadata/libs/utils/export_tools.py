@@ -9,11 +9,10 @@ import json
 import os
 import re
 import sys
-import builtins
 from datetime import datetime, timedelta
-from future.moves.urllib.parse import urlparse
-from future.utils import iteritems
 
+import builtins
+import six
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.base import File
@@ -23,8 +22,8 @@ from django.db.models.query import QuerySet
 from django.shortcuts import render_to_response
 from django.utils import timezone
 from django.utils.translation import ugettext as _
-
-import six
+from future.moves.urllib.parse import urlparse
+from future.utils import iteritems
 from json2xlsclient.client import Client
 from rest_framework import exceptions
 from savReaderWriter import SPSSIOError
@@ -404,6 +403,7 @@ def generate_attachments_zip_export(export_type, username, id_string,
         ext: File extension of the generated export
     """
     export_type = options.get("extension", export_type)
+    filter_query = options.get("query")
 
     if xform is None:
         xform = XForm.objects.get(user__username=username, id_string=id_string)
@@ -413,18 +413,24 @@ def generate_attachments_zip_export(export_type, username, id_string,
         attachments = Attachment.objects.filter(
             instance_id__in=[
                 rec.get('_id')
-                for rec in dataview.query_data(dataview, all_data=True)],
+                for rec in dataview.query_data(
+                    dataview, all_data=True, filter_query=filter_query)],
             instance__deleted_at__isnull=True)
     else:
+        instance_ids = query_data(xform, fields='["_id"]', query=filter_query)
         attachments = Attachment.objects.filter(
             instance__deleted_at__isnull=True)
         if xform.is_merged_dataset:
             attachments = attachments.filter(
                 instance__xform_id__in=[
                     i for i in xform.mergedxform.xforms.filter(
-                        deleted_at__isnull=True).values_list('id', flat=True)])
+                        deleted_at__isnull=True).values_list('id',
+                                                             flat=True)]).filter(
+                instance_id__in=[i_id['_id'] for i_id in instance_ids])
         else:
-            attachments = attachments.filter(instance__xform_id=xform.pk)
+            attachments = attachments.filter(
+                instance__xform_id=xform.pk).filter(
+                instance_id__in=[i_id['_id'] for i_id in instance_ids])
 
     filename = "%s_%s.%s" % (id_string,
                              datetime.now().strftime("%Y_%m_%d_%H_%M_%S"),
