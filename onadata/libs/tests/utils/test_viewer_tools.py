@@ -14,9 +14,7 @@ from onadata.libs.utils.viewer_tools import (export_def_from_filename,
                                              generate_enketo_form_defaults,
                                              get_client_ip, get_form,
                                              get_form_url,
-                                             create_attachments_zipfile)
-                                             get_submission_url)
-                                             get_single_submit_url)
+                                             get_enketo_single_submit_url)
 
 
 class TestViewerTools(TestBase):
@@ -180,7 +178,7 @@ class TestViewerTools(TestBase):
         """Test get_submissions_url()."""
     @override_settings(TESTING_MODE=False, ENKETO_URL='https://enketo.ona.io')
     @requests_mock.Mocker()
-    def test_get_single_submit_url(self, mocked):
+    def test_get_enketo_single_submit_url(self, mocked):
         """Test get_single_submit_url.
 
         Ensures single submit url is being received.
@@ -200,7 +198,7 @@ class TestViewerTools(TestBase):
         url = '{}?server_url={}&form_id={}'.format(
             enketo_url, server_url, "tag_team")
         mocked.get(url, json=mocked_response)
-        response = get_single_submit_url(
+        response = get_enketo_single_submit_url(
             request, username, id_string="tag_team", xform_pk=1)
 
         self.assertEqual(
@@ -224,5 +222,5 @@ class TestViewerTools(TestBase):
             " Please contact support."
         self.assertRaisesMessage(
             EnketoError,
-            msg, get_single_submit_url,
+            msg, get_enketo_single_submit_url,
             request, username, "tag_team", 1)
