@@ -679,29 +679,6 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.data, [])
 
-    @override_settings(TESTING_MODE=False)
-    def test_single_submit_url(self):
-        """Test submission url."""
-        with HTTMock(enketo_single_submission_mock):
-            self._publish_xls_form_to_project()
-            form_id = self.xform.pk
-
-            view = XFormViewSet.as_view({
-                'get': 'submit_url'
-            })
-
-            request = self.factory.get('/', **self.extra)
-            with HTTMock(enketo_single_submission_mock):
-                response = view(request, pk=form_id)
-                data = response.render()
-                data_content = json.loads(data.content)
-                url = data_content['single_url']
-                self.assertEqual(response.data['single_url'], url)
-                self.assertEqual(response.status_code, 200)
-
-                response = self.view(request, pk=form_id)
-                self.assertEqual(response.status_code, 200)
-
     def test_enketo_url_no_account(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
@@ -756,8 +733,11 @@ class TestXFormViewSet(TestAbstractViewSet):
                     response.status_code, status.HTTP_400_BAD_REQUEST)
                 self.assertEqual(response.data, data)
 
+    @override_settings(TESTING_MODE=False)
     def test_enketo_url(self):
-        with HTTMock(enketo_preview_url_mock, enketo_url_mock):
+        """Test functionality to expose enketo urls."""
+        with HTTMock(enketo_preview_url_mock, enketo_url_mock,
+                     enketo_single_submission_mock):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({
                 'get': 'enketo'
@@ -768,7 +748,9 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=formid)
             url = "https://enketo.ona.io/::YY8M"
             preview_url = "https://enketo.ona.io/preview/::YY8M"
-            data = {"enketo_url": url, "enketo_preview_url": preview_url}
+            submit_url = "https://enketo.ona.io/single/::XZqoZ94y"
+            data = {"enketo_url": url, "enketo_preview_url": preview_url,
+                    "single_url": submit_url}
             self.assertEqual(response.data, data)
 
     def test_enketo_url_with_default_form_params(self):

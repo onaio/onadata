@@ -73,7 +73,7 @@ from onadata.libs.utils.viewer_tools import (enketo_url,
                                              generate_enketo_form_defaults,
                                              get_enketo_preview_url,
                                              get_form_url,
-                                             get_single_submit_url)
+                                             get_enketo_single_submit_url)
 from onadata.libs.exceptions import EnketoError
 from onadata.settings.common import XLS_EXTENSIONS, CSV_EXTENSION
 
@@ -388,6 +388,8 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
     @action(methods=['GET'], detail=True)
     def enketo(self, request, **kwargs):
+        """Expose enketo urls."""
+        url = self.kwargs.get('url')
         self.object = self.get_object()
         form_url = get_form_url(
             request, self.object.user.username, settings.ENKETO_PROTOCOL,
@@ -401,38 +403,31 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             request_vars = request.GET
             defaults = generate_enketo_form_defaults(
                 self.object, **request_vars)
-            url = enketo_url(form_url, self.object.id_string, **defaults)
+            enketos_url = enketo_url(
+                form_url, self.object.id_string, **defaults)
             preview_url = get_enketo_preview_url(request,
                                                  self.object.user.username,
                                                  self.object.id_string,
                                                  xform_pk=self.object.pk)
+            submission_url = get_enketo_single_submit_url(
+                request, self.object.user.username, self.object.id_string,
+                xform_pk=self.object.pk)
         except EnketoError as e:
             data = {'message': _(u"Enketo error: %s" % e)}
         else:
-            if url and preview_url:
-                http_status = status.HTTP_200_OK
-                data = {"enketo_url": url, "enketo_preview_url": preview_url}
+            http_status = status.HTTP_200_OK
+            if url == 'enketo_url':
+                data = {"enketo_url": enketos_url}
+            elif url == 'preview_url':
+                data = {"enketo_preview_url": preview_url}
+            elif url == 'single_url':
+                data = {"single_url": submission_url}
+            elif enketos_url and preview_url and submission_url:
+                data = {"enketo_url": enketos_url,
+                        "enketo_preview_url": preview_url,
+                        "single_url": submission_url}
 
         return Response(data, http_status)
-
-    @action(methods=['GET'], detail=True)
-    def submit_url(self, request, **kwargs):
-        """Expose single submit url."""
-        self.object = self.get_object()
-        form_id = self.object.id_string
-        username = self.object.user
-        xform_pk = self.object.pk
-        try:
-            submission_url = get_single_submit_url(
-                request, username, form_id, xform_pk)
-
-        except EnketoError as e:
-            data = {'message': _(u"Enketo error: %s" % e)}
-        else:
-            if submission_url:
-                data = {"single_url": submission_url}
-
-        return Response(data)
 
     @action(methods=['POST', 'GET'], detail=False)
     def survey_preview(self, request, **kwargs):
