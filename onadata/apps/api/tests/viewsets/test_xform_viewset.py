@@ -753,8 +753,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.data, data)
 
     def test_enketo_url_with_default_form_params(self):
-        with HTTMock(enketo_preview_url_mock, enketo_mock_with_form_defaults,
-                     enketo_single_submission_mock):
+        with HTTMock(enketo_preview_url_mock, enketo_mock_with_form_defaults):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({
                 'get': 'enketo'
@@ -766,9 +765,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=formid)
             url = "https://dmfrm.enketo.org/webform?d[%2Fnum]=1"
             preview_url = "https://enketo.ona.io/preview/::YY8M"
-            submit_url = "https://enketo.ona.io/single/::XZqoZ94y"
-            data = {"enketo_url": url, "enketo_preview_url": preview_url,
-                    "single_url": submit_url}
+            data = {"enketo_url": url, "enketo_preview_url": preview_url}
             self.assertEqual(response.data, data)
 
     def test_handle_memory_error_on_form_replacement(self):

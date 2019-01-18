@@ -389,7 +389,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
     @action(methods=['GET'], detail=True)
     def enketo(self, request, **kwargs):
         """Expose enketo urls."""
-        url = self.kwargs.get('url')
+        url_type = self.kwargs.get('url')
         self.object = self.get_object()
         form_url = get_form_url(
             request, self.object.user.username, settings.ENKETO_PROTOCOL,
@@ -403,29 +403,24 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             request_vars = request.GET
             defaults = generate_enketo_form_defaults(
                 self.object, **request_vars)
-            enketos_url = enketo_url(
+            url = enketo_url(
                 form_url, self.object.id_string, **defaults)
             preview_url = get_enketo_preview_url(request,
                                                  self.object.user.username,
                                                  self.object.id_string,
                                                  xform_pk=self.object.pk)
-            submission_url = get_enketo_single_submit_url(
-                request, self.object.user.username, self.object.id_string,
-                xform_pk=self.object.pk)
         except EnketoError as e:
             data = {'message': _(u"Enketo error: %s" % e)}
         else:
-            http_status = status.HTTP_200_OK
-            if url == 'enketo_url':
-                data = {"enketo_url": enketos_url}
-            elif url == 'preview_url':
-                data = {"enketo_preview_url": preview_url}
-            elif url == 'single_url':
-                data = {"single_url": submission_url}
-            elif enketos_url and preview_url and submission_url:
-                data = {"enketo_url": enketos_url,
-                        "enketo_preview_url": preview_url,
-                        "single_url": submission_url}
+            if url and preview_url:
+                http_status = status.HTTP_200_OK
+                data = {"enketo_url": url,
+                        "enketo_preview_url": preview_url}
+            elif url_type == 'single_submit':
+                single_submit_url = get_enketo_single_submit_url(
+                    request, self.object.user.username, self.object.id_string,
+                    xform_pk=self.object.pk)
+                data = {"single_submit_url": single_submit_url}
 
         return Response(data, http_status)
 
