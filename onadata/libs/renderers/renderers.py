@@ -7,13 +7,11 @@ import json
 import math
 from io import BytesIO
 
-from future.utils import iteritems
-
+import pytz
 from django.utils.dateparse import parse_datetime
 from django.utils.encoding import smart_text
 from django.utils.xmlutils import SimplerXMLGenerator
-
-import pytz
+from future.utils import iteritems
 from rest_framework import negotiation
 from rest_framework.compat import six
 from rest_framework.renderers import (BaseRenderer, JSONRenderer,
@@ -29,6 +27,14 @@ IGNORE_FIELDS = [
     'meta/deprecatedID',
     'meta/instanceID',
     'meta/sessionID',
+]
+
+FORMLIST_MANDATORY_FIELDS = [
+    'formID',
+    'name',
+    'version',
+    'hash',
+    'downloadUrl'
 ]
 
 
@@ -244,9 +250,12 @@ class XFormListRenderer(BaseRenderer):  # pylint: disable=R0903
 
         elif isinstance(data, dict):
             for (key, value) in iteritems(data):
-                xml.startElement(key, {})
-                self._to_xml(xml, value)
-                xml.endElement(key)
+                if key not in FORMLIST_MANDATORY_FIELDS and value is None:
+                    pass
+                else:
+                    xml.startElement(key, {})
+                    self._to_xml(xml, value)
+                    xml.endElement(key)
 
         elif data is None:
             # Don't output any value
