@@ -3,19 +3,19 @@ import fnmatch
 import json
 import os
 import re
+from datetime import datetime
+from hashlib import md5
+from xml.dom import minidom, Node
+
 import pytz
 from builtins import open
-from datetime import datetime
-from future.utils import iteritems
-from hashlib import md5
-from mock import patch
-
-from django.core.urlresolvers import reverse
 from django.conf import settings
-from django_digest.test import Client as DigestClient
 from django.core.files.uploadedfile import UploadedFile
+from django.core.urlresolvers import reverse
+from django_digest.test import Client as DigestClient
+from future.utils import iteritems
+from mock import patch
 from xlrd import open_workbook
-from xml.dom import minidom, Node
 
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
@@ -25,7 +25,6 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
 from onadata.libs.utils.common_tools import get_response_content
-
 
 uuid_regex = re.compile(
     r'(</instance>.*uuid[^//]+="\')([^\']+)(\'".*)', re.DOTALL)
@@ -217,7 +216,7 @@ class TestProcess(TestBase):
             % (self.user.username, self.xform.pk)
         md5_hash = md5(self.xform.xml.encode('utf-8')).hexdigest()
         expected_content = """<?xml version="1.0" encoding="utf-8"?>
-<xforms xmlns="http://openrosa.org/xforms/xformsList"><xform><formID>transportation_2011_07_25</formID><name>transportation_2011_07_25</name><version>2014111</version><hash>md5:%(hash)s</hash><descriptionText></descriptionText><downloadUrl>%(download_url)s</downloadUrl><manifestUrl></manifestUrl></xform></xforms>"""  # noqa
+<xforms xmlns="http://openrosa.org/xforms/xformsList"><xform><formID>transportation_2011_07_25</formID><name>transportation_2011_07_25</name><version>2014111</version><hash>md5:%(hash)s</hash><descriptionText></descriptionText><downloadUrl>%(download_url)s</downloadUrl></xform></xforms>"""  # noqa
         expected_content = expected_content % {
             'download_url': self.download_url,
             'hash': md5_hash
