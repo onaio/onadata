@@ -251,11 +251,10 @@ class XFormListRenderer(BaseRenderer):  # pylint: disable=R0903
         elif isinstance(data, dict):
             for (key, value) in iteritems(data):
                 if key not in FORMLIST_MANDATORY_FIELDS and value is None:
-                    pass
-                else:
-                    xml.startElement(key, {})
-                    self._to_xml(xml, value)
-                    xml.endElement(key)
+                    continue
+                xml.startElement(key, {})
+                self._to_xml(xml, value)
+                xml.endElement(key)
 
         elif data is None:
             # Don't output any value
