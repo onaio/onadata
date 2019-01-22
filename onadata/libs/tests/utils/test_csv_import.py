@@ -63,7 +63,6 @@ class CSVImportTestCase(TestBase):
 
         self.assertEqual(safe_create_args[0], self.user.username,
                          'Wrong username passed')
-        __import__('ipdb').set_trace()
         self.assertEqual(
             strip_xml_uuid(safe_create_args[1].getvalue()),
             strip_xml_uuid(xml_file_param.getvalue()),
