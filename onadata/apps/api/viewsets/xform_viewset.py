@@ -74,7 +74,7 @@ from onadata.libs.utils.viewer_tools import (enketo_url,
                                              get_enketo_preview_url,
                                              get_form_url)
 from onadata.libs.exceptions import EnketoError
-from onadata.settings.common import XLS_MIME_TYPES, CSV_MIME_TYPE
+from onadata.settings.common import XLS_EXTENSIONS, CSV_EXTENSION
 
 ENKETO_AUTH_COOKIE = getattr(settings, 'ENKETO_AUTH_COOKIE',
                              '__enketo')
@@ -586,14 +586,15 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             if csv_file is None and xls_file is None:
                 resp.update({u'error': u'csv_file and xls_file field empty'})
 
-            elif xls_file and xls_file.content_type not in XLS_MIME_TYPES:
+            elif xls_file and \
+                    xls_file.name.split('.')[-1] not in XLS_EXTENSIONS:
                 resp.update({u'error': u'xls_file not an excel file'})
 
-            elif csv_file and csv_file.content_type != CSV_MIME_TYPE:
+            elif csv_file and csv_file.name.split('.')[-1] != CSV_EXTENSION:
                 resp.update({u'error': u'csv_file not a csv file'})
 
             else:
-                if xls_file and xls_file.content_type in XLS_MIME_TYPES:
+                if xls_file and xls_file.name.split('.')[-1] in XLS_EXTENSIONS:
                     csv_file = submission_xls_to_csv(xls_file)
                 overwrite = request.query_params.get('overwrite')
                 overwrite = True \
@@ -649,7 +650,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             csv_file = request.FILES.get('csv_file', None)
             if csv_file is None:
                 resp.update({u'error': u'csv_file field empty'})
-            elif csv_file.content_type != CSV_MIME_TYPE:
+            elif csv_file.name.split('.')[-1] != CSV_EXTENSION:
                 resp.update({u'error': u'csv_file not a csv file'})
             else:
                 overwrite = request.query_params.get('overwrite')
