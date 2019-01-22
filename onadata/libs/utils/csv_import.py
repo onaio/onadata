@@ -247,7 +247,9 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                 del row[index]
 
             # fetch submission uuid before purging row metadata
-            row_uuid = row.get('meta/instanceID') or row.get('_uuid')
+
+            row_uuid = row.get('_uuid') or row.get(
+                'meta/instanceID').replace('uuid:', '')
             submitted_by = row.get('_submitted_by')
             submission_date = row.get('_submission_time', submission_time)
 
