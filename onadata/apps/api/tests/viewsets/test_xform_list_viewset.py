@@ -1,7 +1,7 @@
 import os
-from builtins import open
 from hashlib import md5
 
+from builtins import open
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.test import TransactionTestCase
@@ -894,9 +894,9 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         # success with authentication
         self.assertEqual(response.status_code, 200)
 
-    def test_manifest_url_tag_is_empty_when_no_media(self):
+    def test_manifest_url_tag_is_not_present_when_no_media(self):
         """
-        Test that content contains an empty tag for manifest url
+        Test that content does not contain a manifest url
         only when the form has no media
         """
         request = self.factory.get('/')
@@ -905,7 +905,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(response.status_code, 200)
         content = response.render().content.decode('utf-8')
         manifest_url = ('<manifestUrl></manifestUrl>')
-        self.assertTrue(manifest_url in content)
+        self.assertNotIn(manifest_url, content)
 
         # Add media and test that manifest url exists
         data_type = 'media'
