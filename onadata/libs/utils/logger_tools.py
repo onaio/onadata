@@ -14,7 +14,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import (MultipleObjectsReturned, PermissionDenied,
                                     ValidationError)
 from django.core.files.storage import get_storage_class
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, transaction, DataError
 from django.db.models import Q
 from django.http import (HttpResponse, HttpResponseNotFound,
                          StreamingHttpResponse, UnreadablePostError)
@@ -353,7 +353,6 @@ def create_instance(username,
             instance.save()
 
         instance = DuplicateInstance()
-
     return instance
 
 
@@ -403,6 +402,8 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
         error = OpenRosaResponseBadRequest(
             _(u"Unable to submit because there are multiple forms with"
               u" this formID."))
+    except DataError as e:
+        error = OpenRosaResponseBadRequest((str(e)))
     if isinstance(instance, DuplicateInstance):
         response = OpenRosaResponse(_(u"Duplicate submission"))
         response.status_code = 202
@@ -410,7 +411,6 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
             response['Location'] = request.build_absolute_uri(request.path)
         error = response
         instance = None
-
     return [error, instance]
 
 

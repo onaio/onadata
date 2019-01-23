@@ -596,3 +596,26 @@ class TestFormSubmission(TestBase):
         self.assertEqual(self.response.status_code, 400)
 
         self.assertEquals(0, self.xform.instances.count())
+
+    def test_form_submission_with_infinity_values(self):
+        """
+        When using a calculate field in XLSForm the result may be an infinity
+        value which would not be valid for a Postgres json field.
+        This would result in a DataError exception being thrown by
+        Django. Postgres Error would be `Invalid Token Infinity`
+
+        This test confirms that we are handling such cases and they do not
+        result in  500 response codes.
+        """
+        xls_file_path = os.path.join(os.path.dirname(
+            os.path.abspath(__file__)), "../tests/fixtures/infinity.xls"
+        )
+        self._publish_xls_file_and_set_xform(xls_file_path)
+        xml_submission_file_path = os.path.join(os.path.dirname(
+            os.path.abspath(__file__)), "../tests/fixtures/infinity.xml"
+        )
+
+        self._make_submission(path=xml_submission_file_path)
+        self.assertEquals(400, self.response.status_code)
+        self.assertIn(
+            'invalid input syntax for type json', str(self.response.message))
