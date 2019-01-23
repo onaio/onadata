@@ -11,7 +11,6 @@
 -e git+https://github.com/onaio/python-json2xlsclient.git@62b4645f7b4f2684421a13ce98da0331a9dd66a0#egg=python-json2xlsclient
 alabaster==0.7.12         # via sphinx
 amqp==2.3.2               # via kombu
-appnope==0.1.0            # via ipython
 argparse==1.4.0           # via unittest2
 astroid==1.6.5            # via pylint
 babel==2.6.0              # via sphinx
@@ -62,6 +61,7 @@ flake8==3.5.0
 fleming==0.4.6            # via django-query-builder
 formencode==1.3.1         # via pyxform
 funcsigs==1.0.2           # via mock
+functools32==3.2.3.post2  # via jsonschema, pyxform
 future==0.17.1
 futures==3.2.0            # via isort
 geojson==2.4.1
