@@ -5,21 +5,19 @@ Test api_export_tools module.
 from collections import OrderedDict, defaultdict
 
 import mock
-
-from kombu.exceptions import OperationalError
-from celery import current_app
 from celery.backends.amqp import BacklogLimitExceeded
-from django.conf import settings
 from django.http import Http404
+from django.test.utils import override_settings
+from kombu.exceptions import OperationalError
 from rest_framework.request import Request
 
 from onadata.apps.logger.models import XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export, ExportConnectionError
+from onadata.libs.exceptions import ServiceUnavailable
 from onadata.libs.utils.api_export_tools import (
     get_async_response, process_async_export, response_for_format)
 from onadata.libs.utils.async_status import SUCCESSFUL, status_msg
-from onadata.libs.exceptions import ServiceUnavailable
 
 
 class TestApiExportTools(TestBase):
@@ -56,13 +54,11 @@ class TestApiExportTools(TestBase):
         self.assertIn('job_uuid', resp)
 
     # pylint: disable=invalid-name
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_process_async_export_returns_existing_export(self):
         """
         Test process_async_export returns existing export.
         """
-        settings.CELERY_TASK_ALWAYS_EAGER = True
-        current_app.conf.CELERY_TASK_ALWAYS_EAGER = True
-
         self._publish_transportation_form_and_submit_instance()
         options = {
             "group_delimiter": "/",
@@ -85,6 +81,7 @@ class TestApiExportTools(TestBase):
 
     # pylint: disable=invalid-name
     @mock.patch('onadata.libs.utils.api_export_tools.AsyncResult')
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_get_async_response_export_does_not_exist(self, AsyncResult):
         """
         Test get_async_response export does not exist.
@@ -98,8 +95,6 @@ class TestApiExportTools(TestBase):
                 self.result = 1
 
         AsyncResult.return_value = MockAsyncResult()
-        settings.CELERY_TASK_ALWAYS_EAGER = True
-        current_app.conf.CELERY_TASK_ALWAYS_EAGER = True
         self._publish_transportation_form_and_submit_instance()
         request = self.factory.post('/')
         request.user = self.user
@@ -109,6 +104,7 @@ class TestApiExportTools(TestBase):
 
     # pylint: disable=invalid-name
     @mock.patch('onadata.libs.utils.api_export_tools.AsyncResult')
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_get_async_response_export_backlog_limit(self, AsyncResult):
         """
         Test get_async_response export backlog limit exceeded.
@@ -126,8 +122,6 @@ class TestApiExportTools(TestBase):
                 raise BacklogLimitExceeded()
 
         AsyncResult.return_value = MockAsyncResult()
-        settings.CELERY_TASK_ALWAYS_EAGER = True
-        current_app.conf.CELERY_TASK_ALWAYS_EAGER = True
         self._publish_transportation_form_and_submit_instance()
         request = self.factory.post('/')
         request.user = self.user
@@ -170,17 +164,44 @@ class TestApiExportTools(TestBase):
                 request, self.xform, export_type, options=options)
 
     # pylint: disable=invalid-name
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @mock.patch('onadata.libs.utils.api_export_tools.AsyncResult')
     def test_get_async_response_connection_error(self, AsyncResult):
         """
         Test get_async_response connection error.
         """
         AsyncResult.side_effect = OperationalError
-        settings.CELERY_TASK_ALWAYS_EAGER = True
-        current_app.conf.CELERY_TASK_ALWAYS_EAGER = True
         self._publish_transportation_form_and_submit_instance()
         request = self.factory.post('/')
         request.user = self.user
 
         with self.assertRaises(ServiceUnavailable):
             get_async_response('job_uuid', request, self.xform)
+
+    @mock.patch('onadata.libs.utils.api_export_tools.AsyncResult')
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    def test_get_async_response_when_result_changes_in_subsequent_calls(
+            self, AsyncResult):
+        """
+        Test get_async_response export does not exist.
+        """
+
+        class MockAsyncResult(object):  # pylint: disable=R0903
+            """Mock AsyncResult"""
+            res = [1, {'PENDING': 'PENDING'}]
+
+            def __init__(self):
+                self.state = "PENDING"
+
+            @property
+            def result(self):
+                """Return different states depending on when it's called"""
+                return self.res.pop()
+
+        AsyncResult.return_value = MockAsyncResult()
+        self._publish_transportation_form_and_submit_instance()
+        request = self.factory.post('/')
+        request.user = self.user
+
+        result = get_async_response('job_uuid', request, self.xform)
+        self.assertEqual(result, {'job_status': 'PENDING', 'progress': '1'})

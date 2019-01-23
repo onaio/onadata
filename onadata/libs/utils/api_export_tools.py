@@ -7,15 +7,14 @@ import os
 import sys
 from datetime import datetime
 
+import httplib2
+from celery.backends.amqp import BacklogLimitExceeded
+from celery.result import AsyncResult
 from django.conf import settings
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.utils import six
 from django.utils.translation import ugettext as _
-
-import httplib2
-from celery.backends.amqp import BacklogLimitExceeded
-from celery.result import AsyncResult
 from kombu.exceptions import OperationalError
 from oauth2client import client as google_client
 from oauth2client.client import (HttpAccessTokenRefreshError,
@@ -506,10 +505,11 @@ def get_async_response(job_uuid, request, xform, count=0):
 
             # append task result to the response
             if job.result:
-                if isinstance(job.result, dict):
-                    resp.update(job.result)
+                result = job.result
+                if isinstance(result, dict):
+                    resp.update(result)
                 else:
-                    resp.update({'progress': str(job.result)})
+                    resp.update({'progress': str(result)})
     except (OperationalError, ConnectionError) as e:
         report_exception("Connection Error", e, sys.exc_info())
         if count > 0:
