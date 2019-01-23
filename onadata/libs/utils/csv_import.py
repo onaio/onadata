@@ -54,7 +54,7 @@ def get_submission_meta_dict(xform, instance_id):
     :return: The metadata dict
     :rtype:  dict
     """
-    uuid_arg = 'uuid:{}'.format(instance_id or uuid.uuid4())
+    uuid_arg = instance_id or 'uuid:{}'.format(uuid.uuid4())
     meta = {'instanceID': uuid_arg}
 
     update = 0
@@ -63,7 +63,7 @@ def get_submission_meta_dict(xform, instance_id):
         uuid_arg = 'uuid:{}'.format(uuid.uuid4())
         meta.update({
             'instanceID': uuid_arg,
-            'deprecatedID': 'uuid:{}'.format(instance_id)
+            'deprecatedID': instance_id
         })
         update += 1
     return [meta, update]
@@ -248,8 +248,8 @@ def submit_csv(username, xform, csv_file, overwrite=False):
 
             # fetch submission uuid before purging row metadata
 
-            row_uuid = row.get('_uuid') or row.get(
-                'meta/instanceID').replace('uuid:', '')
+            row_uuid = row.get('meta/instanceID') or 'uuid:{}'.format(
+                row.get('_uuid'))
             submitted_by = row.get('_submitted_by')
             submission_date = row.get('_submission_time', submission_time)
 
