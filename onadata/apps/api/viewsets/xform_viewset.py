@@ -412,15 +412,15 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         except EnketoError as e:
             data = {'message': _(u"Enketo error: %s" % e)}
         else:
-            if url and preview_url:
-                http_status = status.HTTP_200_OK
-                data = {"enketo_url": url,
-                        "enketo_preview_url": preview_url}
-            elif url_type == 'single_submit':
+            if url_type == 'single_submit':
                 single_submit_url = get_enketo_single_submit_url(
                     request, self.object.user.username, self.object.id_string,
                     xform_pk=self.object.pk)
                 data = {"single_submit_url": single_submit_url}
+            elif url and preview_url:
+                http_status = status.HTTP_200_OK
+                data = {"enketo_url": url,
+                        "enketo_preview_url": preview_url}
 
         return Response(data, http_status)
 
