@@ -34,7 +34,7 @@ Changelog for onadata
 
 - Return better error messages on invalid csv/xls imports
   `Fixes #987 <https://github.com/onaio/onadata/issues/987>`_
-  []
+  [lincmba]
 
 - Filter media attachments exports
   `Fixes #1028 <https://github.com/onaio/onadata/issues/1028>`_
@@ -55,6 +55,14 @@ Changelog for onadata
 - Handle DataError during XForms submission
   `Fixes #949 <https://github.com/onaio/onadata/issues/949>`_
   [bmarika]
+
+- Escape apostrophes in SQL queries
+  `Fixes #1525 <https://github.com/onaio/onadata/issues/1525>`_
+  [bmarika]
+
+- Upgrade kombu
+  `PR #1529 <https://github.com/onaio/onadata/pull/1529>`_
+  [lincmba]
 
 1.17.0 (2018-12-19)
 -------------------
