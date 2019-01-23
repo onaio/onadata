@@ -39,10 +39,10 @@ class CSVImportTestCase(TestBase):
         self.assertTrue('instanceID' in meta[0])
         self.assertEqual(meta[1], 0)
 
-        instance_id = '9118a3fc-ab99-44cf-9a97-1bb1482d8e2b'
+        instance_id = 'uuid:9118a3fc-ab99-44cf-9a97-1bb1482d8e2b'
         meta = get_submission_meta_dict(xform, instance_id)
         self.assertTrue('instanceID' in meta[0])
-        self.assertEqual(meta[0]['instanceID'], 'uuid:' + instance_id)
+        self.assertEqual(meta[0]['instanceID'], instance_id)
         self.assertEqual(meta[1], 0)
 
     def test_submit_csv_param_sanity_check(self):
@@ -311,8 +311,6 @@ class CSVImportTestCase(TestBase):
             open(os.path.join(self.fixtures_dir, 'single.xml'), 'rb').read())
         safe_create_args = list(safe_create_instance.call_args[0])
 
-        self.assertEqual(safe_create_args[0], self.user.username,
-                         'Wrong username passed')
         instance_xml = fromstring(safe_create_args[1].getvalue())
         single_instance_xml = fromstring(xml_file_param.getvalue())
 
