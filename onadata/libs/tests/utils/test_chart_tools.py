@@ -102,6 +102,26 @@ class TestChartTools(TestBase):
         data = build_chart_data_for_field(self.xform, field)
         self.assertEqual(data['field_name'], 'père')
 
+    def test_build_chart_data_for_fields_with_apostrophies(self):
+        """
+        Test that apostrophes are escaped before they are sent to the database.
+
+        If the not escaped a django.db.utils.ProgrammingError would be raised.
+        """
+        xls_path = os.path.join(self.this_directory, "fixtures",
+                                "sample_accent.xlsx")
+        count = XForm.objects.count()
+        self._publish_xls_file(xls_path)
+
+        self.assertEquals(XForm.objects.count(), count + 1)
+
+        xform = XForm.objects.get(id_string='sample_accent')
+        self.assertEqual(xform.title, "sample_accent")
+
+        field = find_field_by_name(xform, "ChưR'căm")
+        data = build_chart_data_for_field(xform, field)
+        self.assertEqual(data['field_name'], "ChưR'căm")
+
     def test_build_chart_data_for_field_on_select_one(self):
         field_name = 'gender'
         field = find_field_by_name(self.xform, field_name)

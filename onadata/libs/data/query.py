@@ -1,8 +1,12 @@
+import logging
 from django.conf import settings
 from django.db import connection
 
 from onadata.libs.utils.common_tags import SUBMISSION_TIME
 from onadata.apps.logger.models.data_view import DataView
+
+
+logger = logging.getLogger(__name__)
 
 
 def _dictfetchall(cursor):
@@ -48,7 +52,10 @@ def _additional_data_view_filters(data_view):
 
 
 def _json_query(field):
-    return "json->>'%s'" % field
+    if not field:
+        logger.info("Field is empty")
+        return "json->>'%s'" % field
+    return "json->>'%s'" % field.replace("'", "''")
 
 
 def _postgres_count_group_field_n_group_by(field, name, xform, group_by,
