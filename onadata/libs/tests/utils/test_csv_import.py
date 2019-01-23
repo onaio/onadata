@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import os
 import re
 from io import BytesIO
+from xml.etree.ElementTree import fromstring
 
 import mock
 import unicodecsv as ucsv
@@ -38,10 +39,10 @@ class CSVImportTestCase(TestBase):
         self.assertTrue('instanceID' in meta[0])
         self.assertEqual(meta[1], 0)
 
-        instance_id = '9118a3fc-ab99-44cf-9a97-1bb1482d8e2b'
+        instance_id = 'uuid:9118a3fc-ab99-44cf-9a97-1bb1482d8e2b'
         meta = get_submission_meta_dict(xform, instance_id)
         self.assertTrue('instanceID' in meta[0])
-        self.assertEqual(meta[0]['instanceID'], 'uuid:' + instance_id)
+        self.assertEqual(meta[0]['instanceID'], instance_id)
         self.assertEqual(meta[1], 0)
 
     def test_submit_csv_param_sanity_check(self):
@@ -297,3 +298,27 @@ class CSVImportTestCase(TestBase):
 
         self.assertEqual(
             g_csv_reader.fieldnames[10], c_csv_reader.fieldnames[10])
+
+    @mock.patch('onadata.libs.utils.csv_import.safe_create_instance')
+    def test_submit_csv_instance_id_consistency(self, safe_create_instance):
+        self._publish_xls_file(self.xls_file_path)
+        self.xform = XForm.objects.get()
+
+        safe_create_instance.return_value = {}
+        single_csv = open(os.path.join(self.fixtures_dir, 'single.csv'), 'rb')
+        csv_import.submit_csv(self.user.username, self.xform, single_csv)
+        xml_file_param = BytesIO(
+            open(os.path.join(self.fixtures_dir, 'single.xml'), 'rb').read())
+        safe_create_args = list(safe_create_instance.call_args[0])
+
+        instance_xml = fromstring(safe_create_args[1].getvalue())
+        single_instance_xml = fromstring(xml_file_param.getvalue())
+
+        instance_id = [
+            m.find('instanceID').text for m in instance_xml.findall('meta')][0]
+        single_instance_id = [m.find('instanceID').text for m in
+                              single_instance_xml.findall('meta')][0]
+
+        self.assertEqual(
+            len(instance_id), len(single_instance_id),
+            "Same uuid length in generated xml")
