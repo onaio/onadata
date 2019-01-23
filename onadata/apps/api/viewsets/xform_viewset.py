@@ -389,7 +389,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
     @action(methods=['GET'], detail=True)
     def enketo(self, request, **kwargs):
         """Expose enketo urls."""
-        url_type = self.kwargs.get('url')
+        url_type = self.kwargs.get('url') or request.GET.get('url')
         self.object = self.get_object()
         form_url = get_form_url(
             request, self.object.user.username, settings.ENKETO_PROTOCOL,

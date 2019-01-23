@@ -100,7 +100,7 @@ setup(
         "python-dateutil",
         "pytz",
         "requests",
-        "requests-mock==1.5.2",
+        "requests-mock",
         "simplejson",
         "google-api-python-client",
         "uwsgi",

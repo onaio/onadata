@@ -748,9 +748,22 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=formid)
             url = "https://enketo.ona.io/::YY8M"
             preview_url = "https://enketo.ona.io/preview/::YY8M"
+            data = {"enketo_url": url, "enketo_preview_url": preview_url}
+            self.assertEqual(response.data, data)
+
+    def test_get_single_submit_url(self):
+        with HTTMock(enketo_preview_url_mock, enketo_mock_with_form_defaults,
+                     enketo_single_submission_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({
+                'get': 'enketo'
+            })
+            formid = self.xform.pk
+            get_data = {'url': 'single_submit'}
+            request = self.factory.get('/', data=get_data, **self.extra)
+            response = view(request, pk=formid)
             submit_url = "https://enketo.ona.io/single/::XZqoZ94y"
-            data = {"enketo_url": url, "enketo_preview_url": preview_url,
-                    "single_url": submit_url}
+            data = {"single_submit_url": submit_url}
             self.assertEqual(response.data, data)
 
     def test_enketo_url_with_default_form_params(self):
