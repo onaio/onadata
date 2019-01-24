@@ -362,8 +362,8 @@ def get_enketo_preview_url(request, username, id_string, xform_pk=None):
 
 def get_enketo_single_submit_url(request, username, id_string, xform_pk=None):
     """Return single submit url of the submission instance."""
-    enketo_url = settings.ENKETO_URL + getattr(
-        settings, 'ENKETO_SINGLE_SUBMIT_PATH', "/api/v2/survey/single/once")
+    enketo_url = urljoin(settings.ENKETO_URL, getattr(
+        settings, 'ENKETO_SINGLE_SUBMIT_PATH', "/api/v2/survey/single/once"))
     form_id = id_string
     server_url = get_form_url(
         request, username, settings.ENKETO_PROTOCOL, True, xform_pk=xform_pk)

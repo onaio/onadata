@@ -77,7 +77,8 @@ def enketo_mock(url, request):  # pylint: disable=unused-argument
     return response
 
 
-@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
+@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$',
+          path=r'^api/v2/survey/single/once$')
 def enketo_single_submission_mock(url, request):
     """Return mocked enketo single submission Response object."""
     response = requests.Response()
