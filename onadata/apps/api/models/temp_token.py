@@ -19,7 +19,8 @@ class TempToken(models.Model):
     The temporary authorization token model.
     """
     key = models.CharField(max_length=40, primary_key=True)
-    user = models.OneToOneField(AUTH_USER_MODEL, related_name='_user')
+    user = models.OneToOneField(
+        AUTH_USER_MODEL, related_name='_user', on_delete=models.CASCADE)
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:

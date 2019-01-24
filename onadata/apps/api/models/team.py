@@ -24,10 +24,11 @@ class Team(Group):
 
     OWNER_TEAM_NAME = "Owners"
 
-    organization = models.ForeignKey(User)
+    organization = models.ForeignKey(User, on_delete=models.CASCADE)
     projects = models.ManyToManyField(Project)
-    created_by = models.ForeignKey(User, related_name='team_creator',
-                                   null=True, blank=True)
+    created_by = models.ForeignKey(
+        User, related_name='team_creator', null=True, blank=True,
+        on_delete=models.SET_NULL)
 
     date_created = models.DateTimeField(auto_now_add=True, null=True,
                                         blank=True)

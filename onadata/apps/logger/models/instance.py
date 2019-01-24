@@ -14,9 +14,9 @@ from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GeometryCollection, Point
 from django.contrib.postgres.fields import JSONField
-from django.core.urlresolvers import reverse
 from django.db import connection, transaction
 from django.db.models.signals import post_delete, post_save
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 
@@ -433,10 +433,13 @@ class Instance(models.Model, InstanceBaseClass):
 
     json = JSONField(default=dict, null=False)
     xml = models.TextField()
-    user = models.ForeignKey(User, related_name='instances', null=True)
-    xform = models.ForeignKey('logger.XForm', null=False,
-                              related_name='instances')
-    survey_type = models.ForeignKey('logger.SurveyType')
+    user = models.ForeignKey(
+        User, related_name='instances', null=True, on_delete=models.CASCADE)
+    xform = models.ForeignKey(
+        'logger.XForm', null=False, related_name='instances',
+        on_delete=models.CASCADE)
+    survey_type = models.ForeignKey(
+        'logger.SurveyType',on_delete=models.SET_NULL)
 
     # shows when we first received this instance
     date_created = models.DateTimeField(auto_now_add=True)
@@ -447,7 +450,7 @@ class Instance(models.Model, InstanceBaseClass):
     # this will end up representing "date instance was deleted"
     deleted_at = models.DateTimeField(null=True, default=None)
     deleted_by = models.ForeignKey(User, related_name='deleted_instances',
-                                   null=True)
+                                   null=True, on_delete=models.SET_NULL)
 
     # this will be edited when we need to create a new InstanceHistory object
     last_edited = models.DateTimeField(null=True, default=None)
@@ -605,8 +608,8 @@ class InstanceHistory(models.Model, InstanceBaseClass):
         app_label = 'logger'
 
     xform_instance = models.ForeignKey(
-        Instance, related_name='submission_history')
-    user = models.ForeignKey(User, null=True)
+        Instance, related_name='submission_history', on_delete=models.CASCADE)
+    user = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
 
     xml = models.TextField()
     # old instance id
@@ -617,8 +620,6 @@ class InstanceHistory(models.Model, InstanceBaseClass):
     submission_date = models.DateTimeField(null=True, default=None)
     geom = models.GeometryCollectionField(null=True)
     checksum = models.CharField(max_length=64, null=True, blank=True)
-
-    objects = models.GeoManager()
 
     @property
     def xform(self):

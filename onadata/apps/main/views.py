@@ -13,13 +13,13 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.files.storage import default_storage, get_storage_class
-from django.core.urlresolvers import reverse
 from django.db import IntegrityError, OperationalError
 from django.http import (HttpResponse, HttpResponseBadRequest,
                          HttpResponseForbidden, HttpResponseNotFound,
                          HttpResponseRedirect, HttpResponseServerError)
 from django.shortcuts import get_object_or_404, render
 from django.template import RequestContext, loader
+from django.urls import reverse
 from django.utils.translation import ugettext as _
 from django.views.decorators.http import (require_GET, require_http_methods,
                                           require_POST)
