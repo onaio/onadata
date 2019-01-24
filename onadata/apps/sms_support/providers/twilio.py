@@ -13,10 +13,10 @@ import datetime
 
 from dict2xml import dict2xml
 from django.http import HttpResponse
-from django.core.urlresolvers import reverse
+from django.urls import reverse
+from django.utils.translation import ugettext as _
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
-from django.utils.translation import ugettext as _
 
 from onadata.apps.sms_support.tools import SMS_API_ERROR,\
     SMS_SUBMISSION_ACCEPTED

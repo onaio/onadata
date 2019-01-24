@@ -43,7 +43,7 @@ urlpatterns = [
 
     # django default stuff
     url(r'^accounts/', include(registration_patterns)),
-    url(r'^admin/', include(admin.site.urls)),
+    url(r'^admin/', admin.site.urls),
     url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
 
     # oath2_provider

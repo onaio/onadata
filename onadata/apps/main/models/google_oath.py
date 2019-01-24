@@ -12,8 +12,9 @@ class TokenStorageModel(models.Model):
     Google Auth Token storage model
     """
 
-    id = models.OneToOneField(settings.AUTH_USER_MODEL,
-                              primary_key=True, related_name='google_id')
+    id = models.OneToOneField(
+        settings.AUTH_USER_MODEL, primary_key=True, related_name='google_id',
+        on_delete=models.CASCADE)
     credential = CredentialsField()
 
     class Meta:

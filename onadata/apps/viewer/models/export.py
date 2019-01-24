@@ -131,7 +131,7 @@ class Export(models.Model):
     MAX_EXPORTS = 10
 
     # Required fields
-    xform = models.ForeignKey('logger.XForm')
+    xform = models.ForeignKey('logger.XForm', on_delete=models.CASCADE)
     export_type = models.CharField(
         max_length=10, choices=EXPORT_TYPES, default=XLS_EXPORT
     )

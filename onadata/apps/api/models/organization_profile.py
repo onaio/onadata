@@ -77,7 +77,7 @@ class OrganizationProfile(UserProfile):
 
     is_organization = models.BooleanField(default=True)
     # Other fields here
-    creator = models.ForeignKey(User)
+    creator = models.ForeignKey(User, on_delete=models.CASCADE)
 
     def __str__(self):
         return u'%s[%s]' % (self.name, self.user.username)
@@ -117,9 +117,11 @@ post_delete.connect(org_profile_post_delete_callback,
 # pylint: disable=model-no-explicit-unicode
 class OrgProfileUserObjectPermission(UserObjectPermissionBase):
     """Guardian model to create direct foreign keys."""
-    content_object = models.ForeignKey(OrganizationProfile)
+    content_object = models.ForeignKey(
+        OrganizationProfile, on_delete=models.CASCADE)
 
 
 class OrgProfileGroupObjectPermission(GroupObjectPermissionBase):
     """Guardian model to create direct foreign keys."""
-    content_object = models.ForeignKey(OrganizationProfile)
+    content_object = models.ForeignKey(
+        OrganizationProfile, on_delete=models.CASCADE)

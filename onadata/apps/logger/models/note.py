@@ -14,10 +14,10 @@ class Note(models.Model):
     """
     note = models.TextField()
     instance = models.ForeignKey(
-        'logger.Instance', related_name='notes')
+        'logger.Instance', related_name='notes', on_delete=models.CASCADE)
     instance_field = models.TextField(null=True, blank=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
-                                   blank=True)
+                                   blank=True, on_delete=models.CASCADE)
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
 
