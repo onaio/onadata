@@ -31,12 +31,12 @@ setup(
     },
     packages=find_packages(exclude=['docs', 'tests']),
     install_requires=[
-        "Django<2",
+        "Django",
         "django-guardian",
         "django-registration-redux",
         "django-templated-email",
         "django-reversion",
-        "django-filter<2.0",
+        "django-filter",
         "django-nose",
         "django-ordered-model",
         # generic relation
@@ -47,7 +47,7 @@ setup(
         "django-cors-headers",
         "django-debug-toolbar",
         # oauth2 support
-        "django-oauth-toolkit<1.2",
+        "django-oauth-toolkit",
         "oauth2client",
         "jsonpickle",
         # jwt

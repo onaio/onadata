@@ -10,13 +10,12 @@
 -e git+https://github.com/onaio/python-digest.git@3af1bd0ef6114e24bf23d0e8fd9d7ebf389845d1#egg=python-digest
 -e git+https://github.com/onaio/python-json2xlsclient.git@62b4645f7b4f2684421a13ce98da0331a9dd66a0#egg=python-json2xlsclient
 alabaster==0.7.12         # via sphinx
-amqp==2.3.2               # via kombu
+amqp==2.4.0               # via kombu
 appnope==0.1.0            # via ipython
 argparse==1.4.0           # via unittest2
 astroid==1.6.5            # via pylint
 babel==2.6.0              # via sphinx
-backports.functools-lru-cache==1.5  # via astroid, pylint
-backports.shutil-get-terminal-size==1.0.0  # via ipython
+backcall==0.1.0           # via ipython
 billiard==3.5.0.5         # via celery
 cachetools==3.0.0         # via google-auth
 cchardet==2.1.4           # via datapackage, tabulator
@@ -24,138 +23,130 @@ celery==4.2.1             # via django-celery-results
 certifi==2018.11.29       # via requests
 chardet==3.0.4            # via requests
 click==7.0                # via datapackage, tableschema, tabulator
-configparser==3.5.0       # via flake8, pylint
-contextlib2==0.5.5        # via raven
 datapackage==1.5.1
 decorator==4.3.0          # via ipython, traitlets
 defusedxml==0.5.0         # via djangorestframework-xml
 dict2xml==1.6
-django-activity-stream==0.6.5
+django-activity-stream==0.7.0
 django-celery-results==1.0.4
 django-cors-headers==2.4.0
 django-debug-toolbar==1.11
 django-extensions==2.1.4
-django-filter==1.1.0
+django-filter==2.1.0
 django-guardian==1.4.9
 django-nose==1.4.6
-django-oauth-toolkit==1.1.3
+django-oauth-toolkit==1.2.0
 django-ordered-model==3.1.1
 django-query-builder==1.1.0
 django-registration-redux==2.5
 django-render-block==0.5  # via django-templated-email
-django-reversion==3.0.2
+django-reversion==3.0.3
 django-taggit==0.23.0
-django-templated-email==2.2.0
-django==1.11.13           # via django-debug-toolbar, django-oauth-toolkit, django-query-builder, django-render-block, django-reversion, django-taggit, djangorestframework-jsonapi, jsonfield
+django-templated-email==2.3.0
+django==2.1.5             # via django-debug-toolbar, django-filter, django-oauth-toolkit, django-query-builder, django-render-block, django-reversion, django-taggit, djangorestframework-jsonapi, jsonfield
 djangorestframework-csv==2.1.0
 djangorestframework-gis==0.14
-djangorestframework-jsonapi==2.6.0
+djangorestframework-jsonapi==2.7.0
 djangorestframework-jsonp==1.0.2
 djangorestframework-xml==1.4.0
-djangorestframework==3.9.0  # via djangorestframework-csv, djangorestframework-gis, djangorestframework-jsonapi
+djangorestframework==3.9.1  # via djangorestframework-csv, djangorestframework-gis, djangorestframework-jsonapi
 docutils==0.14            # via sphinx
 dpath==1.4.2
 elaphe3==0.2.0
-enum34==1.1.6             # via astroid, flake8, traitlets
 et-xmlfile==1.0.1         # via openpyxl
-flake8==3.5.0
+flake8==3.6.0
 fleming==0.4.6            # via django-query-builder
 formencode==1.3.1         # via pyxform
-funcsigs==1.0.2           # via mock
 future==0.17.1
-futures==3.2.0            # via isort
 geojson==2.4.1
-google-api-python-client==1.7.6
+google-api-python-client==1.7.7
 google-auth-httplib2==0.0.3  # via google-api-python-client
-google-auth==1.6.1        # via google-api-python-client, google-auth-httplib2
+google-auth==1.6.2        # via google-api-python-client, google-auth-httplib2
 httmock==1.2.6
 httplib2==0.12.0          # via google-api-python-client, google-auth-httplib2, oauth2client
-idna==2.7                 # via requests
+idna==2.8                 # via requests
 ijson==2.3                # via tabulator
 imagesize==1.1.0          # via sphinx
 inflection==0.3.1         # via djangorestframework-jsonapi
 ipdb==0.11
 ipython-genutils==0.2.0   # via traitlets
-ipython==5.8.0            # via ipdb
+ipython==7.2.0            # via ipdb
 isodate==0.6.0            # via tableschema
 isort==4.3.4
 jdcal==1.4                # via openpyxl
+jedi==0.13.2              # via ipython
 jinja2==2.10              # via sphinx
 jsonfield==0.9.23
 jsonlines==1.2.0          # via tabulator
-jsonpickle==1.0
+jsonpickle==1.1
 jsonpointer==1.14         # via datapackage
 jsonschema==2.6.0         # via datapackage, tableschema
 kombu==4.2.2.post1        # via celery
 lazy-object-proxy==1.3.1  # via astroid
 linear-tsv==1.1.0         # via tabulator
 linecache2==1.0.0         # via traceback2
-lxml==4.2.5
+lxml==4.3.0
 markdown==3.0.1
 markupsafe==1.1.0         # via jinja2
 mccabe==0.6.1             # via flake8, pylint
 mock==2.0.0
 modilabs-python-utils==0.1.5
 nose==1.3.7               # via django-nose
-numpy==1.15.4
+numpy==1.16.0
 oauth2client==4.1.3
-oauthlib==2.1.0           # via django-oauth-toolkit
+oauthlib==3.0.0           # via django-oauth-toolkit
 openpyxl==2.4.11          # via tabulator
-packaging==18.0           # via sphinx
+packaging==19.0           # via sphinx
 paho-mqtt==1.4.0
-pathlib2==2.3.3           # via ipython, pickleshare
+parso==0.3.2              # via jedi
 pbr==5.1.1                # via mock
 pexpect==4.6.0            # via ipython
 pickleshare==0.7.5        # via ipython
-pillow==5.3.0             # via elaphe3
-prompt-toolkit==1.0.15    # via ipython
-psycopg2==2.7.6.1
+pillow==5.4.1             # via elaphe3
+prompt-toolkit==2.0.7     # via ipython
+psycopg2==2.7.7
 ptyprocess==0.6.0         # via pexpect
-pyasn1-modules==0.2.2     # via google-auth, oauth2client
-pyasn1==0.4.4             # via oauth2client, pyasn1-modules, rsa
-pycodestyle==2.3.1        # via flake8
-pyflakes==1.6.0           # via flake8
-pygments==2.3.0           # via ipython, sphinx
+pyasn1-modules==0.2.3     # via google-auth, oauth2client
+pyasn1==0.4.5             # via oauth2client, pyasn1-modules, rsa
+pycodestyle==2.4.0        # via flake8
+pyflakes==2.0.0           # via flake8
+pygments==2.3.1           # via ipython, sphinx
 pyjwt==1.7.1
 pylibmc==1.6.0
 pylint-django==0.11.1
 pylint-plugin-utils==0.4  # via pylint-django
-pylint==1.9.3
+pylint==1.9.4
 pymongo==3.7.2
-pyparsing==2.3.0          # via packaging
+pyparsing==2.3.1          # via packaging
 python-dateutil==2.7.5    # via fleming, tableschema
 python-memcached==1.59
-pytz==2018.7              # via babel, celery, django, django-query-builder, fleming
+pytz==2018.9              # via babel, celery, django, django-query-builder, fleming
 pyxform==0.12.2
-raven==6.9.0
+raven==6.10.0
 recaptcha-client==1.0.6
-requests==2.20.1          # via datapackage, django-oauth-toolkit, httmock, sphinx, tableschema, tabulator
+requests==2.21.0          # via datapackage, django-oauth-toolkit, httmock, sphinx, tableschema, tabulator
 rfc3986==1.2.0            # via tableschema
 rsa==4.0                  # via google-auth, oauth2client
 savreaderwriter==3.4.2
-scandir==1.9.0            # via pathlib2
-simplegeneric==0.8.1      # via ipython
 simplejson==3.16.0
-singledispatch==3.4.0.3   # via astroid, pylint
-six==1.11.0               # via astroid, datapackage, dict2xml, django-extensions, django-guardian, django-query-builder, django-templated-email, djangorestframework-csv, djangorestframework-jsonapi, google-api-python-client, google-auth, isodate, jsonlines, linear-tsv, mock, oauth2client, packaging, pathlib2, prompt-toolkit, pylint, python-dateutil, python-memcached, singledispatch, sphinx, tableschema, tabulator, traitlets, unittest2
+six==1.12.0               # via astroid, datapackage, dict2xml, django-extensions, django-guardian, django-query-builder, django-templated-email, djangorestframework-csv, djangorestframework-jsonapi, google-api-python-client, google-auth, isodate, jsonlines, linear-tsv, mock, oauth2client, packaging, prompt-toolkit, pylint, python-dateutil, python-memcached, sphinx, tableschema, tabulator, traitlets, unittest2
 snowballstemmer==1.2.1    # via sphinx
-sphinx==1.8.2
+sphinx==1.8.3
 sphinxcontrib-websupport==1.1.0  # via sphinx
-sqlalchemy==1.2.14        # via tabulator
+sqlalchemy==1.2.16        # via tabulator
 sqlparse==0.2.4           # via django-debug-toolbar
 tableschema==1.3.0        # via datapackage
 tabulator==1.19.0         # via datapackage, tableschema
 traceback2==1.4.0         # via unittest2
 traitlets==4.3.2          # via ipython
-typing==3.6.6             # via django-extensions, sphinx
 unicodecsv==0.14.1        # via datapackage, djangorestframework-csv, pyxform, tableschema, tabulator
 unittest2==1.1.0          # via pyxform
 uritemplate==3.0.0        # via google-api-python-client
 urllib3==1.24.1           # via requests
 uwsgi==2.0.17.1
-vine==1.1.4               # via amqp
+vine==1.2.0               # via amqp
 wcwidth==0.1.7            # via prompt-toolkit
-wrapt==1.10.11            # via astroid
-xlrd==1.1.0               # via pyxform, tabulator
+wrapt==1.11.1             # via astroid
+xlrd==1.2.0               # via pyxform, tabulator
 xlwt==1.3.0
 yapf==0.25.0
