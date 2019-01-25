@@ -5,6 +5,7 @@ import django
 from django.conf import settings
 from django.conf.urls import include, url, i18n
 from django.contrib.staticfiles import views as staticfiles_views
+from django.urls import re_path
 from django.views.generic import RedirectView
 
 from onadata.apps import sms_support
@@ -33,261 +34,261 @@ admin.autodiscover()
 
 urlpatterns = [
     # change Language
-    url(r'^i18n/', include(i18n)),
+    re_path(r'^i18n/', include(i18n)),
     url('^api/v1/', include(router.urls)),
-    url(r'^api-docs/',
+    re_path(r'^api-docs/',
         RedirectView.as_view(url=settings.STATIC_DOC, permanent=True)),
-    url(r'^api/$',
+    re_path(r'^api/$',
         RedirectView.as_view(url=settings.STATIC_DOC, permanent=True)),
-    url(r'^api/v1$', RedirectView.as_view(url='/api/v1/', permanent=True)),
+    re_path(r'^api/v1$', RedirectView.as_view(url='/api/v1/', permanent=True)),
 
     # django default stuff
-    url(r'^accounts/', include(registration_patterns)),
-    url(r'^admin/', admin.site.urls),
-    url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
+    re_path(r'^accounts/', include(registration_patterns)),
+    re_path(r'^admin/', admin.site.urls),
+    re_path(r'^admin/doc/', include('django.contrib.admindocs.urls')),
 
     # oath2_provider
-    url(r'^o/authorize/$', main_views.OnaAuthorizationView.as_view(),
+    re_path(r'^o/authorize/$', main_views.OnaAuthorizationView.as_view(),
         name="oauth2_provider_authorize"),
-    url(r'^o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
+    re_path(r'^o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
 
     # main website views
-    url(r'^$', main_views.home),
-    url(r'^tutorial/$', main_views.tutorial, name='tutorial'),
-    url(r'^about-us/$', main_views.about_us, name='about-us'),
-    url(r'^getting_started/$', main_views.getting_started,
+    re_path(r'^$', main_views.home),
+    re_path(r'^tutorial/$', main_views.tutorial, name='tutorial'),
+    re_path(r'^about-us/$', main_views.about_us, name='about-us'),
+    re_path(r'^getting_started/$', main_views.getting_started,
         name='getting_started'),
-    url(r'^faq/$', main_views.faq, name='faq'),
-    url(r'^syntax/$', main_views.syntax, name='syntax'),
-    url(r'^privacy/$', main_views.privacy, name='privacy'),
-    url(r'^tos/$', main_views.tos, name='tos'),
-    url(r'^resources/$', main_views.resources, name='resources'),
-    url(r'^forms/$', main_views.form_gallery, name='forms_list'),
-    url(r'^forms/(?P<uuid>[^/]+)$', main_views.show, name='form-show'),
-    url(r'^people/$', main_views.members_list, name='members-list'),
-    url(r'^xls2xform/$', main_views.xls2xform),
-    url(r'^support/$', main_views.support, name='support'),
-    url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/stats$',
+    re_path(r'^faq/$', main_views.faq, name='faq'),
+    re_path(r'^syntax/$', main_views.syntax, name='syntax'),
+    re_path(r'^privacy/$', main_views.privacy, name='privacy'),
+    re_path(r'^tos/$', main_views.tos, name='tos'),
+    re_path(r'^resources/$', main_views.resources, name='resources'),
+    re_path(r'^forms/$', main_views.form_gallery, name='forms_list'),
+    re_path(r'^forms/(?P<uuid>[^/]+)$', main_views.show, name='form-show'),
+    re_path(r'^people/$', main_views.members_list, name='members-list'),
+    re_path(r'^xls2xform/$', main_views.xls2xform),
+    re_path(r'^support/$', main_views.support, name='support'),
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/stats$',
         viewer_views.charts, name='form-stats'),
-    url(r'^login_redirect/$', main_views.login_redirect),
-    url(r'^attachment/$', viewer_views.attachment_url, name='attachment_url'),
-    url(r'^attachment/(?P<size>[^/]+)$', viewer_views.attachment_url,
+    re_path(r'^login_redirect/$', main_views.login_redirect),
+    re_path(r'^attachment/$', viewer_views.attachment_url, name='attachment_url'),
+    re_path(r'^attachment/(?P<size>[^/]+)$', viewer_views.attachment_url,
         name='attachment_url'),
-    url(r'^jsi18n/$', django.views.i18n.JavaScriptCatalog,
+    re_path(r'^jsi18n/$', django.views.i18n.JavaScriptCatalog,
         {'packages': ('main', 'viewer',)}, name='javascript-catalog'),
-    url(r'^typeahead_usernames', main_views.username_list,
+    re_path(r'^typeahead_usernames', main_views.username_list,
         name='username_list'),
-    url(r'^(?P<username>[^/]+)/$', main_views.profile, name='user_profile'),
-    url(r'^(?P<username>[^/]+)/profile$', main_views.public_profile,
+    re_path(r'^(?P<username>[^/]+)/$', main_views.profile, name='user_profile'),
+    re_path(r'^(?P<username>[^/]+)/profile$', main_views.public_profile,
         name='public_profile'),
-    url(r'^(?P<username>[^/]+)/settings', main_views.profile_settings,
+    re_path(r'^(?P<username>[^/]+)/settings', main_views.profile_settings,
         name='profile-settings'),
-    url(r'^(?P<username>[^/]+)/cloneform$', main_views.clone_xlsform,
+    re_path(r'^(?P<username>[^/]+)/cloneform$', main_views.clone_xlsform,
         name='clone-xlsform'),
-    url(r'^(?P<username>[^/]+)/activity$', main_views.activity,
+    re_path(r'^(?P<username>[^/]+)/activity$', main_views.activity,
         name='activity'),
-    url(r'^(?P<username>[^/]+)/activity/api$', main_views.activity_api,
+    re_path(r'^(?P<username>[^/]+)/activity/api$', main_views.activity_api,
         name='activity-api'),
-    url(r'^activity/fields$', main_views.activity_fields,
+    re_path(r'^activity/fields$', main_views.activity_fields,
         name='activity-fields'),
-    url(r'^(?P<username>[^/]+)/api-token$', main_views.api_token,
+    re_path(r'^(?P<username>[^/]+)/api-token$', main_views.api_token,
         name='api-token'),
 
     # form specific
-    url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)$', main_views.show,
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)$', main_views.show,
         name='form-show'),
-    url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/qrcode$',
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/qrcode$',
         main_views.qrcode, name='get_qrcode'),
-    url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/api$',
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/api$',
         main_views.api, name='mongo_view_api'),
-    url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/public_api$',
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/public_api$',
         main_views.public_api, name='public_api'),
-    url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/delete_data$',
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/delete_data$',
         main_views.delete_data, name='delete_data'),
-    url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/edit$',
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/edit$',
         main_views.edit, name='xform-edit'),
-    url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/perms$',
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/perms$',
         main_views.set_perm, name='set-xform-permissions'),
-    url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/photos',
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/photos',
         main_views.form_photos, name='form-photos'),
-    url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/doc/(?P<data_id>\d+)'
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/doc/(?P<data_id>\d+)'
         '', main_views.download_metadata, name='download-metadata'),
-    url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/delete-doc/(?P<data_'
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/delete-doc/(?P<data_'
         'id>\d+)', main_views.delete_metadata, name='delete-metadata'),
-    url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/formid-media/(?P<dat'
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/formid-media/(?P<dat'
         'a_id>\d+)', main_views.download_media_data,
         name='download-media-data'),
-    url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/addservice$',
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/addservice$',
         restservice_views.add_service, name='add_restservice'),
-    url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/delservice$',
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/delservice$',
         restservice_views.delete_service,
         name='delete_restservice'),
-    url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/update$',
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/update$',
         main_views.update_xform, name='update-xform'),
-    url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/preview$',
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/preview$',
         main_views.enketo_preview, name='enketo-preview'),
 
     # briefcase api urls
-    url(r'^(?P<username>\w+)/view/submissionList$',
+    re_path(r'^(?P<username>\w+)/view/submissionList$',
         BriefcaseViewset.as_view({'get': 'list', 'head': 'list'}),
         name='view-submission-list'),
-    url(r'^(?P<username>\w+)/view/downloadSubmission$',
+    re_path(r'^(?P<username>\w+)/view/downloadSubmission$',
         BriefcaseViewset.as_view({'get': 'retrieve', 'head': 'retrieve'}),
         name='view-download-submission'),
-    url(r'^(?P<username>\w+)/formUpload$',
+    re_path(r'^(?P<username>\w+)/formUpload$',
         BriefcaseViewset.as_view({'post': 'create', 'head': 'create'}),
         name='form-upload'),
-    url(r'^(?P<username>\w+)/upload$',
+    re_path(r'^(?P<username>\w+)/upload$',
         BriefcaseViewset.as_view({'post': 'create', 'head': 'create'}),
         name='upload'),
 
     # exporting stuff
-    url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.csv$',
+    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.csv$',
         viewer_views.data_export, name='csv_export',
         kwargs={'export_type': 'csv'}),
-    url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.xls',
+    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.xls',
         viewer_views.data_export, name='xls_export',
         kwargs={'export_type': 'xls'}),
-    url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.csv.zip',
+    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.csv.zip',
         viewer_views.data_export, name='csv_zip_export',
         kwargs={'export_type': 'csv_zip'}),
-    url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.sav.zip',
+    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.sav.zip',
         viewer_views.data_export, name='sav_zip_export',
         kwargs={'export_type': 'sav_zip'}),
-    url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.kml$',
+    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.kml$',
         viewer_views.kml_export, name='kml-export'),
-    url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.zip',
+    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.zip',
         viewer_views.zip_export),
-    url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/gdocs$',
+    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/gdocs$',
         viewer_views.google_xls_export),
-    url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/map_embed',
+    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/map_embed',
         viewer_views.map_embed_view),
-    url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/map',
+    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/map',
         viewer_views.map_view, name='map-view'),
-    url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/instance',
+    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/instance',
         viewer_views.instance, name='submission-instance'),
-    url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/enter-data',
+    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/enter-data',
         logger_views.enter_data, name='enter_data'),
-    url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/add-submission-with',
+    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/add-submission-with',
         viewer_views.add_submission_with,
         name='add_submission_with'),
-    url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/thank_you_submission',
+    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/thank_you_submission',
         viewer_views.thank_you_submission,
         name='thank_you_submission'),
-    url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/edit-data/(?P<data_id>'
+    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/edit-data/(?P<data_id>'
         '\d+)$', logger_views.edit_data, name='edit_data'),
-    url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/view-data',
+    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/view-data',
         viewer_views.data_view, name='data-view'),
-    url(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
+    re_path(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
         '/new$', viewer_views.create_export, name='new-export'),
-    url(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
+    re_path(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
         '/delete$', viewer_views.delete_export, name='delete-export'),
-    url(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
+    re_path(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
         '/progress$', viewer_views.export_progress, name='export-progress'),
-    url(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
+    re_path(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
         '/$', viewer_views.export_list, name='export-list'),
-    url(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
+    re_path(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
         '/(?P<filename>[^/]+)$',
         viewer_views.export_download, name='export-download'),
 
     # odk data urls
-    url(r'^submission$',
+    re_path(r'^submission$',
         XFormSubmissionViewSet.as_view({'post': 'create', 'head': 'create'}),
         name='submissions'),
-    url(r'^formList$',
+    re_path(r'^formList$',
         XFormListViewSet.as_view({'get': 'list', 'head': 'list'}),
         name='form-list'),
-    url(r'^(?P<username>\w+)/formList$',
+    re_path(r'^(?P<username>\w+)/formList$',
         XFormListViewSet.as_view({'get': 'list', 'head': 'list'}),
         name='form-list'),
-    url(r'^(?P<username>\w+)/(?P<xform_pk>\d+)/formList$',
+    re_path(r'^(?P<username>\w+)/(?P<xform_pk>\d+)/formList$',
         XFormListViewSet.as_view({'get': 'list', 'head': 'list'}),
         name='form-list'),
-    url(r'^preview/(?P<username>\w+)/(?P<xform_pk>\d+)/formList$',
+    re_path(r'^preview/(?P<username>\w+)/(?P<xform_pk>\d+)/formList$',
         PreviewXFormListViewSet.as_view({'get': 'list', 'head': 'list'}),
         name='form-list'),
-    url(r'^preview/(?P<username>\w+)/formList$',
+    re_path(r'^preview/(?P<username>\w+)/formList$',
         PreviewXFormListViewSet.as_view({'get': 'list', 'head': 'list'}),
         name='form-list'),
-    url(r'^(?P<username>\w+)/xformsManifest/(?P<pk>[\d+^/]+)$',
+    re_path(r'^(?P<username>\w+)/xformsManifest/(?P<pk>[\d+^/]+)$',
         XFormListViewSet.as_view({'get': 'manifest', 'head': 'manifest'}),
         name='manifest-url'),
-    url(r'^xformsManifest/(?P<pk>[\d+^/]+)$',
+    re_path(r'^xformsManifest/(?P<pk>[\d+^/]+)$',
         XFormListViewSet.as_view({'get': 'manifest', 'head': 'manifest'}),
         name='manifest-url'),
-    url(r'^(?P<username>\w+)/xformsMedia/(?P<pk>[\d+^/]+)'
+    re_path(r'^(?P<username>\w+)/xformsMedia/(?P<pk>[\d+^/]+)'
         '/(?P<metadata>[\d+^/.]+)$',
         XFormListViewSet.as_view({'get': 'media', 'head': 'media'}),
         name='xform-media'),
-    url(r'^(?P<username>\w+)/xformsMedia/(?P<pk>[\d+^/]+)'
+    re_path(r'^(?P<username>\w+)/xformsMedia/(?P<pk>[\d+^/]+)'
         '/(?P<metadata>[\d+^/.]+)\.(?P<format>([a-z]|[0-9])*)$',
         XFormListViewSet.as_view({'get': 'media', 'head': 'media'}),
         name='xform-media'),
-    url(r'^xformsMedia/(?P<pk>[\d+^/]+)/(?P<metadata>[\d+^/.]+)$',
+    re_path(r'^xformsMedia/(?P<pk>[\d+^/]+)/(?P<metadata>[\d+^/.]+)$',
         XFormListViewSet.as_view({'get': 'media', 'head': 'media'}),
         name='xform-media'),
-    url(r'^xformsMedia/(?P<pk>[\d+^/]+)/(?P<metadata>[\d+^/.]+)\.'
+    re_path(r'^xformsMedia/(?P<pk>[\d+^/]+)/(?P<metadata>[\d+^/.]+)\.'
         '(?P<format>([a-z]|[0-9])*)$',
         XFormListViewSet.as_view({'get': 'media', 'head': 'media'}),
         name='xform-media'),
-    url(r'^(?P<username>\w+)/submission$',
+    re_path(r'^(?P<username>\w+)/submission$',
         XFormSubmissionViewSet.as_view({'post': 'create', 'head': 'create'}),
         name='submissions'),
-    url(r'^(?P<username>\w+)/(?P<xform_pk>\d+)/submission$',
+    re_path(r'^(?P<username>\w+)/(?P<xform_pk>\d+)/submission$',
         XFormSubmissionViewSet.as_view({'post': 'create', 'head': 'create'}),
         name='submissions'),
-    url(r'^(?P<username>\w+)/bulk-submission$',
+    re_path(r'^(?P<username>\w+)/bulk-submission$',
         logger_views.bulksubmission),
-    url(r'^(?P<username>\w+)/bulk-submission-form$',
+    re_path(r'^(?P<username>\w+)/bulk-submission-form$',
         logger_views.bulksubmission_form),
-    url(r'^(?P<username>\w+)/forms/(?P<pk>[\d+^/]+)/form\.xml$',
+    re_path(r'^(?P<username>\w+)/forms/(?P<pk>[\d+^/]+)/form\.xml$',
         XFormListViewSet.as_view({'get': 'retrieve', 'head': 'retrieve'}),
         name='download_xform'),
-    url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/form\.xml$',
+    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/form\.xml$',
         logger_views.download_xform, name='download_xform'),
-    url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/form\.xls$',
+    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/form\.xls$',
         logger_views.download_xlsform,
         name='download_xlsform'),
-    url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/form\.json',
+    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/form\.json',
         logger_views.download_jsonform,
         name='download_jsonform'),
-    url(r'^(?P<username>\w+)/delete/(?P<id_string>[^/]+)/$',
+    re_path(r'^(?P<username>\w+)/delete/(?P<id_string>[^/]+)/$',
         logger_views.delete_xform, name='delete-xform'),
-    url(r'^(?P<username>\w+)/(?P<id_string>[^/]+)/toggle_downloadable/$',
+    re_path(r'^(?P<username>\w+)/(?P<id_string>[^/]+)/toggle_downloadable/$',
         logger_views.toggle_downloadable, name='toggle-downloadable'),
 
     # SMS support
-    url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/sms_submission/(?P<s'
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/sms_submission/(?P<s'
         'ervice>[a-z]+)/?$',
         sms_support.providers.import_submission_for_form,
         name='sms_submission_form_api'),
-    url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/sms_submission$',
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/sms_submission$',
         sms_support_views.import_submission_for_form,
         name='sms_submission_form'),
-    url(r'^(?P<username>[^/]+)/sms_submission/(?P<service>[a-z]+)/?$',
+    re_path(r'^(?P<username>[^/]+)/sms_submission/(?P<service>[a-z]+)/?$',
         sms_support.providers.import_submission,
         name='sms_submission_api'),
-    url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/sms_multiple_submiss'
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/sms_multiple_submiss'
         'ions$',
         sms_support_views.import_multiple_submissions_for_form,
         name='sms_submissions_form'),
-    url(r'^(?P<username>[^/]+)/sms_multiple_submissions$',
+    re_path(r'^(?P<username>[^/]+)/sms_multiple_submissions$',
         sms_support_views.import_multiple_submissions,
         name='sms_submissions'),
-    url(r'^(?P<username>[^/]+)/sms_submission$',
+    re_path(r'^(?P<username>[^/]+)/sms_submission$',
         sms_support_views.import_submission, name='sms_submission'),
 
     # Stats tables
-    url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/tables',
+    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/tables',
         viewer_views.stats_tables, name='stats-tables'),
 
     # static media
-    url(r'^media/(?P<path>.*)$', django.views.static.serve,
+    re_path(r'^media/(?P<path>.*)$', django.views.static.serve,
         {'document_root': settings.MEDIA_ROOT}),
-    url(r'^favicon\.ico',
+    re_path(r'^favicon\.ico',
         RedirectView.as_view(url='/static/images/favicon.ico',
                              permanent=True)),
-    url(r'^static/(?P<path>.*)$', staticfiles_views.serve)
+    re_path(r'^static/(?P<path>.*)$', staticfiles_views.serve)
 ]
 
 # messaging urls
@@ -297,7 +298,7 @@ CUSTOM_URLS = getattr(settings, 'CUSTOM_MAIN_URLS', None)
 
 if CUSTOM_URLS:
     for url_module in CUSTOM_URLS:
-        urlpatterns.append(url(r'^', include(url_module)))
+        urlpatterns.append(re_path(r'^', include(url_module)))
 
 if (settings.DEBUG or TESTING) and 'debug_toolbar' in settings.INSTALLED_APPS:
     try:
@@ -306,5 +307,5 @@ if (settings.DEBUG or TESTING) and 'debug_toolbar' in settings.INSTALLED_APPS:
         pass
     else:
         urlpatterns += [
-            url(r'^__debug__/', include(debug_toolbar.urls)),
+            re_path(r'^__debug__/', include(debug_toolbar.urls)),
         ]

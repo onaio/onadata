@@ -21,7 +21,7 @@ class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
         """
         form_id = view.kwargs.get(view.lookup_field)
         queryset = queryset.filter(deleted_at=None)
-        if request.user.is_anonymous():
+        if request.user.is_anonymous:
             return queryset
 
         if form_id and view.lookup_field == 'pk':
@@ -179,7 +179,7 @@ class AnonUserProjectFilter(filters.DjangoObjectPermissionsFilter):
         user = request.user
         project_id = view.kwargs.get(view.lookup_field)
 
-        if user.is_anonymous():
+        if user.is_anonymous:
             return queryset.filter(Q(shared=True))
 
         if project_id:
