@@ -87,7 +87,7 @@ class ExportDjangoObjectPermission(AlternateHasObjectPermissionMixin,
 
     def has_permission(self, request, view):
         is_authenticated = (request and request.user and
-                            request.user.is_authenticated())
+                            request.user.is_authenticated)
 
         if not is_authenticated:
             view._ignore_model_permissions = True  # pylint: disable=W0212
@@ -120,7 +120,7 @@ class XFormPermissions(DjangoObjectPermissions):
 
     def has_permission(self, request, view):
         owner = view.kwargs.get('owner')
-        is_authenticated = request and request.user.is_authenticated()
+        is_authenticated = request and request.user.is_authenticated
 
         if 'pk' in view.kwargs:
             check_inherit_permission_from_project(view.kwargs['pk'],
@@ -167,7 +167,7 @@ class SubmissionReviewPermissions(XFormPermissions):
         """
         Custom has_permission method
         """
-        is_authenticated = request and request.user.is_authenticated()
+        is_authenticated = request and request.user.is_authenticated
 
         if is_authenticated and view.action == 'create':
 
@@ -213,7 +213,7 @@ class UserProfilePermissions(DjangoObjectPermissions):
 
     def has_permission(self, request, view):
         # allow anonymous users to create new profiles
-        if request.user.is_anonymous() and view.action == 'create':
+        if request.user.is_anonymous and view.action == 'create':
             return True
 
         if view.action in ['send_verification_email', 'verify_email']:
@@ -240,10 +240,10 @@ class ProjectPermissions(DjangoObjectPermissions):
 
     def has_permission(self, request, view):
         # allow anonymous users to view public projects
-        if request.user.is_anonymous() and view.action == 'list':
+        if request.user.is_anonymous and view.action == 'list':
             return True
 
-        if not request.user.is_anonymous() and view.action == 'star':
+        if not request.user.is_anonymous and view.action == 'star':
             return True
 
         return \
@@ -281,7 +281,7 @@ class AbstractHasPermissionMixin(object):  # pylint: disable=R0903
             perms.extend(
                 self.get_required_permissions(request.method, model_class))
 
-        if (request.user and (request.user.is_authenticated()
+        if (request.user and (request.user.is_authenticated
                               or not self.authenticated_users_only)
                 and request.user.has_perms(perms)):
 
@@ -462,7 +462,7 @@ class OrganizationProfilePermissions(DjangoObjectPermissionsAllowAnon):
     """
 
     def has_object_permission(self, request, view, obj):
-        is_authenticated = request and request.user.is_authenticated() and \
+        is_authenticated = request and request.user.is_authenticated and \
                            request.user.username == request.data.get(
                                'username')
         if is_authenticated and request.method == 'DELETE':
@@ -481,7 +481,7 @@ class OpenDataViewSetPermissions(IsAuthenticated,
     """
 
     def has_permission(self, request, view):
-        if request.user.is_anonymous() and view.action in ['schema', 'data']:
+        if request.user.is_anonymous and view.action in ['schema', 'data']:
             return True
 
         return super(OpenDataViewSetPermissions, self).has_permission(
