@@ -101,7 +101,6 @@ setup(
         "pytz",
         "requests",
         "simplejson",
-        "google-api-python-client",
         "uwsgi",
         "flake8",
         "raven",
@@ -114,6 +113,8 @@ setup(
         'https://github.com/onaio/django-multidb-router/tarball/9cf0a0c6c9f796e5bd14637fafeb5a1a5507ed37#egg=django-multidb-router',  # noqa pylint: disable=line-too-long
         'https://github.com/onaio/floip-py/tarball/3bbf5c76b34ec49c438a3099ab848870514d1e50#egg=floip',  # noqa pylint: disable=line-too-long
         'https://github.com/onaio/python-json2xlsclient/tarball/62b4645f7b4f2684421a13ce98da0331a9dd66a0#egg=python-json2xlsclient',  # noqa pylint: disable=line-too-long
+        'https://github.com/onaio/oauth2client/archive/master.zip'
+
     ],
     extras_require={
         ':python_version=="2.7"': [
