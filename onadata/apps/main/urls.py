@@ -73,7 +73,7 @@ urlpatterns = [
     url(r'^attachment/$', viewer_views.attachment_url, name='attachment_url'),
     url(r'^attachment/(?P<size>[^/]+)$', viewer_views.attachment_url,
         name='attachment_url'),
-    url(r'^jsi18n/$', django.views.i18n.javascript_catalog,
+    url(r'^jsi18n/$', django.views.i18n.JavaScriptCatalog,
         {'packages': ('main', 'viewer',)}, name='javascript-catalog'),
     url(r'^typeahead_usernames', main_views.username_list,
         name='username_list'),

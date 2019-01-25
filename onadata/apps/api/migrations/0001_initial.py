@@ -20,9 +20,11 @@ class Migration(migrations.Migration):
             fields=[
                 ('userprofile_ptr', models.OneToOneField(
                     parent_link=True, auto_created=True, primary_key=True,
+                     on_delete=models.CASCADE,
                     serialize=False, to='main.UserProfile')),
                 ('is_organization', models.BooleanField(default=True)),
-                ('creator', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
+                ('creator', models.ForeignKey(to=settings.AUTH_USER_MODEL,
+                    on_delete=models.SET_NULL)),
             ],
             options={
                 'permissions': (
@@ -38,6 +40,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('group_ptr', models.OneToOneField(
                     parent_link=True, auto_created=True, primary_key=True,
+                     on_delete=models.CASCADE,
                     serialize=False, to='auth.Group')),
                 ('date_created', models.DateTimeField(
                     auto_now_add=True, null=True)),
@@ -45,9 +48,11 @@ class Migration(migrations.Migration):
                     auto_now=True, null=True)),
                 ('created_by', models.ForeignKey(
                     related_name='team_creator', blank=True,
-                    to=settings.AUTH_USER_MODEL, null=True)),
+                    to=settings.AUTH_USER_MODEL, null=True,
+                    on_delete=models.SET_NULL)),
                 ('organization',
-                 models.ForeignKey(to=settings.AUTH_USER_MODEL)),
+                 models.ForeignKey(to=settings.AUTH_USER_MODEL,
+                    on_delete=models.CASCADE)),
                 ('projects', models.ManyToManyField(to='logger.Project')),
             ],
             options={
@@ -61,8 +66,10 @@ class Migration(migrations.Migration):
                 ('key', models.CharField(max_length=40, serialize=False,
                                          primary_key=True)),
                 ('created', models.DateTimeField(auto_now_add=True)),
-                ('user', models.OneToOneField(related_name='_user',
-                                              to=settings.AUTH_USER_MODEL)),
+                ('user', models.OneToOneField(
+                    related_name='_user',
+                    to=settings.AUTH_USER_MODEL,
+                    on_delete=models.CASCADE)),
             ],
             options={
             },

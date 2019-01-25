@@ -19,7 +19,7 @@ class Team(Group):
     class Meta:
         app_label = 'api'
         permissions = (
-            ('view_team', "Can view team."),
+            # ('view_team', "Can view team."),
         )
 
     OWNER_TEAM_NAME = "Owners"
