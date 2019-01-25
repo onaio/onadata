@@ -26,7 +26,7 @@ class Note(models.Model):
         Meta Options for Note Model
         """
         app_label = 'logger'
-        permissions = (('view_note', 'View note'), )
+        # permissions = (('view_note', 'View note'), )
 
     def get_data(self):
         """

@@ -887,7 +887,7 @@ def form_gallery(request):
     made a lot prettier.
     """
     data = {}
-    if request.user.is_authenticated():
+    if request.user.is_authenticated:
         data['loggedin_user'] = request.user
     data['shared_forms'] = XForm.objects.filter(shared=True,
                                                 deleted_at__isnull=True)

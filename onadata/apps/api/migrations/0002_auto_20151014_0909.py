@@ -21,9 +21,14 @@ class Migration(migrations.Migration):
                     verbose_name='ID', serialize=False, auto_created=True,
                     primary_key=True)),
                 ('content_object',
-                 models.ForeignKey(to='api.OrganizationProfile')),
-                ('group', models.ForeignKey(to='auth.Group')),
-                ('permission', models.ForeignKey(to='auth.Permission')),
+                 models.ForeignKey(to='api.OrganizationProfile',
+                    on_delete=models.CASCADE)),
+                ('group', models.ForeignKey(
+                    to='auth.Group',
+                    on_delete=models.CASCADE)),
+                ('permission', models.ForeignKey(
+                    to='auth.Permission',
+                     on_delete=models.CASCADE)),
             ],
             options={
                 'abstract': False,
@@ -37,9 +42,13 @@ class Migration(migrations.Migration):
                     verbose_name='ID', serialize=False, auto_created=True,
                     primary_key=True)),
                 ('content_object',
-                 models.ForeignKey(to='api.OrganizationProfile')),
-                ('permission', models.ForeignKey(to='auth.Permission')),
-                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
+                 models.ForeignKey(
+                    to='api.OrganizationProfile',
+                     on_delete=models.CASCADE)),
+                ('permission', models.ForeignKey(to='auth.Permission',
+                    on_delete=models.CASCADE)),
+                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL,
+                    on_delete=models.CASCADE)),
             ],
             options={
                 'abstract': False,

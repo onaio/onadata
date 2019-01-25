@@ -21,7 +21,8 @@ class Migration(migrations.Migration):
             model_name='instance',
             name='xform',
             field=models.ForeignKey(related_name='instances', default=-1,
-                                    to='logger.XForm'),
+                                    to='logger.XForm',
+                                    on_delete=models.CASCADE),
             preserve_default=False,
         ),
         migrations.AlterUniqueTogether(

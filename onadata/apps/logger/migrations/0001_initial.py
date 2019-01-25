@@ -92,7 +92,8 @@ class Migration(migrations.Migration):
                 ('date_modified', models.DateTimeField(auto_now=True)),
                 ('xform_instance',
                  models.ForeignKey(related_name='submission_history',
-                                   to='logger.Instance')),
+                                   to='logger.Instance',
+                                   on_delete=models.CASCADE)),
             ],
             options={
             },
@@ -108,7 +109,9 @@ class Migration(migrations.Migration):
                 ('date_created', models.DateTimeField(auto_now_add=True)),
                 ('date_modified', models.DateTimeField(auto_now=True)),
                 ('instance',
-                 models.ForeignKey(related_name='notes', to='logger.Instance')
+                 models.ForeignKey(
+                    related_name='notes', to='logger.Instance',
+                    on_delete=models.CASCADE)
                  ),
             ],
             options={
@@ -129,9 +132,11 @@ class Migration(migrations.Migration):
                 ('date_modified', models.DateTimeField(auto_now=True)),
                 ('created_by',
                  models.ForeignKey(related_name='project_owner',
-                                   to=settings.AUTH_USER_MODEL)),
+                                   to=settings.AUTH_USER_MODEL,
+                                   on_delete=models.CASCADE)),
                 ('organization', models.ForeignKey(
-                    related_name='project_org', to=settings.AUTH_USER_MODEL)),
+                    related_name='project_org', to=settings.AUTH_USER_MODEL,
+                    on_delete=models.CASCADE)),
                 ('tags',
                  taggit.managers.TaggableManager(
                     to='taggit.Tag', through='taggit.TaggedItem',
@@ -190,7 +195,7 @@ class Migration(migrations.Migration):
                 ('date_created', models.DateTimeField(auto_now_add=True)),
                 ('date_modified', models.DateTimeField(auto_now=True)),
                 ('content_type',
-                 models.ForeignKey(to='contenttypes.ContentType')),
+                 models.ForeignKey(to='contenttypes.ContentType', on_delete=models.CASCADE)),
             ],
             options={
             },
@@ -240,8 +245,9 @@ class Migration(migrations.Migration):
                  models.CharField(max_length=255, null=True, blank=True)),
                 ('created_by',
                  models.ForeignKey(blank=True, to=settings.AUTH_USER_MODEL,
-                                   null=True)),
-                ('project', models.ForeignKey(to='logger.Project')),
+                                   null=True, on_delete=models.CASCADE)),
+                ('project', models.ForeignKey(to='logger.Project',
+                    on_delete=models.CASCADE)),
                 ('tags',
                  taggit.managers.TaggableManager(
                     to='taggit.Tag', through='taggit.TaggedItem',
@@ -249,7 +255,8 @@ class Migration(migrations.Migration):
                     verbose_name='Tags')),
                 ('user',
                  models.ForeignKey(related_name='xforms',
-                                   to=settings.AUTH_USER_MODEL, null=True)),
+                                   to=settings.AUTH_USER_MODEL, null=True,
+                                   on_delete=models.CASCADE))
             ],
             options={
                 'ordering': ('id_string',),
@@ -277,7 +284,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='instance',
             name='survey_type',
-            field=models.ForeignKey(to='logger.SurveyType'),
+            field=models.ForeignKey(to='logger.SurveyType',
+            on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AddField(
@@ -294,33 +302,38 @@ class Migration(migrations.Migration):
             name='user',
             field=models.ForeignKey(
                 related_name='instances', to=settings.AUTH_USER_MODEL,
+                on_delete=models.CASCADE,
                 null=True),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='instance',
             name='xform',
-            field=models.ForeignKey(related_name='instances',
-                                    to='logger.XForm', null=True),
+            field=models.ForeignKey(
+                related_name='instances',
+                to='logger.XForm', null=True, on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='dataview',
             name='project',
-            field=models.ForeignKey(to='logger.Project'),
+            field=models.ForeignKey(to='logger.Project',
+                on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='dataview',
             name='xform',
-            field=models.ForeignKey(to='logger.XForm'),
+            field=models.ForeignKey(to='logger.XForm',
+                on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='attachment',
             name='instance',
-            field=models.ForeignKey(related_name='attachments',
-                                    to='logger.Instance'),
+            field=models.ForeignKey(
+                related_name='attachments',to='logger.Instance',
+                on_delete=models.CASCADE),
             preserve_default=True,
         ),
     ]

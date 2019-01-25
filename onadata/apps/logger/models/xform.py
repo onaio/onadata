@@ -755,7 +755,7 @@ class XForm(XFormMixin, BaseModel):
         verbose_name_plural = ugettext_lazy("XForms")
         ordering = ("pk", )
         permissions = (
-            ("view_xform", _("Can view associated data")),
+            # ("view_xform", _("Can view associated data")),
             ("view_xform_all", _("Can view all associated data")),
             ("view_xform_data", _("Can view submitted data")),
             ("report_xform", _("Can make submissions to the form")),

@@ -48,7 +48,8 @@ class Migration(migrations.Migration):
                 ('internal_status', models.SmallIntegerField(default=0,
                                                              max_length=1)),
                 ('export_url', models.URLField(default=None, null=True)),
-                ('xform', models.ForeignKey(to='logger.XForm')),
+                ('xform', models.ForeignKey(to='logger.XForm',
+                    on_delete=models.CASCADE)),
             ],
             options={
             },
@@ -65,7 +66,8 @@ class Migration(migrations.Migration):
                 ('lng', models.FloatField(null=True)),
                 ('instance',
                  models.OneToOneField(related_name='parsed_instance',
-                                      to='logger.Instance')),
+                                      to='logger.Instance',
+                                      on_delete=models.CASCADE)),
             ],
             options={
             },

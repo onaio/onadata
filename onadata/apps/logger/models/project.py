@@ -90,7 +90,7 @@ class Project(BaseModel):
         app_label = 'logger'
         unique_together = (('name', 'organization'),)
         permissions = (
-            ('view_project', "Can view project"),
+            # ('view_project', "Can view project"),
             ('add_project_xform', "Can add xform to project"),
             ("report_project_xform", "Can make submissions to the project"),
             ('transfer_project', "Can transfer project to different owner"),

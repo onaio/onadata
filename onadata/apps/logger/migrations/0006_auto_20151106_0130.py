@@ -29,7 +29,8 @@ class Migration(migrations.Migration):
                 ('date_modified', models.DateTimeField(auto_now=True)),
                 ('deleted_at', models.DateTimeField(default=None, null=True)),
                 ('instance', models.ForeignKey(related_name='osm_data',
-                                               to='logger.Instance')),
+                                               to='logger.Instance',
+                                               on_delete=models.CASCADE)),
             ],
             options={
             },
