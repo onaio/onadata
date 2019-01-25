@@ -439,6 +439,7 @@ CELERY_IMPORTS = ('onadata.libs.utils.csv_import',)
 
 CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD = 100000  # Bytes
 GOOGLE_SHEET_UPLOAD_BATCH = 1000
+ZIP_REPORT_ATTACHMENT_LIMMIT = 5242880000  # 500 MB in Bytes
 
 # duration to keep zip exports before deletion (in seconds)
 ZIP_EXPORT_COUNTDOWN = 3600  # 1 hour

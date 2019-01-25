@@ -2,17 +2,22 @@
 """
 Test onadata.libs.utils.viewer_tools
 """
+import os
+from mock import patch
+
+from django.core.files.base import File
 from django.http import Http404
 from django.test.client import RequestFactory
 from django.test.utils import override_settings
 from django.utils import timezone
 
-from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models import XForm, Instance, Attachment
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.viewer_tools import (export_def_from_filename,
                                              generate_enketo_form_defaults,
                                              get_client_ip, get_form,
-                                             get_form_url)
+                                             get_form_url,
+                                             create_attachments_zipfile)
 
 
 class TestViewerTools(TestBase):
@@ -164,3 +169,27 @@ class TestViewerTools(TestBase):
         # with form pk url http://ona.io/bob/1
         url = get_form_url(request, username='bob', xform_pk=1)
         self.assertEqual(url, 'https://ona.io/bob/1')
+
+    @override_settings(ZIP_REPORT_ATTACHMENT_LIMMIT=8)
+    @patch('onadata.libs.utils.viewer_tools.report_exception')
+    def test_create_attachments_zipfile_file_too_big(self, rpt_mock):
+        """
+        When a file is larger than what is allowed in settings an exception
+        should be raised.
+        """
+        self._publish_transportation_form_and_submit_instance()
+        self.media_file = "1335783522563.jpg"
+        media_file = os.path.join(
+            self.this_directory, 'fixtures',
+            'transportation', 'instances', self.surveys[0], self.media_file)
+        self.instance = Instance.objects.all()[0]
+        self.attachment = Attachment.objects.create(
+            instance=self.instance,
+            media_file=File(open(media_file, 'rb'), media_file))
+        create_attachments_zipfile(Attachment.objects.all())
+
+        message = (
+            "Create attachment zip exception", "File is greater than 8 bytes")
+
+        self.assertTrue(rpt_mock.called)
+        rpt_mock.assert_called_with(message[0], message[1])

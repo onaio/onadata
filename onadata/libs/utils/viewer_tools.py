@@ -264,7 +264,14 @@ def create_attachments_zipfile(attachments):
             if default_storage.exists(filename):
                 try:
                     with default_storage.open(filename) as f:
-                        z.writestr(attachment.media_file.name, f.read())
+                        if f.size > settings.ZIP_REPORT_ATTACHMENT_LIMMIT:
+                            report_exception(
+                                "Create attachment zip exception",
+                                "File is greater than {} bytes".format(
+                                    settings.ZIP_REPORT_ATTACHMENT_LIMMIT)
+                            )
+                        else:
+                            z.writestr(attachment.media_file.name, f.read())
                 except IOError as e:
                     report_exception("Create attachment zip exception", e)
 
