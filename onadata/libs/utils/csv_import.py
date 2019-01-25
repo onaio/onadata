@@ -59,7 +59,8 @@ def get_submission_meta_dict(xform, instance_id):
 
     update = 0
 
-    if xform.instances.filter(uuid=instance_id).count() > 0:
+    if instance_id and xform.instances.filter(
+            uuid=instance_id.replace('uuid:', '')).count() > 0:
         uuid_arg = 'uuid:{}'.format(uuid.uuid4())
         meta.update({
             'instanceID': uuid_arg,
