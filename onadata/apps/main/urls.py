@@ -74,8 +74,11 @@ urlpatterns = [
     re_path(r'^attachment/$', viewer_views.attachment_url, name='attachment_url'),
     re_path(r'^attachment/(?P<size>[^/]+)$', viewer_views.attachment_url,
         name='attachment_url'),
-    re_path(r'^jsi18n/$', django.views.i18n.JavaScriptCatalog,
-        {'packages': ('main', 'viewer',)}, name='javascript-catalog'),
+    re_path(
+        r'^jsi18n/$',
+        django.views.i18n.JavaScriptCatalog.as_view(
+            packages=['onadata.apps.main', 'onadata.apps.viewer']),
+        name='javascript-catalog'),
     re_path(r'^typeahead_usernames', main_views.username_list,
         name='username_list'),
     re_path(r'^(?P<username>[^/]+)/$', main_views.profile, name='user_profile'),
