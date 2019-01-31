@@ -1,7 +1,7 @@
 # flake8: noqa
 # this preset is used for automated testing of formhub
 #
-from common import *
+from onadata.settings.common import *
 
 DATABASES = {
     'default': {
@@ -21,7 +21,7 @@ PASSWORD_HASHERS = (
 )
 
 if PRINT_EXCEPTION and DEBUG:
-    MIDDLEWARE_CLASSES += ('utils.middleware.ExceptionLoggingMiddleware',)
+    MIDDLEWARE += ('utils.middleware.ExceptionLoggingMiddleware',)
 
 if len(sys.argv) >= 2 and (sys.argv[1] == "test" or sys.argv[1] == "test_all"):
     # This trick works only when we run tests from the command line.

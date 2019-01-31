@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 from future.moves.urllib.parse import urljoin
 
-from .common import *  # nopep8
+from onadata.settings.common import *  # nopep8
 
 DATABASES = {
     'default': {
@@ -55,7 +55,7 @@ PASSWORD_HASHERS = (
 
 DEBUG = False
 TEMPLATES[0]['OPTIONS']['debug'] = DEBUG
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     # 'django.middleware.locale.LocaleMiddleware',

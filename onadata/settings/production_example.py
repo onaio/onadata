@@ -1,5 +1,5 @@
 # flake8: noqa
-from common import *
+from onadata.settings.common import *
 
 # this setting file will not work on "runserver" -- it needs a server for
 # static files
@@ -58,9 +58,9 @@ CACHES = {
     }
 }
 
-MIDDLEWARE_CLASSES += ('django.middleware.cache.UpdateCacheMiddleware',
-                       'django.middleware.common.CommonMiddleware',
-                       'django.middleware.cache.FetchFromCacheMiddleware',)
+MIDDLEWARE += ('django.middleware.cache.UpdateCacheMiddleware',
+               'django.middleware.common.CommonMiddleware',
+               'django.middleware.cache.FetchFromCacheMiddleware',)
 
 CACHE_MIDDLEWARE_SECONDS = 3600  # 1 hour
 CACHE_MIDDLEWARE_KEY_PREFIX = ''

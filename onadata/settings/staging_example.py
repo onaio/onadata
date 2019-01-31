@@ -1,5 +1,5 @@
 # flake8: noqa
-from common import *
+from onadata.settings.common import *
 
 DEBUG = True
 TEMPLATES[0]['OPTIONS']['debug'] = DEBUG
@@ -42,4 +42,4 @@ else:
     MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'media/')
 
 if PRINT_EXCEPTION and DEBUG:
-    MIDDLEWARE_CLASSES += ('utils.middleware.ExceptionLoggingMiddleware',)
+    MIDDLEWARE += ('utils.middleware.ExceptionLoggingMiddleware',)
