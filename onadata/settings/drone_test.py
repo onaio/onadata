@@ -1,7 +1,7 @@
 # flake8: noqa
 # this preset is used for automated testing of formhub
 #
-from common import *
+from onadata.settings.common import *
 
 DATABASES = {
     'default': {

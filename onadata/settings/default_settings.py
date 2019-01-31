@@ -7,7 +7,7 @@
 
 # get most settings from staging_example.py (which in turn, imports from
 # settings.py)
-from staging_example import *  # noqa
+from onadata.settings.staging_example import *  # noqa
 
 
 ALLOWED_HOSTS = ['*']
