@@ -96,11 +96,11 @@ class BriefcaseViewset(mixins.CreateModelMixin,
 
     def filter_queryset(self, queryset):
         username = self.kwargs.get('username')
-        if username is None and self.request.user.is_anonymous():
+        if username is None and self.request.user.is_anonymous:
             # raises a permission denied exception, forces authentication
             self.permission_denied(self.request)
 
-        if username is not None and self.request.user.is_anonymous():
+        if username is not None and self.request.user.is_anonymous:
             profile = get_object_or_404(
                 UserProfile, user__username=username.lower())
 
