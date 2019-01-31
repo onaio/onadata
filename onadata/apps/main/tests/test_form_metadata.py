@@ -1,16 +1,16 @@
-import os
 import hashlib
+import os
 from builtins import open
 
 from django.contrib.contenttypes.models import ContentType
+from django.core.cache import cache
 from django.core.files.base import File
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.core.urlresolvers import reverse
-from django.core.cache import cache
+from django.urls import reverse
 
 from onadata.apps.main.models import MetaData
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.main.views import show, edit, download_metadata,\
+from onadata.apps.main.views import show, edit, download_metadata, \
     download_media_data, delete_metadata
 from onadata.libs.utils.cache_tools import XFORM_METADATA_CACHE
 

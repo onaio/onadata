@@ -3,16 +3,14 @@ import shutil
 from builtins import open
 from io import BytesIO
 
-from future.moves.urllib.parse import urljoin
-
+import requests
 from django.contrib.auth import authenticate
 from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import UploadedFile
-from django.core.urlresolvers import reverse
 from django.test import RequestFactory
-
-import requests
+from django.urls import reverse
 from django_digest.test import Client as DigestClient
+from future.moves.urllib.parse import urljoin
 from httmock import HTTMock, urlmatch
 
 from onadata.apps.logger.models import Instance, XForm

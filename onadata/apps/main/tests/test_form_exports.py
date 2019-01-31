@@ -1,9 +1,9 @@
-import os
-import time
 import csv
+import os
 import tempfile
+import time
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils import timezone
 from xlrd import open_workbook
 

@@ -1,10 +1,10 @@
 import os
+from builtins import open
 from hashlib import md5
 
-from builtins import open
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.test import TransactionTestCase
+from django.urls import reverse
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from mock import patch

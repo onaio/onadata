@@ -1,10 +1,10 @@
 import os
 
-from django.core.urlresolvers import reverse
 from django.conf import settings
+from django.urls import reverse
 
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import Attachment
+from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.views import attachment_url
 
 

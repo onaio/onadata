@@ -1,11 +1,11 @@
 from datetime import datetime
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
-from onadata.apps.main.views import delete_data
-from onadata.apps.viewer.models.parsed_instance import query_data
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.main.views import delete_data
+from onadata.apps.viewer.models.parsed_instance import query_data
 
 
 class TestFormAPIDelete(TestBase):

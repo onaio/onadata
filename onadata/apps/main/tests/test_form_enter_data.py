@@ -1,22 +1,21 @@
 import re
 from time import time
-from future.moves.urllib.parse import urlparse
-from past.builtins import basestring
-
-from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
-from django.core.urlresolvers import reverse
-from django.core.validators import URLValidator
-from django.test import RequestFactory
 
 import requests
+from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
+from django.core.validators import URLValidator
+from django.test import RequestFactory
+from django.urls import reverse
+from future.moves.urllib.parse import urlparse
 from httmock import HTTMock, urlmatch
 from nose import SkipTest
+from past.builtins import basestring
 
 from onadata.apps.logger.views import enter_data
 from onadata.apps.main.models import MetaData
-from onadata.apps.main.views import qrcode, set_perm, show
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.main.views import qrcode, set_perm, show
 from onadata.libs.utils.viewer_tools import enketo_url
 
 

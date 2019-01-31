@@ -1,13 +1,13 @@
-import os
 import glob
+import os
 
-from django.core.urlresolvers import reverse
 from django.conf import settings
+from django.urls import reverse
 
-from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.logger.models import Instance
 from onadata.apps.logger.import_tools import import_instances_from_zip
+from onadata.apps.logger.models import Instance
 from onadata.apps.logger.views import bulksubmission
+from onadata.apps.main.tests.test_base import TestBase
 
 CUR_PATH = os.path.abspath(__file__)
 CUR_DIR = os.path.dirname(CUR_PATH)

@@ -3,31 +3,31 @@ import datetime
 import json
 import os
 from io import StringIO
-from mock import patch
 from time import sleep
 
 from celery import current_app
 from django.conf import settings
 from django.core.files.storage import get_storage_class
-from django.core.urlresolvers import reverse
-from django.utils.dateparse import parse_datetime
 from django.http import Http404
+from django.urls import reverse
+from django.utils.dateparse import parse_datetime
+from mock import patch
 from xlrd import open_workbook
 
 from onadata.apps.logger.models import Instance
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.apps.main.views import delete_data
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.viewer.xls_writer import XlsWriter
+from onadata.apps.main.views import delete_data
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import query_data
-from onadata.apps.viewer.tests.export_helpers import viewer_fixture_path
-from onadata.apps.viewer.views import delete_export, export_list,\
-    create_export, export_progress, export_download
 from onadata.apps.viewer.tasks import create_xls_export
+from onadata.apps.viewer.tests.export_helpers import viewer_fixture_path
+from onadata.apps.viewer.views import delete_export, export_list, \
+    create_export, export_progress, export_download
+from onadata.apps.viewer.xls_writer import XlsWriter
 from onadata.libs.utils.common_tools import get_response_content
 from onadata.libs.utils.export_builder import dict_to_joined_export
-from onadata.libs.utils.export_tools import generate_export,\
+from onadata.libs.utils.export_tools import generate_export, \
     increment_index_in_filename, clean_keys_of_slashes
 
 AMBULANCE_KEY = 'transport/available_transportation_types_to_referral_fac'\
