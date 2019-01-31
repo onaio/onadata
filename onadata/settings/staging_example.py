@@ -1,5 +1,5 @@
 # flake8: noqa
-from common import *
+from onadata.settings.common import *
 
 DEBUG = True
 TEMPLATES[0]['OPTIONS']['debug'] = DEBUG
