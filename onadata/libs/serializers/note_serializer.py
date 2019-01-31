@@ -53,7 +53,7 @@ class NoteSerializer(serializers.ModelSerializer):
         instance = attrs.get('instance')
         request = self.context.get('request')
 
-        if request and request.user.is_anonymous():
+        if request and request.user.is_anonymous:
             raise exceptions.ParseError(
                 _(u"You are not authorized to add/change notes on this form."))
 

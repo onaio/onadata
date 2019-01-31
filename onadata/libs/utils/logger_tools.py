@@ -159,7 +159,7 @@ def _has_edit_xform_permission(xform, user):
 
 
 def check_edit_submission_permissions(request_user, xform):
-    if xform and request_user and request_user.is_authenticated():
+    if xform and request_user and request_user.is_authenticated:
         requires_auth = xform.user.profile.require_auth
         has_edit_perms = _has_edit_xform_permission(xform, request_user)
 
@@ -290,7 +290,7 @@ def create_instance(username,
     """
     instance = None
     submitted_by = request.user \
-        if request and request.user.is_authenticated() else None
+        if request and request.user.is_authenticated else None
 
     if username:
         username = username.lower()

@@ -60,7 +60,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
         obj = get_object_or_404(queryset or XForm, **filter_kwargs)
         self.check_object_permissions(self.request, obj)
 
-        if self.request.user.is_anonymous() and obj.require_auth:
+        if self.request.user.is_anonymous and obj.require_auth:
             self.permission_denied(self.request)
 
         return obj
@@ -73,7 +73,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
 
     def filter_queryset(self, queryset):
         username = self.kwargs.get('username')
-        if username is None and self.request.user.is_anonymous():
+        if username is None and self.request.user.is_anonymous:
             # raises a permission denied exception, forces authentication
             self.permission_denied(self.request)
 
@@ -82,7 +82,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
             profile = get_object_or_404(
                 UserProfile, user__username=username.lower())
 
-            if profile.require_auth and self.request.user.is_anonymous():
+            if profile.require_auth and self.request.user.is_anonymous:
                 # raises a permission denied exception, forces authentication
                 self.permission_denied(self.request)
             else:
@@ -90,7 +90,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
                     user=profile.user, downloadable=True)
 
         queryset = super(XFormListViewSet, self).filter_queryset(queryset)
-        if not self.request.user.is_anonymous():
+        if not self.request.user.is_anonymous:
             xform_pk = self.kwargs.get('xform_pk')
             if self.action == 'list' and profile and xform_pk is None:
                 forms_shared_with_user = get_forms_shared_with_user(
@@ -150,7 +150,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
             MetaData, data_type='media', object_id=self.object.pk, pk=pk)
         response = get_media_file_response(meta_obj, request)
 
-        if response.status_code == 403 and request.user.is_anonymous():
+        if response.status_code == 403 and request.user.is_anonymous:
             # raises a permission denied exception, forces authentication
             self.permission_denied(request)
         else:

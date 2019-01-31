@@ -210,7 +210,7 @@ def parse_webform_return_url(return_url, request):
     # token to create signed cookies which will be used by subsequent
     # enketo calls to authenticate the user
     if jwt_param:
-        if request.user.is_anonymous():
+        if request.user.is_anonymous:
             api_token = authentication.get_api_token(jwt_param)
             if getattr(api_token, 'user'):
                 username = api_token.user.username

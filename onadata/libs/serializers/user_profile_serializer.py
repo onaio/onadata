@@ -254,7 +254,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             _send_verification_email(redirect_url, new_user, request)
 
         created_by = request.user
-        created_by = None if created_by.is_anonymous() else created_by
+        created_by = None if created_by.is_anonymous else created_by
         metadata['last_password_edit'] = timezone.now().isoformat()
         profile = UserProfile(
             user=new_user, name=params.get('first_name'),

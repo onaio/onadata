@@ -367,7 +367,7 @@ class UserViewSetPermissions(DjangoModelPermissionsOrAnonReadOnly):
 
     def has_permission(self, request, view):
 
-        if request.user.is_anonymous() and view.action == 'list':
+        if request.user.is_anonymous and view.action == 'list':
             if request.GET.get('search'):
                 raise exceptions.NotAuthenticated()
 
@@ -389,7 +389,7 @@ class DataViewViewsetPermissions(
         # To allow individual public dataviews to be visible on
         # `api/v1/dataviews/<pk>` but stop retreival of all dataviews when
         # the dataviews endpoint is queried `api/v1/dataviews`
-        return not (request.user.is_anonymous() and view.action == 'list')
+        return not (request.user.is_anonymous and view.action == 'list')
 
     def has_object_permission(self, request, view, obj):
         model_cls = Project
@@ -503,7 +503,7 @@ class IsAuthenticatedSubmission(BasePermission):
 
     def has_permission(self, request, view):
         username = view.kwargs.get('username')
-        if request.method in ['HEAD', 'POST'] and request.user.is_anonymous():
+        if request.method in ['HEAD', 'POST'] and request.user.is_anonymous:
             if username is None:
                 # raises a permission denied exception, forces authentication
                 return False
