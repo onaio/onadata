@@ -19,7 +19,7 @@ from django.core.files.base import File
 from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
 from django.db.models.query import QuerySet
-from django.shortcuts import render_to_response
+from django.shortcuts import render
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 from future.moves.urllib.parse import urlparse
@@ -521,7 +521,7 @@ def generate_kml_export(export_type, username, id_string, export_id=None,
     user = User.objects.get(username=username)
     if xform is None:
         xform = XForm.objects.get(user__username=username, id_string=id_string)
-    response = render_to_response(
+    response = render(
         'survey.kml', {'data': kml_export_data(id_string, user, xform=xform)})
 
     basename = "%s_%s" % (id_string,
