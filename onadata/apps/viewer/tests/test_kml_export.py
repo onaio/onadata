@@ -1,10 +1,10 @@
 import os
+
+from django.urls import reverse
 from future.utils import iteritems
 
-from django.core.urlresolvers import reverse
-
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.instance import Instance
+from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.views import kml_export
 
 

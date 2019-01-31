@@ -1,13 +1,13 @@
 import os
 from unittest import skip
 
-from django.core.urlresolvers import reverse
 from django.core.files.storage import get_storage_class
+from django.urls import reverse
 from pyxform.errors import PyXFormError
 
-from onadata.apps.main.views import show
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm
+from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.main.views import show
 from onadata.libs.utils.logger_tools import XLSFormError
 
 

@@ -7,12 +7,11 @@ import io
 import mimetypes
 from xml.parsers.expat import ExpatError
 
-from past.builtins import basestring
-
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.http import HttpRequest
 from django.utils.translation import ugettext as _
+from past.builtins import basestring
 
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models.instance import FormInactiveError
@@ -179,7 +178,7 @@ def check_form_sms_compatibility(form, json_survey=None):
 
     def prep_return(msg, comp=None):
 
-        from django.core.urlresolvers import reverse
+        from django.urls import reverse
 
         error = 'alert-info'
         warning = 'alert-info'

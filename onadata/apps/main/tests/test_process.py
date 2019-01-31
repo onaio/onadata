@@ -3,15 +3,15 @@ import fnmatch
 import json
 import os
 import re
+from builtins import open
 from datetime import datetime
 from hashlib import md5
 from xml.dom import minidom, Node
 
 import pytz
-from builtins import open
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django_digest.test import Client as DigestClient
 from future.utils import iteritems
 from mock import patch

@@ -2,19 +2,19 @@ import os
 import shutil
 from io import open
 
-from django.core.urlresolvers import reverse
+from django.contrib.auth import authenticate
 from django.core.files.storage import get_storage_class
+from django.urls import reverse
 from django_digest.test import DigestAuth
 from rest_framework.test import APIRequestFactory
-from django.contrib.auth import authenticate
 
-from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.logger.views import view_submission_list
-from onadata.apps.logger.views import view_download_submission
-from onadata.apps.logger.views import form_upload
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
+from onadata.apps.logger.views import form_upload
 from onadata.apps.logger.views import submission
+from onadata.apps.logger.views import view_download_submission
+from onadata.apps.logger.views import view_submission_list
+from onadata.apps.main.tests.test_base import TestBase
 
 NUM_INSTANCES = 4
 storage = get_storage_class()()

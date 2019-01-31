@@ -1,7 +1,7 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
-from onadata.apps.main.views import login_redirect
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.main.views import login_redirect
 
 
 class TestFormAuth(TestBase):
