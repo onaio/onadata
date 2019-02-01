@@ -334,6 +334,8 @@ def create_instance(username,
 
     try:
         with transaction.atomic():
+            if isinstance(xml, bytes):
+                xml = xml.decode('utf-8')
             instance = save_submission(xform, xml, media_files, new_uuid,
                                        submitted_by, status,
                                        date_created_override, checksum)
