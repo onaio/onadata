@@ -55,7 +55,7 @@ class PrefetchManager(models.Manager):
             .prefetch_related(Prefetch(
                 'organization__team_set',
                 queryset=Team.objects.all().prefetch_related('user_set')
-            )).iterator(chunk_size=settings.PROJECT_QUERY_SIZE_CHUNK_SIZE)
+            )).iterator(chunk_size=settings.PROJECT_QUERY_CHUNK_SIZE)
 
 
 @python_2_unicode_compatible
