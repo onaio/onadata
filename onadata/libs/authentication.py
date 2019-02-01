@@ -111,6 +111,8 @@ class TempTokenAuthentication(TokenAuthentication):
 
     def authenticate_credentials(self, key):
         try:
+            if isinstance(key, bytes):
+                key = key.decode('utf-8')
             token = self.model.objects.get(key=key)
         except self.model.DoesNotExist:
             raise exceptions.AuthenticationFailed(_(u'Invalid token'))
