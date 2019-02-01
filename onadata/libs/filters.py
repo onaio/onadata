@@ -63,9 +63,7 @@ class XFormListXFormPKFilter(object):
 
 
 class FormIDFilter(django_filter_filters.FilterSet):
-    formID = django_filter_filters.CharFilter(field_name="id_string",
-                                              lookup_choices=[
-                                                  ('exact', 'Equals')])
+    formID = django_filter_filters.CharFilter(field_name="id_string")
 
     class Meta:
         model = XForm
