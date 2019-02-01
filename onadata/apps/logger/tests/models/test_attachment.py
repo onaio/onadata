@@ -96,7 +96,8 @@ class TestAttachment(TestBase):
                 self.assertTrue(
                     default_storage.exists(thumbnail))
                 self.assertTrue(
-                    default_storage.modified_time(thumbnail) > check_datetime)
+                    default_storage.get_modified_time(thumbnail) >
+                    check_datetime)
                 default_storage.delete(thumbnail)
 
     def test_get_original_filename(self):
