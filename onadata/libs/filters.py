@@ -63,8 +63,9 @@ class XFormListXFormPKFilter(object):
 
 
 class FormIDFilter(django_filter_filters.FilterSet):
-    formID = django_filter_filters.CharFilter(name="id_string",
-                                              lookup_expr='exact')
+    formID = django_filter_filters.CharFilter(field_name="id_string",
+                                              lookup_choices=[
+                                                  ('exact', 'Equals')])
 
     class Meta:
         model = XForm
@@ -119,12 +120,12 @@ class InstanceFilter(django_filter_filters.FilterSet):
     Instance FilterSet implemented using django-filter
     """
     submitted_by__id = django_filter_filters.ModelChoiceFilter(
-        name='user',
+        field_name='user',
         queryset=User.objects.all(),
         to_field_name='id',
     )
     submitted_by__username = django_filter_filters.ModelChoiceFilter(
-        name='user',
+        field_name='user',
         queryset=User.objects.all(),
         to_field_name='username',
     )

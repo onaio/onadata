@@ -228,7 +228,9 @@ def save_attachments(xform, instance, media_files):
         filename = os.path.basename(f.name)
         media_in_submission = (
             filename in instance.get_expected_media() or
-            instance.xml.decode('utf-8').find(filename) != -1)
+            [instance.xml.decode('utf-8').find(filename) != -1 if
+             isinstance(instance.xml, bytes) else
+             instance.xml.find(filename) != -1])
         if media_in_submission:
             Attachment.objects.get_or_create(
                 instance=instance,
