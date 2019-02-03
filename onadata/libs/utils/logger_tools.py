@@ -263,7 +263,7 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
         instance.save()
         pi, created = ParsedInstance.objects.get_or_create(instance=instance)
         if not created:
-            pi.save(async=False)
+            pi.save(async=False)  # noqa
 
     return instance
 
@@ -402,7 +402,7 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
         error = OpenRosaResponseBadRequest(
             _(u"File likely corrupted during "
               u"transmission, please try later."))
-    except NonUniqueFormIdError as e:
+    except NonUniqueFormIdError:
         error = OpenRosaResponseBadRequest(
             _(u"Unable to submit because there are multiple forms with"
               u" this formID."))
@@ -481,18 +481,18 @@ def publish_form(callback):
         return callback()
     except (PyXFormError, XLSFormError) as e:
         return {'type': 'alert-error', 'text': text(e)}
-    except IntegrityError as e:
+    except IntegrityError:
         return {
             'type': 'alert-error',
             'text': _(u'Form with this id or SMS-keyword already exists.'),
         }
-    except ProcessTimedOut as e:
+    except ProcessTimedOut:
         # catch timeout errors
         return {
             'type': 'alert-error',
             'text': _(u'Form validation timeout, please try again.'),
         }
-    except (MemoryError, OSError) as e:
+    except (MemoryError, OSError):
         return {
             'type': 'alert-error',
             'text': _((u'An error occurred while publishing the form. '

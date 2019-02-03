@@ -527,10 +527,10 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             elif isinstance(child, Question) and not \
                 question_types_to_exclude(child.type) and not\
                     is_repeating_section:  # if is_repeating_section,
-                    # its parent already initiliased an empty list
-                    # so we dont add it to our list of columns,
-                    # the repeating columns list will be
-                    # generated when we reindex
+                # its parent already initiliased an empty list
+                # so we dont add it to our list of columns,
+                # the repeating columns list will be
+                # generated when we reindex
                 ordered_columns[child.get_abbreviated_xpath()] = None
 
     def _update_columns_from_data(self, cursor):
