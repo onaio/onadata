@@ -439,7 +439,7 @@ class Instance(models.Model, InstanceBaseClass):
         'logger.XForm', null=False, related_name='instances',
         on_delete=models.CASCADE)
     survey_type = models.ForeignKey(
-        'logger.SurveyType',on_delete=models.PROTECT)
+        'logger.SurveyType', on_delete=models.PROTECT)
 
     # shows when we first received this instance
     date_created = models.DateTimeField(auto_now_add=True)

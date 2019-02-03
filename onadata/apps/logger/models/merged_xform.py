@@ -1,6 +1,5 @@
 from django.db import models
 from django.db.models.signals import post_save
-from django.utils.translation import ugettext as _
 
 from onadata.apps.logger.models.xform import XForm
 

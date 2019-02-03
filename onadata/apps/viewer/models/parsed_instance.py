@@ -338,7 +338,7 @@ class ParsedInstance(models.Model):
             self.lat = self.instance.point.y
             self.lng = self.instance.point.x
 
-    def save(self, async=False, *args, **kwargs):
+    def save(self, async=False, *args, **kwargs):  # noqa
         # start/end_time obsolete: originally used to approximate for
         # instanceID, before instanceIDs were implemented
         self.start_time = None

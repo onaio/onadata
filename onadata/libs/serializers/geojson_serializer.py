@@ -19,9 +19,9 @@ def create_feature(instance, geo_field, fields):
     points = data.get(geo_field).split(';')
 
     if len(points) == 1:
-            # only one set of coordinates -> Point
-            point = points[0].split()
-            geometry = geojson.Point((float(point[1]), float(point[0])))
+        # only one set of coordinates -> Point
+        point = points[0].split()
+        geometry = geojson.Point((float(point[1]), float(point[0])))
     elif len(points) > 1:
         # More than one set of coordinates -> Either LineString or Polyon
         pnt_list = []

@@ -126,7 +126,7 @@ def restore_backup_from_xml_file(xml_instance_path, username):
     media_files = []
     try:
         date_created = _date_created_from_filename(file_name)
-    except ValueError as e:
+    except ValueError:
         sys.stderr.write(
             "Couldn't determine date created from filename: '%s'\n" %
             file_name)
