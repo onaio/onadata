@@ -5,7 +5,7 @@ import django
 from django.conf import settings
 from django.conf.urls import include, url, i18n
 from django.contrib.staticfiles import views as staticfiles_views
-from django.urls import re_path, path
+from django.urls import re_path
 from django.views.generic import RedirectView
 
 from onadata.apps import sms_support
@@ -50,7 +50,8 @@ urlpatterns = [
     # oath2_provider
     re_path(r'^o/authorize/$', main_views.OnaAuthorizationView.as_view(),
         name="oauth2_provider_authorize"),
-    re_path(r'^o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
+    re_path(r'^o/', include('oauth2_provider.urls',
+        namespace='oauth2_provider')),
 
     # main website views
     re_path(r'^$', main_views.home),
@@ -71,7 +72,8 @@ urlpatterns = [
     re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/stats$',
         viewer_views.charts, name='form-stats'),
     re_path(r'^login_redirect/$', main_views.login_redirect),
-    re_path(r'^attachment/$', viewer_views.attachment_url, name='attachment_url'),
+    re_path(r'^attachment/$', viewer_views.attachment_url,
+     name='attachment_url'),
     re_path(r'^attachment/(?P<size>[^/]+)$', viewer_views.attachment_url,
         name='attachment_url'),
     re_path(r'^jsi18n/$',
@@ -80,7 +82,8 @@ urlpatterns = [
         name='javascript-catalog'),
     re_path(r'^typeahead_usernames', main_views.username_list,
         name='username_list'),
-    re_path(r'^(?P<username>[^/]+)/$', main_views.profile, name='user_profile'),
+    re_path(r'^(?P<username>[^/]+)/$', main_views.profile,
+        name='user_profile'),
     re_path(r'^(?P<username>[^/]+)/profile$', main_views.public_profile,
         name='public_profile'),
     re_path(r'^(?P<username>[^/]+)/settings', main_views.profile_settings,
@@ -97,7 +100,8 @@ urlpatterns = [
         name='api-token'),
 
     # form specific
-    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)$', main_views.show,
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)$',
+     main_views.show,
         name='form-show'),
     re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/qrcode$',
         main_views.qrcode, name='get_qrcode'),
@@ -113,12 +117,14 @@ urlpatterns = [
         main_views.set_perm, name='set-xform-permissions'),
     re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/photos',
         main_views.form_photos, name='form-photos'),
-    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/doc/(?P<data_id>\d+)'
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>\
+        [^/]+)/doc/(?P<data_id>\d+)'
         '', main_views.download_metadata, name='download-metadata'),
-    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/delete-doc/(?P<data_'
-        'id>\d+)', main_views.delete_metadata, name='delete-metadata'),
-    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/formid-media/(?P<dat'
-        'a_id>\d+)', main_views.download_media_data,
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>\
+        [^/]+)/delete-doc/(?P<data_id>\d+)', main_views.delete_metadata,
+        name='delete-metadata'),
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>\
+        [^/]+)/formid-media/(?P<data_id>\d+)', main_views.download_media_data,
         name='download-media-data'),
     re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/addservice$',
         restservice_views.add_service, name='add_restservice'),
@@ -177,19 +183,19 @@ urlpatterns = [
     re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/thank_you_submission',
         viewer_views.thank_you_submission,
         name='thank_you_submission'),
-    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/edit-data/(?P<data_id>'
-        '\d+)$', logger_views.edit_data, name='edit_data'),
+    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/edit-data/(?P<data_id>\d+)$', # noqa
+        logger_views.edit_data, name='edit_data'),
     re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/view-data',
         viewer_views.data_view, name='data-view'),
-    re_path(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
-        '/new$', viewer_views.create_export, name='new-export'),
-    re_path(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
+    re_path(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)/new$', # noqa
+        viewer_views.create_export, name='new-export'),
+    re_path(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)' # noqa
         '/delete$', viewer_views.delete_export, name='delete-export'),
-    re_path(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
+    re_path(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)' # noqa
         '/progress$', viewer_views.export_progress, name='export-progress'),
-    re_path(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
+    re_path(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)' # noqa
         '/$', viewer_views.export_list, name='export-list'),
-    re_path(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
+    re_path(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)' # noqa
         '/(?P<filename>[^/]+)$',
         viewer_views.export_download, name='export-download'),
 
@@ -218,12 +224,10 @@ urlpatterns = [
     re_path(r'^xformsManifest/(?P<pk>[\d+^/]+)$',
         XFormListViewSet.as_view({'get': 'manifest', 'head': 'manifest'}),
         name='manifest-url'),
-    re_path(r'^(?P<username>\w+)/xformsMedia/(?P<pk>[\d+^/]+)'
-        '/(?P<metadata>[\d+^/.]+)$',
+    re_path(r'^(?P<username>\w+)/xformsMedia/(?P<pk>[\d+^/]+)/(?P<metadata>[\d+^/.]+)$', # noqa
         XFormListViewSet.as_view({'get': 'media', 'head': 'media'}),
         name='xform-media'),
-    re_path(r'^(?P<username>\w+)/xformsMedia/(?P<pk>[\d+^/]+)'
-        '/(?P<metadata>[\d+^/.]+)\.(?P<format>([a-z]|[0-9])*)$',
+    re_path(r'^(?P<username>\w+)/xformsMedia/(?P<pk>[\d+^/]+)/(?P<metadata>[\d+^/.]+)\.(?P<format>([a-z]|[0-9])*)$',# noqa
         XFormListViewSet.as_view({'get': 'media', 'head': 'media'}),
         name='xform-media'),
     re_path(r'^xformsMedia/(?P<pk>[\d+^/]+)/(?P<metadata>[\d+^/.]+)$',
@@ -260,8 +264,7 @@ urlpatterns = [
         logger_views.toggle_downloadable, name='toggle-downloadable'),
 
     # SMS support
-    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/sms_submission/(?P<s'
-        'ervice>[a-z]+)/?$',
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/sms_submission/(?P<service>[a-z]+)/?$',  # noqa
         sms_support.providers.import_submission_for_form,
         name='sms_submission_form_api'),
     re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/sms_submission$',
@@ -270,8 +273,7 @@ urlpatterns = [
     re_path(r'^(?P<username>[^/]+)/sms_submission/(?P<service>[a-z]+)/?$',
         sms_support.providers.import_submission,
         name='sms_submission_api'),
-    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/sms_multiple_submiss'
-        'ions$',
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/sms_multiple_submissions$', # noqa
         sms_support_views.import_multiple_submissions_for_form,
         name='sms_submissions_form'),
     re_path(r'^(?P<username>[^/]+)/sms_multiple_submissions$',

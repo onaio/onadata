@@ -21,5 +21,5 @@ application = get_wsgi_application()
 
 @timer(3)
 def change_code_gracefull_reload(sig):
-        if autoreload.code_changed():
-                    uwsgi.reload()
+    if autoreload.code_changed():
+        uwsgi.reload()
