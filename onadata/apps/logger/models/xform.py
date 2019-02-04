@@ -1,12 +1,12 @@
 import json
 import os
 import re
+from builtins import bytes as b, str as text
 from datetime import datetime
 from hashlib import md5
 from xml.dom import Node
 
 import pytz
-from builtins import bytes as b, str as text
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericRelation
@@ -254,7 +254,7 @@ class XFormMixin(object):
         pretty_xml = text_re.sub(lambda m: ''.join(m.group(1, 2, 3)),
                                  self.xml.decode('utf-8'))
         inline_output = output_re.sub('\\g<1>', pretty_xml)
-        inline_output = re.compile('<label>\\s*\n*\\s*\n*\\s*</label>').sub(
+        inline_output = re.compile('<label>\s*\n*\s*\n*\s*</label>').sub(
             '<label></label>', inline_output)
         self.xml = inline_output
 
