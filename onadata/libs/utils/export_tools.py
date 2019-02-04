@@ -521,8 +521,11 @@ def generate_kml_export(export_type, username, id_string, export_id=None,
     user = User.objects.get(username=username)
     if xform is None:
         xform = XForm.objects.get(user__username=username, id_string=id_string)
+
     response = render(
-        'survey.kml', {'data': kml_export_data(id_string, user, xform=xform)})
+        None, 'survey.kml',
+        {'data': kml_export_data(id_string, user, xform=xform)}
+    )
 
     basename = "%s_%s" % (id_string,
                           datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))

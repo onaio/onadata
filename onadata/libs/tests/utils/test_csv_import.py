@@ -18,7 +18,7 @@ from onadata.libs.utils.csv_import import get_submission_meta_dict
 
 
 def strip_xml_uuid(s):
-    return re.sub(b'\S*uuid\S*', b'', s.rstrip(b'\n'))
+    return re.sub(b'\S*uuid\S*', b'', s.rstrip(b'\n'))  # noqa
 
 
 class CSVImportTestCase(TestBase):
