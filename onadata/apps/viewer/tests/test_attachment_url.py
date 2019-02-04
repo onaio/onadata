@@ -23,14 +23,14 @@ class TestAttachmentUrl(TestBase):
         self.assertEqual(
             Attachment.objects.count(), self.attachment_count + 1)
         response = self.client.get(
-            self.url, {"media_file": self.attachment_media_file})
+            self.url, {"media_file": self.attachment_media_file.name})
         self.assertEqual(response.status_code, 302)  # redirects to amazon
 
     def test_attachment_url_no_redirect(self):
         self.assertEqual(
             Attachment.objects.count(), self.attachment_count + 1)
         response = self.client.get(
-            self.url, {"media_file": self.attachment_media_file,
+            self.url, {"media_file": self.attachment_media_file.name,
                        'no_redirect': 'true'})
         self.assertEqual(response.status_code, 200)  # no redirects to amazon
 
