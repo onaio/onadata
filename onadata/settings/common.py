@@ -558,3 +558,6 @@ XLS_EXTENSIONS = ['xls', 'xlsx']
 CSV_EXTENSION = 'csv'
 
 PROJECT_QUERY_CHUNK_SIZE = 5000
+
+# Prevents "The number of GET/POST parameters exceeded" exception
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000000
