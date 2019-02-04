@@ -6,6 +6,7 @@ from django.core.files.base import File
 from django.core.files.storage import default_storage
 from django.core.management import call_command
 from django.db.utils import DataError
+from django.utils import timezone
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import Attachment, Instance
@@ -86,7 +87,7 @@ class TestAttachment(TestBase):
                 thumbnail = '%s-%s.jpg' % (filename, size)
                 self.assertTrue(
                     default_storage.exists(thumbnail))
-        check_datetime = datetime.now()
+        check_datetime = timezone.now()
         # replace or regenerate thumbnails if they exist
         call_command("create_image_thumbnails", force=True)
         for attachment in Attachment.objects.filter(instance=self.instance):
@@ -95,9 +96,10 @@ class TestAttachment(TestBase):
                 thumbnail = '%s-%s.jpg' % (filename, size)
                 self.assertTrue(
                     default_storage.exists(thumbnail))
+
                 self.assertTrue(
                     default_storage.get_modified_time(thumbnail) >
-                    check_datetime)
+                check_datetime)
                 default_storage.delete(thumbnail)
 
     def test_get_original_filename(self):
