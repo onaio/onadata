@@ -78,7 +78,7 @@ class TestFormEnterData(TestBase):
             raise SkipTest
         with HTTMock(enketo_mock):
             server_url = "https://testserver.com/bob"
-            form_id = "test_%s" % re.sub(re.compile("\."), "_", str(time()))
+            form_id = "test_%s" % re.sub(re.compile("\."), "_", str(time()))  # noqa
             url = enketo_url(server_url, form_id)
             self.assertIsInstance(url, basestring)
             self.assertIsNone(URLValidator()(url))
@@ -88,7 +88,7 @@ class TestFormEnterData(TestBase):
             raise SkipTest
         with HTTMock(enketo_mock_http):
             server_url = "http://testserver.com/bob"
-        form_id = "test_%s" % re.sub(re.compile("\."), "_", str(time()))
+            form_id = "test_%s" % re.sub(re.compile("\."), "_", str(time()))  # noqa
             url = enketo_url(server_url, form_id)
             self.assertIn("http:", url)
             self.assertIsInstance(url, basestring)

@@ -19,7 +19,7 @@ from onadata.libs.utils.user_auth import get_user_default_project
 
 
 def strip_xml_uuid(s):
-    return re.sub(b'\S*uuid\S*', b'', s.rstrip(b'\n'))
+    return re.sub(b'\S*uuid\S*', b'', s.rstrip(b'\n'))  # noqa
 
 
 class CSVImportTestCase(TestBase):

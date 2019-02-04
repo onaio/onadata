@@ -117,14 +117,12 @@ urlpatterns = [
         main_views.set_perm, name='set-xform-permissions'),
     re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/photos',
         main_views.form_photos, name='form-photos'),
-    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>\
-        [^/]+)/doc/(?P<data_id>\d+)'
-        '', main_views.download_metadata, name='download-metadata'),
-    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>\
-        [^/]+)/delete-doc/(?P<data_id>\d+)', main_views.delete_metadata,
+
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/doc/(?P<data_id>\d+)',  # noqa
+        main_views.download_metadata, name='download-metadata'),
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/delete-doc/(?P<data_id>\d+)', main_views.delete_metadata,  # noqa
         name='delete-metadata'),
-    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>\
-        [^/]+)/formid-media/(?P<data_id>\d+)', main_views.download_media_data,
+    re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/formid-media/(?P<data_id>\d+)', main_views.download_media_data, # noqa
         name='download-media-data'),
     re_path(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/addservice$',
         restservice_views.add_service, name='add_restservice'),
@@ -177,10 +175,10 @@ urlpatterns = [
         viewer_views.instance, name='submission-instance'),
     re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/enter-data',
         logger_views.enter_data, name='enter_data'),
-    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/add-submission-with',
+    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/add-submission-with', # noqa
         viewer_views.add_submission_with,
         name='add_submission_with'),
-    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/thank_you_submission',
+    re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/thank_you_submission', # noqa
         viewer_views.thank_you_submission,
         name='thank_you_submission'),
     re_path(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/edit-data/(?P<data_id>\d+)$', # noqa

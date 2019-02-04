@@ -19,7 +19,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         file_name = "export"
         extension = "ext"
 
-        date_pattern = "\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}"
+        date_pattern = "\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}" # noqa
         file_name_pattern = "%s.%s" % (file_name, extension)
         file_name_with_timestamp_pattern = \
             "%s-%s.%s" % (file_name, date_pattern, extension)
