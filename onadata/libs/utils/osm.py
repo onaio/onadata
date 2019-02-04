@@ -6,14 +6,12 @@ from __future__ import unicode_literals
 
 import logging
 
-from future.utils import iteritems
-
+from celery import task
 from django.contrib.gis.geos import (GeometryCollection, LineString, Point,
                                      Polygon)
 from django.contrib.gis.geos.error import GEOSException
 from django.db import IntegrityError, models, transaction
-
-from celery import task
+from future.utils import iteritems
 from lxml import etree
 
 from onadata.apps.logger.models.attachment import Attachment
@@ -171,6 +169,8 @@ def save_osm_data(instance_id):
         for osm in osm_attachments:
             try:
                 osm_xml = osm.media_file.read()
+                if isinstance(osm_xml, bytes):
+                    osm_xml = osm_xml.decode('utf-8')
             except IOError as e:
                 logging.exception("IOError saving osm data: %s" % str(e))
                 continue
