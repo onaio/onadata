@@ -1,8 +1,8 @@
 Changelog for onadata
 =====================
 
-Unreleased (2019-01-XX)
-----------------------
+1.18.0 (2019-01-24)
+-----------------------
 
 - Update to pyxform 0.12.2, performance regression fix.
   `Fixes https://github.com/XLSForm/pyxform/issues/247 <https://github.com/XLSForm/pyxform/issues/247>`_
@@ -14,6 +14,54 @@ Unreleased (2019-01-XX)
 
 - Fix improperly configured URL exception.
   `Fixes #1518 <https://github.com/onaio/onadata/issues/1518>`_
+  [lincmba]
+
+- Fix Wrong HTTP method on the project share end point
+  `Fixes #1520 <https://github.com/onaio/onadata/issues/1520>`_
+  [lincmba]
+
+- Fix files endpoint thumbnail not working for large png images
+  `Fixes #1509 <https://github.com/onaio/onadata/issues/1509>`_
+  [lincmba]
+
+- Fix recreating the same dataview
+  `Fixes #1498 <https://github.com/onaio/onadata/issues/1498>`_
+  [lincmba]
+
+- Make sure that when a project is deleted all forms are deleted
+  `Fixes #1494 <https://github.com/onaio/onadata/issues/1494>`_
+  [bmarika]
+
+- Return better error messages on invalid csv/xls imports
+  `Fixes #987 <https://github.com/onaio/onadata/issues/987>`_
+  [lincmba]
+
+- Filter media attachments exports
+  `Fixes #1028 <https://github.com/onaio/onadata/issues/1028>`_
+  [lincmba]
+
+- Remove empty optional fields in formList
+  `Fixes #1519 <https://github.com/onaio/onadata/issues/1519>`_
+  [lincmba]
+
+- Fix failing bulk csv edits
+  `Fixes #1540 <https://github.com/onaio/onadata/issues/1540>`_
+  [lincmba]
+
+- Fix TypeError at /api/v1/forms/[pk]/export_async.json
+  `Fixes #999 <https://github.com/onaio/onadata/issues/999>`_
+  [lincmba]
+
+- Handle DataError during XForms submission
+  `Fixes #949 <https://github.com/onaio/onadata/issues/949>`_
+  [bmarika]
+
+- Escape apostrophes in SQL queries
+  `Fixes #1525 <https://github.com/onaio/onadata/issues/1525>`_
+  [bmarika]
+
+- Upgrade kombu
+  `PR #1529 <https://github.com/onaio/onadata/pull/1529>`_
   [lincmba]
 
 1.17.0 (2018-12-19)
