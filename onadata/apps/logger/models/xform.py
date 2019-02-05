@@ -253,7 +253,7 @@ class XFormMixin(object):
         output_re = re.compile('\n.*(<output.*>)\n(  )*')
         pretty_xml = text_re.sub(lambda m: ''.join(m.group(1, 2, 3)),
                                  self.xml.decode('utf-8'))
-        inline_output = output_re.sub('\\g<1>', pretty_xml)
+        inline_output = output_re.sub('\g<1>', pretty_xml)  # noqa
         inline_output = re.compile('<label>\s*\n*\s*\n*\s*</label>').sub( # noqa
             '<label></label>', inline_output)
         self.xml = inline_output
@@ -755,7 +755,6 @@ class XForm(XFormMixin, BaseModel):
         verbose_name_plural = ugettext_lazy("XForms")
         ordering = ("pk", )
         permissions = (
-            # ("view_xform", _("Can view associated data")),
             ("view_xform_all", _("Can view all associated data")),
             ("view_xform_data", _("Can view submitted data")),
             ("report_xform", _("Can make submissions to the form")),

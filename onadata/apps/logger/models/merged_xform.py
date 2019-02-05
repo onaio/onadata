@@ -14,7 +14,6 @@ class MergedXForm(XForm):
 
     class Meta:
         app_label = 'logger'
-        # permissions = (("view_mergedxform", _("Can view associated data")), )
 
 
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
