@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 from builtins import open
 
 from django.core.files.base import File
@@ -99,7 +98,8 @@ class TestAttachment(TestBase):
 
                 self.assertTrue(
                     default_storage.get_modified_time(thumbnail) >
-                check_datetime)
+                    check_datetime
+                )
                 default_storage.delete(thumbnail)
 
     def test_get_original_filename(self):
