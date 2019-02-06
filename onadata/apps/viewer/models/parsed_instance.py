@@ -344,7 +344,7 @@ class ParsedInstance(models.Model):
         self.start_time = None
         self.end_time = None
         self._set_geopoint()
-        super(ParsedInstance, self).save(*args, **kwargs)
+        super(ParsedInstance, self).save(*args, **kwargs)   # noqa
 
     def add_note(self, note):
         note = Note(instance=self.instance, note=note)
