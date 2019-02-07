@@ -1,6 +1,13 @@
 Changelog for onadata
 =====================
 
+1.18.1 (2019-02-07)
+-----------------------
+
+- Pick passed format or default to json in GenericRelatedField serializer
+  `PR #1558 <https://github.com/onaio/onadata/pull/1558>`_
+  [lincmba]
+
 1.18.0 (2019-01-24)
 -----------------------
 

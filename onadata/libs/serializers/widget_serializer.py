@@ -1,21 +1,19 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import resolve, get_script_prefix, Resolver404
+from django.http import Http404
 from django.utils.translation import ugettext as _
 from future.moves.urllib.parse import urlparse
-from django.http import Http404
-
 from guardian.shortcuts import get_users_with_perms
-
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
-from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.widget import Widget
-from onadata.libs.utils.string import str2bool
-from onadata.libs.serializers.fields.json_field import JsonField
+from onadata.apps.logger.models.xform import XForm
 from onadata.libs.permissions import OwnerRole, is_organization
+from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.chart_tools import get_field_from_field_xpath
+from onadata.libs.utils.string import str2bool
 
 
 class GenericRelatedField(serializers.HyperlinkedRelatedField):
@@ -27,6 +25,7 @@ class GenericRelatedField(serializers.HyperlinkedRelatedField):
         self.view_names = ['xform-detail', 'dataviews-detail']
         self.resolve = resolve
         self.reverse = reverse
+        self.format = kwargs.pop('format', 'json')
         super(serializers.RelatedField, self).__init__(*args, **kwargs)
 
     def _setup_field(self, view_name):
