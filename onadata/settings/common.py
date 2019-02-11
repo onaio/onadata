@@ -561,3 +561,4 @@ PROJECT_QUERY_CHUNK_SIZE = 5000
 
 # Prevents "The number of GET/POST parameters exceeded" exception
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000000
+SECRET_KEY = 'mlfs33^s1l4xf6a36$0#j%dd*sisfoi&)&4s-v=91#^l01v)*j'
