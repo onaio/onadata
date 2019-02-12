@@ -4,7 +4,7 @@
 #
 #    pip-compile --output-file requirements/ses.pip requirements/ses.in
 #
-boto==2.48.0
-django-ses==0.8.5
-future==0.16.0            # via django-ses
-pytz==2018.4              # via django-ses
+boto==2.49.0
+django-ses==0.8.9
+future==0.17.1            # via django-ses
+pytz==2018.9              # via django-ses
