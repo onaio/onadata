@@ -4,18 +4,18 @@ Users /users API endpoint.
 """
 from django.conf import settings
 from django.contrib.auth.models import User
+from rest_framework import filters
 from rest_framework.generics import get_object_or_404
 from rest_framework.viewsets import ReadOnlyModelViewSet
-from rest_framework import filters
 
+from onadata.apps.api import permissions
+from onadata.apps.api.tools import get_baseviewset_class
 from onadata.libs.filters import UserNoOrganizationsFilter
 from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.user_serializer import UserSerializer
-from onadata.apps.api import permissions
-from onadata.apps.api.tools import get_baseviewset_class
 
 BaseViewset = get_baseviewset_class()  # pylint: disable=invalid-name
 
@@ -33,6 +33,7 @@ class UserViewSet(AuthenticateHeaderMixin, BaseViewset, CacheControlMixin,
     permission_classes = [permissions.UserViewSetPermissions]
     filter_backends = (filters.SearchFilter, UserNoOrganizationsFilter, )
     search_fields = ('=email', )
+    lookup_value_regex = '[\w\d@\.-]+'
 
     def get_object(self):
         """Lookup a  username by pk else use lookup_field"""
