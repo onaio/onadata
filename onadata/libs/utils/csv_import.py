@@ -7,6 +7,7 @@ import json
 import logging
 import sys
 import uuid
+from builtins import str as text
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
@@ -14,7 +15,6 @@ from io import BytesIO
 
 import unicodecsv as ucsv
 import xlrd
-from builtins import str as text
 from celery import current_task, task
 from celery.backends.amqp import BacklogLimitExceeded
 from celery.result import AsyncResult
@@ -250,7 +250,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):
             # fetch submission uuid before purging row metadata
 
             row_uuid = row.get('meta/instanceID') or 'uuid:{}'.format(
-                row.get('_uuid'))
+                row.get('_uuid')) if row.get('_uuid') else None
             submitted_by = row.get('_submitted_by')
             submission_date = row.get('_submission_time', submission_time)
 
