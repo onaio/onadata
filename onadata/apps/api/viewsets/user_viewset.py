@@ -30,10 +30,10 @@ class UserViewSet(AuthenticateHeaderMixin, BaseViewset, CacheControlMixin,
         username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME, )
     serializer_class = UserSerializer
     lookup_field = 'username'
+    lookup_value_regex = '[\w\d@\.-]+'
     permission_classes = [permissions.UserViewSetPermissions]
     filter_backends = (filters.SearchFilter, UserNoOrganizationsFilter, )
     search_fields = ('=email', )
-    lookup_value_regex = '[\w\d@\.-]+'
 
     def get_object(self):
         """Lookup a  username by pk else use lookup_field"""
