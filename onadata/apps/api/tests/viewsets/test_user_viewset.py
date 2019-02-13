@@ -43,6 +43,15 @@ class TestUserViewSet(TestAbstractViewSet):
         response = view(request, username='BoB')
         self.assertEqual(response.status_code, 404)
 
+        # user with username as email
+        self.user.username = 'bob.bob@ona.io'
+        self.data['username'] = 'bob.bob@ona.io'
+        self.user.is_active = True
+        self.user.save()
+        response = view(request, username='bob.bob@ona.io')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, self.data)
+
     def test_user_anon(self):
         """Test anonymous user can access user info"""
         request = self.factory.get('/')
