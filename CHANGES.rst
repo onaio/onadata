@@ -1,6 +1,17 @@
 Changelog for onadata
 =====================
 
+1.18.2 (2019-02-13)
+-----------------------
+
+- Fix hyperlinked relationship using email
+  `PR #1562 <https://github.com/onaio/onadata/pull/1562>`_
+  [@lincmba]
+
+- Fix Data Upload Failing
+  `Fixes #1561 <https://github.com/onaio/onadata/issues/1561>`_
+  [@lincmba]
+
 1.18.1 (2019-02-07)
 -----------------------
 
