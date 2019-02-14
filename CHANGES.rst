@@ -1,6 +1,13 @@
 Changelog for onadata
 =====================
 
+1.18.2 (2019-xx-xx)
+-----------------------
+
+ - Fix Data Upload Failing
+   `Fixes #1561 <https://github.com/onaio/onadata/issues/1561>`_
+   [@lincmba]
+
 1.18.1 (2019-02-07)
 -----------------------
 
