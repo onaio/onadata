@@ -7,6 +7,7 @@ import zipfile
 from builtins import open
 from tempfile import NamedTemporaryFile
 from xml.dom import minidom
+from json.decoder import JSONDecodeError
 
 import requests
 from django.conf import settings
@@ -195,9 +196,12 @@ def enketo_url(form_url,
         data=values,
         auth=(settings.ENKETO_API_TOKEN, ''),
         verify=getattr(settings, 'VERIFY_SSL', True))
+    resp_content = response.content
+    resp_content = resp_content.decode('utf-8') if hasattr(
+        resp_content, 'decode') else resp_content
     if response.status_code in [200, 201]:
         try:
-            data = json.loads(response.content)
+            data = json.loads(resp_content)
         except ValueError:
             pass
         else:
@@ -213,7 +217,7 @@ def handle_enketo_error(response):
     """Handle enketo error response."""
     try:
         data = json.loads(response.content)
-    except ValueError:
+    except (ValueError, JSONDecodeError):
         report_exception("HTTP Error {}".format(response.status_code),
                          response.text, sys.exc_info())
         if response.status_code == 502:
@@ -349,7 +353,7 @@ def get_enketo_preview_url(request, username, id_string, xform_pk=None):
 
     try:
         response = json.loads(response.content)
-    except ValueError:
+    except (ValueError, JSONDecodeError):
         pass
     else:
         if 'preview_url' in response:
