@@ -29,7 +29,6 @@ class ConnectViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
     This endpoint allows you retrieve the authenticated user's profile info.
     """
     lookup_field = 'user'
-    lookup_value_regex = '[\w\d@\.-]+'
     queryset = UserProfile.objects.all()
     permission_classes = (ConnectViewsetPermissions, )
     serializer_class = UserProfileWithTokenSerializer

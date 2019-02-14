@@ -5,15 +5,17 @@ UserProfileViewSet module.
 
 import datetime
 import json
+from future.moves.urllib.parse import urlencode
+
+from past.builtins import basestring  # pylint: disable=redefined-builtin
 
 from django.conf import settings
 from django.core.validators import ValidationError
 from django.db.models import Count
 from django.http import HttpResponseRedirect, HttpResponseBadRequest
-from django.utils import timezone
 from django.utils.translation import ugettext as _
-from future.moves.urllib.parse import urlencode
-from past.builtins import basestring  # pylint: disable=redefined-builtin
+from django.utils import timezone
+
 from registration.models import RegistrationProfile
 from rest_framework import serializers, status
 from rest_framework.decorators import action
@@ -23,11 +25,13 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from onadata.apps.api.permissions import UserProfilePermissions
 from onadata.apps.api.tasks import send_verification_email
+from onadata.apps.api.permissions import UserProfilePermissions
 from onadata.apps.api.tools import get_baseviewset_class, load_class
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.models import UserProfile
+from onadata.libs.utils.email import (get_verification_email_data,
+                                      get_verification_url)
 from onadata.libs import filters
 from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
@@ -38,8 +42,6 @@ from onadata.libs.serializers.monthly_submissions_serializer import \
     MonthlySubmissionsSerializer
 from onadata.libs.serializers.user_profile_serializer import \
     UserProfileSerializer
-from onadata.libs.utils.email import (get_verification_email_data,
-                                      get_verification_url)
 
 BaseViewset = get_baseviewset_class()  # pylint: disable=invalid-name
 
@@ -107,7 +109,6 @@ class UserProfileViewSet(
             user__username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME)
     serializer_class = serializer_from_settings()
     lookup_field = 'user'
-    lookup_value_regex = '[\w\d@\.-]+'
     permission_classes = [UserProfilePermissions]
     filter_backends = (filters.UserProfileFilter, OrderingFilter)
     ordering = ('user__username', )
