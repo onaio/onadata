@@ -9,6 +9,7 @@ import csv
 import json
 import os
 import re
+from builtins import open
 from collections import OrderedDict
 from datetime import datetime
 from datetime import timedelta
@@ -17,7 +18,6 @@ from xml.dom import Node
 from xml.dom import minidom
 
 import jwt
-from builtins import open
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
@@ -752,7 +752,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.data, data)
 
     def test_get_single_submit_url(self):
-        with HTTMock(enketo_preview_url_mock, enketo_mock_with_form_defaults,
+        with HTTMock(enketo_preview_url_mock, enketo_url_mock,
                      enketo_single_submission_mock):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({
