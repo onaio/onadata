@@ -2,20 +2,21 @@
 """Util functions for data views."""
 import json
 import os
+import requests
 import sys
 import zipfile
 from builtins import open
+from future.utils import iteritems
+from json.decoder import JSONDecodeError
 from tempfile import NamedTemporaryFile
 from xml.dom import minidom
-from json.decoder import JSONDecodeError
 
-import requests
+from future.moves.urllib.parse import urljoin
+
 from django.conf import settings
 from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.translation import ugettext as _
-from future.moves.urllib.parse import urljoin
-from future.utils import iteritems
 
 from onadata.libs.exceptions import EnketoError
 from onadata.libs.utils import common_tags
@@ -350,9 +351,11 @@ def get_enketo_preview_url(request, username, id_string, xform_pk=None):
         data=values,
         auth=(settings.ENKETO_API_TOKEN, ''),
         verify=getattr(settings, 'VERIFY_SSL', True))
-
+    resp_content = response.content
+    resp_content = resp_content.decode('utf-8') if hasattr(
+        resp_content, 'decode') else resp_content
     try:
-        response = json.loads(response.content)
+        response = json.loads(resp_content)
     except (ValueError, JSONDecodeError):
         pass
     else:
