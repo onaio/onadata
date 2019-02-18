@@ -1,14 +1,16 @@
 import json
-
 from django.conf import settings
+
 from rest_framework import status
+from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet
+
+from onadata.apps.api.models.organization_profile import OrganizationProfile
 
 from onadata.apps.api import permissions
-from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.tools import get_baseviewset_class, load_class
+from onadata.libs.utils.common_tools import merge_dicts
 from onadata.libs.filters import (OrganizationPermissionFilter,
                                   OrganizationsSharedWithUserFilter)
 from onadata.libs.mixins.authenticate_header_mixin import \
@@ -20,7 +22,7 @@ from onadata.libs.serializers.organization_member_serializer import \
     OrganizationMemberSerializer
 from onadata.libs.serializers.organization_serializer import (
     OrganizationSerializer)
-from onadata.libs.utils.common_tools import merge_dicts
+
 
 BaseViewset = get_baseviewset_class()
 
@@ -44,7 +46,6 @@ class OrganizationProfileViewSet(AuthenticateHeaderMixin,
     queryset = OrganizationProfile.objects.filter(user__is_active=True)
     serializer_class = serializer_from_settings()
     lookup_field = 'user'
-    lookup_value_regex = '[\w\d@\.-]+'
     permission_classes = [permissions.OrganizationProfilePermissions]
     filter_backends = (OrganizationPermissionFilter,
                        OrganizationsSharedWithUserFilter)
