@@ -2,12 +2,12 @@ from __future__ import unicode_literals
 
 import os
 import re
+from builtins import open
 from io import BytesIO
 from xml.etree.ElementTree import fromstring
 
 import mock
 import unicodecsv as ucsv
-from builtins import open
 from celery.backends.amqp import BacklogLimitExceeded
 from django.conf import settings
 
@@ -322,3 +322,14 @@ class CSVImportTestCase(TestBase):
         self.assertEqual(
             len(instance_id), len(single_instance_id),
             "Same uuid length in generated xml")
+
+    def test_data_upload(self):
+        """Data upload for submissions with no uuids"""
+        self._publish_xls_file(self.xls_file_path)
+        self.xform = XForm.objects.get()
+        count = Instance.objects.count()
+        single_csv = open(os.path.join(
+            self.fixtures_dir, 'single_data_upload.csv'), 'rb')
+        csv_import.submit_csv(self.user.username, self.xform, single_csv)
+        self.xform.refresh_from_db()
+        self.assertEqual(self.xform.num_of_submissions, count + 1)
