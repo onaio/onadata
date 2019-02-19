@@ -1,16 +1,21 @@
 # -*- coding: utf-8 -*-
 """Test onadata.libs.utils.viewer_tools."""
+import os
+
 import requests_mock
 from django.conf import settings
+from django.core.files.base import File
 from django.http import Http404
 from django.test.client import RequestFactory
 from django.test.utils import override_settings
 from django.utils import timezone
-from onadata.libs.exceptions import EnketoError
+from mock import patch
 
 from onadata.apps.logger.models import XForm, Instance, Attachment
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.utils.viewer_tools import (export_def_from_filename,
+from onadata.libs.exceptions import EnketoError
+from onadata.libs.utils.viewer_tools import (create_attachments_zipfile,
+                                             export_def_from_filename,
                                              generate_enketo_form_defaults,
                                              get_client_ip, get_form,
                                              get_form_url,
