@@ -106,7 +106,7 @@ pyparsing==2.3.0          # via packaging
 python-dateutil==2.7.5    # via fleming, tableschema
 python-memcached==1.59
 pytz==2018.7              # via babel, celery, django, django-query-builder, fleming
-pyxform==0.12.2
+pyxform==0.13.1
 raven==6.9.0
 recaptcha-client==1.0.6
 requests==2.20.1          # via datapackage, django-oauth-toolkit, httmock, sphinx, tableschema, tabulator
