@@ -178,6 +178,7 @@ class TestViewerTools(TestBase):
 
         self.assertTrue(rpt_mock.called)
         rpt_mock.assert_called_with(message[0], message[1])
+
     @override_settings(TESTING_MODE=False)
     def test_get_submissions_url(self):
         """Test get_submissions_url()."""
