@@ -1,12 +1,16 @@
-Changelog for onadata
+Changelog for Onadata
 =====================
 
-1.18.2 (2019-xx-xx)
+1.19.0 (2019-02-21)
 -----------------------
 
- - Fix Data Upload Failing
-   `Fixes #1561 <https://github.com/onaio/onadata/issues/1561>`_
-   [@lincmba]
+- Fix Data Upload Failing
+  `Fixes #1561 <https://github.com/onaio/onadata/issues/1561>`_
+  [@lincmba]
+
+- Upgrade to pyxform version 0.13.1
+  `PR #1570 <https://github.com/onaio/onadata/pull/1570/files>`_
+  [@ukanga]
 
 1.18.1 (2019-02-07)
 -----------------------
