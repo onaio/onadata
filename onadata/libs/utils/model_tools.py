@@ -2,8 +2,6 @@
 """
 Model utility functions.
 """
-
-import gc
 import uuid
 
 
@@ -30,15 +28,11 @@ def queryset_iterator(queryset, chunksize=100):
     its memory at the same time while django normally would load all
     rows in its memory. Using the iterator() method only causes it to
     not preload all the classes.
+
+    See https://docs.djangoproject.com/en/2.1/ref/models/querysets/#iterator
     '''
-    start = 0
-    end = chunksize
-    while start < queryset.count():
-        for row in queryset[start:end]:
-            yield row
-        start += chunksize
-        end += chunksize
-        gc.collect()
+
+    return queryset.iterator(chunk_size=chunksize)
 
 
 def get_columns_with_hxl(survey_elements):
