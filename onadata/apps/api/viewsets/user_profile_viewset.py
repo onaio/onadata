@@ -146,8 +146,9 @@ class UserProfileViewSet(
 
         return obj
 
+    # pylint: disable=W0613
     @action(methods=['POST'], detail=True)
-    def change_password(self, request, user):  # pylint: disable=W0613
+    def change_password(self, request, *args, **kwargs):
         """
         Change user's password.
         """
