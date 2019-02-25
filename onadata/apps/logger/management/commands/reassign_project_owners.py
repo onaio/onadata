@@ -20,10 +20,10 @@ class Command(BaseCommand):
         )
 
     def get_user(self, username):
-        um =  get_user_model()
+        um = get_user_model()
         user = None
         try:
-           user = um.objects.get(username=username)
+            user = um.objects.get(username=username)
         except um.DoesNotExist:
             self.errors.append("User {} does not exist \n".format(username))
         return user
@@ -44,4 +44,3 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS('Projects reassigned successfully')
         )
-
