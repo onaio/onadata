@@ -1,3 +1,4 @@
+"""Tests for project transfer command"""
 import sys
 
 from django.contrib.auth import get_user_model
@@ -8,8 +9,9 @@ from django.utils.six import StringIO
 from onadata.apps.logger.models import Project
 
 
-class TestMoveProjectTonewOwner(TestCase):
+class TestMoveProjectTonewOwner(TestCase):  # pylint: disable=C0111
     def test_user_given_does_not_exist(self):
+        """Test that users are validated before initiating project transfer"""
         out = StringIO()
         sys.stdout = out
         call_command(
@@ -21,11 +23,20 @@ class TestMoveProjectTonewOwner(TestCase):
         self.assertIn(expected_output, out.getvalue())
 
     def test_successful_projects_reassignment(self):
-        um = get_user_model()
-        user1 = um.objects.create_user(
-            username='user1', email='user1@test.com', password='test_pass')
-        user2 = um.objects.create_user(
-            username='user2', email='user2@test.com', password='test_pass')
+        """"Test for a successful project transfer."""
+        user_model = get_user_model()
+        user_1_data = {
+            'username': 'user1',
+            'email': 'user1@test.com',
+            'password': 'test_pass'
+        }
+        user_2_data = {
+            'username': 'user2',
+            'email': 'user2@test.com',
+            'password': 'test_pass'
+        }
+        user1 = user_model.objects.create_user(**user_1_data)
+        user2 = user_model.objects.create_user(**user_2_data)
         Project.objects.create(
             name='Test_project_1', organization=user1, created_by=user1)
         Project.objects.create(
