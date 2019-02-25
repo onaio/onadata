@@ -793,8 +793,8 @@ def attachment_url(request, size='medium'):
     if not media_file:
         return HttpResponseNotFound(_(u'Attachment not found'))
 
-    result = Attachment.objects.filter(media_file=media_file)[0:1]
-    if result.count() == 0:
+    result = Attachment.objects.filter(media_file=media_file).order_by()[0:1]
+    if not result:
         return HttpResponseNotFound(_(u'Attachment not found'))
     attachment = result[0]
 
