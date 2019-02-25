@@ -15,7 +15,7 @@ class TestMoveProjectTonewOwner(TestCase):  # pylint: disable=C0111
         out = StringIO()
         sys.stdout = out
         call_command(
-            'reassign_project_owners', currentowner='user1',
+            'transfer_project', currentowner='user1',
             newowner='user2', stdout=out
         )
         expected_output = 'User user1 does not exist \nUser user2 '\
@@ -50,7 +50,7 @@ class TestMoveProjectTonewOwner(TestCase):  # pylint: disable=C0111
         out = StringIO()
         sys.stdout = out
         call_command(
-            'reassign_project_owners', currentowner='user1',
+            'transfer_project', currentowner='user1',
             newowner='user2', stdout=out
         )
         expected_output = 'Projects reassigned successfully'

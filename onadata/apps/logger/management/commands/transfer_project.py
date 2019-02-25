@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from onadata.apps.logger.models import Project, XForm, DataView
+from onadata.apps.logger.models import Project, XForm, DataView, MergedXForm
 from onadata.apps.logger.models.project import set_object_permissions \
     as set_project_permissions
 from onadata.libs.utils.project_utils import set_project_perms_to_xform
@@ -47,15 +47,25 @@ class Command(BaseCommand):  # pylint: disable=C0111
             self.update_data_viewws(form)
             set_project_perms_to_xform(form, project)
 
-    def update_data_viewws(self, form):
+    @staticmethod
+    def update_data_viewws(form):
         """Update DataView project for the XForm given. """
         dataviews = DataView.objects.filter(xform=form, project=form.project)
         for data_view in dataviews:
             data_view.project = form.project
             data_view.save()
 
+    @staticmethod
+    def update_merged_xform(project, user):
+        merged_xforms = MergedXForm.objects.filter(project=project)
+        for form in merged_xforms:
+            form.user = user
+            form.created_by = user
+            form.save()
+            set_project_perms_to_xform(form, project)
+
     @transaction.atomic()
-    def handle(self, **options):
+    def handle(self, *args, **options):
         """
         Transfer projects from one user to another.
 
@@ -75,6 +85,7 @@ class Command(BaseCommand):  # pylint: disable=C0111
             project.save()
 
             self.update_xform_with_new_user(project, to_user)
+            self.update_merged_xform(project, to_user)
             set_project_permissions(Project, project, created=True)
 
         old_user_projects_count = Project.objects.filter(
