@@ -53,7 +53,7 @@ class TestMoveProjectTonewOwner(TestCase):  # pylint: disable=C0111
             'transfer_project', currentowner='user1',
             newowner='user2', stdout=out
         )
-        expected_output = 'Projects reassigned successfully'
+        expected_output = 'Projects transferred successfully'
         self.assertIn(expected_output, out.getvalue())
         self.assertEquals(
             0, Project.objects.filter(organization=user1).count()

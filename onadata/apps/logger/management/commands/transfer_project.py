@@ -8,6 +8,8 @@ from onadata.apps.logger.models import Project, XForm, DataView, MergedXForm
 from onadata.apps.logger.models.project import set_object_permissions \
     as set_project_permissions
 from onadata.libs.utils.project_utils import set_project_perms_to_xform
+from onadata.libs.utils.viewer_tools import get_form_url, enketo_url
+from onadata.apps.main.models.meta_data import unique_type_for_form
 
 
 class Command(BaseCommand):  # pylint: disable=C0111
@@ -23,6 +25,14 @@ class Command(BaseCommand):  # pylint: disable=C0111
         parser.add_argument(
             '--newowner',
             help='TUsername of new owner of the projects',
+        )
+        parser.add_argument(
+            '--httphost',
+            help='The http host for the server e.g ona.io',
+        )
+        parser.add_argument(
+            '--httpprotocol',
+            help='The protocol to use for enketo url: https or http',
         )
 
     def get_user(self, username):  # pylint: disable=C0111
@@ -47,6 +57,7 @@ class Command(BaseCommand):  # pylint: disable=C0111
             form.save()
             self.update_data_views(form)
             set_project_perms_to_xform(form, project)
+            self.update_enketo_urls(form)
 
     @staticmethod
     def update_data_views(form):
@@ -67,11 +78,29 @@ class Command(BaseCommand):  # pylint: disable=C0111
             form.save()
             set_project_perms_to_xform(form, project)
 
+    def update_enketo_urls(self, form):
+        form_url = get_form_url(
+            request=None, username=form.user.username,
+            protocol=self.httpprotocol, preview=False, xform_pk=form.pk,
+            http_host=self.httphost
+        )
+        url = enketo_url(
+            form_url=form_url, id_string=form.id_string, instance_xml=form.xml,
+            instance_id=form.id, return_url=None,
+        )
+        unique_type_for_form(
+            content_object=form, data_type='enketo_url', data_value=url,
+            data_file=None
+        )
+
     @transaction.atomic()
     def handle(self, *args, **options):
         """Transfer projects from one user to another."""
         from_user = self.get_user(options['currentowner'])
         to_user = self.get_user(options['newowner'])
+        self.http_host = options['httphost']
+        self.httpprotocol = options['httphost']
+
         if self.errors:
             self.stdout.write(self.style.ERROR(''.join(self.errors)))
             return
@@ -92,5 +121,5 @@ class Command(BaseCommand):  # pylint: disable=C0111
         assert old_user_projects_count == 0
 
         self.stdout.write(
-            self.style.SUCCESS('Projects reassigned successfully')
+            self.style.SUCCESS('Projects transferred successfully')
         )
