@@ -1,6 +1,13 @@
 Changelog for Onadata
 =====================
 
+1.19.1 (2019-02-26)
+-----------------------
+
+- Fix TypeError on change_password when format is supplied on URL.
+  `PR #1572 <https://github.com/onaio/onadata/pull/1572>`_
+  [@bmarika]
+
 1.19.0 (2019-02-21)
 -----------------------
 
