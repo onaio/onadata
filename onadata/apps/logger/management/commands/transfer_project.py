@@ -39,25 +39,28 @@ class Command(BaseCommand):  # pylint: disable=C0111
         Update XForm user update the DataViews and also set the permissions
         for the xform and the project.
         """
-        xforms = XForm.objects.filter(project=project)
+        xforms = XForm.objects.filter(
+            project=project, deleted_at__isnull=True, downloadable=True)
         for form in xforms:
             form.user = user
             form.created_by = user
             form.save()
-            self.update_data_viewws(form)
+            self.update_data_views(form)
             set_project_perms_to_xform(form, project)
 
     @staticmethod
-    def update_data_viewws(form):
+    def update_data_views(form):
         """Update DataView project for the XForm given. """
-        dataviews = DataView.objects.filter(xform=form, project=form.project)
+        dataviews = DataView.objects.filter(
+            xform=form, project=form.project, deleted_at__isnull=True)
         for data_view in dataviews:
             data_view.project = form.project
             data_view.save()
 
     @staticmethod
     def update_merged_xform(project, user):
-        merged_xforms = MergedXForm.objects.filter(project=project)
+        merged_xforms = MergedXForm.objects.filter(
+            project=project, deleted_at__isnull=True)
         for form in merged_xforms:
             form.user = user
             form.created_by = user
@@ -66,19 +69,15 @@ class Command(BaseCommand):  # pylint: disable=C0111
 
     @transaction.atomic()
     def handle(self, *args, **options):
-        """
-        Transfer projects from one user to another.
-
-        Transfers even the soft_deleted projects.
-        """
-
+        """Transfer projects from one user to another."""
         from_user = self.get_user(options['currentowner'])
         to_user = self.get_user(options['newowner'])
         if self.errors:
             self.stdout.write(self.style.ERROR(''.join(self.errors)))
             return
 
-        projects = Project.objects.filter(organization=from_user)
+        projects = Project.objects.filter(
+            organization=from_user, deleted_at__isnull=True)
         for project in projects:
             project.organization = to_user
             project.created_by = to_user
