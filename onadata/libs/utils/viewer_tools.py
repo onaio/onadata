@@ -300,9 +300,11 @@ def get_form_url(request=None,
     https://example.com/[username]/formList. Same applies for preview if
     preview is True and also to a single form when xform_pk is provided.
     """
-    validation_message = "please supply either of server_url or a request "\
+    validation_message = "please supply either of http_host or a request "\
                          "object"
-    assert request or http_host, validation_message
+    if not request and not http_host:
+        raise ValueError(validation_message)
+
     if settings.TESTING_MODE:
         http_host = settings.TEST_HTTP_HOST
         username = settings.TEST_USERNAME

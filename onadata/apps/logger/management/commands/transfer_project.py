@@ -98,8 +98,8 @@ class Command(BaseCommand):  # pylint: disable=C0111
         """Transfer projects from one user to another."""
         from_user = self.get_user(options['currentowner'])
         to_user = self.get_user(options['newowner'])
-        self.http_host = options['httphost']
-        self.httpprotocol = options['httphost']
+        self.httphost = options['httphost']
+        self.httpprotocol = options['httpprotocol']
 
         if self.errors:
             self.stdout.write(self.style.ERROR(''.join(self.errors)))

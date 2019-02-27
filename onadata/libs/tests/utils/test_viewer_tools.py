@@ -179,9 +179,6 @@ class TestViewerTools(TestBase):
         self.assertTrue(rpt_mock.called)
         rpt_mock.assert_called_with(message[0], message[1])
 
-    @override_settings(TESTING_MODE=False)
-    def test_get_submissions_url(self):
-        """Test get_submissions_url()."""
     @override_settings(TESTING_MODE=False, ENKETO_URL='https://enketo.ona.io')
     @requests_mock.Mocker()
     def test_get_enketo_single_submit_url(self, mocked):
