@@ -7,31 +7,48 @@
 {% endblock %}
 
 {% block body %}
-<body>
+<body id="gallery">
     {% include "topbar.html" %}
-    <div id="gallery">
-    {% for image_url in images %}
-        <a href="{{ image_url.large }}">
-            <img longdesc={{ image_url.original }} src="{{ image_url.small }}" alt="{{ image_url.original }}">
-        </a>
-    {% endfor %}
-    </div>
+{#    <div id="nana">#}
+{#    {% for image_url in images %}#}
+{#        <a href="{{ image_url.large }}">#}
+{#            <img longdesc={{ image_url.original }} src="{{ image_url.small }}" alt="{{ image_url.original }}">#}
+{#        </a>#}
+{#    {% endfor %}#}
+{#    </div>#}
 
 {% block javascript %}
 {{ block.super }}
 <script type="text/javascript" src="{{STATIC_URL}}galleria/galleria-1.2.8.min.js"></script>
 <script type="text/javascript" src="{{STATIC_URL}}galleria/themes/classic/galleria.classic.min.js"></script>
 <script type="text/javascript">
-    // Load the classic theme
-    // Galleria.loadTheme('{{STATIC_URL}}galleria/themes/classic/galleria.classic.min.js');
-    Galleria.configure({
-        transition: 'fade',
-        lightbox: false,
-        popupLinks: true,
-        showInfo: true
+    let images = {{ images|safe }};
+    $(document).ready(function() {
+        console.log(images);
+        append_image(images[0]);
     });
-    // Initialize Galleria
-    Galleria.run('#gallery');
+    var myBody = document.getElementById("gallery");
+
+    function append_image(img_conf) {
+        var aTag = document.createElement('a');
+        aTag.setAttribute('padding-left', '100px');
+        aTag.setAttribute('href', img_conf.large);
+        aTag.setAttribute('id',"link");
+
+        myBody.setAttribute('style',"margin: 0px; background: #0e0e0e;");
+
+
+
+
+        var element = document.createElement("img");
+        element.setAttribute("src", img_conf.large);
+        element.setAttribute("style", "-webkit-user-select: none;cursor: zoom-in;");
+        element.setAttribute("width", "416");
+        element.setAttribute("height", "416");
+        aTag.appendChild(element);
+        myBody.appendChild(aTag);
+    }
+
 </script>
 {% endblock %}
 </body>
