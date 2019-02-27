@@ -8,7 +8,7 @@ import re
 from past.builtins import basestring  # pylint: disable=redefined-builtin
 
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.sites.models import Site
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
@@ -35,6 +35,7 @@ from onadata.libs.utils.email import (
 
 RESERVED_NAMES = RegistrationFormUserProfile.RESERVED_USERNAMES
 LEGAL_USERNAMES_REGEX = RegistrationFormUserProfile.legal_usernames_re
+User = get_user_model()
 
 
 def _get_first_last_names(name, limit=30):

@@ -1,10 +1,12 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.utils.translation import ugettext as _
 
 from rest_framework import serializers
 from onadata.libs.models.share_xform import ShareXForm
 from onadata.libs.permissions import ROLES
 from onadata.libs.serializers.fields.xform_field import XFormField
+
+User = get_user_model()
 
 
 class ShareXFormSerializer(serializers.Serializer):

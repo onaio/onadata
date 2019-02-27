@@ -1,10 +1,12 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.utils.translation import ugettext as _
 
 from rest_framework import serializers
 from onadata.libs.models.clone_xform import CloneXForm
 from onadata.libs.serializers.fields.xform_field import XFormField
 from onadata.libs.serializers.fields.project_field import ProjectField
+
+User = get_user_model()
 
 
 class CloneXFormSerializer(serializers.Serializer):

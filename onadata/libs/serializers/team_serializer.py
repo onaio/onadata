@@ -1,4 +1,4 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from onadata.libs.serializers.fields.hyperlinked_multi_identity_field import\
@@ -7,6 +7,8 @@ from onadata.libs.serializers.user_serializer import UserSerializer
 from onadata.apps.api.models import OrganizationProfile, Team
 from onadata.apps.logger.models import Project
 from onadata.libs.permissions import get_team_project_default_permissions
+
+User = get_user_model()
 
 
 class TeamSerializer(serializers.Serializer):

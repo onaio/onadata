@@ -4,7 +4,7 @@ Organization Serializer
 """
 from past.builtins import basestring  # pylint: disable=redefined-builtin
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.db.models.query import QuerySet
 from django.utils.translation import ugettext as _
 
@@ -17,6 +17,8 @@ from onadata.apps.api.tools import (_get_first_last_names,
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.libs.permissions import get_role_in_org
 from onadata.libs.serializers.fields.json_field import JsonField
+
+User = get_user_model()
 
 
 class OrganizationSerializer(serializers.HyperlinkedModelSerializer):

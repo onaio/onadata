@@ -5,7 +5,7 @@ Project Serializer module.
 from future.utils import listvalues
 
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db.utils import IntegrityError
 from django.utils.translation import ugettext as _
@@ -27,6 +27,8 @@ from onadata.libs.utils.cache_tools import (
     PROJ_PERM_CACHE, PROJ_SUB_DATE_CACHE, PROJ_TEAM_USERS_CACHE,
     PROJECT_LINKED_DATAVIEWS, safe_delete)
 from onadata.libs.utils.decorators import check_obj
+
+User = get_user_model()
 
 
 def get_project_xforms(project):

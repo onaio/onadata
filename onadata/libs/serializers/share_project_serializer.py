@@ -1,4 +1,4 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.utils.translation import ugettext as _
 
 from rest_framework import serializers
@@ -7,6 +7,8 @@ from onadata.libs.permissions import get_object_users_with_permissions
 from onadata.libs.permissions import ROLES
 from onadata.libs.permissions import OwnerRole
 from onadata.libs.serializers.fields.project_field import ProjectField
+
+User = get_user_model()
 
 
 def attrs_to_instance(attrs, instance):

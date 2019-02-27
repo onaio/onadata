@@ -3,7 +3,7 @@ import os
 from hashlib import md5
 
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
@@ -31,6 +31,8 @@ from onadata.libs.utils.common_tags import (GROUP_DELIMETER_TAG,
 from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.viewer_tools import (
     enketo_url, get_enketo_preview_url, get_form_url)
+
+User = get_user_model()
 
 
 def _create_enketo_url(request, xform):

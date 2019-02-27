@@ -9,7 +9,7 @@ from copy import deepcopy
 from io import BytesIO
 
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.shortcuts import get_object_or_404
@@ -28,6 +28,8 @@ CONTACT_ID_INDEX = getattr(settings, 'FLOW_RESULTS_CONTACT_ID_INDEX', 2)
 SESSION_ID_INDEX = getattr(settings, 'FLOW_RESULTS_SESSION_ID_INDEX', 3)
 QUESTION_INDEX = getattr(settings, 'FLOW_RESULTS_QUESTION_INDEX', 4)
 ANSWER_INDEX = getattr(settings, 'FLOW_RESULTS_ANSWER_INDEX', 5)
+
+User = get_user_model()
 
 
 def _get_user(username):
