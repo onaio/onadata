@@ -16,7 +16,7 @@ from onadata.apps.api.models.team import Team
 from onadata.apps.main.models import UserProfile
 from onadata.libs.utils.cache_tools import IS_ORG, safe_delete
 
-User =  get_user_model()
+User = get_user_model()
 
 
 # pylint: disable=invalid-name,unused-argument

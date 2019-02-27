@@ -184,7 +184,6 @@ ANONYMOUS_DEFAULT_USERNAME = 'AnonymousUser'
 
 INSTALLED_APPS = (
     'django.contrib.contenttypes',
-    'onadata.apps.users',
     'django.contrib.auth',
     'django.contrib.sessions',
     'django.contrib.sites',
@@ -561,4 +560,3 @@ VERIFIED_KEY_TEXT = 'ALREADY_ACTIVATED'
 XLS_EXTENSIONS = ['xls', 'xlsx']
 
 CSV_EXTENSION = 'csv'
-AUTH_USER_MODEL='users.OnadataUser'
