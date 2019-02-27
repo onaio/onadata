@@ -12,7 +12,7 @@ import pytz
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.sites.models import Site
 from django.core.files import File
 from django.core.files.storage import get_storage_class
@@ -48,6 +48,7 @@ from onadata.libs.utils.viewer_tools import enketo_url, get_form, get_form_url
 IO_ERROR_STRINGS = [
     'request data read error', 'error during read(65536) on wsgi.input'
 ]
+User = get_user_model()
 
 
 def _bad_request(e):

@@ -10,7 +10,7 @@ from future.moves.urllib.request import urlopen
 import requests
 from django import forms
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.validators import URLValidator
@@ -59,6 +59,7 @@ VALID_XLSFORM_CONTENT_TYPES = [
 ]
 
 VALID_FILE_EXTENSIONS = ['.xls', '.xlsx', '.csv']
+User = get_user_model()
 
 
 def get_filename(response):

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.files.storage import get_storage_class
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import ugettext as _
@@ -13,6 +13,7 @@ from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.viewer_tools import get_path
 
 THUMB_CONF = settings.THUMB_CONF
+User = get_user_model()
 
 
 class Command(BaseCommand):

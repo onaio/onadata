@@ -6,7 +6,7 @@ OpenData tests.
 import json
 
 from django.test import RequestFactory
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 
 from onadata.apps.logger.models import OpenData, Instance
 from onadata.apps.logger.models.open_data import get_or_create_opendata
@@ -14,6 +14,8 @@ from onadata.apps.api.viewsets.open_data_viewset import (
     OpenDataViewSet, replace_special_characters_with_underscores
 )
 from onadata.apps.main.tests.test_base import TestBase
+
+User = get_user_model()
 
 
 def streaming_data(response):

@@ -11,7 +11,7 @@ from bson import json_util
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.files.storage import default_storage, get_storage_class
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError, OperationalError
@@ -64,6 +64,8 @@ from onadata.libs.utils.user_auth import (add_cors_headers, check_and_set_user,
 from onadata.libs.utils.viewer_tools import (enketo_url,
                                              get_enketo_preview_url, get_form)
 from onadata.libs.exceptions import EnketoError
+
+User = get_user_model()
 
 
 def home(request):

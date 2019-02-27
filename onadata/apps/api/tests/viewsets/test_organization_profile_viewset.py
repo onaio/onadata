@@ -2,7 +2,8 @@ import json
 from mock import patch
 from builtins import str as text
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+from rest_framework import status
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
@@ -14,7 +15,8 @@ from onadata.libs.permissions import OwnerRole
 from onadata.apps.api.tools import (get_organization_owners_team,
                                     add_user_to_organization)
 from onadata.apps.api.models.organization_profile import OrganizationProfile
-from rest_framework import status
+
+User = get_user_model()
 
 
 class TestOrganizationProfileViewSet(TestAbstractViewSet):

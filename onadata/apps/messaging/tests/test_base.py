@@ -3,11 +3,13 @@
 Messaging app base tests module.
 """
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 
 from actstream.signals import action
 
 from onadata.apps.messaging.constants import MESSAGE
+
+User = get_user_model()
 
 
 def _create_user(username='testuser'):

@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.test import TestCase, RequestFactory
 from pyxform import SurveyElementBuilder
 
@@ -11,6 +11,8 @@ from onadata.libs.utils.logger_tools import (
     create_instance, safe_create_instance
 )
 from onadata.libs.utils.user_auth import get_user_default_project
+
+User = get_user_model()
 
 
 class TempFileProxy(object):

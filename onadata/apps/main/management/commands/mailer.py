@@ -1,9 +1,11 @@
 from django.core.management.base import BaseCommand, CommandError
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.template.loader import get_template
 from django.utils.translation import ugettext as _, ugettext_lazy
 
 from templated_email import send_templated_mail
+
+User = get_user_model()
 
 
 class Command(BaseCommand):

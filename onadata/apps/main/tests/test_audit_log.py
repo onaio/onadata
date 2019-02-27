@@ -1,9 +1,11 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.test.client import RequestFactory
 
 from onadata.libs.utils.log import audit_log, Actions
 from onadata.apps.main.models import AuditLog
+
+User = get_user_model()
 
 
 class TestAuditLog(TestCase):

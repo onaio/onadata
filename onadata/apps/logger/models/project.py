@@ -3,7 +3,7 @@
 Project model class
 """
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.postgres.fields import JSONField
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
@@ -18,6 +18,8 @@ from taggit.managers import TaggableManager
 
 from onadata.libs.models.base_model import BaseModel
 from onadata.libs.utils.common_tags import OWNER_TEAM_NAME
+
+User = get_user_model()
 
 
 class PrefetchManager(models.Manager):

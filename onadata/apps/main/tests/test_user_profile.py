@@ -5,13 +5,15 @@ from mock import patch
 from django.test import TestCase
 from django.test import RequestFactory
 from django.test.client import Client
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.urlresolvers import reverse
 from django.contrib.auth.models import AnonymousUser
 
 from onadata.apps.main.views import profile, api_token
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.libs.utils.common_tools import merge_dicts
+
+User = get_user_model()
 
 
 class TestUserProfile(TestCase):

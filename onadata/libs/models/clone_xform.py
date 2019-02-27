@@ -1,9 +1,11 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from onadata.apps.viewer.models.data_dictionary import \
     DataDictionary, upload_to
 from django.core.files.storage import default_storage
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.user_auth import get_user_default_project
+
+User = get_user_model()
 
 
 class CloneXForm(object):

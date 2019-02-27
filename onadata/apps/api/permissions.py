@@ -2,7 +2,7 @@
 """
 API permissions module.
 """
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.conf import settings
@@ -22,6 +22,7 @@ from onadata.libs.permissions import (CAN_ADD_XFORM_TO_PROFILE,
                                       ManagerRole, ReadOnlyRoleNoDownload)
 
 SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
+User = get_user_model()
 
 
 class AlternateHasObjectPermissionMixin(object):  # pylint: disable=R0903

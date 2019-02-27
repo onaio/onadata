@@ -1,11 +1,13 @@
 import os
 import sys
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import ugettext_lazy, ugettext as _
 
 from onadata.libs.utils.backup_tools import restore_backup_from_zip
+
+User = get_user_model()
 
 
 class Command(BaseCommand):

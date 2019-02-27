@@ -3,7 +3,7 @@ import re
 from functools import wraps
 
 from django.contrib.auth import authenticate
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.sites.models import Site
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
@@ -13,6 +13,8 @@ from onadata.apps.api.models import OrganizationProfile, Team
 from onadata.apps.logger.models import MergedXForm, Note, Project, XForm
 from onadata.apps.main.models import UserProfile
 from onadata.libs.utils.viewer_tools import get_form
+
+User = get_user_model()
 
 
 class HttpResponseNotAuthorized(HttpResponse):

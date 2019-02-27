@@ -1,6 +1,6 @@
 from django.core.files import File
 from django.core.validators import ValidationError
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.http import Http404
 from django.utils.translation import ugettext as _
 from django.utils import six
@@ -32,6 +32,8 @@ from onadata.libs.serializers.xform_serializer import XFormManifestSerializer
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.logger_tools import PublishXForm
 from onadata.libs.utils.viewer_tools import get_form
+
+User = get_user_model()
 
 
 def _extract_uuid(text):

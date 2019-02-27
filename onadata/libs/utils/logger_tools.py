@@ -10,7 +10,7 @@ from xml.parsers.expat import ExpatError
 import pytz
 from dict2xml import dict2xml
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.exceptions import (MultipleObjectsReturned, PermissionDenied,
                                     ValidationError)
 from django.core.files.storage import get_storage_class
@@ -52,6 +52,7 @@ DEFAULT_CONTENT_LENGTH = settings.DEFAULT_CONTENT_LENGTH
 
 uuid_regex = re.compile(r'<formhub>\s*<uuid>\s*([^<]+)\s*</uuid>\s*</formhub>',
                         re.DOTALL)
+User = get_user_model()
 
 
 def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum):

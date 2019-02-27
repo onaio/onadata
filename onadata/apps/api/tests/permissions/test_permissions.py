@@ -1,9 +1,11 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from mock import MagicMock
 from onadata.apps.main.tests.test_base import TestBase
 
 from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.api.permissions import MetaDataObjectPermissions
+
+User = get_user_model()
 
 
 class TestPermissions(TestBase):

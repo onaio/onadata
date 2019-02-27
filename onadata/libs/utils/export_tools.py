@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 import builtins
 import six
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.files.base import File
 from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
@@ -53,6 +53,7 @@ DEFAULT_INDEX_TAGS = ('[', ']')
 SUPPORTED_INDEX_TAGS = ('[', ']', '(', ')', '{', '}', '.', '_')
 EXPORT_QUERY_KEY = 'query'
 MAX_RETRIES = 3
+User = get_user_model()
 
 
 def md5hash(string):

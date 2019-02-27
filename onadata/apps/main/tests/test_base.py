@@ -13,7 +13,7 @@ from tempfile import NamedTemporaryFile
 
 from django.conf import settings
 from django.contrib.auth import authenticate
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.test import RequestFactory, TransactionTestCase
 from django.test.client import Client
@@ -32,6 +32,8 @@ from onadata.apps.viewer.models import DataDictionary
 from onadata.libs.utils.common_tools import (filename_from_disposition,
                                              get_response_content)
 from onadata.libs.utils.user_auth import get_user_default_project
+
+User = get_user_model()
 
 
 class TestBase(PyxformMarkdown, TransactionTestCase):

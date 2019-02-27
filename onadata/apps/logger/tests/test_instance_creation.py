@@ -2,11 +2,13 @@ import glob
 import os
 
 from django.test import TestCase
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 
 from onadata.apps.logger.models import XForm, Instance
 from onadata.apps.main.models import UserProfile
 from onadata.libs.utils.user_auth import get_user_default_project
+
+User = get_user_model()
 
 
 def open_all_files(path):

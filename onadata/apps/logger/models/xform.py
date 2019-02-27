@@ -8,7 +8,7 @@ from xml.dom import Node
 import pytz
 from builtins import bytes as b, str as text
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import GenericRelation
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
@@ -51,6 +51,7 @@ QUESTION_TYPES_TO_EXCLUDE = [
 ]
 XFORM_TITLE_LENGTH = 255
 title_pattern = re.compile(r"<h:title>(.*?)</h:title>")
+User = get_user_model()
 
 
 def question_types_to_exclude(_type):

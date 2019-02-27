@@ -1,4 +1,4 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
@@ -19,6 +19,8 @@ from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.apps.api.models.temp_token import TempToken
 from django.conf import settings
+
+User = get_user_model()
 
 
 class TestConnectViewSet(TestAbstractViewSet):

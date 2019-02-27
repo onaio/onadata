@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.test import TransactionTestCase
 from datetime import timedelta
 from django.utils.timezone import now
@@ -26,6 +26,7 @@ PROFILE_DATA = {
     'home_page': 'bob.com',
     'twitter': 'boberama'
 }
+User = get_user_model()
 
 
 def create_user_profile(profile_data):

@@ -1,10 +1,12 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.db import transaction
 
 from onadata.libs.permissions import ROLES
 from onadata.libs.permissions import EditorRole, EditorMinorRole,\
     DataEntryRole, DataEntryMinorRole, DataEntryOnlyRole
 from onadata.libs.utils.cache_tools import PROJ_PERM_CACHE, safe_delete
+
+User = get_user_model()
 
 
 def remove_xform_permissions(project, user, role):

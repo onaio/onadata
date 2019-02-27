@@ -9,7 +9,7 @@ from xml.parsers.expat import ExpatError
 
 from past.builtins import basestring
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.http import HttpRequest
 from django.utils.translation import ugettext as _
@@ -41,6 +41,7 @@ MEDIA_TYPES = ('audio', 'video', 'photo')
 DEFAULT_DATE_FORMAT = '%Y-%m-%d'
 DEFAULT_DATETIME_FORMAT = '%Y-%m-%d-%H:%M'
 SENSITIVE_FIELDS = ('text', 'select all that apply', 'geopoint', 'barcode')
+User = get_user_model()
 
 
 def is_last(index, items):

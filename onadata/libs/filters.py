@@ -1,4 +1,4 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
@@ -11,6 +11,8 @@ from rest_framework import filters
 from onadata.apps.api.models import OrganizationProfile, Team
 from onadata.apps.logger.models import Instance, Project, XForm
 from onadata.libs.utils.numeric import int_or_parse_error
+
+User = get_user_model()
 
 
 class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):

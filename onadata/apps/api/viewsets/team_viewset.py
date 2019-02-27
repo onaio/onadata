@@ -1,6 +1,6 @@
 from distutils.util import strtobool
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.utils.translation import ugettext as _
 
 from rest_framework import filters, status
@@ -18,11 +18,12 @@ from onadata.libs.mixins.authenticate_header_mixin import \
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.share_team_project_serializer import \
-    (RemoveTeamFromProjectSerializer, ShareTeamProjectSerializer)
+    RemoveTeamFromProjectSerializer, ShareTeamProjectSerializer
 from onadata.libs.serializers.team_serializer import TeamSerializer
 from onadata.libs.utils.common_tools import merge_dicts
 
 BaseViewset = get_baseviewset_class()
+User = get_user_model()
 
 
 class TeamViewSet(AuthenticateHeaderMixin,

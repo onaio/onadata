@@ -1,14 +1,18 @@
 from datetime import timedelta
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.test import TestCase
+
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.test import APIRequestFactory
+
 from onadata.apps.api.models.temp_token import TempToken
 
 from onadata.libs.authentication import (DigestAuthentication,
                                          TempTokenAuthentication,
                                          TempTokenURLParameterAuthentication)
-from rest_framework.exceptions import AuthenticationFailed
-from rest_framework.test import APIRequestFactory
+
+User = get_user_model()
 
 
 class TestPermissions(TestCase):

@@ -4,7 +4,7 @@ UserProfile model class
 """
 import requests
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.postgres.fields import JSONField
 from django.db import models
 from django.db.models.signals import post_save
@@ -19,6 +19,7 @@ from onadata.libs.utils.gravatar import get_gravatar_img_link, gravatar_exists
 from onadata.apps.main.signals import set_api_permissions
 
 REQUIRE_AUTHENTICATION = 'REQUIRE_ODK_AUTHENTICATION'
+User = get_user_model()
 
 
 @python_2_unicode_compatible

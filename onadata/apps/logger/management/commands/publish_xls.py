@@ -1,6 +1,6 @@
 import os
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy
@@ -11,6 +11,8 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.logger_tools import publish_xls_form
 from onadata.libs.utils.user_auth import get_user_default_project
 from onadata.libs.utils.viewer_tools import django_file
+
+User = get_user_model()
 
 
 class Command(BaseCommand):

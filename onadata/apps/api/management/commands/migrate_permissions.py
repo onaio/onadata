@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.core.management.base import BaseCommand
 from django.db.models.loading import get_model
@@ -8,6 +8,8 @@ from django.utils.translation import gettext as _
 from guardian.models import UserObjectPermissionBase
 
 from onadata.libs.utils.model_tools import queryset_iterator
+
+User = get_user_model()
 
 
 class Command(BaseCommand):

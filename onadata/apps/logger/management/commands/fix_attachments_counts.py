@@ -4,7 +4,7 @@ Fix submission media count command.
 """
 import os
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy
@@ -14,6 +14,8 @@ from onadata.apps.logger.models.attachment import get_original_filename
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.logger_tools import update_attachment_tracking
 from onadata.libs.utils.model_tools import queryset_iterator
+
+User = get_user_model()
 
 
 def update_attachments(instance):

@@ -4,13 +4,15 @@ import os
 
 from past.builtins import basestring
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy
 
 from onadata.apps.logger.import_tools import (import_instances_from_path,
                                               import_instances_from_zip)
+
+User = get_user_model()
 
 
 class Command(BaseCommand):

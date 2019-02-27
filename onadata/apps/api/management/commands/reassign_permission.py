@@ -1,16 +1,17 @@
 from guardian.shortcuts import get_perms
 
 from django.core.management.base import BaseCommand, CommandError
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.utils.translation import gettext as _
 from django.conf import settings
 from onadata.apps.api.models import Team
-
 
 from onadata.libs.permissions import ReadOnlyRole, DataEntryRole,\
     EditorRole, ManagerRole, OwnerRole, ReadOnlyRoleNoDownload,\
     DataEntryOnlyRole, DataEntryMinorRole, EditorMinorRole
 from onadata.libs.utils.model_tools import queryset_iterator
+
+User = get_user_model()
 
 
 class Command(BaseCommand):

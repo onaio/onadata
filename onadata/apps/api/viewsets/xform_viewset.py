@@ -4,7 +4,7 @@ import random
 from datetime import datetime
 
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -82,6 +82,7 @@ ENKETO_META_UID_COOKIE = getattr(settings, 'ENKETO_META_UID_COOKIE',
                                  '__enketo_meta_uid')
 
 BaseViewset = get_baseviewset_class()
+User = get_user_model()
 
 
 def upload_to_survey_draft(filename, username):

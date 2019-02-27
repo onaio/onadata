@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.utils.translation import gettext as _
 
 from onadata.apps.logger.models.project import Project
@@ -8,6 +8,7 @@ from onadata.libs.utils.model_tools import queryset_iterator
 
 
 XFORM_DEFAULT_PROJECT_ID = 1
+User = get_user_model()
 
 
 class Command(BaseCommand):

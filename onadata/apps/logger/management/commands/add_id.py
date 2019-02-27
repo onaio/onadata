@@ -1,10 +1,12 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.utils.translation import ugettext_lazy
 from django.core.management.base import BaseCommand
 from django.conf import settings
 
 from onadata.apps.logger.models import Instance, XForm
 from onadata.libs.utils.model_tools import queryset_iterator
+
+User = get_user_model()
 
 
 class Command(BaseCommand):

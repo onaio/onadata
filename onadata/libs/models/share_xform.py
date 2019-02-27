@@ -1,7 +1,9 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from onadata.libs.permissions import ROLES
 from onadata.libs.permissions import EditorRole, EditorMinorRole,\
     DataEntryRole, DataEntryMinorRole, DataEntryOnlyRole
+
+User = get_user_model()
 
 
 class ShareXForm(object):

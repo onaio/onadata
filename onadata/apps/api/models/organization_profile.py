@@ -2,7 +2,8 @@
 """
 OrganizationProfile module.
 """
-from django.contrib.auth.models import Permission, User
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models.signals import post_delete, post_save
@@ -14,6 +15,8 @@ from guardian.shortcuts import assign_perm, get_perms_for_model
 from onadata.apps.api.models.team import Team
 from onadata.apps.main.models import UserProfile
 from onadata.libs.utils.cache_tools import IS_ORG, safe_delete
+
+User =  get_user_model()
 
 
 # pylint: disable=invalid-name,unused-argument

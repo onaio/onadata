@@ -3,7 +3,7 @@
 Users /users API endpoint.
 """
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from rest_framework.generics import get_object_or_404
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework import filters
@@ -18,6 +18,7 @@ from onadata.apps.api import permissions
 from onadata.apps.api.tools import get_baseviewset_class
 
 BaseViewset = get_baseviewset_class()  # pylint: disable=invalid-name
+User = get_user_model()
 
 
 # pylint: disable=too-many-ancestors

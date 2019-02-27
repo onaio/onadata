@@ -19,7 +19,7 @@ from celery import current_task, task
 from celery.backends.amqp import BacklogLimitExceeded
 from celery.result import AsyncResult
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.files.storage import default_storage
 from django.utils import timezone
 from django.utils.translation import ugettext as _
@@ -39,6 +39,7 @@ DEFAULT_UPDATE_BATCH = 100
 PROGRESS_BATCH_UPDATE = getattr(settings, 'EXPORT_TASK_PROGRESS_UPDATE_BATCH',
                                 DEFAULT_UPDATE_BATCH)
 IGNORED_COLUMNS = ['formhub/uuid', 'meta/instanceID']
+User = get_user_model()
 
 
 def get_submission_meta_dict(xform, instance_id):

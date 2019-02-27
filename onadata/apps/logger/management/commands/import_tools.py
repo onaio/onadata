@@ -5,7 +5,7 @@ import glob
 import os
 
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import ugettext as _, ugettext_lazy
 
@@ -14,6 +14,7 @@ from onadata.libs.logger.models import Instance
 
 
 IMAGES_DIR = os.path.join(settings.MEDIA_ROOT, "attachments")
+User = get_user_model()
 
 
 class Command(BaseCommand):

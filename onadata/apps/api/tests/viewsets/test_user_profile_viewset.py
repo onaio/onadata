@@ -4,7 +4,7 @@ import os
 from builtins import str
 from future.moves.urllib.parse import urlparse, parse_qs
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.db.models import signals
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
@@ -27,6 +27,8 @@ from onadata.apps.main.models.user_profile import \
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.serializers.user_profile_serializer import \
     _get_first_last_names
+
+User = get_user_model()
 
 
 def _profile_data():

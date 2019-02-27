@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.utils.translation import ugettext as _
 
 from onadata.libs.utils.briefcase_client import BriefcaseClient
+
+User = get_user_model()
 
 
 class Command(BaseCommand):

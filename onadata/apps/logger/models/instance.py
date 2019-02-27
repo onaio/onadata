@@ -10,7 +10,7 @@ from future.utils import python_2_unicode_compatible
 from past.builtins import basestring  # pylint: disable=W0622
 
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GeometryCollection, Point
 from django.contrib.postgres.fields import JSONField
@@ -50,6 +50,7 @@ from onadata.libs.utils.timing import calculate_duration
 
 ASYNC_POST_SUBMISSION_PROCESSING_ENABLED = \
     getattr(settings, 'ASYNC_POST_SUBMISSION_PROCESSING_ENABLED', False)
+User = get_user_model()
 
 
 def get_attachment_url(attachment, suffix=None):

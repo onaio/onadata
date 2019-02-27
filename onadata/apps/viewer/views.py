@@ -15,7 +15,7 @@ import requests
 from dict2xml import dict2xml
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.files.storage import FileSystemStorage, get_storage_class
 from django.core.urlresolvers import reverse
 from django.http import (HttpResponse, HttpResponseBadRequest,
@@ -52,6 +52,8 @@ from onadata.libs.utils.user_auth import (get_xform_and_perms, has_permission,
                                           helper_auth_helper)
 from onadata.libs.utils.viewer_tools import (
     create_attachments_zipfile, export_def_from_filename, get_form)
+
+User = get_user_model()
 
 
 def _get_start_end_submission_time(request):
