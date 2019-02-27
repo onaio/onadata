@@ -285,12 +285,11 @@ def get_form(kwargs):
     raise Http404("XForm does not exist.")
 
 
-def get_form_url(request=None,
+def get_form_url(request,
                  username=None,
                  protocol='https',
                  preview=False,
-                 xform_pk=None,
-                 http_host=None):
+                 xform_pk=None):
     """
     Return a form list url endpoint to be used to make a request to Enketo.
 
@@ -300,19 +299,11 @@ def get_form_url(request=None,
     https://example.com/[username]/formList. Same applies for preview if
     preview is True and also to a single form when xform_pk is provided.
     """
-    validation_message = "please supply either of http_host or a request "\
-                         "object"
-    if not request and not http_host:
-        raise ValueError(validation_message)
-
     if settings.TESTING_MODE:
         http_host = settings.TEST_HTTP_HOST
         username = settings.TEST_USERNAME
     else:
-        try:
-            http_host = request.META.get('HTTP_HOST', 'ona.io')
-        except AttributeError:
-            http_host = http_host
+        http_host = request.META.get('HTTP_HOST', 'ona.io')
 
     url = '%s://%s' % (protocol, http_host)
 

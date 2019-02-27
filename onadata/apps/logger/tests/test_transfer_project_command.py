@@ -4,11 +4,9 @@ import sys
 
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
-
 from django.utils.six import StringIO
 
 from onadata.apps.logger.models import Project, XForm
-from onadata.apps.main.models import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 
 
@@ -18,8 +16,8 @@ class TestMoveProjectTonewOwner(TestBase):  # pylint: disable=C0111
         out = StringIO()
         sys.stdout = out
         call_command(
-            'transfer_project', currentowner='user1', newowner='user2',
-            httphost='test_server.com', httpprotocol='https', stdout=out
+            'transfer_project', current_owner='user1', new_owner='user2',
+            stdout=out
         )
         expected_output = 'User user1 does not exist \nUser user2 '\
                           'does not exist \n'
@@ -53,8 +51,8 @@ class TestMoveProjectTonewOwner(TestBase):  # pylint: disable=C0111
         out = StringIO()
         sys.stdout = out
         call_command(
-            'transfer_project', currentowner='user1', newowner='user2',
-            httphost='test_server.com', httpprotocol='https', stdout=out
+            'transfer_project', current_owner='user1', new_owner='user2',
+            stdout=out
         )
         expected_output = 'Projects transferred successfully'
         self.assertIn(expected_output, out.getvalue())
@@ -65,7 +63,7 @@ class TestMoveProjectTonewOwner(TestBase):  # pylint: disable=C0111
             5, Project.objects.filter(organization=user2).count()
         )
 
-    def test_transfer_projects_with_xforms(self):
+    def test_transfer_xforms_are_transferred_during_transfer_as_well(self):
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             "../fixtures/tutorial/tutorial.xls"
@@ -79,23 +77,19 @@ class TestMoveProjectTonewOwner(TestBase):  # pylint: disable=C0111
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
 
-        xform = XForm.objects.all()[0]
-        old_value = "https://dmfrm.enketo.org/webform"
-        MetaData.objects.create(
-            data_type='enketo_url',
-            data_value=old_value,
-            object_id=xform.id,
-            content_object=xform
-        )
         user_model = get_user_model()
-        user_2_data = {
-            'username': 'user2',
-            'email': 'user2@test.com',
+        user_data = {
+            'username': 'user',
+            'email': 'user@test.com',
             'password': 'test_pass'
         }
-        user_model.objects.create_user(**user_2_data)
+        new_owner = user_model.objects.create_user(**user_data)
         call_command(
-            'transfer_project', currentowner='bob', newowner='user2',
-            httphost='test_server.com', httpprotocol='https')
-        self.assertNotEqual(
-            old_value, MetaData.objects.get(data_type='enketo_url').data_value)
+            'transfer_project', current_owner='bob', new_owner='user',
+        )
+
+        bob = user_model.objects.get(username='bob')
+        bobs_forms = XForm.objects.filter(user=bob)
+        new_owner_forms = XForm.objects.filter(user=new_owner)
+        self.assertEquals(0, bobs_forms.count())
+        self.assertEquals(1, new_owner_forms.count())
