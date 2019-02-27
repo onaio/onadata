@@ -110,7 +110,7 @@ setup(
     ],
     dependency_links=[
         'https://github.com/onaio/python-digest/tarball/3af1bd0ef6114e24bf23d0e8fd9d7ebf389845d1#egg=python-digest',  # noqa pylint: disable=line-too-long
-        'https://github.com/onaio/django-digest/tarball/eb85c7ae19d70d4690eeb20983e94b9fde8ab8c2#egg=django-digest',  # noqa pylint: disable=line-too-long
+        'https://github.com/onaio/django-digest/tarball/6f13a5124a46c987f48e8d6613c0feb672c89235#egg=django-digest',  # noqa pylint: disable=line-too-long
         'https://github.com/onaio/django-multidb-router/tarball/9cf0a0c6c9f796e5bd14637fafeb5a1a5507ed37#egg=django-multidb-router',  # noqa pylint: disable=line-too-long
         'https://github.com/onaio/floip-py/tarball/3bbf5c76b34ec49c438a3099ab848870514d1e50#egg=floip',  # noqa pylint: disable=line-too-long
         'https://github.com/onaio/python-json2xlsclient/tarball/62b4645f7b4f2684421a13ce98da0331a9dd66a0#egg=python-json2xlsclient',  # noqa pylint: disable=line-too-long
