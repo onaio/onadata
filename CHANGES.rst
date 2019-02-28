@@ -1,6 +1,12 @@
 Changelog for Onadata
 =====================
 
+1.19.2 (2019-02-28)
+-----------------------
+- Optimize attachment query by removing sort and count
+  `PR #1578 <https://github.com/onaio/onadata/pull/1578>`_
+  [@ukanga]
+
 1.19.1 (2019-02-26)
 -----------------------
 
