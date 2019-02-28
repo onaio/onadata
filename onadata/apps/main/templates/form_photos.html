@@ -16,37 +16,62 @@
 {#        </a>#}
 {#    {% endfor %}#}
 {#    </div>#}
-
 {% block javascript %}
 {{ block.super }}
-<script type="text/javascript" src="{{STATIC_URL}}galleria/galleria-1.2.8.min.js"></script>
-<script type="text/javascript" src="{{STATIC_URL}}galleria/themes/classic/galleria.classic.min.js"></script>
+    <style>
+        .previous {
+            background-color: #f1f1f1;
+            color: black;
+        }
+        .next {
+            background-color: #4CAF50;
+            color: white;
+        }
+    </style>
+
 <script type="text/javascript">
     let images = {{ images|safe }};
     $(document).ready(function() {
-        console.log(images);
-        append_image(images[0]);
+        append_image(images[1]);
     });
     var myBody = document.getElementById("gallery");
 
     function append_image(img_conf) {
         var aTag = document.createElement('a');
+        var element = document.createElement("img");
+        var mFoot = document.createElement('div');
+        var pButt = document.createElement('button');
+        var nButt = document.createElement('button');
         aTag.setAttribute('padding-left', '100px');
         aTag.setAttribute('href', img_conf.large);
         aTag.setAttribute('id',"link");
+        aTag.setAttribute('class', '');
 
         myBody.setAttribute('style',"margin: 0px; background: #0e0e0e;");
+        
 
-
-
-
-        var element = document.createElement("img");
         element.setAttribute("src", img_conf.large);
-        element.setAttribute("style", "-webkit-user-select: none;cursor: zoom-in;");
+        element.setAttribute("style", "cursor: zoom-in;display: flex;");
         element.setAttribute("width", "416");
         element.setAttribute("height", "416");
+        element.setAttribute('padding-left', '100px');
         aTag.appendChild(element);
         myBody.appendChild(aTag);
+
+        mFoot.setAttribute("class", "container");
+
+
+        pButt.setAttribute('class', 'previous pull-left');
+        pButt.innerHTML = '&laquo; Previous';
+
+        nButt.setAttribute('class', 'next pull-right');
+        nButt.innerHTML = 'Next &raquo;';
+        mFoot.appendChild(pButt);
+        mFoot.appendChild(nButt);
+
+
+        myBody.appendChild(mFoot);
+
     }
 
 </script>
