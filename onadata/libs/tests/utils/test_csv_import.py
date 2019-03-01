@@ -15,6 +15,7 @@ from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils import csv_import
 from onadata.libs.utils.csv_import import get_submission_meta_dict
+from onadata.libs.utils.user_auth import get_user_default_project
 
 
 def strip_xml_uuid(s):
@@ -333,3 +334,45 @@ class CSVImportTestCase(TestBase):
         csv_import.submit_csv(self.user.username, self.xform, single_csv)
         self.xform.refresh_from_db()
         self.assertEqual(self.xform.num_of_submissions, count + 1)
+
+    def test_excel_date_conversion(self):
+        """Convert date from 01/01/1900 to 01-01-1900"""
+        date_md_form = """
+        | survey |
+        |        | type  | name  | label |
+        |        | today | today | Today |
+        |        | text  | name  | Name  |
+        |        | date  | tdate | Date  |
+        | choices |
+        |         | list name | name   | label  |
+        | settings |
+        |          | form_title | form_id |
+        |          | Dates      | dates   |
+        """
+
+        self._create_user_and_login()
+        data = {'name': 'data'}
+        survey = self.md_to_pyxform_survey(date_md_form, kwargs=data)
+        survey['sms_keyword'] = survey['id_string']
+        project = get_user_default_project(self.user)
+        xform = XForm(created_by=self.user, user=self.user,
+                      xml=survey.to_xml(), json=survey.to_json(),
+                      project=project)
+        xform.save()
+        date_csv = open(os.path.join(
+            self.fixtures_dir, 'date.csv'), 'rb')
+        date_csv.seek(0)
+
+        csv_reader = ucsv.DictReader(date_csv, encoding='utf-8-sig')
+        xl_dates = []
+        # xl dates
+        for row in csv_reader:
+            xl_dates.append(row.get('tdate'))
+
+        csv_import.submit_csv(self.user.username, xform, date_csv)
+        # converted dates
+        conv_dates = [instance.json.get('tdate')
+                      for instance in Instance.objects.filter(xform=xform)]
+
+        self.assertEqual(xl_dates, ['3/1/2019', '2/26/2019'])
+        self.assertEqual(conv_dates, ['3-1-2019', '2-26-2019'])
