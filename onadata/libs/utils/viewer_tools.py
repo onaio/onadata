@@ -374,8 +374,10 @@ def get_enketo_single_submit_url(request, username, id_string, xform_pk=None):
     response = requests.get(url, auth=(settings.ENKETO_API_TOKEN, ''))
 
     if response.status_code == 200:
-        data = json.loads(response.content)
-        submission_url = data['single_url']
-        return submission_url
+        try:
+            data = json.loads(response.content)
+        except ValueError:
+            pass
+        return data['single_url']
 
     handle_enketo_error(response)

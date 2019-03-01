@@ -389,7 +389,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
     @action(methods=['GET'], detail=True)
     def enketo(self, request, **kwargs):
         """Expose enketo urls."""
-        url_type = self.kwargs.get('url') or request.GET.get('url')
+        survey_type = self.kwargs.get('survey_type') or request.GET.get('survey_type')
         self.object = self.get_object()
         form_url = get_form_url(
             request, self.object.user.username, settings.ENKETO_PROTOCOL,
@@ -412,7 +412,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         except EnketoError as e:
             data = {'message': _(u"Enketo error: %s" % e)}
         else:
-            if url_type == 'single_submit':
+            if survey_type == 'single':
                 single_submit_url = get_enketo_single_submit_url(
                     request, self.object.user.username, self.object.id_string,
                     xform_pk=self.object.pk)

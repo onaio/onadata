@@ -934,13 +934,13 @@ Get single submission url
 .. raw:: html
 
   <pre class="prettyprint">
-  <b>GET</b> /api/v1/forms/<code>{pk}</code>/enketo?url=single_submit</pre>
+  <b>GET</b> /api/v1/forms/<code>{pk}</code>/enketo?survey_type=single</pre>
 
 Request
 ^^^^^^^
 ::
 
-    curl -X GET https://api.ona.io/api/v1/forms/28058/enketo?url=single_submit
+    curl -X GET https://api.ona.io/api/v1/forms/28058/enketo?survey_type=single
 
 Response
 ^^^^^^^^

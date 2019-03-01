@@ -759,7 +759,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'get': 'enketo'
             })
             formid = self.xform.pk
-            get_data = {'url': 'single_submit'}
+            get_data = {'survey_type': 'single'}
             request = self.factory.get('/', data=get_data, **self.extra)
             response = view(request, pk=formid)
             submit_url = "https://enketo.ona.io/single/::XZqoZ94y"
