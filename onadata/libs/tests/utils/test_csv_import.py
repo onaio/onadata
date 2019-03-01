@@ -372,7 +372,8 @@ class CSVImportTestCase(TestBase):
         csv_import.submit_csv(self.user.username, xform, date_csv)
         # converted dates
         conv_dates = [instance.json.get('tdate')
-                      for instance in Instance.objects.filter(xform=xform)]
+                      for instance in Instance.objects.filter(
+                xform=xform).order_by('date_created')]
 
         self.assertEqual(xl_dates, ['3/1/2019', '2/26/2019'])
         self.assertEqual(conv_dates, ['3-1-2019', '2-26-2019'])
