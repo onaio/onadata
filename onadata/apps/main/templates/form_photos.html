@@ -7,15 +7,9 @@
 {% endblock %}
 
 {% block body %}
-<body id="gallery">
+<body id="images">
     {% include "topbar.html" %}
-{#    <div id="nana">#}
-{#    {% for image_url in images %}#}
-{#        <a href="{{ image_url.large }}">#}
-{#            <img longdesc={{ image_url.original }} src="{{ image_url.small }}" alt="{{ image_url.original }}">#}
-{#        </a>#}
-{#    {% endfor %}#}
-{#    </div>#}
+
 {% block javascript %}
 {{ block.super }}
     <style>
@@ -27,50 +21,66 @@
             background-color: #4CAF50;
             color: white;
         }
+        
     </style>
 
 <script type="text/javascript">
     let images = {{ images|safe }};
+    var current = 0;
     $(document).ready(function() {
-        append_image(images[1]);
+        append_image(images[0]);
+
+        $("#nButt").live("click", function(){
+            $("#mDiv").remove();
+            if (current > images.length-1) {
+                current = 0;
+            }
+            append_image(images[current]);
+            current++;
+        });
+        $("#pButt").live("click", function(){
+            $("#mDiv").remove();
+            if (current < 0) {
+                current = images.length-1;
+            }
+            append_image(images[current]);
+            current--;
+        });
     });
-    var myBody = document.getElementById("gallery");
+    let mBody = document.getElementById("images");
 
     function append_image(img_conf) {
-        var aTag = document.createElement('a');
-        var element = document.createElement("img");
-        var mFoot = document.createElement('div');
-        var pButt = document.createElement('button');
-        var nButt = document.createElement('button');
-        aTag.setAttribute('padding-left', '100px');
-        aTag.setAttribute('href', img_conf.large);
-        aTag.setAttribute('id',"link");
-        aTag.setAttribute('class', '');
+        let iDiv = document.createElement("div");
+        let img = document.createElement("img");
+        let mFoot = document.createElement("div");
+        let pButt = document.createElement("button");
+        let nButt = document.createElement("button");
+        let mDiv = document.createElement("div");
+        nButt.setAttribute("id", "nButt");
+        pButt.setAttribute("id", "pButt");
+        mDiv.setAttribute("id", "mDiv");
+        mFoot.setAttribute("id", "foot");
 
-        myBody.setAttribute('style',"margin: 0px; background: #0e0e0e;");
-        
+        mBody.setAttribute('style',"margin: 0px; background: #0e0e0e;");
 
-        element.setAttribute("src", img_conf.large);
-        element.setAttribute("style", "cursor: zoom-in;display: flex;");
-        element.setAttribute("width", "416");
-        element.setAttribute("height", "416");
-        element.setAttribute('padding-left', '100px');
-        aTag.appendChild(element);
-        myBody.appendChild(aTag);
+        img.setAttribute("src", img_conf.large);
+        img.setAttribute("style", "cursor: zoom-in;display: flex;");
+        img.setAttribute("width", "416");
+        img.setAttribute("height", "416");
+        iDiv.appendChild(img);
+        mDiv.appendChild(iDiv);
 
-        mFoot.setAttribute("class", "container");
+        mFoot.setAttribute("class", "footer");
 
+        pButt.setAttribute("class", "previous pull-left");
+        pButt.innerHTML = "&laquo; Previous";
 
-        pButt.setAttribute('class', 'previous pull-left');
-        pButt.innerHTML = '&laquo; Previous';
-
-        nButt.setAttribute('class', 'next pull-right');
-        nButt.innerHTML = 'Next &raquo;';
+        nButt.setAttribute("class", "next pull-right");
+        nButt.innerHTML = "Next &raquo;";
         mFoot.appendChild(pButt);
         mFoot.appendChild(nButt);
-
-
-        myBody.appendChild(mFoot);
+        mDiv.appendChild(mFoot);
+        mBody.appendChild(mDiv);
 
     }
 
