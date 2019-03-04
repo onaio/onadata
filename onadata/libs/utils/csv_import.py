@@ -241,23 +241,16 @@ def submit_csv(username, xform, csv_file, overwrite=False):
     ona_uuid = {'formhub': {'uuid': xform.uuid}}
     error = None
     additions = duplicates = inserts = 0
-    xl_date_columns = []
+
+    x_json = json.loads(xform.json)
+    xl_date_columns = [
+        dt.get('name') for dt in x_json.get('children')
+        if dt.get('type') == 'date']
 
     try:
-        for indx, row in enumerate(csv_reader):
-            #  check for any dates in first row
-            if indx == 0:
-                for key in list(row):
-                    if not key.startswith('_'):
-                        try:
-                            date = datetime.strptime(
-                                row.get(key, ''), '%d/%m/%Y')
-                        except ValueError:
-                            continue
-                        if date:
-                            xl_date_columns.append(key)
+        for row in csv_reader:
+            # convert some excel dates, replace / with -
             for key in xl_date_columns:
-                # some excel dates have / in place of -
                 row.update({key: row.get(key).replace("/", "-")})
 
             # remove the additional columns
