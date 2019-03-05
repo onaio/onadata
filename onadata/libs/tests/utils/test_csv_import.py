@@ -376,4 +376,4 @@ class CSVImportTestCase(TestBase):
                 xform=xform).order_by('date_created')]
 
         self.assertEqual(xl_dates, ['3/1/2019', '2/26/2019'])
-        self.assertEqual(conv_dates, ['3-1-2019', '2-26-2019'])
+        self.assertEqual(conv_dates, ['2019-03-01', '2019-02-26'])

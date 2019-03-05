@@ -133,3 +133,4 @@ SUBMISSION_REVIEW_INSTANCE_FIELD = '_review_status'
 EXCEL_TRUE = 1
 EXCEL_FALSE = 0
 MEMBERS = 'members'
+XLS_DATE_FIELDS = ['date', 'today']

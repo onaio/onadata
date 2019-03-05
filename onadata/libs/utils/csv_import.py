@@ -29,7 +29,8 @@ from multidb.pinning import use_master
 from onadata.apps.logger.models import Instance, XForm
 from onadata.libs.utils.async_status import (FAILED, async_status,
                                              celery_state_to_status)
-from onadata.libs.utils.common_tags import (MULTIPLE_SELECT_TYPE, EXCEL_TRUE)
+from onadata.libs.utils.common_tags import (MULTIPLE_SELECT_TYPE, EXCEL_TRUE,
+                                            XLS_DATE_FIELDS)
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
 from onadata.libs.utils.logger_tools import (OpenRosaResponse, dict2xml,
@@ -245,13 +246,18 @@ def submit_csv(username, xform, csv_file, overwrite=False):
     x_json = json.loads(xform.json)
     xl_date_columns = [
         dt.get('name') for dt in x_json.get('children')
-        if dt.get('type') == 'date']
+        if dt.get('type') in XLS_DATE_FIELDS]
 
     try:
         for row in csv_reader:
             # convert some excel dates, replace / with -
             for key in xl_date_columns:
-                row.update({key: row.get(key).replace("/", "-")})
+                try:
+                    date = datetime.strptime(row.get(key, ''), '%m/%d/%Y')
+                    str_date = datetime.strftime(date, '%Y-%m-%d')
+                    row.update({key: str_date})
+                except ValueError:
+                    pass
 
             # remove the additional columns
             for index in addition_col:
