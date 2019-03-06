@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% block body %}
-<body id="images">
+    <body id="photos">
     {% include "topbar.html" %}
 
 {% block javascript %}
@@ -40,7 +40,7 @@
 
 <script type="text/javascript">
     let images = {{ images|safe }};
-    var current = 0;
+    let current = 0;
     $(document).ready(function() {
         append_image(images[0]);
 
@@ -61,7 +61,7 @@
             current--;
         });
     });
-    let mBody = document.getElementById("images");
+    let mBody = document.getElementById("photos");
 
     function append_image(img_conf) {
         let iDiv = document.createElement("div");
