@@ -254,10 +254,11 @@ def submit_csv(username, xform, csv_file, overwrite=False):
             for key in xl_date_columns:
                 try:
                     date = datetime.strptime(row.get(key, ''), '%m/%d/%Y')
-                    str_date = datetime.strftime(date, '%Y-%m-%d')
-                    row.update({key: str_date})
                 except ValueError:
                     pass
+                else:
+                    str_date = datetime.strftime(date, '%Y-%m-%d')
+                    row.update({key: str_date})
 
             # remove the additional columns
             for index in addition_col:
