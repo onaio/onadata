@@ -1086,7 +1086,7 @@ def form_photos(request, username, id_string):
     image_urls = json.dumps(image_urls)
 
     data['images'] = image_urls
-    data['profilei'], created = UserProfile.objects.get_or_create(user=owner)
+    data['profile'], created = UserProfile.objects.get_or_create(user=owner)
 
     return render(request, 'form_photos.html', data)
 
