@@ -26,9 +26,16 @@
             left: 100px;
             right: 100px;
             bottom: 0;
-            background-color: #0e0e0e;
-            border-top: #0e0e0e;
+            background: none;
+            border: none;
         }
+
+        .container {
+            width: 40%;
+            height: 40%;
+            margin: 0 auto;
+        }
+
     </style>
 
 <script type="text/javascript">
@@ -72,8 +79,7 @@
 
         img.setAttribute("src", img_conf.large);
         img.setAttribute("style", "cursor: zoom-in;display: flex;");
-        img.setAttribute("width", "416");
-        img.setAttribute("height", "416");
+        iDiv.setAttribute("class", "container");
         iDiv.appendChild(img);
         mDiv.appendChild(iDiv);
 
