@@ -1,6 +1,12 @@
 Changelog for Onadata
 =====================
 
+1.19.3 (2019-03-08)
+-----------------------
+- Convert excel date format to csv format
+  `Fixes #1577 <https://github.com/onaio/onadata/issues/1577>`_
+  [@lincmba]
+
 1.19.2 (2019-02-28)
 -----------------------
 - Optimize attachment query by removing sort and count
