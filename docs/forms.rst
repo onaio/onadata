@@ -929,6 +929,33 @@ Response
         "enketo_preview_url": "https://H6Ic6.enketo.org/webform/preview?server=https://api.ona.io/geoffreymuchai/&id=form_id"
     }
 
+Get single submission url
+-------------------------
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/forms/<code>{pk}</code>/enketo?survey_type=single</pre>
+
+Request
+^^^^^^^
+::
+
+    curl -X GET https://api.ona.io/api/v1/forms/28058/enketo?survey_type=single
+
+Response
+^^^^^^^^
+::
+
+    HTTP 200 OK
+
+Response
+^^^^^^^^^
+::
+
+    {
+        "single_submit_url": "https://enke.to/single/::abcd"
+    }
+
 
 Get form data in xls, csv format.
 ---------------------------------

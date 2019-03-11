@@ -9,6 +9,7 @@ import csv
 import json
 import os
 import re
+from builtins import open
 from collections import OrderedDict
 from datetime import datetime
 from datetime import timedelta
@@ -17,7 +18,6 @@ from xml.dom import Node
 from xml.dom import minidom
 
 import jwt
-from builtins import open
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
@@ -39,7 +39,8 @@ from onadata.apps.api.tests.mocked_data import (
     enketo_url_mock, external_mock, external_mock_single_instance,
     external_mock_single_instance2, xls_url_no_extension_mock,
     xls_url_no_extension_mock_content_disposition_attr_jumbled_v1,
-    xls_url_no_extension_mock_content_disposition_attr_jumbled_v2)
+    xls_url_no_extension_mock_content_disposition_attr_jumbled_v2,
+    enketo_single_submission_mock)
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
@@ -732,8 +733,11 @@ class TestXFormViewSet(TestAbstractViewSet):
                     response.status_code, status.HTTP_400_BAD_REQUEST)
                 self.assertEqual(response.data, data)
 
+    @override_settings(TESTING_MODE=False)
     def test_enketo_url(self):
-        with HTTMock(enketo_preview_url_mock, enketo_url_mock):
+        """Test functionality to expose enketo urls."""
+        with HTTMock(enketo_preview_url_mock, enketo_url_mock,
+                     enketo_single_submission_mock):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({
                 'get': 'enketo'
@@ -745,6 +749,21 @@ class TestXFormViewSet(TestAbstractViewSet):
             url = "https://enketo.ona.io/::YY8M"
             preview_url = "https://enketo.ona.io/preview/::YY8M"
             data = {"enketo_url": url, "enketo_preview_url": preview_url}
+            self.assertEqual(response.data, data)
+
+    def test_get_single_submit_url(self):
+        with HTTMock(enketo_preview_url_mock, enketo_url_mock,
+                     enketo_single_submission_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({
+                'get': 'enketo'
+            })
+            formid = self.xform.pk
+            get_data = {'survey_type': 'single'}
+            request = self.factory.get('/', data=get_data, **self.extra)
+            response = view(request, pk=formid)
+            submit_url = "https://enketo.ona.io/single/::XZqoZ94y"
+            data = {"single_submit_url": submit_url}
             self.assertEqual(response.data, data)
 
     def test_enketo_url_with_default_form_params(self):

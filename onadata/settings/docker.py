@@ -76,6 +76,7 @@ if TESTING_MODE:
     ENKETO_API_INSTANCE_PATH = '/api_v1/instance'
     ENKETO_PREVIEW_URL = urljoin(ENKETO_URL, ENKETO_API_SURVEY_PATH +
                                  '/preview')
+    ENKETO_SINGLE_SUBMIT_PATH = '/api/v2/survey/single/once'
     ENKETO_API_INSTANCE_IFRAME_URL = ENKETO_URL + "api_v1/instance/iframe"
 else:
     MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'media/')  # noqa
