@@ -24,8 +24,8 @@ from django.utils.translation import ugettext as _
 from django.views.decorators.http import (require_GET, require_http_methods,
                                           require_POST)
 from guardian.shortcuts import assign_perm, remove_perm
-from rest_framework.authtoken.models import Token
 from oauth2_provider.views.base import AuthorizationView
+from rest_framework.authtoken.models import Token
 
 from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.logger.models.xform import get_forms_shared_with_user
@@ -48,6 +48,7 @@ from onadata.apps.viewer.models.data_dictionary import (DataDictionary,
 from onadata.apps.viewer.models.parsed_instance import (DATETIME_FORMAT,
                                                         query_data)
 from onadata.apps.viewer.views import attachment_url
+from onadata.libs.exceptions import EnketoError
 from onadata.libs.utils.decorators import is_owner
 from onadata.libs.utils.export_tools import upload_template_for_external_export
 from onadata.libs.utils.log import Actions, audit_log
@@ -63,7 +64,6 @@ from onadata.libs.utils.user_auth import (add_cors_headers, check_and_set_user,
                                           helper_auth_helper, set_profile_data)
 from onadata.libs.utils.viewer_tools import (enketo_url,
                                              get_enketo_preview_url, get_form)
-from onadata.libs.exceptions import EnketoError
 
 
 def home(request):
@@ -1076,15 +1076,17 @@ def form_photos(request, username, id_string):
 
             data = {}
 
-            for i in ['small', 'medium', 'large', 'original']:
+            for i in [u'small', u'medium', u'large', u'original']:
                 url = reverse(attachment_url, kwargs={'size': i})
                 url = '%s?media_file=%s' % (url, attachment.media_file.name)
                 data[i] = url
 
             image_urls.append(data)
 
+    image_urls = json.dumps(image_urls)
+
     data['images'] = image_urls
-    data['profilei'], created = UserProfile.objects.get_or_create(user=owner)
+    data['profile'], created = UserProfile.objects.get_or_create(user=owner)
 
     return render(request, 'form_photos.html', data)
 

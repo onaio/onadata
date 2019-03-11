@@ -7,31 +7,96 @@
 {% endblock %}
 
 {% block body %}
-<body>
+    <body id="photos">
     {% include "topbar.html" %}
-    <div id="gallery">
-    {% for image_url in images %}
-        <a href="{{ image_url.large }}">
-            <img longdesc={{ image_url.original }} src="{{ image_url.small }}" alt="{{ image_url.original }}">
-        </a>
-    {% endfor %}
-    </div>
 
 {% block javascript %}
 {{ block.super }}
-<script type="text/javascript" src="{{STATIC_URL}}galleria/galleria-1.2.8.min.js"></script>
-<script type="text/javascript" src="{{STATIC_URL}}galleria/themes/classic/galleria.classic.min.js"></script>
+    <style>
+        .previous {
+            background-color: #f1f1f1;
+            color: black;
+        }
+        .next {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .footer {
+            position: fixed;
+            left: 100px;
+            right: 100px;
+            bottom: 0;
+            background: none;
+            border: none;
+        }
+
+        .container {
+            width: 40%;
+            height: 40%;
+            margin: 0 auto;
+        }
+
+    </style>
+
 <script type="text/javascript">
-    // Load the classic theme
-    // Galleria.loadTheme('{{STATIC_URL}}galleria/themes/classic/galleria.classic.min.js');
-    Galleria.configure({
-        transition: 'fade',
-        lightbox: false,
-        popupLinks: true,
-        showInfo: true
+    let images = {{ images|safe }};
+    let current = 0;
+    $(document).ready(function() {
+        append_image(images[0]);
+
+        $("#nButt").live("click", function(){
+            $("#mDiv").remove();
+            if (current > images.length-1) {
+                current = 0;
+            }
+            append_image(images[current]);
+            current++;
+        });
+        $("#pButt").live("click", function(){
+            $("#mDiv").remove();
+            if (current < 0) {
+                current = images.length-1;
+            }
+            append_image(images[current]);
+            current--;
+        });
     });
-    // Initialize Galleria
-    Galleria.run('#gallery');
+    let mBody = document.getElementById("photos");
+
+    function append_image(img_conf) {
+        let iDiv = document.createElement("div");
+        let img = document.createElement("img");
+        let mFoot = document.createElement("div");
+        let pButt = document.createElement("button");
+        let nButt = document.createElement("button");
+        let mDiv = document.createElement("div");
+        nButt.setAttribute("id", "nButt");
+        pButt.setAttribute("id", "pButt");
+        mDiv.setAttribute("id", "mDiv");
+        mFoot.setAttribute("id", "foot");
+
+        mBody.setAttribute('style',"margin: 0px; background: #0e0e0e;");
+
+        img.setAttribute("src", img_conf.large);
+        img.setAttribute("style", "cursor: zoom-in;display: flex;");
+        iDiv.setAttribute("class", "container");
+        iDiv.appendChild(img);
+        mDiv.appendChild(iDiv);
+
+        mFoot.setAttribute("class", "footer");
+
+        pButt.setAttribute("class", "previous pull-left");
+        pButt.innerHTML = "&laquo; Previous";
+
+        nButt.setAttribute("class", "next pull-right");
+        nButt.innerHTML = "Next &raquo;";
+        mFoot.appendChild(pButt);
+        mFoot.appendChild(nButt);
+        mDiv.appendChild(mFoot);
+        mBody.appendChild(mDiv);
+
+    }
+
 </script>
 {% endblock %}
 </body>
