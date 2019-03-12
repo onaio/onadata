@@ -9,29 +9,42 @@ from onadata.apps.logger.models.project import set_object_permissions \
 from onadata.libs.utils.project_utils import set_project_perms_to_xform
 
 
-class Command(BaseCommand):  # pylint: disable=C0111
+class Command(BaseCommand):
+    """
+    Command to transfer a project from one user to the other.
+
+    Usage:
+    The mandatory arguments are --current-owner, --new-owner and either of
+    --project-id or --all-projects.
+    Depending on what is supplied for --project-id or --all-projects,
+    the command will either transfer a single project or all the projects.
+    """
     help = 'A command to reassign a project(s) from one user to the other.'
 
     errors = []
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--current_owner',
+            '--current-owner',
+            dest='current_owner',
             type=str,
             help='Username of the current owner of the project(s)',
         )
         parser.add_argument(
-            '--new_owner',
+            '--new-owner',
+            dest='new_owner',
             type=str,
             help='Username of the new owner of the project(s)',
         )
         parser.add_argument(
-            '--project_id',
+            '--project-id',
+            dest='project_id',
             type=int,
             help='Id of the project to be transferred.',
         )
         parser.add_argument(
-            '--all_projects',
+            '--all-projects',
+            dest='all_projects',
             action='store_true',
             help='Supply this command if all the projects are to be'
             ' transferred. If not, do not include the argument',

@@ -39,7 +39,7 @@ class TestMoveProjectToAnewOwner(TestBase):  # pylint: disable=C0111
         mock_stdout = StringIO()
         sys.stdout = mock_stdout
         call_command(
-            'transfer_project', current_owner='user1', new_owner='user2',
+            'transferproject', current_owner='user1', new_owner='user2',
             all_projects=True, stdout=mock_stdout
         )
         expected_output = 'Projects transferred successfully'
@@ -80,8 +80,9 @@ class TestMoveProjectToAnewOwner(TestBase):  # pylint: disable=C0111
         mock_stdout = StringIO()
         sys.stdout = mock_stdout
         self.assertIsNotNone(test_project.id)
+
         call_command(
-            'transfer_project', current_owner='user1', new_owner='user2',
+            'transferproject', current_owner='user1', new_owner='user2',
             project_id=test_project.id
         )
         expected_output = 'Projects transferred successfully'
@@ -95,7 +96,7 @@ class TestMoveProjectToAnewOwner(TestBase):  # pylint: disable=C0111
         test_project_refetched = Project.objects.get(id=test_project.id)
         self.assertEqual(user2, test_project_refetched.organization)
 
-    def test_xforms_are_transferred_successfully(self):
+    def test_xforms_are_transferred_as_well(self):  # pylint: disable=C0103
         """Test the transfer of ownership of the XForms."""
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
@@ -116,13 +117,12 @@ class TestMoveProjectToAnewOwner(TestBase):  # pylint: disable=C0111
             'email': 'user@test.com',
             'password': 'test_pass'
         }
-        test_project = Project.objects.all()[0]
         new_owner = user_model.objects.create_user(**user_data)
         mock_stdout = StringIO()
         sys.stdout = mock_stdout
         call_command(
-            'transfer_project', current_owner='bob', new_owner='user',
-            project_id=test_project.id, stdout=mock_stdout
+            'transferproject', current_owner='bob', new_owner='user',
+            all_projects=True, stdout=mock_stdout
         )
         self.assertIn(
             'Projects transferred successfully\n',
@@ -142,12 +142,12 @@ class TestUserValidation(TestBase):
     it's stdout is interfering with the other functions causing them to fail.
     stdout.flush() does not help.
     """
-    def test_user_given_does_not_exist_0(self):
+    def test_user_given_does_not_exist(self):   # pylint: disable=C0103
         """Test that users are validated before initiating project transfer"""
         mock_stdout = StringIO()
         sys.stdout = mock_stdout
         call_command(
-            'transfer_project', current_owner='user1', new_owner='user2',
+            'transferproject', current_owner='user1', new_owner='user2',
             all_projects=True
         )
         expected_output = 'User user1 does not existUser user2 does '\
