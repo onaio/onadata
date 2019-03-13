@@ -10,12 +10,12 @@ import os
 import shutil
 import tempfile
 import zipfile
+from builtins import open
 from collections import OrderedDict
 from ctypes import ArgumentError
 from io import BytesIO
 
 import xlrd
-from builtins import open
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
 from openpyxl import load_workbook
@@ -2505,6 +2505,54 @@ class TestExportBuilder(TestBase):
         temp_xls_file.close()
         expected_result = [['name', 'age', 'fruit'], ['Maria', 25, 'Mango']]
 
+        self.assertEqual(expected_result, result)
+
+    def test_show_choice_labels_in_choice_filter_forms(self):
+        """Export of form choice filters should have Labels when
+        show_choice_labels=true"""
+        md_xform = """
+        | survey |
+        |        | type                | name   | label  | choice_filter |
+        |        | select_one states   | state  | state  |               |
+        |        | select_one counties | county | county | ${state}=cf   |
+        |        | select_one cities   | city	| city   | ${county}=cf  |
+        |        |                     |        |        |               |
+        | choices | list_name | name         | label       | cf          |
+        |         | states    | texas        | Texas       |             |
+        |         | states    | washington   | Washington  |             |
+        |         | counties  | king         | King        | washington  |
+        |         | counties  | pierce       | Pierce      | washington  |
+        |         | counties  | king         | King        | texas       |
+        |         | counties  | cameron      | Cameron     | texas       |
+        |         | cities    | dumont       | Dumont      | king        |
+        |         | cities    | finney       | Finney      | king        |
+        |         | cities    | brownsville  | brownsville | cameron     |
+        |         | cities    | harlingen    | harlingen   | cameron     |
+        |         | cities    | seattle      | Seattle     | king        |
+        |         | cities    | redmond      | Redmond     | king        |
+        |         | cities    | tacoma       | Tacoma      | pierce      |
+        |         | cities    | puyallup     | Puyallup    | pierce      |
+        """
+        survey = self.md_to_pyxform_survey(md_xform, {'name': 'data'})
+        export_builder = ExportBuilder()
+        export_builder.SHOW_CHOICE_LABELS = True
+        export_builder.set_survey(survey)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+
+        data = [{
+            'state': 'texas',
+            'county': 'king',
+            'city': 'seattle'
+        }]  # yapf: disable
+        export_builder.to_xls_export(temp_xls_file, data)
+        temp_xls_file.seek(0)
+        children_sheet = load_workbook(temp_xls_file)["data"]
+        self.assertTrue(children_sheet)
+        result = [[col.value for col in row[:3]]
+                  for row in children_sheet.rows]
+        temp_xls_file.close()
+        expected_result = [
+            ['state', 'county', 'city'], ['Texas', 'King', 'Seattle']]
         self.assertEqual(expected_result, result)
 
     def test_show_choice_labels_multi_language(self):  # pylint: disable=C0103
