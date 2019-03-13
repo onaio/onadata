@@ -245,10 +245,8 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
 
             elif data_type == SUBMISSION_REVIEW:
                 # ensure only one submission_review metadata exists per form
-                metadata = MetaData.submission_review(content_object)
-                if metadata:
-                    metadata.data_value = data_value
-                    metadata.save()
+                if MetaData.submission_review(content_object):
+                    raise serializers.ValidationError(_(UNIQUE_TOGETHER_ERROR))
                 else:
                     metadata = MetaData.submission_review(
                         content_object, data_value=data_value)

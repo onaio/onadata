@@ -576,7 +576,5 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data, **self.extra)
         d_response = view(request)
 
-        self.assertEqual(response.data['id'], d_response.data['id'])
-        self.assertEqual(response.data['xform'], d_response.data['xform'])
-        self.assertEqual(
-            response.data['data_type'], d_response.data['data_type'])
+        self.assertEquals(d_response.status_code, 400)
+        self.assertIn(UNIQUE_TOGETHER_ERROR, d_response.data)
