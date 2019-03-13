@@ -134,3 +134,4 @@ EXCEL_TRUE = 1
 EXCEL_FALSE = 0
 MEMBERS = 'members'
 XLS_DATE_FIELDS = ['date', 'today']
+SUBMISSION_REVIEW = 'submission_review'
