@@ -6,8 +6,7 @@ import os
 from contextlib import closing
 from hashlib import md5
 
-from past.builtins import basestring
-
+import requests
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
@@ -17,8 +16,7 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.validators import URLValidator
 from django.db import IntegrityError, models
 from django.db.models.signals import post_delete, post_save
-
-import requests
+from past.builtins import basestring
 
 from onadata.libs.utils.cache_tools import XFORM_METADATA_CACHE, safe_delete
 from onadata.libs.utils.common_tags import (GOOGLE_SHEET_DATA_TYPE, TEXTIT,
@@ -425,6 +423,11 @@ class MetaData(models.Model):
 
         return unique_type_for_form(
             content_object, data_type, data_value)
+
+    @staticmethod
+    def submission_review(content_object, data_value=None):
+        data_type = 'submission_review'
+        return unique_type_for_form(content_object, data_type, data_value)
 
 
 def clear_cached_metadata_instance_object(

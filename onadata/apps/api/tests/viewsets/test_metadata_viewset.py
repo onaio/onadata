@@ -1,6 +1,6 @@
 import os
-
 from builtins import open
+
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -558,3 +558,23 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
         metadata = MetaData.xform_meta_permission(self.xform)
         self.assertEqual(metadata.data_value, "editor-minor|dataentry-only")
+
+    def test_unique_submission_review_metadata(self):
+        """Don't create duplicate submission_review for a form"""
+        data_type = "submission_review"
+        data_value = True
+
+        response = self._add_form_metadata(self.xform, data_type, data_value)
+        # Duplicate with different Data Value
+
+        view = MetaDataViewSet.as_view({'post': 'create'})
+        data = {
+            'xform': response.data['xform'],
+            'data_type': data_type,
+            'data_value': False,
+        }
+        request = self.factory.post('/', data, **self.extra)
+        d_response = view(request)
+
+        self.assertEquals(d_response.status_code, 400)
+        self.assertIn(UNIQUE_TOGETHER_ERROR, d_response.data)

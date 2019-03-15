@@ -3,17 +3,17 @@
 MetaData Serializer
 """
 
-import os
 import mimetypes
-from future.moves.urllib.parse import urlparse
+import os
 
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db.utils import IntegrityError
 from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
-from django.conf import settings
+from future.moves.urllib.parse import urlparse
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
@@ -27,7 +27,7 @@ from onadata.libs.serializers.fields.project_related_field import \
     ProjectRelatedField
 from onadata.libs.serializers.fields.xform_related_field import \
     XFormRelatedField
-from onadata.libs.utils.common_tags import XFORM_META_PERMS
+from onadata.libs.utils.common_tags import XFORM_META_PERMS, SUBMISSION_REVIEW
 
 UNIQUE_TOGETHER_ERROR = u"Object already exists"
 
@@ -47,7 +47,8 @@ METADATA_TYPES = (
     ('external_export', _(u"External Export")),
     ('textit', _(u"TextIt")),
     ('google_sheets', _(u"Google Sheet")),
-    ('xform_meta_perms', _("Xform meta permissions")))  # yapf:disable
+    ('xform_meta_perms', _("Xform meta permissions")),
+    ('submission_review', _("Submission Review")))  # yapf:disable
 
 DATAVIEW_TAG = 'dataview'
 XFORM_TAG = 'xform'
@@ -242,8 +243,15 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                                                    data_value=data_value)
                 update_role_by_meta_xform_perms(content_object)
 
-            else:
+            elif data_type == SUBMISSION_REVIEW:
+                # ensure only one submission_review metadata exists per form
+                if MetaData.submission_review(content_object):
+                    raise serializers.ValidationError(_(UNIQUE_TOGETHER_ERROR))
+                else:
+                    metadata = MetaData.submission_review(
+                        content_object, data_value=data_value)
 
+            else:
                 metadata = MetaData.objects.create(
                     content_type=content_type,
                     data_type=data_type,
