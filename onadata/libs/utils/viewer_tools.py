@@ -5,18 +5,16 @@ import os
 import sys
 import zipfile
 from builtins import open
-from future.utils import iteritems
 from tempfile import NamedTemporaryFile
 from xml.dom import minidom
 
-from future.moves.urllib.parse import urljoin
-
+import requests
 from django.conf import settings
 from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.translation import ugettext as _
-
-import requests
+from future.moves.urllib.parse import urljoin
+from future.utils import iteritems
 
 from onadata.libs.exceptions import EnketoError
 from onadata.libs.utils import common_tags
@@ -254,16 +252,18 @@ def create_attachments_zipfile(attachments):
             if default_storage.exists(filename):
                 try:
                     with default_storage.open(filename) as f:
-                        if f.size > settings.ZIP_REPORT_ATTACHMENT_LIMMIT:
+                        if f.size > settings.ZIP_REPORT_ATTACHMENT_LIMIT:
                             report_exception(
                                 "Create attachment zip exception",
                                 "File is greater than {} bytes".format(
                                     settings.ZIP_REPORT_ATTACHMENT_LIMMIT)
                             )
+                            break
                         else:
                             z.writestr(attachment.media_file.name, f.read())
                 except IOError as e:
                     report_exception("Create attachment zip exception", e)
+                    break
 
     return tmp
 
