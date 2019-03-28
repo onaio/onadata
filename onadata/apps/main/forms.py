@@ -357,7 +357,7 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
                 cleaned_xls_file = \
                     default_storage.save(
                         upload_to(None, rand_name, user.username),
-                        ContentFile(csv_data))
+                        ContentFile(csv_data.encode()))
             if 'xls_file' in self.cleaned_data and\
                     self.cleaned_data['xls_file']:
                 cleaned_xls_file = self.cleaned_data['xls_file']
