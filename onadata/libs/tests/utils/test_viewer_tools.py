@@ -155,7 +155,7 @@ class TestViewerTools(TestBase):
         url = get_form_url(request, username='bob', xform_pk=1)
         self.assertEqual(url, 'https://ona.io/bob/1')
 
-    @override_settings(ZIP_REPORT_ATTACHMENT_LIMMIT=8)
+    @override_settings(ZIP_REPORT_ATTACHMENT_LIMIT=8)
     @patch('onadata.libs.utils.viewer_tools.report_exception')
     def test_create_attachments_zipfile_file_too_big(self, rpt_mock):
         """

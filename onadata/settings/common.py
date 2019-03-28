@@ -16,15 +16,11 @@ import subprocess  # noqa, used by included files
 import sys
 from imp import reload
 
-from future.moves.urllib.parse import urljoin
-
-from past.builtins import basestring
-
+from celery.signals import after_setup_logger
 from django.core.exceptions import SuspiciousOperation
 from django.utils.log import AdminEmailHandler
-
-from celery.signals import after_setup_logger
-
+from future.moves.urllib.parse import urljoin
+from past.builtins import basestring
 
 # setting default encoding to utf-8
 if sys.version[0] == '2':
@@ -439,7 +435,7 @@ CELERY_IMPORTS = ('onadata.libs.utils.csv_import',)
 
 CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD = 100000  # Bytes
 GOOGLE_SHEET_UPLOAD_BATCH = 1000
-ZIP_REPORT_ATTACHMENT_LIMMIT = 5242880000  # 500 MB in Bytes
+ZIP_REPORT_ATTACHMENT_LIMIT = 5242880000  # 500 MB in Bytes
 
 # duration to keep zip exports before deletion (in seconds)
 ZIP_EXPORT_COUNTDOWN = 3600  # 1 hour
