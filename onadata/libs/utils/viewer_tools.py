@@ -256,7 +256,7 @@ def create_attachments_zipfile(attachments):
                             report_exception(
                                 "Create attachment zip exception",
                                 "File is greater than {} bytes".format(
-                                    settings.ZIP_REPORT_ATTACHMENT_LIMMIT)
+                                    settings.ZIP_REPORT_ATTACHMENT_LIMIT)
                             )
                             break
                         else:
