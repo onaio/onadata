@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import tempfile
 from builtins import str as text
 from datetime import datetime
@@ -39,6 +40,7 @@ from onadata.apps.logger.xform_instance_parser import (
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
+from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
 from pyxform.errors import PyXFormError
@@ -495,6 +497,8 @@ def publish_form(callback):
                        'Please try again.')),
         }
     except (AttributeError, Exception, ValidationError) as e:
+        report_exception("Form publishing exception: {}".format(e), text(e),
+                         sys.exc_info())
         return {'type': 'alert-error', 'text': text(e)}
 
 
