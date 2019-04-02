@@ -339,10 +339,13 @@ class CSVImportTestCase(TestBase):
         """Convert date from 01/01/1900 to 01-01-1900"""
         date_md_form = """
         | survey |
-        |        | type  | name  | label |
-        |        | today | today | Today |
-        |        | text  | name  | Name  |
-        |        | date  | tdate | Date  |
+        |        | type     | name  | label |
+        |        | today    | today | Today |
+        |        | text     | name  | Name  |
+        |        | date     | tdate | Date  |
+        |        | start    | start |       |
+        |        | end      | end   |       |
+        |        | dateTime | now   | Now   |
         | choices |
         |         | list name | name   | label  |
         | settings |
@@ -365,15 +368,26 @@ class CSVImportTestCase(TestBase):
 
         csv_reader = ucsv.DictReader(date_csv, encoding='utf-8-sig')
         xl_dates = []
+        xl_datetime = []
         # xl dates
         for row in csv_reader:
             xl_dates.append(row.get('tdate'))
+            xl_datetime.append(row.get('now'))
 
         csv_import.submit_csv(self.user.username, xform, date_csv)
         # converted dates
         conv_dates = [instance.json.get('tdate')
                       for instance in Instance.objects.filter(
                 xform=xform).order_by('date_created')]
+        conv_datetime = [instance.json.get('now')
+                         for instance in Instance.objects.filter(
+                xform=xform).order_by('date_created')]
 
         self.assertEqual(xl_dates, ['3/1/2019', '2/26/2019'])
+        self.assertEqual(
+            xl_datetime,
+            [u'6/12/2020 13:20', u'2019-03-11T16:00:51.147+02:00'])
+        self.assertEqual(
+            conv_datetime,
+            [u'2020-06-12T13:20:00.000000', u'2019-03-11T16:00:51.147+02:00'])
         self.assertEqual(conv_dates, ['2019-03-01', '2019-02-26'])
