@@ -30,7 +30,8 @@ from onadata.apps.logger.models import Instance, XForm
 from onadata.libs.utils.async_status import (FAILED, async_status,
                                              celery_state_to_status)
 from onadata.libs.utils.common_tags import (MULTIPLE_SELECT_TYPE, EXCEL_TRUE,
-                                            XLS_DATE_FIELDS)
+                                            XLS_DATE_FIELDS,
+                                            XLS_DATETIME_FIELDS)
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
 from onadata.libs.utils.logger_tools import (OpenRosaResponse, dict2xml,
@@ -247,6 +248,9 @@ def submit_csv(username, xform, csv_file, overwrite=False):
     xl_date_columns = [
         dt.get('name') for dt in x_json.get('children')
         if dt.get('type') in XLS_DATE_FIELDS]
+    xl_datetime_columns = [
+        dt.get('name') for dt in x_json.get('children')
+        if dt.get('type') in XLS_DATETIME_FIELDS]
 
     try:
         for row in csv_reader:
@@ -259,6 +263,18 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                 else:
                     str_date = datetime.strftime(date, '%Y-%m-%d')
                     row.update({key: str_date})
+
+            # convert some excel dates time, replace / with -
+            for key in xl_datetime_columns:
+                try:
+                    date_time = datetime.strptime(
+                        row.get(key, ''), '%m/%d/%Y %H:%M')
+                except ValueError:
+                    pass
+                else:
+                    str_date_time = datetime.strftime(
+                        date_time, '%Y-%m-%dT%H:%M:%S.%f')
+                    row.update({key: str_date_time})
 
             # remove the additional columns
             for index in addition_col:
