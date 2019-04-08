@@ -1,6 +1,33 @@
 Changelog for Onadata
 =====================
 
+1.19.4 (2019-04-08)
+-------------------
+- Expose submissions URL to Enketo.
+  `Pull #1526 <https://github.com/onaio/onadata/pull/1526>`_
+  [@WinnyTroy and @lincmba]
+
+- Load one image at a time in classic photo view.
+  `Fix #1560 <https://github.com/onaio/onadata/issues/1560>`_
+  [@lincmba]
+
+- Add transferproject command to transfer project between users.
+  `Issue #1491 <https://github.com/onaio/onadata/issues/1491>`_
+  [@bmarika]
+
+- Add MetaData.submission_review() function for submission reviews metadata.
+  `Fix #1585 <https://github.com/onaio/onadata/issues/1585>`_
+  [@lincmba]
+
+- Fixes on ZIP_REPORT_ATTACHMENT_LIMIT
+  `Fix #1592 <https://github.com/onaio/onadata/issues/1592>`_
+  [@lincmba]
+
+- Fix unicode TypeError on publishing text_xls_form strings.
+  `Fix #1593 <https://github.com/onaio/onadata/issues/1593>`_
+  [@ukanga]
+
+
 1.19.3 (2019-03-08)
 -----------------------
 - Convert excel date format to csv format
