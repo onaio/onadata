@@ -274,7 +274,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
     permission_classes = [XFormPermissions, ]
     updatable_fields = set(('description', 'downloadable', 'require_auth',
                             'shared', 'shared_data', 'title'))
-    filter_backends = (filters.AnonDjangoObjectPermissionFilter,
+    filter_backends = (filters.EnketoAnonDjangoObjectPermissionFilter,
                        filters.TagFilter,
                        filters.XFormOwnerFilter,
                        DjangoFilterBackend)
