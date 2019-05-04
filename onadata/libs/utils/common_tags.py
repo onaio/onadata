@@ -135,3 +135,4 @@ EXCEL_FALSE = 0
 MEMBERS = 'members'
 XLS_DATE_FIELDS = ['date', 'today']
 SUBMISSION_REVIEW = 'submission_review'
+XLS_DATETIME_FIELDS = ['start', 'end', 'dateTime', '_submission_time']
