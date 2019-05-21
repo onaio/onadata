@@ -869,6 +869,12 @@ class XForm(XFormMixin, BaseModel):
 
         if 'skip_xls_read' in kwargs:
             del kwargs['skip_xls_read']
+        
+        if len(self.id_string) > self.MAX_ID_LENGTH:
+            raise XLSFormError(
+                    _(u'The XForm id_string provided exceeds the stipulated 100 characters.'
+                      ' Kindly change this to the required length.'))
+
 
         super(XForm, self).save(*args, **kwargs)
 
