@@ -211,14 +211,13 @@ class TestXForm(TestBase):
         self.assertEqual(xform.sms_id_string, d_sms_id_string[:100])
         self.assertEqual(xform.deleted_by.username, 'bob')
 
-
-
     def test_id_string_length(self):
         """Test Xform.id_string cannot store more than 100 chars"""
         self._publish_transportation_form_and_submit_instance()
         xform = XForm.objects.get(pk=self.xform.id)
         new_string = "transportation_twenty_fifth_july_two_thousand_and_" \
-                     "eleven_test_for_long_sms_id_string_and_id_string_before_save"
+                     "eleven_test_for_long_sms_id_string_and_id_string_" \
+                     "before_save"
         xform.id_string = new_string
         xform.sms_id_string = new_string
 
