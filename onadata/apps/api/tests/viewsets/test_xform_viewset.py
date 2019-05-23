@@ -751,6 +751,30 @@ class TestXFormViewSet(TestAbstractViewSet):
             data = {"enketo_url": url, "enketo_preview_url": preview_url}
             self.assertEqual(response.data, data)
 
+            alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+            alice_profile = self._create_user_profile(alice_data)
+            credentials = {
+                'HTTP_AUTHORIZATION': (
+                    'Token %s' % alice_profile.user.auth_token)
+            }
+            request = self.factory.get('/', **credentials)
+            response = view(request, pk=formid)
+            # Alice has no permissions to the form hence no access to web form
+            self.assertEqual(response.status_code, 404)
+
+            # Give Alice read-only permissions to the form
+            ReadOnlyRole.add(alice_profile.user, self.xform)
+            response = view(request, pk=formid)
+            # Alice with read-only access should not have access to web form
+            self.assertEqual(response.status_code, 404)
+
+            # Give Alice data-entry permissions
+            DataEntryRole.add(alice_profile.user, self.xform)
+            response = view(request, pk=formid)
+            # Alice with data-entry access should have access to web form
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.data, data)
+
     def test_get_single_submit_url(self):
         with HTTMock(enketo_preview_url_mock, enketo_url_mock,
                      enketo_single_submission_mock):

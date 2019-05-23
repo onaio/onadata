@@ -41,6 +41,22 @@ class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
             .filter_queryset(request, queryset, view)
 
 
+# pylint: disable=too-few-public-methods
+class EnketoAnonDjangoObjectPermissionFilter(AnonDjangoObjectPermissionFilter):
+    """EnketoAnonDjangoObjectPermissionFilter
+
+    Same as   AnonDjangoObjectPermissionFilter but checks 'report_xform'
+    permission when the view 'enketo' is accessed.
+    """
+
+    def filter_queryset(self, request, queryset, view):
+        """Check report_xform permission when requesting for Enketo URL."""
+        if view.action == 'enketo':
+            self.perm_format = '%(app_label)s.report_%(model_name)s'  # noqa pylint: disable=W0201
+        return super(EnketoAnonDjangoObjectPermissionFilter, self)\
+            .filter_queryset(request, queryset, view)
+
+
 class XFormListObjectPermissionFilter(AnonDjangoObjectPermissionFilter):
     perm_format = '%(app_label)s.report_%(model_name)s'
 
