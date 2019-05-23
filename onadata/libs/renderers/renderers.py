@@ -98,6 +98,8 @@ class XLSRenderer(BaseRenderer):  # pylint: disable=R0903
     charset = None
 
     def render(self, data, accepted_media_type=None, renderer_context=None):
+        if isinstance(data, six.text_type):
+            return data.encode('utf-8')
         return data
 
 
@@ -127,7 +129,11 @@ class CSVZIPRenderer(BaseRenderer):  # pylint: disable=R0903
     charset = None
 
     def render(self, data, accepted_media_type=None, renderer_context=None):
-        return json.dumps(data) if isinstance(data, dict) else data
+        if isinstance(data, six.text_type):
+            return data.encode('utf-8')
+        elif isinstance(data, dict):
+            return json.dumps(data)
+        return data
 
 
 class SAVZIPRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
@@ -139,7 +145,11 @@ class SAVZIPRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
     charset = None
 
     def render(self, data, accepted_media_type=None, renderer_context=None):
-        return json.dumps(data) if isinstance(data, dict) else data
+        if isinstance(data, six.text_type):
+            return data.encode('utf-8')
+        elif isinstance(data, dict):
+            return json.dumps(data)
+        return data
 
 
 class SurveyRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
@@ -204,6 +214,8 @@ class MediaFileRenderer(BaseRenderer):  # pylint: disable=R0903
     render_style = 'binary'
 
     def render(self, data, accepted_media_type=None, renderer_context=None):
+        if isinstance(data, six.text_type):
+            return data.encode('utf-8')
         return data
 
 
@@ -375,7 +387,11 @@ class ZipRenderer(BaseRenderer):  # pylint: disable=R0903
     charset = None
 
     def render(self, data, accepted_media_type=None, renderer_context=None):
-        return json.dumps(data) if isinstance(data, dict) else data
+        if isinstance(data, six.text_type):
+            return data.encode('utf-8')
+        elif isinstance(data, dict):
+            return json.dumps(data)
+        return data
 
 
 class DecimalJSONRenderer(JSONRenderer):
