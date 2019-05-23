@@ -1,18 +1,18 @@
 import os
 import time
+
+from django.test.utils import override_settings
+from django.urls import reverse
 from mock import patch
 
-from django.core.urlresolvers import reverse
-from django.test.utils import override_settings
-
-from onadata.apps.main.views import show
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.models import MetaData
-from onadata.apps.restservice.views import add_service, delete_service
+from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.main.views import show
 from onadata.apps.restservice.RestServiceInterface import RestServiceInterface
 from onadata.apps.restservice.models import RestService
 from onadata.apps.restservice.services.textit import ServiceDefinition
+from onadata.apps.restservice.views import add_service, delete_service
 
 
 class RestServiceTest(TestBase):

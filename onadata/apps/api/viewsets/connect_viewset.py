@@ -36,7 +36,7 @@ class ConnectViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
     def list(self, request, *args, **kwargs):
         """ Returns authenticated user profile"""
 
-        if request and not request.user.is_anonymous():
+        if request and not request.user.is_anonymous:
             session = getattr(request, "session")
             if not session.session_key:
                 # login user to create session token

@@ -21,7 +21,7 @@ class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
         """
         form_id = view.kwargs.get(view.lookup_field)
         queryset = queryset.filter(deleted_at=None)
-        if request.user.is_anonymous():
+        if request.user.is_anonymous:
             return queryset
 
         if form_id and view.lookup_field == 'pk':
@@ -79,8 +79,7 @@ class XFormListXFormPKFilter(object):
 
 
 class FormIDFilter(django_filter_filters.FilterSet):
-    formID = django_filter_filters.CharFilter(name="id_string",
-                                              lookup_expr='exact')
+    formID = django_filter_filters.CharFilter(field_name="id_string")
 
     class Meta:
         model = XForm
@@ -125,7 +124,7 @@ class XFormOwnerFilter(filters.BaseFilterBackend):
 class DataFilter(filters.DjangoObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):
-        if request.user.is_anonymous():
+        if request.user.is_anonymous:
             return queryset.filter(Q(shared_data=True))
         return queryset
 
@@ -135,12 +134,12 @@ class InstanceFilter(django_filter_filters.FilterSet):
     Instance FilterSet implemented using django-filter
     """
     submitted_by__id = django_filter_filters.ModelChoiceFilter(
-        name='user',
+        field_name='user',
         queryset=User.objects.all(),
         to_field_name='id',
     )
     submitted_by__username = django_filter_filters.ModelChoiceFilter(
-        name='user',
+        field_name='user',
         queryset=User.objects.all(),
         to_field_name='username',
     )
@@ -195,7 +194,7 @@ class AnonUserProjectFilter(filters.DjangoObjectPermissionsFilter):
         user = request.user
         project_id = view.kwargs.get(view.lookup_field)
 
-        if user.is_anonymous():
+        if user.is_anonymous:
             return queryset.filter(Q(shared=True))
 
         if project_id:
@@ -246,7 +245,7 @@ class XFormPermissionFilterMixin(object):
             xform_qs = XForm.objects.all()
         xform_qs = xform_qs.filter(deleted_at=None)
 
-        if request.user.is_anonymous():
+        if request.user.is_anonymous:
             xforms = xform_qs.filter(shared_data=True)
         else:
             xforms = super(XFormPermissionFilterMixin, self).filter_queryset(
@@ -486,7 +485,7 @@ class UserProfileFilter(filters.BaseFilterBackend):
             if users:
                 users = users.split(',')
                 return queryset.filter(user__username__in=users)
-            elif not request.user.is_anonymous():
+            elif not request.user.is_anonymous:
                 return queryset.filter(user__username=request.user.username)
 
             return queryset.none()
@@ -517,7 +516,7 @@ class ExportFilter(XFormPermissionFilterMixin,
     def filter_queryset(self, request, queryset, view):
         has_submitted_by_key = (Q(options__has_key='query') &
                                 Q(options__query__has_key='_submitted_by'),)
-        if request.user.is_anonymous():
+        if request.user.is_anonymous:
             return self._xform_filter_queryset(
                 request, queryset, view, 'xform_id')\
                     .exclude(*has_submitted_by_key)
@@ -542,7 +541,7 @@ class ExportFilter(XFormPermissionFilterMixin,
 
 class PublicDatasetsFilter(object):
     def filter_queryset(self, request, queryset, view):
-        if request and request.user.is_anonymous():
+        if request and request.user.is_anonymous:
             return queryset.filter(shared=True)
 
         return queryset

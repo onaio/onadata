@@ -244,7 +244,8 @@ class ParsedInstance(models.Model):
     DEFAULT_LIMIT = settings.PARSED_INSTANCE_DEFAULT_LIMIT
     DEFAULT_BATCHSIZE = settings.PARSED_INSTANCE_DEFAULT_BATCHSIZE
 
-    instance = models.OneToOneField(Instance, related_name="parsed_instance")
+    instance = models.OneToOneField(
+        Instance, related_name="parsed_instance", on_delete=models.CASCADE)
     start_time = models.DateTimeField(null=True)
     end_time = models.DateTimeField(null=True)
     # TODO: decide if decimal field is better than float field.
@@ -337,13 +338,13 @@ class ParsedInstance(models.Model):
             self.lat = self.instance.point.y
             self.lng = self.instance.point.x
 
-    def save(self, async=False, *args, **kwargs):
+    def save(self, async=False, *args, **kwargs):  # noqa
         # start/end_time obsolete: originally used to approximate for
         # instanceID, before instanceIDs were implemented
         self.start_time = None
         self.end_time = None
         self._set_geopoint()
-        super(ParsedInstance, self).save(*args, **kwargs)
+        super(ParsedInstance, self).save(*args, **kwargs)   # noqa
 
     def add_note(self, note):
         note = Note(instance=self.instance, note=note)

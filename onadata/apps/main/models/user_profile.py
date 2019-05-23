@@ -28,7 +28,8 @@ class UserProfile(models.Model):
     """
 
     # This field is required.
-    user = models.OneToOneField(User, related_name='profile')
+    user = models.OneToOneField(
+        User, related_name='profile', on_delete=models.CASCADE)
 
     # Other fields here
     name = models.CharField(max_length=255, blank=True)
@@ -43,7 +44,8 @@ class UserProfile(models.Model):
         verbose_name=ugettext_lazy("Require Phone Authentication"))
     address = models.CharField(max_length=255, blank=True)
     phonenumber = models.CharField(max_length=30, blank=True)
-    created_by = models.ForeignKey(User, null=True, blank=True)
+    created_by = models.ForeignKey(
+        User, null=True, blank=True, on_delete=models.SET_NULL)
     num_of_submissions = models.IntegerField(default=0)
     metadata = JSONField(default=dict, blank=True)
     date_modified = models.DateTimeField(auto_now=True)
@@ -129,9 +131,9 @@ post_save.connect(set_kpi_formbuilder_permissions, sender=UserProfile,
 
 class UserProfileUserObjectPermission(UserObjectPermissionBase):
     """Guardian model to create direct foreign keys."""
-    content_object = models.ForeignKey(UserProfile)
+    content_object = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
 
 
 class UserProfileGroupObjectPermission(GroupObjectPermissionBase):
     """Guardian model to create direct foreign keys."""
-    content_object = models.ForeignKey(UserProfile)
+    content_object = models.ForeignKey(UserProfile, on_delete=models.CASCADE)

@@ -1,21 +1,21 @@
+import codecs
 import os
 import shutil
-import codecs
-import mock
 
-from django.utils import timezone
-from django.core.urlresolvers import reverse
+import mock
 from django.core.files.storage import get_storage_class
+from django.urls import reverse
+from django.utils import timezone
 from django_digest.test import DigestAuth
 from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.tests.viewsets import test_abstract_viewset
 from onadata.apps.api.viewsets.briefcase_viewset import BriefcaseViewset
-from onadata.apps.api.viewsets.xform_submission_viewset import\
+from onadata.apps.api.viewsets.xform_submission_viewset import \
     XFormSubmissionViewSet
+from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
-from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 
 NUM_INSTANCES = 4
 storage = get_storage_class()()

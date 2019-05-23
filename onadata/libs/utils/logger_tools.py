@@ -161,7 +161,7 @@ def _has_edit_xform_permission(xform, user):
 
 
 def check_edit_submission_permissions(request_user, xform):
-    if xform and request_user and request_user.is_authenticated():
+    if xform and request_user and request_user.is_authenticated:
         requires_auth = xform.user.profile.require_auth
         has_edit_perms = _has_edit_xform_permission(xform, request_user)
 
@@ -230,7 +230,9 @@ def save_attachments(xform, instance, media_files):
         filename = os.path.basename(f.name)
         media_in_submission = (
             filename in instance.get_expected_media() or
-            instance.xml.decode('utf-8').find(filename) != -1)
+            [instance.xml.decode('utf-8').find(filename) != -1 if
+             isinstance(instance.xml, bytes) else
+             instance.xml.find(filename) != -1])
         if media_in_submission:
             Attachment.objects.get_or_create(
                 instance=instance,
@@ -263,7 +265,7 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
         instance.save()
         pi, created = ParsedInstance.objects.get_or_create(instance=instance)
         if not created:
-            pi.save(async=False)
+            pi.save(async=False)  # noqa
 
     return instance
 
@@ -292,7 +294,7 @@ def create_instance(username,
     """
     instance = None
     submitted_by = request.user \
-        if request and request.user.is_authenticated() else None
+        if request and request.user.is_authenticated else None
 
     if username:
         username = username.lower()
@@ -336,6 +338,8 @@ def create_instance(username,
 
     try:
         with transaction.atomic():
+            if isinstance(xml, bytes):
+                xml = xml.decode('utf-8')
             instance = save_submission(xform, xml, media_files, new_uuid,
                                        submitted_by, status,
                                        date_created_override, checksum)
@@ -400,7 +404,7 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
         error = OpenRosaResponseBadRequest(
             _(u"File likely corrupted during "
               u"transmission, please try later."))
-    except NonUniqueFormIdError as e:
+    except NonUniqueFormIdError:
         error = OpenRosaResponseBadRequest(
             _(u"Unable to submit because there are multiple forms with"
               u" this formID."))
@@ -479,18 +483,18 @@ def publish_form(callback):
         return callback()
     except (PyXFormError, XLSFormError) as e:
         return {'type': 'alert-error', 'text': text(e)}
-    except IntegrityError as e:
+    except IntegrityError:
         return {
             'type': 'alert-error',
             'text': _(u'Form with this id or SMS-keyword already exists.'),
         }
-    except ProcessTimedOut as e:
+    except ProcessTimedOut:
         # catch timeout errors
         return {
             'type': 'alert-error',
             'text': _(u'Form validation timeout, please try again.'),
         }
-    except (MemoryError, OSError) as e:
+    except (MemoryError, OSError):
         return {
             'type': 'alert-error',
             'text': _((u'An error occurred while publishing the form. '

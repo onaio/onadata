@@ -10,7 +10,8 @@ class OsmData(models.Model):
     """
     OSM Data information from a submission instance
     """
-    instance = models.ForeignKey('logger.Instance', related_name='osm_data')
+    instance = models.ForeignKey(
+        'logger.Instance', related_name='osm_data', on_delete=models.CASCADE)
     xml = models.TextField()
     osm_id = models.CharField(max_length=20)
     osm_type = models.CharField(max_length=10, default='way')

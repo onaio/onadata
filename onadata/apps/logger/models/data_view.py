@@ -94,8 +94,8 @@ class DataView(models.Model):
     """
 
     name = models.CharField(max_length=255)
-    xform = models.ForeignKey('logger.XForm')
-    project = models.ForeignKey('logger.Project')
+    xform = models.ForeignKey('logger.XForm', on_delete=models.CASCADE)
+    project = models.ForeignKey('logger.Project', on_delete=models.CASCADE)
 
     columns = JSONField()
     query = JSONField(default=dict, blank=True)

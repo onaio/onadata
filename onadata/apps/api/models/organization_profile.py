@@ -71,13 +71,12 @@ class OrganizationProfile(UserProfile):
         app_label = 'api'
         permissions = (
             ('can_add_project', "Can add a project to an organization"),
-            ('can_add_xform', "Can add/upload an xform to an organization"),
-            ('view_organizationprofile', "Can view organization profile"),
+            ('can_add_xform', "Can add/upload an xform to an organization")
         )
 
     is_organization = models.BooleanField(default=True)
     # Other fields here
-    creator = models.ForeignKey(User)
+    creator = models.ForeignKey(User, on_delete=models.CASCADE)
 
     def __str__(self):
         return u'%s[%s]' % (self.name, self.user.username)
@@ -117,9 +116,11 @@ post_delete.connect(org_profile_post_delete_callback,
 # pylint: disable=model-no-explicit-unicode
 class OrgProfileUserObjectPermission(UserObjectPermissionBase):
     """Guardian model to create direct foreign keys."""
-    content_object = models.ForeignKey(OrganizationProfile)
+    content_object = models.ForeignKey(
+        OrganizationProfile, on_delete=models.CASCADE)
 
 
 class OrgProfileGroupObjectPermission(GroupObjectPermissionBase):
     """Guardian model to create direct foreign keys."""
-    content_object = models.ForeignKey(OrganizationProfile)
+    content_object = models.ForeignKey(
+        OrganizationProfile, on_delete=models.CASCADE)

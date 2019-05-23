@@ -24,7 +24,8 @@ class Migration(migrations.Migration):
                              ('generic_xml', 'XML POST'),
                              ('bamboo', 'bamboo'),
                              ('textit', 'TextIt POST')])),
-                ('xform', models.ForeignKey(to='logger.XForm')),
+                ('xform', models.ForeignKey(
+                    to='logger.XForm', on_delete=models.CASCADE)),
             ],
             options={
             },

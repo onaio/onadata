@@ -27,7 +27,7 @@ class RestService(models.Model):
         unique_together = ('service_url', 'xform', 'name')
 
     service_url = models.URLField(ugettext_lazy("Service URL"))
-    xform = models.ForeignKey(XForm)
+    xform = models.ForeignKey(XForm, on_delete=models.CASCADE)
     name = models.CharField(max_length=50, choices=SERVICE_CHOICES)
     date_created = models.DateTimeField(
         auto_now_add=True, null=True, blank=True)

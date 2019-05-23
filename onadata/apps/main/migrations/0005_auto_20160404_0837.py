@@ -17,6 +17,7 @@ class Migration(migrations.Migration):
             name='id',
             field=models.OneToOneField(
                 related_name='google_id', primary_key=True, serialize=False,
+                on_delete=models.CASCADE,
                 to=settings.AUTH_USER_MODEL),
         ),
         migrations.AlterField(

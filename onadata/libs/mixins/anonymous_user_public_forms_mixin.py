@@ -8,7 +8,7 @@ class AnonymousUserPublicFormsMixin(object):
 
     def get_queryset(self):
         """Public forms only for anonymous Users."""
-        if self.request and self.request.user.is_anonymous():
+        if self.request and self.request.user.is_anonymous:
             return self._get_public_forms_queryset()
 
         return super(AnonymousUserPublicFormsMixin, self).get_queryset()

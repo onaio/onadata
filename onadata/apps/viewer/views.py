@@ -17,12 +17,12 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.files.storage import FileSystemStorage, get_storage_class
-from django.core.urlresolvers import reverse
 from django.http import (HttpResponse, HttpResponseBadRequest,
                          HttpResponseForbidden, HttpResponseNotFound,
                          HttpResponseRedirect)
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template import loader
+from django.urls import reverse
 from django.utils.translation import ugettext as _
 from django.views.decorators.http import require_POST
 from dpath import util as dpath_util
@@ -428,7 +428,7 @@ def create_export(request, username, id_string, export_type):
 
 def _get_google_credential(request):
     token = None
-    if request.user.is_authenticated():
+    if request.user.is_authenticated:
         storage = Storage(TokenStorageModel, 'id', request.user, 'credential')
         credential = storage.get()
     elif request.session.get('access_token'):
@@ -718,7 +718,7 @@ def google_xls_export(request, username, id_string):
     redirects to the uploaded google sheet.
     """
     token = None
-    if request.user.is_authenticated():
+    if request.user.is_authenticated:
         try:
             token_storage = TokenStorageModel.objects.get(id=request.user)
         except TokenStorageModel.DoesNotExist:

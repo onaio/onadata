@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
             name='content_type',
             field=models.ForeignKey(
                 default=onadata.apps.main.models.meta_data.get_default_content_type,  # noqa
-                to='contenttypes.ContentType'),
+                to='contenttypes.ContentType', on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AlterUniqueTogether(

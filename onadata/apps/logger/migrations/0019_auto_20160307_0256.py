@@ -28,7 +28,8 @@ class Migration(migrations.Migration):
             model_name='instance',
             name='xform',
             field=models.ForeignKey(related_name='instances',
-                                    to='logger.XForm', null=True),
+                                    to='logger.XForm', null=True,
+                                    on_delete=models.CASCADE),
             preserve_default=True,
         ),
     ]

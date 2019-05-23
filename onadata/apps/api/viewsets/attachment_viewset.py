@@ -83,7 +83,7 @@ class AttachmentViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
         return Response(serializer.data)
 
     def list(self, request, *args, **kwargs):
-        if request.user.is_anonymous():
+        if request.user.is_anonymous:
             xform = request.query_params.get('xform')
             if xform:
                 xform = XForm.objects.get(id=xform)

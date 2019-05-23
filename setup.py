@@ -31,12 +31,12 @@ setup(
     },
     packages=find_packages(exclude=['docs', 'tests']),
     install_requires=[
-        "Django<2",
+        "Django>=2",
         "django-guardian",
         "django-registration-redux",
         "django-templated-email",
         "django-reversion",
-        "django-filter<2.0",
+        "django-filter",
         "django-nose",
         "django-ordered-model",
         # generic relation
@@ -47,8 +47,8 @@ setup(
         "django-cors-headers",
         "django-debug-toolbar",
         # oauth2 support
-        "django-oauth-toolkit<1.2",
-        "oauth2client",
+        "django-oauth-toolkit",
+        # "oauth2client",
         "jsonpickle",
         # jwt
         "PyJWT",
@@ -102,7 +102,6 @@ setup(
         "requests",
         "requests-mock",
         "simplejson",
-        "google-api-python-client",
         "uwsgi",
         "flake8",
         "raven",
@@ -115,6 +114,8 @@ setup(
         'https://github.com/onaio/django-multidb-router/tarball/9cf0a0c6c9f796e5bd14637fafeb5a1a5507ed37#egg=django-multidb-router',  # noqa pylint: disable=line-too-long
         'https://github.com/onaio/floip-py/tarball/3bbf5c76b34ec49c438a3099ab848870514d1e50#egg=floip',  # noqa pylint: disable=line-too-long
         'https://github.com/onaio/python-json2xlsclient/tarball/62b4645f7b4f2684421a13ce98da0331a9dd66a0#egg=python-json2xlsclient',  # noqa pylint: disable=line-too-long
+        'https://github.com/onaio/oauth2client/tarball/75dfdee77fb640ae30469145c66440571dfeae5c#egg=oauth2client',  # noqa pylint: disable=line-too-long
+
     ],
     extras_require={
         ':python_version=="2.7"': [

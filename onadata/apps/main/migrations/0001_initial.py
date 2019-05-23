@@ -46,7 +46,8 @@ class Migration(migrations.Migration):
                  models.CharField(max_length=255, null=True, blank=True)),
                 ('file_hash',
                  models.CharField(max_length=50, null=True, blank=True)),
-                ('xform', models.ForeignKey(to='logger.XForm')),
+                ('xform', models.ForeignKey(to='logger.XForm',
+                    on_delete=models.CASCADE)),
             ],
             options={
             },
@@ -56,8 +57,10 @@ class Migration(migrations.Migration):
             name='TokenStorageModel',
             fields=[
                 ('id',
-                 models.ForeignKey(related_name='google_id', primary_key=True,
-                                   serialize=False, to=settings.AUTH_USER_MODEL
+                 models.ForeignKey(
+                    related_name='google_id', primary_key=True,
+                     serialize=False, to=settings.AUTH_USER_MODEL,
+                      on_delete=models.CASCADE
                                    )),
                 ('token', models.TextField()),
             ],
@@ -235,9 +238,11 @@ class Migration(migrations.Migration):
                 ('date_modified', models.DateTimeField(
                     default=django.utils.timezone.now, auto_now=True)),
                 ('created_by', models.ForeignKey(
-                    blank=True, to=settings.AUTH_USER_MODEL, null=True)),
+                    blank=True, to=settings.AUTH_USER_MODEL, null=True,
+                     on_delete=models.SET_NULL)),
                 ('user', models.OneToOneField(related_name='profile',
-                                              to=settings.AUTH_USER_MODEL)),
+                                              to=settings.AUTH_USER_MODEL,
+                                               on_delete=models.CASCADE)),
             ],
             options={
                 'permissions': (

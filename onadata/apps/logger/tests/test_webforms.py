@@ -1,15 +1,14 @@
 import os
+
 import requests
+from django.urls import reverse
+from httmock import urlmatch, HTTMock
 
-from django.core.urlresolvers import reverse
-
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.views import edit_data
 from onadata.apps.logger.xform_instance_parser import get_uuid_from_xml
+from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.logger_tools import inject_instanceid
-
-from httmock import urlmatch, HTTMock
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')

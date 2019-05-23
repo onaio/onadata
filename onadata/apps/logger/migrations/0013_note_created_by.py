@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
             model_name='note',
             name='created_by',
             field=models.ForeignKey(blank=True, to=settings.AUTH_USER_MODEL,
-                                    null=True),
+                                    null=True, on_delete=models.CASCADE),
             preserve_default=True,
         ),
     ]

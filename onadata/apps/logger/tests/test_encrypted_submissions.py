@@ -5,16 +5,15 @@ Test encrypted form submissions.
 import os
 from builtins import open
 
-from django.core.urlresolvers import reverse
 from django.contrib.auth import authenticate
-
+from django.urls import reverse
 from rest_framework.test import APIRequestFactory
 
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.views import submission
+from onadata.apps.main.tests.test_base import TestBase
 
 
 class TestEncryptedForms(TestBase):
