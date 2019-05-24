@@ -1,6 +1,20 @@
 Changelog for Onadata
 =====================
 
+2.0.0 (2019-05-24)
+-------------------
+- Handle errors in custom renderers.
+  `Fixes #1598 <https://github.com/onaio/onadata/issues/1598>`_
+  [@lincmba]
+
+- Check report_xform permission on enketo URL requests
+  `PR #1602 <https://github.com/onaio/onadata/pull/1602>`_
+  [@ukanga]
+
+- Upgrade to django 2.0
+  `PR #1559 <https://github.com/onaio/onadata/pull/1559>`_
+  [@bmarika, @lincmba]
+
 1.19.4 (2019-04-08)
 -------------------
 - Expose submissions URL to Enketo.
