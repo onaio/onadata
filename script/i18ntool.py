@@ -216,7 +216,7 @@ def main():
         if lang not in LANGS:
             raise ValueError(u"Unknown lang code")
     except ValueError as e:
-        puts(colored.red(e.message))
+        puts(colored.red(e))
         usage()
     except IndexError:
         lang = None

@@ -49,7 +49,7 @@ def _create_enketo_url(request, xform):
         url = enketo_url(form_url, xform.id_string)
         MetaData.enketo_url(xform, url)
     except ConnectionError as e:
-        logging.exception("Connection Error: %s" % e.message)
+        logging.exception("Connection Error: %s" % e)
     except EnketoError as e:
         logging.exception("Enketo Error: %s" % e.message)
 

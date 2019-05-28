@@ -129,7 +129,7 @@ def parse_sms_text(xform, identity, text):
                     # check that altitude is integer
                     int(geodata[2])
             except Exception as e:
-                raise SMSCastingError(e.message, xlsf_name)
+                raise SMSCastingError(e, xlsf_name)
             return " ".join(geodata)
 
         elif xlsf_type in MEDIA_TYPES:
