@@ -47,7 +47,7 @@ class SubmissionStatsInstanceSerializer(serializers.Serializer):
             data = get_form_submissions_grouped_by_field(
                 obj, field, name)
         except ValueError as e:
-            raise exceptions.ParseError(detail=e.message)
+            raise exceptions.ParseError(detail=e)
         else:
             if data:
                 element = obj.get_survey_element(field)
@@ -93,6 +93,6 @@ class StatsInstanceSerializer(serializers.Serializer):
         try:
             data = stats_function(obj, field)
         except ValueError as e:
-            raise exceptions.ParseError(detail=e.message)
+            raise exceptions.ParseError(detail=e)
 
         return data

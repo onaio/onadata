@@ -716,7 +716,7 @@ def form_upload(request, username):
         else:
             content = xform['text']
             if isinstance(content, Exception):
-                content = content.message
+                content = content
                 status = 500
             else:
                 status = 400
