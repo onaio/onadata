@@ -265,7 +265,7 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
         instance.save()
         pi, created = ParsedInstance.objects.get_or_create(instance=instance)
         if not created:
-            pi.save(async=False)  # noqa
+            pi.save(_async=False)  # noqa
 
     return instance
 
