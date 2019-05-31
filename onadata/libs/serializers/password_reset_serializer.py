@@ -21,13 +21,13 @@ def get_password_reset_email(user, reset_url,
     result = urlparse(reset_url)
     site_name = domain = result.hostname
     encoded_username = urlsafe_base64_encode(
-        b(user.username.encode('utf-8')))
+        b(user.username.encode('utf-8'))).decode('utf-8')
     c = {
         'email': user.email,
         'domain': domain,
         'path': result.path,
         'site_name': site_name,
-        'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+        'uid': urlsafe_base64_encode(force_bytes(user.pk)).decode('utf-8'),
         'username': user.username,
         'encoded_username': encoded_username,
         'token': token_generator.make_token(user),

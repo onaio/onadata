@@ -2,6 +2,7 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.serializers.password_reset_serializer import \
     get_password_reset_email
 from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
 
 
 class TestPasswordResetSerializer(TestBase):
@@ -15,3 +16,8 @@ class TestPasswordResetSerializer(TestBase):
                 bytes(self.user.username.encode('utf-8'))).decode('utf-8'),
             email,
             "Username is included in reset email.")
+        self.assertIn(
+            'uid={}'.format(urlsafe_base64_encode(
+                force_bytes(self.user.pk)).decode('utf-8')),
+            email,
+            "Uid is included in email.")
