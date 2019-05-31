@@ -870,6 +870,16 @@ class XForm(XFormMixin, BaseModel):
         if 'skip_xls_read' in kwargs:
             del kwargs['skip_xls_read']
 
+        if (self.id_string and len(
+            self.id_string) > self.MAX_ID_LENGTH) or \
+            (self.sms_id_string and len(
+                self.sms_id_string) > self.MAX_ID_LENGTH):
+            raise XLSFormError(
+                    _(u'The XForm id_string provided exceeds %s characters.'
+                        ' Please change the "id_string" or "form_id" values'
+                        'in settings sheet or reduce the file name if you do'
+                        ' not have a settings sheets.' % self.MAX_ID_LENGTH))
+
         super(XForm, self).save(*args, **kwargs)
 
     def __str__(self):
