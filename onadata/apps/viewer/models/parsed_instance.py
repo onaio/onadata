@@ -1,28 +1,29 @@
 import datetime
 import json
-import six
 import types
 from builtins import str as text
-from dateutil import parser
 
+import six
+from dateutil import parser
 from django.conf import settings
 from django.db import connection
 from django.db import models
-from django.utils.translation import ugettext as _
 from django.db.models.query import EmptyQuerySet
+from django.utils.translation import ugettext as _
 
-from onadata.apps.logger.models.note import Note
-from onadata.apps.logger.models.instance import _get_attachments_from_instance
 from onadata.apps.logger.models.instance import Instance
+from onadata.apps.logger.models.instance import _get_attachments_from_instance
+from onadata.apps.logger.models.note import Note
 from onadata.apps.logger.models.xform import _encode_for_mongo
 from onadata.apps.viewer.parsed_instance_tools import (get_where_clause,
                                                        NONE_JSON_FIELDS)
 from onadata.libs.models.sorting import (
     json_order_by, json_order_by_params, sort_from_mongo_sort_str)
-from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
-    SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS,\
-    NOTES, SUBMITTED_BY, VERSION, DURATION, EDITED, MEDIA_COUNT, TOTAL_MEDIA,\
-    MEDIA_ALL_RECEIVED, XFORM_ID, REVIEW_STATUS, REVIEW_COMMENT
+from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, \
+    GEOLOCATION, SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, \
+    DELETEDAT, TAGS, NOTES, SUBMITTED_BY, VERSION, DURATION, EDITED, \
+    MEDIA_COUNT, TOTAL_MEDIA, MEDIA_ALL_RECEIVED, XFORM_ID, REVIEW_STATUS, \
+    REVIEW_COMMENT
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.mongo import _is_invalid_for_mongo
 
@@ -338,7 +339,7 @@ class ParsedInstance(models.Model):
             self.lat = self.instance.point.y
             self.lng = self.instance.point.x
 
-    def save(self, _async=False, *args, **kwargs):  # noqa
+    def save(self, *args, **kwargs):  # noqa
         # start/end_time obsolete: originally used to approximate for
         # instanceID, before instanceIDs were implemented
         self.start_time = None

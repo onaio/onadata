@@ -4,6 +4,7 @@ import sys
 import tempfile
 from builtins import str as text
 from datetime import datetime
+from hashlib import sha256
 from wsgiref.util import FileWrapper
 from xml.dom import Node
 from xml.parsers.expat import ExpatError
@@ -23,9 +24,10 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.encoding import DjangoUnicodeDecodeError
 from django.utils.translation import ugettext as _
-from hashlib import sha256
 from modilabs.utils.subprocess_timeout import ProcessTimedOut
 from multidb.pinning import use_master
+from pyxform.errors import PyXFormError
+from pyxform.xform2json import create_survey_element_from_xml
 
 from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.logger.models.instance import (
@@ -43,8 +45,6 @@ from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
-from pyxform.errors import PyXFormError
-from pyxform.xform2json import create_survey_element_from_xml
 
 OPEN_ROSA_VERSION_HEADER = 'X-OpenRosa-Version'
 HTTP_OPEN_ROSA_VERSION_HEADER = 'HTTP_X_OPENROSA_VERSION'
@@ -265,7 +265,7 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
         instance.save()
         pi, created = ParsedInstance.objects.get_or_create(instance=instance)
         if not created:
-            pi.save(_async=False)  # noqa
+            pi.save()  # noqa
 
     return instance
 
