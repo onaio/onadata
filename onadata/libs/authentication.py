@@ -7,16 +7,17 @@ import jwt
 from django.conf import settings
 from django.core.signing import BadSignature
 from django.db import DataError
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 from django_digest import HttpDigestAuthenticator
-from django.shortcuts import get_object_or_404
+from multidb.pinning import use_master
 from rest_framework import exceptions
-from rest_framework.authentication import get_authorization_header
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.authentication import get_authorization_header
 from rest_framework.authtoken.models import Token
+from rest_framework.exceptions import AuthenticationFailed
 
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.libs.utils.common_tags import API_TOKEN
@@ -115,7 +116,17 @@ class TempTokenAuthentication(TokenAuthentication):
                 key = key.decode('utf-8')
             token = self.model.objects.get(key=key)
         except self.model.DoesNotExist:
-            raise exceptions.AuthenticationFailed(_(u'Invalid token'))
+            invalid_token = True
+            if getattr(settings, 'SLAVE_DATABASES', []):
+                try:
+                    with use_master:
+                        token = self.model.objects.get(key=key)
+                except self.model.DoesNotExist:
+                    invalid_token = True
+                else:
+                    invalid_token = False
+            if invalid_token:
+                raise exceptions.AuthenticationFailed(_(u'Invalid token'))
 
         if not token.user.is_active:
             raise exceptions.AuthenticationFailed(
