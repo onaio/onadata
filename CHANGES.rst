@@ -1,6 +1,34 @@
 Changelog for Onadata
 =====================
 
+2.0.3 (2019-06-06)
+-------------------
+- Get rid of _async keyword on Parsed Instance save() method
+  `Fixes #1615 <https://github.com/onaio/onadata/pull/1618>`_
+  [@lincmba]
+- Pin temptoken authentication to master database
+  `Fixes #1616 <https://github.com/onaio/onadata/pull/1617>`_
+  [@lincmba]
+
+
+2.0.2 (2019-05-30)
+-------------------
+- Rename variables whose name is async
+  `Fixes #1608 <https://github.com/onaio/onadata/issues/1606>`_
+  [@ivermac ]
+- Process uid as string not binary
+  `Fixes #1610 <https://github.com/onaio/onadata/issues/1610>`_
+  [@lincmba ]
+
+
+
+2.0.1 (2019-05-28)
+-------------------
+- Remove message attribute from Exceptions
+  `Fixes #1609 <https://github.com/onaio/onadata/issues/1609>`_
+  [@lincmba]
+
+
 2.0.0 (2019-05-24)
 -------------------
 - Handle errors in custom renderers.
