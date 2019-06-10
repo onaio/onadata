@@ -6,9 +6,9 @@ import os
 import shutil
 import tempfile
 import zipfile
+from builtins import open
 from datetime import date, datetime, timedelta
 
-from builtins import open
 from django.conf import settings
 from django.contrib.sites.models import Site
 from django.core.files.storage import default_storage
@@ -65,6 +65,15 @@ class TestExportTools(TestBase):
         row = {"datetime": datetime(2001, 9, 9)}
         date_str = encode_if_str(row, "datetime", True)
         self.assertEqual(date_str, '2001-09-09T00:00:00')
+
+        row = {"integer_value": 1}
+        integer_value = encode_if_str(
+            row, "integer_value", sav_writer=True)
+        self.assertEqual(integer_value, '1')
+
+        integer_value = encode_if_str(
+            row, "integer_value")
+        self.assertEqual(integer_value, 1)
 
     def test_generate_osm_export(self):
         filenames = [

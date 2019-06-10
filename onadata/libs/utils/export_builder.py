@@ -10,14 +10,13 @@ import sys
 import uuid
 from builtins import str as text
 from datetime import datetime, date
-from future.utils import iteritems
 from zipfile import ZipFile, ZIP_DEFLATED
 
+from celery import current_task
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
 from django.utils.translation import ugettext as _
-
-from celery import current_task
+from future.utils import iteritems
 from openpyxl.utils.datetime import to_excel
 from openpyxl.workbook import Workbook
 from pyxform.question import Question
@@ -167,8 +166,10 @@ def encode_if_str(row, key, encode_dates=False, sav_writer=None):
         elif encode_dates:
             return val.isoformat()
 
-    val = '' if val is None else val
-    return text(val) if IS_PY_3K and not isinstance(val, bool) else val
+    if sav_writer:
+        val = '' if val is None else val
+        return text(val) if IS_PY_3K and not isinstance(val, bool) else val
+    return val
 
 
 def dict_to_joined_export(data, index, indices, name, survey, row,
