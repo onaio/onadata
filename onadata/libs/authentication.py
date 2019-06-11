@@ -3,8 +3,12 @@
 """
 from __future__ import unicode_literals
 
+from datetime import datetime
+
 import jwt
 from django.conf import settings
+from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.core.signing import BadSignature
 from django.db import DataError
 from django.shortcuts import get_object_or_404
@@ -20,7 +24,10 @@ from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import AuthenticationFailed
 
 from onadata.apps.api.models.temp_token import TempToken
+from onadata.apps.api.tasks import send_account_lockout_email
+from onadata.libs.utils.cache_tools import LOCKOUT_USER, LOGIN_ATTEMPTS
 from onadata.libs.utils.common_tags import API_TOKEN
+from onadata.libs.utils.email import get_account_lockout_email_data
 
 ENKETO_AUTH_COOKIE = getattr(settings, 'ENKETO_AUTH_COOKIE', '__enketo')
 JWT_SECRET_KEY = getattr(settings, 'JWT_SECRET_KEY', 'jwt')
@@ -75,9 +82,12 @@ class DigestAuthentication(BaseAuthentication):
             return None
 
         try:
+            username = request.META['HTTP_AUTHORIZATION'].split('"')[1]
+            check_lockout(username)
             if self.authenticator.authenticate(request):
                 return request.user, None
             else:
+                login_attempts(username)
                 raise AuthenticationFailed(
                     _('Invalid username/password'))
         except (AttributeError, ValueError, DataError) as e:
@@ -185,3 +195,55 @@ class TempTokenURLParameterAuthentication(TempTokenAuthentication):
             return None
 
         return self.authenticate_credentials(key)
+
+
+def check_lockout(username):
+    lockout = cache.get('{}{}'.format(LOCKOUT_USER, username))
+    if lockout:
+        time_locked_out = \
+            datetime.now() - datetime.strptime(lockout, '%Y-%m-%dT%H:%M:%S')
+        remaining_time = round(
+            (settings.LOCKOUT_TIME - time_locked_out.seconds) / 60)
+        raise AuthenticationFailed(
+            _('Locked out. Too many password attempts. '
+              'Try again in {} minutes'.format(remaining_time)))
+
+
+def login_attempts(username):
+    """Track number of login attempts made by user within a specified amount
+     of time"""
+    check_lockout(username)
+    attempts = cache.get('{}{}'.format(LOGIN_ATTEMPTS, username))
+
+    if attempts:
+        cache.incr('{}{}'.format(LOGIN_ATTEMPTS, username))
+        attempts = cache.get('{}{}'.format(LOGIN_ATTEMPTS, username))
+        if attempts >= settings.MAX_LOGIN_ATTEMPTS:
+            send_lockout_email(username)
+            return cache.set(
+                '{}{}'.format(LOCKOUT_USER, username),
+                datetime.now().strftime('%Y-%m-%dT%H:%M:%S'),
+                settings.LOCKOUT_TIME)
+        return
+
+    return cache.set('{}{}'.format(LOGIN_ATTEMPTS, username), 1)
+
+
+def send_lockout_email(username):
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        pass
+    else:
+        email_data = get_account_lockout_email_data(username)
+        end_email_data = get_account_lockout_email_data(
+            username, end=True)
+
+        send_account_lockout_email.apply_async(
+            args=[user.email, email_data.get('subject'),
+                  email_data.get('message_txt')])
+        # send end of lockout email 1 minute after lockout time
+        send_account_lockout_email.apply_async(
+            args=[user.email, end_email_data.get('subject'),
+                  end_email_data.get('message_txt')],
+            countdown=settings.LOCKOUT_TIME + 60)

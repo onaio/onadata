@@ -27,3 +27,7 @@ DATAVIEW_LAST_SUBMISSION_TIME = 'dvs-last_submission_time'
 PROJ_TEAM_USERS_CACHE = 'ps-project-team-users'
 XFORM_LINKED_DATAVIEWS = 'xfs-linked_dataviews'
 PROJECT_LINKED_DATAVIEWS = 'ps-project-linked_dataviews'
+
+# cache login attempts
+LOCKOUT_USER = 'lockout_user-'
+LOGIN_ATTEMPTS = 'login_attempts-'
