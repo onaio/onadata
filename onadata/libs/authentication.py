@@ -82,12 +82,11 @@ class DigestAuthentication(BaseAuthentication):
             return None
 
         try:
-            username = request.META['HTTP_AUTHORIZATION'].split('"')[1]
-            check_lockout(username)
+            check_lockout(request)
             if self.authenticator.authenticate(request):
                 return request.user, None
             else:
-                login_attempts(username)
+                login_attempts(request)
                 raise AuthenticationFailed(
                     _('Invalid username/password'))
         except (AttributeError, ValueError, DataError) as e:
@@ -197,33 +196,46 @@ class TempTokenURLParameterAuthentication(TempTokenAuthentication):
         return self.authenticate_credentials(key)
 
 
-def check_lockout(username):
-    lockout = cache.get('{}{}'.format(LOCKOUT_USER, username))
-    if lockout:
-        time_locked_out = \
-            datetime.now() - datetime.strptime(lockout, '%Y-%m-%dT%H:%M:%S')
-        remaining_time = round(
-            (settings.LOCKOUT_TIME - time_locked_out.seconds) / 60)
-        raise AuthenticationFailed(
-            _('Locked out. Too many password attempts. '
-              'Try again in {} minutes'.format(remaining_time)))
+def check_lockout(request):
+    try:
+        if isinstance(request.META['HTTP_AUTHORIZATION'], bytes):
+            username = \
+                request.META['HTTP_AUTHORIZATION'].decode('utf-8').split('"')[
+                    1]
+        else:
+            username = request.META['HTTP_AUTHORIZATION'].split('"')[1]
+    except (TypeError, AttributeError, IndexError):
+        return
+    else:
+        lockout = cache.get('{}{}'.format(LOCKOUT_USER, username))
+        if lockout:
+            time_locked_out = \
+                datetime.now() - datetime.strptime(lockout,
+                                                   '%Y-%m-%dT%H:%M:%S')
+            remaining_time = round(
+                (getattr(settings, 'LOCKOUT_TIME', 1800) -
+                 time_locked_out.seconds) / 60)
+            raise AuthenticationFailed(
+                _('Locked out. Too many password attempts. '
+                  'Try again in {} minutes'.format(remaining_time)))
+        return username
 
 
-def login_attempts(username):
+def login_attempts(request):
     """Track number of login attempts made by user within a specified amount
      of time"""
-    check_lockout(username)
+    username = check_lockout(request)
     attempts = cache.get('{}{}'.format(LOGIN_ATTEMPTS, username))
 
     if attempts:
         cache.incr('{}{}'.format(LOGIN_ATTEMPTS, username))
         attempts = cache.get('{}{}'.format(LOGIN_ATTEMPTS, username))
-        if attempts >= settings.MAX_LOGIN_ATTEMPTS:
+        if attempts >= getattr(settings, 'MAX_LOGIN_ATTEMPTS', 5):
             send_lockout_email(username)
             return cache.set(
                 '{}{}'.format(LOCKOUT_USER, username),
                 datetime.now().strftime('%Y-%m-%dT%H:%M:%S'),
-                settings.LOCKOUT_TIME)
+                getattr(settings, 'LOCKOUT_TIME', 1800))
         return
 
     return cache.set('{}{}'.format(LOGIN_ATTEMPTS, username), 1)
@@ -246,4 +258,4 @@ def send_lockout_email(username):
         send_account_lockout_email.apply_async(
             args=[user.email, end_email_data.get('subject'),
                   end_email_data.get('message_txt')],
-            countdown=settings.LOCKOUT_TIME + 60)
+            countdown=getattr(settings, 'LOCKOUT_TIME', 1800) + 60)

@@ -52,7 +52,7 @@ def get_account_lockout_email_data(username, end=False):
         message_path = 'account_lockout/lockout_end.txt'
     ctx_dict = {
         'username': username,
-        'lockout_time': settings.LOCKOUT_TIME / 60
+        'lockout_time': getattr(settings, 'LOCKOUT_TIME', 1800) / 60
     }
 
     email_data = {

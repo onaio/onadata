@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.core.cache import cache
+from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from django.utils.timezone import now
@@ -408,8 +409,14 @@ class TestConnectViewSet(TestAbstractViewSet):
             cache.get('lockout_user-bob'), '%Y-%m-%dT%H:%M:%S')
         self.assertIsInstance(lockout, datetime)
 
-        # email sent upon limit being reached
+        # email sent upon limit being reached with right arguments
+        subject_path = 'account_lockout/lockout_email_subject.txt'
         self.assertTrue(send_account_lockout_email.called)
+        email_subject = render_to_string(subject_path)
+        self.assertIn(
+            email_subject, send_account_lockout_email.call_args[1]['args'])
+        self.assertEqual(
+            send_account_lockout_email.call_count, 2, "Called twice")
 
         # subsequent login fails after lockout even with correct credentials
         auth = DigestAuth('bob', 'bobbob')
@@ -419,3 +426,6 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.assertEqual(response.data['detail'],
                          u"Locked out. Too many password attempts. "
                          u"Try again in 30 minutes")
+        # clear cache
+        cache.delete('login_attempts-bob')
+        cache.delete('lockout_user-bob')

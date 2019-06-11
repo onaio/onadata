@@ -2,8 +2,6 @@
 # this preset is used for automated testing of formhub
 from __future__ import absolute_import
 
-from future.moves.urllib.parse import urljoin
-
 from .common import *  # nopep8
 
 DATABASES = {
@@ -67,3 +65,7 @@ MIDDLEWARE_CLASSES = (
 )
 
 VERIFIED_KEY_TEXT = 'ALREADY_ACTIVATED'
+
+# Time in minutes to lock out user from account
+LOCKOUT_TIME = 30 * 60
+MAX_LOGIN_ATTEMPTS = 5
