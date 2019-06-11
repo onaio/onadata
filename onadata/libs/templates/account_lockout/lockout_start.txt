@@ -1,0 +1,12 @@
+{% load i18n %}
+{% blocktrans with lockout_time=lockout_time username=username %}
+Hi {{ username }},
+
+You have been locked out from your Ona account because of too many wrong passwords.
+Please wait for {{ lockout_time }} minutes before trying to access your account again.
+If this was not you please reach out to our support team for help.
+Thank you for choosing Ona!
+
+Thanks,
+The Team at Ona
+{% endblocktrans %}
