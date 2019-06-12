@@ -86,9 +86,16 @@ class DigestAuthentication(BaseAuthentication):
             if self.authenticator.authenticate(request):
                 return request.user, None
             else:
-                login_attempts(request)
+                attempts = login_attempts(request)
+                remaining_attempts = \
+                    getattr(settings, 'MAX_LOGIN_ATTEMPTS', 5) - attempts
                 raise AuthenticationFailed(
-                    _('Invalid username/password'))
+                    _("Invalid username/password. "
+                      "For security reasons, after {} more failed "
+                      "login attempts you'll have to wait {} minutes "
+                      "before trying again.".format(
+                        remaining_attempts, getattr(
+                            settings, 'LOCKOUT_TIME', 1800) // 60)))
         except (AttributeError, ValueError, DataError) as e:
             raise AuthenticationFailed(e)
 
@@ -216,8 +223,8 @@ def check_lockout(request):
                 (getattr(settings, 'LOCKOUT_TIME', 1800) -
                  time_locked_out.seconds) / 60)
             raise AuthenticationFailed(
-                _('Locked out. Too many password attempts. '
-                  'Try again in {} minutes'.format(remaining_time)))
+                _('Locked out. Too many wrong username/password attempts. '
+                  'Try again in {} minutes.'.format(remaining_time)))
         return username
 
 
@@ -232,13 +239,16 @@ def login_attempts(request):
         attempts = cache.get('{}{}'.format(LOGIN_ATTEMPTS, username))
         if attempts >= getattr(settings, 'MAX_LOGIN_ATTEMPTS', 5):
             send_lockout_email(username)
-            return cache.set(
+            cache.set(
                 '{}{}'.format(LOCKOUT_USER, username),
                 datetime.now().strftime('%Y-%m-%dT%H:%M:%S'),
                 getattr(settings, 'LOCKOUT_TIME', 1800))
-        return
+            check_lockout(request)
+            return attempts
+        return attempts
 
-    return cache.set('{}{}'.format(LOGIN_ATTEMPTS, username), 1)
+    cache.set('{}{}'.format(LOGIN_ATTEMPTS, username), 1)
+    return cache.get('{}{}'.format(LOGIN_ATTEMPTS, username))
 
 
 def send_lockout_email(username):
