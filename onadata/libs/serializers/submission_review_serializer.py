@@ -60,7 +60,6 @@ class SubmissionReviewSerializer(serializers.ModelSerializer):
         """
         Custom update method for SubmissionReviewSerializer
         """
-        __import__('ipdb').set_trace()
         note = instance.note
         note_data = validated_data.pop('note')
 
