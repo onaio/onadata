@@ -1,24 +1,27 @@
+from datetime import datetime
+from datetime import timedelta
+
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
+from django.core.cache import cache
+from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from django.utils.timezone import now
-from django_digest.test import DigestAuth, BasicAuth
 from django_digest.backend.db import update_partial_digests
+from django_digest.test import DigestAuth, BasicAuth
 from mock import patch
-from datetime import timedelta
 from rest_framework import authentication
 from rest_framework.authtoken.models import Token
 
-from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
+from onadata.apps.api.models.temp_token import TempToken
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
-
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.serializers.project_serializer import ProjectSerializer
-from onadata.apps.api.models.temp_token import TempToken
-from django.conf import settings
 
 
 class TestConnectViewSet(TestAbstractViewSet):
@@ -203,7 +206,9 @@ class TestConnectViewSet(TestAbstractViewSet):
         response = view(request)
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.data['detail'],
-                         u"Invalid username/password")
+                         u"Invalid username/password. For security reasons, "
+                         u"after 9 more failed login attempts you'll "
+                         u"have to wait 30 minutes before trying again.")
         auth = DigestAuth('bob', 'bobbob')
         request.META.update(auth(request.META, response))
         request.session = self.client.session
@@ -312,7 +317,9 @@ class TestConnectViewSet(TestAbstractViewSet):
         response = view(request)
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.data['detail'],
-                         u"Invalid username/password")
+                         u"Invalid username/password. For security reasons, "
+                         u"after 9 more failed login attempts you'll have to "
+                         u"wait 30 minutes before trying again.")
 
     def test_user_updates_email(self):
         view = ConnectViewSet.as_view(
@@ -354,3 +361,80 @@ class TestConnectViewSet(TestAbstractViewSet):
 
         response = view(request)
         self.assertEqual(response.status_code, 200)
+
+    @patch('onadata.apps.api.tasks.send_account_lockout_email.apply_async')
+    def test_login_attempts(self, send_account_lockout_email):
+        view = ConnectViewSet.as_view(
+            {'get': 'list'},
+            authentication_classes=(DigestAuthentication,))
+        auth = DigestAuth('bob', 'bob')
+        # clear cache
+        cache.delete('login_attempts-bob')
+        cache.delete('lockout_user-bob')
+        self.assertIsNone(cache.get('login_attempts-bob'))
+        self.assertIsNone(cache.get('lockout_user-bob'))
+
+        request = self._get_request_session_with_auth(view, auth)
+
+        # first time it creates a cache
+        response = view(request)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.data['detail'],
+                         u"Invalid username/password. For security reasons, "
+                         u"after 9 more failed login attempts you'll have to "
+                         u"wait 30 minutes before trying again.")
+        self.assertEqual(cache.get('login_attempts-bob'), 1)
+
+        # cache value increments with subsequent attempts
+        response = view(request)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.data['detail'],
+                         u"Invalid username/password. For security reasons, "
+                         u"after 8 more failed login attempts you'll have to "
+                         u"wait 30 minutes before trying again.")
+        self.assertEqual(cache.get('login_attempts-bob'), 2)
+
+        # login_attempts doesn't increase with correct login
+        auth = DigestAuth('bob', 'bobbob')
+        request = self._get_request_session_with_auth(view, auth)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(cache.get('login_attempts-bob'), 2)
+
+        # lockout_user cache created upon fifth attempt
+        auth = DigestAuth('bob', 'bob')
+        request = self._get_request_session_with_auth(view, auth)
+        self.assertFalse(send_account_lockout_email.called)
+        cache.set('login_attempts-bob', 9)
+        self.assertIsNone(cache.get('lockout_user-bob'))
+        response = view(request)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.data['detail'],
+                         u"Locked out. Too many wrong username/password "
+                         u"attempts. Try again in 30 minutes.")
+        self.assertEqual(cache.get('login_attempts-bob'), 10)
+        self.assertIsNotNone(cache.get('lockout_user-bob'))
+        lockout = datetime.strptime(
+            cache.get('lockout_user-bob'), '%Y-%m-%dT%H:%M:%S')
+        self.assertIsInstance(lockout, datetime)
+
+        # email sent upon limit being reached with right arguments
+        subject_path = 'account_lockout/lockout_email_subject.txt'
+        self.assertTrue(send_account_lockout_email.called)
+        email_subject = render_to_string(subject_path)
+        self.assertIn(
+            email_subject, send_account_lockout_email.call_args[1]['args'])
+        self.assertEqual(
+            send_account_lockout_email.call_count, 2, "Called twice")
+
+        # subsequent login fails after lockout even with correct credentials
+        auth = DigestAuth('bob', 'bobbob')
+        request = self._get_request_session_with_auth(view, auth)
+        response = view(request)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.data['detail'],
+                         u"Locked out. Too many wrong username/password "
+                         u"attempts. Try again in 30 minutes.")
+        # clear cache
+        cache.delete('login_attempts-bob')
+        cache.delete('lockout_user-bob')

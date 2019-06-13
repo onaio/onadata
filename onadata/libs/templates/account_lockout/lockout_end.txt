@@ -1,0 +1,12 @@
+{% load i18n %}
+{% blocktrans with username=username %}
+Hi {{ username }},
+
+You are no longer locked out of Ona, you can now log in to your account.
+
+Thank you for choosing Ona!
+
+Please contact us at {{ support_email }} with any questions, we're always happy to help.
+
+The Team at Ona
+{% endblocktrans %}

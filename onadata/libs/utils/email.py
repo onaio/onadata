@@ -1,7 +1,6 @@
-from future.moves.urllib.parse import urlencode
-
 from django.conf import settings
 from django.template.loader import render_to_string
+from future.moves.urllib.parse import urlencode
 from rest_framework.reverse import reverse
 
 
@@ -41,5 +40,26 @@ def get_verification_email_data(email, username, verification_url, request):
                 request=request
             )
         })
+
+    return email_data
+
+
+def get_account_lockout_email_data(username, end=False):
+    """Generates both the email upon start and end of account lockout"""
+    message_path = 'account_lockout/lockout_start.txt'
+    subject_path = 'account_lockout/lockout_email_subject.txt'
+    if end:
+        message_path = 'account_lockout/lockout_end.txt'
+    ctx_dict = {
+        'username': username,
+        'lockout_time': getattr(settings, 'LOCKOUT_TIME', 1800) / 60,
+        'support_email': getattr(
+            settings, 'SUPPORT_EMAIL', 'support@example.com')
+    }
+
+    email_data = {
+        'subject': render_to_string(subject_path),
+        'message_txt': render_to_string(message_path, ctx_dict)
+    }
 
     return email_data

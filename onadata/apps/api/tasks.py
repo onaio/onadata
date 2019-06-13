@@ -2,15 +2,15 @@ import os
 import sys
 from builtins import str
 from io import BytesIO
-from past.builtins import basestring
 
 from celery import task
 from celery.result import AsyncResult
+from django.conf import settings
 from django.core.files.uploadedfile import (InMemoryUploadedFile,
                                             TemporaryUploadedFile)
-from django.utils.datastructures import MultiValueDict
-from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
+from django.utils.datastructures import MultiValueDict
+from past.builtins import basestring
 
 from onadata.apps.api import tools
 from onadata.apps.logger.models.xform import XForm
@@ -79,11 +79,7 @@ def get_async_status(job_uuid):
     return result
 
 
-@task()
-def send_verification_email(email, message_txt, subject):
-    """
-    Sends a verification email
-    """
+def send_generic_email(email, message_txt, subject):
     if any(a in [None, ''] for a in [email, message_txt, subject]):
         raise ValueError(
             "email, message_txt amd subject arguments are ALL required."
@@ -98,3 +94,16 @@ def send_verification_email(email, message_txt, subject):
     )
 
     email_message.send()
+
+
+@task()
+def send_verification_email(email, message_txt, subject):
+    """
+    Sends a verification email
+    """
+    send_generic_email(email, subject, message_txt)
+
+
+@task()
+def send_account_lockout_email(email, subject, message_txt):
+    send_generic_email(email, subject, message_txt)
