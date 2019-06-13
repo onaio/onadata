@@ -14,7 +14,8 @@ class SubmissionReviewSerializer(serializers.ModelSerializer):
     """
     SubmissionReviewSerializer Class
     """
-    note = serializers.CharField(source='note.note', required=False)
+    note = serializers.CharField(
+        source='note.note', required=False, allow_blank=True)
 
     class Meta:
         """
