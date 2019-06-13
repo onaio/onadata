@@ -288,6 +288,16 @@ class CSVImportTestCase(TestBase):
                          {'error': 'File not found!',
                           'job_status': 'FAILURE'})
 
+        # shouldn't fail if info is not of type dict
+        class MockAsyncResult2(object):
+            def __init__(self):
+                self.result = self.state = 'PROGRESS'
+                self.info = None
+
+        AsyncResult.return_value = MockAsyncResult2()
+        result = csv_import.get_async_csv_submission_status('x-y-z')
+        self.assertEqual(result, {'job_status': 'PROGRESS'})
+
     def test_submission_xls_to_csv(self):
         """Test that submission_xls_to_csv converts to csv"""
         c_csv_file = csv_import.submission_xls_to_csv(

@@ -407,7 +407,8 @@ def get_async_csv_submission_status(job_uuid):
         # result = (job.result or job.state)
         if job.state not in ['SUCCESS', 'FAILURE']:
             response = async_status(celery_state_to_status(job.state))
-            response.update(job.info)
+            if isinstance(job.info, dict):
+                response.update(job.info)
 
             return response
 
