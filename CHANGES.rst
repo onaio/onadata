@@ -1,11 +1,31 @@
 Changelog for Onadata
 =====================
 
+2.0.4 (2019-06-13)
+-------------------
+- Only convert to string sav_writer values.
+  `PR #1621 <https://github.com/onaio/onadata/pull/1621>`_
+  [@lincmba]
+
+- Rate-Limit login attempts
+  `PR #1622 <https://github.com/onaio/onadata/pull/1622>`_
+  [@lincmba]
+
+- Allow blank notes in reviewing Approved/Pending submissions
+  `Fixes #1623 <https://github.com/onaio/onadata/issues/1623>`_
+  [@lincmba]
+
+- Fix TypeError on getting async csv import status
+  `Fixes #1624 <https://github.com/onaio/onadata/issues/1624>`_
+  [@lincmba]
+
+
 2.0.3 (2019-06-06)
 -------------------
 - Get rid of _async keyword on Parsed Instance save() method
   `Fixes #1615 <https://github.com/onaio/onadata/pull/1618>`_
   [@lincmba]
+
 - Pin temptoken authentication to master database
   `Fixes #1616 <https://github.com/onaio/onadata/pull/1617>`_
   [@lincmba]
@@ -16,6 +36,7 @@ Changelog for Onadata
 - Rename variables whose name is async
   `Fixes #1608 <https://github.com/onaio/onadata/issues/1606>`_
   [@ivermac ]
+
 - Process uid as string not binary
   `Fixes #1610 <https://github.com/onaio/onadata/issues/1610>`_
   [@lincmba ]
