@@ -207,7 +207,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.data['detail'],
                          u"Invalid username/password. For security reasons, "
-                         u"after 4 more failed login attempts you'll "
+                         u"after 9 more failed login attempts you'll "
                          u"have to wait 30 minutes before trying again.")
         auth = DigestAuth('bob', 'bobbob')
         request.META.update(auth(request.META, response))
@@ -318,7 +318,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.data['detail'],
                          u"Invalid username/password. For security reasons, "
-                         u"after 4 more failed login attempts you'll have to "
+                         u"after 9 more failed login attempts you'll have to "
                          u"wait 30 minutes before trying again.")
 
     def test_user_updates_email(self):
@@ -381,7 +381,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.data['detail'],
                          u"Invalid username/password. For security reasons, "
-                         u"after 4 more failed login attempts you'll have to "
+                         u"after 9 more failed login attempts you'll have to "
                          u"wait 30 minutes before trying again.")
         self.assertEqual(cache.get('login_attempts-bob'), 1)
 
@@ -390,7 +390,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.data['detail'],
                          u"Invalid username/password. For security reasons, "
-                         u"after 3 more failed login attempts you'll have to "
+                         u"after 8 more failed login attempts you'll have to "
                          u"wait 30 minutes before trying again.")
         self.assertEqual(cache.get('login_attempts-bob'), 2)
 
@@ -405,14 +405,14 @@ class TestConnectViewSet(TestAbstractViewSet):
         auth = DigestAuth('bob', 'bob')
         request = self._get_request_session_with_auth(view, auth)
         self.assertFalse(send_account_lockout_email.called)
-        cache.set('login_attempts-bob', 4)
+        cache.set('login_attempts-bob', 9)
         self.assertIsNone(cache.get('lockout_user-bob'))
         response = view(request)
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.data['detail'],
                          u"Locked out. Too many wrong username/password "
                          u"attempts. Try again in 30 minutes.")
-        self.assertEqual(cache.get('login_attempts-bob'), 5)
+        self.assertEqual(cache.get('login_attempts-bob'), 10)
         self.assertIsNotNone(cache.get('lockout_user-bob'))
         lockout = datetime.strptime(
             cache.get('lockout_user-bob'), '%Y-%m-%dT%H:%M:%S')

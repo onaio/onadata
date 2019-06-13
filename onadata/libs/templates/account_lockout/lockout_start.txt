@@ -6,7 +6,7 @@ You have been locked out from your Ona account because you have entered too many
 
 Please wait for {{ lockout_time }} minutes before trying to access your account again.
 
-If this was not you, you can reach out to our support team for help, support@ona.io.
+If this was not you, you can reach out to our support team for help, {{ support_email }}.
 
 Thank you for choosing Ona!
 

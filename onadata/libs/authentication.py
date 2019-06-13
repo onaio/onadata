@@ -88,7 +88,7 @@ class DigestAuthentication(BaseAuthentication):
             else:
                 attempts = login_attempts(request)
                 remaining_attempts = \
-                    getattr(settings, 'MAX_LOGIN_ATTEMPTS', 5) - attempts
+                    getattr(settings, 'MAX_LOGIN_ATTEMPTS', 10) - attempts
                 raise AuthenticationFailed(
                     _("Invalid username/password. "
                       "For security reasons, after {} more failed "
@@ -237,7 +237,7 @@ def login_attempts(request):
     if attempts:
         cache.incr('{}{}'.format(LOGIN_ATTEMPTS, username))
         attempts = cache.get('{}{}'.format(LOGIN_ATTEMPTS, username))
-        if attempts >= getattr(settings, 'MAX_LOGIN_ATTEMPTS', 5):
+        if attempts >= getattr(settings, 'MAX_LOGIN_ATTEMPTS', 10):
             send_lockout_email(username)
             cache.set(
                 '{}{}'.format(LOCKOUT_USER, username),

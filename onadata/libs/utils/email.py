@@ -52,7 +52,8 @@ def get_account_lockout_email_data(username, end=False):
         message_path = 'account_lockout/lockout_end.txt'
     ctx_dict = {
         'username': username,
-        'lockout_time': getattr(settings, 'LOCKOUT_TIME', 1800) / 60
+        'lockout_time': getattr(settings, 'LOCKOUT_TIME', 1800) / 60,
+        'support_email': getattr(settings, 'SUPPORT_EMAIL', 'support@ona.io')
     }
 
     email_data = {
