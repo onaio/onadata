@@ -65,8 +65,3 @@ MIDDLEWARE_CLASSES = (
 )
 
 VERIFIED_KEY_TEXT = 'ALREADY_ACTIVATED'
-
-# Time in minutes to lock out user from account
-LOCKOUT_TIME = 30 * 60
-MAX_LOGIN_ATTEMPTS = 10
-SUPPORT_EMAIL = "support@ona.io"
