@@ -8,7 +8,6 @@ from datetime import datetime
 import jwt
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.cache import cache
 from django.core.signing import BadSignature
 from django.db import DataError
 from django.shortcuts import get_object_or_404
@@ -25,7 +24,8 @@ from rest_framework.exceptions import AuthenticationFailed
 
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.tasks import send_account_lockout_email
-from onadata.libs.utils.cache_tools import LOCKOUT_USER, LOGIN_ATTEMPTS
+from onadata.libs.utils.cache_tools import (
+    LOCKOUT_USER, LOGIN_ATTEMPTS, cache)
 from onadata.libs.utils.common_tags import API_TOKEN
 from onadata.libs.utils.email import get_account_lockout_email_data
 
