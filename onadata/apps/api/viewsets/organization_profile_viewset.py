@@ -1,5 +1,6 @@
 import json
 from django.conf import settings
+from django.utils.module_loading import import_string
 
 from rest_framework import status
 from rest_framework.viewsets import ModelViewSet
@@ -9,7 +10,7 @@ from rest_framework.response import Response
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 
 from onadata.apps.api import permissions
-from onadata.apps.api.tools import get_baseviewset_class, load_class
+from onadata.apps.api.tools import get_baseviewset_class
 from onadata.libs.utils.common_tools import merge_dicts
 from onadata.libs.filters import (OrganizationPermissionFilter,
                                   OrganizationsSharedWithUserFilter)
@@ -29,7 +30,7 @@ BaseViewset = get_baseviewset_class()
 
 def serializer_from_settings():
     if settings.ORG_PROFILE_SERIALIZER:
-        return load_class(settings.ORG_PROFILE_SERIALIZER)
+        return import_string(settings.ORG_PROFILE_SERIALIZER)
 
     return OrganizationSerializer
 
