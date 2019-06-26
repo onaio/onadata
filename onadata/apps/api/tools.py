@@ -2,7 +2,6 @@
 """
 API util functions.
 """
-import importlib
 import os
 import tempfile
 from datetime import datetime
