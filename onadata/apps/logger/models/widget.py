@@ -20,7 +20,7 @@ from onadata.libs.utils.chart_tools import (DATA_TYPE_MAP,
                                             get_field_label)
 from onadata.libs.utils.common_tags import (NUMERIC_LIST, SELECT_ONE,
                                             SUBMISSION_TIME)
-from onadata.libs.utils.model_tools import generate_uuid_for_form
+from onadata.libs.utils.common_tools import get_uuid
 
 
 class Widget(OrderedModel):
@@ -60,7 +60,7 @@ class Widget(OrderedModel):
     def save(self, *args, **kwargs):
 
         if not self.key:
-            self.key = generate_uuid_for_form()
+            self.key = get_uuid()
 
         super(Widget, self).save(*args, **kwargs)
 

@@ -2,14 +2,7 @@
 """
 Model utility functions.
 """
-import uuid
-
-
-def generate_uuid_for_form():
-    """
-    Returns the UUID4 hex value.
-    """
-    return uuid.uuid4().hex
+from onadata.libs.utils.common_tools import get_uuid
 
 
 def set_uuid(obj):
@@ -17,7 +10,7 @@ def set_uuid(obj):
     Only give an object a new UUID if it does not have one.
     """
     if not obj.uuid:
-        obj.uuid = generate_uuid_for_form()
+        obj.uuid = get_uuid()
 
 
 def queryset_iterator(queryset, chunksize=100):
