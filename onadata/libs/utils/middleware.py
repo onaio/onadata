@@ -2,11 +2,13 @@ import logging
 import traceback
 
 from django.db import connection
+from django.db import OperationalError
 from django.http import HttpResponseNotAllowed
 from django.template import loader
 from django.middleware.locale import LocaleMiddleware
 from django.utils.translation import ugettext as _
 from django.utils.translation.trans_real import parse_accept_lang_header
+from multidb.pinning import use_master
 
 
 class ExceptionLoggingMiddleware(object):
@@ -63,4 +65,35 @@ class SqlLogging(object):
                 print("\033[1;31m[%s]\033[0m \033[1m%s\033[0m" % (
                     query['time'], " ".join(query['sql'].split())))
 
+        return response
+
+
+class OperationalErrorExceptionMiddleware(object):
+    """
+    Captures requests returning 500 status code.
+    Then retry it against master.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+        # One-time configuration and initialization on start-up
+
+    def __call__(self, request):
+        # Trigger view method call.
+        response = self.get_response(request)
+        # Return response to finish middleware sequence
+        return response
+
+    def process_exception(self, request, exception):
+        # Filter out OperationalError Exceptions
+        if isinstance(exception, OperationalError):
+            return self.handle_500(request, exception)
+        else:
+            return None
+
+    def handle_500(self, request, exception):
+        with use_master:
+            response = self.get_response(request)
+
+        # return the response object to the user.
         return response
