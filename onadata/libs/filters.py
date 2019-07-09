@@ -399,6 +399,19 @@ class AttachmentFilter(XFormPermissionFilterMixin,
         return queryset
 
 
+class ImageAttachmentFilter(filters.BaseFilterBackend):
+
+    def filter_queryset(self, request, queryset, view):
+        image_set = ["image/png", "image/jpeg", "image/jpg"]
+        mimetype = request.query_params.get('type')
+
+        # return instances with image specific attachments.
+        if mimetype == "image":
+            queryset = queryset.filter(mimetype__in=image_set)
+
+        return queryset
+
+
 class TeamOrgFilter(filters.BaseFilterBackend):
 
     def filter_queryset(self, request, queryset, view):
