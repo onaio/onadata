@@ -294,7 +294,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                     # do not update this timestamp when the record have
                     # already been deleted.
                     deleted_at__isnull=True
-                ).update(deleted_at=timezone.now())
+                ).update(
+                    deleted_at=timezone.now(), deleted_by=request.user)
                 # updates the num_of_submissions for the form.
                 after_count = self.object.submission_count(force_update=True)
                 number_of_records_deleted = initial_count - after_count
