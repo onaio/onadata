@@ -105,6 +105,8 @@ class FormIsMergedDatasetError(Exception):
 def numeric_checker(string_value):
     if string_value.isdigit():
         return int(string_value)
+    elif string_value.startswith('-') and string_value[1:].isdigit():
+        return int(string_value)
     else:
         try:
             value = float(string_value)
