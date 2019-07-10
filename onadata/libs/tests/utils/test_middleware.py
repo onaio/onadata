@@ -1,13 +1,22 @@
-from django.test import RequestFactory
 from unittest.mock import MagicMock
+
+from django.conf.urls import url
 from django.db import OperationalError
-from django.test import override_settings, TestCase
+from django.http import HttpResponse
+from django.test import RequestFactory, TestCase
 
-from .views import normal_view
-from onadata.libs.utils.middleware import OperationalErrorExceptionMiddleware
+from onadata.libs.utils.middleware import OperationalErrorMiddleware
 
-@override_settings(
-    ROOT_URLCONF='onadata.libs.tests.utils.middleware_exceptions.views')
+
+def normal_view(request):
+    return HttpResponse('OK')
+
+
+urlpatterns = [
+    url('middleware_exceptions/view/', normal_view, name='normal'),
+]
+
+
 class MiddlewareTestCase(TestCase):
 
     def test_view_raise_OperationalError_exception(self):
@@ -15,16 +24,16 @@ class MiddlewareTestCase(TestCase):
         Tests that the request raises an Operational Error.
         This test proves that the middleware class is able to
         intercept the exceptions raised and retry making the request
-        This occurs in the case that the exception 
-        is an OperationalError Exception.
         """
 
-        get_response_mock = MagicMock(return_value=MagicMock(status_code=200, content='ok'))
+        get_response_mock = MagicMock(
+            return_value=MagicMock(status_code=200, content='ok'))
 
         request = MagicMock()
         request.session = {}
-        middleware = OperationalErrorExceptionMiddleware(get_response_mock)
-        response = middleware.process_exception(request, OperationalError())
+        middleware = OperationalErrorMiddleware(get_response_mock)
+        response = middleware.process_exception(request, OperationalError(
+            "canceling statement due to conflict with recovery"))
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(get_response_mock.call_count, 1)
