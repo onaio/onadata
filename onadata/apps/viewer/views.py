@@ -4,7 +4,6 @@ data views.
 """
 import json
 import os
-import uuid
 from datetime import datetime
 from tempfile import NamedTemporaryFile
 from time import strftime, strptime
@@ -52,6 +51,7 @@ from onadata.libs.utils.user_auth import (get_xform_and_perms, has_permission,
                                           helper_auth_helper)
 from onadata.libs.utils.viewer_tools import (
     create_attachments_zipfile, export_def_from_filename, get_form)
+from onadata.libs.utils.common_tools import get_uuid
 
 
 def _get_start_end_submission_time(request):
@@ -244,7 +244,7 @@ def add_submission_with(request, username, id_string):
         'form_id': id_string,
         'server_url': openrosa_url,
         'instance': instance_xml,
-        'instance_id': uuid.uuid4().hex
+        'instance_id': get_uuid()
     }
 
     response = requests.post(
