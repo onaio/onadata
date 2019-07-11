@@ -1,5 +1,5 @@
-import importlib
 from django.conf import settings
+from django.utils.module_loading import import_string
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 
@@ -20,26 +20,13 @@ from onadata.apps.api.tools import get_baseviewset_class
 BaseViewset = get_baseviewset_class()
 
 
-def load_class(full_class_string):
-    """
-    Dynamically load a class from a string
-    """
-
-    class_data = full_class_string.split(".")
-    module_path = ".".join(class_data[:-1])
-    class_str = class_data[-1]
-    module = importlib.import_module(module_path)
-
-    return getattr(module, class_str)
-
-
 def get_serializer_class(name):
     services_to_serializers = getattr(settings,
                                       'REST_SERVICES_TO_SERIALIZERS', {})
     serializer_class = services_to_serializers.get(name)
 
     if serializer_class:
-        return load_class(serializer_class)
+        return import_string(serializer_class)
 
     if name == TEXTIT:
         return TextItSerializer

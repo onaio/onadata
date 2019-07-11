@@ -15,6 +15,7 @@ from django.db.models import Count
 from django.http import HttpResponseRedirect, HttpResponseBadRequest
 from django.utils.translation import ugettext as _
 from django.utils import timezone
+from django.utils.module_loading import import_string
 
 from registration.models import RegistrationProfile
 from rest_framework import serializers, status
@@ -27,7 +28,7 @@ from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.api.tasks import send_verification_email
 from onadata.apps.api.permissions import UserProfilePermissions
-from onadata.apps.api.tools import get_baseviewset_class, load_class
+from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.models import UserProfile
 from onadata.libs.utils.email import (get_verification_email_data,
@@ -84,7 +85,7 @@ def serializer_from_settings():
     default to UserProfileSerializer.
     """
     if settings.PROFILE_SERIALIZER:
-        return load_class(settings.PROFILE_SERIALIZER)
+        return import_string(settings.PROFILE_SERIALIZER)
 
     return UserProfileSerializer
 

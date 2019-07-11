@@ -4,7 +4,7 @@ Messaging notification base module.
 """
 from __future__ import unicode_literals
 
-from importlib import import_module
+from django.utils.module_loading import import_string
 
 from actstream.models import Action
 
@@ -18,10 +18,7 @@ def call_backend(backend, instance_id, backend_options=None):
     except Action.DoesNotExist:
         pass
     else:
-        backend_module = '.'.join(backend.split('.')[:-1])
-        backend_class = backend.split('.')[-1:].pop()
-        backend_module = import_module(backend_module)
-        backend_class = getattr(backend_module, backend_class)
+        backend_class = import_string(backend)
         backend_class(options=backend_options).send(instance)
 
 
