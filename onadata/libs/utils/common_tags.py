@@ -90,6 +90,13 @@ OWNER_TEAM_NAME = "Owners"
 
 API_TOKEN = 'api-token'
 KNOWN_MEDIA_TYPES = ['photo', 'image', 'audio', 'video']
+MEDIA_IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg"]
+MEDIA_VIDEO_TYPES = ["video/mp4"]
+MEDIA_AUDIO_TYPES = ["audio/mp3", "audio/mp4"]
+MEDIA_FILE_TYPES = [
+    "application/pdf", "text/plain",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"]
 NUMERIC_LIST = ['integer', 'decimal', 'calculate']
 SELECT_ONE = 'select one'
 

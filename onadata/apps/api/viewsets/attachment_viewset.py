@@ -44,7 +44,7 @@ class AttachmentViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
     List attachments of viewsets.
     """
     content_negotiation_class = MediaFileContentNegotiation
-    filter_backends = (filters.AttachmentFilter, filters.ImageAttachmentFilter)
+    filter_backends = (filters.AttachmentFilter, filters.AttachmentTypeFilter)
     lookup_field = 'pk'
     queryset = Attachment.objects.filter(instance__deleted_at__isnull=True)
     permission_classes = (AttachmentObjectPermissions,)
