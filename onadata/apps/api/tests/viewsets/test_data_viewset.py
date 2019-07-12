@@ -1353,10 +1353,14 @@ class TestDataViewSet(TestBase):
         self._make_submissions()
         formid = self.xform.pk
         dataid = self.xform.instances.all().order_by('id')[0].pk
+        xform_instances = self.xform.instances.filter(xform_id=formid)
         view = DataViewSet.as_view({
             'delete': 'destroy',
             'get': 'list'
         })
+        # get the first xform instance returned
+        xform_instances[0]
+        self.assertEqual(xform_instances[0].deleted_by, None)
 
         # 4 submissions
         request = self.factory.get('/', **self.extra)
@@ -1366,6 +1370,7 @@ class TestDataViewSet(TestBase):
         request = self.factory.delete('/', **self.extra)
         response = view(request, pk=formid, dataid=dataid)
         self.assertEqual(response.status_code, 204)
+        self.assertEqual(xform_instances[0].deleted_by, request.user)
 
         # second delete of same submission should return 404
         request = self.factory.delete('/', **self.extra)
