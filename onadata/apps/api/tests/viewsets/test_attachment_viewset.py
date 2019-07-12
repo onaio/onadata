@@ -318,7 +318,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self.assertEqual(response.data[0]["mimetype"], 'video/mp4')
 
         # Apply file filter
-        data['type'] = 'file'
+        data['type'] = 'document'
         request = self.factory.get('/', data, **self.extra)
         response = self.list_view(request)
         self.assertNotEqual(response.get('Cache-Control'), None)

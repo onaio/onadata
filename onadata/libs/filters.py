@@ -11,8 +11,7 @@ from rest_framework import filters
 from onadata.apps.api.models import OrganizationProfile, Team
 from onadata.apps.logger.models import Instance, Project, XForm
 from onadata.libs.utils.numeric import int_or_parse_error
-from onadata.libs.utils.common_tags import \
-    MEDIA_IMAGE_TYPES, MEDIA_VIDEO_TYPES, MEDIA_AUDIO_TYPES, MEDIA_FILE_TYPES
+from onadata.libs.utils.common_tags import MEDIA_FILE_TYPES
 
 
 class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
@@ -406,15 +405,10 @@ class AttachmentTypeFilter(filters.BaseFilterBackend):
     def filter_queryset(self, request, queryset, view):
         attachment_type = request.query_params.get('type')
 
-        # return instances with image specific attachments.
-        if attachment_type == "image":
-            queryset = queryset.filter(mimetype__in=MEDIA_IMAGE_TYPES)
-        elif attachment_type == "audio":
-            queryset = queryset.filter(mimetype__in=MEDIA_AUDIO_TYPES)
-        elif attachment_type == "video":
-            queryset = queryset.filter(mimetype__in=MEDIA_VIDEO_TYPES)
-        elif attachment_type == "file":
-            queryset = queryset.filter(mimetype__in=MEDIA_FILE_TYPES)
+        mime_types = MEDIA_FILE_TYPES.get(attachment_type)
+
+        if mime_types:
+            queryset = queryset.filter(mimetype__in=mime_types)
 
         return queryset
 
