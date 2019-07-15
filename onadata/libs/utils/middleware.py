@@ -1,12 +1,23 @@
 import logging
 import traceback
 
+from django.conf import settings
 from django.db import connection
+from django.db import OperationalError
 from django.http import HttpResponseNotAllowed
 from django.template import loader
 from django.middleware.locale import LocaleMiddleware
 from django.utils.translation import ugettext as _
 from django.utils.translation.trans_real import parse_accept_lang_header
+from multidb.pinning import use_master
+
+
+class BaseMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        return self.get_response(request)
 
 
 class ExceptionLoggingMiddleware(object):
@@ -64,3 +75,22 @@ class SqlLogging(object):
                     query['time'], " ".join(query['sql'].split())))
 
         return response
+
+
+class OperationalErrorMiddleware(BaseMiddleware):
+    """
+    Captures requests returning 500 status code.
+    Then retry it against master database.
+    """
+    def process_exception(self, request, exception):
+        # Filter out OperationalError Exceptions
+        if isinstance(exception, OperationalError):
+            already_raised = getattr(settings, "ALREADY_RAISED", False)
+            message = "canceling statement due to conflict with recovery"
+            if message in str(exception):
+                if not already_raised:
+                    settings.ALREADY_RAISED = True
+                    with use_master:
+                        response = self.get_response(request)
+                        return response
+                settings.ALREADY_RAISED = False
