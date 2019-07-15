@@ -1,6 +1,28 @@
 Changelog for Onadata
 =====================
 
+2.0.5 (2019-07-15)
+-------------------
+- Replace load_class with Django's import_string function
+  `PR #1636 <https://github.com/onaio/onadata/issues/1636>`_
+  [@p-netm]
+
+- Set deleted_by user on submission deletions.
+  `PR #1640 <https://github.com/onaio/onadata/issues/1640>`_
+  [@WinnyTroy]
+
+- Handle OperationalError exceptions due to canceling statement due to conflicts
+  `PR #906 <https://github.com/onaio/onadata/issues/906>`_
+  [@WinnyTroy]
+
+- Prevent KeyError exceptions on missing labels for SPSS exports
+  `PR #1629 <https://github.com/onaio/onadata/issues/1629>`_
+  [@WinnyTroy]
+
+- Add attachment type filter on attachments endpoint
+  `PR #1644 <https://github.com/onaio/onadata/issues/1644>`_
+  [@WinnyTroy]
+
 2.0.4 (2019-06-13)
 -------------------
 - Only convert to string sav_writer values.
