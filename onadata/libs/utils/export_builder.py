@@ -1015,7 +1015,8 @@ class ExportBuilder(object):
                                 if (float(name) > int(name)) else int(name)
                         except ValueError:
                             pass
-                    label = self.get_choice_label_from_dict(choice['label'])
+                    label = self.get_choice_label_from_dict(
+                        choice.get("label", ""))
                     _value_labels[name] = label.strip()
             sav_value_labels[var_name or q['name']] = _value_labels
 
