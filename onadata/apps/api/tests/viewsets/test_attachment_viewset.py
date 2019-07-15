@@ -248,6 +248,86 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.get('Cache-Control'), None)
 
+    def test_list_view_filter_by_attachment_type(self):
+        self._submit_transport_instance_w_attachment()
+        filename = "1335783522564.JPG"
+        path = os.path.join(self.main_directory, 'fixtures', 'transportation',
+                            'instances', self.surveys[0], filename)
+        media_file = django_file(path, 'video2', 'image/jpeg')
+        Attachment.objects.create(
+            instance=self.xform.instances.first(),
+            mimetype='video/mp4',
+            extension='MP4',
+            name=filename,
+            media_file=media_file)
+
+        Attachment.objects.create(
+            instance=self.xform.instances.first(),
+            mimetype='application/pdf',
+            extension='PDF',
+            name=filename,
+            media_file=media_file)
+        Attachment.objects.create(
+            instance=self.xform.instances.first(),
+            mimetype='text/plain',
+            extension='TXT',
+            name=filename,
+            media_file=media_file)
+        Attachment.objects.create(
+            instance=self.xform.instances.first(),
+            mimetype='audio/mp3',
+            extension='MP3',
+            name=filename,
+            media_file=media_file)
+        data = {}
+        request = self.factory.get('/', data, **self.extra)
+        response = self.list_view(request)
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(isinstance(response.data, list))
+        self.assertEqual(len(response.data), 5)
+
+        # Apply image Filter
+        data['type'] = 'image'
+        request = self.factory.get('/', data, **self.extra)
+        response = self.list_view(request)
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(isinstance(response.data, list))
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["mimetype"], 'image/jpeg')
+
+        # Apply audio filter
+        data['type'] = 'audio'
+        request = self.factory.get('/', data, **self.extra)
+        response = self.list_view(request)
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(isinstance(response.data, list))
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["mimetype"], 'audio/mp3')
+
+        # Apply video filter
+        data['type'] = 'video'
+        request = self.factory.get('/', data, **self.extra)
+        response = self.list_view(request)
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(isinstance(response.data, list))
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["mimetype"], 'video/mp4')
+
+        # Apply file filter
+        data['type'] = 'document'
+        request = self.factory.get('/', data, **self.extra)
+        response = self.list_view(request)
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(isinstance(response.data, list))
+        self.assertEqual(len(response.data), 2)
+        self.assertEqual(response.data[0]["mimetype"], 'application/pdf')
+        self.assertEqual(response.data[1]["mimetype"], 'text/plain')
+
     def test_direct_image_link(self):
         self._submit_transport_instance_w_attachment()
 

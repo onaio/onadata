@@ -11,6 +11,7 @@ from rest_framework import filters
 from onadata.apps.api.models import OrganizationProfile, Team
 from onadata.apps.logger.models import Instance, Project, XForm
 from onadata.libs.utils.numeric import int_or_parse_error
+from onadata.libs.utils.common_tags import MEDIA_FILE_TYPES
 
 
 class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
@@ -395,6 +396,19 @@ class AttachmentFilter(XFormPermissionFilterMixin,
                                u"Invalid value for instance %s.")
             instance = get_object_or_404(Instance, pk=instance_id)
             queryset = queryset.filter(instance=instance)
+
+        return queryset
+
+
+class AttachmentTypeFilter(filters.BaseFilterBackend):
+
+    def filter_queryset(self, request, queryset, view):
+        attachment_type = request.query_params.get('type')
+
+        mime_types = MEDIA_FILE_TYPES.get(attachment_type)
+
+        if mime_types:
+            queryset = queryset.filter(mimetype__in=mime_types)
 
         return queryset
 
