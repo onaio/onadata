@@ -8,7 +8,8 @@ from mock import patch
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm, Instance, SubmissionReview
-from onadata.apps.logger.models.instance import get_id_string_from_xml_str
+from onadata.apps.logger.models.instance import (
+    get_id_string_from_xml_str, numeric_checker)
 from onadata.apps.viewer.models.parsed_instance import (
     ParsedInstance, query_data)
 from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMISSION_TIME,\
@@ -263,3 +264,29 @@ class TestInstance(TestBase):
         self.assertEqual(SubmissionReview.APPROVED, status)
         self.assertEqual("Hey There", comment)
         self.assertTrue(instance.has_a_review)
+
+    def test_numeric_checker_with_negative_integer_values(self):
+        # Evaluate negative integer values
+        string_value = "-16"
+        result = numeric_checker(string_value)
+        self.assertEqual(result, -16)
+
+        # Evaluate un-signed integer values
+        string_value = "16"
+        result = numeric_checker(string_value)
+        self.assertEqual(result, 16)
+
+        # Evaluate float values
+        string_value = "36.23"
+        result = numeric_checker(string_value)
+        self.assertEqual(result, 36.23)
+
+        # Evaluate nan values
+        string_value = float('NaN')
+        result = numeric_checker(string_value)
+        self.assertEqual(result, 0)
+
+        # Evaluate non-string values
+        string_value = "Hello World"
+        result = numeric_checker(string_value)
+        self.assertEqual(result, "Hello World")

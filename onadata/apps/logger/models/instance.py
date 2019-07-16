@@ -103,17 +103,17 @@ class FormIsMergedDatasetError(Exception):
 
 
 def numeric_checker(string_value):
-    if string_value.isdigit():
+    try:
         return int(string_value)
-    else:
+    except ValueError:
         try:
             value = float(string_value)
-            if math.isnan(value):
-                value = 0
-            return value
         except ValueError:
             pass
+        else:
+            return 0 if math.isnan(value) else value
 
+    return string_value
 
 # need to establish id_string of the xform before we run get_dict since
 # we now rely on data dictionary to parse the xml
