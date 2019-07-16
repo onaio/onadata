@@ -275,3 +275,18 @@ class TestInstance(TestBase):
         string_value = "16"
         result = numeric_checker(string_value)
         self.assertEqual(result, 16)
+
+        # Evaluate float values
+        string_value = "36.23"
+        result = numeric_checker(string_value)
+        self.assertEqual(result, 36.23)
+
+        # Evaluate nan values
+        string_value = float('NaN')
+        result = numeric_checker(string_value)
+        self.assertEqual(result, 0)
+
+        # Evaluate non-string values
+        string_value = "Hello World"
+        result = numeric_checker(string_value)
+        self.assertEqual(result, "Hello World")
