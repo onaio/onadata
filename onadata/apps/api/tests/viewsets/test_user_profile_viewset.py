@@ -5,6 +5,7 @@ from builtins import str
 from future.moves.urllib.parse import urlparse, parse_qs
 
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.db.models import signals
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
@@ -734,6 +735,9 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = view(request, user='bob')
         user = User.objects.get(username__iexact=self.user.username)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data,
+            "Invalid password. You have 9 attempts left.")
         self.assertFalse(user.check_password(new_password))
 
     def test_profile_create_with_name(self):
@@ -1151,3 +1155,53 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEquals(response.status_code, 200)
         self.assertFalse(self.xform.shared)
         self.assertEquals(response.data, {'private': count})
+
+    def test_change_password_attempts(self):
+        view = UserProfileViewSet.as_view(
+            {'post': 'change_password'})
+
+        # clear cache
+        cache.delete('change_password_attempts-bob')
+        cache.delete('lockout_change_password_user-bob')
+        self.assertIsNone(cache.get('change_password_attempts-bob'))
+        self.assertIsNone(cache.get('lockout_change_password_user-bob'))
+
+        # first attempt
+        current_password = "wrong_pass"
+        new_password = "bobbob1"
+        post_data = {'current_password': current_password,
+                     'new_password': new_password}
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request, user='bob')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data,
+                         "Invalid password."
+                         u" You have 9 attempts left.")
+        self.assertEqual(cache.get('change_password_attempts-bob'), 1)
+
+        # second attempt
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request, user='bob')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data,
+                         "Invalid password. You have 8 attempts left.")
+        self.assertEqual(cache.get('change_password_attempts-bob'), 2)
+
+        # check user is locked out
+        request = self.factory.post('/', data=post_data, **self.extra)
+        cache.set('change_password_attempts-bob', 9)
+        self.assertIsNone(cache.get('lockout_change_password_user-bob'))
+        response = view(request, user='bob')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data,
+                         "Too many password reset attempts,"
+                         u" Try again in 30 minutes")
+        self.assertEqual(cache.get('change_password_attempts-bob'), 10)
+        self.assertIsNotNone(cache.get('lockout_change_password_user-bob'))
+        lockout = datetime.datetime.strptime(
+            cache.get('lockout_change_password_user-bob'), '%Y-%m-%dT%H:%M:%S')
+        self.assertIsInstance(lockout, datetime.datetime)
+
+        # clear cache
+        cache.delete('change_password_attempts-bob')
+        cache.delete('lockout_change_password_user-bob')

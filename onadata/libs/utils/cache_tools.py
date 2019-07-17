@@ -28,6 +28,8 @@ PROJECT_LINKED_DATAVIEWS = "ps-project-linked_dataviews"
 # cache login attempts
 LOCKOUT_USER = "lockout_user-"
 LOGIN_ATTEMPTS = "login_attempts-"
+LOCKOUT_CHANGE_PASSWORD_USER = 'lockout_change_password_user-'
+CHANGE_PASSWORD_ATTEMPTS = 'change_password_attempts-'
 
 
 def safe_delete(key):
