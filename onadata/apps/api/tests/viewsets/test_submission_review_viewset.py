@@ -351,3 +351,23 @@ class TestSubmissionReviewViewSet(TestBase):
         self.assertEqual(200, response.status_code)
         self.assertEqual(1, len(response.data))
         self.assertEqual(review_two_data['id'], response.data[0]['id'])
+
+    def test_bulk_create_approved_review_missiong_note(self):
+        """
+        Test that we can bulk create approved submission reviews without a note
+        """
+        instances = self.xform.instances.all()
+        submission_data = [
+            {
+                'instance': _.id,
+                'status': SubmissionReview.APPROVED
+            } for _ in instances
+        ]
+        view = SubmissionReviewViewSet.as_view({'post': 'create'})
+
+        self.extra['format'] = 'json'
+
+        request = self.factory.post('/', data=submission_data, **self.extra)
+        response = view(request=request)
+        self.assertEqual(201, response.status_code)
+        self.assertEqual(4, len(response.data))

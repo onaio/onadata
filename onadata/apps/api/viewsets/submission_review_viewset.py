@@ -14,9 +14,9 @@ from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import SubmissionReview
 from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
+from onadata.libs.mixins.bulk_create_mixin import BulkCreateMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
-from onadata.libs.mixins.bulk_create_mixin import BulkCreateMixin
 from onadata.libs.serializers.submission_review_serializer import \
     SubmissionReviewSerializer
 
@@ -45,3 +45,18 @@ class SubmissionReviewViewSet(AuthenticateHeaderMixin, CacheControlMixin,
         obj.set_deleted(user=user)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def create(self, request, *args, **kwargs):
+        """
+        Custom create method. Handle bulk create
+        """
+
+        if isinstance(request.data, list):
+            serializer = self.get_serializer(data=request.data, many=True)
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED,
+                            headers=headers)
+        return super(SubmissionReviewViewSet, self).create(
+            request, *args, **kwargs)
