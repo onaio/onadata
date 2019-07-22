@@ -108,16 +108,15 @@ class TestSubmissionReviewSerializer(TestBase):
         self.assertNotEqual(old_note_text, new_review.note_text)
 
     def test_approved_and_pending_status_allows_blank_in_note(self):
-        self._publish_transportation_form_and_submit_instance()
+        self._publish_transportation_form()
+        self._make_submissions()
 
         instance = Instance.objects.first()
 
         data = {
             "instance": instance.id,
-            "note": "",
             "status": SubmissionReview.APPROVED
         }
-
         serializer_instance = SubmissionReviewSerializer(data=data)
         self.assertTrue(serializer_instance.is_valid())
         data = {
@@ -139,3 +138,17 @@ class TestSubmissionReviewSerializer(TestBase):
 
             no_comment_error_detail = no_comment.exception.detail['note']
             self.assertEqual(COMMENT_REQUIRED, no_comment_error_detail)
+
+        # bulk creation of approved submissions without comments
+        list_data = [{
+            "instance": instance.id,
+            "status": SubmissionReview.APPROVED
+        },
+            {
+                "instance": instance.id + 1,
+                "status": SubmissionReview.APPROVED
+            }
+        ]
+        serializer_instance = SubmissionReviewSerializer(
+            data=list_data, many=True)
+        self.assertTrue(serializer_instance.is_valid())
