@@ -22,6 +22,7 @@ from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.serializers.project_serializer import ProjectSerializer
+from onadata.libs.utils.cache_tools import safe_key
 
 
 class TestConnectViewSet(TestAbstractViewSet):
@@ -369,10 +370,10 @@ class TestConnectViewSet(TestAbstractViewSet):
             authentication_classes=(DigestAuthentication,))
         auth = DigestAuth('bob', 'bob')
         # clear cache
-        cache.delete('login_attempts-bob')
-        cache.delete('lockout_user-bob')
-        self.assertIsNone(cache.get('login_attempts-bob'))
-        self.assertIsNone(cache.get('lockout_user-bob'))
+        cache.delete(safe_key("login_attempts-bob"))
+        cache.delete(safe_key("lockout_user-bob"))
+        self.assertIsNone(cache.get(safe_key('login_attempts-bob')))
+        self.assertIsNone(cache.get(safe_key('lockout_user-bob')))
 
         request = self._get_request_session_with_auth(view, auth)
 
@@ -383,7 +384,7 @@ class TestConnectViewSet(TestAbstractViewSet):
                          u"Invalid username/password. For security reasons, "
                          u"after 9 more failed login attempts you'll have to "
                          u"wait 30 minutes before trying again.")
-        self.assertEqual(cache.get('login_attempts-bob'), 1)
+        self.assertEqual(cache.get(safe_key('login_attempts-bob')), 1)
 
         # cache value increments with subsequent attempts
         response = view(request)
@@ -392,30 +393,30 @@ class TestConnectViewSet(TestAbstractViewSet):
                          u"Invalid username/password. For security reasons, "
                          u"after 8 more failed login attempts you'll have to "
                          u"wait 30 minutes before trying again.")
-        self.assertEqual(cache.get('login_attempts-bob'), 2)
+        self.assertEqual(cache.get(safe_key('login_attempts-bob')), 2)
 
         # login_attempts doesn't increase with correct login
         auth = DigestAuth('bob', 'bobbob')
         request = self._get_request_session_with_auth(view, auth)
         response = view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(cache.get('login_attempts-bob'), 2)
+        self.assertEqual(cache.get(safe_key('login_attempts-bob')), 2)
 
         # lockout_user cache created upon fifth attempt
         auth = DigestAuth('bob', 'bob')
         request = self._get_request_session_with_auth(view, auth)
         self.assertFalse(send_account_lockout_email.called)
-        cache.set('login_attempts-bob', 9)
-        self.assertIsNone(cache.get('lockout_user-bob'))
+        cache.set(safe_key('login_attempts-bob'), 9)
+        self.assertIsNone(cache.get(safe_key('lockout_user-bob')))
         response = view(request)
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.data['detail'],
                          u"Locked out. Too many wrong username/password "
                          u"attempts. Try again in 30 minutes.")
-        self.assertEqual(cache.get('login_attempts-bob'), 10)
-        self.assertIsNotNone(cache.get('lockout_user-bob'))
+        self.assertEqual(cache.get(safe_key('login_attempts-bob')), 10)
+        self.assertIsNotNone(cache.get(safe_key('lockout_user-bob')))
         lockout = datetime.strptime(
-            cache.get('lockout_user-bob'), '%Y-%m-%dT%H:%M:%S')
+            cache.get(safe_key('lockout_user-bob')), '%Y-%m-%dT%H:%M:%S')
         self.assertIsInstance(lockout, datetime)
 
         # email sent upon limit being reached with right arguments
@@ -436,5 +437,5 @@ class TestConnectViewSet(TestAbstractViewSet):
                          u"Locked out. Too many wrong username/password "
                          u"attempts. Try again in 30 minutes.")
         # clear cache
-        cache.delete('login_attempts-bob')
-        cache.delete('lockout_user-bob')
+        cache.delete(safe_key("login_attempts-bob"))
+        cache.delete(safe_key("lockout_user-bob"))
