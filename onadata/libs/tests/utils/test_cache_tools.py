@@ -11,7 +11,7 @@ class TestCacheTools(TestCase):
     """Test onadata.libs.utils.cache_tools module class"""
 
     def test_safe_key(self):
-        """Test safe_key() functions returns a valid key"""
-        self.assertEqual(safe_key("hello_world"), "hello_world")
-        self.assertEqual(safe_key("hello world"), "hello-world")
-        self.assertEqual(safe_key("hello@world"), "hello@world")
+        """Test safe_key() function returns a hashed key"""
+        self.assertEqual(
+            safe_key("hello world"),
+            "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9")

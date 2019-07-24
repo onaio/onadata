@@ -1,6 +1,7 @@
-import re
+import hashlib
 
 from django.core.cache import cache
+from django.utils.encoding import force_bytes
 
 # Cache names used in project serializer
 PROJ_PERM_CACHE = "ps-project_permissions-"
@@ -31,13 +32,10 @@ LOGIN_ATTEMPTS = "login_attempts-"
 
 
 def safe_delete(key):
-    cache.get(key) and cache.delete(key)
+    """Safely deletes a given key from the cache."""
+    _ = cache.get(key) and cache.delete(key)
 
 
 def safe_key(key):
-    """Return a valid cache key"""
-    valid_key_chars_re = re.compile("[\x21-\x7e\x80-\xff]+$")
-    if not valid_key_chars_re.match(key):
-        return safe_key(key.replace(" ", "-"))
-
-    return key
+    """Return a hashed key."""
+    return hashlib.sha256(force_bytes(key)).hexdigest()
