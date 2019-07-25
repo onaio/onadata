@@ -1,11 +1,12 @@
-from unittest import TestCase
+from onadata.apps.main.tests.test_base import TestBase
 
 from dict2xml import dict2xml
-from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
+from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict,\
+    merge_list_of_dicts
 from onadata.libs.utils.dict_tools import get_values_matching_key
 
 
-class TestDictTools(TestCase):
+class TestDictTools(TestBase):
     maxDiff = None
 
     def test_csv_repeat_field_to_dict(self):
@@ -429,3 +430,20 @@ class TestDictTools(TestCase):
                 u'-12.897489 30.27832 0 0'
             ]
         )
+
+    def test_merge_list_of_dicts(self):
+        list_of_dicts = [{'de2': 'True'}, {'de1': 'True'}, {'de3': 'True'}]
+
+        result = merge_list_of_dicts(list_of_dicts)
+        self.assertEqual(result, {'de2': 'True', 'de1': 'True', 'de3': 'True'})
+
+        # when provided with a list with other data types
+        list_of_dicts = ['de1 de2 de6', {'de1': 'True'}]
+
+        with self.assertRaises(AttributeError):
+            merge_list_of_dicts(list_of_dicts)
+
+        msg = "Expecting a dict, found: <class 'str'>"
+        self.assertRaisesMessage(
+            AttributeError,
+            msg, merge_list_of_dicts, list_of_dicts)
