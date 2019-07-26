@@ -84,18 +84,25 @@ class AttachmentViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
         return Response(serializer.data)
 
     def list(self, request, *args, **kwargs):
-        if request.user.is_anonymous:
-            xform = request.query_params.get('xform')
-            if xform:
-                xform = XForm.objects.get(id=xform)
-                if not xform.shared_data:
-                    raise Http404(_("Not Found"))
+        xform = request.query_params.get('xform')
+        if request.user.is_anonymous and xform:
+            xform = XForm.objects.get(id=xform)
+            if not xform.shared_data:
+                raise Http404(_("Not Found"))
 
         self.object_list = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(self.object_list)
         if page is not None:
-            serializer = self.get_serializer(page, many=True)
+            serializer = self.get_serializer(
+                page, many=True)
+            response = Response(serializer.data)
 
-            return Response(serializer.data)
+            if xform:
+                total_attachments = Attachment.objects.filter(
+                    instance__xform__user=xform
+                ).count()
+                response['total-num-of-attachments'] = total_attachments
+
+            return response
 
         return super(AttachmentViewSet, self).list(request, *args, **kwargs)
