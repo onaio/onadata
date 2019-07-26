@@ -379,5 +379,5 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         }
         request = self.factory.get('/', data, **self.extra)
         response = self.list_view(request)
-        self.assertTrue(response._headers, 'total-num-of-attachments')
+        self.assertIn('total-num-of-attachments', response._headers)
         self.assertEqual(response._headers['total-num-of-attachments'][1], '0')
