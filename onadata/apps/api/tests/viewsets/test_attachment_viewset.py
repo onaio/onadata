@@ -375,12 +375,10 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self.assertTrue(isinstance(response.data, basestring))
         self.assertEqual(response.data, attachment_url(self.attachment))
 
-    def test_total_number_of_attachments_in_response_header(self):
+    def test_total_count(self):
         self._submit_transport_instance_w_attachment()
-        data = {
-            'xform': self.xform.pk
-        }
-        request = self.factory.get('/', data, **self.extra)
-        response = self.list_view(request)
-        self.assertIn('total-num-of-attachments', response._headers)
-        self.assertEqual(response._headers['total-num-of-attachments'][1], '0')
+        xform_id = self.attachment.instance.xform.id
+        request = self.factory.get(
+            '/count', data={"xform": xform_id}, **self.extra)
+        response = self.count_view(request)
+        self.assertEqual(response.data['count'], 1)
