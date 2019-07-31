@@ -33,13 +33,10 @@ def get_verification_email_data(email, username, verification_url, request):
         'message_txt': 'registration/verification_email.txt'
     }
     for key, template_path in key_template_path_dict.items():
-        email_data.update({
-            key: render_to_string(
-                template_path,
-                ctx_dict,
-                request=request
-            )
-        })
+        # Email subject *must not* contain newlines
+        subject = render_to_string(template_path, ctx_dict, request=request)
+        subject = ''.join(subject.splitlines())
+        email_data.update({key: subject})
 
     return email_data
 
