@@ -28,6 +28,9 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self.list_view = AttachmentViewSet.as_view({
             'get': 'list'
         })
+        self.count_view = AttachmentViewSet.as_view({
+            'get': 'count'
+        })
 
         self._publish_xls_form_to_project()
 
