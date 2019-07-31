@@ -6,6 +6,7 @@ from django.core.files.storage import default_storage
 from django.conf import settings
 from rest_framework import renderers
 from rest_framework import viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
@@ -83,7 +84,9 @@ class AttachmentViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
 
         return Response(serializer.data)
 
-    def list(self, request, *args, **kwargs):
+    @action(methods=['GET'], detail=False)
+    def count(self, request, *args, **kwargs):
+        response = {}
         xform = request.query_params.get('xform')
         if request.user.is_anonymous and xform:
             xform = XForm.objects.get(id=xform)
