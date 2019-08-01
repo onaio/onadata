@@ -86,13 +86,11 @@ class AttachmentViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
 
     @action(methods=['GET'], detail=False)
     def count(self, request, *args, **kwargs):
-        response = {}
-        xform = request.query_params.get('xform')
-        total_count = Attachment.objects.filter(
-            instance__xform_id=xform).count()
-        response['count'] = total_count
+        data = {
+            "count":  self.filter_queryset(self.get_queryset()).count()
+            }
 
-        return Response(data=response)
+        return Response(data=data)
 
     def list(self, request, *args, **kwargs):
         if request.user.is_anonymous:
