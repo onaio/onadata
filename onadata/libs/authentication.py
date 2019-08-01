@@ -292,16 +292,16 @@ def send_lockout_email(username):
         send_account_lockout_email.apply_async(
             args=[
                 user.email,
-                email_data.get("subject"),
                 email_data.get("message_txt"),
+                email_data.get("subject"),
             ]
         )
         # send end of lockout email 1 minute after lockout time
         send_account_lockout_email.apply_async(
             args=[
                 user.email,
-                end_email_data.get("subject"),
                 end_email_data.get("message_txt"),
+                end_email_data.get("subject"),
             ],
             countdown=getattr(settings, "LOCKOUT_TIME", 1800) + 60,
         )
