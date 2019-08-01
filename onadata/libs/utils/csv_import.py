@@ -216,11 +216,22 @@ def submit_csv(username, xform, csv_file, overwrite=False):
         survey_element = xform.get_survey_element(col)
         if survey_element and \
                 survey_element.get('type') == MULTIPLE_SELECT_TYPE:
-            # remove from the missing and additional list
-            missing = [x for x in missing if not x.startswith(col)]
+            bad_cols = []
+            if col not in xform_header:
+                # capture possibly repeated cols
+                bad_cols.append(col)
+                bad_columns = ','.join(bad_cols)
+            else:
+                # remove from the missing and additional list
+                missing = [x for x in missing if not x.startswith(col)]
 
-            addition_col.remove(col)
-
+                addition_col.remove(col)
+                __import__('ipdb').set_trace()
+    if bad_cols:
+        return async_status(
+            FAILED,u'CSV file fieldnames contains an extra column {}'
+            'that invalidates the current form schema'.format(
+                bad_columns))
     # remove headers for repeats that might be missing from csv
     missing = sorted([m for m in missing if m.find('[') == -1])
 
