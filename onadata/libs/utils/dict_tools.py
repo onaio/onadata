@@ -56,9 +56,6 @@ def merge_list_of_dicts(list_of_dicts):
     result = {}
 
     for row in list_of_dicts:
-        if not isinstance(row, dict):
-            raise AttributeError(
-                u"Expecting a dict, found: {}".format(type(row)))
         for k, v in row.items():
             if isinstance(v, list):
                 z = merge_list_of_dicts(result[k] + v if k in result else v)
