@@ -197,6 +197,34 @@ class CSVImportTestCase(TestBase):
         self.assertEqual(Instance.objects.count(), 1,
                          'submit_csv edits #1 test Failed!')
 
+    def test_csv_with_multiple_select_in_several_columns(self):
+        self.xls_file_path = os.path.join(self.fixtures_dir,
+                                          'groupxlsreport.xls')
+        self._publish_xls_file(self.xls_file_path)
+        self.xform = XForm.objects.get()
+
+        good_csv = open(
+            os.path.join(self.fixtures_dir,
+                         'select_multiple_good_csv_file.csv'),
+            'rb')
+        csv_import.submit_csv(self.user.username, self.xform, good_csv)
+        self.assertEqual(Instance.objects.count(), 4,
+                         'submit_csv updates 3 submission records!')
+
+    def test_submit_csv_with_included_select_multiple_column(self):
+        self.xls_file_path = os.path.join(self.fixtures_dir,
+                                          'groupxlsreport.xls')
+        self._publish_xls_file(self.xls_file_path)
+        self.xform = XForm.objects.get()
+
+        bad_csv = open(
+            os.path.join(self.fixtures_dir,
+                         'select_multiple_bad_csv_file.csv'),
+            'rb')
+        csv_import.submit_csv(self.user.username, self.xform, bad_csv)
+        self.assertEqual(Instance.objects.count(), 4,
+                         'submit_csv edits updates submission instances!')
+
     def test_csv_with_repeats_import(self):
         self.xls_file_path = os.path.join(self.this_directory, 'fixtures',
                                           'csv_export',

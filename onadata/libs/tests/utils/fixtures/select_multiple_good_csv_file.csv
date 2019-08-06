@@ -1,0 +1,5 @@
+name,age,family/name_fam,family/age_fam,family/happy,family/concern,family/sore,meta/instanceID,_id,_uuid,_submission_time,_tags,_notes,_version,_duration,_submitted_by,_total_media,_media_count,_media_all_received,_xform_id
+Kanye,42,Ivy,2,1,Somewhat,nah,uuid:21677fc2-0b4b-4b4e-b617-ef9e03f7e8bd,49402563,21677fc2-0b4b-4b4e-b617-ef9e03f7e8bd,2019-08-01T11:50:02,,,201908011149,,wkiragu,0,0,True,432455
+Lucy,23,Mwangi,1,2,none,almost,uuid:05dcc0a8-71c4-4031-87d3-d0c44632231c,49402585,05dcc0a8-71c4-4031-87d3-d0c44632231c,2019-08-01T11:50:25,,,201908011149,,wkiragu,0,0,True,432455
+Ken,23,Kenny,91,1,some,nah,uuid:e2a37b61-4922-4521-8242-3411739225d3,49402600,e2a37b61-4922-4521-8242-3411739225d3,2019-08-01T11:50:45,,,201908011149,,wkiragu,0,0,True,432455
+Type,32,Ken,42,1,somewhat,nah somewhat,uuid:78e08f62-11e9-4b5b-9392-02e6e21e4faa,49550313,78e08f62-11e9-4b5b-9392-02e6e21e4faa,2019-08-05T08:45:04,,,201908011149,,wkiragu,0,0,True,432455

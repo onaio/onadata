@@ -210,28 +210,19 @@ def submit_csv(username, xform, csv_file, overwrite=False):
     # remove all metadata inside groups
     missing = [col for col in missing if '/_' not in col]
 
+    select_multiple_ques = []
     # ignore if is multiple select question
     for col in csv_header:
         # this col is a multiple select question
         survey_element = xform.get_survey_element(col)
         if survey_element and \
                 survey_element.get('type') == MULTIPLE_SELECT_TYPE:
-            bad_cols = []
-            if col not in xform_header:
-                # capture possibly repeated cols
-                bad_cols.append(col)
-                bad_columns = ','.join(bad_cols)
-            else:
-                # remove from the missing and additional list
-                missing = [x for x in missing if not x.startswith(col)]
+            # Introduce a list of select multiple question types
+            select_multiple_ques.append(col)
+            # remove from the missing and additional list
+            missing = [x for x in missing if not x.startswith(col)]
 
-                addition_col.remove(col)
-                __import__('ipdb').set_trace()
-    if bad_cols:
-        return async_status(
-            FAILED,u'CSV file fieldnames contains an extra column {}'
-            'that invalidates the current form schema'.format(
-                bad_columns))
+            addition_col.remove(col)
     # remove headers for repeats that might be missing from csv
     missing = sorted([m for m in missing if m.find('[') == -1])
 
@@ -299,6 +290,8 @@ def submit_csv(username, xform, csv_file, overwrite=False):
             submission_date = row.get('_submission_time', submission_time)
 
             location_data = {}
+            choice_options = ["True", "False", 1, 0]
+            extra_cols = []
             for key in list(row):  # seems faster than a comprehension
                 # remove metadata (keys starting with '_')
                 if key.startswith('_'):
@@ -316,6 +309,20 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                 if not key.startswith('_') and \
                         (row[key] == 'n/a' or row[key] == ''):
                     del row[key]
+                if key in select_multiple_ques:
+                    select_multiple_choices = {
+                        k: v for k, v in row.items() if k.startswith(key)}
+                    for choice_name, choice_value in\
+                            select_multiple_choices.items():
+                        result = ""
+                        if choice_value == 'True' or choice_value == 1:
+                            split_choice_name = choice_name.split('/')
+                            final_char = split_choice_name[-1]
+                            extra_cols.append(final_char)
+                            result += " ".join(extra_cols)
+                        elif choice_value not in choice_options:
+                            extra_cols.append(choice_name)
+                    row[key] = result
 
             # collect all location K-V pairs into single geopoint field(s)
             # in location_data dict
@@ -326,6 +333,12 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                      '%(altitude)s %(precision)s') % defaultdict(
                          lambda: '', location_data.get(location_key))
                 })
+
+            # Remove extra columns that were introduced while splitting
+            # choices from the select multiple question
+            if extra_cols:
+                for index in extra_cols:
+                    row.pop(index, 'None')
 
             row = csv_dict_to_nested_dict(row)
             location_data = csv_dict_to_nested_dict(location_data)
