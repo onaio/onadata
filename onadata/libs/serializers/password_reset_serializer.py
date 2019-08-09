@@ -2,7 +2,8 @@ from builtins import bytes as b
 from future.moves.urllib.parse import urlparse
 
 from django.contrib.auth.models import User
-from django.contrib.auth.tokens import default_token_generator
+from django.contrib.auth.tokens import default_token_generator,\
+    PasswordResetTokenGenerator
 from django.core.mail import send_mail
 from django.template import loader
 from django.utils.encoding import force_bytes
@@ -53,6 +54,15 @@ def get_user_from_uid(uid):
         raise serializers.ValidationError(_(u"Invalid uid %s") % uid)
 
     return user
+
+class CustomPasswordResetTokenGenerator(PasswordResetTokenGenerator):
+    """Custom Password Token Generator Class."""
+    def _make_hash_value(self, user, timestamp):
+        # Include user email alongside user password to the generated token
+        # as the user state object that might change after a password reset
+        # to produce a token that invalidated.
+        login_timestamp = '' if user.last_login is None else user.last_login.replace(microsecond=0, tzinfo=None)
+        return str(user.pk) + user.password + user.email + str(login_timestamp) + str(timestamp)
 
 
 class PasswordResetChange(object):
