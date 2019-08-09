@@ -55,14 +55,17 @@ def get_user_from_uid(uid):
 
     return user
 
+
 class CustomPasswordResetTokenGenerator(PasswordResetTokenGenerator):
     """Custom Password Token Generator Class."""
     def _make_hash_value(self, user, timestamp):
         # Include user email alongside user password to the generated token
         # as the user state object that might change after a password reset
         # to produce a token that invalidated.
-        login_timestamp = '' if user.last_login is None else user.last_login.replace(microsecond=0, tzinfo=None)
-        return str(user.pk) + user.password + user.email + str(login_timestamp) + str(timestamp)
+        login_timestamp = '' if user.last_login is None\
+            else user.last_login.replace(microsecond=0, tzinfo=None)
+        return str(user.pk) + user.password + user.email +\
+            str(login_timestamp) + str(timestamp)
 
 
 class PasswordResetChange(object):

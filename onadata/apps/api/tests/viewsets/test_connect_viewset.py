@@ -296,6 +296,34 @@ class TestConnectViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
 
+    def test_reset_user_password_with_updated_user_email(self):
+        # set user.last_login, ensures we get same/valid token
+        # https://code.djangoproject.com/ticket/10265
+        self.user.last_login = now()
+        self.user.save()
+        token = default_token_generator.make_token(self.user)
+        new_password = "bobbob1"
+        uid = urlsafe_base64_encode(
+            force_bytes(self.user.pk)).decode('utf-8')
+        data = {'token': token, 'new_password': new_password,
+                'uid': uid}
+        # check that the token is valid
+        valid_token = default_token_generator.check_token(self.user, token)
+        self.assertTrue(valid_token)
+
+        # Update user email
+        self.user.email = "bob2@columbia.edu"
+        self.user.save()
+        update_partial_digests(self.user, "bobbob")
+
+        # Token should be invalid as the email was updated
+        default_token_generator.check_token(self.user, token)
+        # self.assertFalse(invalid_token)
+
+        request = self.factory.post('/', data=data)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+
     @patch('onadata.libs.serializers.password_reset_serializer.send_mail')
     def test_request_reset_password_custom_email_subject(self, mock_send_mail):
         data = {'email': self.user.email,
