@@ -2,8 +2,7 @@ from builtins import bytes as b
 from future.moves.urllib.parse import urlparse
 
 from django.contrib.auth.models import User
-from django.contrib.auth.tokens import default_token_generator,\
-    PasswordResetTokenGenerator
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.core.mail import send_mail
 from django.template import loader
 from django.utils.encoding import force_bytes
@@ -13,10 +12,25 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 
+class CustomPasswordResetTokenGenerator(PasswordResetTokenGenerator):
+    """Custom Password Token Generator Class."""
+    def _make_hash_value(self, user, timestamp):
+        # Include user email alongside user password to the generated token
+        # as the user state object that might change after a password reset
+        # to produce a token that invalidated.
+        login_timestamp = '' if user.last_login is None\
+            else user.last_login.replace(microsecond=0, tzinfo=None)
+        return str(user.pk) + user.password + user.email +\
+            str(login_timestamp) + str(timestamp)
+
+
+custom_default_token_generator = CustomPasswordResetTokenGenerator()
+
+
 def get_password_reset_email(user, reset_url,
                              subject_template_name='registration/password_reset_subject.txt',  # noqa
                              email_template_name='api_password_reset_email.html',  # noqa
-                             token_generator=default_token_generator,
+                             token_generator=custom_default_token_generator,
                              email_subject=None):
     """Creates the subject and email body for password reset email."""
     result = urlparse(reset_url)
@@ -56,18 +70,6 @@ def get_user_from_uid(uid):
     return user
 
 
-class CustomPasswordResetTokenGenerator(PasswordResetTokenGenerator):
-    """Custom Password Token Generator Class."""
-    def _make_hash_value(self, user, timestamp):
-        # Include user email alongside user password to the generated token
-        # as the user state object that might change after a password reset
-        # to produce a token that invalidated.
-        login_timestamp = '' if user.last_login is None\
-            else user.last_login.replace(microsecond=0, tzinfo=None)
-        return str(user.pk) + user.password + user.email +\
-            str(login_timestamp) + str(timestamp)
-
-
 class PasswordResetChange(object):
     def __init__(self, uid, new_password, token):
         self.uid = uid
@@ -90,7 +92,7 @@ class PasswordReset(object):
     def save(self,
              subject_template_name='registration/password_reset_subject.txt',
              email_template_name='api_password_reset_email.html',
-             token_generator=default_token_generator,
+             token_generator=custom_default_token_generator,
              from_email=None):
         """
         Generates a one-use only link for resetting password and sends to the
@@ -156,7 +158,7 @@ class PasswordResetChangeSerializer(serializers.Serializer):
         user = get_user_from_uid(attrs.get('uid'))
         token = attrs.get('token')
 
-        if not default_token_generator.check_token(user, token):
+        if not custom_default_token_generator.check_token(user, token):
             raise serializers.ValidationError(_("Invalid token: %s") % token)
 
         return attrs

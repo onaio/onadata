@@ -3,7 +3,6 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.contrib.auth.tokens import default_token_generator
 from django.core.cache import cache
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes
@@ -20,7 +19,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
 from onadata.libs.serializers.password_reset_serializer import \
-    CustomPasswordResetTokenGenerator
+    custom_default_token_generator
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.serializers.project_serializer import ProjectSerializer
@@ -277,7 +276,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         # https://code.djangoproject.com/ticket/10265
         self.user.last_login = now()
         self.user.save()
-        token = default_token_generator.make_token(self.user)
+        token = custom_default_token_generator.make_token(self.user)
         new_password = "bobbob1"
         data = {'token': token, 'new_password': new_password}
         # missing uid, should fail
@@ -306,7 +305,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         new_password = "bobbob1"
         uid = urlsafe_base64_encode(
             force_bytes(self.user.pk)).decode('utf-8')
-        mhv = CustomPasswordResetTokenGenerator()
+        mhv = custom_default_token_generator
         token = mhv.make_token(self.user)
         data = {'token': token, 'new_password': new_password,
                 'uid': uid}
