@@ -165,6 +165,48 @@ Response
         ...
     ]
 
+Lists of attachment filter by attachment type
+---------------------------------------------
+.. raw:: html
+
+    <pre class="prettyprint">GET /api/v1/media?xform=<code>{xform_id}</code>&?type=<code>{attachment_type}</code></pre>
+
+You can use this to get attachment specific to the attachment type.
+
+Example
+^^^^^^^
+::
+
+
+    curl -X GET https://api.ona.io/api/v1/media?type=image
+
+Response
+^^^^^^^^
+::
+
+
+    [
+        {
+        "url": "https://api.ona.io/api/v1/media/1",
+        "filename": "doe/attachments/4266445458362.png",
+        "mimetype": "image/png",
+        "field_xpath": null,
+        "id": 1,
+        "xform": 1,
+        "instance": 1,
+        "download_url": "http://api.ona.io/api/v1/media/1.png",
+        "small_download_url": "http://api.ona.io/api/v1/media/1-small.png",
+        "medium_download_url": "http://api.ona.io/api/v1/media/1-medium.png",
+        },
+        ...
+    ]
+
+Supported media attachment types that could be used to filter include:
+
+- video
+- audio
+- file
+
 Retrieve image link of an attachment
 ------------------------------------
 
