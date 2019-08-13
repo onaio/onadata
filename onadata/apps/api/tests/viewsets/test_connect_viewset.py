@@ -19,6 +19,8 @@ from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
+from onadata.libs.serializers.password_reset_serializer import \
+    CustomPasswordResetTokenGenerator
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.serializers.project_serializer import ProjectSerializer
@@ -301,14 +303,15 @@ class TestConnectViewSet(TestAbstractViewSet):
         # https://code.djangoproject.com/ticket/10265
         self.user.last_login = now()
         self.user.save()
-        token = default_token_generator.make_token(self.user)
         new_password = "bobbob1"
         uid = urlsafe_base64_encode(
             force_bytes(self.user.pk)).decode('utf-8')
+        mhv = CustomPasswordResetTokenGenerator()
+        token = mhv.make_token(self.user)
         data = {'token': token, 'new_password': new_password,
                 'uid': uid}
         # check that the token is valid
-        valid_token = default_token_generator.check_token(self.user, token)
+        valid_token = mhv.check_token(self.user, token)
         self.assertTrue(valid_token)
 
         # Update user email
@@ -317,12 +320,14 @@ class TestConnectViewSet(TestAbstractViewSet):
         update_partial_digests(self.user, "bobbob")
 
         # Token should be invalid as the email was updated
-        default_token_generator.check_token(self.user, token)
-        # self.assertFalse(invalid_token)
+        invalid_token = mhv.check_token(self.user, token)
+        self.assertFalse(invalid_token)
 
         request = self.factory.post('/', data=data)
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
+        self.assertTrue(
+            'Invalid token' in response.data['non_field_errors'][0])
 
     @patch('onadata.libs.serializers.password_reset_serializer.send_mail')
     def test_request_reset_password_custom_email_subject(self, mock_send_mail):
