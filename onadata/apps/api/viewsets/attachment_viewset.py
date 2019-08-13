@@ -6,6 +6,7 @@ from django.core.files.storage import default_storage
 from django.conf import settings
 from rest_framework import renderers
 from rest_framework import viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
@@ -82,6 +83,14 @@ class AttachmentViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
                 raise Http404(_("Filename '%s' not found." % filename))
 
         return Response(serializer.data)
+
+    @action(methods=['GET'], detail=False)
+    def count(self, request, *args, **kwargs):
+        data = {
+            "count":  self.filter_queryset(self.get_queryset()).count()
+            }
+
+        return Response(data=data)
 
     def list(self, request, *args, **kwargs):
         if request.user.is_anonymous:

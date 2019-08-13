@@ -185,4 +185,24 @@ Response
 
         http://api.ona.io/api/v1/media/1.jpg
 
-    
+Retrieve attachment count for a form
+------------------------------------
+Returns the total number of attachments for a form
+
+.. raw:: html
+
+    <pre class="prettyprint">GET /api/v1/media/count?xform=<code>{xform_id}</code></pre>
+
+Example
+^^^^^^^
+::
+
+
+    curl -X GET https://api.ona.io/api/v1/media/count?xform=1
+
+Response
+^^^^^^^^
+::
+
+
+        {"count": 1}

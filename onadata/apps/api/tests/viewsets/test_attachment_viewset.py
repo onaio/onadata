@@ -28,6 +28,9 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self.list_view = AttachmentViewSet.as_view({
             'get': 'list'
         })
+        self.count_view = AttachmentViewSet.as_view({
+            'get': 'count'
+        })
 
         self._publish_xls_form_to_project()
 
@@ -371,3 +374,11 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, basestring))
         self.assertEqual(response.data, attachment_url(self.attachment))
+
+    def test_total_count(self):
+        self._submit_transport_instance_w_attachment()
+        xform_id = self.attachment.instance.xform.id
+        request = self.factory.get(
+            '/count', data={"xform": xform_id}, **self.extra)
+        response = self.count_view(request)
+        self.assertEqual(response.data['count'], 1)
