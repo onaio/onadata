@@ -19,7 +19,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
 from onadata.libs.serializers.password_reset_serializer import \
-    custom_default_token_generator
+    default_token_generator
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.serializers.project_serializer import ProjectSerializer
@@ -276,7 +276,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         # https://code.djangoproject.com/ticket/10265
         self.user.last_login = now()
         self.user.save()
-        token = custom_default_token_generator.make_token(self.user)
+        token = default_token_generator.make_token(self.user)
         new_password = "bobbob1"
         data = {'token': token, 'new_password': new_password}
         # missing uid, should fail
@@ -305,7 +305,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         new_password = "bobbob1"
         uid = urlsafe_base64_encode(
             force_bytes(self.user.pk)).decode('utf-8')
-        mhv = custom_default_token_generator
+        mhv = default_token_generator
         token = mhv.make_token(self.user)
         data = {'token': token, 'new_password': new_password,
                 'uid': uid}

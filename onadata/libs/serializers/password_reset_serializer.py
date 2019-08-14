@@ -24,13 +24,13 @@ class CustomPasswordResetTokenGenerator(PasswordResetTokenGenerator):
             str(login_timestamp) + str(timestamp)
 
 
-custom_default_token_generator = CustomPasswordResetTokenGenerator()
+default_token_generator = CustomPasswordResetTokenGenerator()
 
 
 def get_password_reset_email(user, reset_url,
                              subject_template_name='registration/password_reset_subject.txt',  # noqa
                              email_template_name='api_password_reset_email.html',  # noqa
-                             token_generator=custom_default_token_generator,
+                             token_generator=default_token_generator,
                              email_subject=None):
     """Creates the subject and email body for password reset email."""
     result = urlparse(reset_url)
@@ -92,7 +92,7 @@ class PasswordReset(object):
     def save(self,
              subject_template_name='registration/password_reset_subject.txt',
              email_template_name='api_password_reset_email.html',
-             token_generator=custom_default_token_generator,
+             token_generator=default_token_generator,
              from_email=None):
         """
         Generates a one-use only link for resetting password and sends to the
@@ -158,7 +158,7 @@ class PasswordResetChangeSerializer(serializers.Serializer):
         user = get_user_from_uid(attrs.get('uid'))
         token = attrs.get('token')
 
-        if not custom_default_token_generator.check_token(user, token):
+        if not default_token_generator.check_token(user, token):
             raise serializers.ValidationError(_("Invalid token: %s") % token)
 
         return attrs
