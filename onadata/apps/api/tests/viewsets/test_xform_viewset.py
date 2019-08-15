@@ -224,12 +224,16 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=formid)
             self.assertEqual(response.status_code, 200)
             self.assertTrue(response.data.get('instances_with_geopoints'))
+            self.assertEqual(response.data.get('json'), None)
+            self.assertEqual(response.data.get('xml'), None)
 
             Instance.objects.get(xform__id=formid).delete()
             request = self.factory.get('/', **self.extra)
             response = view(request, pk=formid)
             self.assertEqual(response.status_code, 200)
             self.assertFalse(response.data.get('instances_with_geopoints'))
+            self.assertEqual(response.data.get('json'), None)
+            self.assertEqual(response.data.get('xml'), None)
 
     def test_form_list(self):
         with HTTMock(enketo_mock):
@@ -237,6 +241,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get('/', **self.extra)
             response = self.view(request)
             self.assertNotEqual(response.get('Cache-Control'), None)
+            self.assertEqual(response.data[0].get('xml'), None)
+            self.assertEqual(response.data[0].get('json'), None)
 
     @override_settings(STREAM_DATA=True)
     def test_form_list_stream(self):
@@ -288,6 +294,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = self.view(request, pk='public')
             self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.data[0].get('json'), None)
+            self.assertEqual(response.data[0].get('xml'), None)
             self.form_data['public'] = True
             # pylint: disable=no-member
             resultset = MetaData.objects.filter(Q(object_id=self.xform.pk), Q(
@@ -774,6 +782,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             # Alice with data-entry access should have access to web form
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.data, data)
+            self.assertEqual(response.data.get('xml'), None)
+            self.assertEqual(response.data.get('json'), None)
 
     def test_get_single_submit_url(self):
         with HTTMock(enketo_preview_url_mock, enketo_url_mock,
