@@ -84,8 +84,11 @@ def send_generic_email(email, message_txt, subject):
         raise ValueError(
             "email, message_txt amd subject arguments are ALL required."
         )
+    # Omitting the from_email field since including it errors email sending.
+    # According to `https://docs.djangoproject.com/en/2.2/topics/email/#emailmessage-objects`
+    # If this field is omitted, the `DEFAULT_FROM_EMAIL` setting is used.
+    from_email=None
 
-    from_email = settings.DEFAULT_FROM_EMAIL
     email_message = EmailMultiAlternatives(
         subject,
         message_txt,
