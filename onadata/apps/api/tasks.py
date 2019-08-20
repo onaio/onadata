@@ -101,9 +101,9 @@ def send_verification_email(email, message_txt, subject):
     """
     Sends a verification email
     """
-    send_generic_email(email, subject, message_txt)
+    send_generic_email(email, message_txt, subject)
 
 
 @task()
-def send_account_lockout_email(email, subject, message_txt):
-    send_generic_email(email, subject, message_txt)
+def send_account_lockout_email(email, message_txt, subject):
+    send_generic_email(email, message_txt, subject)

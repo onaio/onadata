@@ -105,3 +105,7 @@ class TestEmail(TestBase):
         self.assertIn(
             encoded_url.replace('&', '&amp;'), email_data.get('message_txt')
         )
+
+    def test_email_data_does_not_contain_newline_chars(self):
+        email_data = self._get_email_data(include_redirect_url=True)
+        self.assertNotIn('\n', email_data.get('subject'))
