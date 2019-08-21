@@ -1,6 +1,29 @@
 Changelog for Onadata
 =====================
 
+2.0.8 (2019-08-21)
+-------------------
+- Include media-type filter on media endpoint
+  `PR #1644 <https://github.com/onaio/onadata/issues/1644>`_
+  [@WinnyTroy]
+
+- Create count endpoint to get total number of attachments in media enpoint
+  `PR #1665 <https://github.com/onaio/onadata/pull/1665>`_
+  [@RayceeM]
+
+- Set rate limits on change password attempts
+  `PR #1675 <https://github.com/onaio/onadata/issues/1675>`_
+  [@RayceeM]
+
+- Override django inbuilt password reset token generation
+  `PR #1651 <https://github.com/onaio/onadata/issues/1651>`_
+  [@WinnyTroy]
+
+- Switch email headers attributes for user verification emails
+  `PR #1667 <https://github.com/onaio/onadata/issues/1667>`_
+  [@WinnyTroy]
+
+
 2.0.5 (2019-07-15)
 -------------------
 - Replace load_class with Django's import_string function
