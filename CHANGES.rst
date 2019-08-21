@@ -24,6 +24,24 @@ Changelog for Onadata
   [@WinnyTroy]
 
 
+2.0.7 (2019-07-24)
+-------------------
+- Fix maximum recursion depth error on caching login attempts
+  `PR #1661 <https://github.com/onaio/onadata/issues/1661>`_
+  [@ukanga]
+
+
+2.0.6 (2019-07-17)
+-------------------
+- Handle negative number strings to number values correctly
+  `PR #1641 <https://github.com/onaio/onadata/issues/1641>`_
+  [@WinnyTroy]
+
+- Fix MemcachedKeyCharacterError error
+  `PR #1653 <https://github.com/onaio/onadata/issues/1653>`_
+  [@ukanga]
+
+
 2.0.5 (2019-07-15)
 -------------------
 - Replace load_class with Django's import_string function
@@ -45,6 +63,7 @@ Changelog for Onadata
 - Add attachment type filter on attachments endpoint
   `PR #1644 <https://github.com/onaio/onadata/issues/1644>`_
   [@WinnyTroy]
+
 
 2.0.4 (2019-06-13)
 -------------------
