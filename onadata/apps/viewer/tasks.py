@@ -351,9 +351,8 @@ def create_external_export(username, id_string, export_id, **options):
     """
     XLSReport export task.
     """
-    export = get_object_or_404(Export, id=export_id)
-
     try:
+        export = _get_export_object(export_id)
         # though export is not available when for has 0 submissions, we
         # catch this since it potentially stops celery
         gen_export = generate_external_export(
