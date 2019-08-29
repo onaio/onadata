@@ -369,5 +369,22 @@ class TestSubmissionReviewViewSet(TestBase):
 
         request = self.factory.post('/', data=submission_data, **self.extra)
         response = view(request=request)
+
+        self.assertEqual(201, response.status_code)
+        self.assertEqual(4, len(response.data))
+
+        submission_data = [
+            {
+                'instance': _.id,
+                'status': SubmissionReview.PENDING,
+                'note': None
+            } for _ in instances
+        ]
+
+        self.extra['format'] = 'json'
+
+        request = self.factory.post('/', data=submission_data, **self.extra)
+        response = view(request=request)
+
         self.assertEqual(201, response.status_code)
         self.assertEqual(4, len(response.data))
