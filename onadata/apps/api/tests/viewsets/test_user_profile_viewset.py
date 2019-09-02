@@ -423,6 +423,16 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
 
+    def test_disallow_profile_create_w_same_username(self):
+        data = _profile_data()
+        self._create_user_using_profiles_endpoint(data)
+
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+
     def test_profile_create_with_malfunctioned_email(self):
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
