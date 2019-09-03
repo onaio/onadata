@@ -33,7 +33,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.view = ConnectViewSet.as_view({
             "get": "list",
             "post": "reset",
-            "delete": "expire"
+            "delete": "expire",
         })
         self.data = {
             'url': 'http://testserver/api/v1/profiles/bob',
@@ -50,6 +50,15 @@ class TestConnectViewSet(TestAbstractViewSet):
             'user': 'http://testserver/api/v1/users/bob',
             'api_token': self.user.auth_token.key,
         }
+
+    def test_generate_auth_token(self):
+        self.view = ConnectViewSet.as_view({
+            "post": "create",
+            })
+        request = self.factory.post("/", **self.extra)
+        request.session = self.client.session
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
 
     def test_regenerate_auth_token(self):
         self.view = ConnectViewSet.as_view({

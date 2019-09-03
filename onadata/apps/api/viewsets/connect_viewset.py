@@ -6,6 +6,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
+from rest_framework import mixins
 
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.permissions import ConnectViewsetPermissions
@@ -23,8 +24,33 @@ from onadata.libs.serializers.user_profile_serializer import \
 from onadata.settings.common import DEFAULT_SESSION_EXPIRY_TIME
 
 
-class ConnectViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
-                     ObjectLookupMixin, viewsets.GenericViewSet):
+def user_profile_w_token_response(request, status):
+    """ Returns authenticated user profile"""
+
+    if request and not request.user.is_anonymous:
+        session = getattr(request, "session")
+        if not session.session_key:
+            # login user to create session token
+            # TODO cannot call this without calling authenticate first or
+            # setting the backend, commented for now.
+            # login(request, request.user)
+            session.set_expiry(DEFAULT_SESSION_EXPIRY_TIME)
+
+    try:
+        user_profile = request.user.profile
+    except UserProfile.DoesNotExist:
+        user_profile, _ = UserProfile.objects.get_or_create(
+            user=request.user)
+
+    serializer = UserProfileWithTokenSerializer(
+        instance=user_profile, context={"request": request})
+
+    return Response(serializer.data, status=status)
+
+
+class ConnectViewSet(mixins.CreateModelMixin, AuthenticateHeaderMixin,
+                     CacheControlMixin, ETagsMixin, ObjectLookupMixin,
+                     viewsets.GenericViewSet):
     """
     This endpoint allows you retrieve the authenticated user's profile info.
     """
@@ -33,28 +59,12 @@ class ConnectViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
     permission_classes = (ConnectViewsetPermissions, )
     serializer_class = UserProfileWithTokenSerializer
 
+    # pylint: disable=R0201
+    def create(self, request, *args, **kwargs):
+        return user_profile_w_token_response(request, status.HTTP_201_CREATED)
+
     def list(self, request, *args, **kwargs):
-        """ Returns authenticated user profile"""
-
-        if request and not request.user.is_anonymous:
-            session = getattr(request, "session")
-            if not session.session_key:
-                # login user to create session token
-                # TODO cannot call this without calling authenticate first or
-                # setting the backend, commented for now.
-                # login(request, request.user)
-                session.set_expiry(DEFAULT_SESSION_EXPIRY_TIME)
-
-        try:
-            user_profile = request.user.profile
-        except UserProfile.DoesNotExist:
-            user_profile, _ = UserProfile.objects.get_or_create(
-                user=request.user)
-
-        serializer = UserProfileWithTokenSerializer(
-            instance=user_profile, context={"request": request})
-
-        return Response(serializer.data)
+        return user_profile_w_token_response(request, status.HTTP_200_OK)
 
     @action(methods=['GET'], detail=True)
     def starred(self, request, *args, **kwargs):
