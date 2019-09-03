@@ -15,7 +15,8 @@ class SubmissionReviewSerializer(serializers.ModelSerializer):
     SubmissionReviewSerializer Class
     """
     note = serializers.CharField(
-        source='note.note', required=False, allow_blank=True)
+        source='note.note', required=False, allow_blank=True,
+        allow_null=True)
 
     class Meta:
         """
@@ -47,12 +48,13 @@ class SubmissionReviewSerializer(serializers.ModelSerializer):
 
         if 'note' in validated_data:
             note_data = validated_data.pop('note')
-            note_data['instance'] = validated_data.get('instance')
-            note_data['created_by'] = validated_data.get('created_by')
-            note_data['instance_field'] = SUBMISSION_REVIEW_INSTANCE_FIELD
+            if note_data['note']:
+                note_data['instance'] = validated_data.get('instance')
+                note_data['created_by'] = validated_data.get('created_by')
+                note_data['instance_field'] = SUBMISSION_REVIEW_INSTANCE_FIELD
 
-            note = Note.objects.create(**note_data)
-            validated_data['note'] = note
+                note = Note.objects.create(**note_data)
+                validated_data['note'] = note
 
         return SubmissionReview.objects.create(**validated_data)
 
