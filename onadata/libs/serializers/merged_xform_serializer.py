@@ -74,6 +74,9 @@ def get_merged_xform_survey(xforms):
     for child in merged_xform_dict['children']:
         if child['name'] != 'meta' and is_empty:
             is_empty = False
+        # Remove bind attributes from child elements
+        if 'bind' in child:
+            del child['bind']
 
     if is_empty:
         raise serializers.ValidationError(_("No matching fields in xforms."))

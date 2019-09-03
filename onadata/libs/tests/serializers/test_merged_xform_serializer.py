@@ -67,18 +67,39 @@ GROUP_A_MD = """
 
 GROUP_B_MD = """
 | survey |
-|        | type              | name   | label |
-|        | text              | name   | Name  |
-|        | begin group       | info   | Info  |
-|        | integer           | age    | Age   |
-|        | select one gender | gender | Sex   |
-|        | end group         |        |       |
-|        | begin group       | other  | Other |
-|        | begin group       | person | Person |
-|        | integer           | age    | Age   |
-|        | select one gender | gender | Sex   |
-|        | end group         |        |       |
-|        | end group         |        |       |
+|        | type              | name   | label | Relevant   |
+|        | text              | name   | Name  |            |
+|        | begin group       | info   | Info  |            |
+|        | integer           | age    | Age   |            |
+|        | select one gender | gender | Sex   | ${age} > 5 |
+|        | end group         |        |       |            |
+|        | begin group       | other  | Other |            |
+|        | begin group       | person | Person |           |
+|        | integer           | age    | Age   |            |
+|        | select one gender | gender | Sex   |            |
+|        | end group         |        |       |            |
+|        | end group         |        |       |            |
+
+| choices |
+|         | list name | name   | label  |
+|         | gender    | female | Female |
+|         | gender    | male   | Male   |
+"""
+
+GROUP_C_MD = """
+| survey |
+|        | type              | name   | label | Relevant   |
+|        | text              | name   | Name  |            |
+|        | begin group       | info   | Info  |            |
+|        | integer           | age    | Age   |            |
+|        | select one gender | gender | Sex   | ${age} > 5 |
+|        | end group         |        |       |            |
+|        | begin group       | other  | Other |            |
+|        | begin group       | person | Person |           |
+|        | integer           | age    | Age   |            |
+|        | select one gender | gender | Sex   | ${age} > 5 |
+|        | end group         |        |       |            |
+|        | end group         |        |       |            |
 
 | choices |
 |         | list name | name   | label  |
@@ -424,3 +445,20 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
         }  # yapf: disable
 
         self.assertEqual(survey.to_json_dict(), expected)
+
+    def test_merged_dataset_dict_contains_no_bind_attributes(self):
+        """
+        Test get_merged_xform_survey(): should not contain bind elements.
+        """
+        self.project = get_user_default_project(self.user)
+        xform1 = self._publish_markdown(GROUP_A_MD, self.user, id_string='a')
+        xform2 = self._publish_markdown(GROUP_B_MD, self.user, id_string='b')
+        xform3 = self._publish_markdown(GROUP_C_MD, self.user, id_string='c')
+        survey = get_merged_xform_survey([xform1, xform2, xform3])
+
+        result = survey.to_json_dict()
+        count = len([child for child in result["children"] if 'bind' in child])
+
+        # check that no elements within the newly created
+        # merged_dataset_dict contains bind attributes
+        self.assertEqual(count, 0)
