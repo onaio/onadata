@@ -1,6 +1,17 @@
 Changelog for Onadata
 =====================
 
+2.0.9 (2019-09-03)
+--------------------
+- Submission Review fails when payload is used
+  `PR #1623 <https://github.com/onaio/onadata/issues/1623>`_
+  [@lincmba, @WinnyTroy]
+
+- Only use type, name and label columns when merging forms
+  `PR #1587 <https://github.com/onaio/onadata/issues/1587>`_
+  [@WinnyTroy]
+
+
 2.0.8 (2019-08-21)
 -------------------
 - Include media-type filter on media endpoint
