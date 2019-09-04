@@ -1,6 +1,13 @@
 Changelog for Onadata
 =====================
 
+2.0.10 (2019-09-04)
+-------------------
+- Include create model mixin to the Connect Viewset
+  `PR #1683 <https://github.com/onaio/onadata/pull/1683>`_
+  [@WinnyTroy]
+
+
 2.0.9 (2019-09-03)
 --------------------
 - Submission Review fails when payload is used
