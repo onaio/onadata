@@ -85,6 +85,8 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum):
             instance.last_edited = last_edited
             instance.uuid = new_uuid
             instance.checksum = checksum
+            instance.deleted_at = None
+            instance.deleted_by = None
             instance.save()
 
             # call webhooks

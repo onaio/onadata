@@ -61,8 +61,9 @@ def get_submission_meta_dict(xform, instance_id):
 
     update = 0
 
-    if instance_id and xform.instances.filter(
-            uuid=instance_id.replace('uuid:', '')).count() > 0:
+    old_instances = xform.instances.filter(
+        uuid=instance_id.replace('uuid:', ''))
+    if instance_id and old_instances.count() > 0:
         uuid_arg = 'uuid:{}'.format(uuid.uuid4())
         meta.update({
             'instanceID': uuid_arg,
@@ -349,6 +350,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                         uuid__in=rollback_uuids, xform=xform).delete()
                     return async_status(FAILED, text(error))
                 else:
+                    print(error)
                     duplicates += 1
             else:
                 additions += 1
