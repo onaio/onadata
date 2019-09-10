@@ -195,6 +195,8 @@ class TestOpenDataViewSet(TestBase):
         self.assertEqual(OpenData.objects.count(), inital_count)
 
     def test_column_headers_endpoint(self):
+        inital_count = Instance.objects.filter(xform=self.xform.id).count()
+        self.assertEqual(inital_count, 0)
         self._make_submissions()
         self.view = OpenDataViewSet.as_view({
             'get': 'schema'
@@ -202,6 +204,7 @@ class TestOpenDataViewSet(TestBase):
 
         _open_data = self.get_open_data_object()
         uuid = _open_data.uuid
+        self.assertEqual(Instance.objects.count(), 4)
         request = self.factory.get('/', **self.extra)
         response = self.view(request, uuid=uuid)
         self.assertEqual(response.status_code, 200)

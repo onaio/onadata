@@ -67,7 +67,7 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
             if a.get('children') and a.get('type') not in IGNORED_FIELD_TYPES:
                 self.flatten_xform_columns(a.get('children'))
 
-    def get_tableau_column_headers(self, *args):
+    def get_tableau_column_headers(self):
         '''
         Retrieve columns headers that are valid in tableau.
         '''
@@ -87,7 +87,7 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
 
         # using nested loops to determine what valid data types to set for
         # tableau.
-        for header in args[0]:
+        for header in self.submission_data_fields:
             for quest_name, quest_type in self.flattened_dict.items():
                 if header == quest_name or header.endswith('_%s' % quest_name):
                     append_to_tableau_colulmn_headers(header, quest_type)
@@ -175,27 +175,28 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
         self.object = self.get_object()
         if isinstance(self.object.content_object, XForm):
             xform = self.object.content_object
-            headers = xform.get_headers() + ['_id']
-            self.xform_headers = replace_special_characters_with_underscores(
-                headers)
 
             xform_json = json.loads(xform.json)
             self.flatten_xform_columns(
                 json_of_columns_fields=xform_json.get('children'))
 
             # Get data fields
-            instances = Instance.objects.filter(pk=xform.pk)
-            submission_data_fields = [k for k in instances[0].json]
+            instances = Instance.objects.filter(xform=xform.pk)
 
-            tableau_column_headers = self.get_tableau_column_headers(
-                submission_data_fields)
+            if instances:
+                submission_data_fields = [k for k in instances[0].json]
+                self.submission_data_fields =\
+                    replace_special_characters_with_underscores(
+                        submission_data_fields)
 
-            data = {
-                'column_headers': tableau_column_headers,
-                'connection_name': "%s_%s" % (xform.project_id,
-                                              xform.id_string),
-                'table_alias': xform.title
-            }
+                tableau_column_headers = self.get_tableau_column_headers()
+
+                data = {
+                    'column_headers': tableau_column_headers,
+                    'connection_name': "%s_%s" % (xform.project_id,
+                                                  xform.id_string),
+                    'table_alias': xform.title
+                }
 
             return Response(data=data, status=status.HTTP_200_OK)
 
