@@ -23,6 +23,7 @@ from onadata.libs.serializers.data_serializer import DataInstanceSerializer
 from onadata.libs.serializers.open_data_serializer import OpenDataSerializer
 from onadata.libs.utils.common_tools import json_stream
 from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
+from onadata.libs.utils.cache_tools import cache
 
 BaseViewset = get_baseviewset_class()
 IGNORED_FIELD_TYPES = ['select one', 'select multiple']
@@ -121,8 +122,12 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
         if isinstance(self.object.content_object, XForm):
             if not self.object.active:
                 return Response(status=status.HTTP_404_NOT_FOUND)
-
+            # Use the form to get column headers
             xform = self.object.content_object
+            headers = xform.get_headers() + ['_id']
+
+            self.xform_headers = headers
+
             if xform.is_merged_dataset:
                 qs_kwargs = {'xform_id__in': list(
                     xform.mergedxform.xforms.values_list('pk', flat=True))}
@@ -131,7 +136,27 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
             if gt_id:
                 qs_kwargs.update({'id__gt': gt_id})
 
+            tableau_column_headers = self.get_tableau_column_headers()
             instances = Instance.objects.filter(**qs_kwargs).order_by('pk')
+
+            # Get data and column fields
+            submission_data_fields = [k for k in instances[0].json]
+            available_columns = [x['id'] for x in tableau_column_headers]
+
+            # Remove fields supplied in data fields
+            # that are not present in the provided column headers
+            # intersect = set(
+            intersect = [
+                x for x in submission_data_fields if x in available_columns]
+
+            # deal with select one and select multiple qstn types
+
+            # Get the right fields to fetch
+            instances = [header for header in submission_data_fields
+                         if header in intersect]
+
+            # Fetch instances with only newly selected fields
+            # instances = [Instance.objects.only(x) for x in instances]
 
             if count:
                 return Response({'count': instances.count()})
