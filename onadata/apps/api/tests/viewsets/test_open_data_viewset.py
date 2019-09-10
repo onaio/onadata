@@ -195,6 +195,7 @@ class TestOpenDataViewSet(TestBase):
         self.assertEqual(OpenData.objects.count(), inital_count)
 
     def test_column_headers_endpoint(self):
+        self._make_submissions()
         self.view = OpenDataViewSet.as_view({
             'get': 'schema'
         })
