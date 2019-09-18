@@ -43,6 +43,22 @@ TEMP_TOKEN_EXPIRY_TIME = getattr(
     settings, "DEFAULT_TEMP_TOKEN_EXPIRY_TIME", 60 * 60 * 6
 )
 
+LOCKOUT_EXCLUDED_PATHS = getattr(
+    settings,
+    "LOCKOUT_EXCLUDED_PATHS",
+    [
+        "formList",
+        "submission",
+        "xformsManifest",
+        "xformsMedia",
+        "form.xml",
+        "submissionList",
+        "downloadSubmission",
+        "upload",
+        "formUpload",
+    ],
+)
+
 
 def expired(time_token_created):
     """Checks if the time between when time_token_created and current time
@@ -221,6 +237,16 @@ class TempTokenURLParameterAuthentication(TempTokenAuthentication):
 
 
 def check_lockout(request):
+    """Check request user is not locked out on authentication.
+
+    Returns the username if not locked out, None if request path is in
+    LOCKOUT_EXCLUDED_PATHS.
+    Raises AuthenticationFailed on lockout.
+    """
+    uri_path = request.get_full_path()
+    if any(part in LOCKOUT_EXCLUDED_PATHS for part in uri_path.split("/")):
+        return None
+
     try:
         if isinstance(request.META["HTTP_AUTHORIZATION"], bytes):
             username = (
@@ -231,7 +257,7 @@ def check_lockout(request):
         else:
             username = request.META["HTTP_AUTHORIZATION"].split('"')[1]
     except (TypeError, AttributeError, IndexError):
-        return
+        pass
     else:
         lockout = cache.get(safe_key("{}{}".format(LOCKOUT_USER, username)))
         if lockout:
@@ -252,6 +278,8 @@ def check_lockout(request):
                 )
             )
         return username
+
+    return None
 
 
 def login_attempts(request):
