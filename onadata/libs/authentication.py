@@ -265,12 +265,15 @@ def login_attempts(request):
         cache.incr(attempts_key)
         attempts = cache.get(attempts_key)
         if attempts >= getattr(settings, "MAX_LOGIN_ATTEMPTS", 10):
-            send_lockout_email(username)
-            cache.set(
-                safe_key("{}{}".format(LOCKOUT_USER, username)),
-                datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
-                getattr(settings, "LOCKOUT_TIME", 1800),
-            )
+            lockout_key = safe_key("{}{}".format(LOCKOUT_USER, username))
+            lockout = cache.get(lockout_key)
+            if not lockout:
+                send_lockout_email(username)
+                cache.set(
+                    lockout_key,
+                    datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+                    getattr(settings, "LOCKOUT_TIME", 1800),
+                )
             check_lockout(request)
             return attempts
         return attempts
