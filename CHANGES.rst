@@ -1,6 +1,16 @@
 Changelog for Onadata
 =====================
 
+2.0.11 (2019-09-19)
+-------------------
+- Send email only once in a lockout session
+  `Issue #1687 <https://github.com/onaio/onadata/pull/1687>`_
+  [@ukanga]
+
+- Ignore ODK APIs on lockout session checks
+  `Issue #1688 <https://github.com/onaio/onadata/pull/1688>`_
+  [@ukanga]
+
 2.0.10 (2019-09-04)
 -------------------
 - Include create model mixin to the Connect Viewset
