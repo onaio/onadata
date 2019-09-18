@@ -1,5 +1,5 @@
 Ona Platform
-=================
+============
 
 Collect, Analyze and Share Data!
 
