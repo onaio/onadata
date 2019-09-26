@@ -1,0 +1,35 @@
+{% extends 'base_wfp.html' %}
+{% load rest_framework %}
+
+{% block title %}Missing Authentication Detail{% endblock %}
+
+{% block css %}
+<style>
+    .container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 50vh;
+    }
+
+    .card {
+        padding: 1.5em;
+        background-color: #FAFAF7;
+        width: 40%;
+        box-shadow: 0px 0px 26px -3px rgba(92,92,92,0.5);
+    }
+    .content {
+        text-align: center;
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card content">
+        <p class="error-message">Couldn't retrieve {{ missing_data }} from your OpenID Provider.
+            {{error_resolver}}</a></p>
+    </div>
+</div>
+{% endblock %}

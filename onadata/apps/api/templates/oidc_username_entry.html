@@ -1,0 +1,71 @@
+{% extends 'base_wfp.html' %}
+{% load rest_framework %}
+
+{% block title %}Open ID Connect - Username Input{% endblock %}
+
+{% block css %}
+<style>
+    .container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 50vh;
+    }
+
+    .card {
+        padding: 1.5em;
+        background-color: #FAFAF7;
+        width: 40%;
+        box-shadow: 0px 0px 26px -3px rgba(92,92,92,0.5);
+    }
+
+    input {
+        display: block;
+        margin-top: 5px;
+        margin-bottom: .25em;
+        box-sizing: border-box;
+        font-size: 16px;
+        border: 1px solid #ddd;
+        text-align: center;
+    }
+
+    input:focus {
+        border-color: #0B6EB4;
+        outline: none;
+    }
+
+    input[type=text] {
+        padding: .6em;
+        width: 100%;
+    }
+
+    input[type=submit] {
+        align-self: center;
+        padding: .45em;
+        border-radius: 3px;
+        border: none;
+        background-color: #0B6EB4;
+        color: #EEF3F6;
+    }
+
+    input[type=submit]:hover {
+        background-color: #075387;
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="container">
+        <div class="card">
+            <form action="" method="POST" style="display: flex; flex-direction: column;">
+                {% csrf_token %}
+                <p class="error-message">{{ error_msg }}</p>
+                <input type="text" name="username" placeholder="Preferred Username">
+                <input type="hidden" name="id_token" value="{{ id_token }}">
+                <input type="submit" value="Save">
+            </form>
+        </div>
+</div>
+{% endblock %}
+
