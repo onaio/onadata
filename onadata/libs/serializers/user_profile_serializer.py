@@ -245,7 +245,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                 send_email=settings.SEND_EMAIL_ACTIVATION_API)
         except IntegrityError:
             raise serializers.ValidationError(_(
-                u"User account already exists"
+                u"User account {} already exists".format(
+                    params.get('username'))
             ))
         new_user.is_active = True
         new_user.first_name = params.get('first_name')

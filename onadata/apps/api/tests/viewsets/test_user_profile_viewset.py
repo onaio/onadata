@@ -432,6 +432,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             content_type="application/json", **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
+        self.assertTrue(
+            'deno already exists' in response.data['username'][0])
 
     def test_profile_create_with_malfunctioned_email(self):
         request = self.factory.get('/', **self.extra)
