@@ -1,10 +1,11 @@
 import os
+
 from onadata.apps.logger.models.instance import Instance
+from onadata.apps.main.models.user_profile import UserProfile
+from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.parsed_instance import (
     get_where_clause, get_sql_with_params
 )
-
-from onadata.apps.main.tests.test_base import TestBase
 
 
 class TestParsedInstance(TestBase):
@@ -64,5 +65,68 @@ class TestParsedInstance(TestBase):
         # retrived record based on initial form version
         sql, params, records = get_sql_with_params(
             xform=self.xform, query='{"_version": "%s"}' % initial_version
+        )
+        self.assertEqual(2, records.count())
+
+    def test_retrieve_records_using_list_of_queries(self):
+        self._create_user_and_login()
+        self._publish_transportation_form()
+
+        # 0 and 1 are indexes in a list representing transport instances with
+        # the same form version - same as the transport form
+        for a in [0, 1]:
+            self._submit_transport_instance(survey_at=a)
+
+        transport_instances_with_different_version = [
+            'transport_2011-07-25_19-05-51',
+            'transport_2011-07-25_19-05-52'
+        ]
+
+        # make submissions
+        for a in transport_instances_with_different_version:
+            self._make_submission(os.path.join(
+                self.this_directory, 'fixtures',
+                'transportation', 'instances', a, a + '.xml'))
+
+        instances = Instance.objects.filter(
+            xform__id_string=self.xform.id_string
+        )
+        instances_count = instances.count()
+        self.assertEqual(instances_count, 4)
+
+        # bob accesses all records
+        sql, params, records = get_sql_with_params(
+            xform=self.xform, query={'_submitted_by': 'bob'}
+        )
+        self.assertEqual(4, records.count())
+
+        # only three records with name ambulance
+        sql, params, records = get_sql_with_params(
+            xform=self.xform, query=[{'_submitted_by': 'bob'}, 'ambulance']
+        )
+        self.assertEqual(3, records.count())
+
+        # create user alice
+        user_alice = self._create_user('alice', 'alice')
+        # create user profile and set require_auth to false for tests
+        profile, created = UserProfile.objects.get_or_create(user=user_alice)
+        profile.require_auth = False
+        profile.save()
+
+        # change ownership of first two records
+        for i in instances[:2]:
+            i.user = user_alice
+            i.save()
+        self.xform.save()
+
+        # bob accesses only two record
+        sql, params, records = get_sql_with_params(
+            xform=self.xform, query={'_submitted_by': 'bob'}
+        )
+        self.assertEqual(2, records.count())
+
+        # both remaining records have ambulance
+        sql, params, records = get_sql_with_params(
+            xform=self.xform, query=[{'_submitted_by': 'bob'}, 'ambulance']
         )
         self.assertEqual(2, records.count())
