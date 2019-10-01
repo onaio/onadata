@@ -3,12 +3,12 @@ from __future__ import unicode_literals
 import datetime
 import json
 import os
+from builtins import open
 from datetime import timedelta
 from tempfile import NamedTemporaryFile
 
 import geojson
 import requests
-from builtins import open
 from django.test import RequestFactory
 from django.test.utils import override_settings
 from django.utils import timezone
@@ -314,6 +314,16 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
+
+        # check that alice views only her data when querying data
+        data = {"start": 0, "limit": 100, "sort": '{"_submission_time":1}',
+                "query": "c"}
+        request = self.factory.get('/', data=data, **alices_extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+        self.assertListEqual(
+            [r['_submitted_by'] for r in response.data], ['alice', 'alice'])
 
         data = {"start": 1, "limit": 1}
         request = self.factory.get('/', data=data, **alices_extra)
