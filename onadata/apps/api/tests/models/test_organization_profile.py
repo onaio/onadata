@@ -35,6 +35,10 @@ class TestOrganizationProfile(TestBase):
         with self.assertRaises(IntegrityError):
             tools.create_organization("ModiLabs", self.user)
 
+        # test disallow org create with same username same cases
+        with self.assertRaises(IntegrityError):
+            tools.create_organization("modiLabs", self.user)
+
     def test_delete_organization(self):
         profile = tools.create_organization_object("modilabs", self.user)
         profile.save()

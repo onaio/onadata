@@ -123,7 +123,13 @@ def create_organization_object(org_name, creator, attrs=None):
         email=email,
         is_active=True)
     new_user.save()
-    registration_profile = RegistrationProfile.objects.create_profile(new_user)
+    try:
+        registration_profile = RegistrationProfile.objects.create_profile(
+            new_user)
+    except IntegrityError:
+        raise ValidationError(_(
+                u"%s already exists" % org_name
+            ))
     if email:
         site = Site.objects.get(pk=settings.SITE_ID)
         registration_profile.send_activation_email(site)
