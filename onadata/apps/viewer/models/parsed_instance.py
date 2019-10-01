@@ -198,8 +198,14 @@ def get_sql_with_params(xform, query=None, fields=None, sort=None, start=None,
     else:
 
         records = records.values_list('json', flat=True)
-        if where_params:
-            records = records.extra(where=where, params=where_params)
+        if query and isinstance(query, list):
+            for qry in query:
+                w, wp = get_where_clause(qry, known_integers)
+                records = records.extra(where=w, params=wp)
+
+        else:
+            if where_params:
+                records = records.extra(where=where, params=where_params)
 
     # apply sorting
     if not count and sort:
