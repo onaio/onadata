@@ -2,12 +2,10 @@
 """
 Organization Serializer
 """
-from past.builtins import basestring  # pylint: disable=redefined-builtin
-
 from django.contrib.auth.models import User
 from django.db.models.query import QuerySet
 from django.utils.translation import ugettext as _
-
+from past.builtins import basestring  # pylint: disable=redefined-builtin
 from rest_framework import serializers
 
 from onadata.apps.api import tools
@@ -51,6 +49,11 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
             if isinstance(self.instance, QuerySet) or not is_permitted or \
                     not request:
                 for field in getattr(self.Meta, 'owner_only_fields'):
+                    if not isinstance(self.instance, QuerySet):
+                        if get_role_in_org(
+                                request.user, self.instance) == "manager" and \
+                                field == "account_info":
+                            continue
                     self.fields.pop(field)
 
     def update(self, instance, validated_data):
