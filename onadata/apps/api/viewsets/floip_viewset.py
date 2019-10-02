@@ -87,6 +87,7 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
         data = {
             "id": uuid or xform.uuid,
             "type": "flow-results-data",
+            "attributes": {}
         }
         headers = {
             'Content-Type': 'application/vnd.api+json',
@@ -107,13 +108,13 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
             queryset = xform.instances.values_list('json', flat=True)
             paginate_queryset = self.paginate_queryset(queryset)
             if paginate_queryset:
-                data['responses'] = floip_list(paginate_queryset)
+                data['attributes']['responses'] = floip_list(paginate_queryset)
                 response = self.get_paginated_response(data)
                 for key, value in headers.items():
                     response[key] = value
 
                 return response
 
-            data['responses'] = floip_list(queryset)
+            data['attributes']['responses'] = floip_list(queryset)
 
         return Response(data, headers=headers, status=status_code)
