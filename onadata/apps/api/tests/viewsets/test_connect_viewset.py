@@ -480,3 +480,43 @@ class TestConnectViewSet(TestAbstractViewSet):
         # clear cache
         cache.delete(safe_key("login_attempts-bob"))
         cache.delete(safe_key("lockout_user-bob"))
+
+    def test_generate_odk_token(self):
+        view = ConnectViewSet.as_view({'post': 'odk_token'})
+        request = self.factory.post("/", **self.extra)
+        request.session = self.client.session
+        response = view(request)
+        self.assertEqual(response.status_code, 201)
+
+    def test_regenerate_odk_token(self):
+        view = ConnectViewSet.as_view({'post': 'odk_token'})
+        request = self.factory.post("/", **self.extra)
+        request.session = self.client.session
+        response = view(request)
+        self.assertEqual(response.status_code, 201)
+        old_token = response.data['odk_token']
+
+        request = self.factory.post("/", **self.extra)
+        request.session = self.client.session
+        response = view(request)
+        self.assertEqual(response.status_code, 201)
+        self.assertNotEqual(response.data['odk_token'], old_token)
+
+    def test_retrieve_odk_token(self):
+        view = ConnectViewSet.as_view({
+            'post': 'odk_token',
+            'get': 'odk_token'
+        })
+        request = self.factory.post("/", **self.extra)
+        request.session = self.client.session
+        response = view(request)
+        self.assertEqual(response.status_code, 201)
+        id_token = response.data['odk_token']
+        expiry_date = response.data['expiry_date']
+
+        request = self.factory.get("/", **self.extra)
+        request.session = self.client.session
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['id_token'], id_token)
+        self.assertEqual(response.data['expiry_date'], expiry_date)

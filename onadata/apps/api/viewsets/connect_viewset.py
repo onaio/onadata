@@ -1,3 +1,6 @@
+from datetime import timedelta
+
+from django.conf import settings
 from django.utils.decorators import classonlymethod
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache
@@ -8,6 +11,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from rest_framework import mixins
 
+from onadata.apps.api.models.odk_token import ODKToken
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.permissions import ConnectViewsetPermissions
 from onadata.apps.main.models.user_profile import UserProfile
@@ -22,6 +26,10 @@ from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.serializers.user_profile_serializer import \
     UserProfileWithTokenSerializer
 from onadata.settings.common import DEFAULT_SESSION_EXPIRY_TIME
+
+ODK_TOKEN_LIFETIME = getattr(
+    settings, "ODK_KEY_LIFETIME", 7
+)
 
 
 def user_profile_w_token_response(request, status):
@@ -113,6 +121,42 @@ class ConnectViewSet(mixins.CreateModelMixin, AuthenticateHeaderMixin,
         new_token = Token.objects.create(user=request.user)
 
         return Response(data=new_token.key, status=status.HTTP_201_CREATED)
+
+    @action(methods=['GET', 'POST'], detail=False)
+    def odk_token(self, request, *args, **kwargs):
+        user = request.user
+
+        if request.method == 'GET':
+            data = {}
+            try:
+                token = ODKToken.objects.get(user=user)
+                expiry_date = token.created + timedelta(
+                    days=ODK_TOKEN_LIFETIME)
+                data.update({'odk_token': token.key})
+                data.update({'expiry_date': expiry_date})
+                return Response(data=data, status=status.HTTP_200_OK)
+            except ODKToken.DoesNotExist:
+                data.update(
+                    {'error': 'ODK Token related to user does not exist'}
+                )
+                return Response(data=data, status=status.HTTP_400_BAD_REQUEST)
+
+        elif request.method == 'POST':
+            # Delete pre-existing odk_token
+            try:
+                ODKToken.objects.get(user=user).delete()
+            except ODKToken.DoesNotExist:
+                pass
+
+            generated_token = ODKToken.objects.create(user=user)
+            expiry_date = generated_token.created + timedelta(
+                days=ODK_TOKEN_LIFETIME)
+
+            return Response(
+                data={
+                    'odk_token': generated_token.key,
+                    'expiry_date': expiry_date},
+                status=status.HTTP_201_CREATED)
 
     @classonlymethod
     def as_view(cls, actions=None, **initkwargs):
