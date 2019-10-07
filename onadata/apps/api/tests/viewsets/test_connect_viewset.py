@@ -511,12 +511,12 @@ class TestConnectViewSet(TestAbstractViewSet):
         request.session = self.client.session
         response = view(request)
         self.assertEqual(response.status_code, 201)
-        id_token = response.data['odk_token']
+        odk_token = response.data['odk_token']
         expiry_date = response.data['expiry_date']
 
         request = self.factory.get("/", **self.extra)
         request.session = self.client.session
         response = view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['id_token'], id_token)
+        self.assertEqual(response.data['odk_token'], odk_token)
         self.assertEqual(response.data['expiry_date'], expiry_date)
