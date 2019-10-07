@@ -17,8 +17,7 @@ class TestFloipViewSet(TestAbstractViewSet):
     Test FloipViewSet class.
     """
 
-    def _publish_floip(self,
-                       path='flow-results-example-2-api.json',
+    def _publish_floip(self, path='flow-results-example-2-api.json',
                        test=True):
         view = FloipViewSet.as_view({'post': 'create'})
         path = os.path.join(os.path.dirname(__file__), "../", "fixtures", path)
@@ -36,8 +35,8 @@ class TestFloipViewSet(TestAbstractViewSet):
                                  'application/vnd.api+json')
                 self.assertEqual(
                     response['Location'],
-                    'http://testserver/api/v1/flow-results/packages/'
-                    + response.data['id'])
+                    'http://testserver/api/v1/flow-results/packages/' +
+                    response.data['id'])
                 self.assertEqual(response.data['profile'],
                                  'flow-results-package')
             return response.data
@@ -72,9 +71,9 @@ class TestFloipViewSet(TestAbstractViewSet):
         """
         view = FloipViewSet.as_view({'get': 'list'})
         data = self._publish_floip(path='flow-results-example-w-uuid.json')
-        request = self.factory.get(
-            '/flow-results/packages',
-            content_type='application/vnd.api+json', **self.extra)
+        request = self.factory.get('/flow-results/packages',
+                                   content_type='application/vnd.api+json',
+                                   **self.extra)
         response = view(request)
         self.assertEqual(response.status_code, 200)
         self.assertIn('created', response.data[0])
@@ -95,9 +94,9 @@ class TestFloipViewSet(TestAbstractViewSet):
         """
         view = FloipViewSet.as_view({'get': 'retrieve'})
         data = self._publish_floip(path='flow-results-example-w-uuid.json')
-        request = self.factory.get(
-            '/flow-results/packages/' + data['id'],
-            content_type='application/vnd.api+json', **self.extra)
+        request = self.factory.get('/flow-results/packages/' + data['id'],
+                                   content_type='application/vnd.api+json',
+                                   **self.extra)
         response = view(request, uuid=data['id'])
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
@@ -119,10 +118,10 @@ class TestFloipViewSet(TestAbstractViewSet):
                             'flow-results-example-w-uuid-update.json')
         with open(path, encoding='utf-8') as json_file:
             post_data = json_file.read()
-            request = self.factory.put(
-                '/flow-results/packages/' + data['id'],
-                data=post_data, content_type='application/vnd.api+json',
-                **self.extra)
+            request = self.factory.put('/flow-results/packages/' + data['id'],
+                                       data=post_data,
+                                       content_type='application/vnd.api+json',
+                                       **self.extra)
             response = view(request, uuid=data['id'])
             self.assertEqual(response.status_code, 200)
             response.render()
@@ -139,9 +138,8 @@ class TestFloipViewSet(TestAbstractViewSet):
         count = Instance.objects.count()
         floip_data = self._publish_floip()
         view = FloipViewSet.as_view({'post': 'responses'})
-        path = os.path.join(
-            os.path.dirname(__file__), "../", "fixtures",
-            "flow-results-example-2-api-data.json")
+        path = os.path.join(os.path.dirname(__file__), "../", "fixtures",
+                            "flow-results-example-2-api-data.json")
         with open(path, encoding='utf-8') as json_file:
             descriptor = json.load(json_file)
             descriptor['data']['id'] = floip_data['id']
@@ -154,9 +152,10 @@ class TestFloipViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 201)
             self.assertEqual(response['Content-Type'],
                              'application/vnd.api+json')
-            self.assertEqual(response['Location'],
-                             'http://testserver/api/v1/flow-results/packages/'
-                             + floip_data['id'] + '/responses')
+            self.assertEqual(
+                response['Location'],
+                'http://testserver/api/v1/flow-results/packages/' +
+                floip_data['id'] + '/responses')
             self.assertEqual(count + 2, Instance.objects.count())
 
             request = self.factory.post(
@@ -168,9 +167,10 @@ class TestFloipViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 202)
             self.assertEqual(response['Content-Type'],
                              'application/vnd.api+json')
-            self.assertEqual(response['Location'],
-                             'http://testserver/api/v1/flow-results/packages/'
-                             + floip_data['id'] + '/responses')
+            self.assertEqual(
+                response['Location'],
+                'http://testserver/api/v1/flow-results/packages/' +
+                floip_data['id'] + '/responses')
             self.assertEqual(count + 2, Instance.objects.count())
 
     def test_publish_number_question_names(self):  # pylint: disable=C0103
@@ -179,9 +179,8 @@ class TestFloipViewSet(TestAbstractViewSet):
         a number.
         """
         view = FloipViewSet.as_view({'post': 'create'})
-        path = os.path.join(
-            os.path.dirname(__file__), "../", "fixtures",
-            "flow-results-number-question-names.json")
+        path = os.path.join(os.path.dirname(__file__), "../", "fixtures",
+                            "flow-results-number-question-names.json")
         with open(path, encoding='utf-8') as json_file:
             post_data = json_file.read()
             request = self.factory.post(
@@ -194,6 +193,36 @@ class TestFloipViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response['Content-Type'],
                              'application/vnd.api+json')
-            self.assertIn(
-                u"The name '1448506769745_42' is an invalid xml tag",
-                response.data['text'])
+            self.assertIn(u"The name '1448506769745_42' is an invalid xml tag",
+                          response.data['text'])
+
+    def test_responses_endpoint_format(self):
+        """
+        Test that the responses endpoint returns flow results in the correct
+        format following the flow-results-spec
+        """
+        floip_data = self._publish_floip()
+        view = FloipViewSet.as_view({'post': 'responses', 'get': 'responses'})
+
+        correct_response_format = {
+            "data": {
+                "type": "flow-results-data",
+                "id": floip_data['id'],
+                "attributes": {
+                    "responses": []
+                }
+            }
+        }
+
+        request = self.factory.get('/flow-results/packages/' +
+                                   floip_data['id'] + '/responses',
+                                   content_type='application/vnd.api+json',
+                                   **self.extra)
+        response = view(request, uuid=floip_data['id'])
+        self.assertEqual(response.status_code, 200)
+
+        # Convert the return generator object into a list
+        response.data['attributes']['responses'] = list(
+            response.data['attributes']['responses'])
+
+        self.assertEqual(response.data, correct_response_format['data'])
