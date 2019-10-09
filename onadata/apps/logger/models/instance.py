@@ -66,7 +66,7 @@ def get_attachment_url(attachment, suffix=None):
 
 def _get_attachments_from_instance(instance):
     attachments = []
-    for a in instance.attachments.all():
+    for a in instance.attachments.filter(deleted_at__isnull=True):
         attachment = dict()
         attachment['download_url'] = get_attachment_url(a)
         attachment['small_download_url'] = get_attachment_url(a, 'small')
@@ -78,6 +78,9 @@ def _get_attachments_from_instance(instance):
         attachment['xform'] = instance.xform.id
         attachment['id'] = a.id
         attachments.append(attachment)
+
+        if isinstance(a.deleted_at, datetime):
+            attachment['deleted_at'] = a.deleted_at.strftime(MONGO_STRFTIME)
 
     return attachments
 

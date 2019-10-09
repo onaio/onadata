@@ -47,7 +47,8 @@ class AttachmentViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
     content_negotiation_class = MediaFileContentNegotiation
     filter_backends = (filters.AttachmentFilter, filters.AttachmentTypeFilter)
     lookup_field = 'pk'
-    queryset = Attachment.objects.filter(instance__deleted_at__isnull=True)
+    queryset = Attachment.objects.filter(
+        instance__deleted_at__isnull=True, deleted_at__isnull=True)
     permission_classes = (AttachmentObjectPermissions,)
     serializer_class = AttachmentSerializer
     pagination_class = StandardPageNumberPagination

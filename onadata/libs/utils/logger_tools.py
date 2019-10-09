@@ -220,6 +220,7 @@ def save_attachments(xform, instance, media_files):
     """
     # upload_path = os.path.join(instance.xform.user.username, 'attachments')
 
+    filenames = []
     for f in media_files:
         filename, extension = os.path.splitext(f.name)
         extension = extension.replace('.', '')
@@ -229,6 +230,7 @@ def save_attachments(xform, instance, media_files):
             xform.instances_with_osm = True
             xform.save()
         filename = os.path.basename(f.name)
+        filenames.append(filename)
         media_in_submission = (
             filename in instance.get_expected_media() or
             [instance.xml.decode('utf-8').find(filename) != -1 if
@@ -241,6 +243,10 @@ def save_attachments(xform, instance, media_files):
                 mimetype=content_type,
                 name=filename,
                 extension=extension)
+    Attachment.objects.filter(instance=instance).filter(
+        ~Q(name__in=instance.get_expected_media())).update(
+            deleted_at=timezone.now())
+
     update_attachment_tracking(instance)
 
 

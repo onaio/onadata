@@ -3,6 +3,7 @@ import os
 from hashlib import md5
 
 from django.db import models
+from django.utils import timezone
 
 
 def get_original_filename(filename):
@@ -86,3 +87,12 @@ class Attachment(models.Model):
     def filename(self):
         if self.media_file:
             return os.path.basename(self.media_file.name)
+
+    def soft_delete(self, user=None):
+        """
+        Soft deletes an attachment by adding a deleted_at timestamp.
+        """
+        self.deleted_at = timezone.now()
+        if user is not None:
+            self.deleted_by = user
+        self.save()
