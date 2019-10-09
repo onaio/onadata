@@ -4,6 +4,7 @@ from django_digest.test import DigestAuth
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.main.models import UserProfile
+from onadata.apps.api.models.odk_token import ODKToken
 
 
 class TestDigestAuthentication(TestBase):
@@ -54,3 +55,22 @@ class TestDigestAuthentication(TestBase):
                               auth=auth)
         # Not allowed
         self.assertEqual(self.response.status_code, 403)
+
+    def test_authenticates_odk_token_email(self):
+        """
+        Test that a valid Digest request with as the auth email:odk_token
+        is authenticated
+        """
+        s = self.surveys[0]
+        xml_submission_file_path = os.path.join(
+            self.this_directory, 'fixtures',
+            'transportation', 'instances', s, s + '.xml'
+        )
+        self._set_require_auth()
+
+        odk_token = ODKToken.objects.create(user=self.user)
+
+        auth = DigestAuth(self.login_username, odk_token)
+        self._make_submission(xml_submission_file_path, add_uuid=True,
+                              auth=auth)
+        self.assertEqual(self.response.status_code, 201)
