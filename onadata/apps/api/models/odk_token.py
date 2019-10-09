@@ -12,6 +12,7 @@ from django_digest.models import (_persist_partial_digests,
                                   _prepare_partial_digests)
 
 AUTH_USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
+ODK_TOKEN_LENGTH = getattr(settings, 'ODK_TOKEN_LENGTH', 7)
 
 
 class ODKToken(models.Model):
@@ -32,7 +33,7 @@ class ODKToken(models.Model):
         return super(ODKToken, self).save(*args, **kwargs)
 
     def generate_key(self):
-        return binascii.hexlify(os.urandom(20)).decode()
+        return binascii.hexlify(os.urandom(ODK_TOKEN_LENGTH)).decode()
 
     def __str__(self):
         return self.key
