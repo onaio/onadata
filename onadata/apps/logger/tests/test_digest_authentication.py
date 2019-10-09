@@ -70,7 +70,7 @@ class TestDigestAuthentication(TestBase):
 
         odk_token = ODKToken.objects.create(user=self.user)
 
-        auth = DigestAuth(self.login_username, odk_token)
+        auth = DigestAuth(self.login_username, odk_token.key)
         self._make_submission(xml_submission_file_path, add_uuid=True,
                               auth=auth)
         self.assertEqual(self.response.status_code, 201)
