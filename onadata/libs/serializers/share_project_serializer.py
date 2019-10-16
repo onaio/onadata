@@ -20,14 +20,28 @@ def attrs_to_instance(attrs, instance):
 
 class ShareProjectSerializer(serializers.Serializer):
     project = ProjectField()
-    username = serializers.CharField(max_length=255)
+    username = serializers.CharField(max_length=255,
+                                     allow_null=True,
+                                     required=False)
+    usernames = serializers.CharField(required=False)
     role = serializers.CharField(max_length=50)
 
     def create(self, validated_data):
-        instance = ShareProject(**validated_data)
-        instance.save()
+        if "usernames" in validated_data:
+            usernames = validated_data.pop('usernames')
+            created_instances = []
 
-        return instance
+            for username in usernames:
+                validated_data['username'] = username
+                instance = ShareProject(**validated_data)
+                instance.save()
+                created_instances.append(instance)
+
+            return created_instances
+        else:
+            instance = ShareProject(**validated_data)
+            instance.save()
+            return instance
 
     def update(self, instance, validated_data):
         instance = attrs_to_instance(validated_data, instance)
@@ -36,15 +50,32 @@ class ShareProjectSerializer(serializers.Serializer):
         return instance
 
     def validate(self, attrs):
-        user = User.objects.get(username=attrs.get('username'))
-        project = attrs.get('project')
+        # Check that either the 'username' or 'usernames' field is passed
+        if not attrs.get('username') and not attrs.get('usernames'):
+            raise serializers.ValidationError({
+                'username':
+                _(u"Either username or usernames field should be present"),
+                'usernames':
+                _(u"Either username or usernames field should be present")
+            })
 
-        # check if the user is the owner of the project
-        if user and project:
-            if user == project.organization:
-                raise serializers.ValidationError({
-                    'username': _(u"Cannot share project with the owner")
-                })
+        if attrs.get('usernames'):
+            usernames = attrs.get('usernames')
+        else:
+            usernames = [attrs.get('username')]
+
+        for username in usernames:
+            user = User.objects.get(username=username)
+            project = attrs.get('project')
+
+            # check if the user is the owner of the project
+            if user and project:
+                if user == project.organization:
+                    raise serializers.ValidationError({
+                        'username':
+                        _(u"Cannot share project with the owner (%(value)s)" %
+                          {"value": user.username})
+                    })
 
         return attrs
 
@@ -63,6 +94,25 @@ class ShareProjectSerializer(serializers.Serializer):
                 raise serializers.ValidationError(_(u"User is not active"))
 
         return value
+
+    def validate_usernames(self, value):
+        """Check that all usernames in the list exist"""
+        usernames = value.split(',')
+
+        for username in usernames:
+            try:
+                user = User.objects.get(username=username)
+            except User.DoesNotExist:
+                raise serializers.ValidationError(
+                    _(u"User '%(username)s' does not exist." %
+                      {"username": username}))
+            else:
+                if not user.is_active:
+                    raise serializers.ValidationError(
+                        _(u"User '%(username)s' is not active") %
+                        {"username": username})
+
+        return usernames
 
     def validate_role(self, value):
         """check that the role exists"""
