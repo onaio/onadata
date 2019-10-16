@@ -176,6 +176,32 @@ Response
 
     HTTP 204 NO CONTENT
 
+Share a project with multiple users
+-------------------------------------
+
+You can share a project with mutliple users by ``PUT`` a payload with
+
+- ``usernames`` of the users you want to share the form with, separated by a comma and
+- ``role`` you want the users to have on the project.Available roles are ``readonly``, ``dataentry``, ``editor``, ``manager``.
+
+.. raw:: html
+
+	<pre class="prettyprint">
+	<b>PUT</b> /api/v1/projects/<code>{pk}</code>/share
+	</pre>
+
+Example
+^^^^^^^^
+::
+
+    curl -X PUT -d usernames=alice,jake -d role=readonly https://api.ona.io/api/v1/projects/1/share
+
+Response
+^^^^^^^^^
+::
+
+    HTTP 204 NO CONTENT
+
 Send an email to users on project share
 ----------------------------------------
 
