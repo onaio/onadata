@@ -103,3 +103,26 @@ class TestShareProjectSerializer(TestAbstractViewSet, TestBase):
         serializer.save()
         self.assertTrue(ReadOnlyRole.user_has_role(user_dave, project))
         self.assertTrue(ReadOnlyRole.user_has_role(user_jake, project))
+
+    def test_error_on_username_and_usernames_missing(self):
+        """
+        Test that an error is raised when both "username" and "usernames"
+        field are missing
+        """
+        self._publish_xls_form_to_project()
+
+        project = Project.objects.last()
+
+        data = {
+            'project': project.id,
+            'role': ReadOnlyRole.name
+        }
+
+        serializer = ShareProjectSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+        self.assertEqual(
+            str(serializer.errors['username'][0]),
+            "Either username or usernames field should be present")
+        self.assertEqual(
+            str(serializer.errors['usernames'][0]),
+            "Either username or usernames field should be present")
