@@ -7,8 +7,10 @@ from __future__ import unicode_literals
 from django.utils.module_loading import import_string
 
 from actstream.models import Action
+from multidb.pinning import use_master
 
 
+@use_master
 def call_backend(backend, instance_id, backend_options=None):
     """
     Call notification backends like MQTT to send messages
