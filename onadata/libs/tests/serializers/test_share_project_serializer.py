@@ -9,6 +9,7 @@ from onadata.apps.logger.models import Project
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.serializers.share_project_serializer import (
     ShareProjectSerializer)
+from onadata.libs.permissions import ReadOnlyRole
 
 
 class TestShareProjectSerializer(TestAbstractViewSet, TestBase):
@@ -33,7 +34,7 @@ class TestShareProjectSerializer(TestAbstractViewSet, TestBase):
         data = {
             'project': project.id,
             'username': self.user.username,
-            'role': 'readonly'
+            'role': ReadOnlyRole.name
         }
 
         serializer = ShareProjectSerializer(data=data)
@@ -44,17 +45,15 @@ class TestShareProjectSerializer(TestAbstractViewSet, TestBase):
             {"value": self.user.username})
 
         # Test that this fails even when multiple users are passed
-        user_joe = self._create_user('joe', 'joe')
-        user_jake = self._create_user('jake', 'jake')
+        self._create_user('joe', 'joe')
+        self._create_user('jake', 'jake')
 
         data = {
             'project': project.id,
-            'usernames': '%(user_a)s,%(user_b)s,%(user_c)s' % {
-                "user_a": user_joe.username,
-                "user_b": self.user.username,
-                "user_c": user_jake.username,
+            'usernames': 'joe,%(user)s,jake' % {
+                "user": self.user.username,
             },
-            'role': 'readonly'
+            'role': ReadOnlyRole.name
         }
 
         serializer = ShareProjectSerializer(data=data)
@@ -73,37 +72,34 @@ class TestShareProjectSerializer(TestAbstractViewSet, TestBase):
 
         user_joe = self._create_user('joe', 'joe')
 
-        self.assertFalse(user_joe.has_perm('view_project', obj=project))
+        self.assertFalse(ReadOnlyRole.user_has_role(user_joe, project))
 
         data = {
             'project': project.id,
-            'username': user_joe.username,
-            'role': 'readonly'
+            'username': 'joe',
+            'role': ReadOnlyRole.name
         }
 
         serializer = ShareProjectSerializer(data=data)
         self.assertTrue(serializer.is_valid())
         serializer.save()
-        self.assertTrue(user_joe.has_perm('view_project', obj=project))
+        self.assertTrue(ReadOnlyRole.user_has_role(user_joe, project))
 
         # Test that it can share to multiple users
         user_dave = self._create_user('dave', 'dave')
         user_jake = self._create_user('jake', 'jake')
 
-        self.assertFalse(user_dave.has_perm('view_project', obj=project))
-        self.assertFalse(user_jake.has_perm('view_project', obj=project))
+        self.assertFalse(ReadOnlyRole.user_has_role(user_dave, project))
+        self.assertFalse(ReadOnlyRole.user_has_role(user_jake, project))
 
         data = {
             'project': project.id,
-            'usernames': '%(user_a)s,%(user_b)s' % {
-                "user_a": user_dave.username,
-                "user_b": user_jake.username
-            },
-            'role': 'readonly'
+            'usernames': 'dave,jake',
+            'role': ReadOnlyRole.name
         }
 
         serializer = ShareProjectSerializer(data=data)
         self.assertTrue(serializer.is_valid())
         serializer.save()
-        self.assertTrue(user_dave.has_perm('view_project', obj=project))
-        self.assertTrue(user_jake.has_perm('view_project', obj=project))
+        self.assertTrue(ReadOnlyRole.user_has_role(user_dave, project))
+        self.assertTrue(ReadOnlyRole.user_has_role(user_jake, project))
