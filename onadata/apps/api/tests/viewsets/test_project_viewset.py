@@ -1562,7 +1562,7 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data['username'], [u"Cannot share project"
-                                                     u" with the owner"])
+                                                     u" with the owner (bob)"])
         self.assertTrue(OwnerRole.user_has_role(self.user, self.project))
 
     def test_project_share_readonly(self):
