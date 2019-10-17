@@ -98,19 +98,23 @@ class ShareProjectSerializer(serializers.Serializer):
     def validate_usernames(self, value):
         """Check that all usernames in the list exist"""
         usernames = value.split(',')
+        non_existing_usernames = []
 
         for username in usernames:
             try:
                 user = User.objects.get(username=username)
             except User.DoesNotExist:
-                raise serializers.ValidationError(
-                    _(u"User '%(username)s' does not exist." %
-                      {"username": username}))
+                non_existing_usernames.append(username)
             else:
                 if not user.is_active:
                     raise serializers.ValidationError(
                         _(u"User '%(username)s' is not active") %
                         {"username": username})
+
+        if non_existing_usernames:
+            raise serializers.ValidationError(
+                    _(u"The following users do not exist: '%(usernames)s'" %
+                      {"usernames": ', '.join(non_existing_usernames)}))
 
         return usernames
 
