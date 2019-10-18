@@ -7,6 +7,7 @@ import os
 from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_save
+from django.utils.translation import ugettext_lazy as _
 
 from cryptography.fernet import Fernet
 from django_digest.models import (_persist_partial_digests,
@@ -21,9 +22,22 @@ class ODKToken(models.Model):
     """
     ODK Token class
     """
+    ACTIVE = '1'
+    INACTIVE = '2'
+    STATUS_CHOICES = (
+        (ACTIVE, _('Active')),
+        (INACTIVE, _('INACTIVE'))
+    )
+
     key = models.CharField(max_length=255, primary_key=True)
     user = models.OneToOneField(
         AUTH_USER_MODEL, related_name='odk_token', on_delete=models.CASCADE)
+    status = models.CharField(
+        _('Status'),
+        choices=STATUS_CHOICES,
+        default=INACTIVE,
+        max_length=1,
+        blank=True)
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
