@@ -35,7 +35,7 @@ class ODKToken(models.Model):
     status = models.CharField(
         _('Status'),
         choices=STATUS_CHOICES,
-        default=INACTIVE,
+        default=ACTIVE,
         max_length=1,
         blank=True)
     created = models.DateTimeField(auto_now_add=True)
