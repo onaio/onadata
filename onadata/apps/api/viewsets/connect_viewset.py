@@ -131,7 +131,9 @@ class ConnectViewSet(mixins.CreateModelMixin, AuthenticateHeaderMixin,
                 token = ODKToken.objects.get(user=user)
                 expiry_date = token.created + timedelta(
                     days=ODK_TOKEN_LIFETIME)
-                data = {'odk_token': token.key, 'expiry_date': expiry_date}
+                data = {
+                    'enc_odk_token': token.key,
+                    'active_till': expiry_date}
                 return Response(data=data, status=status.HTTP_200_OK)
             except ODKToken.DoesNotExist:
                 data = {'error': 'ODK Token related to user does not exist'}
@@ -140,6 +142,7 @@ class ConnectViewSet(mixins.CreateModelMixin, AuthenticateHeaderMixin,
         elif request.method == 'POST':
             # Delete pre-existing odk_token
             try:
+                # TODO: Switch to inactivate - Remove regeneration
                 ODKToken.objects.get(user=user).delete()
             except ODKToken.DoesNotExist:
                 pass
@@ -149,8 +152,8 @@ class ConnectViewSet(mixins.CreateModelMixin, AuthenticateHeaderMixin,
                 days=ODK_TOKEN_LIFETIME)
 
             data = {
-                'odk_token': generated_token.key,
-                'expiry_date': expiry_date
+                'enc_odk_token': generated_token.key,
+                'active_till': expiry_date
             }
 
             return Response(

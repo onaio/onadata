@@ -494,13 +494,13 @@ class TestConnectViewSet(TestAbstractViewSet):
         request.session = self.client.session
         response = view(request)
         self.assertEqual(response.status_code, 201)
-        old_token = response.data['odk_token']
+        old_token = response.data['enc_odk_token']
 
         request = self.factory.post("/", **self.extra)
         request.session = self.client.session
         response = view(request)
         self.assertEqual(response.status_code, 201)
-        self.assertNotEqual(response.data['odk_token'], old_token)
+        self.assertNotEqual(response.data['enc_odk_token'], old_token)
 
     def test_retrieve_odk_token(self):
         view = ConnectViewSet.as_view({
@@ -511,12 +511,12 @@ class TestConnectViewSet(TestAbstractViewSet):
         request.session = self.client.session
         response = view(request)
         self.assertEqual(response.status_code, 201)
-        odk_token = response.data['odk_token']
-        expiry_date = response.data['expiry_date']
+        odk_token = response.data['enc_odk_token']
+        expiry_date = response.data['active_till']
 
         request = self.factory.get("/", **self.extra)
         request.session = self.client.session
         response = view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['odk_token'], odk_token)
-        self.assertEqual(response.data['expiry_date'], expiry_date)
+        self.assertEqual(response.data['enc_odk_token'], odk_token)
+        self.assertEqual(response.data['active_till'], expiry_date)
