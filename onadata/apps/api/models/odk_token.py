@@ -35,7 +35,7 @@ class ODKToken(models.Model):
         the fernet cryptography scheme
         """
         fernet = Fernet(ODK_TOKEN_FERNET_KEY)
-        return fernet.encrypt(raw_key.encode('utf-8'))
+        return fernet.encrypt(raw_key.encode('utf-8')).decode('utf-8')
 
     def _generate_partial_digest(self, raw_key):
         """
