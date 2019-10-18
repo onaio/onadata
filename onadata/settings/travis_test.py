@@ -65,3 +65,6 @@ MIDDLEWARE_CLASSES = (
 )
 
 VERIFIED_KEY_TEXT = 'ALREADY_ACTIVATED'
+
+# ODK Token Configuration
+ODK_TOKEN_FERNET_KEY = 'rqt7w0f0bVygptj-EInTHFHOdrXj0aGmh5ic-qRnhq0='

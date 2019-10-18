@@ -1,10 +1,15 @@
 import os
 
+from django.conf import settings
+from django.test.utils import override_settings
+from cryptography.fernet import Fernet
 from django_digest.test import DigestAuth
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.main.models import UserProfile
 from onadata.apps.api.models.odk_token import ODKToken
+
+ODK_TOKEN_FERNET_KEY = 'ROsB4T8s1rCJskAdgpTQEKfH2x2K_EX_YBi3UFyoYng='
 
 
 class TestDigestAuthentication(TestBase):
@@ -56,6 +61,8 @@ class TestDigestAuthentication(TestBase):
         # Not allowed
         self.assertEqual(self.response.status_code, 403)
 
+    @override_settings(
+        ODK_TOKEN_FERNET_KEY=ODK_TOKEN_FERNET_KEY)
     def test_authenticates_odk_token_email(self):
         """
         Test that a valid Digest request with as the auth email:odk_token
@@ -70,7 +77,12 @@ class TestDigestAuthentication(TestBase):
 
         odk_token = ODKToken.objects.create(user=self.user)
 
-        auth = DigestAuth(self.login_username, odk_token.key)
+        # The value odk_token.key is hashed we need to have the raw_key
+        # In order to authenticate with DigestAuth
+        fernet = Fernet(getattr(settings, 'ODK_TOKEN_FERNET_KEY'))
+        raw_key = fernet.decrypt(odk_token.key).decode('utf-8')
+
+        auth = DigestAuth(self.login_username, raw_key)
         self._make_submission(xml_submission_file_path, add_uuid=True,
                               auth=auth)
         self.assertEqual(self.response.status_code, 201)
