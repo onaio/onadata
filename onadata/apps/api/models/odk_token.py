@@ -26,18 +26,17 @@ class ODKToken(models.Model):
     INACTIVE = '2'
     STATUS_CHOICES = (
         (ACTIVE, _('Active')),
-        (INACTIVE, _('INACTIVE'))
+        (INACTIVE, _('Inactive'))
     )
 
-    key = models.CharField(max_length=255, primary_key=True)
+    key = models.CharField(max_length=150, primary_key=True)
     user = models.OneToOneField(
         AUTH_USER_MODEL, related_name='odk_token', on_delete=models.CASCADE)
     status = models.CharField(
-        _('Status'),
+        'Status',
         choices=STATUS_CHOICES,
         default=ACTIVE,
-        max_length=1,
-        blank=True)
+        max_length=1)
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
