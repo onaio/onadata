@@ -127,18 +127,14 @@ class ConnectViewSet(mixins.CreateModelMixin, AuthenticateHeaderMixin,
         user = request.user
 
         if request.method == 'GET':
-            data = {}
             try:
                 token = ODKToken.objects.get(user=user)
                 expiry_date = token.created + timedelta(
                     days=ODK_TOKEN_LIFETIME)
-                data.update({'odk_token': token.key})
-                data.update({'expiry_date': expiry_date})
+                data = {'odk_token': token.key, 'expiry_date': expiry_date}
                 return Response(data=data, status=status.HTTP_200_OK)
             except ODKToken.DoesNotExist:
-                data.update(
-                    {'error': 'ODK Token related to user does not exist'}
-                )
+                data = {'error': 'ODK Token related to user does not exist'}
                 return Response(data=data, status=status.HTTP_400_BAD_REQUEST)
 
         elif request.method == 'POST':
@@ -152,11 +148,13 @@ class ConnectViewSet(mixins.CreateModelMixin, AuthenticateHeaderMixin,
             expiry_date = generated_token.created + timedelta(
                 days=ODK_TOKEN_LIFETIME)
 
+            data = {
+                'odk_token': generated_token.key,
+                'expiry_date': expiry_date
+            }
+
             return Response(
-                data={
-                    'odk_token': generated_token.key,
-                    'expiry_date': expiry_date},
-                status=status.HTTP_201_CREATED)
+                data=data, status=status.HTTP_201_CREATED)
 
     @classonlymethod
     def as_view(cls, actions=None, **initkwargs):
