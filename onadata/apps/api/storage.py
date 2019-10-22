@@ -31,7 +31,7 @@ class DigestAccountStorage(AccountStorage):
     Digest Account Backend class
     """
 
-    def get_user(self, login):
+    def get_user(self, login):  # pylint: disable=no-self-use
         """
         Checks if there is a partial digest matching the login passed in and
         that the user associated with the Partial Digest is active.
