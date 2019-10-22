@@ -42,14 +42,6 @@ class ODKToken(models.Model):
     class Meta:
         app_label = 'api'
 
-    def _encrypt_key(self, raw_key):
-        """
-        Encrypts the ODK Token using the ODK_TOKEN_SECRET through
-        the fernet cryptography scheme
-        """
-        fernet = Fernet(ODK_TOKEN_FERNET_KEY)
-        return fernet.encrypt(raw_key.encode('utf-8')).decode('utf-8')
-
     def _generate_partial_digest(self, raw_key):
         """
         Generates the partial digests for ODK Authentication
@@ -76,6 +68,15 @@ class ODKToken(models.Model):
 
     def __str__(self):
         return self.key
+
+
+def _encrypt_key(raw_key):
+    """
+    Encrypts the ODK Token using the ODK_TOKEN_SECRET through
+    the fernet cryptography scheme
+    """
+    fernet = Fernet(ODK_TOKEN_FERNET_KEY)
+    return fernet.encrypt(raw_key.encode('utf-8')).decode('utf-8')
 
 
 def _post_save_persist_partial_digests(sender, instance=None, **kwargs):

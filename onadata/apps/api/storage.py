@@ -3,11 +3,11 @@ Backends module for th API app
 """
 import logging
 
-from django_digest.backend.storage import AccountStorage
-from django_digest.models import PartialDigest
-
 from django.conf import settings
 from django.utils import timezone
+
+from django_digest.backend.storage import AccountStorage
+from django_digest.models import PartialDigest
 
 from onadata.apps.api.models.odk_token import ODKToken
 
@@ -17,18 +17,19 @@ _l.setLevel(logging.DEBUG)
 ODK_KEY_LIFETIME_IN_SEC = getattr(settings, 'ODK_KEY_LIFETIME', 7) * 86400
 
 
+def _check_odk_token_expiry(created):
+    """
+    Checks to see whether an ODK Token has expired
+    """
+    time_diff = (timezone.now() - created).total_seconds
+
+    return time_diff > ODK_KEY_LIFETIME_IN_SEC
+
+
 class DigestAccountStorage(AccountStorage):
     """
     Digest Account Backend class
     """
-
-    def _check_odk_token_expiry(self, created):
-        """
-        Checks to see whether an ODK Token has expired
-        """
-        time_diff = (timezone.now() - created).total_seconds
-
-        return time_diff > ODK_KEY_LIFETIME_IN_SEC
 
     def get_user(self, login):
         """
