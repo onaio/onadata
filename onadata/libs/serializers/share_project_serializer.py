@@ -20,28 +20,20 @@ def attrs_to_instance(attrs, instance):
 
 class ShareProjectSerializer(serializers.Serializer):
     project = ProjectField()
-    username = serializers.CharField(max_length=255,
-                                     allow_null=True,
-                                     required=False)
-    usernames = serializers.CharField(required=False)
+    username = serializers.CharField(max_length=255)
     role = serializers.CharField(max_length=50)
 
     def create(self, validated_data):
-        if "usernames" in validated_data:
-            usernames = validated_data.pop('usernames')
-            created_instances = []
+        usernames = validated_data.pop('username')
+        created_instances = []
 
-            for username in usernames:
-                validated_data['username'] = username
-                instance = ShareProject(**validated_data)
-                instance.save()
-                created_instances.append(instance)
-
-            return created_instances
-        else:
+        for username in usernames:
+            validated_data['username'] = username
             instance = ShareProject(**validated_data)
             instance.save()
-            return instance
+            created_instances.append(instance)
+
+        return created_instances
 
     def update(self, instance, validated_data):
         instance = attrs_to_instance(validated_data, instance)
@@ -50,19 +42,7 @@ class ShareProjectSerializer(serializers.Serializer):
         return instance
 
     def validate(self, attrs):
-        # Check that either the 'username' or 'usernames' field is passed
-        if not attrs.get('username') and not attrs.get('usernames'):
-            raise serializers.ValidationError({
-                'username':
-                _(u"Either username or usernames field should be present"),
-                'usernames':
-                _(u"Either username or usernames field should be present")
-            })
-
-        if attrs.get('usernames'):
-            usernames = attrs.get('usernames')
-        else:
-            usernames = [attrs.get('username')]
+        usernames = attrs.get('username')
 
         for username in usernames:
             user = User.objects.get(username=username)
@@ -81,40 +61,23 @@ class ShareProjectSerializer(serializers.Serializer):
 
     def validate_username(self, value):
         """Check that the username exists"""
-
-        user = None
-        try:
-            user = User.objects.get(username=value)
-        except User.DoesNotExist:
-            raise serializers.ValidationError(_(
-                u"User '%(value)s' does not exist." % {"value": value}
-            ))
-        else:
-            if not user.is_active:
-                raise serializers.ValidationError(_(u"User is not active"))
-
-        return value
-
-    def validate_usernames(self, value):
-        """Check that all usernames in the list exist"""
         usernames = value.split(',')
-        non_existing_usernames = []
+        user = None
+        non_existant_users = []
 
         for username in usernames:
             try:
                 user = User.objects.get(username=username)
             except User.DoesNotExist:
-                non_existing_usernames.append(username)
+                non_existant_users.append(username)
             else:
                 if not user.is_active:
-                    raise serializers.ValidationError(
-                        _(u"User '%(username)s' is not active") %
-                        {"username": username})
+                    raise serializers.ValidationError(_(u"User is not active"))
 
-        if non_existing_usernames:
+        if non_existant_users:
+            non_existant_users = ", ".join(non_existant_users)
             raise serializers.ValidationError(
-                    _(u"The following users do not exist: '%(usernames)s'" %
-                      {"usernames": ', '.join(non_existing_usernames)}))
+                _(f'The following users do not exist: {non_existant_users}'))
 
         return usernames
 
