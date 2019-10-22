@@ -27,6 +27,7 @@ from rest_framework.exceptions import AuthenticationFailed
 
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.tasks import send_account_lockout_email
+from onadata.apps.api.storage import DigestAccountStorage
 from onadata.libs.utils.cache_tools import (
     LOCKOUT_USER,
     LOGIN_ATTEMPTS,
@@ -95,7 +96,8 @@ class DigestAuthentication(BaseAuthentication):
     """
 
     def __init__(self):
-        self.authenticator = HttpDigestAuthenticator()
+        self.authenticator = HttpDigestAuthenticator(
+            account_storage=DigestAccountStorage)
 
     def authenticate(self, request):
         auth = get_authorization_header(request).split()
