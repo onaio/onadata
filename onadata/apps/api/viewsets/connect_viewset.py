@@ -133,7 +133,9 @@ class ConnectViewSet(mixins.CreateModelMixin, AuthenticateHeaderMixin,
                     days=ODK_TOKEN_LIFETIME)
                 data = {
                     'enc_odk_token': token.key,
-                    'active_till': expiry_date}
+                    'active_till': expiry_date,
+                    'status': token.get_status_display()
+                }
                 return Response(data=data, status=status.HTTP_200_OK)
             except ODKToken.DoesNotExist:
                 data = {'error': 'ODK Token related to user does not exist'}
@@ -153,7 +155,8 @@ class ConnectViewSet(mixins.CreateModelMixin, AuthenticateHeaderMixin,
 
             data = {
                 'enc_odk_token': generated_token.key,
-                'active_till': expiry_date
+                'active_till': expiry_date,
+                'status': token.get_status_display()
             }
 
             return Response(
