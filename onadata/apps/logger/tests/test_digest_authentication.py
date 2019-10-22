@@ -80,7 +80,7 @@ class TestDigestAuthentication(TestBase):
         # The value odk_token.key is hashed we need to have the raw_key
         # In order to authenticate with DigestAuth
         fernet = Fernet(getattr(settings, 'ODK_TOKEN_FERNET_KEY'))
-        raw_key = fernet.decrypt(odk_token.key).decode('utf-8')
+        raw_key = fernet.decrypt(odk_token.key.encode('utf-8')).decode('utf-8')
 
         auth = DigestAuth(self.login_username, raw_key)
         self._make_submission(xml_submission_file_path, add_uuid=True,
