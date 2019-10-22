@@ -15,6 +15,7 @@ from rest_framework import authentication
 from rest_framework.authtoken.models import Token
 
 from onadata.apps.api.models.temp_token import TempToken
+from onadata.apps.api.models.odk_token import ODKToken
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
@@ -482,41 +483,76 @@ class TestConnectViewSet(TestAbstractViewSet):
         cache.delete(safe_key("lockout_user-bob"))
 
     def test_generate_odk_token(self):
+        """
+        Test that ODK Tokens can be created
+        """
         view = ConnectViewSet.as_view({'post': 'odk_token'})
-        request = self.factory.post("/", **self.extra)
+        request = self.factory.post('/', **self.extra)
         request.session = self.client.session
         response = view(request)
         self.assertEqual(response.status_code, 201)
 
     def test_regenerate_odk_token(self):
         view = ConnectViewSet.as_view({'post': 'odk_token'})
-        request = self.factory.post("/", **self.extra)
+        request = self.factory.post('/', **self.extra)
         request.session = self.client.session
         response = view(request)
         self.assertEqual(response.status_code, 201)
         old_token = response.data['enc_odk_token']
 
-        request = self.factory.post("/", **self.extra)
+        request = self.factory.post('/', **self.extra)
         request.session = self.client.session
         response = view(request)
         self.assertEqual(response.status_code, 201)
         self.assertNotEqual(response.data['enc_odk_token'], old_token)
 
     def test_retrieve_odk_token(self):
+        """
+        Test that ODK Tokens can be retrieved
+        """
         view = ConnectViewSet.as_view({
             'post': 'odk_token',
             'get': 'odk_token'
         })
-        request = self.factory.post("/", **self.extra)
+        request = self.factory.post('/', **self.extra)
         request.session = self.client.session
         response = view(request)
         self.assertEqual(response.status_code, 201)
         odk_token = response.data['enc_odk_token']
-        expiry_date = response.data['active_till']
+        active_till = response.data['active_till']
 
-        request = self.factory.get("/", **self.extra)
+        request = self.factory.get('/', **self.extra)
         request.session = self.client.session
         response = view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['enc_odk_token'], odk_token)
-        self.assertEqual(response.data['active_till'], expiry_date)
+        self.assertEqual(response.data['active_till'], active_till)
+
+    def test_change_odk_token_status(self):
+        """
+        Test that the status of an ODK Token is changeable through
+        a PATCH request
+        """
+        view = ConnectViewSet.as_view({
+            'post': 'odk_token',
+            'get': 'odk_token',
+            'patch': 'odk_token'
+        })
+
+        request = self.factory.post('/', **self.extra)
+        request.session = self.client.session
+        response = view(request)
+
+        self.assertEqual(response.status_code, 201)
+        odk_token = response.data['enc_odk_token']
+
+        # On creation ODK Tokens have an Active Status
+        self.assertNotEqual(response.data['status'], ODKToken.INACTIVE)
+
+        request = self.factory.patch(
+            '/', data={'status': ODKToken.INACTIVE}, **self.extra)
+        request.session = self.client.session
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['enc_odk_token'], odk_token)
+        self.assertEqual(response.data['status'], ODKToken.INACTIVE)
