@@ -125,11 +125,17 @@ class ProjectViewSet(AuthenticateHeaderMixin,
             email_msg = data.get('email_msg')
             if email_msg:
                 # send out email message.
-                user = serializer.instance.user
-                send_mail(SHARE_PROJECT_SUBJECT.format(self.object.name),
-                          email_msg,
-                          DEFAULT_FROM_EMAIL,
-                          (user.email, ))
+                try:
+                    user = serializer.instance.user
+                except AttributeError:
+                    for instance in serializer.instance:
+                        user = instance.user
+                        send_mail(
+                            SHARE_PROJECT_SUBJECT.format(self.object.name),
+                            email_msg, DEFAULT_FROM_EMAIL, (user.email, ))
+                else:
+                    send_mail(SHARE_PROJECT_SUBJECT.format(self.object.name),
+                              email_msg, DEFAULT_FROM_EMAIL, (user.email,))
         else:
             return Response(data=serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)

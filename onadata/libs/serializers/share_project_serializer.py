@@ -24,7 +24,7 @@ class ShareProjectSerializer(serializers.Serializer):
     role = serializers.CharField(max_length=50)
 
     def create(self, validated_data):
-        usernames = validated_data.pop('username')
+        usernames = validated_data.pop('username').split(',')
         created_instances = []
 
         for username in usernames:
@@ -42,7 +42,7 @@ class ShareProjectSerializer(serializers.Serializer):
         return instance
 
     def validate(self, attrs):
-        usernames = attrs.get('username')
+        usernames = attrs.get('username').split(',')
 
         for username in usernames:
             user = User.objects.get(username=username)
@@ -79,7 +79,7 @@ class ShareProjectSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 _(f'The following users do not exist: {non_existant_users}'))
 
-        return usernames
+        return value
 
     def validate_role(self, value):
         """check that the role exists"""
