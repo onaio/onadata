@@ -9,8 +9,6 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.main.models import UserProfile
 from onadata.apps.api.models.odk_token import ODKToken
 
-ODK_TOKEN_FERNET_KEY = 'ROsB4T8s1rCJskAdgpTQEKfH2x2K_EX_YBi3UFyoYng='
-
 
 class TestDigestAuthentication(TestBase):
     def setUp(self):
@@ -61,8 +59,6 @@ class TestDigestAuthentication(TestBase):
         # Not allowed
         self.assertEqual(self.response.status_code, 403)
 
-    @override_settings(
-        ODK_TOKEN_FERNET_KEY=ODK_TOKEN_FERNET_KEY)
     def test_authenticates_odk_token_email(self):
         """
         Test that a valid Digest request with as the auth email:odk_token
