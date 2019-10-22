@@ -97,7 +97,7 @@ class DigestAuthentication(BaseAuthentication):
 
     def __init__(self):
         self.authenticator = HttpDigestAuthenticator(
-            account_storage=DigestAccountStorage)
+            account_storage=DigestAccountStorage())
 
     def authenticate(self, request):
         auth = get_authorization_header(request).split()
