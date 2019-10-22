@@ -122,29 +122,30 @@ class ConnectViewSet(mixins.CreateModelMixin, AuthenticateHeaderMixin,
 
         return Response(data=new_token.key, status=status.HTTP_201_CREATED)
 
-    @action(methods=['GET', 'POST'], detail=False)
+    @action(methods=['GET', 'POST', 'PATCH'], detail=False)
     def odk_token(self, request, *args, **kwargs):
         user = request.user
+        acceptable_statuses = [ODKToken.ACTIVE, ODKToken.INACTIVE]
 
         if request.method == 'GET':
             try:
                 token = ODKToken.objects.get(user=user)
                 expiry_date = token.created + timedelta(
                     days=ODK_TOKEN_LIFETIME)
-                data = {
+                return Response(data={
                     'enc_odk_token': token.key,
                     'active_till': expiry_date,
                     'status': token.get_status_display()
-                }
-                return Response(data=data, status=status.HTTP_200_OK)
+                },
+                                status=status.HTTP_200_OK)
             except ODKToken.DoesNotExist:
-                data = {'error': 'ODK Token related to user does not exist'}
-                return Response(data=data, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    data={'error': 'ODK Token related to user does not exist'},
+                    status=status.HTTP_404_NOT_FOUND)
 
         elif request.method == 'POST':
-            # Delete pre-existing odk_token
+            # Regenerates the ODK Token if one is already existant
             try:
-                # TODO: Switch to inactivate - Remove regeneration
                 ODKToken.objects.get(user=user).delete()
             except ODKToken.DoesNotExist:
                 pass
@@ -153,14 +154,42 @@ class ConnectViewSet(mixins.CreateModelMixin, AuthenticateHeaderMixin,
             expiry_date = generated_token.created + timedelta(
                 days=ODK_TOKEN_LIFETIME)
 
-            data = {
+            return Response(data={
                 'enc_odk_token': generated_token.key,
                 'active_till': expiry_date,
                 'status': token.get_status_display()
-            }
+            },
+                            status=status.HTTP_201_CREATED)
+        elif request.method == 'PATCH':
+            try:
+                token = ODKToken.objects.get(user=user)
+            except ODKToken.DoesNotExist:
+                data = {'error': 'ODK Token related to user does not exist'}
+                return Response(data=data, status=status.HTTP_404_NOT_FOUND)
+            else:
+                if 'status' in request.data:
+                    token_status = request.data.get('status')
 
-            return Response(
-                data=data, status=status.HTTP_201_CREATED)
+                    if token_status in acceptable_statuses:
+                        token.status = token_status
+                        token.save()
+
+                        return Response(data={
+                            'enc_odk_token': token.key,
+                            'active_till': expiry_date,
+                            'status': token.get_status_display()
+                        },
+                                        status=status.HTTP_200_OK)
+                    else:
+                        return Response(
+                            data={
+                                'error':
+                                'Status not in the acceptable statuses'
+                            },
+                            status=status.HTTP_400_BAD_REQUEST
+                            )
+
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
     @classonlymethod
     def as_view(cls, actions=None, **initkwargs):
