@@ -1,5 +1,5 @@
 """
-ODK token model class
+ODK token model module
 """
 import binascii
 import os
