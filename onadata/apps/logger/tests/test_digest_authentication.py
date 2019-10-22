@@ -1,7 +1,6 @@
 import os
 
 from django.conf import settings
-from django.test.utils import override_settings
 from cryptography.fernet import Fernet
 from django_digest.test import DigestAuth
 
