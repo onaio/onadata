@@ -56,7 +56,7 @@ class ODKToken(models.Model):
         raw_key = fernet.decrypt(self.key.encode('utf-8'))
         return raw_key == key
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs):  # pylint: disable=arguments-differ
         if not self.key:
             self.key = self.generate_key()
         return super(ODKToken, self).save(*args, **kwargs)
