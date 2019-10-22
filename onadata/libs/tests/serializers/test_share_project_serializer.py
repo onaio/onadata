@@ -50,7 +50,7 @@ class TestShareProjectSerializer(TestAbstractViewSet, TestBase):
 
         data = {
             'project': project.id,
-            'usernames': 'joe,%(user)s,jake' % {
+            'username': 'joe,%(user)s,jake' % {
                 "user": self.user.username,
             },
             'role': ReadOnlyRole.name
@@ -94,7 +94,7 @@ class TestShareProjectSerializer(TestAbstractViewSet, TestBase):
 
         data = {
             'project': project.id,
-            'usernames': 'dave,jake',
+            'username': 'dave,jake',
             'role': ReadOnlyRole.name
         }
 
@@ -103,26 +103,6 @@ class TestShareProjectSerializer(TestAbstractViewSet, TestBase):
         serializer.save()
         self.assertTrue(ReadOnlyRole.user_has_role(user_dave, project))
         self.assertTrue(ReadOnlyRole.user_has_role(user_jake, project))
-
-    def test_error_on_username_and_usernames_missing(self):
-        """
-        Test that an error is raised when both "username" and "usernames"
-        field are missing
-        """
-        self._publish_xls_form_to_project()
-
-        project = Project.objects.last()
-
-        data = {'project': project.id, 'role': ReadOnlyRole.name}
-
-        serializer = ShareProjectSerializer(data=data)
-        self.assertFalse(serializer.is_valid())
-        self.assertEqual(
-            str(serializer.errors['username'][0]),
-            "Either username or usernames field should be present")
-        self.assertEqual(
-            str(serializer.errors['usernames'][0]),
-            "Either username or usernames field should be present")
 
     def test_error_on_non_existing_user(self):
         """
@@ -143,15 +123,15 @@ class TestShareProjectSerializer(TestAbstractViewSet, TestBase):
         serializer = ShareProjectSerializer(data=data)
         self.assertFalse(serializer.is_valid())
         self.assertEqual(str(serializer.errors['username'][0]),
-                         "User 'doe' does not exist.")
+                         "The following users do not exist: doe")
 
         data = {
             'project': project.id,
-            'usernames': 'doe,john',
+            'username': 'doe,john',
             'role': ReadOnlyRole.name
         }
 
         serializer = ShareProjectSerializer(data=data)
         self.assertFalse(serializer.is_valid())
-        self.assertEqual(str(serializer.errors['usernames'][0]),
-                         "The following users do not exist: 'doe, john'")
+        self.assertEqual(str(serializer.errors['username'][0]),
+                         "The following users do not exist: doe, john")
