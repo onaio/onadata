@@ -64,7 +64,7 @@ class ODKToken(models.Model):
     def generate_key(self):
         key = binascii.hexlify(os.urandom(ODK_TOKEN_LENGTH)).decode()
         self._generate_partial_digest(key)
-        return self._encrypt_key(key)
+        return _encrypt_key(key)
 
     def __str__(self):
         return self.key

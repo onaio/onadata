@@ -58,7 +58,7 @@ class DigestAccountStorage(AccountStorage):
             pass
         else:
             if odk_token.status == ODKToken.INACTIVE or \
-                    self._check_odk_token_expiry(odk_token.created):
+                    _check_odk_token_expiry(odk_token.created):
                 return None
 
         return user
