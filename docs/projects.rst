@@ -150,13 +150,13 @@ The following are the available roles in onadata:
 - ``manager`` Role for a user with administrative privileges
 - ``owner`` Role for an owner of a data-set, organization, or project.
 
-Share a project with a specific user
+Share a project with user(s)
 -------------------------------------
 
-You can share a project with a specific user by ``PUT`` a payload with
+You can share a project with a user or multiple users by ``PUT`` a payload with
 
-- ``username`` of the user you want to share the form with and
-- ``role`` you want the user to have on the project.Available roles are ``readonly``, ``dataentry``, ``editor``, ``manager``.
+- ``username`` of the user you want to share the form with or a list of users separated by a comma and
+- ``role`` you want the user(s) to have on the project.Available roles are ``readonly``, ``dataentry``, ``editor``, ``manager``.
 
 .. raw:: html
 
@@ -164,8 +164,8 @@ You can share a project with a specific user by ``PUT`` a payload with
 	<b>PUT</b> /api/v1/projects/<code>{pk}</code>/share
 	</pre>
 
-Example
-^^^^^^^^
+Example 1: Sharing with a specific user
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ::
 
     curl -X PUT -d username=alice -d role=readonly https://api.ona.io/api/v1/projects/1/share
@@ -176,25 +176,11 @@ Response
 
     HTTP 204 NO CONTENT
 
-Share a project with multiple users
--------------------------------------
-
-You can share a project with mutliple users by ``PUT`` a payload with
-
-- ``usernames`` of the users you want to share the form with, separated by a comma and
-- ``role`` you want the users to have on the project.Available roles are ``readonly``, ``dataentry``, ``editor``, ``manager``.
-
-.. raw:: html
-
-	<pre class="prettyprint">
-	<b>PUT</b> /api/v1/projects/<code>{pk}</code>/share
-	</pre>
-
-Example
-^^^^^^^^
+Example 2: Sharing with mutliple users
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ::
 
-    curl -X PUT -d usernames=alice,jake -d role=readonly https://api.ona.io/api/v1/projects/1/share
+    curl -X PUT -d username=alice,jake -d role=readonly https://api.ona.io/api/v1/projects/1/share
 
 Response
 ^^^^^^^^^
