@@ -135,7 +135,8 @@ class ConnectViewSet(mixins.CreateModelMixin, AuthenticateHeaderMixin,
                 return Response(data={
                     'enc_odk_token': token.key,
                     'active_till': expiry_date,
-                    'status': token.get_status_display()
+                    'status': token.status,
+                    'status_display': token.get_status_display()
                 },
                                 status=status.HTTP_200_OK)
             except ODKToken.DoesNotExist:
@@ -157,7 +158,8 @@ class ConnectViewSet(mixins.CreateModelMixin, AuthenticateHeaderMixin,
             return Response(data={
                 'enc_odk_token': generated_token.key,
                 'active_till': expiry_date,
-                'status': token.get_status_display()
+                'status': generated_token.status,
+                'status_display': generated_token.get_status_display()
             },
                             status=status.HTTP_201_CREATED)
         elif request.method == 'PATCH':
@@ -173,11 +175,14 @@ class ConnectViewSet(mixins.CreateModelMixin, AuthenticateHeaderMixin,
                     if token_status in acceptable_statuses:
                         token.status = token_status
                         token.save()
+                        expiry_date = token.created + timedelta(
+                            days=ODK_TOKEN_LIFETIME)
 
                         return Response(data={
                             'enc_odk_token': token.key,
                             'active_till': expiry_date,
-                            'status': token.get_status_display()
+                            'status': token.status,
+                            'status_display': token.get_status_display()
                         },
                                         status=status.HTTP_200_OK)
                     else:
