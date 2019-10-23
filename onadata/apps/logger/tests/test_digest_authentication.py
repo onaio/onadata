@@ -12,6 +12,9 @@ from onadata.apps.main.models import UserProfile
 from onadata.apps.api.models.odk_token import ODKToken
 
 
+ODK_TOKEN_STORAGE = 'onadata.apps.api.storage.ODKTokenAccountStorage'
+
+
 class TestDigestAuthentication(TestBase):
     def setUp(self):
         super(TestBase, self).setUp()
@@ -85,7 +88,10 @@ class TestDigestAuthentication(TestBase):
                               auth=auth)
         self.assertEqual(self.response.status_code, 201)
 
-    @override_settings(ODK_KEY_LIFETIME=1)
+    @override_settings(
+        ODK_KEY_LIFETIME=1,
+        DIGEST_ACCOUNT_BACKEND=ODK_TOKEN_STORAGE
+    )
     def test_fails_authentication_past_odk_token_expiry(self):
         """
         Test that a Digest authenticated request using an ODK Token that has
