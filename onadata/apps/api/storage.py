@@ -21,14 +21,18 @@ def _check_odk_token_expiry(created):
     """
     Checks to see whether an ODK Token has expired
     """
-    time_diff = (timezone.now() - created).total_seconds
+    time_diff = (timezone.now() - created).total_seconds()
 
     return time_diff > ODK_KEY_LIFETIME_IN_SEC
 
 
-class DigestAccountStorage(AccountStorage):
+class ODKTokenAccountStorage(AccountStorage):
     """
     Digest Account Backend class
+
+    In order to utilize this storage as the default account storage for
+    Digest Authentication set the DIGEST_ACCOUNT_BACKEND variable in
+    your local_settings to 'onadata.apps.api.storage.ODKTokenAccountStorage'
     """
 
     def get_user(self, login):  # pylint: disable=no-self-use
