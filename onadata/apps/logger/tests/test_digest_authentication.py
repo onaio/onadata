@@ -1,6 +1,9 @@
 import os
+from datetime import timedelta
 
 from django.conf import settings
+from django.test.utils import override_settings
+
 from cryptography.fernet import Fernet
 from django_digest.test import DigestAuth
 
@@ -81,3 +84,31 @@ class TestDigestAuthentication(TestBase):
         self._make_submission(xml_submission_file_path, add_uuid=True,
                               auth=auth)
         self.assertEqual(self.response.status_code, 201)
+
+    @override_settings(ODK_KEY_LIFETIME=1)
+    def test_fails_authentication_past_odk_token_expiry(self):
+        """
+        Test that a Digest authenticated request using an ODK Token that has
+        expired is not authorized
+        """
+        s = self.surveys[0]
+        xml_submission_file_path = os.path.join(
+            self.this_directory, 'fixtures',
+            'transportation', 'instances', s, s + '.xml'
+        )
+        self._set_require_auth()
+
+        odk_token = ODKToken.objects.create(user=self.user)
+
+        odk_token.created = odk_token.created - timedelta(days=5)
+        odk_token.save()
+
+        # The value odk_token.key is hashed we need to have the raw_key
+        # In order to authenticate with DigestAuth
+        fernet = Fernet(getattr(settings, 'ODK_TOKEN_FERNET_KEY'))
+        raw_key = fernet.decrypt(odk_token.key.encode('utf-8')).decode('utf-8')
+
+        auth = DigestAuth(self.login_username, raw_key)
+        self._make_submission(xml_submission_file_path, add_uuid=True,
+                              auth=auth)
+        self.assertEqual(self.response.status_code, 401)
