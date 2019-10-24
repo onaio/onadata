@@ -4,7 +4,6 @@ forms module.
 """
 import os
 import re
-import random
 from future.moves.urllib.parse import urlparse
 from future.moves.urllib.request import urlopen
 
@@ -26,8 +25,8 @@ from xlutils.copy import copy
 # pylint: disable=ungrouped-imports
 from onadata.apps.logger.models import Project
 from onadata.apps.main.models import UserProfile
-from onadata.apps.viewer.models.data_dictionary import (
-    DataDictionary, upload_to)
+from onadata.apps.logger.models.xform import XForm
+from onadata.apps.viewer.models.data_dictionary import upload_to
 from onadata.libs.utils.country_field import COUNTRIES
 from onadata.libs.utils.logger_tools import publish_xls_form, publish_xml_form
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -91,19 +90,20 @@ def get_filename(response):
 def add_xls_encryption_settings(
         id_string,
         public_key,
-        username,
         submission_url='https://odk.ona.io/submission'):
     """
     Adds the settings sheet to an XForm and sets the required columns and rows
     to convert the Form into an Encrypted Form
     """
-    data_dictionary = get_object_or_404(
-        DataDictionary, id_string__iexact=id_string, deleted_at__isnull=True)
-    rand_suffix = ''.join(
-            random.sample("abcdefghijklmnopqrstuvwxyz0123456789", 6))
-    rand_name = f'{id_string}_{rand_suffix}.xls'
+    xform = get_object_or_404(
+        XForm, id_string__iexact=id_string, deleted_at__isnull=True)
+    file_path = xform.xls.path
 
-    wb = xlrd.open_workbook(data_dictionary.xls.path)
+    if xform.submission_count() > 0:
+        raise forms.ValidationError(
+            _('Can not encrypt a form with existing submissions'))
+
+    wb = xlrd.open_workbook(file_path)
     cwb = copy(wb)
 
     data = {
@@ -114,19 +114,19 @@ def add_xls_encryption_settings(
 
     try:
         settings_sheet = cwb.add_sheet('settings')
+    except Exception:
+        raise forms.ValidationError(
+                    _('Settings already exist on form'))
+    else:
         column = 0
 
         for header in data:
             settings_sheet.write(0, column, header)
             settings_sheet.write(1, column, data[header])
             column = column + 1
-    except Exception as e:
-        raise forms.ValidationError(
-                    _(f'Something went wrong {e}'))
 
-    xls_file = upload_to(None, rand_name, username)
-    cwb.save(xls_file)
-    return xls_file
+        cwb.save(file_path)
+        return file_path
 
 
 class DataLicenseForm(forms.Form):
@@ -397,6 +397,7 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
                 csv_data = self.cleaned_data['text_xls_form']
 
                 # assigning the filename to a random string (quick fix)
+                import random
                 rand_name = "uploaded_form_%s.csv" % ''.join(
                     random.sample("abcdefghijklmnopqrstuvwxyz0123456789", 6))
 
@@ -451,7 +452,7 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
             if 'public_key' in self.data:
                 public_key = self.data.get('public_key')
                 cleaned_xls_file = add_xls_encryption_settings(
-                    id_string, public_key, user.username)
+                    id_string, public_key)
 
             if cleaned_xls_file is None:
                 raise forms.ValidationError(
