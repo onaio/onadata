@@ -126,7 +126,9 @@ def add_xls_encryption_settings(
             column = column + 1
 
         cwb.save(file_path)
-        return file_path
+        xls_data = ContentFile(open(file_path, 'rb').read())
+        xls_file = default_storage.save(file_path, xls_data)
+        return xls_file
 
 
 class DataLicenseForm(forms.Form):
