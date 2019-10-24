@@ -130,7 +130,7 @@ def value_for_type(form, field, value):
     return value
 
 
-def _try_update_xlsform(request, xform, owner):
+def _try_update_xlsform(request, xform, owner, encrypt=False):
     survey = \
         utils.publish_xlsform(request, owner, xform.id_string, xform.project)
 
@@ -694,9 +694,9 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         owner = self.object.user
 
         # updating the file
-        if request.FILES or set(['xls_url',
-                                 'dropbox_xls_url',
-                                 'text_xls_form']) & set(request.data):
+        if request.FILES or set([
+                'xls_url', 'dropbox_xls_url', 'text_xls_form', 'public_key'
+        ]) & set(request.data):
             return _try_update_xlsform(request, self.object, owner)
 
         try:
