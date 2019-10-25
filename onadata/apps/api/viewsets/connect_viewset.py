@@ -1,3 +1,4 @@
+from django.utils import timezone
 from django.utils.decorators import classonlymethod
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache
@@ -8,6 +9,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from rest_framework import mixins
 
+from onadata.apps.api.models.odk_token import ODKToken
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.permissions import ConnectViewsetPermissions
 from onadata.apps.main.models.user_profile import UserProfile
@@ -113,6 +115,38 @@ class ConnectViewSet(mixins.CreateModelMixin, AuthenticateHeaderMixin,
         new_token = Token.objects.create(user=request.user)
 
         return Response(data=new_token.key, status=status.HTTP_201_CREATED)
+
+    @action(methods=['GET', 'POST'], detail=False)
+    def odk_token(self, request, *args, **kwargs):
+        user = request.user
+
+        if request.method == 'GET':
+            token, created = ODKToken.objects.get_or_create(
+                user=user, status=ODKToken.ACTIVE)
+
+            if not created and timezone.now() > token.expires:
+                token.status = ODKToken.INACTIVE
+                token.save()
+                token = ODKToken.objects.create(user=user)
+
+            return Response(data={
+                'odk_token': token.raw_key,
+                'expires': token.expires}, status=status.HTTP_200_OK)
+        elif request.method == 'POST':
+            # Regenerates the ODK Token if one is already existant
+            try:
+                old_token = ODKToken.objects.get(user=user)
+                old_token.status = ODKToken.INACTIVE
+                old_token.save()
+            except ODKToken.DoesNotExist:
+                pass
+
+            token = ODKToken.objects.create(user=user)
+
+            return Response(data={
+                'odk_token': token.raw_key,
+                'expires': token.expires
+            }, status=status.HTTP_201_CREATED)
 
     @classonlymethod
     def as_view(cls, actions=None, **initkwargs):
