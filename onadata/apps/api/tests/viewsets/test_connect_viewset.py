@@ -513,11 +513,19 @@ class TestConnectViewSet(TestAbstractViewSet):
         response = view(request)
         self.assertEqual(response.status_code, 201)
         self.assertNotEqual(response.data['odk_token'], old_token)
+        old_token = response.data['odk_token']
 
         # Test that the previous token was set to inactive
         inactive_token = ODKToken.objects.get(
             user=self.user, status=ODKToken.INACTIVE)
         self.assertEqual(inactive_token.raw_key, old_token)
+
+        # Test no errors occur when more than two tokens exist
+        request = self.factory.post('/', **self.extra)
+        request.session = self.client.session
+        response = view(request)
+        self.assertEqual(response.status_code, 201)
+        self.assertNotEqual(response.data['odk_token'], old_token)
 
     def test_retrieve_odk_token(self):
         """
