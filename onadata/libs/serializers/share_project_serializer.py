@@ -63,21 +63,30 @@ class ShareProjectSerializer(serializers.Serializer):
         """Check that the username exists"""
         usernames = value.split(',')
         user = None
-        non_existant_users = []
+        non_existent_users = []
+        inactive_users = []
 
         for username in usernames:
             try:
                 user = User.objects.get(username=username)
             except User.DoesNotExist:
-                non_existant_users.append(username)
+                non_existent_users.append(username)
             else:
                 if not user.is_active:
-                    raise serializers.ValidationError(_(u"User is not active"))
+                    inactive_users.append(username)
 
-        if non_existant_users:
-            non_existant_users = ", ".join(non_existant_users)
+        if non_existent_users:
+            non_existent_users = ', '.join(non_existent_users)
             raise serializers.ValidationError(
-                _(f'The following users do not exist: {non_existant_users}'))
+                _('The following user(s) does/do not exist:'
+                    f' {non_existent_users}'
+                  ))
+
+        if inactive_users:
+            inactive_users = ', '.join(inactive_users)
+            raise serializers.ValidationError(
+                _(f'The following user(s) is/are not active: {inactive_users}')
+            )
 
         return value
 
