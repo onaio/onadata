@@ -135,7 +135,8 @@ class ConnectViewSet(mixins.CreateModelMixin, AuthenticateHeaderMixin,
         elif request.method == 'POST':
             # Regenerates the ODK Token if one is already existant
             try:
-                old_token = ODKToken.objects.get(user=user)
+                old_token = ODKToken.objects.get(
+                    user=user, status=ODKToken.ACTIVE)
                 old_token.status = ODKToken.INACTIVE
                 old_token.save()
             except ODKToken.DoesNotExist:
