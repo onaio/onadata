@@ -3,6 +3,7 @@ ODK token model module
 """
 import binascii
 import os
+from datetime import timedelta
 
 from django.conf import settings
 from django.db import models
@@ -16,6 +17,7 @@ from django_digest.models import (_persist_partial_digests,
 AUTH_USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
 ODK_TOKEN_LENGTH = getattr(settings, 'ODK_TOKEN_LENGTH', 7)
 ODK_TOKEN_FERNET_KEY = getattr(settings, 'ODK_TOKEN_FERNET_KEY')
+ODK_TOKEN_LIFETIME = getattr(settings, "ODK_KEY_LIFETIME", 7)
 
 
 class ODKToken(models.Model):
@@ -52,9 +54,7 @@ class ODKToken(models.Model):
         """
         Check that the passed in key matches the stored hashed key
         """
-        fernet = Fernet(ODK_TOKEN_FERNET_KEY)
-        raw_key = fernet.decrypt(self.key.encode('utf-8'))
-        return raw_key == key
+        return self.raw_key == key
 
     def save(self, *args, **kwargs):  # pylint: disable=arguments-differ
         if not self.key:
@@ -68,6 +68,21 @@ class ODKToken(models.Model):
 
     def __str__(self):
         return self.key
+
+    @property
+    def expires(self):
+        """
+        This property holds the datetime of when the Token expires
+        """
+        return self.created + timedelta(days=ODK_TOKEN_LIFETIME)
+
+    @property
+    def raw_key(self):
+        """
+        Decrypts the key and returns it in its Raw Form
+        """
+        fernet = Fernet(ODK_TOKEN_FERNET_KEY)
+        return fernet.decrypt(self.key.encode('utf-8'))
 
 
 def _encrypt_key(raw_key):
