@@ -4,11 +4,13 @@ forms module.
 """
 import os
 import re
+import random
 from future.moves.urllib.parse import urlparse
 from future.moves.urllib.request import urlopen
 
 import requests
 import xlrd
+import urllib
 from django import forms
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -90,6 +92,7 @@ def get_filename(response):
 def add_xls_encryption_settings(
         id_string,
         public_key,
+        username,
         submission_url='https://odk.ona.io/submission'):
     """
     Adds the settings sheet to an XForm and sets the required columns and rows
@@ -97,13 +100,15 @@ def add_xls_encryption_settings(
     """
     xform = get_object_or_404(
         XForm, id_string__iexact=id_string, deleted_at__isnull=True)
-    file_path = xform.xls.path
+    file_url = xform.xls.url
 
     if xform.submission_count() > 0:
         raise forms.ValidationError(
             _('Can not encrypt a form with existing submissions'))
 
-    wb = xlrd.open_workbook(file_path)
+    tmp, headers = urllib.request.urlretrieve(file_url)
+
+    wb = xlrd.open_workbook(tmp)
     cwb = copy(wb)
 
     data = {
@@ -116,7 +121,7 @@ def add_xls_encryption_settings(
         settings_sheet = cwb.add_sheet('settings')
     except Exception:
         raise forms.ValidationError(
-                    _('Settings already exist on form'))
+                    _('Can not encrypt a form with existing settings'))
     else:
         column = 0
 
@@ -125,9 +130,16 @@ def add_xls_encryption_settings(
             settings_sheet.write(1, column, data[header])
             column = column + 1
 
-        cwb.save(file_path)
-        xls_data = ContentFile(open(file_path, 'rb').read())
-        xls_file = default_storage.save(file_path, xls_data)
+        cwb.save(tmp)
+        xls_data = ContentFile(open(tmp, 'rb').read())
+        rand_suffix = ''.join(
+            random.sample("abcdefghijklmnopqrstuvwxyz0123456789", 6))
+        file_name = f'{id_string}_{rand_suffix}.xls'
+        xls_file = upload_to(None, file_name, username)
+        xls_file = default_storage.save(xls_file, xls_data)
+
+        # Delete the retrieved / downloaded xls file
+        os.remove(tmp)
         return xls_file
 
 
@@ -399,7 +411,6 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
                 csv_data = self.cleaned_data['text_xls_form']
 
                 # assigning the filename to a random string (quick fix)
-                import random
                 rand_name = "uploaded_form_%s.csv" % ''.join(
                     random.sample("abcdefghijklmnopqrstuvwxyz0123456789", 6))
 
@@ -454,7 +465,7 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
             if 'public_key' in self.data:
                 public_key = self.data.get('public_key')
                 cleaned_xls_file = add_xls_encryption_settings(
-                    id_string, public_key)
+                    id_string, public_key, user.username)
 
             if cleaned_xls_file is None:
                 raise forms.ValidationError(
