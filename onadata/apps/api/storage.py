@@ -17,15 +17,6 @@ _l.setLevel(logging.DEBUG)
 ODK_KEY_LIFETIME_IN_SEC = getattr(settings, 'ODK_KEY_LIFETIME', 7) * 86400
 
 
-def _check_odk_token_expiry(created):
-    """
-    Checks to see whether an ODK Token has expired
-    """
-    time_diff = (timezone.now() - created).total_seconds()
-
-    return time_diff > ODK_KEY_LIFETIME_IN_SEC
-
-
 class ODKTokenAccountStorage(AccountStorage):
     """
     Digest Account Backend class
@@ -67,7 +58,7 @@ class ODKTokenAccountStorage(AccountStorage):
 
         token = ODKToken.objects.get(user__username=username)
 
-        if _check_odk_token_expiry(token.created):
+        if timezone.now() > token.expires:
             token.status = ODKToken.INACTIVE
             return None
 
