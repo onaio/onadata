@@ -266,12 +266,7 @@ def submission(request, username=None):  # pylint: disable=R0911,R0912
 
         if profile.require_auth:
             authenticator = HttpDigestAuthenticator()
-            try:
-                if not authenticator.authenticate(request):
-                    return authenticator.build_challenge_response()
-            except AttributeError:
-                # Thrown when get_user fails to return a User object
-                # Occurs mostly when the ODK Token has expired
+            if not authenticator.authenticate(request):
                 return authenticator.build_challenge_response()
 
     if request.method == 'HEAD':

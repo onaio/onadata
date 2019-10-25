@@ -4,10 +4,10 @@ Backends module for th API app
 import logging
 
 from django.conf import settings
+from django.db import connection
 from django.utils import timezone
 
 from django_digest.backend.storage import AccountStorage
-from django_digest.models import PartialDigest
 
 from onadata.apps.api.models.odk_token import ODKToken
 
@@ -34,35 +34,41 @@ class ODKTokenAccountStorage(AccountStorage):
     Digest Authentication set the DIGEST_ACCOUNT_BACKEND variable in
     your local_settings to 'onadata.apps.api.storage.ODKTokenAccountStorage'
     """
+    GET_PARTIAL_DIGEST_QUERY = f"""
+    SELECT django_digest_partialdigest.login,
+     django_digest_partialdigest.partial_digest
+      FROM django_digest_partialdigest
+      INNER JOIN auth_user ON
+        auth_user.id = django_digest_partialdigest.user_id
+      INNER JOIN api_odktoken ON
+        api_odktoken.user_id = django_digest_partialdigest.user_id
+      WHERE django_digest_partialdigest.login = %s
+        AND django_digest_partialdigest.confirmed
+        AND auth_user.is_active
+        AND api_odktoken.status='{ODKToken.ACTIVE}'
+    """
 
-    def get_user(self, login):  # pylint: disable=no-self-use
+    def get_partial_digest(self, username):
         """
-        Checks if there is a partial digest matching the login passed in and
-        that the user associated with the Partial Digest is active.
+        Checks that the returned partial digest is associated with a
+        Token that isn't past it's expire date.
 
-        Also checks if an ODK Token has been set on the Users account and
-        verifies that the ODK Token is active and hasn't expired.
+        Sets an ODK Token to Inactive if the associate token has passed
+        its expiry date
         """
-        pds = [
-            pd for pd in PartialDigest.objects.filter(
-                login=login, user__is_active=True)
-            ]
-
-        if len(pds) == 0:
-            return None
-        elif len(pds) > 1:
-            _l.warn(f'Multiple partial digests found for the login {login}')
+        cursor = connection.cursor()
+        cursor.execute(self.GET_PARTIAL_DIGEST_QUERY, [username])
+        # In MySQL, string comparison is case-insensitive by default.
+        # Therefore a second round of filtering is required.
+        partial_digest = [(row[1]) for row in cursor.fetchall()
+                          if row[0] == username]
+        if not partial_digest:
             return None
 
-        user = pds[0].user
+        token = ODKToken.objects.get(user__username=username)
 
-        try:
-            odk_token = user.odk_token
-        except AttributeError:
-            pass
-        else:
-            if odk_token.status == ODKToken.INACTIVE or \
-                    _check_odk_token_expiry(odk_token.created):
-                return None
+        if _check_odk_token_expiry(token.created):
+            token.status = ODKToken.INACTIVE
+            return None
 
-        return user
+        return partial_digest
