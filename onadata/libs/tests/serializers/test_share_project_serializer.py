@@ -123,7 +123,7 @@ class TestShareProjectSerializer(TestAbstractViewSet, TestBase):
         serializer = ShareProjectSerializer(data=data)
         self.assertFalse(serializer.is_valid())
         self.assertEqual(str(serializer.errors['username'][0]),
-                         "The following users do not exist: doe")
+                         "The following user(s) does/do not exist: doe")
 
         data = {
             'project': project.id,
@@ -134,4 +134,43 @@ class TestShareProjectSerializer(TestAbstractViewSet, TestBase):
         serializer = ShareProjectSerializer(data=data)
         self.assertFalse(serializer.is_valid())
         self.assertEqual(str(serializer.errors['username'][0]),
-                         "The following users do not exist: doe, john")
+                         "The following user(s) does/do not exist: doe, john")
+
+    def test_error_on_inactive_user(self):
+        """
+        Test that an error is raised when user(s) passed does not
+        exist
+        """
+
+        self._publish_xls_form_to_project()
+
+        project = Project.objects.last()
+        user_dave = self._create_user('dave', 'dave')
+        user_dave.is_active = False
+        user_dave.save()
+
+        data = {
+            'project': project.id,
+            'username': 'dave',
+            'role': ReadOnlyRole.name
+        }
+
+        serializer = ShareProjectSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+        self.assertEqual(str(serializer.errors['username'][0]),
+                         "The following user(s) is/are not active: dave")
+
+        user_john = self._create_user('john', 'john')
+        user_john.is_active = False
+        user_john.save()
+
+        data = {
+            'project': project.id,
+            'username': 'dave,john',
+            'role': ReadOnlyRole.name
+        }
+
+        serializer = ShareProjectSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+        self.assertEqual(str(serializer.errors['username'][0]),
+                         "The following user(s) is/are not active: dave, john")
