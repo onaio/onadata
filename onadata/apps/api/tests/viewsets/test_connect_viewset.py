@@ -498,13 +498,13 @@ class TestConnectViewSet(TestAbstractViewSet):
         request.session = self.client.session
         response = view(request)
         self.assertEqual(response.status_code, 201)
-        old_token = response.data['enc_odk_token']
+        old_token = response.data['odk_token']
 
         request = self.factory.post('/', **self.extra)
         request.session = self.client.session
         response = view(request)
         self.assertEqual(response.status_code, 201)
-        self.assertNotEqual(response.data['enc_odk_token'], old_token)
+        self.assertNotEqual(response.data['odk_token'], old_token)
 
     def test_retrieve_odk_token(self):
         """
@@ -518,41 +518,12 @@ class TestConnectViewSet(TestAbstractViewSet):
         request.session = self.client.session
         response = view(request)
         self.assertEqual(response.status_code, 201)
-        odk_token = response.data['enc_odk_token']
-        active_till = response.data['active_till']
+        odk_token = response.data['odk_token']
+        expires = response.data['expires']
 
         request = self.factory.get('/', **self.extra)
         request.session = self.client.session
         response = view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['enc_odk_token'], odk_token)
-        self.assertEqual(response.data['active_till'], active_till)
-
-    def test_change_odk_token_status(self):
-        """
-        Test that the status of an ODK Token is changeable through
-        a PATCH request
-        """
-        view = ConnectViewSet.as_view({
-            'post': 'odk_token',
-            'get': 'odk_token',
-            'patch': 'odk_token'
-        })
-
-        request = self.factory.post('/', **self.extra)
-        request.session = self.client.session
-        response = view(request)
-
-        self.assertEqual(response.status_code, 201)
-        odk_token = response.data['enc_odk_token']
-
-        # On creation ODK Tokens have an Active Status
-        self.assertNotEqual(response.data['status'], ODKToken.INACTIVE)
-
-        request = self.factory.patch(
-            '/', data={'status': ODKToken.INACTIVE}, **self.extra)
-        request.session = self.client.session
-        response = view(request)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['enc_odk_token'], odk_token)
-        self.assertEqual(response.data['status'], ODKToken.INACTIVE)
+        self.assertEqual(response.data['odk_token'], odk_token)
+        self.assertEqual(response.data['expires'], expires)
