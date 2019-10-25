@@ -32,8 +32,8 @@ class ODKToken(models.Model):
     )
 
     key = models.CharField(max_length=150, primary_key=True)
-    user = models.OneToOneField(
-        AUTH_USER_MODEL, related_name='odk_token', on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        AUTH_USER_MODEL, on_delete=models.CASCADE)
     status = models.CharField(
         'Status',
         choices=STATUS_CHOICES,
