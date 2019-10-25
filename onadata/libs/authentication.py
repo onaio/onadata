@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 from datetime import datetime
 
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, update_last_login
 from django.core.signing import BadSignature
 from django.db import DataError
 from django.shortcuts import get_object_or_404
@@ -106,6 +106,7 @@ class DigestAuthentication(BaseAuthentication):
         try:
             check_lockout(request)
             if self.authenticator.authenticate(request):
+                update_last_login(None, request.user)
                 return request.user, None
             else:
                 attempts = login_attempts(request)
