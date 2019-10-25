@@ -493,6 +493,10 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
 
     def test_regenerate_odk_token(self):
+        """
+        Test that ODK Tokens can be regenerated and old tokens
+        are set to Inactive after regeneration
+        """
         view = ConnectViewSet.as_view({'post': 'odk_token'})
         request = self.factory.post('/', **self.extra)
         request.session = self.client.session
@@ -500,11 +504,20 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
         old_token = response.data['odk_token']
 
+        with self.assertRaises(ODKToken.DoesNotExist):
+            ODKToken.objects.get(
+                user=self.user, status=ODKToken.INACTIVE)
+
         request = self.factory.post('/', **self.extra)
         request.session = self.client.session
         response = view(request)
         self.assertEqual(response.status_code, 201)
         self.assertNotEqual(response.data['odk_token'], old_token)
+
+        # Test that the previous token was set to inactive
+        inactive_token = ODKToken.objects.get(
+            user=self.user, status=ODKToken.INACTIVE)
+        self.assertEqual(inactive_token.raw_key, old_token)
 
     def test_retrieve_odk_token(self):
         """

@@ -1,3 +1,4 @@
+from django.utils import timezone
 from django.utils.decorators import classonlymethod
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache
@@ -120,8 +121,14 @@ class ConnectViewSet(mixins.CreateModelMixin, AuthenticateHeaderMixin,
         user = request.user
 
         if request.method == 'GET':
-            token = ODKToken.objects.get_or_create(
+            token, created = ODKToken.objects.get_or_create(
                 user=user, status=ODKToken.ACTIVE)
+
+            if not created and timezone.now() > token.expires:
+                token.status = ODKToken.INACTIVE
+                token.save()
+                token = ODKToken.objects.create(user=user)
+
             return Response(data={
                 'odk_token': token.raw_key,
                 'expires': token.expires}, status=status.HTTP_200_OK)
@@ -130,6 +137,7 @@ class ConnectViewSet(mixins.CreateModelMixin, AuthenticateHeaderMixin,
             try:
                 old_token = ODKToken.objects.get(user=user)
                 old_token.status = ODKToken.INACTIVE
+                old_token.save()
             except ODKToken.DoesNotExist:
                 pass
 
