@@ -1562,7 +1562,7 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data['username'], [u"Cannot share project"
-                                                     u" with the owner"])
+                                                     u" with the owner (bob)"])
         self.assertTrue(OwnerRole.user_has_role(self.user, self.project))
 
     def test_project_share_readonly(self):
@@ -1649,7 +1649,9 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=projectid)
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, {'username': [u'User is not active']})
+        self.assertEqual(
+            response.data,
+            {'username': [u'The following user(s) is/are not active: alice']})
 
         self.assertFalse(ReadOnlyRole.user_has_role(alice_profile.user,
                                                     self.project))
@@ -2212,3 +2214,87 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
 
         self.assertFalse(serializer.data in response.data)
+
+    def test_project_share_multiple_users(self):
+        """
+        Test that the project can be shared to multiple users
+        """
+        self._publish_xls_form_to_project()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+
+        tom_data = {'username': 'tom', 'email': 'tom@localhost.com'}
+        tom_profile = self._create_user_profile(tom_data)
+        projectid = self.project.pk
+
+        self.assertFalse(
+            ReadOnlyRole.user_has_role(alice_profile.user, self.project))
+        self.assertFalse(
+            ReadOnlyRole.user_has_role(tom_profile.user, self.project))
+
+        data = {'username': 'alice,tom', 'role': ReadOnlyRole.name}
+        request = self.factory.post('/', data=data, **self.extra)
+
+        view = ProjectViewSet.as_view({
+            'post': 'share',
+            'get': 'retrieve'
+        })
+        response = view(request, pk=projectid)
+
+        self.assertEqual(response.status_code, 204)
+
+        request = self.factory.get('/', **self.extra)
+
+        response = view(request, pk=self.project.pk)
+
+        # get the users
+        users = response.data.get('users')
+
+        self.assertEqual(len(users), 3)
+
+        for user in users:
+            if user.get('user') == 'bob':
+                self.assertEquals(user.get('role'), 'owner')
+            else:
+                self.assertEquals(user.get('role'), 'readonly')
+
+    @patch('onadata.apps.api.viewsets.project_viewset.send_mail')
+    def test_sends_mail_on_multi_share(self, mock_send_mail):
+        """
+        Test that on sharing a projects to multiple users mail is sent to all
+        of them
+        """
+        # create project and publish form to project
+        self._publish_xls_form_to_project()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+        tom_data = {'username': 'tom', 'email': 'tom@localhost.com'}
+        tom_profile = self._create_user_profile(tom_data)
+        projectid = self.project.pk
+
+        self.assertFalse(
+            ReadOnlyRole.user_has_role(alice_profile.user, self.project))
+        self.assertFalse(
+            ReadOnlyRole.user_has_role(tom_profile.user, self.project))
+
+        data = {'username': 'alice,tom', 'role': ReadOnlyRole.name,
+                'email_msg': 'I have shared the project with you'}
+        request = self.factory.post('/', data=data, **self.extra)
+
+        view = ProjectViewSet.as_view({
+            'post': 'share'
+        })
+        response = view(request, pk=projectid)
+
+        self.assertEqual(response.status_code, 204)
+        self.assertTrue(mock_send_mail.called)
+        self.assertEqual(mock_send_mail.call_count, 2)
+
+        self.assertTrue(
+            ReadOnlyRole.user_has_role(alice_profile.user, self.project))
+        self.assertTrue(
+            ReadOnlyRole.user_has_role(alice_profile.user, self.xform))
+        self.assertTrue(
+            ReadOnlyRole.user_has_role(tom_profile.user, self.project))
+        self.assertTrue(
+            ReadOnlyRole.user_has_role(tom_profile.user, self.xform))

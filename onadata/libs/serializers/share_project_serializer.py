@@ -24,10 +24,16 @@ class ShareProjectSerializer(serializers.Serializer):
     role = serializers.CharField(max_length=50)
 
     def create(self, validated_data):
-        instance = ShareProject(**validated_data)
-        instance.save()
+        usernames = validated_data.pop('username').split(',')
+        created_instances = []
 
-        return instance
+        for username in usernames:
+            validated_data['username'] = username
+            instance = ShareProject(**validated_data)
+            instance.save()
+            created_instances.append(instance)
+
+        return created_instances
 
     def update(self, instance, validated_data):
         instance = attrs_to_instance(validated_data, instance)
@@ -36,31 +42,51 @@ class ShareProjectSerializer(serializers.Serializer):
         return instance
 
     def validate(self, attrs):
-        user = User.objects.get(username=attrs.get('username'))
-        project = attrs.get('project')
+        usernames = attrs.get('username').split(',')
 
-        # check if the user is the owner of the project
-        if user and project:
-            if user == project.organization:
-                raise serializers.ValidationError({
-                    'username': _(u"Cannot share project with the owner")
-                })
+        for username in usernames:
+            user = User.objects.get(username=username)
+            project = attrs.get('project')
+
+            # check if the user is the owner of the project
+            if user and project:
+                if user == project.organization:
+                    raise serializers.ValidationError({
+                        'username':
+                        _(u"Cannot share project with the owner (%(value)s)" %
+                          {"value": user.username})
+                    })
 
         return attrs
 
     def validate_username(self, value):
         """Check that the username exists"""
-
+        usernames = value.split(',')
         user = None
-        try:
-            user = User.objects.get(username=value)
-        except User.DoesNotExist:
-            raise serializers.ValidationError(_(
-                u"User '%(value)s' does not exist." % {"value": value}
-            ))
-        else:
-            if not user.is_active:
-                raise serializers.ValidationError(_(u"User is not active"))
+        non_existent_users = []
+        inactive_users = []
+
+        for username in usernames:
+            try:
+                user = User.objects.get(username=username)
+            except User.DoesNotExist:
+                non_existent_users.append(username)
+            else:
+                if not user.is_active:
+                    inactive_users.append(username)
+
+        if non_existent_users:
+            non_existent_users = ', '.join(non_existent_users)
+            raise serializers.ValidationError(
+                _('The following user(s) does/do not exist:'
+                    f' {non_existent_users}'
+                  ))
+
+        if inactive_users:
+            inactive_users = ', '.join(inactive_users)
+            raise serializers.ValidationError(
+                _(f'The following user(s) is/are not active: {inactive_users}')
+            )
 
         return value
 
