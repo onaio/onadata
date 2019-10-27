@@ -1,9 +1,10 @@
 """
-Backends module for th API app
+Storage module for the api app
 """
 import logging
 
 from django.conf import settings
+from django.core.exceptions import MultipleObjectsReturned
 from django.db import connection
 from django.utils import timezone
 
@@ -56,7 +57,13 @@ class ODKTokenAccountStorage(AccountStorage):
         if not partial_digest:
             return None
 
-        token = ODKToken.objects.get(user__username=username)
+        try:
+            token = ODKToken.objects.get(
+              user__username=username, status=ODKToken.ACTIVE)
+        except MultipleObjectsReturned:
+            # Reject authentication when multiple ODKTokens are active
+            _l.warn(f'User {username} has multiple active ODK Tokens')
+            return None
 
         if timezone.now() > token.expires:
             token.status = ODKToken.INACTIVE
