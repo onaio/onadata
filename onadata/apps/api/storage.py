@@ -67,6 +67,7 @@ class ODKTokenAccountStorage(AccountStorage):
 
         if timezone.now() > token.expires:
             token.status = ODKToken.INACTIVE
+            token.save()
             return None
 
         return partial_digest
