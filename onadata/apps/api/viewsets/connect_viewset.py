@@ -1,3 +1,4 @@
+from django.core.exceptions import MultipleObjectsReturned
 from django.utils import timezone
 from django.utils.decorators import classonlymethod
 from django.utils.translation import ugettext as _
@@ -121,12 +122,18 @@ class ConnectViewSet(mixins.CreateModelMixin, AuthenticateHeaderMixin,
         user = request.user
 
         if request.method == 'GET':
-            token, created = ODKToken.objects.get_or_create(
-                user=user, status=ODKToken.ACTIVE)
+            try:
+                token, created = ODKToken.objects.get_or_create(
+                    user=user, status=ODKToken.ACTIVE)
 
-            if not created and timezone.now() > token.expires:
-                token.status = ODKToken.INACTIVE
-                token.save()
+                if not created and timezone.now() > token.expires:
+                    token.status = ODKToken.INACTIVE
+                    token.save()
+                    token = ODKToken.objects.create(user=user)
+            except MultipleObjectsReturned:
+                ODKToken.objects.filter(
+                    user=user, status=ODKToken.ACTIVE).update(
+                        status=ODKToken.INACTIVE)
                 token = ODKToken.objects.create(user=user)
 
             return Response(data={
@@ -134,12 +141,9 @@ class ConnectViewSet(mixins.CreateModelMixin, AuthenticateHeaderMixin,
                 'expires': token.expires}, status=status.HTTP_200_OK)
         elif request.method == 'POST':
             # Regenerates the ODK Token if one is already existant
-            try:
-                old_token = ODKToken.objects.get(user=user)
-                old_token.status = ODKToken.INACTIVE
-                old_token.save()
-            except ODKToken.DoesNotExist:
-                pass
+            ODKToken.objects.filter(
+                user=user, status=ODKToken.ACTIVE).update(
+                    status=ODKToken.INACTIVE)
 
             token = ODKToken.objects.create(user=user)
 

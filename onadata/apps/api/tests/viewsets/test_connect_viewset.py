@@ -540,3 +540,55 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['odk_token'], odk_token)
         self.assertEqual(response.data['expires'], expires)
+
+    def test_deactivates_multiple_active_odk_token(self):
+        """
+        Test that the viewset deactivates tokens when two or more are
+        active at the same time and returns a new token
+        """
+        view = ConnectViewSet.as_view({
+            'post': 'odk_token',
+            'get': 'odk_token'
+        })
+
+        # Create two active tokens
+        token_1 = ODKToken.objects.create(user=self.user)
+        token_2 = ODKToken.objects.create(user=self.user)
+
+        self.assertEqual(token_1.status, ODKToken.ACTIVE)
+        self.assertEqual(token_2.status, ODKToken.ACTIVE)
+
+        # Test that the GET request deactivates the two active tokens
+        # and returns a new active token
+        request = self.factory.get('/', **self.extra)
+        request.session = self.client.session
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            len(ODKToken.objects.filter(status=ODKToken.ACTIVE)), 1)
+        self.assertNotEqual(response.data['odk_token'], token_1.raw_key)
+        self.assertNotEqual(response.data['odk_token'], token_2.raw_key)
+
+        token_1 = ODKToken.objects.get(pk=token_1.pk)
+        token_2 = ODKToken.objects.get(pk=token_2.pk)
+        token_3_key = response.data['odk_token']
+
+        self.assertEqual(token_1.status, ODKToken.INACTIVE)
+        self.assertEqual(token_2.status, ODKToken.INACTIVE)
+
+        # Test that the POST request deactivates two active tokens and returns
+        # a new active token
+
+        token_1.status = ODKToken.ACTIVE
+        token_1.save()
+
+        self.assertEqual(
+            len(ODKToken.objects.filter(status=ODKToken.ACTIVE)), 2)
+        request = self.factory.post('/', **self.extra)
+        request.session = self.client.session
+        response = view(request)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(
+            len(ODKToken.objects.filter(status=ODKToken.ACTIVE)), 1)
+        self.assertNotEqual(response.data['odk_token'], token_1.raw_key)
+        self.assertNotEqual(response.data['odk_token'], token_3_key)
