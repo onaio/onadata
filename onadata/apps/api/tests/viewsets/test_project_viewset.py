@@ -1649,7 +1649,9 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=projectid)
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, {'username': [u'User is not active']})
+        self.assertEqual(
+            response.data,
+            {'username': [u'The following user(s) is/are not active: alice']})
 
         self.assertFalse(ReadOnlyRole.user_has_role(alice_profile.user,
                                                     self.project))
