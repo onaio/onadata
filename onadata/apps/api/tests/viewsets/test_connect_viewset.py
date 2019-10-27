@@ -513,7 +513,6 @@ class TestConnectViewSet(TestAbstractViewSet):
         response = view(request)
         self.assertEqual(response.status_code, 201)
         self.assertNotEqual(response.data['odk_token'], old_token)
-        old_token = response.data['odk_token']
 
         # Test that the previous token was set to inactive
         inactive_token = ODKToken.objects.get(
