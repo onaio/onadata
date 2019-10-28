@@ -1,18 +1,18 @@
-{% extends 'base_wfp.html' %}
+{% extends 'ona_base.html' %}
 {% load rest_framework %}
 
 {% block title %}Open ID Connect - Username Input{% endblock %}
 
-{% block css %}
+{% block styles %}
 <style>
-    .container {
+    .content {
         display: flex;
         align-items: center;
         justify-content: center;
         height: 50vh;
     }
 
-    .card {
+    .content-body {
         padding: 1.5em;
         background-color: #FAFAF7;
         width: 40%;
@@ -56,8 +56,8 @@
 
 
 {% block content %}
-<div class="container">
-        <div class="card">
+<div class="content">
+        <div class="content-body">
             <form action="" method="POST" style="display: flex; flex-direction: column;">
                 {% csrf_token %}
                 <p class="error-message">{{ error_msg }}</p>
