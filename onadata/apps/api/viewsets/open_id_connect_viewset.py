@@ -164,7 +164,7 @@ def retrieve_provider_config(open_id_connect_provider: str):
     This function retrieves a particular OpenID Connect providers
     provider_config
     """
-    provider = getattr(settings, 'OPEN_ID_PROVIDER',
+    provider = getattr(settings, 'OPENID_CONNECT_PROVIDERS',
                        {}).get(open_id_connect_provider, {})
 
     return(provider, open_id_connect_provider)
