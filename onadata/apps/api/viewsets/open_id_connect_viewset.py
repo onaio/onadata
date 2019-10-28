@@ -164,12 +164,10 @@ def retrieve_provider_config(open_id_connect_provider: str):
     This function retrieves a particular OpenID Connect providers
     provider_config
     """
-    openid_connect_providers = getattr(settings, 'OPENID_CONNECT_PROVIDERS',
-                                       None)
+    provider = getattr(settings, 'OPEN_ID_PROVIDER',
+                       {}).get(open_id_connect_provider, {})
 
-    if openid_connect_providers:
-        return (openid_connect_providers.get(open_id_connect_provider),
-                open_id_connect_provider)
+    return(provider, open_id_connect_provider)
 
 
 def get_user(kwargs):
