@@ -81,6 +81,7 @@ ENKETO_AUTH_COOKIE = getattr(settings, 'ENKETO_AUTH_COOKIE',
                              '__enketo')
 ENKETO_META_UID_COOKIE = getattr(settings, 'ENKETO_META_UID_COOKIE',
                                  '__enketo_meta_uid')
+ODK_SUBMISSION_URL = getattr(settings, 'ODK_SUBMISSION_URL')
 
 BaseViewset = get_baseviewset_class()
 
@@ -689,15 +690,48 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             status=status.HTTP_200_OK if resp.get('error') is None else
             status.HTTP_400_BAD_REQUEST)
 
+    def get_base64RsaPublicKey(self, rsa_public_key):
+        if rsa_public_key.startswith('-----BEGIN PUBLIC KEY-----') and\
+                rsa_public_key.endswith('-----END PUBLIC KEY-----'):
+            return (rsa_public_key.replace('-----BEGIN PUBLIC KEY-----', '')
+                                  .replace('-----END PUBLIC KEY-----', '')
+                                  .replace(' ', ''))
+
+    def _update_public_key(self, request):
+        xform = self.object
+
+        if not xform.encrypted:
+            base64RsaPublicKey = self.get_base64RsaPublicKey(
+                request.data['public_key'])
+            xml = xform.xml.replace(
+                '<model>\n',
+                (f'<model>\n <submission action="{ODK_SUBMISSION_URL}" '
+                f'base64RsaPublicKey="{base64RsaPublicKey}" '
+                'method="form-data-post"/>\n')
+            )
+            serializer = XFormSerializer(
+                xform,
+                context={'request': request},
+                data={'xml': xml, 'encrypted': True},
+                partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(
+                    data=serializer.data, status=status.HTTP_200_OK)
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
     def partial_update(self, request, *args, **kwargs):
         self.object = self.get_object()
         owner = self.object.user
 
         # updating the file
         if request.FILES or set([
-                'xls_url', 'dropbox_xls_url', 'text_xls_form', 'public_key'
+                'xls_url', 'dropbox_xls_url', 'text_xls_form',
         ]) & set(request.data):
             return _try_update_xlsform(request, self.object, owner)
+        elif 'public_key' in request.data:
+            return self._update_public_key(request)
 
         try:
             return super(XFormViewSet, self).partial_update(request, *args,
