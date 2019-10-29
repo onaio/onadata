@@ -157,7 +157,7 @@ class UserProfileViewSet(
             user__username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME)
     serializer_class = serializer_from_settings()
     lookup_field = 'user'
-    lookup_value_regex = r'[\w.@+-]+'
+    lookup_value_regex = r'[\w.@+-]+?(?=.json|.csv|.xml|$)'
     permission_classes = [UserProfilePermissions]
     filter_backends = (filters.UserProfileFilter, OrderingFilter)
     ordering = ('user__username', )
