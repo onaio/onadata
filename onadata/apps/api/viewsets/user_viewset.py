@@ -30,7 +30,6 @@ class UserViewSet(AuthenticateHeaderMixin, BaseViewset, CacheControlMixin,
         username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME, )
     serializer_class = UserSerializer
     lookup_field = 'username'
-    slookup_value_regex = r'[\w.@+-]+?(?=.json|.csv|.xml|$)'
     permission_classes = [permissions.UserViewSetPermissions]
     filter_backends = (filters.SearchFilter, UserNoOrganizationsFilter, )
     search_fields = ('=email', )

@@ -8,6 +8,7 @@ from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.db.models import signals
 from django.test.utils import override_settings
+from django.test.client import Client
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 
@@ -195,18 +196,6 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.user_profile_data())
-
-        # Test can retrieve profile for usernames with _ . @ symbols
-        alice_data = {
-            'username': 'alice.test@gmail.com', 'email': 'alice@localhost.com'}
-        alice_profile = self._create_user_profile(alice_data)
-        extra = {
-            'HTTP_AUTHORIZATION': f'Token {alice_profile.user.auth_token}'}
-
-        request = self.factory.get('/', **extra)
-        response = view(request, user='alice.test@gmail.com')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['username'], alice_data['username'])
 
     def test_profiles_get_anon(self):
         view = UserProfileViewSet.as_view({

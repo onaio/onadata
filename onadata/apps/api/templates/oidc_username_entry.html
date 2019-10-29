@@ -43,7 +43,6 @@
         padding: .45em;
         border-radius: 3px;
         border: none;
-        color: #EEF3F6;
     }
 
 </style>
@@ -56,7 +55,7 @@
             <form action="" method="POST" style="display: flex; flex-direction: column;">
                 {% csrf_token %}
                 <p class="error-message">{{ error_msg }}</p>
-                <input type="text" name="username" placeholder="Preferred Username">
+                <input type="text" name="username" placeholder="Preferred Username" pattern="^[A-Za-z0-9_]*$" title="Username should not contain . @ - symbols">
                 <input type="hidden" name="id_token" value="{{ id_token }}">
                 <input type="submit" value="Save">
             </form>
