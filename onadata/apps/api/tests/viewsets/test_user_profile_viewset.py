@@ -8,7 +8,6 @@ from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.db.models import signals
 from django.test.utils import override_settings
-from django.test.client import Client
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 
