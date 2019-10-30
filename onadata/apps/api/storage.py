@@ -13,7 +13,7 @@ from django_digest.backend.storage import AccountStorage
 from onadata.apps.api.models.odk_token import ODKToken
 
 _l = logging.getLogger(__name__)
-_l.setLevel(logging.DEBUG)
+_l.setLevel(logging.WARNING)
 
 ODK_KEY_LIFETIME_IN_SEC = getattr(settings, 'ODK_KEY_LIFETIME', 7) * 86400
 
@@ -57,17 +57,19 @@ class ODKTokenAccountStorage(AccountStorage):
         if not partial_digest:
             return None
 
-        user = partial_digest.user
-
         try:
-            token = ODKToken.objects.get(user=user, status=ODKToken.ACTIVE)
-        except (MultipleObjectsReturned):
-            _l.warn(f'User {user.username} has multiple ODK Tokens')
+            token = ODKToken.objects.get(
+                user__email=login, status=ODKToken.ACTIVE)
+        except MultipleObjectsReturned:
+            _l.warn(f'User {login} has multiple ODK Tokens')
             return None
-
-        if timezone.now() > token.expires:
-            token.status = ODKToken.INACTIVE
-            token.save()
+        except ODKToken.DoesNotExist:
+            _l.warn(f'User {login} has no active ODK Token')
             return None
+        else:
+            if timezone.now() > token.expires:
+                token.status = ODKToken.INACTIVE
+                token.save()
+                return None
 
-        return partial_digest
+            return partial_digest[0]
