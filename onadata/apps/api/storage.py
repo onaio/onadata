@@ -37,7 +37,7 @@ class ODKTokenAccountStorage(AccountStorage):
       WHERE django_digest_partialdigest.login = %s
         AND django_digest_partialdigest.confirmed
         AND auth_user.is_active
-        AND api_odktoken.status={ODKToken.ACTIVE}
+        AND api_odktoken.status='{ODKToken.ACTIVE}'
     """
 
     def get_partial_digest(self, login):
