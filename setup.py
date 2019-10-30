@@ -90,7 +90,6 @@ setup(
         "unicodecsv",
         "xlrd",
         "xlwt",
-        "xlutils",
         "openpyxl",
         "dpath",
         "elaphe3",

@@ -4,13 +4,10 @@ forms module.
 """
 import os
 import re
-import random
 from future.moves.urllib.parse import urlparse
 from future.moves.urllib.request import urlopen
 
 import requests
-import xlrd
-import urllib
 from django import forms
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -18,16 +15,13 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.validators import URLValidator
 from django.forms import ModelForm
-from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy
 from registration.forms import RegistrationFormUniqueEmail
-from xlutils.copy import copy
 
 # pylint: disable=ungrouped-imports
 from onadata.apps.logger.models import Project
 from onadata.apps.main.models import UserProfile
-from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.data_dictionary import upload_to
 from onadata.libs.utils.country_field import COUNTRIES
 from onadata.libs.utils.logger_tools import publish_xls_form, publish_xml_form
@@ -87,60 +81,6 @@ def get_filename(response):
             cleaned_xls_file = filename
 
     return cleaned_xls_file
-
-
-def add_xls_encryption_settings(
-        id_string,
-        public_key,
-        username,
-        submission_url='https://odk.ona.io/submission'):
-    """
-    Adds the settings sheet to an XForm and sets the required columns and rows
-    to convert the Form into an Encrypted Form
-    """
-    xform = get_object_or_404(
-        XForm, id_string__iexact=id_string, deleted_at__isnull=True)
-    file_url = xform.xls.url
-
-    if xform.submission_count() > 0:
-        raise forms.ValidationError(
-            _('Can not encrypt a form with existing submissions'))
-
-    tmp, headers = urllib.request.urlretrieve(file_url)
-
-    wb = xlrd.open_workbook(tmp)
-    cwb = copy(wb)
-
-    data = {
-        'id_string': id_string,
-        'submission_url': submission_url,
-        'public_key': public_key
-    }
-
-    try:
-        settings_sheet = cwb.add_sheet('settings')
-    except Exception:
-        raise forms.ValidationError(
-                    _('Can not encrypt a form with existing settings'))
-    else:
-        column = 0
-
-        for header in data:
-            settings_sheet.write(0, column, header)
-            settings_sheet.write(1, column, data[header])
-            column = column + 1
-
-        cwb.save(tmp)
-        xls_data = ContentFile(open(tmp, 'rb').read())
-        rand_suffix = ''.join(
-            random.sample("abcdefghijklmnopqrstuvwxyz0123456789", 6))
-        file_name = f'{id_string}_{rand_suffix}.xls'
-        xls_file = upload_to(None, file_name, username)
-        xls_file = default_storage.save(xls_file, xls_data)
-
-        # Delete the retrieved / downloaded xls file
-        os.remove(tmp)
-        return xls_file
 
 
 class DataLicenseForm(forms.Form):
@@ -379,7 +319,6 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
     Publish XLSForm and convert to XForm.
     """
     project = forms.IntegerField(required=False)
-    public_key = forms.TextInput()
     validate = URLValidator()
 
     def clean_project(self):
@@ -411,6 +350,7 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
                 csv_data = self.cleaned_data['text_xls_form']
 
                 # assigning the filename to a random string (quick fix)
+                import random
                 rand_name = "uploaded_form_%s.csv" % ''.join(
                     random.sample("abcdefghijklmnopqrstuvwxyz0123456789", 6))
 
@@ -461,11 +401,6 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
             if cleaned_xml_file:
                 return publish_xml_form(cleaned_xml_file, user, project,
                                         id_string, created_by or user)
-
-            if 'public_key' in self.data:
-                public_key = self.data.get('public_key')
-                cleaned_xls_file = add_xls_encryption_settings(
-                    id_string, public_key, user.username)
 
             if cleaned_xls_file is None:
                 raise forms.ValidationError(
