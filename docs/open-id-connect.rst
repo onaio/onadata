@@ -27,7 +27,12 @@ In order to enable OpenID Connect authentication for a particular provider on th
             'token_endpoint': <token-endpoint>,
             'callback_uri': <callback-url>,
             'target_url_after_auth': <target-url-after-authentication>,
+            'target_url_after_logout': <target_url_after_logout>,
             'domain_cookie': <single-sign-on-cookie>,
+            'end_session_endpoint': <end_session_endpoint>,
+            'scope': <scope>,
+            'response_type': <response_type>,
+            'response_mode': <response_mode>,
         }
     }
 
@@ -41,4 +46,9 @@ Where:
 -  ``<token_endpoint>`` - url link used to request for the ``id_token`` or ``code``, retrieved from chosen OpenID Connect providers OpenID configuration
 -  ``<callback_uri>`` - url link set as the Callback URI on the OpenID Connect providers Application Registration, usually defaults to ``/oidc/<provider_name>/callback``.
 -  ``<target_url_after_auth>`` - url to redirect to after a user has been authenicated on onadata.
+-  ``<target_url_after_logout>`` - url to redirect to after a user has been successfully logged out from the Open ID Connect Provider ( This url must be a valid redirect uri on the Open ID Connect Providers Application Configuration )
 -  ``<domain_cookie>`` - domain that the Single Sign On(SSO) cookie should be registered to
+-  ``<end_session_endpoint>`` - url to call to end the Open ID Connect Providers session,
+-  ``<scope>`` - a space-separated list of scopes, should include the ``openid`` scope,
+-  ``<response_type>`` - type of response the OpenID Connect Provider should return on authorization. Valid types are ``code`` and ``id_token``.
+-  ``<response_mode>`` - the method that should be used to send the resulting authorization code back to onadata the value should be ``form_post``,
