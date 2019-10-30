@@ -1444,11 +1444,34 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.data['public'], True)
             self.assertEqual(response.data['description'], description)
             self.assertEqual(response.data['title'], title)
+            self.assertEqual(response.data['public_key'], '')
             matches = re.findall(r"<h:title>([^<]+)</h:title>", self.xform.xml)
             self.assertTrue(len(matches) > 0)
             self.assertEqual(matches[0], title)
             self.assertFalse(self.xform.hash == "" or self.xform.hash is None)
             self.assertFalse(self.xform.hash == xform_old_hash)
+
+            # Test can update public_key
+            public_key = ('-----BEGIN PUBLIC KEY----- MIGfMA0GCSqGS'
+                          'Ib3DQEBAQUAA4GNADCBiQKBgQCqGKukO1De7zhZj6+H0q'
+                          'tjTkVxwTCpvKe4eCZ0 FPqri0cb2JZfXJ/DgYSF6vUpwmJG8wV'
+                          'QZKjeGcjDOL5UlsuusFncCzWBQ7RKNUSesmQRMSGkVb1/ 3'
+                          'j+skZ6UtW+5u09lHNsj6tQ51s1SPrCBkedbNf0Tp0GbMJDyR4e9'
+                          'T04ZZwIDAQAB -----END PUBLIC KEY-----')
+
+            clean_public_key = ('MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQK'
+                                'BgQCqGKukO1De7zhZj6+H0qtjTkVxwTCpvKe4eCZ0 FPq'
+                                'ri0cb2JZfXJ/DgYSF6vUpwmJG8wVQZKjeGcjDOL5Ulsu'
+                                'usFncCzWBQ7RKNUSesmQRMSGkVb1/ 3j+skZ6UtW'
+                                '+5u09lHNsj6tQ51s1SPrCBkedbNf0Tp0GbMJDyR4e9T'
+                                '04ZZwIDAQAB')
+
+            data = {'public_key': public_key}
+            request = self.factory.patch('/', data=data, **self.extra)
+            response = view(request, pk=self.xform.id)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.data['public_key'], clean_public_key)
+            self.assertIsTrue(response.data['encrypted'])
 
     def test_partial_update_anon(self):
         with HTTMock(enketo_mock):

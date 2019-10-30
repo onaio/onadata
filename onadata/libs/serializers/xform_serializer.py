@@ -2,12 +2,15 @@ import logging
 import os
 from hashlib import md5
 
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db.models import Count
+from django.utils.translation import ugettext as _
 from future.moves.urllib.parse import urlparse
 from future.utils import listvalues
 from requests.exceptions import ConnectionError
@@ -73,6 +76,14 @@ def user_to_username(item):
     item['user'] = item['user'].username
 
     return item
+
+
+def clean_public_key(value):
+    if value.startswith('-----BEGIN PUBLIC KEY-----') and\
+            value.endswith('-----END PUBLIC KEY-----'):
+        return value.replace('-----BEGIN PUBLIC KEY-----',
+                             '').replace('-----END PUBLIC KEY-----',
+                                         '').replace(' ', '').rstrip()
 
 
 class XFormMixin(object):
@@ -300,6 +311,27 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
                       xform_metadata)
 
         return xform_metadata
+
+    def validate_public_key(self, value):
+        """
+        Checks that the given RSA public key is a valid key.
+        By Valid:
+            - checks that it is a b64 encoded string
+            - check that is contains structure of an Rsa public_key , i.e
+                when parsed it results in a structure with the modulus and exponent
+                as defined at:
+                https://tools.ietf.org/html/rfc3447#page-6
+                https://tools.ietf.org/html/rfc3447#appendix-A.1.1
+        key (string) -- A PEM formatted RSA public key from the settings sheet
+        returns True if RSA is valid as per above restrictions else False.
+        """
+        try:
+            load_pem_public_key(
+                value.encode('utf-8'), backend=default_backend())
+        except ValueError:
+            raise serializers.ValidationError(
+                _('The public key is not a valid base64 RSA key'))
+        return clean_public_key(value)
 
     def get_form_versions(self, obj):
         versions = []
