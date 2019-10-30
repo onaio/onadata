@@ -314,16 +314,9 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
 
     def validate_public_key(self, value):
         """
-        Checks that the given RSA public key is a valid key.
-        By Valid:
-            - checks that it is a b64 encoded string
-            - check that is contains structure of an Rsa public_key , i.e
-                when parsed it results in a structure with the modulus and exponent
-                as defined at:
-                https://tools.ietf.org/html/rfc3447#page-6
-                https://tools.ietf.org/html/rfc3447#appendix-A.1.1
-        key (string) -- A PEM formatted RSA public key from the settings sheet
-        returns True if RSA is valid as per above restrictions else False.
+        Checks that the given RSA public key is a valid key by trying
+        to use the key data to create an RSA key object using the cryptography
+        package
         """
         try:
             load_pem_public_key(
