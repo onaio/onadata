@@ -47,7 +47,6 @@ from onadata.libs.utils.common_tags import (DURATION, ID, KNOWN_MEDIA_TYPES,
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.mongo import _encode_for_mongo
 
-ODK_SUBMISSION_URL = getattr(settings, 'ODK_SUBMISSION_URL')
 QUESTION_TYPES_TO_EXCLUDE = [
     u'note',
 ]
@@ -820,17 +819,13 @@ class XForm(XFormMixin, BaseModel):
     def _set_encrypted_field(self):
         if self.json and self.json != '':
             json_dict = json.loads(self.json)
-            if 'submission_url' in json_dict and 'public_key' in json_dict:
-                self.encrypted = True
-            else:
-                self.encrypted = False
+            self.encrypted = 'public_key' in json_dict
 
     def _set_public_key_field(self):
         if self.json and self.json != '':
-            if self.submission_count() == 0:
+            if self.submission_count() == 0 and self.public_key:
                 json_dict = json.loads(self.json)
                 json_dict['public_key'] = self.public_key
-                json_dict['submission_url'] = ODK_SUBMISSION_URL
                 survey = create_survey_element_from_dict(json_dict)
                 self.json = survey.to_json()
                 self.xml = survey.to_xml()
@@ -850,8 +845,6 @@ class XForm(XFormMixin, BaseModel):
             self._set_hash()
         if update_fields is None or 'encrypted' in update_fields:
             self._set_encrypted_field()
-        if update_fields is None or 'public_key' in update_fields:
-            self._set_public_key_field()
         if update_fields is None or 'id_string' in update_fields:
             old_id_string = self.id_string
             if not self.deleted_at:
@@ -882,6 +875,9 @@ class XForm(XFormMixin, BaseModel):
                     'sms_keyword', self.id_string)
             except Exception:
                 self.sms_id_string = self.id_string
+
+        if update_fields is None or 'public_key' in update_fields:
+            self._set_public_key_field()
 
         if 'skip_xls_read' in kwargs:
             del kwargs['skip_xls_read']
