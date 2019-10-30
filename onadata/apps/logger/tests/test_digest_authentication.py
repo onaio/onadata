@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.test.utils import override_settings
+from django.utils import timezone
 
 from cryptography.fernet import Fernet
 from django_digest.test import DigestAuth
@@ -64,7 +65,10 @@ class TestDigestAuthentication(TestBase):
         # Not allowed
         self.assertEqual(self.response.status_code, 403)
 
-    def test_authenticates_odk_token_email(self):
+    @override_settings(
+        DIGEST_ACCOUNT_BACKEND=ODK_TOKEN_STORAGE
+    )
+    def test_digest_authentication_with_odk_token_storage(self):
         """
         Test that a valid Digest request with as the auth email:odk_token
         is authenticated
@@ -76,6 +80,9 @@ class TestDigestAuthentication(TestBase):
         )
         self._set_require_auth()
 
+        # Set email for user
+        self.user.email = 'bob@bob.test'
+        self.user.save()
         odk_token = ODKToken.objects.create(user=self.user)
 
         # The value odk_token.key is hashed we need to have the raw_key
@@ -83,7 +90,7 @@ class TestDigestAuthentication(TestBase):
         fernet = Fernet(getattr(settings, 'ODK_TOKEN_FERNET_KEY'))
         raw_key = fernet.decrypt(odk_token.key.encode('utf-8')).decode('utf-8')
 
-        auth = DigestAuth(self.login_username, raw_key)
+        auth = DigestAuth(self.user.email, raw_key)
         self._make_submission(xml_submission_file_path, add_uuid=True,
                               auth=auth)
         self.assertEqual(self.response.status_code, 201)
@@ -104,9 +111,12 @@ class TestDigestAuthentication(TestBase):
         )
         self._set_require_auth()
 
+        # Set email for user
+        self.user.email = 'bob@bob.test'
+        self.user.save()
         odk_token = ODKToken.objects.create(user=self.user)
 
-        odk_token.created = odk_token.created - timedelta(days=5)
+        odk_token.created = timezone.now() - timedelta(days=400)
         odk_token.save()
 
         # The value odk_token.key is hashed we need to have the raw_key
@@ -114,7 +124,7 @@ class TestDigestAuthentication(TestBase):
         fernet = Fernet(getattr(settings, 'ODK_TOKEN_FERNET_KEY'))
         raw_key = fernet.decrypt(odk_token.key.encode('utf-8')).decode('utf-8')
 
-        auth = DigestAuth(self.login_username, raw_key)
+        auth = DigestAuth(self.user.email, raw_key)
         self._make_submission(xml_submission_file_path, add_uuid=True,
                               auth=auth)
         self.assertEqual(self.response.status_code, 401)
