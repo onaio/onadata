@@ -37,10 +37,10 @@ class ODKTokenAccountStorage(AccountStorage):
       WHERE django_digest_partialdigest.login = %s
         AND django_digest_partialdigest.confirmed
         AND auth_user.is_active
-        AND api_odktoken.status='{ODKToken.ACTIVE}'
+        AND api_odktoken.status={ODKToken.ACTIVE}
     """
 
-    def get_partial_digest(self, username):
+    def get_partial_digest(self, login):
         """
         Checks that the returned partial digest is associated with a
         Token that isn't past it's expire date.
@@ -49,20 +49,20 @@ class ODKTokenAccountStorage(AccountStorage):
         its expiry date
         """
         cursor = connection.cursor()
-        cursor.execute(self.GET_PARTIAL_DIGEST_QUERY, [username])
+        cursor.execute(self.GET_PARTIAL_DIGEST_QUERY, [login])
         # In MySQL, string comparison is case-insensitive by default.
         # Therefore a second round of filtering is required.
         partial_digest = [(row[1]) for row in cursor.fetchall()
-                          if row[0] == username]
+                          if row[0] == login]
         if not partial_digest:
             return None
 
+        user = partial_digest.user
+
         try:
-            token = ODKToken.objects.get(
-              user__username=username, status=ODKToken.ACTIVE)
-        except MultipleObjectsReturned:
-            # Reject authentication when multiple ODKTokens are active
-            _l.warn(f'User {username} has multiple active ODK Tokens')
+            token = ODKToken.objects.get(user=user, status=ODKToken.ACTIVE)
+        except (MultipleObjectsReturned):
+            _l.warn(f'User {user.username} has multiple ODK Tokens')
             return None
 
         if timezone.now() > token.expires:
