@@ -23,7 +23,8 @@ from future.utils import iteritems
 from future.utils import listvalues
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from past.builtins import cmp
-from pyxform import SurveyElementBuilder, constants
+from pyxform import (
+    SurveyElementBuilder, constants, create_survey_element_from_dict)
 from pyxform.question import Question
 from pyxform.section import RepeatingSection
 from pyxform.xform2json import create_survey_element_from_xml
@@ -46,6 +47,7 @@ from onadata.libs.utils.common_tags import (DURATION, ID, KNOWN_MEDIA_TYPES,
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.mongo import _encode_for_mongo
 
+ODK_SUBMISSION_URL = getattr(settings, 'ODK_SUBMISSION_URL')
 QUESTION_TYPES_TO_EXCLUDE = [
     u'note',
 ]
@@ -718,6 +720,7 @@ class XForm(XFormMixin, BaseModel):
     last_submission_time = models.DateTimeField(blank=True, null=True)
     has_start_time = models.BooleanField(default=False)
     uuid = models.CharField(max_length=36, default=u'')
+    public_key = models.TextField(default=None)
 
     uuid_regex = re.compile(r'(<instance>.*?id="[^"]+">)(.*</instance>)(.*)',
                             re.DOTALL)
@@ -822,6 +825,26 @@ class XForm(XFormMixin, BaseModel):
             else:
                 self.encrypted = False
 
+    def _clean_public_key(self):
+        clean_public_key = self.public_key
+        if clean_public_key.startswith('-----BEGIN PUBLIC KEY-----') and\
+                clean_public_key.endswith('-----END PUBLIC KEY-----'):
+            self.public_key = clean_public_key.replace(
+                '-----BEGIN PUBLIC KEY-----', '').replace(
+                    '-----END PUBLIC KEY-----', '').replace(' ', '')
+
+    def _set_public_key_field(self):
+        if self.json and self.json != '':
+            if self.submission_count == 0:
+                self._clean_public_key()
+                json_dict = json.loads(self.json)
+                json_dict['public_key'] = self.public_key
+                json_dict['submission_url'] = 'https://odk.ona.io/submission'
+                survey = create_survey_element_from_dict(json_dict)
+                self.json = survey.to_json()
+                self.xml = survey.to_xml()
+                self._set_encrypted_field()
+
     def update(self, *args, **kwargs):
         super(XForm, self).save(*args, **kwargs)
 
@@ -836,6 +859,8 @@ class XForm(XFormMixin, BaseModel):
             self._set_hash()
         if update_fields is None or 'encrypted' in update_fields:
             self._set_encrypted_field()
+        if update_fields is None or 'public_key' in update_fields:
+            self._set_public_key_field()
         if update_fields is None or 'id_string' in update_fields:
             old_id_string = self.id_string
             if not self.deleted_at:

@@ -261,6 +261,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME))
     public = serializers.BooleanField(source='shared')
     public_data = serializers.BooleanField(source='shared_data')
+    public_key = serializers.CharField()
     require_auth = serializers.BooleanField()
     submission_count_for_today = serializers.ReadOnlyField()
     tags = TagListSerializer(read_only=True)
@@ -277,8 +278,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = XForm
-        write_only_fields = ('xml',)
-        read_only_fields = ('json', 'date_created', 'date_modified',
+        read_only_fields = ('json', 'xml', 'date_created', 'date_modified',
                             'encrypted', 'bamboo_dataset',
                             'last_submission_time', 'is_merged_dataset')
         exclude = ('json', 'xml', 'xls', 'user', 'has_start_time', 'shared',
