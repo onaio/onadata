@@ -6,6 +6,7 @@ import logging
 from django.conf import settings
 from django.core.exceptions import MultipleObjectsReturned
 from django.db import connection
+from django.db.models import Q
 from django.utils import timezone
 
 from django_digest.backend.storage import AccountStorage
@@ -58,8 +59,9 @@ class ODKTokenAccountStorage(AccountStorage):
             return None
 
         try:
-            token = ODKToken.objects.get(
-                user__email=login, status=ODKToken.ACTIVE)
+            token = ODKToken.objects.get(Q(user__username=login)
+                                         | Q(user__email=login),
+                                         status=ODKToken.ACTIVE)
         except MultipleObjectsReturned:
             _l.warn(f'User {login} has multiple ODK Tokens')
             return None

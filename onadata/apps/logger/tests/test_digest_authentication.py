@@ -95,6 +95,18 @@ class TestDigestAuthentication(TestBase):
                               auth=auth)
         self.assertEqual(self.response.status_code, 201)
 
+        # Test can authenticate with username:token
+        s = self.surveys[1]
+        xml_submission_file_path = os.path.join(
+            self.this_directory, 'fixtures',
+            'transportation', 'instances', s, s + '.xml'
+        )
+
+        auth = DigestAuth(self.user.username, raw_key)
+        self._make_submission(xml_submission_file_path, add_uuid=True,
+                              auth=auth)
+        self.assertEqual(self.response.status_code, 201)
+
     @override_settings(
         ODK_KEY_LIFETIME=1,
         DIGEST_ACCOUNT_BACKEND=ODK_TOKEN_STORAGE
