@@ -81,9 +81,10 @@ def user_to_username(item):
 def clean_public_key(value):
     if value.startswith('-----BEGIN PUBLIC KEY-----') and\
             value.endswith('-----END PUBLIC KEY-----'):
-        return value.replace('-----BEGIN PUBLIC KEY-----',
-                             '').replace('-----END PUBLIC KEY-----',
-                                         '').replace(' ', '').rstrip()
+        value = value.replace('-----BEGIN PUBLIC KEY-----',
+                              '').replace('-----END PUBLIC KEY-----',
+                                          '').replace(' ', '').rstrip()
+        return value.replace('\n', '')
 
 
 class XFormMixin(object):
