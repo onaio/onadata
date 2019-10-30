@@ -312,7 +312,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
 
         return xform_metadata
 
-    def validate_public_key(self, value):
+    def validate_public_key(self, value):  # pylint: disable=no-self-use
         """
         Checks that the given RSA public key is a valid key by trying
         to use the key data to create an RSA key object using the cryptography
