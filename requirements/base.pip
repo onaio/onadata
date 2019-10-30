@@ -13,6 +13,7 @@
 alabaster==0.7.12         # via sphinx
 amqp==2.4.2               # via kombu
 argparse==1.4.0           # via unittest2
+asn1crypto==1.0.1         # via cryptography
 attrs==19.1.0             # via jsonschema
 babel==2.6.0              # via sphinx
 billiard==3.5.0.5         # via celery

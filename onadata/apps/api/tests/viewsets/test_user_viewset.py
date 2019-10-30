@@ -35,6 +35,18 @@ class TestUserViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data, self.data)
 
+        # Test can retrieve profile for usernames with _ . @ symbols
+        alice_data = {
+            'username': 'alice.test@gmail.com', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+        extra = {
+            'HTTP_AUTHORIZATION': f'Token {alice_profile.user.auth_token}'}
+
+        request = self.factory.get('/', **extra)
+        response = view(request, username='alice.test@gmail.com')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['username'], alice_data['username'])
+
         # user bob is_active = False
         self.user.is_active = False
         self.user.save()

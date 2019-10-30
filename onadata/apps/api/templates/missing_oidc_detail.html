@@ -1,0 +1,33 @@
+{% extends 'ona_base.html' %}
+{% load rest_framework %}
+
+{% block title %}Missing Authentication Detail{% endblock %}
+
+{% block styles %}
+<style>
+    .content {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 50vh;
+    }
+
+    .content-body {
+        padding: 1.5em;
+        background-color: #FAFAF7;
+        width: 40%;
+        box-shadow: 0px 0px 26px -3px rgba(92,92,92,0.5);
+        text-align: center;
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content">
+    <div class="content-body">
+        <p class="error-message">Couldn't retrieve {{ missing_data }} from your OpenID Provider.
+            {{error_resolver}}</a></p>
+    </div>
+</div>
+{% endblock %}

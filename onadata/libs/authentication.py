@@ -73,13 +73,13 @@ def expired(time_token_created):
     return True if time_diff > token_expiry_time else False
 
 
-def get_api_token(json_web_token):
+def get_api_token(cookie_jwt):
     """Get API Token from JSON Web Token"""
     # having this here allows the values to be mocked easily as oppossed to
     # being on the global scope
     try:
         jwt_payload = jwt.decode(
-            json_web_token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM]
+            cookie_jwt, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM]
         )
         api_token = get_object_or_404(Token, key=jwt_payload.get(API_TOKEN))
 
@@ -235,6 +235,28 @@ class TempTokenURLParameterAuthentication(TempTokenAuthentication):
             return None
 
         return self.authenticate_credentials(key)
+
+
+class SSOHeaderAuthentication(BaseAuthentication):
+    """TempToken URL via temp_token request parameter.
+    """
+
+    def authenticate(self, request):  # pylint: disable=no-self-use
+        sso = request.META.get('HTTP_SSO') or request.COOKIES.get('SSO')
+
+        if not sso:
+            return None
+
+        jwt_payload = jwt.decode(
+            sso, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM]
+        )
+        email = jwt_payload.get('email')
+
+        user = User.objects.filter(email=email).first()
+        if user:
+            return (user, True)
+
+        return None
 
 
 def check_lockout(request):

@@ -1,0 +1,65 @@
+{% extends 'ona_base.html' %}
+{% load rest_framework %}
+
+{% block title %}Open ID Connect - Username Input{% endblock %}
+
+{% block styles %}
+<style>
+    .content {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 50vh;
+    }
+
+    .content-body {
+        padding: 1.5em;
+        background-color: #FAFAF7;
+        width: 40%;
+        box-shadow: 0px 0px 26px -3px rgba(92,92,92,0.5);
+    }
+
+    input {
+        display: block;
+        margin-top: 5px;
+        margin-bottom: .25em;
+        box-sizing: border-box;
+        font-size: 16px;
+        border: 1px solid #ddd;
+        text-align: center;
+    }
+
+    input:focus {
+        outline: none;
+    }
+
+    input[type=text] {
+        padding: .6em;
+        width: 100%;
+    }
+
+    input[type=submit] {
+        align-self: center;
+        padding: .45em;
+        border-radius: 3px;
+        border: none;
+    }
+
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="content">
+        <div class="content-body">
+            <form action="" method="POST" style="display: flex; flex-direction: column;">
+                {% csrf_token %}
+                <p class="error-message">{{ error_msg }}</p>
+                <input type="text" name="username" placeholder="Preferred Username" pattern="^[A-Za-z0-9_]*$" title="Username should not contain . @ - symbols">
+                <input type="hidden" name="id_token" value="{{ id_token }}">
+                <input type="submit" value="Save">
+            </form>
+        </div>
+</div>
+{% endblock %}
+
