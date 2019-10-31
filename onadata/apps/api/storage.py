@@ -6,6 +6,7 @@ import logging
 from django.conf import settings
 from django.core.exceptions import MultipleObjectsReturned
 from django.db import connection
+from django.db.models import Q
 from django.utils import timezone
 
 from django_digest.backend.storage import AccountStorage
@@ -13,7 +14,7 @@ from django_digest.backend.storage import AccountStorage
 from onadata.apps.api.models.odk_token import ODKToken
 
 _l = logging.getLogger(__name__)
-_l.setLevel(logging.DEBUG)
+_l.setLevel(logging.WARNING)
 
 ODK_KEY_LIFETIME_IN_SEC = getattr(settings, 'ODK_KEY_LIFETIME', 7) * 86400
 
@@ -40,7 +41,7 @@ class ODKTokenAccountStorage(AccountStorage):
         AND api_odktoken.status='{ODKToken.ACTIVE}'
     """
 
-    def get_partial_digest(self, username):
+    def get_partial_digest(self, login):
         """
         Checks that the returned partial digest is associated with a
         Token that isn't past it's expire date.
@@ -49,25 +50,28 @@ class ODKTokenAccountStorage(AccountStorage):
         its expiry date
         """
         cursor = connection.cursor()
-        cursor.execute(self.GET_PARTIAL_DIGEST_QUERY, [username])
+        cursor.execute(self.GET_PARTIAL_DIGEST_QUERY, [login])
         # In MySQL, string comparison is case-insensitive by default.
         # Therefore a second round of filtering is required.
         partial_digest = [(row[1]) for row in cursor.fetchall()
-                          if row[0] == username]
+                          if row[0] == login]
         if not partial_digest:
             return None
 
         try:
-            token = ODKToken.objects.get(
-              user__username=username, status=ODKToken.ACTIVE)
+            token = ODKToken.objects.get(Q(user__username=login)
+                                         | Q(user__email=login),
+                                         status=ODKToken.ACTIVE)
         except MultipleObjectsReturned:
-            # Reject authentication when multiple ODKTokens are active
-            _l.warn(f'User {username} has multiple active ODK Tokens')
+            _l.warn(f'User {login} has multiple ODK Tokens')
             return None
-
-        if timezone.now() > token.expires:
-            token.status = ODKToken.INACTIVE
-            token.save()
+        except ODKToken.DoesNotExist:
+            _l.warn(f'User {login} has no active ODK Token')
             return None
+        else:
+            if timezone.now() > token.expires:
+                token.status = ODKToken.INACTIVE
+                token.save()
+                return None
 
-        return partial_digest
+            return partial_digest[0]
