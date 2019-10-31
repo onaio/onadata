@@ -19,6 +19,12 @@ OPENID_CONNECT_PROVIDERS = {
         'token_endpoint': 'http://test.msft.oidc.com/token',
         'callback_uri': 'http://127.0.0.1:8000/oidc/msft/callback',
         'target_url_after_auth': 'http://localhost:3000',
+        'target_url_after_logout': 'http://localhost:3000',
+        'domain_cookie': '',
+        'end_session_endpoint': 'http://test.msft.oidc.com/oidc/logout',
+        'scope': 'openid',
+        'response_type': 'idtoken',
+        'response_mode': '',
     }
 }
 

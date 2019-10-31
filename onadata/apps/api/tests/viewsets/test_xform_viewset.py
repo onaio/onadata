@@ -446,7 +446,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response_data[indx].pop('last_updated_at')
                 expected_data[indx].pop('last_updated_at')
 
-            response_users = response_data[0].pop('users')
+            response_users = sorted(
+                response_data[0].pop('users'), key=lambda x: x['user'])
             expected_users = sorted(
                 expected_data[0].pop('users'), key=lambda x: x['user'])
             self.assertEqual(response_data[0], expected_data[0])
