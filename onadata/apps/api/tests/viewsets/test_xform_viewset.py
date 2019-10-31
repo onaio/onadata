@@ -446,8 +446,14 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response_data[indx].pop('last_updated_at')
                 expected_data[indx].pop('last_updated_at')
 
+            response_users = response_data[0].pop('users')
+            expected_users = sorted(
+                expected_data[0].pop('users'), key=lambda x: x['user'])
             self.assertEqual(response_data[0], expected_data[0])
+            self.assertEqual(response_users, expected_users)
+
             self.assertEqual(response_data[1], expected_data[1])
+            self.assertEqual(response_users, expected_users)
 
             # apply filter, see only bob's forms
             request = self.factory.get(
@@ -1819,6 +1825,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             'owner': None,
             'public': False,
             'public_data': False,
+            'public_key': u'',
             'require_auth': False,
             'description': u'',
             'downloadable': False,
