@@ -823,7 +823,7 @@ class XForm(XFormMixin, BaseModel):
 
     def _set_public_key_field(self):
         if self.json and self.json != '':
-            if self.submission_count() == 0 and self.public_key:
+            if self.num_of_submissions == 0 and self.public_key:
                 json_dict = json.loads(self.json)
                 json_dict['public_key'] = self.public_key
                 survey = create_survey_element_from_dict(json_dict)
