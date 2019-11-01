@@ -139,6 +139,7 @@ class TestLockout(TestCase):
         }
         request = self.factory.get("/", **extra)
 
-        # Assert that an exception is raised when username is passed
+        # Assert that an exception is raised when trailing_spaces are
+        # passed as a username
         with self.assertRaises(AuthenticationFailed):
             check_lockout(request)
