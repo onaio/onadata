@@ -275,13 +275,16 @@ def check_lockout(request):
             username = (
                 request.META["HTTP_AUTHORIZATION"]
                 .decode("utf-8")
-                .split('"')[1]
+                .split('"')[1].strip()
             )
         else:
-            username = request.META["HTTP_AUTHORIZATION"].split('"')[1]
+            username = request.META["HTTP_AUTHORIZATION"].split('"')[1].strip()
     except (TypeError, AttributeError, IndexError):
         pass
     else:
+        if not username:
+            raise AuthenticationFailed(_("Invalid username"))
+
         lockout = cache.get(safe_key("{}{}".format(LOCKOUT_USER, username)))
         if lockout:
             time_locked_out = datetime.now() - datetime.strptime(
