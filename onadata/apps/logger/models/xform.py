@@ -23,7 +23,8 @@ from future.utils import iteritems
 from future.utils import listvalues
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from past.builtins import cmp
-from pyxform import SurveyElementBuilder, constants
+from pyxform import (
+    SurveyElementBuilder, constants, create_survey_element_from_dict)
 from pyxform.question import Question
 from pyxform.section import RepeatingSection
 from pyxform.xform2json import create_survey_element_from_xml
@@ -718,6 +719,7 @@ class XForm(XFormMixin, BaseModel):
     last_submission_time = models.DateTimeField(blank=True, null=True)
     has_start_time = models.BooleanField(default=False)
     uuid = models.CharField(max_length=36, default=u'')
+    public_key = models.TextField(default='')
 
     uuid_regex = re.compile(r'(<instance>.*?id="[^"]+">)(.*</instance>)(.*)',
                             re.DOTALL)
@@ -817,10 +819,17 @@ class XForm(XFormMixin, BaseModel):
     def _set_encrypted_field(self):
         if self.json and self.json != '':
             json_dict = json.loads(self.json)
-            if 'submission_url' in json_dict and 'public_key' in json_dict:
-                self.encrypted = True
-            else:
-                self.encrypted = False
+            self.encrypted = 'public_key' in json_dict
+
+    def _set_public_key_field(self):
+        if self.json and self.json != '':
+            if self.num_of_submissions == 0 and self.public_key:
+                json_dict = json.loads(self.json)
+                json_dict['public_key'] = self.public_key
+                survey = create_survey_element_from_dict(json_dict)
+                self.json = survey.to_json()
+                self.xml = survey.to_xml()
+                self._set_encrypted_field()
 
     def update(self, *args, **kwargs):
         super(XForm, self).save(*args, **kwargs)
@@ -866,6 +875,9 @@ class XForm(XFormMixin, BaseModel):
                     'sms_keyword', self.id_string)
             except Exception:
                 self.sms_id_string = self.id_string
+
+        if update_fields is None or 'public_key' in update_fields:
+            self._set_public_key_field()
 
         if 'skip_xls_read' in kwargs:
             del kwargs['skip_xls_read']

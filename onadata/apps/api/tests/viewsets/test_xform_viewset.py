@@ -446,8 +446,15 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response_data[indx].pop('last_updated_at')
                 expected_data[indx].pop('last_updated_at')
 
+            response_users = sorted(
+                response_data[0].pop('users'), key=lambda x: x['user'])
+            expected_users = sorted(
+                expected_data[0].pop('users'), key=lambda x: x['user'])
             self.assertEqual(response_data[0], expected_data[0])
+            self.assertEqual(response_users, expected_users)
+
             self.assertEqual(response_data[1], expected_data[1])
+            self.assertEqual(response_users, expected_users)
 
             # apply filter, see only bob's forms
             request = self.factory.get(
@@ -1444,11 +1451,44 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.data['public'], True)
             self.assertEqual(response.data['description'], description)
             self.assertEqual(response.data['title'], title)
+            self.assertEqual(response.data['public_key'], '')
             matches = re.findall(r"<h:title>([^<]+)</h:title>", self.xform.xml)
             self.assertTrue(len(matches) > 0)
             self.assertEqual(matches[0], title)
             self.assertFalse(self.xform.hash == "" or self.xform.hash is None)
             self.assertFalse(self.xform.hash == xform_old_hash)
+
+            # Test can update public_key
+            public_key = """
+-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxNlbF920Dj7CYsKYrxcK
+PL0PatubLO2OhcMCpHgdbpGZscbWVAcXNkdjhmPhTuVPXmOa2Wjwe4ZkRfXJW2Iv
+lvPm//UIWXhXUsNQaB9P
+X4yxLWC0fZQ9T3ito8PcZ1nS+B39HYMkRSn9K5r65zRi
+SZhwvTkhcwq7Cea+wX3UT/pfEx62Z8GZ3E8iiYrIcNv2DM+x+0yYmQEboXq1tlKE
+twkF965z9mUTyXYfinrrHVx7xXhz1jbiWyOvTpiY8aAC35EaV3h/MdNXKk7WznJi
+xdM
+nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
+7QIDAQAB
+-----END PUBLIC KEY-----"""
+
+            clean_public_key = """
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxNlbF920Dj7CYsKYrxcK
+PL0PatubLO2OhcMCpHgdbpGZscbWVAcXNkdjhmPhTuVPXmOa2Wjwe4ZkRfXJW2Iv
+lvPm//UIWXhXUsNQaB9P
+X4yxLWC0fZQ9T3ito8PcZ1nS+B39HYMkRSn9K5r65zRi
+SZhwvTkhcwq7Cea+wX3UT/pfEx62Z8GZ3E8iiYrIcNv2DM+x+0yYmQEboXq1tlKE
+twkF965z9mUTyXYfinrrHVx7xXhz1jbiWyOvTpiY8aAC35EaV3h/MdNXKk7WznJi
+xdM
+nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
+7QIDAQAB"""
+
+            data = {'public_key': public_key}
+            request = self.factory.patch('/', data=data, **self.extra)
+            response = view(request, pk=self.xform.id)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.data['public_key'], clean_public_key)
+            self.assertTrue(response.data['encrypted'])
 
     def test_partial_update_anon(self):
         with HTTMock(enketo_mock):
@@ -1796,6 +1836,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             'owner': None,
             'public': False,
             'public_data': False,
+            'public_key': u'',
             'require_auth': False,
             'description': u'',
             'downloadable': False,
