@@ -74,9 +74,9 @@ def has_permission(xform, owner, request, shared=False):
         user.has_perm('logger.change_xform', xform)
 
 
-def has_edit_permission(xform, owner, request, shared=False):
+def has_edit_permission(xform, owner, request):
     user = request.user
-    return (shared and xform.shared_data) or owner == user or\
+    return owner == user or \
         user.has_perm('logger.change_xform', xform)
 
 
