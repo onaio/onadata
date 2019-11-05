@@ -127,3 +127,19 @@ class TestLockout(TestCase):
 
         request = self.factory.get("/", **self.extra)
         self.assertEqual(check_lockout(request), "bob")
+
+    def test_exception_on_username_with_whitespaces(self):
+        """
+        Test the check_lockout properly handles usernames with
+        trailing whitespaces
+        """
+        trailing_space_name = ' ' * 300
+        extra = {
+            "HTTP_AUTHORIZATION": f'Digest username="{ trailing_space_name }",'
+        }
+        request = self.factory.get("/", **extra)
+
+        # Assert that an exception is raised when trailing_spaces are
+        # passed as a username
+        with self.assertRaises(AuthenticationFailed):
+            check_lockout(request)
