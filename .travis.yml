@@ -37,6 +37,7 @@ before_install:
   - sudo -E apt-get -y update
   - sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install postgresql-9.6-postgis-2.3
   - sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install openjdk-8-jre-headless
+  - sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install libffi-dev
   - ./script/database/install_postgis onadata_test postgres 127.0.0.1
 
 install:
