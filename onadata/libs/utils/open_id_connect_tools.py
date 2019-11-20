@@ -79,15 +79,20 @@ class OpenIDHandler:
 
     def get_claim_values(self, claim_list: list, decoded_token: dict):
         """
-        Retrieves the passed in claims from the decoded token
-        and returns the values of the claims
+        Retrieves claim values from a decoded_token based on the claim name
+        either configured in the provider configuration or the passed in
+        claim
+
+        :params
+        claim_list: A list of strings containing the name of claim
+        decoded_token: A dict containing the decoded values of an ID Token
         """
         claim_values = {}
         for claim in claim_list:
-            provider_claim_list = self.provider_configuration.get('claims')
-            if provider_claim_list:
-                claim = provider_claim_list.get(claim)
-                claim_value = decoded_token.get(claim)
+            claim_names = self.provider_configuration.get('claims')
+            if claim_names:
+                claim_name = claim_names.get(claim)
+                claim_value = decoded_token.get(claim_name)
             else:
                 claim_value = decoded_token.get(claim)
 
