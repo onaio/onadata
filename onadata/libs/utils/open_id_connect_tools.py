@@ -91,13 +91,13 @@ class OpenIDHandler:
         claim_names = self.provider_configuration.get('claims')
 
         for claim in claim_list:
-            if claim_names.get(claim):
-                claim_name = claim_names.get(claim)
-                claim_value = decoded_token.get(claim_name)
-            else:
-                claim_value = decoded_token.get(claim)
+            claim_name = claim
 
-            claim_values[claim] = claim_value
+            if claim_names:
+                if claim_names.get(claim):
+                    claim_name = claim_names.get(claim)
+
+            claim_values[claim] = decoded_token.get(claim_name)
 
         return claim_values
 

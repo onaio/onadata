@@ -58,3 +58,29 @@ class TestOpenIDConnectTools(TestBase):
             'family_name': decoded_token.get('lname')
         }
         self.assertEqual(values, claim_values)
+
+        # Test retrieves default values if claim is not set
+        config = OPENID_CONNECT_PROVIDERS['msft']
+        config.pop('claims')
+        oidc_handler = OpenIDHandler(config)
+
+        decoded_token = {
+            'at_hash': 'mU342-Fsdsk',
+            'sub': 'sdadasdasda',
+            'amr': [
+                "Basic Authenticator"
+            ],
+            'iss': 'http://test.msft.oidc.com/oauth2/token',
+            'nonce': '12232',
+            'email': 'some@email.com',
+            'family_name': 'User',
+            'given_name': 'Ted'
+        }
+        claim_values = oidc_handler.get_claim_values(
+            ['email', 'given_name', 'family_name'], decoded_token)
+        values = {
+            'email': decoded_token.get('email'),
+            'given_name': decoded_token.get('given_name'),
+            'family_name': decoded_token.get('family_name')
+        }
+        self.assertEqual(values, claim_values)
