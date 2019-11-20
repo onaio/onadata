@@ -88,9 +88,10 @@ class OpenIDHandler:
         decoded_token: A dict containing the decoded values of an ID Token
         """
         claim_values = {}
+        claim_names = self.provider_configuration.get('claims')
+
         for claim in claim_list:
-            claim_names = self.provider_configuration.get('claims')
-            if claim_names:
+            if claim_names.get(claim):
                 claim_name = claim_names.get(claim)
                 claim_value = decoded_token.get(claim_name)
             else:
