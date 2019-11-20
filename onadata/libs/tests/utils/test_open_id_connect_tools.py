@@ -1,8 +1,6 @@
 """
 Test module for Open ID Connect tools
 """
-from django.test.utils import override_settings
-
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.open_id_connect_tools import (OpenIDHandler)
 
@@ -24,7 +22,7 @@ OPENID_CONNECT_PROVIDERS = {
         'end_session_endpoint': 'http://test.msft.oidc.com/oidc/logout',
         'scope': 'openid',
         'response_type': 'idtoken',
-        'response_mode': '',
+        'response_mode': 'form-post',
     }
 }
 
@@ -84,3 +82,18 @@ class TestOpenIDConnectTools(TestBase):
             'family_name': decoded_token.get('family_name')
         }
         self.assertEqual(values, claim_values)
+
+    def test_make_login_request(self):
+        """
+        Test that the make_login_request function returns
+        a HttpResponseRedirect object pointing to the correct
+        url
+        """
+        response = self.oidc_handler.make_login_request(nonce=12323)
+        expected_url = ('http://test.msft.oidc.com/authorize?nonce=12323'
+                        '&client_id=test&redirect_uri=http://127.0.0.1:8000'
+                        '/oidc/msft/callback&scope=openid&'
+                        'response_type=idtoken&response_mode=form-post')
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, expected_url)
