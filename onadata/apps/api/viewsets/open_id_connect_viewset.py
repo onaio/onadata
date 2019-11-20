@@ -108,7 +108,9 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
                               "Please choose a different one.")
                 data = {'error_msg': error_msg, 'id_token': id_token}
             else:
-                email = decoded_token.get('email')
+                claim_values = oidc_handler.get_claim_values(
+                    ['email', 'given_name', 'family_name'], decoded_token)
+                email = claim_values.get('email')
 
                 if not email:
                     data.update({
@@ -121,8 +123,8 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
                     return Response(
                         data, template_name='missing_oidc_detail.html')
 
-                first_name = decoded_token.get('given_name')
-                last_name = decoded_token.get('family_name')
+                first_name = claim_values.get('given_name')
+                last_name = claim_values.get('family_name')
                 user = create_or_get_user(first_name, last_name, email,
                                           username)
         else:

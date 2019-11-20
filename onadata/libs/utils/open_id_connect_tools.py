@@ -77,6 +77,24 @@ class OpenIDHandler:
 
         return HttpResponseRedirect(url)
 
+    def get_claim_values(self, claim_list: list, decoded_token: dict):
+        """
+        Retrieves the passed in claims from the decoded token
+        and returns the values of the claims
+        """
+        claim_values = {}
+        for claim in claim_list:
+            provider_claim_list = self.provider_configuration.get('claims')
+            if provider_claim_list:
+                claim = provider_claim_list.get(claim)
+                claim_value = decoded_token.get(claim)
+            else:
+                claim_value = decoded_token.get(claim)
+
+            claim_values[claim] = claim_value
+
+        return claim_values
+
     def _retrieve_jwk_related_to_kid(self, kid):
         """
         Retrieves the JSON Web Key used to sign the ID Token
