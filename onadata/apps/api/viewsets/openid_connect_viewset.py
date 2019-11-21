@@ -16,7 +16,7 @@ from rest_framework.response import Response
 
 from onadata.apps.main.models import UserProfile
 from onadata.libs.utils.openid_connect_tools import (
-    EMAIL, FIRST_NAME, LAST_NAME, OpenIDHandler)
+    EMAIL, FIRST_NAME, LAST_NAME, NONCE, OpenIDHandler)
 
 
 class OpenIDConnectViewSet(viewsets.ViewSet):
@@ -134,7 +134,7 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
 
         if user:
             # On Successful login delete the cached nonce
-            cache.delete(decoded_token.get('nonce'))
+            cache.delete(claim_values.get(NONCE))
 
             return get_redirect_sso_response(
                 redirect_uri=provider_config.get('target_url_after_auth'),

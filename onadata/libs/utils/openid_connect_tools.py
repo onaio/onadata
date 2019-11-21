@@ -14,6 +14,7 @@ from jwt.algorithms import RSAAlgorithm
 EMAIL = 'email'
 FIRST_NAME = 'given_name'
 LAST_NAME = 'family_name'
+NONCE = 'nonce'
 
 
 class OpenIDHandler:
@@ -183,7 +184,7 @@ class OpenIDHandler:
                     # the provider the nonce was initiated for, is the same
                     # provider returning it
                     provider_initiated_for = cache.get(
-                        decoded_token.get('nonce'))
+                        decoded_token.get(NONCE))
 
                     if provider_initiated_for != openid_provider:
                         raise Exception('Incorrect nonce value returned')
