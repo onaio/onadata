@@ -122,7 +122,7 @@ class OpenIDHandler:
                 if jwk.get('kid') == kid:
                     return jwk
 
-    def obtain_id_token_from_code(self, code: str, open_id_provider: str = ''):
+    def obtain_id_token_from_code(self, code: str, openid_provider: str = ''):
         """
         Obtain an ID Token using the Authorization Code flow
         """
@@ -148,14 +148,14 @@ class OpenIDHandler:
             return id_token
         else:
             retry_message = 'Failed to retrieve ID Token, ' + \
-                    f'<a href="/oidc/{open_id_provider}">retry</a>' + \
+                    f'<a href="/oidc/{openid_provider}">retry</a>' + \
                     'the authentication process'
             raise Http404(_(retry_message))
 
     def verify_and_decode_id_token(
             self, id_token: str,
             cached_nonce: bool = False,
-            open_id_provider: str = ''):
+            openid_provider: str = ''):
         """
         Verifies that the ID Token passed was signed and sent by the Open ID
         Connect Provider and that the client is one of the audiences then
@@ -185,13 +185,13 @@ class OpenIDHandler:
                     provider_initiated_for = cache.get(
                         decoded_token.get('nonce'))
 
-                    if provider_initiated_for != open_id_provider:
+                    if provider_initiated_for != openid_provider:
                         raise Exception('Incorrect nonce value returned')
                 return decoded_token
             except Exception as e:
                 raise e
 
-    def end_open_id_provider_session(self):
+    def end_openid_provider_session(self):
         """
         Clears the SSO cookie set at authentication and redirects the User
         to the end_session endpoint provided by the provider configuration

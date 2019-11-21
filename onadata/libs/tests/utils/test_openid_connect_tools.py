@@ -2,7 +2,7 @@
 Test module for Open ID Connect tools
 """
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.utils.open_id_connect_tools import (OpenIDHandler)
+from onadata.libs.utils.openid_connect_tools import (OpenIDHandler)
 
 OPENID_CONNECT_PROVIDERS = {
     'msft': {
