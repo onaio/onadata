@@ -15,6 +15,8 @@ from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 
 from onadata.apps.main.models import UserProfile
+from onadata.libs.utils.common_tags import (
+    EMAIL_CLAIM, FIRST_NAME_CLAIM, LAST_NAME_CLAIM)
 from onadata.libs.utils.open_id_connect_tools import OpenIDHandler
 
 
@@ -109,8 +111,9 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
                 data = {'error_msg': error_msg, 'id_token': id_token}
             else:
                 claim_values = oidc_handler.get_claim_values(
-                    ['email', 'given_name', 'family_name'], decoded_token)
-                email = claim_values.get('email')
+                    [EMAIL_CLAIM, FIRST_NAME_CLAIM, LAST_NAME_CLAIM],
+                    decoded_token)
+                email = claim_values.get(EMAIL_CLAIM)
 
                 if not email:
                     data.update({
@@ -123,8 +126,8 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
                     return Response(
                         data, template_name='missing_oidc_detail.html')
 
-                first_name = claim_values.get('given_name')
-                last_name = claim_values.get('family_name')
+                first_name = claim_values.get(FIRST_NAME_CLAIM)
+                last_name = claim_values.get(LAST_NAME_CLAIM)
                 user = create_or_get_user(first_name, last_name, email,
                                           username)
         else:
