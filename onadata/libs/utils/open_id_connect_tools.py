@@ -11,6 +11,10 @@ import jwt
 import requests
 from jwt.algorithms import RSAAlgorithm
 
+EMAIL = 'email'
+FIRST_NAME = 'given_name'
+LAST_NAME = 'family_name'
+
 
 class OpenIDHandler:
     """
