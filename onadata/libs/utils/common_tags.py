@@ -158,3 +158,9 @@ MEMBERS = 'members'
 XLS_DATE_FIELDS = ['date', 'today']
 SUBMISSION_REVIEW = 'submission_review'
 XLS_DATETIME_FIELDS = ['start', 'end', 'dateTime', '_submission_time']
+
+# Open ID Connect Tags
+EMAIL_CLAIM = 'email'
+SUBJECT_CLAIM = 'sub'
+FIRST_NAME_CLAIM = 'given_name'
+LAST_NAME_CLAIM = 'family_name'
