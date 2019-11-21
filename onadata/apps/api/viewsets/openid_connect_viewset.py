@@ -102,6 +102,9 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
         username = request.POST.get('username')
         decoded_token = oidc_handler.verify_and_decode_id_token(
             id_token, cached_nonce=True, openid_provider=openid_provider)
+        claim_values = oidc_handler.get_claim_values(
+                [EMAIL, FIRST_NAME, LAST_NAME],
+                decoded_token)
 
         if username:
             if get_user({"username": username}):
@@ -109,9 +112,6 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
                               "Please choose a different one.")
                 data = {'error_msg': error_msg, 'id_token': id_token}
             else:
-                claim_values = oidc_handler.get_claim_values(
-                    [EMAIL, FIRST_NAME, LAST_NAME],
-                    decoded_token)
                 email = claim_values.get(EMAIL)
 
                 if not email:
@@ -130,7 +130,7 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
                 user = create_or_get_user(first_name, last_name, email,
                                           username)
         else:
-            user = get_user({'email': decoded_token.get('email')})
+            user = get_user({'email': claim_values.get(EMAIL)})
 
         if user:
             # On Successful login delete the cached nonce
