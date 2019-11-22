@@ -356,11 +356,16 @@ class XFormCreateSerializer(XFormSerializer):
 class XFormListSerializer(serializers.Serializer):
     formID = serializers.ReadOnlyField(source='id_string')
     name = serializers.ReadOnlyField(source='title')
-    version = serializers.ReadOnlyField()
+    version = serializers.SerializerMethodField()
     hash = serializers.ReadOnlyField()
     descriptionText = serializers.ReadOnlyField(source='description')
     downloadUrl = serializers.SerializerMethodField('get_url')
     manifestUrl = serializers.SerializerMethodField('get_manifest_url')
+
+    @check_obj
+    def get_version(self, obj):
+        if obj.version and obj.version.isdigit():
+            return obj.version
 
     @check_obj
     def get_url(self, obj):

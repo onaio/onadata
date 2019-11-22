@@ -22,10 +22,7 @@ OPENID_CONNECT_PROVIDERS = {
         'target_url_after_auth': 'http://localhost:3000',
         'target_url_after_logout': 'http://localhost:3000',
         'domain_cookie': '',
-        'claims': {
-            EMAIL: 'sub',
-            LAST_NAME: 'lname'
-        },
+        'claims': {},
         'end_session_endpoint': 'http://test.msft.oidc.com/oidc/logout',
         'scope': 'openid',
         'response_type': 'idtoken',
