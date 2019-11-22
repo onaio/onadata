@@ -24,7 +24,7 @@ from onadata.apps.main.registration_urls import (
 from onadata.apps.restservice import views as restservice_views
 from onadata.apps.sms_support import views as sms_support_views
 from onadata.apps.viewer import views as viewer_views
-from onadata.apps.api.viewsets.openid_connect_viewset import (
+from onadata.apps.api.viewsets.open_id_connect_viewset import (
     OpenIDConnectViewSet
 )
 
@@ -201,15 +201,15 @@ urlpatterns = [
         viewer_views.export_download, name='export-download'),
 
     # open id connect urls
-    re_path(r'^oidc/(?P<openid_connect_provider>\w+)/login$',
+    re_path(r'^oidc/(?P<open_id_connect_provider>\w+)/login$',
         OpenIDConnectViewSet.as_view({
             'get': 'initiate_oidc_flow', 'head': 'callback', 'post': 'callback'
         }), name='open-id-connect-login'),
-    re_path(r'^oidc/(?P<openid_connect_provider>\w+)/expire$',
+    re_path(r'^oidc/(?P<open_id_connect_provider>\w+)/expire$',
         OpenIDConnectViewSet.as_view({
             'get': 'expire'
         }), name='open-id-connect-logout'),
-    re_path(r'^oidc/(?P<openid_connect_provider>\w+)/callback$',
+    re_path(r'^oidc/(?P<open_id_connect_provider>\w+)/callback$',
     OpenIDConnectViewSet.as_view({
          'get': 'callback', 'head': 'callback', 'post': 'callback'
         }), name='open-id-connect-callback'),

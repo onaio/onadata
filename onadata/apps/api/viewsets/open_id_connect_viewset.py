@@ -15,8 +15,7 @@ from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 
 from onadata.apps.main.models import UserProfile
-from onadata.libs.utils.openid_connect_tools import (
-    EMAIL, FIRST_NAME, LAST_NAME, NONCE, OpenIDHandler)
+from onadata.libs.utils.open_id_connect_tools import OpenIDHandler
 
 
 class OpenIDConnectViewSet(viewsets.ViewSet):
@@ -39,12 +38,12 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
         to the OpenID Connect Provider with a cached none for verification of
         the returned request
         """
-        provider_config, openid_provider = retrieve_provider_config(
+        provider_config, open_id_provider = retrieve_provider_config(
             **kwargs)
 
         if provider_config:
             nonce = secrets.randbits(16)
-            cache.set(nonce, openid_provider)
+            cache.set(nonce, open_id_provider)
 
             return OpenIDHandler(provider_config).make_login_request(
                 nonce=nonce)
@@ -62,7 +61,7 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
 
         if provider_config:
             oidc_handler = OpenIDHandler(provider_config)
-            return oidc_handler.end_openid_provider_session()
+            return oidc_handler.end_open_id_provider_session()
         else:
             return HttpResponseBadRequest()
 
@@ -75,7 +74,7 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
         """
         id_token = None
         user = None
-        provider_config, openid_provider = retrieve_provider_config(
+        provider_config, open_id_provider = retrieve_provider_config(
             **kwargs)
         id_token = request.POST.get('id_token')
         data = {
@@ -94,17 +93,14 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
             if request.query_params.get('code'):
                 id_token = oidc_handler.obtain_id_token_from_code(
                     request.query_params.get('code'),
-                    openid_provider=openid_provider)
+                    open_id_provider=open_id_provider)
             else:
                 return HttpResponseBadRequest()
 
         data.update({"id_token": id_token})
         username = request.POST.get('username')
         decoded_token = oidc_handler.verify_and_decode_id_token(
-            id_token, cached_nonce=True, openid_provider=openid_provider)
-        claim_values = oidc_handler.get_claim_values(
-                [EMAIL, FIRST_NAME, LAST_NAME],
-                decoded_token)
+            id_token, cached_nonce=True, open_id_provider=open_id_provider)
 
         if username:
             if get_user({"username": username}):
@@ -112,7 +108,7 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
                               "Please choose a different one.")
                 data = {'error_msg': error_msg, 'id_token': id_token}
             else:
-                email = claim_values.get(EMAIL)
+                email = decoded_token.get('email')
 
                 if not email:
                     data.update({
@@ -120,22 +116,21 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
                         'email',
                         'error_resolver':
                         'Please set an email as an alias on your Open ID' +
-                        ' Connect providers({}) User page'.format(
-                            openid_provider)
+                        f' Connect providers({open_id_provider}) User page'
                     })
                     return Response(
                         data, template_name='missing_oidc_detail.html')
 
-                first_name = claim_values.get(FIRST_NAME)
-                last_name = claim_values.get(LAST_NAME)
+                first_name = decoded_token.get('given_name')
+                last_name = decoded_token.get('family_name')
                 user = create_or_get_user(first_name, last_name, email,
                                           username)
         else:
-            user = get_user({'email': claim_values.get(EMAIL)})
+            user = get_user({'email': decoded_token.get('email')})
 
         if user:
             # On Successful login delete the cached nonce
-            cache.delete(claim_values.get(NONCE))
+            cache.delete(decoded_token.get('nonce'))
 
             return get_redirect_sso_response(
                 redirect_uri=provider_config.get('target_url_after_auth'),
@@ -164,15 +159,15 @@ def create_or_get_user(
     return user
 
 
-def retrieve_provider_config(openid_connect_provider: str):
+def retrieve_provider_config(open_id_connect_provider: str):
     """
     This function retrieves a particular OpenID Connect providers
     provider_config
     """
     provider = getattr(settings, 'OPENID_CONNECT_PROVIDERS',
-                       {}).get(openid_connect_provider, {})
+                       {}).get(open_id_connect_provider, {})
 
-    return(provider, openid_connect_provider)
+    return(provider, open_id_connect_provider)
 
 
 def get_user(kwargs):
