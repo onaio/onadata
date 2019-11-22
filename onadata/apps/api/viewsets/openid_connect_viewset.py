@@ -120,7 +120,8 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
                         'email',
                         'error_resolver':
                         'Please set an email as an alias on your Open ID' +
-                        f' Connect providers({openid_provider}) User page'
+                        ' Connect providers({}) User page'.format(
+                            openid_provider)
                     })
                     return Response(
                         data, template_name='missing_oidc_detail.html')
