@@ -2,7 +2,8 @@
 Test module for Open ID Connect tools
 """
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.utils.openid_connect_tools import (OpenIDHandler)
+from onadata.libs.utils.openid_connect_tools import (EMAIL, LAST_NAME,
+                                                     OpenIDHandler)
 
 OPENID_CONNECT_PROVIDERS = {
     'msft': {
@@ -16,8 +17,8 @@ OPENID_CONNECT_PROVIDERS = {
         'target_url_after_logout': 'http://localhost:3000',
         'domain_cookie': '',
         'claims': {
-            'email': 'sub',
-            'family_name': 'lname'
+            EMAIL: 'sub',
+            LAST_NAME: 'lname'
         },
         'end_session_endpoint': 'http://test.msft.oidc.com/oidc/logout',
         'scope': 'openid',

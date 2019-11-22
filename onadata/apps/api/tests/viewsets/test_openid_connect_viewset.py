@@ -1,14 +1,15 @@
 """
 Test OpenIDViewset module
 """
-from mock import patch
-
 from django.test.utils import override_settings
 
-from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
-    TestAbstractViewSet)
-from onadata.apps.api.viewsets.openid_connect_viewset import (
-    OpenIDConnectViewSet)
+from mock import patch
+
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
+    TestAbstractViewSet
+from onadata.apps.api.viewsets.openid_connect_viewset import \
+    OpenIDConnectViewSet
+from onadata.libs.utils.openid_connect_tools import EMAIL, LAST_NAME
 
 OPENID_CONNECT_PROVIDERS = {
     'msft': {
@@ -21,10 +22,14 @@ OPENID_CONNECT_PROVIDERS = {
         'target_url_after_auth': 'http://localhost:3000',
         'target_url_after_logout': 'http://localhost:3000',
         'domain_cookie': '',
+        'claims': {
+            EMAIL: 'sub',
+            LAST_NAME: 'lname'
+        },
         'end_session_endpoint': 'http://test.msft.oidc.com/oidc/logout',
         'scope': 'openid',
         'response_type': 'idtoken',
-        'response_mode': '',
+        'response_mode': 'form-post',
     }
 }
 
