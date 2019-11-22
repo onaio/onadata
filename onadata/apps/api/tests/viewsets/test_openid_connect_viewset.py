@@ -9,7 +9,6 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.openid_connect_viewset import \
     OpenIDConnectViewSet
-from onadata.libs.utils.openid_connect_tools import EMAIL, LAST_NAME
 
 OPENID_CONNECT_PROVIDERS = {
     'msft': {
