@@ -1,14 +1,14 @@
 """
 Test OpenIDViewset module
 """
-from mock import patch
-
 from django.test.utils import override_settings
 
-from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
-    TestAbstractViewSet)
-from onadata.apps.api.viewsets.open_id_connect_viewset import (
-    OpenIDConnectViewSet)
+from mock import patch
+
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
+    TestAbstractViewSet
+from onadata.apps.api.viewsets.openid_connect_viewset import \
+    OpenIDConnectViewSet
 
 OPENID_CONNECT_PROVIDERS = {
     'msft': {
@@ -21,10 +21,11 @@ OPENID_CONNECT_PROVIDERS = {
         'target_url_after_auth': 'http://localhost:3000',
         'target_url_after_logout': 'http://localhost:3000',
         'domain_cookie': '',
+        'claims': {},
         'end_session_endpoint': 'http://test.msft.oidc.com/oidc/logout',
         'scope': 'openid',
         'response_type': 'idtoken',
-        'response_mode': '',
+        'response_mode': 'form-post',
     }
 }
 
@@ -45,7 +46,7 @@ class TestOpenIDConnectViewSet(TestAbstractViewSet):
         })
 
     @override_settings(OPENID_CONNECT_PROVIDERS=OPENID_CONNECT_PROVIDERS)
-    @patch(('onadata.apps.api.viewsets.open_id_connect_viewset.'
+    @patch(('onadata.apps.api.viewsets.openid_connect_viewset.'
             'OpenIDHandler.verify_and_decode_id_token'))
     def test_redirect_on_successful_authentication(self,
                                                    mock_get_decoded_id_token):
@@ -60,11 +61,11 @@ class TestOpenIDConnectViewSet(TestAbstractViewSet):
 
         data = {'id_token': 123456}
         request = self.factory.post('/', data=data)
-        response = self.view(request, open_id_connect_provider='msft')
+        response = self.view(request, openid_connect_provider='msft')
         self.assertEqual(response.status_code, 302)
 
     @override_settings(OPENID_CONNECT_PROVIDERS=OPENID_CONNECT_PROVIDERS)
-    @patch(('onadata.apps.api.viewsets.open_id_connect_viewset.'
+    @patch(('onadata.apps.api.viewsets.openid_connect_viewset.'
             'OpenIDHandler.verify_and_decode_id_token'))
     def test_redirect_non_existing_user_to_enter_username(
             self, mock_get_decoded_id_token):
@@ -81,13 +82,13 @@ class TestOpenIDConnectViewSet(TestAbstractViewSet):
         data = {"id_token": 123456}
         request = self.factory.post(
             '/', data=data)
-        response = self.view(request, open_id_connect_provider='msft')
+        response = self.view(request, openid_connect_provider='msft')
         self.assertEqual(response.status_code, 200)
         self.assertIn("Preferred Username",
                       response.rendered_content.decode('utf-8'))
 
     @override_settings(OPENID_CONNECT_PROVIDERS=OPENID_CONNECT_PROVIDERS)
-    @patch(('onadata.apps.api.viewsets.open_id_connect_viewset.'
+    @patch(('onadata.apps.api.viewsets.openid_connect_viewset.'
             'OpenIDHandler.verify_and_decode_id_token'))
     def test_trigger_error_on_existing_username(self,
                                                 mock_get_decoded_id_token):
@@ -105,14 +106,14 @@ class TestOpenIDConnectViewSet(TestAbstractViewSet):
             "id_token": 123456,
             'username': self.user_profile_data().get('username')}
         request = self.factory.post('/', data=data)
-        response = self.view(request, open_id_connect_provider='msft')
+        response = self.view(request, openid_connect_provider='msft')
         self.assertEqual(response.status_code, 200)
         self.assertIn(("The username provided already exists. "
                        "Please choose a different one"),
                       response.rendered_content.decode('utf-8'))
 
     @override_settings(OPENID_CONNECT_PROVIDERS=OPENID_CONNECT_PROVIDERS)
-    @patch(('onadata.apps.api.viewsets.open_id_connect_viewset.'
+    @patch(('onadata.apps.api.viewsets.openid_connect_viewset.'
             'OpenIDHandler.verify_and_decode_id_token'))
     def test_create_non_existing_user(self, mock_get_decoded_id_token):
         """
@@ -126,11 +127,11 @@ class TestOpenIDConnectViewSet(TestAbstractViewSet):
         }
         data = {'id_token': 124, 'username': 'john'}
         request = self.factory.post('/', data=data)
-        response = self.view(request, open_id_connect_provider='msft')
+        response = self.view(request, openid_connect_provider='msft')
         self.assertEqual(response.status_code, 302)
 
     @override_settings(OPENID_CONNECT_PROVIDERS=OPENID_CONNECT_PROVIDERS)
-    @patch(('onadata.apps.api.viewsets.open_id_connect_viewset.'
+    @patch(('onadata.apps.api.viewsets.openid_connect_viewset.'
             'OpenIDHandler.verify_and_decode_id_token'))
     def test_redirect_to_missing_detail_on_missing_email(
             self, mock_get_decoded_id_token):
@@ -146,7 +147,7 @@ class TestOpenIDConnectViewSet(TestAbstractViewSet):
         data = {"id_token": 123456, 'username': 'john'}
         request = self.factory.post(
             '/', data=data)
-        response = self.view(request, open_id_connect_provider='msft')
+        response = self.view(request, openid_connect_provider='msft')
         self.assertEqual(response.status_code, 200)
         self.assertIn('Please set an email as an alias',
                       response.rendered_content.decode('utf-8'))
@@ -157,7 +158,7 @@ class TestOpenIDConnectViewSet(TestAbstractViewSet):
         Test a 400 is returned when a token is not available
         """
         request = self.factory.get('/')
-        response = self.view(request, open_id_connect_provider='msft')
+        response = self.view(request, openid_connect_provider='msft')
         self.assertEqual(response.status_code, 400)
 
     @override_settings(OPENID_CONNECT_PROVIDERS=OPENID_CONNECT_PROVIDERS)
@@ -167,5 +168,5 @@ class TestOpenIDConnectViewSet(TestAbstractViewSet):
         is not configured
         """
         request = self.factory.get('/')
-        response = self.view(request, open_id_connect_provider='fake')
+        response = self.view(request, openid_connect_provider='fake')
         self.assertEquals(response.status_code, 400)
