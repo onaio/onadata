@@ -123,7 +123,7 @@ def create_organization_object(org_name, creator, attrs=None):
         email=email,
         is_active=getattr(
             settings,
-            'ORGANIZATION_ACTIVE_STATUS_ON_CREATE',
+            'ORG_ON_CREATE_IS_ACTIVE',
             True))
     new_user.save()
     try:

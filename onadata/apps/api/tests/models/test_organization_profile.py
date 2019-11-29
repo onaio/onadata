@@ -53,10 +53,10 @@ class TestOrganizationProfile(TestBase):
         self.assertEqual(count - 1,
                          OrganizationProfile.objects.all().count())
 
-    @override_settings(ORGANIZATION_ACTIVE_STATUS_ON_CREATE=False)
+    @override_settings(ORG_ON_CREATE_IS_ACTIVE=False)
     def test_optional_organization_active_status(self):
         """
-        Test that setting ORGANIZATION_ACTIVE_STATUS_ON_CREATE
+        Test that setting ORG_ON_CREATE_IS_ACTIVE
         changes the default Organization is_active status
         """
         profile = tools.create_organization_object("modilabs", self.user)
