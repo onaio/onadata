@@ -3,6 +3,7 @@ from onadata.apps.api import tools
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.models.team import Team
 from django.db import IntegrityError
+from django.test import override_settings
 from django.core.cache import cache
 from onadata.libs.utils.cache_tools import IS_ORG, safe_delete
 
@@ -51,3 +52,14 @@ class TestOrganizationProfile(TestBase):
         self.assertIsNone(cache.get('{}{}'.format(IS_ORG, profile_id)))
         self.assertEqual(count - 1,
                          OrganizationProfile.objects.all().count())
+
+    @override_settings(ORGANIZATION_ACTIVE_STATUS_ON_CREATE=False)
+    def test_optional_organization_active_status(self):
+        """
+        Test that setting ORGANIZATION_ACTIVE_STATUS_ON_CREATE
+        changes the default Organization is_active status
+        """
+        profile = tools.create_organization_object("modilabs", self.user)
+        profile.save()
+
+        self.assertFalse(profile.user.is_active)

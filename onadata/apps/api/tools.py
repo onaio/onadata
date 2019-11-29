@@ -121,7 +121,10 @@ def create_organization_object(org_name, creator, attrs=None):
         first_name=first_name,
         last_name=last_name,
         email=email,
-        is_active=True)
+        is_active=getattr(
+            settings,
+            'ORGANIZATION_ACTIVE_STATUS_ON_CREATE',
+            False))
     new_user.save()
     try:
         registration_profile = RegistrationProfile.objects.create_profile(
