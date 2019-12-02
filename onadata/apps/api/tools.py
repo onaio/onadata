@@ -261,6 +261,12 @@ def get_organization_members(organization):
     return team.user_set.all()
 
 
+def get_organization_owners(organization):
+    """Get owners team user queryset"""
+    team = get_organization_owners_team(organization)
+    return team.user_set.all()
+
+
 def _get_owners(organization):
     # Get users with owners perms and not the org itself
 
