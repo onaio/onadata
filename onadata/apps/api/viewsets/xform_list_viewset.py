@@ -80,7 +80,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
         profile = None
         if username is not None:
             profile = get_object_or_404(
-                UserProfile, user__username=username.lower())
+                UserProfile, user__username=username)
 
             if profile.require_auth and self.request.user.is_anonymous:
                 # raises a permission denied exception, forces authentication
