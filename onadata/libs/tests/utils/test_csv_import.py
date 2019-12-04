@@ -399,5 +399,47 @@ class CSVImportTestCase(TestBase):
             [u'6/12/2020 13:20', u'2019-03-11T16:00:51.147+02:00'])
         self.assertEqual(
             conv_datetime,
-            [u'2020-06-12T13:20:00.000000', u'2019-03-11T16:00:51.147+02:00'])
+            [u'2020-06-12T13:20:00.000000',
+             u'2019-03-11T16:00:51.147000+0200'])
         self.assertEqual(conv_dates, ['2019-03-01', '2019-02-26'])
+
+    def test_enforces_data_type(self):
+        """
+        Test that data type constraints are enforced
+        """
+        # Test integer constraint is enforced
+        xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
+                                     "tests", "fixtures", "tutorial.xls")
+        self._publish_xls_file(xls_file_path)
+        self.xform = XForm.objects.last()
+
+        bad_integer_csv = open(
+            os.path.join(self.fixtures_dir, 'bad_integer.csv'),
+            'rb')
+        result = csv_import.submit_csv(self.user.username, self.xform,
+                                       bad_integer_csv)
+        self.assertEqual(
+            result.get('error'),
+            'Unknown integer format(s): 20.85')
+
+        # Test datetime constraint is enforced
+        bad_date_csv = open(
+            os.path.join(self.fixtures_dir, 'bad_datetime.csv'), 'rb')
+        result = csv_import.submit_csv(
+            self.user.username, self.xform, bad_date_csv)
+        self.assertEqual(
+            result.get('error'),
+            'Unknown datetime format(s): 2931093293232')
+
+        # Test decimal constraint is enforced
+        xls_file_path = os.path.join(self.fixtures_dir, 'bad_decimal.xlsx')
+        self._publish_xls_file(xls_file_path)
+        self.xform = XForm.objects.last()
+        bad_decimal_csv = open(
+            os.path.join(self.fixtures_dir, 'bad_decimal.csv'),
+            'rb')
+        result = csv_import.submit_csv(self.user.username, self.xform,
+                                       bad_decimal_csv)
+        self.assertEqual(
+            result.get('error'),
+            'Unknown decimal format(s): sdsa')

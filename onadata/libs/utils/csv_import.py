@@ -18,6 +18,7 @@ import xlrd
 from celery import current_task, task
 from celery.backends.amqp import BacklogLimitExceeded
 from celery.result import AsyncResult
+from dateutil.parser import parse
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.storage import default_storage
@@ -173,126 +174,117 @@ def submit_csv(username, xform, csv_file, overwrite=False):
     :return: If sucessful, a dict with import summary else dict with error str.
     :rtype: Dict
     """
+    # TODO: Split this section ↓ into separate validate_csv function
+    # Validate csv_file is utf-8 encoded or unicode
     if isinstance(csv_file, str):
         csv_file = BytesIO(csv_file)
     elif csv_file is None or not hasattr(csv_file, 'read'):
-        return async_status(FAILED, (u'Invalid param type for `csv_file`. '
-                                     'Expected utf-8 encoded file or unicode'
-                                     ' string got {} instead.'
-                                     .format(type(csv_file).__name__)))
+        return async_status(
+            FAILED,
+            (u'Invalid param type for csv_file`.'
+             'Expected utf-8 encoded file or unicode'
+             ' string got {} instead'.format(type(csv_file).__name__)))
 
-    num_rows = sum(1 for row in csv_file) - 1
+    # Change stream position to start of file
     csv_file.seek(0)
 
     csv_reader = ucsv.DictReader(csv_file, encoding='utf-8-sig')
-    csv_header = csv_reader.fieldnames
+    csv_headers = csv_reader.fieldnames
 
-    # check for spaces in headers
-    if any(' ' in header for header in csv_header):
-        return async_status(FAILED,
-                            u'CSV file fieldnames should not contain spaces')
+    # Make sure CSV headers have no spaces
+    if any(' ' in header for header in csv_headers):
+        return async_status(
+            FAILED,
+            u'CSV file fieldnames should not contain spaces'
+        )
 
-    # Get the data dictionary
-    xform_header = xform.get_headers()
+    # Get headers from stored data dictionary
+    xform_headers = xform.get_headers()
 
-    missing_col = set(xform_header).difference(csv_header)
-    addition_col = set(csv_header).difference(xform_header)
+    # Identify any missing columns or additional columns between
+    # XForm and Imported CSV
+    missing_col = list(set(xform_headers).difference(csv_headers))
+    additional_col = list(set(csv_headers).difference(xform_headers))
 
-    # change to list
-    missing_col = list(missing_col)
-    addition_col = list(addition_col)
-    # remove all metadata columns
-    missing = [
+    # Remove all metadata columns
+    missing_col = [
         col for col in missing_col
-        if not col.startswith("_") and col not in IGNORED_COLUMNS
-    ]
-
+        if not col.startswith('_') and col not in IGNORED_COLUMNS
+        ]
     # remove all metadata inside groups
-    missing = [col for col in missing if '/_' not in col]
+    missing_col = [col for col in missing_col if '/_' not in col]
 
     # ignore if is multiple select question
-    for col in csv_header:
+    for col in csv_headers:
         # this col is a multiple select question
         survey_element = xform.get_survey_element(col)
         if survey_element and \
                 survey_element.get('type') == MULTIPLE_SELECT_TYPE:
             # remove from the missing and additional list
-            missing = [x for x in missing if not x.startswith(col)]
-
-            addition_col.remove(col)
+            missing_col = [x for x in missing_col if not x.startswith(col)]
+            additional_col.remove(col)
 
     # remove headers for repeats that might be missing from csv
-    missing = sorted([m for m in missing if m.find('[') == -1])
+    missing_col = sorted([m for m in missing_col if m.find('[') == -1])
 
-    # Include additional repeats
-    addition_col = [a for a in addition_col if a.find('[') == -1]
-
-    if missing:
+    if missing_col:
         return async_status(
             FAILED, u"Sorry uploaded file does not match the form. "
             u"The file is missing the column(s): "
-            u"{0}.".format(', '.join(missing)))
+            u"{0}.".format(', '.join(missing_col)))
 
-    if overwrite:
-        xform.instances.filter(deleted_at__isnull=True)\
-            .update(deleted_at=timezone.now(),
-                    deleted_by=User.objects.get(username=username))
-
-    rollback_uuids = []
-    submission_time = datetime.utcnow().isoformat()
-    ona_uuid = {'formhub': {'uuid': xform.uuid}}
-    error = None
-    additions = duplicates = inserts = 0
+    # Include additional repeats
+    additional_col = [a for a in additional_col if a.find('[') == -1]
 
     x_json = json.loads(xform.json)
-    xl_date_columns = [
-        dt.get('name') for dt in x_json.get('children')
-        if dt.get('type') in XLS_DATE_FIELDS]
-    xl_datetime_columns = [
-        dt.get('name') for dt in x_json.get('children')
-        if dt.get('type') in XLS_DATETIME_FIELDS]
 
-    try:
-        for row in csv_reader:
-            # convert some excel dates, replace / with -
-            for key in xl_date_columns:
-                try:
-                    date = datetime.strptime(row.get(key, ''), '%m/%d/%Y')
-                except ValueError:
-                    pass
-                else:
-                    str_date = datetime.strftime(date, '%Y-%m-%d')
-                    row.update({key: str_date})
+    def get_columns_by_type(type_list):
+        """Returns a column that match types passed within
+        the field_list
 
-            # convert some excel dates time, replace / with -
-            for key in xl_datetime_columns:
-                try:
-                    date_time = datetime.strptime(
-                        row.get(key, ''), '%m/%d/%Y %H:%M')
-                except ValueError:
-                    pass
-                else:
-                    str_date_time = datetime.strftime(
-                        date_time, '%Y-%m-%dT%H:%M:%S.%f')
-                    row.update({key: str_date_time})
+        :param type_list: A list containing strings that represent
+                                  XLS field types
+        """
+        return [
+            dt.get('name') for dt in x_json.get('children')
+            if dt.get('type') in type_list
+        ]
 
-            # remove the additional columns
-            for index in addition_col:
-                del row[index]
+    # Retrieve the columns we should validate values for
+    # Currently validating date, datetime, integer and decimal columns
+    columns = {
+        'date': (get_columns_by_type(XLS_DATE_FIELDS), parse),
+        'datetime': (get_columns_by_type(XLS_DATETIME_FIELDS), parse),
+        'integer': (get_columns_by_type(['integer']), int),
+        'decimal': (get_columns_by_type(['decimal']), float)
+    }
 
-            # fetch submission uuid before purging row metadata
+    valid_data = True
+    row_count = 0
+    validated_rows = []
+    errors = {}
 
-            row_uuid = row.get('meta/instanceID') or 'uuid:{}'.format(
-                row.get('_uuid')) if row.get('_uuid') else None
-            submitted_by = row.get('_submitted_by')
-            submission_date = row.get('_submission_time', submission_time)
+    for row in csv_reader:
+        row_count += 1
 
+        # Remove additional columns
+        for index in additional_col:
+            del row[index]
+
+        # Remove 'n/a' values and '' values for xls
+        row = {k: v for (k, v) in row.items() if v != 'n/a' and v != ''}
+
+        # Validate that row data
+        row, error = validate_row(row, columns)
+
+        if error:
+            valid_data = False
+            errors[row_count] = error
+
+        if valid_data:
             location_data = {}
-            for key in list(row):  # seems faster than a comprehension
-                # remove metadata (keys starting with '_')
-                if key.startswith('_'):
-                    del row[key]
 
+            for key in list(row):
                 # Collect row location data into separate location_data dict
                 if key.endswith(('.latitude', '.longitude', '.altitude',
                                  '.precision')):
@@ -301,95 +293,115 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                         location_prop:
                         row.get(key, '0')
                     })
-                # remove 'n/a' values and '' values for xls
-                if not key.startswith('_') and \
-                        (row[key] == 'n/a' or row[key] == ''):
-                    del row[key]
 
+            # TODO: Maybe do this in the if conditional above ?
             # collect all location K-V pairs into single geopoint field(s)
             # in location_data dict
             for location_key in list(location_data):
                 location_data.update({
                     location_key:
                     (u'%(latitude)s %(longitude)s '
-                     '%(altitude)s %(precision)s') % defaultdict(
-                         lambda: '', location_data.get(location_key))
+                        '%(altitude)s %(precision)s') % defaultdict(
+                        lambda: '', location_data.get(location_key))
                 })
 
             row = csv_dict_to_nested_dict(row)
             location_data = csv_dict_to_nested_dict(location_data)
-
             row = dict_merge(row, location_data)
 
-            # inject our form's uuid into the submission
-            row.update(ona_uuid)
+            validated_rows.append(row)
 
-            old_meta = row.get('meta', {})
-            new_meta, update = get_submission_meta_dict(xform, row_uuid)
-            inserts += update
-            old_meta.update(new_meta)
-            row.update({'meta': old_meta})
+    # TODO: Split this section ↑ into separate validate_csv function
 
-            row_uuid = row.get('meta').get('instanceID')
-            rollback_uuids.append(row_uuid.replace('uuid:', ''))
+    if not valid_data:
+        return async_status(
+            FAILED,
+            u'Invalid CSV data imported: {}'.format(
+                errors
+            )
+        )
 
-            xml_file = BytesIO(
-                dict2xmlsubmission(row, xform, row_uuid, submission_date))
+    if overwrite:
+        xform.instances.filter(deleted_at__isnull=True)\
+            .update(deleted_at=timezone.now(),
+                    deleted_by=User.objects.get(username=username))
 
-            try:
-                error, instance = safe_create_instance(username, xml_file, [],
-                                                       xform.uuid, None)
-            except ValueError as e:
-                error = e
+    rollback_uuids = []
+    ona_uuid = {'formhub': {'uuid': xform.uuid}}
+    submission_time = datetime.utcnow().isoformat()
+    additions = duplicates = inserts = 0
 
-            if error:
-                if not (isinstance(error, OpenRosaResponse)
-                        and error.status_code == 202):
-                    Instance.objects.filter(
-                        uuid__in=rollback_uuids, xform=xform).delete()
-                    return async_status(FAILED, text(error))
-                else:
-                    duplicates += 1
+    for row in validated_rows:
+        row_uuid = row.get('meta/instanceID') or 'uuid:{}'.format(
+                row.get('_uuid')) if row.get('_uuid') else None
+        submitted_by = row.get('_submitted_by')
+        submission_date = row.get('_submission_time', submission_time)
+
+        for key in list(row):
+            # remove metadata (keys starting with '_')
+            if key.startswith('_'):
+                del row[key]
+
+        # Inject our forms uuid into the submission
+        row.update(ona_uuid)
+
+        old_meta = row.get('meta', {})
+        new_meta, update = get_submission_meta_dict(xform, row_uuid)
+        inserts += update
+        old_meta.update(new_meta)
+        row.update({'meta': old_meta})
+
+        row_uuid = row.get('meta').get('instanceID')
+        rollback_uuids.append(row_uuid.replace('uuid:', ''))
+
+        xml_file = BytesIO(
+            dict2xmlsubmission(row, xform, row_uuid, submission_date))
+
+        try:
+            error, instance = safe_create_instance(
+                username, xml_file, [], xform.uuid, None)
+        except ValueError as e:
+            error = e
+
+        if error:
+            if not (isinstance(error, OpenRosaResponse)
+                    and error.status_code == 202):
+                Instance.objects.filter(
+                    uuid__in=rollback_uuids, xform=xform).delete()
+                return async_status(FAILED, text(error))
             else:
-                additions += 1
-                if additions % PROGRESS_BATCH_UPDATE == 0:
-                    try:
-                        current_task.update_state(
-                            state='PROGRESS',
-                            meta={
-                                'progress': additions,
-                                'total': num_rows,
-                                'info': addition_col
-                            })
-                        print(current_task)
-                    except Exception:
-                        logging.exception(
-                            _(u'Could not update state of '
-                              'import CSV batch process.'))
-                    finally:
-                        xform.submission_count(True)
+                duplicates += 1
+        else:
+            additions += 1
 
-                users = User.objects.filter(
-                    username=submitted_by) if submitted_by else []
-                if users:
-                    instance.user = users[0]
-                    instance.save()
+            if additions % PROGRESS_BATCH_UPDATE == 0:
+                try:
+                    current_task.update_state(
+                        state='PROGRESS',
+                        meta={
+                            'progress': additions,
+                            'total': row_count,
+                            'info': additional_col
+                        })
+                except Exception:
+                    logging.exception(
+                        _(u'Could not update state of '
+                            'import CSV batch process.'))
+                finally:
+                    xform.submission_count(True)
 
-    except UnicodeDecodeError as e:
-        return failed_import(rollback_uuids, xform, e,
-                             u'CSV file must be utf-8 encoded')
-    except Exception as e:
-        return failed_import(rollback_uuids, xform, e, text(e))
-    finally:
-        xform.submission_count(True)
+            users = User.objects.filter(
+                username=submitted_by) if submitted_by else []
+            if users:
+                instance.user = users[0]
+                instance.save()
 
     return {
         "additions": additions - inserts,
         "duplicates": duplicates,
         u"updates": inserts,
         u"info": u"Additional column(s) excluded from the upload: '{0}'."
-                 .format(', '.join(list(addition_col)))
-    }  # yapf: disable
+        .format(', '.join(list(additional_col)))}
 
 
 def get_async_csv_submission_status(job_uuid):
@@ -470,3 +482,52 @@ def submission_xls_to_csv(xls_file):
         csv_writer.writerow(row_values)
 
     return csv_file
+
+
+def validate_row(row, columns):
+    """ """
+    def validate_column_data(column, constraint_check):
+        """ """
+        invalid_data = []
+        validated_data = {}
+
+        for key in column:
+            value = row.get(key, '')
+
+            if value:
+                try:
+                    value = constraint_check(value)
+                except ValueError:
+                    invalid_data.append(value)
+                else:
+                    validated_data[key] = value
+
+        if invalid_data:
+            return (False, invalid_data)
+        else:
+            return (True, validated_data)
+
+    # Check data doesn't infringe on XForm data constraints
+    errors = []
+    for datatype in columns:
+        column, constraint_check = columns.get(datatype)
+        valid, data = validate_column_data(column, constraint_check)
+
+        if valid:
+            if datatype == 'date':
+                for key in data:
+                    value = datetime.strftime(data.get(key), '%Y-%m-%d')
+                    data.update({key: value})
+
+            elif datatype == 'datetime':
+                for key in data:
+                    value = datetime.strftime(
+                        data.get(key), '%Y-%m-%dT%H:%M:%S.%f%z')
+                    data.update({key: value})
+
+            row.update(data)
+        else:
+            errors.append('Unknown {} format(s): {}'.format(
+                        datatype, ', '.join(data)))
+
+    return (row, errors)
