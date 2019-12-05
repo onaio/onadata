@@ -413,33 +413,20 @@ class CSVImportTestCase(TestBase):
         self._publish_xls_file(xls_file_path)
         self.xform = XForm.objects.last()
 
-        bad_integer_csv = open(
-            os.path.join(self.fixtures_dir, 'bad_integer.csv'),
+        bad_data = open(
+            os.path.join(self.fixtures_dir, 'bad_data.csv'),
             'rb')
         result = csv_import.submit_csv(self.user.username, self.xform,
-                                       bad_integer_csv)
-        self.assertEqual(
-            result.get('error'),
-            'Unknown integer format(s): 20.85')
+                                       bad_data)
 
-        # Test datetime constraint is enforced
-        bad_date_csv = open(
-            os.path.join(self.fixtures_dir, 'bad_datetime.csv'), 'rb')
-        result = csv_import.submit_csv(
-            self.user.username, self.xform, bad_date_csv)
+        expected_error = (
+            "Invalid CSV data imported in row(s): {0: ['Unknown integer "
+            "format(s): 20.85'], 1: ['Unknown date format(s): 2014-0903', "
+            "'Unknown datetime format(s): sdsa', 'Unknown integer format(s): "
+            "21.53'], 2: ['Unknown integer format(s): 22.32'], 4: ['Unknown "
+            "date format(s): 2014-0900'], 5: ['Unknown date format(s): "
+            "2014-0901'], 6: ['Unknown date format(s): 2014-0902'], 7: "
+            "['Unknown date format(s): 2014-0903']}")
         self.assertEqual(
             result.get('error'),
-            'Unknown datetime format(s): 2931093293232')
-
-        # Test decimal constraint is enforced
-        xls_file_path = os.path.join(self.fixtures_dir, 'bad_decimal.xlsx')
-        self._publish_xls_file(xls_file_path)
-        self.xform = XForm.objects.last()
-        bad_decimal_csv = open(
-            os.path.join(self.fixtures_dir, 'bad_decimal.csv'),
-            'rb')
-        result = csv_import.submit_csv(self.user.username, self.xform,
-                                       bad_decimal_csv)
-        self.assertEqual(
-            result.get('error'),
-            'Unknown decimal format(s): sdsa')
+            expected_error)
