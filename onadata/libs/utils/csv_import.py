@@ -180,15 +180,11 @@ def submit_csv(username, xform, csv_file, overwrite=False):
     except UnicodeDecodeError:
         return async_status(
             FAILED, 'CSV file must be utf-8 encoded')
-    except Exception as e:
-        return async_status(FAILED, text(e))
 
     if not validated_data.get('valid'):
         return async_status(
             FAILED,
-            u'Invalid CSV data imported in row(s): {}'.format(
-                validated_data.get('errors')
-            )
+            validated_data.get('error_msg')
         )
 
     if overwrite:
@@ -407,10 +403,13 @@ def validate_csv(csv_file, xform):
     if isinstance(csv_file, str):
         csv_file = BytesIO(csv_file)
     elif csv_file is None or not hasattr(csv_file, 'read'):
-        raise Exception(
-            u'Invalid param type for csv_file`.'
-            'Expected utf-8 encoded file or unicode'
-            ' string got {} instead'.format(type(csv_file).__name__))
+        return {
+            'error_msg': (
+                u'Invalid param type for csv_file`.'
+                'Expected utf-8 encoded file or unicode'
+                ' string got {} instead'.format(type(csv_file).__name__)
+                ),
+            'valid': False}
 
     # Change stream position to start of file
     csv_file.seek(0)
@@ -420,8 +419,9 @@ def validate_csv(csv_file, xform):
 
     # Make sure CSV headers have no spaces
     if any(' ' in header for header in csv_headers):
-        raise Exception(
-            u'CSV file fieldnames should not contain spaces')
+        return {
+            'error_msg': 'CSV file fieldnames should not contain spaces',
+            'valid': False}
 
     # Get headers from stored data dictionary
     xform_headers = xform.get_headers()
@@ -446,10 +446,13 @@ def validate_csv(csv_file, xform):
             mutliple_select_col.append(col)
 
     if missing_col:
-        raise Exception(
-            u"Sorry uploaded file does not match the form. "
-            u"The file is missing the column(s): "
-            u"{0}.".format(', '.join(missing_col)))
+        return {
+            'error_msg': (
+                u"Sorry uploaded file does not match the form. "
+                u"The file is missing the column(s): "
+                u"{0}.".format(', '.join(missing_col))
+            ),
+            'valid': False}
 
     # Identify any additional columns between XForm and
     # imported CSV ignoring repeat and multiple_select columns
@@ -468,7 +471,6 @@ def validate_csv(csv_file, xform):
         'decimal': (get_columns_by_type(['decimal'], x_json), float)
     }
 
-    valid = True
     validated_rows = []
     errors = {}
 
@@ -484,10 +486,9 @@ def validate_csv(csv_file, xform):
         row, error = validate_row(row, columns)
 
         if error:
-            valid = False
             errors[row_no] = error
 
-        if valid:
+        if not errors:
             location_data = {}
 
             for key in list(row):
@@ -517,12 +518,11 @@ def validate_csv(csv_file, xform):
             validated_rows.append(row)
 
     return {
-        'valid': valid,
+        'valid': True if not errors else False,
         'data': validated_rows,
-        'errors': errors,
+        'error_msg': u'Invalid CSV data imported in row(s): {}'.format(errors),
         'row_count': row_no + 1,
-        'additional_col': additional_col
-    }
+        'additional_col': additional_col}
 
 
 def validate_row(row, columns):
