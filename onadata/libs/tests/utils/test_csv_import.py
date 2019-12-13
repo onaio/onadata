@@ -159,7 +159,8 @@ class CSVImportTestCase(TestBase):
                          'Non unicode csv import rollback failed!')
 
     def test_reject_spaces_in_headers(self):
-        self._publish_xls_file(self.xls_file_path)
+        xls_file_path = os.path.join(self.fixtures_dir, 'space_in_header.xlsx')
+        self._publish_xls_file(xls_file_path)
         self.xform = XForm.objects.get()
 
         non_utf8csv = open(os.path.join(self.fixtures_dir, 'header_space.csv'),
