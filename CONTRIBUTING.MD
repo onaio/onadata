@@ -2,13 +2,13 @@
 
 First off, thank you for thinking of contributing to this project! 🥳
 
-The following is a set of guidelines for contributing to Ona Data. Following these guidelines helps to communicate that you respect the time of the maintainers and your intent to help in developing this project.
+The following is a set of guidelines for contributing to Ona Data. Following these guidelines helps to communicate that you respect the time of the maintainers and your intent to help develop this project.
 
 ## How to contribute
 
 ### 1. Report a bug 🐛
 
-Incase you have encountered any issue within the project, please make sure:
+In case you have encountered any issue within the project, please make sure:
 
 - You are using the [latest release](http://github.com/onaio/onadata/releases).
 - You have setup the project according to the [Installation Documentation](https://api.ona.io/static/docs/install.html).
@@ -27,7 +27,7 @@ Feature and enhancement requests are always welcome! We ask you ensure the follo
 - Describe the feature/enhancement in detail.
 - Explain why the feature/enhancement is needed.
 - Describe how the feature/enhancement should work
-- List any advantages & disadvantages in implementing the feature/enhancement
+- List any advantages & disadvantages of implementing the feature/enhancement
 
 ### 3. Code contributions / Pull requests 💻
 
@@ -47,7 +47,7 @@ With the above points in mind feel free to comment on one of our [beginner-frien
 
 ### Git commit messages
 
-Git commits helps communicate what has changed within the project. Making it easier to track down changes or implementation within the codebase. Before contributing please read the following article by [Chris Beams](https://chris.beams.io) on [How to Write a Git Commit Message](https://chris.beams.io/posts/git-commit/).
+Git commits help communicate what has changed within the project. Making it easier to track down changes or implementation within the codebase. Before contributing please read the following article by [Chris Beams](https://chris.beams.io) on [How to Write a Git Commit Message](https://chris.beams.io/posts/git-commit/).
 
 ### Python styleguide
 
