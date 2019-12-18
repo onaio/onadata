@@ -418,6 +418,8 @@ def validate_csv(csv_file, xform):
     csv_headers = csv_reader.fieldnames
 
     # Make sure CSV headers have no spaces
+    # because these are converted to XLSForm names
+    # which cannot have spaces
     if any(' ' in header for header in csv_headers):
         return {
             'error_msg': 'CSV file fieldnames should not contain spaces',
@@ -548,9 +550,18 @@ def validate_row(row, columns):
         if valid:
             if datatype in ['date', 'datetime']:
                 for key in data:
-                    value = datetime.strftime(
-                        data.get(key), '%Y-%m-%d' if datatype == 'date'
-                        else '%Y-%m-%dT%H:%M:%S.%f%z')
+                    # ODK XForms accept date and datetime values formatted in
+                    # accordance to the XML 1.0 spec only deviating when it
+                    # comes to the inclusion of the timezone offset in
+                    # datetime values. This specification matches ISO 8601
+                    value = data.get(key).isoformat()
+
+                    if datatype == 'date' and value.endswith('T00:00:00'):
+                        # Remove the Time string section from dates
+                        # to follow along with the date datetype specification
+                        # in the ODK XForms Spec
+                        value = value.replace('T00:00:00', '')
+
                     data.update({key: value})
 
             row.update(data)

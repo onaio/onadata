@@ -400,8 +400,8 @@ class CSVImportTestCase(TestBase):
             [u'6/12/2020 13:20', u'2019-03-11T16:00:51.147+02:00'])
         self.assertEqual(
             conv_datetime,
-            [u'2020-06-12T13:20:00.000000',
-             u'2019-03-11T16:00:51.147000+0200'])
+            [u'2020-06-12T13:20:00',
+             u'2019-03-11T16:00:51.147000+02:00'])
         self.assertEqual(conv_dates, ['2019-03-01', '2019-02-26'])
 
     def test_enforces_data_type(self):
