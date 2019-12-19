@@ -719,7 +719,7 @@ class XForm(XFormMixin, BaseModel):
     last_submission_time = models.DateTimeField(blank=True, null=True)
     has_start_time = models.BooleanField(default=False)
     uuid = models.CharField(max_length=36, default=u'')
-    public_key = models.TextField(default='')
+    public_key = models.TextField(default='', blank=True, null=True)
 
     uuid_regex = re.compile(r'(<instance>.*?id="[^"]+">)(.*</instance>)(.*)',
                             re.DOTALL)
