@@ -32,7 +32,7 @@ from onadata.libs.utils.async_status import (FAILED, async_status,
                                              celery_state_to_status)
 from onadata.libs.utils.common_tags import (MULTIPLE_SELECT_TYPE, EXCEL_TRUE,
                                             XLS_DATE_FIELDS,
-                                            XLS_DATETIME_FIELDS, UUID)
+                                            XLS_DATETIME_FIELDS, UUID, NA_REP)
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
 from onadata.libs.utils.logger_tools import (OpenRosaResponse, dict2xml,
@@ -482,7 +482,7 @@ def validate_csv(csv_file, xform):
             del row[index]
 
         # Remove 'n/a' values and '' values from csv
-        row = {k: v for (k, v) in row.items() if v not in ['n/a', '']}
+        row = {k: v for (k, v) in row.items() if v not in [NA_REP, '']}
 
         # Validate that row data
         row, error = validate_row(row, columns)
@@ -520,7 +520,7 @@ def validate_csv(csv_file, xform):
             validated_rows.append(row)
 
     return {
-        'valid': True if not errors else False,
+        'valid': not errors,
         'data': validated_rows,
         'error_msg': u'Invalid CSV data imported in row(s): {}'.format(errors),
         'row_count': row_no + 1,
