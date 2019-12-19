@@ -7,6 +7,7 @@ import json
 import logging
 import sys
 import uuid
+import tempfile
 from builtins import str as text
 from collections import defaultdict
 from copy import deepcopy
@@ -193,6 +194,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                     deleted_by=User.objects.get(username=username))
 
     validated_rows = validated_data.get('data')
+    validated_rows.seek(0)
     row_count = validated_data.get('row_count')
     additional_col = validated_data.get('additional_col')
     rollback_uuids = []
@@ -201,7 +203,8 @@ def submit_csv(username, xform, csv_file, overwrite=False):
     additions = duplicates = inserts = 0
 
     try:
-        for row in validated_rows:
+        for row in validated_rows.buffer:
+            row = json.loads(row)
             row_uuid = row.get('meta/instanceID') or 'uuid:{}'.format(
                     row.get(UUID)) if row.get(UUID) else None
             submitted_by = row.get('_submitted_by')
@@ -268,6 +271,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):
     except Exception as e:
         failed_import(rollback_uuids, xform, e, text(e))
     finally:
+        validated_rows.close()
         xform.submission_count(True)
 
     return {
@@ -473,7 +477,7 @@ def validate_csv(csv_file, xform):
         'decimal': (get_columns_by_type(['decimal'], x_json), float)
     }
 
-    validated_rows = []
+    validated_rows = tempfile.TemporaryFile('r+', 1)
     errors = {}
 
     for row_no, row in enumerate(csv_reader):
@@ -517,12 +521,14 @@ def validate_csv(csv_file, xform):
             location_data = csv_dict_to_nested_dict(location_data)
             row = dict_merge(row, location_data)
 
-            validated_rows.append(row)
+            validated_rows.write(json.dumps(row))
+            validated_rows.write('\n')
 
     return {
         'valid': not errors,
         'data': validated_rows,
-        'error_msg': u'Invalid CSV data imported in row(s): {}'.format(errors),
+        'error_msg': u'Invalid CSV data imported in row(s): {}'.format(
+            errors) if errors else '',
         'row_count': row_no + 1,
         'additional_col': additional_col}
 
