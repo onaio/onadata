@@ -127,7 +127,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         owners = get_organization_owners(obj) if obj else []
 
         if owners and members:
-            members.exclude(
+            members = members.exclude(
                 username__in=[user.username for user in owners])
 
         members_list = create_user_list(members)
