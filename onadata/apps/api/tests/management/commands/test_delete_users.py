@@ -14,6 +14,18 @@ class DeleteUserTest(TestBase):
         user_details = username+':'+email
         out = StringIO()
         call_command(
-                'delete_users', user_details, stdout=out)
+                'delete_users', user_details, user_input=True, stdout=out)
         self.assertIn(
             'User bob deleted with success!', out.getvalue())
+
+        # when user_input is False
+        user_deno = self._create_user('deno', 'deno')
+        username = user_deno.username
+        self.xform.user.email = 'deno@gmail.com'
+        email = self.xform.user.email
+
+        new_user_details = username+':'+email
+        call_command(
+                'delete_users', new_user_details, user_input=False, stdout=out)
+        self.assertIn(
+            'User account deno not deleted.', out.getvalue())
