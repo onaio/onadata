@@ -14,7 +14,6 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 
 
-
 class TestXForm(TestBase):
     """
     Test XForm model.

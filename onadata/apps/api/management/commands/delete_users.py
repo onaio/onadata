@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from onadata.apps.logger.models import XForm
-from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models import Project
 from django.core.management.base import BaseCommand
 
 
@@ -68,9 +68,17 @@ class Command(BaseCommand):
 
     def get_user_account_details(self, username):  # pylint: disable=R0201
         try:
-            self.delete_user(username)
+            self.inactivate_user(username)
             self.stdout.write(
                 'User {} deleted with success!'.format(username))
+        except User.DoesNotExist:
+            self.stdout.write('User {} does not exist.' % username)
+
+    def inactivate_user(self, username):
+        try:
+            user = User.objects.get(username=username)
+            user.is_active = False
+            user.save()
         except User.DoesNotExist:
             self.stdout.write('User {} does not exist.' % username)
 
