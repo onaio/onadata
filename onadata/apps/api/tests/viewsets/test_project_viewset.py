@@ -120,30 +120,34 @@ class TestProjectViewSet(TestAbstractViewSet):
         alice_profile.save()
         alice_user.save()
         shared_project.save()
-        
+
         # share project with self.user
-        shareProject = ShareProject(shared_project, self.user.username, 'manager')
+        shareProject = ShareProject(
+            shared_project, self.user.username, 'manager')
         shareProject.save()
 
-        # ensure when alice_user is active we can NOT see the project she shared 
+        # ensure when alice_user is active we can NOT
+        # see the project she shared
         alice_user.is_active = False
         alice_user.save()
         request = self.factory.get('/', **self.extra)
         request.user = self.user
         response = self.view(request)
-        project_serializer = BaseProjectSerializer(self.project,
-                                           context={'request': request})
-        shared_project_serializer = BaseProjectSerializer(shared_project,
-                                           context={'request': request})
+        project_serializer = BaseProjectSerializer(
+            self.project, context={'request': request})
+        shared_project_serializer = BaseProjectSerializer(
+            shared_project, context={'request': request})
         self.assertEqual(response.data, [project_serializer.data])
 
-        # ensure when alice_user is active we can see the project she shared 
+        # ensure when alice_user is active we cansee the project she shared
         alice_user.is_active = True
         alice_user.save()
         request = self.factory.get('/', **self.extra)
         request.user = self.user
         response = self.view(request)
-        self.assertEqual(response.data, [project_serializer.data, shared_project_serializer.data])        
+        self.assertEqual(
+            response.data,
+            [project_serializer.data, shared_project_serializer.data])
 
     def test_projects_get(self):
         self._project_create()
@@ -1035,7 +1039,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         alice_project_data = BaseProjectSerializer(
             self.project, context={'request': request}).data
         result = [{'owner': p.get('owner'),
-                  'projectid': p.get('projectid')} for p in response.data]
+                   'projectid': p.get('projectid')} for p in response.data]
         bob_data = {'owner': 'http://testserver/api/v1/users/bob',
                     'projectid': bobs_project_data.get('projectid')}
         alice_data = {'owner': 'http://testserver/api/v1/users/alice',
