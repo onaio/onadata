@@ -106,6 +106,45 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.data, [serializer.data])
         self.assertIn('created_by', list(response.data[0]))
 
+    def test_project_list_returns_projects_for_active_users_only(self):
+        self._project_create()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+        alice_user = alice_profile.user
+        shared_project = Project(name='demo2',
+                                 shared=True,
+                                 metadata=json.dumps({'description': ''}),
+                                 created_by=alice_user,
+                                 organization=alice_user)
+
+        alice_profile.save()
+        alice_user.save()
+        shared_project.save()
+        
+        # share project with self.user
+        shareProject = ShareProject(shared_project, self.user.username, 'manager')
+        shareProject.save()
+
+        # ensure when alice_user is active we can NOT see the project she shared 
+        alice_user.is_active = False
+        alice_user.save()
+        request = self.factory.get('/', **self.extra)
+        request.user = self.user
+        response = self.view(request)
+        project_serializer = BaseProjectSerializer(self.project,
+                                           context={'request': request})
+        shared_project_serializer = BaseProjectSerializer(shared_project,
+                                           context={'request': request})
+        self.assertEqual(response.data, [project_serializer.data])
+
+        # ensure when alice_user is active we can see the project she shared 
+        alice_user.is_active = True
+        alice_user.save()
+        request = self.factory.get('/', **self.extra)
+        request.user = self.user
+        response = self.view(request)
+        self.assertEqual(response.data, [project_serializer.data, shared_project_serializer.data])        
+
     def test_projects_get(self):
         self._project_create()
         view = ProjectViewSet.as_view({
