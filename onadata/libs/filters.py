@@ -20,7 +20,8 @@ class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
         """
         Anonymous user has no object permissions, return queryset as it is.
         """
-        form_id = view.kwargs.get(view.lookup_field, view.kwargs.get('xform_pk'))
+        form_id = view.kwargs.get(
+            view.lookup_field, view.kwargs.get('xform_pk'))
         queryset = queryset.filter(deleted_at=None)
         if request.user.is_anonymous:
             return queryset
@@ -527,13 +528,14 @@ class ExportFilter(XFormPermissionFilterMixin,
     ExportFilter class uses permissions on the related xform to filter Export
     queryesets. Also filters submitted_by a specific user.
     """
+
     def filter_queryset(self, request, queryset, view):
         has_submitted_by_key = (Q(options__has_key='query') &
                                 Q(options__query__has_key='_submitted_by'),)
         if request.user.is_anonymous:
             return self._xform_filter_queryset(
                 request, queryset, view, 'xform_id')\
-                    .exclude(*has_submitted_by_key)
+                .exclude(*has_submitted_by_key)
 
         old_perm_format = self.perm_format
 

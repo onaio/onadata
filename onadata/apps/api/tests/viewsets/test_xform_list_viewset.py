@@ -120,8 +120,10 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
 
         # Ensure that anonymous users do not have access to private forms
         request = self.factory.get(
-            f'/{self.user.username}/{self.xform.pk}/formList', {'formID': self.xform.id_string})
-        response = self.view(request,  username=self.user.username, xform_pk=self.xform.pk)
+            f'/{self.user.username}/{self.xform.pk}/formList',
+            {'formID': self.xform.id_string})
+        response = self.view(
+            request,  username=self.user.username, xform_pk=self.xform.pk)
         self.assertEqual(response.status_code, 401)
 
         self.user.profile.require_auth = False
@@ -137,20 +139,25 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             'password1': 'alice',
             'password2': 'alice'
         }
-        alice_profile = self._create_user_profile(alice_data)
+        self._create_user_profile(alice_data)
 
         auth = DigestAuth('alice', 'alice')
-        request = self.factory.get(f'/{self.user.username}/{self.xform.pk}/formList', {'formID': self.xform.id_string})
-        request.META.update(auth(request.META, response))
-        response = self.view(request, username=self.user.username, xform_pk=self.xform.pk)
-        self.assertEqual(response.status_code, 200)
-
-        # ensure anonymous users still have access to the xform with id self.xform.pk
         request = self.factory.get(
-           f'/{self.user.username}/{self.xform.pk}/formList', {'formID': self.xform.id_string})
-        response = self.view(request,  username=self.user.username, xform_pk=self.xform.pk)
+            f'/{self.user.username}/{self.xform.pk}/formList',
+            {'formID': self.xform.id_string})
+        request.META.update(auth(request.META, response))
+        response = self.view(
+            request, username=self.user.username, xform_pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
 
+        # ensure anonymous users still have access
+        # to the xform with id self.xform.pk
+        request = self.factory.get(
+            f'/{self.user.username}/{self.xform.pk}/formList',
+            {'formID': self.xform.id_string})
+        response = self.view(
+            request,  username=self.user.username, xform_pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
 
     def test_form_id_filter_for_require_auth_account(self):
         """
