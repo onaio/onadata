@@ -404,9 +404,10 @@ class CSVImportTestCase(TestBase):
              u'2019-03-11T16:00:51.147000+02:00'])
         self.assertEqual(conv_dates, ['2019-03-01', '2019-02-26'])
 
-    def test_enforces_data_type(self):
+    def test_enforces_data_type_and_rollback(self):
         """
-        Test that data type constraints are enforced
+        Test that data type constraints are enforced and instances created
+        during the process are rolled back
         """
         # Test integer constraint is enforced
         xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
@@ -417,17 +418,20 @@ class CSVImportTestCase(TestBase):
         bad_data = open(
             os.path.join(self.fixtures_dir, 'bad_data.csv'),
             'rb')
+        count = Instance.objects.count()
         result = csv_import.submit_csv(self.user.username, self.xform,
                                        bad_data)
 
         expected_error = (
-            "Invalid CSV data imported in row(s): {0: ['Unknown integer "
-            "format(s): 20.85'], 1: ['Unknown date format(s): 2014-0903', "
-            "'Unknown datetime format(s): sdsa', 'Unknown integer format(s): "
-            "21.53'], 2: ['Unknown integer format(s): 22.32'], 4: ['Unknown "
-            "date format(s): 2014-0900'], 5: ['Unknown date format(s): "
-            "2014-0901'], 6: ['Unknown date format(s): 2014-0902'], 7: "
-            "['Unknown date format(s): 2014-0903']}")
+            "Invalid CSV data imported in row(s): {1: ['Unknown date format(s)"
+            ": 2014-0903', 'Unknown datetime format(s): sdsa', "
+            "'Unknown integer format(s): 21.53'], 2: ['Unknown integer format"
+            "(s): 22.32'], 4: ['Unknown date format(s): 2014-0900'], "
+            "5: ['Unknown date format(s): 2014-0901'], 6: ['Unknown "
+            "date format(s): 2014-0902'], 7: ['Unknown date format(s):"
+            " 2014-0903']}")
         self.assertEqual(
             result.get('error'),
             expected_error)
+        # Assert all created instances were rolled back
+        self.assertEqual(count, Instance.objects.count())

@@ -23,7 +23,6 @@ from dateutil.parser import parse
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.storage import default_storage
-from django.utils import timezone
 from django.utils.translation import ugettext as _
 from future.utils import iteritems
 from multidb.pinning import use_master
@@ -187,7 +186,7 @@ def validate_csv_file(csv_file, xform):
                 ),
             'valid': False}
 
-    # Change stream position to start of file
+    # Ensure stream position is at the start of the file
     csv_file.seek(0)
 
     # Retrieve CSV Headers from the CSV File
@@ -249,117 +248,178 @@ def submit_csv(username, xform, csv_file, overwrite=False):
     and converts those to xml submissions and finally submits them by calling
     :py:func:`onadata.libs.utils.logger_tools.safe_create_instance`
 
-    :param str username: the subission user
+    :param str username: the submission user
     :param onadata.apps.logger.models.XForm xform: The submission's XForm.
-    :param (str or file): A CSV formatted file with submission rows.
+    :param (str or file) csv_file: A CSV formatted file with submission rows.
     :return: If sucessful, a dict with import summary else dict with error str.
     :rtype: Dict
     """
-    # Validate csv before creation of Instances
-    try:
-        validated_data = validate_csv(csv_file, xform)
-    except UnicodeDecodeError:
-        return async_status(
-            FAILED, 'CSV file must be utf-8 encoded')
+    csv_file_validation_summary = validate_csv_file(csv_file, xform)
 
-    if not validated_data.get('valid'):
+    if csv_file_validation_summary.get('valid'):
+        additional_col = csv_file_validation_summary.get('additional_col')
+    else:
         return async_status(
             FAILED,
-            validated_data.get('error_msg')
+            csv_file_validation_summary.get('error_msg')
         )
 
-    if overwrite:
-        xform.instances.filter(deleted_at__isnull=True)\
-            .update(deleted_at=timezone.now(),
-                    deleted_by=User.objects.get(username=username))
+    num_rows = sum(1 for row in csv_file) - 1
 
-    validated_rows = validated_data.get('data')
-    validated_rows.seek(0)
-    row_count = validated_data.get('row_count')
-    additional_col = validated_data.get('additional_col')
-    rollback_uuids = []
+    # Change stream position to start of file
+    csv_file.seek(0)
+
+    csv_reader = ucsv.DictReader(csv_file, encoding='utf-8-sig')
+    xform_json = json.loads(xform.json)
     ona_uuid = {'formhub': {'uuid': xform.uuid}}
-    submission_time = datetime.utcnow().isoformat()
     additions = duplicates = inserts = 0
+    rollback_uuids = []
+    errors = {}
+
+    # Retrieve the columns we should validate values for
+    # Currently validating date, datetime, integer and decimal columns
+    col_to_validate = {
+        'date': (get_columns_by_type(XLS_DATE_FIELDS, xform_json), parse),
+        'datetime': (
+            get_columns_by_type(XLS_DATETIME_FIELDS, xform_json), parse),
+        'integer': (get_columns_by_type(['integer'], xform_json), int),
+        'decimal': (get_columns_by_type(['decimal'], xform_json), float)
+    }
 
     try:
-        for row in validated_rows.buffer:
-            row = json.loads(row)
-            row_uuid = row.get('meta/instanceID') or 'uuid:{}'.format(
-                    row.get(UUID)) if row.get(UUID) else None
-            submitted_by = row.get('_submitted_by')
-            submission_date = row.get('_submission_time', submission_time)
+        for row_no, row in enumerate(csv_reader):
+            # Remove additional columns
+            for index in additional_col:
+                del row[index]
 
-            for key in list(row):
-                # remove metadata (keys starting with '_')
-                if key.startswith('_'):
-                    del row[key]
+            # Remove 'n/a' and '' values from csv
+            row = {k: v for (k, v) in row.items() if v not in [NA_REP, '']}
 
-            # Inject our forms uuid into the submission
-            row.update(ona_uuid)
-
-            old_meta = row.get('meta', {})
-            new_meta, update = get_submission_meta_dict(xform, row_uuid)
-            inserts += update
-            old_meta.update(new_meta)
-            row.update({'meta': old_meta})
-
-            row_uuid = row.get('meta').get('instanceID')
-            rollback_uuids.append(row_uuid.replace('uuid:', ''))
-
-            xml_file = BytesIO(
-                dict2xmlsubmission(row, xform, row_uuid, submission_date))
-
-            try:
-                error, instance = safe_create_instance(
-                    username, xml_file, [], xform.uuid, None)
-            except ValueError as e:
-                error = e
+            row, error = validate_row(row, col_to_validate)
 
             if error:
-                if not (isinstance(error, OpenRosaResponse)
-                        and error.status_code == 202):
-                    Instance.objects.filter(
-                        uuid__in=rollback_uuids, xform=xform).delete()
-                    return async_status(FAILED, text(error))
-                else:
-                    duplicates += 1
-            else:
-                additions += 1
+                errors[row_no] = error
 
-                if additions % PROGRESS_BATCH_UPDATE == 0:
+            # Only continue the process if no errors where encountered while
+            # validating the data
+            if not errors:
+                location_data = {}
+
+                for key in list(row):
+                    # Collect row location data into separate location_data
+                    # dict
+                    if key.endswith(('.latitude', '.longitude', '.altitude',
+                                    '.precision')):
+                        location_key, location_prop = key.rsplit(u'.', 1)
+                        location_data.setdefault(location_key, {}).update({
+                            location_prop:
+                            row.get(key, '0')
+                        })
+
+                # collect all location K-V pairs into single geopoint field(s)
+                # in location_data dict
+                for location_key in list(location_data):
+                    location_data.update({
+                        location_key:
+                        (u'%(latitude)s %(longitude)s '
+                            '%(altitude)s %(precision)s') % defaultdict(
+                            lambda: '', location_data.get(location_key))
+                    })
+
+                row = csv_dict_to_nested_dict(row)
+                location_data = csv_dict_to_nested_dict(location_data)
+                # Merge location_data into the Row data
+                row = dict_merge(row, location_data)
+
+                submission_time = datetime.utcnow().isoformat()
+                row_uuid = row.get('meta/instanceID') or 'uuid:{}'.format(
+                    row.get(UUID)) if row.get(UUID) else None
+                submitted_by = row.get('_submitted_by')
+                submission_date = row.get('_submission_time', submission_time)
+
+                for key in list(row):
+                    # remove metadata (keys starting with '_')
+                    if key.startswith('_'):
+                        del row[key]
+
+                # Inject our forms uuid into the submission
+                row.update(ona_uuid)
+
+                old_meta = row.get('meta', {})
+                new_meta, update = get_submission_meta_dict(xform, row_uuid)
+                inserts += update
+                old_meta.update(new_meta)
+                row.update({'meta': old_meta})
+
+                row_uuid = row.get('meta').get('instanceID')
+                rollback_uuids.append(row_uuid.replace('uuid:', ''))
+
+                try:
+                    xml_file = BytesIO(
+                        dict2xmlsubmission(
+                            row, xform, row_uuid, submission_date))
+
                     try:
-                        current_task.update_state(
-                            state='PROGRESS',
-                            meta={
-                                'progress': additions,
-                                'total': row_count,
-                                'info': additional_col
-                            })
-                    except Exception:
-                        logging.exception(
-                            _(u'Could not update state of '
-                                'import CSV batch process.'))
-                    finally:
-                        xform.submission_count(True)
+                        error, instance = safe_create_instance(
+                            username, xml_file, [], xform.uuid, None)
+                    except ValueError as e:
+                        error = e
 
-                users = User.objects.filter(
-                    username=submitted_by) if submitted_by else []
-                if users:
-                    instance.user = users[0]
-                    instance.save()
-    except Exception as e:
-        failed_import(rollback_uuids, xform, e, text(e))
-    finally:
-        validated_rows.close()
-        xform.submission_count(True)
+                    if error:
+                        if not (isinstance(error, OpenRosaResponse)
+                                and error.status_code == 202):
+                            Instance.objects.filter(
+                                uuid__in=rollback_uuids, xform=xform).delete()
+                            return async_status(FAILED, text(error))
+                        else:
+                            duplicates += 1
+                    else:
+                        additions += 1
 
-    return {
-        "additions": additions - inserts,
-        "duplicates": duplicates,
-        u"updates": inserts,
-        u"info": u"Additional column(s) excluded from the upload: '{0}'."
-        .format(', '.join(list(additional_col)))}
+                        if additions % PROGRESS_BATCH_UPDATE == 0:
+                            try:
+                                current_task.update_state(
+                                    state='PROGRESS',
+                                    meta={
+                                        'progress': additions,
+                                        'total': num_rows,
+                                        'info': additional_col
+                                    })
+                            except Exception:
+                                logging.exception(
+                                    _(u'Could not update state of '
+                                        'import CSV batch process.'))
+                            finally:
+                                xform.submission_count(True)
+
+                        users = User.objects.filter(
+                            username=submitted_by) if submitted_by else []
+                        if users:
+                            instance.user = users[0]
+                            instance.save()
+                except Exception as e:
+                    failed_import(rollback_uuids, xform, e, text(e))
+                finally:
+                    xform.submission_count(True)
+    except UnicodeDecodeError as e:
+        return failed_import(rollback_uuids, xform, e,
+                             'CSV file must be utf-8 encoded')
+
+    if errors:
+        Instance.objects.filter(
+            uuid__in=rollback_uuids, xform=xform).delete()
+        return async_status(
+            FAILED,
+            u'Invalid CSV data imported in row(s): {}'.format(
+                errors) if errors else ''
+        )
+    else:
+        return {
+            'additions': additions - inserts,
+            'duplicates': duplicates,
+            'updates': inserts,
+            'info': "Additional column(s) excluded from the upload: '{0}'."
+            .format(', '.join(list(additional_col)))}
 
 
 def get_async_csv_submission_status(job_uuid):
