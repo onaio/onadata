@@ -68,7 +68,7 @@ class ProjectViewSet(AuthenticateHeaderMixin,
     def get_queryset(self):
         if self.request.method.upper() in ['GET', 'OPTIONS']:
             self.queryset = Project.prefetched.filter(
-                deleted_at__isnull=True).filter(organization__is_active=True)
+                deleted_at__isnull=True, organization__is_active=True)
 
         return super(ProjectViewSet, self).get_queryset()
 
