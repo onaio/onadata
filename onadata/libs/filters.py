@@ -20,7 +20,7 @@ class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
         """
         Anonymous user has no object permissions, return queryset as it is.
         """
-        form_id = view.kwargs.get(view.lookup_field)
+        form_id = view.kwargs.get(view.lookup_field, view.kwargs.get('xform_pk'))
         queryset = queryset.filter(deleted_at=None)
         if request.user.is_anonymous:
             return queryset
