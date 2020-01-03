@@ -161,6 +161,86 @@ def failed_import(rollback_uuids, xform, exception, status_message):
     return async_status(FAILED, status_message)
 
 
+def validate_csv_file(csv_file, xform):
+    """Validates a CSV File
+
+    Takes a CSV Formatted file or sring containing rows of submission
+    data and validates that the file is valid enough to be processed.
+
+    :param (str or file) csv_file: A CSV Formated file or string with
+    submission rows
+    :param onadata.apps.logger.models.XForm xform: The submission's XForm
+    :rtype: Dict
+    :returns: A dict containing the validity of the CSV File as well as
+    additional columns(additional_col) if any when successful else
+    it returns an error message(error_msg)
+    """
+    # Validate csv_file is utf-8 encoded or unicode
+    if isinstance(csv_file, str):
+        csv_file = BytesIO(csv_file)
+    elif csv_file is None or not hasattr(csv_file, 'read'):
+        return {
+            'error_msg': (
+                u'Invalid param type for csv_file`.'
+                'Expected utf-8 encoded file or unicode'
+                ' string got {} instead'.format(type(csv_file).__name__)
+                ),
+            'valid': False}
+
+    # Change stream position to start of file
+    csv_file.seek(0)
+
+    # Retrieve CSV Headers from the CSV File
+    csv_headers = ucsv.DictReader(csv_file, encoding='utf-8-sig').fieldnames
+
+    # Make sure CSV headers have no spaces
+    # because these are converted to XLSForm names
+    # which cannot have spaces
+    if any(' ' in header for header in csv_headers):
+        return {
+            'error_msg': 'CSV file fieldnames should not contain spaces',
+            'valid': False}
+
+    # Get headers from stored data dictionary
+    xform_headers = xform.get_headers()
+
+    # Identify any missing columns between XForm and
+    # imported CSV ignoring repeat and metadata columns
+    missing_col = sorted([
+        col for col in set(xform_headers).difference(csv_headers)
+        if col.find('[') == -1 and not col.startswith('_')
+        and col not in IGNORED_COLUMNS and '/_' not in col])
+
+    mutliple_select_col = []
+
+    # Find all multiple_select type columns and remove them from
+    # the missing_col list
+    for col in csv_headers:
+        survey_element = xform.get_survey_element(col)
+        if survey_element and \
+                survey_element.get('type') == MULTIPLE_SELECT_TYPE:
+            # remove from the missing list
+            missing_col = [x for x in missing_col if not x.startswith(col)]
+            mutliple_select_col.append(col)
+
+    if missing_col:
+        return {
+            'error_msg': (
+                u"Sorry uploaded file does not match the form. "
+                u"The file is missing the column(s): "
+                u"{0}.".format(', '.join(missing_col))
+            ),
+            'valid': False}
+
+    # Identify any additional columns between XForm and
+    # imported CSV ignoring repeat and multiple_select columns
+    additional_col = [
+        col for col in set(csv_headers).difference(xform_headers)
+        if col.find('[') == -1 and col not in mutliple_select_col]
+
+    return {'valid': True, 'additional_col': additional_col}
+
+
 @use_master
 def submit_csv(username, xform, csv_file, overwrite=False):
     """Imports CSV data to an existing form
