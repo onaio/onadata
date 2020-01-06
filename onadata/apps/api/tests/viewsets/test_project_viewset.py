@@ -133,7 +133,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         request.user = self.user
         response = self.view(request)
         self.assertEqual(len(response.data), 1)
-        self.assertNotEqual(response.data[0].get('projectid'), shared_project.id)
+        self.assertNotEqual(response.data[0].get(
+            'projectid'), shared_project.id)
 
         # ensure when alice_user is active we can
         # see the project she shared
