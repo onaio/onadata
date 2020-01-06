@@ -146,7 +146,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         request.user = self.user
         response = self.view(request)
         self.assertEqual(
-            response.data,
+            [dict(i) for i in response.data],
             [project_serializer.data, shared_project_serializer.data])
 
     def test_projects_get(self):
