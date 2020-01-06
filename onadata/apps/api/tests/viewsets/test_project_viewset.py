@@ -116,7 +116,6 @@ class TestProjectViewSet(TestAbstractViewSet):
                                  metadata=json.dumps({'description': ''}),
                                  created_by=alice_user,
                                  organization=alice_user)
-
         alice_profile.save()
         alice_user.save()
         shared_project.save()
@@ -133,21 +132,19 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         request.user = self.user
         response = self.view(request)
-        project_serializer = BaseProjectSerializer(
-            self.project, context={'request': request})
-        shared_project_serializer = BaseProjectSerializer(
-            shared_project, context={'request': request})
-        self.assertEqual(response.data, [project_serializer.data])
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0].get('projectid'), 1)
 
-        # ensure when alice_user is active we cansee the project she shared
+        # ensure when alice_user is active we can
+        # see the project she shared
         alice_user.is_active = True
         alice_user.save()
         request = self.factory.get('/', **self.extra)
         request.user = self.user
         response = self.view(request)
-        self.assertEqual(
-            [dict(i) for i in response.data],
-            [project_serializer.data, shared_project_serializer.data])
+        self.assertEqual(len(response.data), 2)
+        self.assertEqual(response.data[0].get('projectid'), 1)
+        self.assertEqual(response.data[1].get('projectid'), 2)
 
     def test_projects_get(self):
         self._project_create()
