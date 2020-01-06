@@ -15,6 +15,8 @@ from past.builtins import basestring
 from onadata.apps.api import tools
 from onadata.apps.logger.models.xform import XForm
 from django.contrib.auth.models import User
+from celery.task.schedules import crontab
+from celery.decorators import periodic_task
 
 
 def recreate_tmp_file(name, path, mime_type):
@@ -65,9 +67,10 @@ def delete_xform_async(xform_id, user_id):
     xform.soft_delete(user)
 
 
-@task()
+@periodic_task(
+    run_every=(crontab(0, 0, day_of_month='15')))
 def delete_user_async(username):
-    """Delete a user account asynchrounous task"""
+    """Delete a user account task"""
     user = User.objects.get(username=username)
     user.delete()
 
