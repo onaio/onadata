@@ -125,7 +125,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             shared_project, self.user.username, 'manager')
         shareProject.save()
 
-        # ensure when alice_user is active we can NOT
+        # ensure when alice_user isn't active we can NOT
         # see the project she shared
         alice_user.is_active = False
         alice_user.save()
