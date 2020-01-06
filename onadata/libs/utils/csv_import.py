@@ -7,7 +7,6 @@ import json
 import logging
 import sys
 import uuid
-import tempfile
 from builtins import str as text
 from collections import defaultdict
 from copy import deepcopy
@@ -23,6 +22,7 @@ from dateutil.parser import parse
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.storage import default_storage
+from django.utils import timezone
 from django.utils.translation import ugettext as _
 from future.utils import iteritems
 from multidb.pinning import use_master
@@ -286,6 +286,11 @@ def submit_csv(username, xform, csv_file, overwrite=False):
         'decimal': (get_columns_by_type(['decimal'], xform_json), float)
     }
 
+    if overwrite:
+        xform.instances.filter(deleted_at__isnull=True)\
+            .update(deleted_at=timezone.now(),
+                    deleted_by=User.objects.get(username=username))
+
     try:
         for row_no, row in enumerate(csv_reader):
             # Remove additional columns
@@ -406,6 +411,8 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                              'CSV file must be utf-8 encoded')
 
     if errors:
+        # Rollback all created instances if an error occurred during
+        # validation
         Instance.objects.filter(
             uuid__in=rollback_uuids, xform=xform).delete()
         return async_status(
@@ -528,149 +535,6 @@ def get_columns_by_type(type_list, form_json):
         dt.get('name') for dt in form_json.get('children')
         if dt.get('type') in type_list
     ]
-
-
-def validate_csv(csv_file, xform):
-    """Validate a CSV data being imported to an existing form
-
-    Takes a csv formatted file or sting containing rows of submission/instance
-    and validates the data making sure that the data is valid enough to be
-    submitted depending on the unique contraints of the existing form.
-
-    :param onadata.apps.logger.models.XForm xform: The subbmission's XForm.
-    :param (str or file): A CSV formatted file with submission rows.
-    :return: Returns a dict with the validation status
-    and data is returned.
-    :rtype: Dict
-    """
-    # Validate csv_file is utf-8 encoded or unicode
-    if isinstance(csv_file, str):
-        csv_file = BytesIO(csv_file)
-    elif csv_file is None or not hasattr(csv_file, 'read'):
-        return {
-            'error_msg': (
-                u'Invalid param type for csv_file`.'
-                'Expected utf-8 encoded file or unicode'
-                ' string got {} instead'.format(type(csv_file).__name__)
-                ),
-            'valid': False}
-
-    # Change stream position to start of file
-    csv_file.seek(0)
-
-    csv_reader = ucsv.DictReader(csv_file, encoding='utf-8-sig')
-    csv_headers = csv_reader.fieldnames
-
-    # Make sure CSV headers have no spaces
-    # because these are converted to XLSForm names
-    # which cannot have spaces
-    if any(' ' in header for header in csv_headers):
-        return {
-            'error_msg': 'CSV file fieldnames should not contain spaces',
-            'valid': False}
-
-    # Get headers from stored data dictionary
-    xform_headers = xform.get_headers()
-
-    # Identify any missing columns between XForm and
-    # imported CSV ignoring repeat and metadata columns
-    missing_col = sorted([
-        col for col in set(xform_headers).difference(csv_headers)
-        if col.find('[') == -1 and not col.startswith('_')
-        and col not in IGNORED_COLUMNS and '/_' not in col])
-
-    mutliple_select_col = []
-
-    # Find all multiple_select type columns and remove them from
-    # the missing_col list
-    for col in csv_headers:
-        survey_element = xform.get_survey_element(col)
-        if survey_element and \
-                survey_element.get('type') == MULTIPLE_SELECT_TYPE:
-            # remove from the missing list
-            missing_col = [x for x in missing_col if not x.startswith(col)]
-            mutliple_select_col.append(col)
-
-    if missing_col:
-        return {
-            'error_msg': (
-                u"Sorry uploaded file does not match the form. "
-                u"The file is missing the column(s): "
-                u"{0}.".format(', '.join(missing_col))
-            ),
-            'valid': False}
-
-    # Identify any additional columns between XForm and
-    # imported CSV ignoring repeat and multiple_select columns
-    additional_col = [
-        col for col in set(csv_headers).difference(xform_headers)
-        if col.find('[') == -1 and col not in mutliple_select_col]
-
-    x_json = json.loads(xform.json)
-
-    # Retrieve the columns we should validate values for
-    # Currently validating date, datetime, integer and decimal columns
-    columns = {
-        'date': (get_columns_by_type(XLS_DATE_FIELDS, x_json), parse),
-        'datetime': (get_columns_by_type(XLS_DATETIME_FIELDS, x_json), parse),
-        'integer': (get_columns_by_type(['integer'], x_json), int),
-        'decimal': (get_columns_by_type(['decimal'], x_json), float)
-    }
-
-    validated_rows = tempfile.TemporaryFile('r+', 1)
-    errors = {}
-
-    for row_no, row in enumerate(csv_reader):
-        # Remove additional columns
-        for index in additional_col:
-            del row[index]
-
-        # Remove 'n/a' values and '' values from csv
-        row = {k: v for (k, v) in row.items() if v not in [NA_REP, '']}
-
-        # Validate that row data
-        row, error = validate_row(row, columns)
-
-        if error:
-            errors[row_no] = error
-
-        if not errors:
-            location_data = {}
-
-            for key in list(row):
-                # Collect row location data into separate location_data dict
-                if key.endswith(('.latitude', '.longitude', '.altitude',
-                                '.precision')):
-                    location_key, location_prop = key.rsplit(u'.', 1)
-                    location_data.setdefault(location_key, {}).update({
-                        location_prop:
-                        row.get(key, '0')
-                    })
-
-            # collect all location K-V pairs into single geopoint field(s)
-            # in location_data dict
-            for location_key in list(location_data):
-                location_data.update({
-                    location_key:
-                    (u'%(latitude)s %(longitude)s '
-                        '%(altitude)s %(precision)s') % defaultdict(
-                        lambda: '', location_data.get(location_key))
-                })
-
-            row = csv_dict_to_nested_dict(row)
-            location_data = csv_dict_to_nested_dict(location_data)
-            row = dict_merge(row, location_data)
-
-            validated_rows.write(json.dumps(row))
-            validated_rows.write('\n')
-
-    return {
-        'valid': not errors,
-        'data': validated_rows,
-        'error_msg': u'Invalid CSV data imported in row(s): {}'.format(
-            errors) if errors else '',
-        'row_count': row_no + 1,
-        'additional_col': additional_col}
 
 
 def validate_row(row, columns):
