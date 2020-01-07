@@ -142,7 +142,12 @@ class TestProjectViewSet(TestAbstractViewSet):
         request.user = self.user
         response = self.view(request)
         self.assertEqual(len(response.data), 2)
-        self.assertEqual(response.data[1].get('projectid'), shared_project.id)
+
+        shared_project_in_response = False
+        for project in response.data:
+            if project.get('projectid') == shared_project.id:
+                shared_project_in_response = True
+        self.assertTrue(shared_project_in_response)
 
     def test_projects_get(self):
         self._project_create()
