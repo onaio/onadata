@@ -166,11 +166,11 @@ def validate_csv_file(csv_file, xform):
     Takes a CSV Formatted file or sring containing rows of submission
     data and validates that the file is valid enough to be processed.
 
-    :param (str or file) csv_file: A CSV Formated file or string with
+    :param (str or file) csv_file: A CSV formatted file or string with
     submission rows
     :param onadata.apps.logger.models.XForm xform: The submission's XForm
     :rtype: Dict
-    :returns: A dict containing the validity of the CSV File as well as
+    :returns: A dict containing the validity of the CSV file as well as
     additional columns(additional_col) if any when successful else
     it returns an error message(error_msg)
     """
