@@ -116,8 +116,6 @@ class TestProjectViewSet(TestAbstractViewSet):
                                  metadata=json.dumps({'description': ''}),
                                  created_by=alice_user,
                                  organization=alice_user)
-        alice_profile.save()
-        alice_user.save()
         shared_project.save()
 
         # share project with self.user
