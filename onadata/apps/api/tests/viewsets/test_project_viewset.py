@@ -147,6 +147,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         for project in response.data:
             if project.get('projectid') == shared_project.id:
                 shared_project_in_response = True
+                break
         self.assertTrue(shared_project_in_response)
 
     def test_projects_get(self):
