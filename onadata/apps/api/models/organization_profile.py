@@ -52,6 +52,25 @@ def create_owner_team_and_permissions(sender, instance, created, **kwargs):
             if instance.created_by and instance.created_by != instance.creator:
                 assign_perm(perm.codename, instance.created_by, instance)
 
+        if instance.userprofile_ptr:
+            for perm in get_perms_for_model(
+                    instance.userprofile_ptr.__class__):
+                assign_perm(
+                    perm.codename, instance.user, instance.userprofile_ptr)
+
+                if instance.creator:
+                    assign_perm(
+                        perm.codename,
+                        instance.creator,
+                        instance.userprofile_ptr)
+
+                if instance.created_by and\
+                        instance.created_by != instance.creator:
+                    assign_perm(
+                        perm.codename,
+                        instance.created_by,
+                        instance.userprofile_ptr)
+
 
 @python_2_unicode_compatible
 class OrganizationProfile(UserProfile):
