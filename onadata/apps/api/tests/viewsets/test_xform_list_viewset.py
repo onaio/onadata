@@ -119,6 +119,8 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.user.profile.save()
 
         # Ensure that anonymous users do not have access to private forms
+        self.xform.shared = False
+        self.xform.save()
         request = self.factory.get(
             f'/{self.user.username}/{self.xform.pk}/formList',
             {'formID': self.xform.id_string})
