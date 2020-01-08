@@ -3,7 +3,6 @@ from mock import patch
 from builtins import str as text
 
 from django.contrib.auth.models import User
-from django.shortcuts import get_object_or_404
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
@@ -1030,7 +1029,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         }
         self.assertIn(expected_user, response.data[0]['users'])
 
-    def test_creator_and_user_permissions(self):
+    def test_creator_permissions(self):
         """
         Test that the creator of the organization has the necessary
         permissions
@@ -1043,7 +1042,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         orgs = OrganizationProfile.objects.filter(creator=self.user)
         self.assertEqual(orgs.count(), 1)
-        org = OrganizationProfile.objects.filter(creator=self.user).first()
+        org = orgs.first()
 
         self.assertTrue(OwnerRole.user_has_role(self.user, org))
         self.assertTrue(
@@ -1051,8 +1050,10 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         members_view = OrganizationProfileViewSet.as_view({
             'post': 'members',
+            'delete': 'members'
         })
 
+        # New admins should also have the required permissions
         self.profile_data['username'] = "dave"
         dave = self._create_user_profile().user
 
@@ -1064,21 +1065,21 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = members_view(request, user='denoinc')
         self.assertEqual(response.status_code, 201)
 
+        # Ensure user has role
         self.assertTrue(OwnerRole.user_has_role(dave, org))
         self.assertTrue(
             OwnerRole.user_has_role(dave, org.userprofile_ptr))
 
-        # The following is currently only here to express the need to assign
-        # perms to the `userprofile_ptr`
-        user = get_object_or_404(User, username=org.user.username)
+        # Permissions should be removed when the user is removed from
+        # organization
+        request = self.factory.delete('/', data=json.dumps(data),
+                                      content_type="application/json",
+                                      **self.extra)
+        response = members_view(request, user='denoinc')
+        expected_results = [u'denoinc']
+        self.assertEqual(expected_results, response.data)
 
-        # the user object returned by get_object_or_404 links to
-        # the userprofile_ptr for some reason..
-        self.assertNotEqual(user.profile, org)
-        self.assertEqual(user.profile, org.userprofile_ptr)
-
-        user = User.objects.get(username=org.user.username)
-        # the user object returned by the User model also links to
-        # userprofile_ptr for some reason
-        self.assertNotEqual(user.profile, org)
-        self.assertEqual(user.profile, org.userprofile_ptr)
+        # Ensure permissions are removed
+        self.assertFalse(OwnerRole.user_has_role(dave, org))
+        self.assertFalse(
+            OwnerRole.user_has_role(dave, org.userprofile_ptr))

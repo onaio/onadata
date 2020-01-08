@@ -201,6 +201,13 @@ def remove_user_from_organization(organization, user):
     remove_user_from_team(owners_team, user)
 
     role = get_role_in_org(user, organization)
+    role_cls = ROLES.get(role)
+
+    if role_cls:
+        # Remove object permissions
+        role_cls.remove_obj_permissions(user, organization)
+        role_cls.remove_obj_permissions(user, organization.userprofile_ptr)
+
     # Remove user from all org projects
     for project in organization.user.project_org.all():
         ShareProject(project, user.username, role, remove=True).save()
