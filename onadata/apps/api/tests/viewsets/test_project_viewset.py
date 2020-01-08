@@ -106,6 +106,50 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.data, [serializer.data])
         self.assertIn('created_by', list(response.data[0]))
 
+    def test_project_list_returns_projects_for_active_users_only(self):
+        self._project_create()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+        alice_user = alice_profile.user
+        shared_project = Project(name='demo2',
+                                 shared=True,
+                                 metadata=json.dumps({'description': ''}),
+                                 created_by=alice_user,
+                                 organization=alice_user)
+        shared_project.save()
+
+        # share project with self.user
+        shareProject = ShareProject(
+            shared_project, self.user.username, 'manager')
+        shareProject.save()
+
+        # ensure when alice_user isn't active we can NOT
+        # see the project she shared
+        alice_user.is_active = False
+        alice_user.save()
+        request = self.factory.get('/', **self.extra)
+        request.user = self.user
+        response = self.view(request)
+        self.assertEqual(len(response.data), 1)
+        self.assertNotEqual(response.data[0].get(
+            'projectid'), shared_project.id)
+
+        # ensure when alice_user is active we can
+        # see the project she shared
+        alice_user.is_active = True
+        alice_user.save()
+        request = self.factory.get('/', **self.extra)
+        request.user = self.user
+        response = self.view(request)
+        self.assertEqual(len(response.data), 2)
+
+        shared_project_in_response = False
+        for project in response.data:
+            if project.get('projectid') == shared_project.id:
+                shared_project_in_response = True
+                break
+        self.assertTrue(shared_project_in_response)
+
     def test_projects_get(self):
         self._project_create()
         view = ProjectViewSet.as_view({
@@ -996,7 +1040,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         alice_project_data = BaseProjectSerializer(
             self.project, context={'request': request}).data
         result = [{'owner': p.get('owner'),
-                  'projectid': p.get('projectid')} for p in response.data]
+                   'projectid': p.get('projectid')} for p in response.data]
         bob_data = {'owner': 'http://testserver/api/v1/users/bob',
                     'projectid': bobs_project_data.get('projectid')}
         alice_data = {'owner': 'http://testserver/api/v1/users/alice',
