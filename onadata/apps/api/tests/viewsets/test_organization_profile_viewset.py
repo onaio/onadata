@@ -1028,3 +1028,58 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             'gravatar': self.user.profile.gravatar
         }
         self.assertIn(expected_user, response.data[0]['users'])
+
+    def test_creator_permissions(self):
+        """
+        Test that the creator of the organization has the necessary
+        permissions
+        """
+        self._org_create()
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.status_code, 200)
+
+        orgs = OrganizationProfile.objects.filter(creator=self.user)
+        self.assertEqual(orgs.count(), 1)
+        org = orgs.first()
+
+        self.assertTrue(OwnerRole.user_has_role(self.user, org))
+        self.assertTrue(
+            OwnerRole.user_has_role(self.user, org.userprofile_ptr))
+
+        members_view = OrganizationProfileViewSet.as_view({
+            'post': 'members',
+            'delete': 'members'
+        })
+
+        # New admins should also have the required permissions
+        self.profile_data['username'] = "dave"
+        dave = self._create_user_profile().user
+
+        data = {'username': 'dave',
+                'role': 'owner'}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = members_view(request, user='denoinc')
+        self.assertEqual(response.status_code, 201)
+
+        # Ensure user has role
+        self.assertTrue(OwnerRole.user_has_role(dave, org))
+        self.assertTrue(
+            OwnerRole.user_has_role(dave, org.userprofile_ptr))
+
+        # Permissions should be removed when the user is removed from
+        # organization
+        request = self.factory.delete('/', data=json.dumps(data),
+                                      content_type="application/json",
+                                      **self.extra)
+        response = members_view(request, user='denoinc')
+        expected_results = [u'denoinc']
+        self.assertEqual(expected_results, response.data)
+
+        # Ensure permissions are removed
+        self.assertFalse(OwnerRole.user_has_role(dave, org))
+        self.assertFalse(
+            OwnerRole.user_has_role(dave, org.userprofile_ptr))

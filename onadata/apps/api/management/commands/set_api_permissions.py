@@ -29,12 +29,18 @@ class Command(BaseCommand):
         # OrganizationProfile
         for profile in queryset_iterator(OrganizationProfile.objects.all()):
             OwnerRole.add(profile.user, profile)
+            OwnerRole.add(
+                profile.user, profile.userprofile_ptr)
 
             if profile.created_by is not None:
                 OwnerRole.add(profile.created_by, profile)
+                OwnerRole.add(
+                    profile.created_by, profile.userprofile_ptr)
 
             if profile.creator is not None:
                 OwnerRole.add(profile.creator, profile)
+                OwnerRole.add(
+                    profile.creator, profile.userprofile_ptr)
 
         # Project
         for project in queryset_iterator(Project.objects.all()):
