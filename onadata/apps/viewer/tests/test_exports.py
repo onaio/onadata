@@ -1285,12 +1285,6 @@ class TestExports(TestBase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Export.objects.count(), num_exports + 1)
 
-    def test_external_export_metadata_retrieved_from_master_db(self):
-        self._publish_transportation_form()
-        self._submit_transport_instance()
-        meta = MetaData.external_export(self.xform)
-        self.assertEqual(meta.db, "default")
-
     @patch('onadata.apps.viewer.tasks.get_object_or_404')
     def test_create_external_export_url_with_non_existing_export_id(
             self, mock_404):
