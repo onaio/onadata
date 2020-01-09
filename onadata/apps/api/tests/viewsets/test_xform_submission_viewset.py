@@ -19,7 +19,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.xform_submission_viewset import \
     XFormSubmissionViewSet
-from onadata.apps.logger.models import Attachment, Instance
+from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.libs.permissions import DataEntryRole
 
 
@@ -80,6 +80,46 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                 self.assertEqual(response['Location'],
                                  'http://testserver/%s/submission'
                                  % self.user.username)
+
+    def test_username_case_insensitive(self):
+        """
+        Test that the form owners username is matched without regards
+        to the username case
+        """
+        # Change username to Bob
+        self.user.username = 'Bob'
+        self.user.save()
+
+        survey = self.surveys[0]
+        media_file = "1335783522563.jpg"
+        path = os.path.join(self.main_directory, 'fixtures',
+                            'transportation', 'instances', survey, media_file)
+        form = XForm.objects.get(user=self.user)
+        count = form.submission_count()
+        with open(path, 'rb') as f:
+            f = InMemoryUploadedFile(f, 'media_file', media_file, 'image/jpg',
+                                     os.path.getsize(path), None)
+            submission_path = os.path.join(
+                self.main_directory, 'fixtures',
+                'transportation', 'instances', survey, survey + '.xml')
+            with open(submission_path, 'rb') as sf:
+                data = {'xml_submission_file': sf, 'media_file': f}
+                # Make submission to /bob/submission
+                request = self.factory.post(
+                    '/%s/submission' % 'bob', data)
+                request.user = AnonymousUser()
+                response = self.view(request, username=self.user.username)
+
+                # Submission should be submitted to the right form
+                self.assertContains(response, 'Successful submission',
+                                    status_code=201)
+                self.assertTrue(response.has_header('X-OpenRosa-Version'))
+                self.assertTrue(
+                    response.has_header('X-OpenRosa-Accept-Content-Length'))
+                self.assertTrue(response.has_header('Date'))
+                self.assertEqual(response['Content-Type'],
+                                 'text/xml; charset=utf-8')
+                self.assertEqual(count+1, form.submission_count())
 
     def test_post_submission_authenticated(self):
         """

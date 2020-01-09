@@ -102,7 +102,7 @@ class BriefcaseViewset(mixins.CreateModelMixin,
 
         if username is not None and self.request.user.is_anonymous:
             profile = get_object_or_404(
-                UserProfile, user__username=username.lower())
+                UserProfile, user__username__iexact=username)
 
             if profile.require_auth:
                 # raises a permission denied exception, forces authentication

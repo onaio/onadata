@@ -112,6 +112,17 @@ class TestOpenIDConnectViewSet(TestAbstractViewSet):
                        "Please choose a different one"),
                       response.rendered_content.decode('utf-8'))
 
+        # Should raise error for differently cased versions of the username
+        data = {
+            "id_token": 123456,
+            'username': self.user_profile_data().get('username').upper()}
+        request = self.factory.post('/', data=data)
+        response = self.view(request, openid_connect_provider='msft')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(("The username provided already exists. "
+                       "Please choose a different one"),
+                      response.rendered_content.decode('utf-8'))
+
     @override_settings(OPENID_CONNECT_PROVIDERS=OPENID_CONNECT_PROVIDERS)
     @patch(('onadata.apps.api.viewsets.openid_connect_viewset.'
             'OpenIDHandler.verify_and_decode_id_token'))

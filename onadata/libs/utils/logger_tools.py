@@ -147,7 +147,7 @@ def get_xform_from_submission(xml, username, uuid=None):
         return get_object_or_404(
             XForm,
             id_string__iexact=id_string,
-            user__username=username,
+            user__username__iexact=username,
             deleted_at__isnull=True)
     except MultipleObjectsReturned:
         raise NonUniqueFormIdError()
@@ -297,6 +297,7 @@ def create_instance(username,
         if request and request.user.is_authenticated else None
 
     if username:
+        # TODO: Why do we lower the username here ?
         username = username.lower()
 
     xml = xml_file.read()
