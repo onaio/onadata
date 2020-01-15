@@ -1,90 +1,119 @@
+"""
+Delete users management command.
+"""
+import sys
 from django.contrib.auth.models import User
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import Project
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
+from django.utils import timezone
+
+
+def get_user_object_stats(username):  # pylint: disable=R0201
+    """
+    Get User information.
+    """
+    # Get the number of projects for this user
+    user_projects = Project.objects.filter(
+        created_by__username=username).count()
+    # Get the number of forms
+    user_forms = XForm.objects.filter(
+        user__username=username).count()
+    # Get the number of submissions
+    user_sumbissions = Instance.objects.filter(
+        user__username=username).count()
+
+    result = {
+        'projects': user_projects,
+        'forms': user_forms,
+        'submissions': user_sumbissions
+    }
+
+    return result
+
+
+def inactivate_user(username, email):
+    """
+    Soft deletes the user termporarily.
+    """
+    try:
+        user = User.objects.get(username=username, email=email)
+        # set inactive status on user account
+        user.is_active = False
+        # append a timestamped suffix to the username
+        # to make the initial username available
+        soft_deletion_time = timezone.now()
+        deletion_suffix = soft_deletion_time.strftime('-deleted-at-%s')
+        user.username += deletion_suffix
+
+        user.save()
+        sys.stdout.write(
+            'User {} deleted successfully.'.format(username))
+        # confirm too that no user exists with provided email
+        if len(User.objects.filter(email=email, is_active=True)) > 1:
+            other_accounts = [
+                user.username for user in User.objects.filter(
+                    email=email)]
+            sys.stdout.write(
+                'User accounts {} have the same '
+                'email address with this User'.format(
+                    other_accounts))
+
+    except User.DoesNotExist:
+        raise CommandError('User {} does not exist.'.format(username))
 
 
 class Command(BaseCommand):
+    """
+    Delete users management command.
+
+    :param user_details:
+    :param user_input:
+
+    Usage:
+    The mandatory arguments are --user_details
+    --user_details username1:email username2:email
+
+    The command defaults the values for the --user_input attribute to False
+    To change this, pass this in with the value True i.e
+    --user_input True
+    """
     help = 'Delete users'
 
     def add_arguments(self, parser):
-        parser.add_argument('user', nargs='*')
+        parser.add_argument('--user_details', nargs='*')
 
         parser.add_argument(
-                '--user_input',
-                action='store_true',
-                help='Confirm deletion of user account',
-            )
+            '--user_input',
+            help='Confirm deletion of user account',
+            default=False
+        )
 
     def handle(self, *args, **kwargs):
-        users = kwargs['user']
-        user_input = kwargs['user_input']
+        users = kwargs.get('user_details')
+        user_input = kwargs.get('user_input')
 
-        if users and user_input is not None:
+        if users:
             for user in users:
-                user_details = user.split(':')
-                username = user_details[0]
-                user_projects = self.get_user_projects(username)
-                user_forms = self.get_user_forms(username)
-                if user_input is True:
-                    return self.get_user_account_details(username)
-                elif user_input is False:
-                    return self.stdout.write(
-                        'User account {} not deleted.'.format(username))
+                username, email = user.split(':')
+                user_stats = get_user_object_stats(username)
+                user_response = True
+                if not user_input:
+                    # If the --user_input flag is not provided.
+                    # Get acknowledgement from the user on this
+                    user_response = input(
+                        "User account '{}' has {} projects, "
+                        "{} forms and {} submissions. "
+                        "Do you wish to continue "
+                        "deleting this account?".format(
+                            username,
+                            user_stats['projects'],
+                            user_stats['forms'],
+                            user_stats['submissions']
+                            ))
+                if user_response:
+                    inactivate_user(username, email)
 
-        user_projects = self.get_user_projects(username)
-        user_forms = len(self.get_user_forms(username))
-        user_input = input("User has {} projects, {} forms. \
-            Do you wish to continue deleting this account?".format(
-            user_projects, user_forms))
-
-        if user_input is True:
-            self.get_user_account_details(username)
         else:
-            self.stdout.write('User account {} not deleted.'.format(username))
-
-    def get_user_projects(self, username):  # pylint: disable=R0201
-        user = User.objects.get(username=username)
-        user_projects = Project.objects.filter(created_by=user).count()
-
-        return user_projects
-
-    def get_user_forms(self, username):  # pylint: disable=R0201
-        user = User.objects.get(username=username)
-        user_forms = XForm.objects.filter(user=user)
-
-        for form in user_forms:
-            form_name = form.title
-            form_sumbissions = Instance.objects.filter(xform=form).count()
-
-            result = {
-                form_name: form_sumbissions,
-            }
-
-            return result
-
-        return len(user_forms)
-
-    def get_user_account_details(self, username):  # pylint: disable=R0201
-        try:
-            self.inactivate_user(username)
-            self.stdout.write(
-                'User {} deleted with success!'.format(username))
-        except User.DoesNotExist:
-            self.stdout.write('User {} does not exist.' % username)
-
-    def inactivate_user(self, username):
-        try:
-            user = User.objects.get(username=username)
-            user.is_active = False
-            user.save()
-        except User.DoesNotExist:
-            self.stdout.write('User {} does not exist.' % username)
-
-    def delete_user(self, username):
-        try:
-            user = User.objects.get(username=username)
-            user.delete()
-        except User.DoesNotExist:
-            self.stdout.write('User {} does not exist.' % username)
+            raise CommandError('No User Account provided!')
