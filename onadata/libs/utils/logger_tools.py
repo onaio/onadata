@@ -24,6 +24,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.encoding import DjangoUnicodeDecodeError
 from django.utils.translation import ugettext as _
+from http.client import BadStatusLine
 from modilabs.utils.subprocess_timeout import ProcessTimedOut
 from multidb.pinning import use_master
 from pyxform.errors import PyXFormError
@@ -495,7 +496,7 @@ def publish_form(callback):
             'type': 'alert-error',
             'text': _(u'Form validation timeout, please try again.'),
         }
-    except (MemoryError, OSError):
+    except (MemoryError, OSError, BadStatusLine):
         return {
             'type': 'alert-error',
             'text': _((u'An error occurred while publishing the form. '
