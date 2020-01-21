@@ -12,7 +12,7 @@ addons:
       - libxslt1-dev
       - binutils
       - libproj-dev
-      - libgdal1-dev
+      - libgdal-dev
       - gdal-bin
       - memcached
       - libmemcached-dev
