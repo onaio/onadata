@@ -24,9 +24,8 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import Attachment
-from onadata.apps.logger.models import Instance, SurveyType
-from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models import \
+    Instance, SurveyType, XForm, Attachment, SubmissionReview
 from onadata.apps.logger.models.instance import InstanceHistory
 from onadata.apps.logger.models.instance import get_attachment_url
 from onadata.apps.main import tests as main_tests
@@ -38,6 +37,8 @@ from onadata.libs.permissions import ReadOnlyRole, EditorRole, \
     EditorMinorRole, DataEntryOnlyRole, DataEntryMinorRole
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
 from onadata.libs.utils.logger_tools import create_instance
+from onadata.libs.serializers.submission_review_serializer import \
+    SubmissionReviewSerializer
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
@@ -2233,6 +2234,84 @@ class TestDataViewSet(TestBase):
             floip_row[4],
             'transport/available_transportation_types_to_referral_facility')
         self.assertEqual(floip_row[5], 'none')
+
+    def test_data_query_ornull(self):
+        """
+        Test that a user is able to query for null with the
+        $or filter option
+        """
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        formid = self.xform.pk
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        query_str = ('{"$or": [{"_review_status":"3"}'
+                     ', {"_review_status": null }]}')
+        request = self.factory.get('/?query=%s' % query_str, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        instances = self.xform.instances.all().order_by('pk')
+        instance = instances[0]
+        self.assertFalse(instance.has_a_review)
+
+        # Review instance
+        data = {
+            "instance": instance.id,
+            "status": SubmissionReview.APPROVED
+        }
+
+        serializer_instance = SubmissionReviewSerializer(data=data)
+        serializer_instance.is_valid()
+        serializer_instance.save()
+        instance.refresh_from_db()
+
+        # Assert that the approved instance is no longer returned
+        # when querying
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 3)
+
+        # Switch review to pending
+        data = {
+            "instance": instance.id,
+            "status": SubmissionReview.PENDING
+        }
+
+        serializer_instance = SubmissionReviewSerializer(data=data)
+        serializer_instance.is_valid()
+        serializer_instance.save()
+        instance.refresh_from_db()
+
+        # Assert instance is now a part of the values when querying
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        instance = instances[1]
+        # Switch review to Rejected
+        data = {
+            "instance": instance.id,
+            "status": SubmissionReview.REJECTED,
+            "note": "Testing"
+        }
+
+        serializer_instance = SubmissionReviewSerializer(data=data)
+        serializer_instance.is_valid()
+        serializer_instance.save()
+        instance.refresh_from_db()
+
+        # Assert ornull operator still works with multiple values
+        query_str = ('{"$or": [{"_review_status":"3"},'
+                     ' {"_review_status": "2"}, {"_review_status": null}]}')
+        request = self.factory.get('/?query=%s' % query_str, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
 
 
 class TestOSM(TestAbstractViewSet):
