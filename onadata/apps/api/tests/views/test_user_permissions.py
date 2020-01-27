@@ -83,6 +83,11 @@ class TestUserPermissions(TestAbstractViewSet):
 
         self.assertFalse(self.xform.shared)
 
+        # Remove key:value pairs where the value is None.
+        # More info: https://code.djangoproject.com/ticket/30024
+        data.pop('enketo_preview_url')
+        data.pop('last_submission_time')
+
         request = self.factory.put('/', data=data, **self.extra)
         response = view(request, pk=self.xform.id)
         self.assertEqual(response.status_code, 404)
@@ -306,6 +311,12 @@ class TestUserPermissions(TestAbstractViewSet):
                               context={'request': request})
         data = json.loads(JSONRenderer().render(xfs.data))
         data.update({'public': True, 'description': "Some description"})
+
+        # Remove key:value pairs where the value is None.
+        # More info: https://code.djangoproject.com/ticket/30024
+        data.pop('enketo_preview_url')
+        data.pop('last_submission_time')
+
         request = self.factory.put('/', data=data, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
