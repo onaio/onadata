@@ -59,7 +59,7 @@
       <bind nodeset="/transportation/transport/loop_over_transport_types_frequency/motorbike/frequency_to_referral_facility" relevant="selected( /transportation/transport/available_transportation_types_to_referral_facility , 'motorbike')" type="select1"/>
       <bind nodeset="/transportation/transport/loop_over_transport_types_frequency/taxi/frequency_to_referral_facility" relevant="selected( /transportation/transport/available_transportation_types_to_referral_facility , 'taxi')" type="select1"/>
       <bind nodeset="/transportation/image1" type="binary"/>
-      <bind calculate="concat('uuid:', uuid())" nodeset="/transportation/meta/instanceID" readonly="true()" type="string"/>
+      <bind jr:preload="uid" nodeset="/transportation/meta/instanceID" readonly="true()" type="string"/>
       <bind calculate="'%(form_uuid)s'" nodeset="/transportation/formhub/uuid" type="string"/>
     </model>
   </h:head>

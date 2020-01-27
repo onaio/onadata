@@ -93,9 +93,10 @@ class TestFormErrors(TestBase):
         self.xform.save()
         xls_path = os.path.join(self.this_directory, "fixtures",
                                 "transportation", "tutorial .xls")
-        msg = u"The name 'tutorial ' is an invalid xml tag. Names must begin"\
-            u" with a letter, colon, or underscore, subsequent characters "\
-            u"can include numbers, dashes, and periods"
+        msg = ("The name 'tutorial ' is an invalid XML tag, it contains an"
+               " invalid character ' '. Names must begin with a letter, colon,"
+               " or underscore, subsequent characters can include numbers, "
+               "dashes, and periods")
         self.assertRaisesMessage(
             PyXFormError, msg, self._publish_xls_file, xls_path)
         self.assertEquals(XForm.objects.count(), count)

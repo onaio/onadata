@@ -103,7 +103,7 @@ pyrsistent==0.15.1        # via jsonschema
 python-dateutil==2.8.0    # via fleming, tableschema
 python-memcached==1.59
 pytz==2019.1              # via babel, celery, django, django-query-builder, fleming
-pyxform==0.13.1
+pyxform==0.15.1
 raven==6.10.0
 recaptcha-client==1.0.6
 requests-mock==1.6.0
