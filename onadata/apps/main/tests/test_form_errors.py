@@ -100,3 +100,24 @@ class TestFormErrors(TestBase):
         self.assertRaisesMessage(
             PyXFormError, msg, self._publish_xls_file, xls_path)
         self.assertEquals(XForm.objects.count(), count)
+
+    def test_choice_duplicate_error(self):
+        """
+        Test that the choice duplicate error is raised if
+        the "allow_choice_duplicates" setting is not set in the
+        forms settings sheet
+        """
+        count = XForm.objects.count()
+        xls_path = os.path.join(
+            self.this_directory, 'fixtures', 'cascading_selects',
+            'duplicate_choice_form.xls')
+        msg = ("There does not seem to be"
+               " a `allow_choice_duplicates`"
+               " column header defined in your settings sheet."
+               " You must have set `allow_choice_duplicates`"
+               " setting in your settings sheet"
+               " to have duplicate choice list names"
+               " in your choices sheet")
+        self.assertRaisesMessage(
+            PyXFormError, msg, self._publish_xls_file, xls_path)
+        self.assertEquals(XForm.objects.count(), count)
