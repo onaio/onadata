@@ -20,6 +20,7 @@ from onadata.libs import filters
 from onadata.libs.renderers.renderers import floip_list
 from onadata.libs.serializers.floip_serializer import (
     FloipListSerializer, FloipSerializer, FlowResultsResponseSerializer)
+from onadata.libs.utils.common_tags import FLOIP_FILTER_MAP
 
 
 class FlowResultsJSONRenderer(JSONRenderer):
@@ -131,6 +132,7 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
             else:
                 queryset = xform.instances.values_list('json', flat=True)
 
+            queryset = floip_responses_filter(request.query_params, queryset)
             paginate_queryset = self.paginate_queryset(queryset)
             if paginate_queryset:
                 data['attributes']['responses'] = floip_list(paginate_queryset)
@@ -143,3 +145,13 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
             data['attributes']['responses'] = floip_list(queryset)
 
         return Response(data, headers=headers, status=status_code)
+
+
+def floip_responses_filter(query_params, queryset):
+    for fil in query_params.keys():
+        if fil in FLOIP_FILTER_MAP:
+            kwargs = {
+                FLOIP_FILTER_MAP[fil]: query_params.get(fil)
+            }
+            queryset = queryset.filter(**kwargs)
+    return queryset

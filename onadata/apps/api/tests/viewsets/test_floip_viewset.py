@@ -2,6 +2,7 @@
 """
 Test FloipViewset module.
 """
+import datetime
 import json
 import os
 import uuid as uu
@@ -306,3 +307,83 @@ class TestFloipViewSet(TestAbstractViewSet):
         # The transportation form(self.xform) contains 11 responses
         # Assert that the responses are returned
         self.assertEqual(len(response.data['attributes']['responses']), 11)
+
+    def test_floip_filter_response(self):
+        count = Instance.objects.count()
+        floip_data = self._publish_floip()
+        view = FloipViewSet.as_view({'post': 'responses', 'get': 'responses'})
+        path = os.path.join(os.path.dirname(__file__), "../", "fixtures",
+                            "flow-results-example-2-api-data.json")
+        this_year = datetime.datetime.now().year
+
+        with open(path, encoding='utf-8') as json_file:
+            descriptor = json.load(json_file)
+            descriptor['data']['id'] = floip_data['id']
+            post_request = self.factory.post(
+                '/',
+                data=json.dumps(descriptor),
+                content_type='application/vnd.api+json',
+                **self.extra)
+            post_response = view(post_request, uuid=floip_data['id'])
+            self.assertEqual(post_response.status_code, 201)
+            self.assertEqual(post_response['Content-Type'],
+                             'application/vnd.api+json')
+            self.assertEqual(
+                post_response['Location'],
+                'http://testserver/api/v1/flow-results/packages/' +
+                floip_data['id'] + '/responses')
+            self.assertEqual(count + 2, Instance.objects.count())
+
+            # test filter version
+            past_version = "{}01010000".format(this_year - 1)
+            get_request = self.factory.get(
+                '/flow-results/packages/' + floip_data[
+                    'id'] + '/responses?filter[min-version]={}'.format(
+                    past_version),
+                content_type='application/vnd.api+json', **self.extra)
+            get_response = view(get_request, uuid=floip_data['id'])
+            self.assertEqual(get_response.status_code, 200)
+            get_response.data['attributes']['responses'] = list(
+                get_response.data['attributes']['responses'])
+            self.assertEqual(len(get_response.data['attributes']['responses']),
+                             5)
+
+            next_version = "{}12310000".format(this_year + 1)
+            get_request = self.factory.get(
+                '/flow-results/packages/' + floip_data[
+                    'id'] + '/responses?filter[min-version]={}'.format(
+                    next_version),
+                content_type='application/vnd.api+json', **self.extra)
+            get_response = view(get_request, uuid=floip_data['id'])
+            self.assertEqual(get_response.status_code, 200)
+            get_response.data['attributes']['responses'] = list(
+                get_response.data['attributes']['responses'])
+            self.assertEqual(len(get_response.data['attributes']['responses']),
+                             0)
+
+            # test filter timestamp
+            yesterday = (datetime.datetime.now() - datetime.timedelta(
+                days=1)).strftime('%Y-%m-%d %H:%M:%S')
+            get_request = self.factory.get(
+                '/flow-results/packages/' + floip_data[
+                    'id'] + '/responses?filter[start-timestamp]={}'.format(
+                    yesterday),
+                content_type='application/vnd.api+json', **self.extra)
+            get_response = view(get_request, uuid=floip_data['id'])
+            self.assertEqual(get_response.status_code, 200)
+            get_response.data['attributes']['responses'] = list(
+                get_response.data['attributes']['responses'])
+            self.assertEqual(len(get_response.data['attributes']['responses']),
+                             5)
+
+            get_request = self.factory.get(
+                '/flow-results/packages/' + floip_data[
+                    'id'] + '/responses?filter[end-timestamp]={}'.format(
+                    yesterday),
+                content_type='application/vnd.api+json', **self.extra)
+            get_response = view(get_request, uuid=floip_data['id'])
+            self.assertEqual(get_response.status_code, 200)
+            get_response.data['attributes']['responses'] = list(
+                get_response.data['attributes']['responses'])
+            self.assertEqual(len(get_response.data['attributes']['responses']),
+                             0)

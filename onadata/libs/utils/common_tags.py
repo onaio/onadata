@@ -185,3 +185,12 @@ METADATA_FIELDS = [
 
 INSTANCE_CREATE_EVENT = 'Submission created'
 INSTANCE_UPDATE_EVENT = 'Submission updated'
+
+FLOIP_FILTER_MAP = {
+    "filter[max-version]": "version__lte",
+    "filter[min-version]": "version__gte",
+    "filter[start-timestamp]": "date_created__gte",
+    "filter[end-timestamp]": "date_created__lte",
+    "page[afterCursor]": "id__gte",
+    "page[beforeCursor]": "id__lte",
+}
