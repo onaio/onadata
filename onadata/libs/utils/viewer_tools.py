@@ -342,10 +342,20 @@ def get_enketo_edit_url(request, instance, return_url):
     return url
 
 
-def get_enketo_preview_url(request, username, id_string, xform_pk=None):
+def get_enketo_preview_url(
+        request, id_string, username=None, xform_pk=None,
+        gen_consistent=False):
     """Return an Enketo preview URL."""
-    form_url = get_form_url(
-        request, username, settings.ENKETO_PROTOCOL, True, xform_pk=xform_pk)
+    form_url_kwargs = {
+        'request': request,
+        'protocol': settings.ENKETO_PROTOCOL,
+        'preview': True,
+        'xform_pk': xform_pk,
+        'username': username,
+        'gen_consistent': gen_consistent
+    }
+
+    form_url = get_form_url(**form_url_kwargs)
     values = {'form_id': id_string, 'server_url': form_url}
 
     response = requests.post(
