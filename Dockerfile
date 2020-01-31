@@ -7,7 +7,7 @@ RUN apt-get update -qq
 
 # For python 3.6
 RUN apt-get install -yqq software-properties-common \
-  && add-apt-repository ppa:jonathonf/python-3.6 \
+  && add-apt-repository ppa:deadsnakes/ppa \
   && apt-get update -qq
 
 RUN apt-get update \
