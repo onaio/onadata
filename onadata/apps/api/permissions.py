@@ -503,18 +503,21 @@ class IsAuthenticatedSubmission(BasePermission):
 
     def has_permission(self, request, view):
         username = view.kwargs.get('username')
+        form_pk = view.kwargs.get('form_pk')
         if request.method in ['HEAD', 'POST'] and request.user.is_anonymous:
-            if username is None:
-                # raises a permission denied exception, forces authentication
-                return False
-            else:
+            if username:
                 user = get_object_or_404(User, username__iexact=username)
+            elif form_pk:
+                form = get_object_or_404(XForm, pk=form_pk)
+                user = form.user
+            else:
+                # Raises a permission denied exception, forces authentication
+                return False
+            profile, _ = UserProfile.objects.get_or_create(user=user)
 
-                profile, _ = UserProfile.objects.get_or_create(user=user)
-
-                if profile.require_auth:
-                    # raises a permission denied exception,
-                    # forces authentication
-                    return False
+            if profile.require_auth:
+                # raises a permission denied exception,
+                # forces authentication
+                return False
 
         return True
