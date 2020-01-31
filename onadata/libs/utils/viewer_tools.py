@@ -294,7 +294,8 @@ def get_form_url(request,
                  username=None,
                  protocol='https',
                  preview=False,
-                 xform_pk=None):
+                 xform_pk=None,
+                 gen_consistent=False):
     """
     Return a form list url endpoint to be used to make a request to Enketo.
 
@@ -313,12 +314,13 @@ def get_form_url(request,
     url = '%s://%s' % (protocol, http_host)
 
     if preview:
-        url = '%s/preview' % url
+        url += '/preview'
 
-    if username and xform_pk is None:
-        url = "{}/{}".format(url, username)
-    if username and xform_pk:
-        url = "{}/{}/{}".format(url, username, xform_pk)
+    if xform_pk and gen_consistent:
+        url += "/enketo/{}".format(xform_pk)
+    elif username:
+        url += "/{}/{}".format(username, xform_pk) if xform_pk \
+             else "/{}".format(username)
 
     return url
 
