@@ -979,3 +979,70 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             '<manifestUrl>http://testserver/%s/xformsManifest'
             '/%s</manifestUrl>') % (self.user.username, self.xform.id)
         self.assertTrue(manifest_url in content)
+
+    def test_retrieve_form_using_pk(self):
+        """
+        Test formList endpoint utilizing primary key is able to retrieve
+        a form properly
+        """
+        # Bob submit forms
+        xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main", "tests",
+                                "fixtures", "tutorial.xls")
+        self._publish_xls_form_to_project(xlsform_path=xls_path)
+
+        xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "logger",
+                                     "fixtures",
+                                     "external_choice_form_v1.xlsx")
+        self._publish_xls_form_to_project(xlsform_path=xls_file_path)
+
+        # Set require auth to true for form owner
+        self.user.profile.require_auth = True
+        self.user.profile.save()
+
+        # Ensure that anonymous users do not have access to private forms
+        self.xform.shared = False
+        self.xform.save()
+        request = self.factory.get(
+            f'/enketo/{self.xform.pk}/formList')
+        response = self.view(
+            request, form_pk=self.xform.pk)
+        self.assertEqual(response.status_code, 401)
+
+        # Set require auth to false for form owner
+        self.user.profile.require_auth = False
+        self.user.profile.save()
+
+        # make form public
+        self.xform.shared = True
+        self.xform.save()
+
+        # Ensure logged in users have access to the form
+        alice_data = {
+            'username': 'alice',
+            'email': 'alice@localhost.com',
+            'password1': 'alice',
+            'password2': 'alice'
+        }
+        self._create_user_profile(alice_data)
+
+        auth = DigestAuth('alice', 'alice')
+        request = self.factory.get(
+            f'/enketo/{self.xform.pk}/formList')
+        request.META.update(auth(request.META, response))
+        response = self.view(
+            request, form_pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(
+            response.data[0]['formID'], self.xform.id_string)
+
+        # Ensure anonymous users have access to public forms
+        # when require_auth is False
+        request = self.factory.get(
+            f'/enketo/{self.xform.pk}/formList')
+        response = self.view(
+            request, form_pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(
+            response.data[0]['formID'], self.xform.id_string)
