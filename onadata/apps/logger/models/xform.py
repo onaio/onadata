@@ -718,7 +718,7 @@ class XForm(XFormMixin, BaseModel):
     deleted_at = models.DateTimeField(blank=True, null=True)
     last_submission_time = models.DateTimeField(blank=True, null=True)
     has_start_time = models.BooleanField(default=False)
-    uuid = models.CharField(max_length=36, default=u'')
+    uuid = models.CharField(max_length=36, default=u'', db_index=True)
     public_key = models.TextField(default='', blank=True, null=True)
 
     uuid_regex = re.compile(r'(<instance>.*?id="[^"]+">)(.*</instance>)(.*)',
