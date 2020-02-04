@@ -3,12 +3,12 @@ FROM ubuntu:16.04
 ENV DEBIAN_FRONTEND noninteractive
 ENV PYTHONUNBUFFERED 1
 
-RUN apt-get update -qq
+RUN apt-get update -q
 
 # For python 3.6
 RUN apt-get install -yqq software-properties-common \
-  && add-apt-repository ppa:jonathonf/python-3.6 \
-  && apt-get update -qq
+  && add-apt-repository ppa:deadsnakes/ppa \
+  && apt-get update -q
 
 RUN apt-get update \
   && apt-get install -y postgresql-client \
