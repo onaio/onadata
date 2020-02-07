@@ -39,8 +39,8 @@ Pull requests are wholeheartedly welcome!❤️ If you are unsure about how to m
 In order to make it easier for us to facilitate the smooth merging of your pull request, please make sure the following standards are met within your pull request.
 
 - Ensure your git commits are signed. _Read about signing commits [here](https://help.github.com/en/github/authenticating-to-github/signing-commits)_
-- Code & commits follow our [styleguides](#styleguide).
-- Implement / Update tests that need to be updated and ensure that they pass. _Running all the tests within this project may be tough and time consuming. But not to worry! On submission of the pull request, [Travis CI](travis-ci.org/) will run all the tests across our modules_.
+- Code & commits follow our [styleguides](#Styleguides).
+- Implement / Update tests that need to be updated and ensure that they pass. _Running all the tests within this project may be tough and time consuming. But not to worry! On submission of the pull request, [Travis CI](https://travis-ci.org/) will run all the tests across our modules_.
 
 With the above points in mind feel free to comment on one of our [beginner-friendly issues](https://github.com/onaio/onadata/issues?q=is%3Aissue+is%3Aopen+label%3A%22Good+First+Issue%22) expressing your intent to work on it.
 
