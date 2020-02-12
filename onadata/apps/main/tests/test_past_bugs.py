@@ -56,7 +56,7 @@ class TestCascading(TestBase):
 
     def test_correct_id_string_picked(self):
         XForm.objects.all().delete()
-        name = 'new_cascading_select.xls'
+        name = 'new_cascading_select.xlsx'
         id_string = u'cascading_select_test'
         self._publish_xls_file(os.path.join(
             self.this_directory, 'fixtures', 'bug_fixes', name))

@@ -836,6 +836,10 @@ class TestExportBuilder(TestBase):
         |         | animals   | 6    | Other      | # <--- duplicate name
         |         | animals   | 8    | None       |
         |         | animals   | 9    | Don't Know |
+
+        | settings |                         |
+        |          | allow_choice_duplicates |
+        |          | Yes                     |
         """
         survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
         data = [{"q1": "1",
@@ -2185,7 +2189,7 @@ class TestExportBuilder(TestBase):
 
     def test_select_multiples_choices_with_choice_filter(self):
         survey = create_survey_from_xls(_logger_fixture_path(
-            'choice_filter.xls'
+            'choice_filter.xlsx'
         ))
         dd = DataDictionary()
         dd._survey = survey

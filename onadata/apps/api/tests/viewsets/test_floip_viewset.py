@@ -193,7 +193,7 @@ class TestFloipViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response['Content-Type'],
                              'application/vnd.api+json')
-            self.assertIn(u"The name '1448506769745_42' is an invalid xml tag",
+            self.assertIn(u"The name '1448506769745_42' is an invalid XML tag",
                           response.data['text'])
 
     def test_responses_endpoint_format(self):
