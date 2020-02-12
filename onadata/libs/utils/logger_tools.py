@@ -214,13 +214,12 @@ def update_attachment_tracking(instance):
                                  'media_all_received', 'json'])
 
 
-def save_attachments(xform, instance, media_files):
+def save_attachments(xform, instance, media_files, remove_deleted_media=False):
     """
     Saves attachments for the given instance/submission.
     """
     # upload_path = os.path.join(instance.xform.user.username, 'attachments')
 
-    filenames = []
     for f in media_files:
         filename, extension = os.path.splitext(f.name)
         extension = extension.replace('.', '')
@@ -230,7 +229,6 @@ def save_attachments(xform, instance, media_files):
             xform.instances_with_osm = True
             xform.save()
         filename = os.path.basename(f.name)
-        filenames.append(filename)
         media_in_submission = (
             filename in instance.get_expected_media() or
             [instance.xml.decode('utf-8').find(filename) != -1 if
@@ -243,9 +241,10 @@ def save_attachments(xform, instance, media_files):
                 mimetype=content_type,
                 name=filename,
                 extension=extension)
-    Attachment.objects.filter(instance=instance).filter(
-        ~Q(name__in=instance.get_expected_media())).update(
-            deleted_at=timezone.now())
+    if remove_deleted_media:
+        Attachment.soft_delete(
+            instance.attachments.filter(
+                ~Q(name__in=instance.get_expected_media())))
 
     update_attachment_tracking(instance)
 
@@ -320,7 +319,7 @@ def create_instance(username,
             (new_uuid or existing_instance.xform.has_start_time):
         # ensure we have saved the extra attachments
         with transaction.atomic():
-            save_attachments(xform, existing_instance, media_files)
+            save_attachments(xform, existing_instance, media_files, remove_deleted_media=True)
             existing_instance.save(update_fields=['json', 'date_modified'])
 
         # Ignore submission as a duplicate IFF
@@ -339,7 +338,7 @@ def create_instance(username,
         duplicate_instance = history.xform_instance
         # ensure we have saved the extra attachments
         with transaction.atomic():
-            save_attachments(xform, duplicate_instance, media_files)
+            save_attachments(xform, duplicate_instance, media_files, remove_deleted_media=True)
             duplicate_instance.save()
 
         return DuplicateInstance()

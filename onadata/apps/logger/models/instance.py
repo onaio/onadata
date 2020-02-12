@@ -79,7 +79,7 @@ def _get_attachments_from_instance(instance):
         attachment['id'] = a.id
         attachments.append(attachment)
 
-        if isinstance(a.deleted_at, datetime):
+        if a.deleted_at:
             attachment['deleted_at'] = a.deleted_at.strftime(MONGO_STRFTIME)
 
     return attachments
