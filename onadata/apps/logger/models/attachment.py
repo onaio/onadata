@@ -97,7 +97,8 @@ class Attachment(models.Model):
         Soft deletes an attachment by adding a deleted_at timestamp.
         """
         if instance:
-            queryset = self.__class__.objects.filter(name__in=self.get_expexted_media())
+            queryset = self.__class__.objects.filter(
+                name__in=self.get_expexted_media())
             kwargs = {'deleted_at': timezone.now()}
             if user:
                 kwargs.update({'deleted_by': user})

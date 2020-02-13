@@ -319,7 +319,11 @@ def create_instance(username,
             (new_uuid or existing_instance.xform.has_start_time):
         # ensure we have saved the extra attachments
         with transaction.atomic():
-            save_attachments(xform, existing_instance, media_files, remove_deleted_media=True)
+            save_attachments(
+                xform,
+                existing_instance,
+                media_files,
+                remove_deleted_media=True)
             existing_instance.save(update_fields=['json', 'date_modified'])
 
         # Ignore submission as a duplicate IFF
@@ -338,7 +342,11 @@ def create_instance(username,
         duplicate_instance = history.xform_instance
         # ensure we have saved the extra attachments
         with transaction.atomic():
-            save_attachments(xform, duplicate_instance, media_files, remove_deleted_media=True)
+            save_attachments(
+                xform,
+                duplicate_instance,
+                media_files,
+                remove_deleted_media=True)
             duplicate_instance.save()
 
         return DuplicateInstance()
