@@ -692,11 +692,11 @@ def clean_keys_of_slashes(record):
 
 
 def _get_server_from_metadata(xform, meta, token):
-    from multidb.pinning import use_master
     # Fetch metadata details from master directly
     try:
         report_templates = MetaData.external_export(xform)
     except MetaData.DoesNotExist:
+        from multidb.pinning import use_master
         with use_master:
             report_templates = MetaData.external_export(xform)
 
