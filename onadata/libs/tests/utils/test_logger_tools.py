@@ -2,6 +2,7 @@ import re
 from io import BytesIO
 
 from django.conf import settings
+from mock import patch
 
 from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
 
@@ -235,6 +236,83 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         self.assertEquals(instance2.json[MEDIA_COUNT], instance2.media_count)
         self.assertEquals(instance2.json[MEDIA_ALL_RECEIVED],
                           instance2.media_all_received)
+
+    def test_replaced_attachments_not_tracked(self):
+        """
+        Test that when a submission with an attachments is made,
+        and later edited, whereby the attachment is replaced,
+        the replaced attachment is no longer tracked for that
+        submission
+        """
+        md = """
+        | survey |       |        |       |
+        |        | type  | name   | label |
+        |        | image | image1 | Photo |
+        """
+        self._create_user_and_login()
+        self.xform = self._publish_markdown(md, self.user)
+
+        xml_string = """
+        <data id="{}">
+            <meta>
+                <instanceID>uuid:UJ5jz4EszdgH8uhy8nss1AsKaqBPO5VN7</instanceID>
+            </meta>
+            <image1>1300221157303.jpg</image1>
+        </data>
+        """.format(self.xform.id_string)
+        file_path = "{}/apps/logger/tests/Health_2011_03_13."\
+                    "xml_2011-03-15_20-30-28/1300221157303"\
+                    ".jpg".format(settings.PROJECT_ROOT)
+        media_file = django_file(
+            path=file_path, field_name="image1", content_type="image/jpeg")
+        instance = create_instance(
+            self.user.username,
+            BytesIO(xml_string.strip().encode('utf-8')),
+            media_files=[media_file])
+        self.assertTrue(instance.json[MEDIA_ALL_RECEIVED])
+        self.assertEquals(instance.json[TOTAL_MEDIA], 1)
+        self.assertEquals(instance.json[MEDIA_COUNT], 1)
+        self.assertEquals(instance.json[TOTAL_MEDIA], instance.total_media)
+        self.assertEquals(instance.json[MEDIA_COUNT], instance.media_count)
+        self.assertEquals(instance.json[MEDIA_ALL_RECEIVED],
+                          instance.media_all_received)
+        patch_value = 'onadata.apps.logger.models.Instance.get_expected_media'
+        with patch(patch_value) as get_expected_media:
+            get_expected_media.return_value = ['1300375832136.jpg']
+            updated_xml_string = """
+            <data id="{}">
+                <meta>
+                    <instanceID>uuid:UJ5jz4EszdgH8uhy8nss1AsKaqBPO5VN7</instanceID>
+                </meta>
+                <images>
+                    <image1>1300375832136.jpg</image1>
+                </images>
+            </data>
+            """.format(self.xform.id_string)
+            file2_path = "{}/apps/logger/tests/Water_2011_03_17_2011"\
+                "-03-17_16-29-59/1300375832136.jpg".format(
+                    settings.PROJECT_ROOT)
+            media2_file = django_file(
+                path=file2_path,
+                field_name="image1",
+                content_type="image/jpeg")
+            create_instance(
+                self.user.username,
+                BytesIO(updated_xml_string.strip().encode('utf-8')),
+                media_files=[media2_file])
+
+            instance2 = Instance.objects.get(pk=instance.pk)
+            self.assertTrue(instance2.json[MEDIA_ALL_RECEIVED])
+            # Test that only one attachment is recognised for this submission
+            self.assertEquals(instance2.json[TOTAL_MEDIA], 1)
+            self.assertEquals(instance2.json[MEDIA_COUNT], 1)
+            self.assertEquals(
+                instance2.json[TOTAL_MEDIA], instance2.total_media)
+            self.assertEquals(
+                instance2.json[MEDIA_COUNT], instance2.media_count)
+            self.assertEquals(
+                instance2.json[MEDIA_ALL_RECEIVED],
+                instance2.media_all_received)
 
     def test_attachment_tracking_duplicate(self):
         """

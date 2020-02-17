@@ -3,7 +3,6 @@ import os
 from hashlib import md5
 
 from django.db import models
-from django.utils import timezone
 from django.contrib.auth.models import User
 
 
@@ -90,16 +89,3 @@ class Attachment(models.Model):
     def filename(self):
         if self.media_file:
             return os.path.basename(self.media_file.name)
-
-    @classmethod
-    def soft_delete(self, instance, user=None):
-        """
-        Soft deletes an attachment by adding a deleted_at timestamp.
-        """
-        if instance:
-            queryset = self.__class__.objects.filter(
-                name__in=self.get_expexted_media())
-            kwargs = {'deleted_at': timezone.now()}
-            if user:
-                kwargs.update({'deleted_by': user})
-            queryset.update(**kwargs)

@@ -242,9 +242,7 @@ def save_attachments(xform, instance, media_files, remove_deleted_media=False):
                 name=filename,
                 extension=extension)
     if remove_deleted_media:
-        Attachment.soft_delete(
-            instance.attachments.filter(
-                ~Q(name__in=instance.get_expected_media())))
+        instance.soft_delete_attachments()
 
     update_attachment_tracking(instance)
 
@@ -256,7 +254,11 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
 
     instance = _get_instance(xml, new_uuid, submitted_by, status, xform,
                              checksum)
-    save_attachments(xform, instance, media_files)
+    save_attachments(
+        xform,
+        instance,
+        media_files,
+        remove_deleted_media=True)
 
     # override date created if required
     if date_created_override:
