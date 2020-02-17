@@ -79,7 +79,7 @@ setup(
         "mock",
         "httmock",
         # JSON data type support, keeping it around for previous migration
-        "jsonfield<1.0",
+        "jsonfield<4.0",
         # memcached support
         "pylibmc",
         "python-memcached",
