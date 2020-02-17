@@ -37,6 +37,7 @@ from onadata.libs.utils.cache_tools import (cache,
                                             CHANGE_PASSWORD_ATTEMPTS,
                                             LOCKOUT_CHANGE_PASSWORD_USER)
 from onadata.libs import filters
+from onadata.libs.utils.user_auth import invalidate_and_regen_tokens
 from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
@@ -209,14 +210,20 @@ class UserProfileViewSet(
         if new_password:
             if not lock_out:
                 if user_profile.user.check_password(current_password):
+                    data = {
+                        'username': user_profile.user.username
+                    }
                     metadata = user_profile.metadata or {}
                     metadata['last_password_edit'] = timezone.now().isoformat()
                     user_profile.user.set_password(new_password)
                     user_profile.metadata = metadata
                     user_profile.user.save()
                     user_profile.save()
+                    data.update(invalidate_and_regen_tokens(
+                        user=user_profile.user))
 
-                    return Response(status=status.HTTP_204_NO_CONTENT)
+                    return Response(
+                        status=status.HTTP_200_OK, data=data)
 
                 response = change_password_attempts(request)
                 if isinstance(response, int):

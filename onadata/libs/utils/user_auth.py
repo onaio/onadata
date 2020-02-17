@@ -7,9 +7,10 @@ from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
+from rest_framework.authtoken.models import Token
 from guardian.shortcuts import assign_perm, get_perms_for_model
 
-from onadata.apps.api.models import OrganizationProfile, Team
+from onadata.apps.api.models import OrganizationProfile, Team, TempToken
 from onadata.apps.logger.models import MergedXForm, Note, Project, XForm
 from onadata.apps.main.models import UserProfile
 from onadata.libs.utils.viewer_tools import get_form
@@ -210,3 +211,26 @@ def get_user_default_project(user):
             name=name, organization=user, created_by=user, metadata=metadata)
 
     return project
+
+
+def invalidate_and_regen_tokens(user):
+    """
+    Invalidates a users Access and Temp tokens and
+    generates new ones
+    """
+    try:
+        TempToken.objects.filter(user=user).delete()
+    except TempToken.DoesNotExist:
+        pass
+
+    try:
+        Token.objects.filter(user=user).delete()
+    except Token.DoesNotExist:
+        pass
+
+    access_token = Token.objects.create(user=user).key
+    temp_token = TempToken.objects.create(user=user).key
+    return {
+        'access_token': access_token,
+        'temp_token': temp_token
+    }
