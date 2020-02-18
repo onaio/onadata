@@ -233,7 +233,11 @@ Response
 
 ::
 
-    HTTP 200 OK
+    {
+        "username": "demouser",
+        "access_token": "30557df81ac63729d2865e90f334a5d00fe5e57c",
+        "temp_token": "0c6a9f167c7074c781f635fe30cb60efa2473317"
+    }
 
 Get the total number of monthly submissions
 -------------------------------------------
