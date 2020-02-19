@@ -214,7 +214,7 @@ def update_attachment_tracking(instance):
                                  'media_all_received', 'json'])
 
 
-def save_attachments(xform, instance, media_files):
+def save_attachments(xform, instance, media_files, remove_deleted_media=False):
     """
     Saves attachments for the given instance/submission.
     """
@@ -241,6 +241,9 @@ def save_attachments(xform, instance, media_files):
                 mimetype=content_type,
                 name=filename,
                 extension=extension)
+    if remove_deleted_media:
+        instance.soft_delete_attachments()
+
     update_attachment_tracking(instance)
 
 
@@ -251,7 +254,11 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
 
     instance = _get_instance(xml, new_uuid, submitted_by, status, xform,
                              checksum)
-    save_attachments(xform, instance, media_files)
+    save_attachments(
+        xform,
+        instance,
+        media_files,
+        remove_deleted_media=True)
 
     # override date created if required
     if date_created_override:
@@ -314,7 +321,11 @@ def create_instance(username,
             (new_uuid or existing_instance.xform.has_start_time):
         # ensure we have saved the extra attachments
         with transaction.atomic():
-            save_attachments(xform, existing_instance, media_files)
+            save_attachments(
+                xform,
+                existing_instance,
+                media_files,
+                remove_deleted_media=True)
             existing_instance.save(update_fields=['json', 'date_modified'])
 
         # Ignore submission as a duplicate IFF
@@ -333,7 +344,11 @@ def create_instance(username,
         duplicate_instance = history.xform_instance
         # ensure we have saved the extra attachments
         with transaction.atomic():
-            save_attachments(xform, duplicate_instance, media_files)
+            save_attachments(
+                xform,
+                duplicate_instance,
+                media_files,
+                remove_deleted_media=True)
             duplicate_instance.save()
 
         return DuplicateInstance()
