@@ -1,6 +1,126 @@
 Changelog for Onadata
 =====================
 
+v2.2.0 (2020-02-12)
+___________________
+
+Bug fixes and changes
+#####################
+- Set X-Frame-Options-Middleware
+  `PR #1766 <https://github.com/onaio/onadata/pull/1766>`_ [@WinnyTroy]
+
+- Handle error thrown by urllib
+  `PR #1765 <https://github.com/onaio/onadata/pull/1765>`_ [@DavisRayM]
+
+- Allow the $or filter to accept null values
+ `PR #1749 <https://github.com/onaio/onadata/pull/1749>`_ [@DavisRayM]
+
+- Upgrade to Django v2.2
+  `PR #1770 <https://github.com/onaio/onadata/pull/1770>`_ [@DavisRayM]
+
+v2.1.2 (2020-01-09)
+___________________
+
+Bug fixes and changes
+#####################
+
+- Enforce case-insensitivity for the username when making a submission
+  `PR #1762 <https://github.com/onaio/onadata/pull/1762>`_ [@DavisRayM]
+
+- Fix an issue caused by Owners of organizations lacking permissions to the Organization User Profile
+  `PR #1757 <https://github.com/onaio/onadata/pull/1757>`_ [@DavisRayM]
+
+- Enforce datatype constraints on CSV Imports
+  `PR #1716 <https://github.com/onaio/onadata/pull/1716>`_ [@DavisRayM]
+
+v2.1.1 (2020-01-08)
+___________________
+
+Bug fixes and changes
+#####################
+
+- Add contribution guideline, issue template and pull request template
+  `PR #1750 <https://github.com/onaio/onadata/pull/1750>`_ [@DavisRayM]
+
+- Properly handle spaces within CSV usernames while sharing project
+  `PR #1741 <https://github.com/onaio/onadata/pull/1741>`_ [@DavisRayM]
+
+- Allow null values on the database level for the public_key field in the XForm model
+  `PR #1740 <https://github.com/onaio/onadata/pull/1740>`_ [@DavisRayM]
+
+- Fix issue where the /orgs endpoint would return duplicate member names
+  `PR #1752 <https://github.com/onaio/onadata/pull/1752>`_ [@ukanga]
+
+- Allow any user to submit to a form when require_authentication is False
+ `PR #1753 <https://github.com/onaio/onadata/pull/1753>`_ [@FrankApiyo]
+
+- Only return projects tied to an Active user
+  `PR #1732 <https://github.com/onaio/onadata/pull/1732>`_ [@FrankApiyo]
+
+v2.1.0 (2019-12-06)
+-------------------
+
+New Features
+############
+
+- Add ODKToken model and authentication
+  `PR #1705 <https://github.com/onaio/onadata/pull/1705>`_
+  `PR #1707 <https://github.com/onaio/onadata/pull/1707>`_
+  `PR #1712 <https://github.com/onaio/onadata/pull/1712>`_
+  [@DavisRayM]
+
+- Add ability to share a project to multiple users
+  `PR #1704 <https://github.com/onaio/onadata/pull/1704>`_
+  [@DavisRayM]
+
+- Add OpenID Connect functionality
+ `PR #1706 <https://github.com/onaio/onadata/pull/1706>`_
+ `PR #1727 <https://github.com/onaio/onadata/pull/1727>`_
+ [@ivermac , @DavisRayM]
+
+- Add ability to encrypt forms after creation
+ `PR #1708 <https://github.com/onaio/onadata/pull/1708>`_
+ [@DavisRayM]
+
+- Add a way to deactivate organizations by default on create
+  `PR #1733 <https://github.com/onaio/onadata/pull/1733>`_
+  [@DavisRayM]
+
+Bug fixes and changes
+#####################
+
+- Fix form level permission restrictions on search
+  `PR #1691 <https://github.com/onaio/onadata/pull/1691>`_
+  [@lincmba]
+
+- Validate auth user username before creating Registration Profile
+ `PR #1680 <https://github.com/onaio/onadata/pull/1680>`_
+ [@WinnyTroy]
+
+- Modify flow results response endpoints response formatting
+ `PR #1695 <https://github.com/onaio/onadata/pull/1695>`_
+ [@DavisRayM]
+
+- Use the master database when calling notification backends
+  `PR #1703 <https://github.com/onaio/onadata/pull/1703>`_
+  [@DavisRayM]
+
+- Fix MemCachedLengthError when locking out users
+  `PR #1713 <https://github.com/onaio/onadata/pull/1713>`_
+  [@DavisRayM]
+
+- Return non digit XForm versions
+  `PR #1728 <https://github.com/onaio/onadata/pull/1728>`_
+  [@DavisRayM]
+
+- Stop lower casing usernames when retrieving users through XFormListViewSet
+  `PR #1738 <https://github.com/onaio/onadata/pull/1738>`_
+  [@DavisRayM]
+
+- Return members of the Owner team on the /orgs endpoint
+  `PR #1734 <https://github.com/onaio/onadata/pull/1734>`_
+  [@DavisRayM]
+
 2.0.11 (2019-09-19)
 -------------------
 - Send email only once in a lockout session
