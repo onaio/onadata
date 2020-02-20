@@ -1,22 +1,45 @@
 Changelog for Onadata
 =====================
 
-v2.2.0 (2020-02-12)
+``* represents releases that introduce new migrations``
+
+v2.2.1 (2020-02-20)*
+-------------------
+
+Bug fixes and changes
+#####################
+- Upgrade pyxform to v0.15.1
+  `PR #1722 <https://github.com/onaio/onadata/pull/1722>`_
+  [@DavisRayM]
+
+- Add ability to soft-delete attachments
+  `PR #1698 <https://github.com/onaio/onadata/pull/1698>`_
+  [@WinnyTroy]
+
+- Update requirement files
+  `PR #1785 <https://github.com/onaio/onadata/pull/1785>`_
+  [@DavisRayM]
+
+v2.2.0 (2020-02-12)*
 ___________________
 
 Bug fixes and changes
 #####################
 - Set X-Frame-Options-Middleware
-  `PR #1766 <https://github.com/onaio/onadata/pull/1766>`_ [@WinnyTroy]
+  `PR #1766 <https://github.com/onaio/onadata/pull/1766>`_
+  [@WinnyTroy]
 
 - Handle error thrown by urllib
-  `PR #1765 <https://github.com/onaio/onadata/pull/1765>`_ [@DavisRayM]
+  `PR #1765 <https://github.com/onaio/onadata/pull/1765>`_
+  [@DavisRayM]
 
 - Allow the $or filter to accept null values
- `PR #1749 <https://github.com/onaio/onadata/pull/1749>`_ [@DavisRayM]
+  `PR #1749 <https://github.com/onaio/onadata/pull/1749>`_
+  [@DavisRayM]
 
 - Upgrade to Django v2.2
-  `PR #1770 <https://github.com/onaio/onadata/pull/1770>`_ [@DavisRayM]
+  `PR #1770 <https://github.com/onaio/onadata/pull/1770>`_
+  [@DavisRayM]
 
 v2.1.2 (2020-01-09)
 ___________________
@@ -25,39 +48,48 @@ Bug fixes and changes
 #####################
 
 - Enforce case-insensitivity for the username when making a submission
-  `PR #1762 <https://github.com/onaio/onadata/pull/1762>`_ [@DavisRayM]
+  `PR #1762 <https://github.com/onaio/onadata/pull/1762>`_
+  [@DavisRayM]
 
 - Fix an issue caused by Owners of organizations lacking permissions to the Organization User Profile
-  `PR #1757 <https://github.com/onaio/onadata/pull/1757>`_ [@DavisRayM]
+  `PR #1757 <https://github.com/onaio/onadata/pull/1757>`_
+  [@DavisRayM]
 
 - Enforce datatype constraints on CSV Imports
-  `PR #1716 <https://github.com/onaio/onadata/pull/1716>`_ [@DavisRayM]
+  `PR #1716 <https://github.com/onaio/onadata/pull/1716>`_
+  [@DavisRayM]
 
-v2.1.1 (2020-01-08)
+v2.1.1 (2020-01-08)*
 ___________________
 
 Bug fixes and changes
 #####################
 
 - Add contribution guideline, issue template and pull request template
-  `PR #1750 <https://github.com/onaio/onadata/pull/1750>`_ [@DavisRayM]
+  `PR #1750 <https://github.com/onaio/onadata/pull/1750>`_
+  [@DavisRayM]
 
 - Properly handle spaces within CSV usernames while sharing project
-  `PR #1741 <https://github.com/onaio/onadata/pull/1741>`_ [@DavisRayM]
+  `PR #1741 <https://github.com/onaio/onadata/pull/1741>`_
+  [@DavisRayM]
 
 - Allow null values on the database level for the public_key field in the XForm model
-  `PR #1740 <https://github.com/onaio/onadata/pull/1740>`_ [@DavisRayM]
+  `PR #1740 <https://github.com/onaio/onadata/pull/1740>`_
+  [@DavisRayM]
 
 - Fix issue where the /orgs endpoint would return duplicate member names
-  `PR #1752 <https://github.com/onaio/onadata/pull/1752>`_ [@ukanga]
+  `PR #1752 <https://github.com/onaio/onadata/pull/1752>`_
+  [@ukanga]
 
 - Allow any user to submit to a form when require_authentication is False
- `PR #1753 <https://github.com/onaio/onadata/pull/1753>`_ [@FrankApiyo]
+  `PR #1753 <https://github.com/onaio/onadata/pull/1753>`_
+  [@FrankApiyo]
 
 - Only return projects tied to an Active user
-  `PR #1732 <https://github.com/onaio/onadata/pull/1732>`_ [@FrankApiyo]
+  `PR #1732 <https://github.com/onaio/onadata/pull/1732>`_
+  [@FrankApiyo]
 
-v2.1.0 (2019-12-06)
+v2.1.0 (2019-12-06)*
 -------------------
 
 New Features
@@ -74,13 +106,13 @@ New Features
   [@DavisRayM]
 
 - Add OpenID Connect functionality
- `PR #1706 <https://github.com/onaio/onadata/pull/1706>`_
- `PR #1727 <https://github.com/onaio/onadata/pull/1727>`_
- [@ivermac , @DavisRayM]
+  `PR #1706 <https://github.com/onaio/onadata/pull/1706>`_
+  `PR #1727 <https://github.com/onaio/onadata/pull/1727>`_
+  [@ivermac , @DavisRayM]
 
 - Add ability to encrypt forms after creation
- `PR #1708 <https://github.com/onaio/onadata/pull/1708>`_
- [@DavisRayM]
+  `PR #1708 <https://github.com/onaio/onadata/pull/1708>`_
+  [@DavisRayM]
 
 - Add a way to deactivate organizations by default on create
   `PR #1733 <https://github.com/onaio/onadata/pull/1733>`_
@@ -94,12 +126,12 @@ Bug fixes and changes
   [@lincmba]
 
 - Validate auth user username before creating Registration Profile
- `PR #1680 <https://github.com/onaio/onadata/pull/1680>`_
- [@WinnyTroy]
+  `PR #1680 <https://github.com/onaio/onadata/pull/1680>`_
+  [@WinnyTroy]
 
 - Modify flow results response endpoints response formatting
- `PR #1695 <https://github.com/onaio/onadata/pull/1695>`_
- [@DavisRayM]
+  `PR #1695 <https://github.com/onaio/onadata/pull/1695>`_
+  [@DavisRayM]
 
 - Use the master database when calling notification backends
   `PR #1703 <https://github.com/onaio/onadata/pull/1703>`_
