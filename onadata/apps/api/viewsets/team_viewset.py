@@ -3,7 +3,8 @@ from distutils.util import strtobool
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext as _
 
-from rest_framework import filters, status
+from rest_framework import status
+from rest_framework_guardian.filters import ObjectPermissionsFilter
 from rest_framework.decorators import action
 from rest_framework.permissions import DjangoObjectPermissions
 from rest_framework.response import Response
@@ -37,7 +38,7 @@ class TeamViewSet(AuthenticateHeaderMixin,
     lookup_field = 'pk'
     extra_lookup_fields = None
     permission_classes = [DjangoObjectPermissions]
-    filter_backends = (filters.DjangoObjectPermissionsFilter,
+    filter_backends = (ObjectPermissionsFilter,
                        TeamOrgFilter)
 
     @action(methods=['DELETE', 'GET', 'POST'], detail=True)

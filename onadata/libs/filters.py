@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import six
 from django_filters import rest_framework as django_filter_filters
 from rest_framework import filters
+from rest_framework_guardian.filters import ObjectPermissionsFilter
 
 from onadata.apps.api.models import OrganizationProfile, Team
 from onadata.apps.logger.models import Instance, Project, XForm
@@ -14,7 +15,7 @@ from onadata.libs.utils.numeric import int_or_parse_error
 from onadata.libs.utils.common_tags import MEDIA_FILE_TYPES
 
 
-class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
+class AnonDjangoObjectPermissionFilter(ObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):
         """
@@ -94,7 +95,7 @@ class FormIDFilter(django_filter_filters.FilterSet):
         fields = ['formID']
 
 
-class OrganizationPermissionFilter(filters.DjangoObjectPermissionsFilter):
+class OrganizationPermissionFilter(ObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):
         """Return a filtered queryset or all profiles if a getting a specific
@@ -129,7 +130,7 @@ class XFormOwnerFilter(filters.BaseFilterBackend):
         return queryset
 
 
-class DataFilter(filters.DjangoObjectPermissionsFilter):
+class DataFilter(ObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):
         if request.user.is_anonymous:
@@ -192,7 +193,7 @@ class ProjectOwnerFilter(filters.BaseFilterBackend):
         return queryset
 
 
-class AnonUserProjectFilter(filters.DjangoObjectPermissionsFilter):
+class AnonUserProjectFilter(ObjectPermissionsFilter):
     owner_prefix = 'organization'
 
     def filter_queryset(self, request, queryset, view):
@@ -343,7 +344,7 @@ class InstancePermissionFilterMixin(object):
 
 
 class RestServiceFilter(XFormPermissionFilterMixin,
-                        filters.DjangoObjectPermissionsFilter):
+                        ObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):
         return self._xform_filter_queryset(
@@ -353,7 +354,7 @@ class RestServiceFilter(XFormPermissionFilterMixin,
 class MetaDataFilter(ProjectPermissionFilterMixin,
                      InstancePermissionFilterMixin,
                      XFormPermissionFilterMixin,
-                     filters.DjangoObjectPermissionsFilter):
+                     ObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):
         keyword = "object_id"
@@ -391,7 +392,7 @@ class MetaDataFilter(ProjectPermissionFilterMixin,
 
 
 class AttachmentFilter(XFormPermissionFilterMixin,
-                       filters.DjangoObjectPermissionsFilter):
+                       ObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):
 
@@ -485,7 +486,7 @@ class OrganizationsSharedWithUserFilter(filters.BaseFilterBackend):
 
 
 class WidgetFilter(XFormPermissionFilterMixin,
-                   filters.DjangoObjectPermissionsFilter):
+                   ObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):
 
@@ -529,7 +530,7 @@ class NoteFilter(filters.BaseFilterBackend):
 
 
 class ExportFilter(XFormPermissionFilterMixin,
-                   filters.DjangoObjectPermissionsFilter):
+                   ObjectPermissionsFilter):
     """
     ExportFilter class uses permissions on the related xform to filter Export
     queryesets. Also filters submitted_by a specific user.

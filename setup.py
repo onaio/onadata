@@ -58,6 +58,7 @@ setup(
         "djangorestframework",
         "djangorestframework-csv",
         "djangorestframework-gis",
+        "djangorestframework-guardian",
         "djangorestframework-jsonapi",
         "djangorestframework-jsonp",
         "djangorestframework-xml",

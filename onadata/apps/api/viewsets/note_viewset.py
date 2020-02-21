@@ -1,5 +1,5 @@
 from rest_framework import status
-from rest_framework.filters import DjangoObjectPermissionsFilter
+from rest_framework_guardian.filters import ObjectPermissionsFilter
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
@@ -23,7 +23,7 @@ class NoteViewSet(AuthenticateHeaderMixin,
                   BaseViewset,
                   ModelViewSet):
     queryset = Note.objects.all()
-    filter_backends = (filters.NoteFilter, DjangoObjectPermissionsFilter)
+    filter_backends = (filters.NoteFilter, ObjectPermissionsFilter)
     serializer_class = NoteSerializer
     permission_classes = [permissions.ViewDjangoObjectPermissions,
                           permissions.IsAuthenticated, ]
