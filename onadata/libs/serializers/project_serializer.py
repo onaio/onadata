@@ -335,7 +335,11 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Project
-        exclude = ('shared', 'organization', 'user_stars')
+        exclude = ('shared', 'user_stars', 'deleted_by')
+        extra_kwargs = {
+            'organization': {
+                'write_only': True,
+                'required': False, 'lookup_field': 'username'}}
 
     def validate(self, attrs):
         name = attrs.get('name')
