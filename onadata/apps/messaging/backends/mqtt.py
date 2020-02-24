@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 import json
 import ssl
+from json import JSONDecodeError
 
 import paho.mqtt.publish as publish
 
@@ -33,6 +34,10 @@ def get_payload(instance):
     """
     Constructs the message payload
     """
+    try:
+        description = json.loads(instance.description)
+    except JSONDecodeError:
+        description = instance.description
 
     payload = {
         'id': instance.id,
@@ -46,7 +51,7 @@ def get_payload(instance):
                 'type': instance.target._meta.model_name,
                 'metadata': get_target_metadata(instance.target)
             },
-            'message': instance.description
+            'message': description
         }
     }
 

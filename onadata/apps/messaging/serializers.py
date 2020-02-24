@@ -5,10 +5,10 @@ Message serializers
 
 from __future__ import unicode_literals
 
-from django.utils.translation import ugettext as _
 from actstream.actions import action_handler
 from actstream.models import Action
 from actstream.signals import action
+from django.utils.translation import ugettext as _
 from rest_framework import exceptions, serializers
 
 from onadata.apps.messaging.constants import MESSAGE
@@ -99,3 +99,22 @@ class MessageSerializer(serializers.ModelSerializer):
                         "Message not created. Please retry.")
                 else:
                     return instance
+
+
+def send_mqtt_message(message, target_id, target_type, request):
+    """
+    Send an mqtt message.
+    :param message: message to send
+    :param target_id: id of the target_type
+    :param target_type: any of these three ['xform', 'project', 'user']
+    :param request: http request object
+    :return:
+    """
+    data = {
+        "message": message,
+        "target_id": target_id,
+        "target_type": target_type
+    }
+    message = MessageSerializer(data=data, context={"request": request})
+    if message.is_valid():
+        message.save()
