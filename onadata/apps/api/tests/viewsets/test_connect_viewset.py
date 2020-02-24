@@ -295,7 +295,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
 
         data['uid'] = urlsafe_base64_encode(
-            force_bytes(self.user.pk))
+            force_bytes(self.user.pk)).decode('utf-8')
         # with uid, should be successful
         request = self.factory.post('/', data=data)
         response = self.view(request)
@@ -314,7 +314,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.user.save()
         new_password = "bobbob1"
         uid = urlsafe_base64_encode(
-            force_bytes(self.user.pk))
+            force_bytes(self.user.pk)).decode('utf-8')
         mhv = default_token_generator
         token = mhv.make_token(self.user)
         data = {'token': token, 'new_password': new_password,
