@@ -63,14 +63,17 @@ class SubmissionReviewSerializer(serializers.ModelSerializer):
 
         submission_review = SubmissionReview.objects.create(**validated_data)
 
-        message = {
-            'type': SUBMISSION_REVIEW,
-            'json': submission_review.instance.json
-        }
-        message = json.dumps(message)
-        send_mqtt_message(
-            message=message, target_id=self.object.id,
-            target_type=XFORM, request=request)
+        from multidb.pinning import use_master
+
+        with use_master:
+            message = {
+                'type': SUBMISSION_REVIEW,
+                'json': submission_review.instance.json
+            }
+            message = json.dumps(message)
+            send_mqtt_message(
+                message=message, target_id=submission_review.instance.xform.id,
+                target_type=XFORM, request=request)
 
         return submission_review
 
@@ -89,13 +92,16 @@ class SubmissionReviewSerializer(serializers.ModelSerializer):
         instance.save()
 
         # send message with new submission data
-        message = {
-            'type': SUBMISSION_REVIEW,
-            'json': instance.instance.json
-        }
-        message = json.dumps(message)
-        send_mqtt_message(
-            message=message, target_id=self.object.id,
-            target_type=XFORM, request=self.context.get('request'))
+        from multidb.pinning import use_master
+
+        with use_master:
+            message = {
+                'type': SUBMISSION_REVIEW,
+                'json': instance.instance.json
+            }
+            message = json.dumps(message)
+            send_mqtt_message(
+                message=message, target_id=instance.instance.xform.id,
+                target_type=XFORM, request=self.context.get('request'))
 
         return instance
