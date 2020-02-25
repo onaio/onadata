@@ -24,7 +24,9 @@ from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID,
                                             SUBMISSION_TIME, SUBMITTED_BY,
                                             TAGS, TOTAL_MEDIA, UUID, VERSION,
                                             XFORM_ID_STRING, REVIEW_STATUS,
-                                            REVIEW_COMMENT)
+                                            REVIEW_COMMENT,
+                                            MULTIPLE_SELECT_TYPE,
+                                            SELECT_BIND_TYPE)
 from onadata.libs.utils.export_builder import (get_choice_label,
                                                get_value_or_attachment_uri,
                                                track_task_progress)
@@ -222,7 +224,8 @@ class AbstractDataFrameBuilder(object):
         select_multiples = []
         select_multiple_elements = [
             e for e in dd.get_survey_elements_with_choices()
-            if e.bind.get('type') == 'select'
+            if e.bind.get('type') == SELECT_BIND_TYPE
+            and e.type == MULTIPLE_SELECT_TYPE
         ]
         for e in select_multiple_elements:
             xpath = e.get_abbreviated_xpath()

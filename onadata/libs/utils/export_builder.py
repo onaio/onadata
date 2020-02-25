@@ -29,15 +29,12 @@ from onadata.apps.logger.models.xform import (QUESTION_TYPES_TO_EXCLUDE,
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.common_tags import (
     ATTACHMENTS, BAMBOO_DATASET_ID, DELETEDAT, DURATION, GEOLOCATION,
-    ID, INDEX, MULTIPLE_SELECT_TYPE, NOTES, PARENT_INDEX,
+    ID, INDEX, MULTIPLE_SELECT_TYPE, SELECT_ONE, NOTES, PARENT_INDEX,
     PARENT_TABLE_NAME, REPEAT_INDEX_TAGS, SAV_255_BYTES_TYPE,
     SAV_NUMERIC_TYPE, STATUS, SUBMISSION_TIME, SUBMITTED_BY, TAGS, UUID,
-    VERSION, XFORM_ID_STRING, REVIEW_STATUS, REVIEW_COMMENT)
+    VERSION, XFORM_ID_STRING, REVIEW_STATUS, REVIEW_COMMENT, SELECT_BIND_TYPE)
 from onadata.libs.utils.mongo import _decode_from_mongo, _is_invalid_for_mongo
-
 # the bind type of select multiples that we use to compare
-MULTIPLE_SELECT_BIND_TYPE = 'select'
-SELECT_ONE_BIND_TYPE = 'select1'
 GEOPOINT_BIND_TYPE = 'geopoint'
 OSM_BIND_TYPE = 'osm'
 DEFAULT_UPDATE_BATCH = 100
@@ -475,7 +472,8 @@ class ExportBuilder(object):
                                 {child_xpath: _encode_for_mongo(child_xpath)})
 
                     # if its a select multiple, make columns out of its choices
-                    if child.bind.get('type') == MULTIPLE_SELECT_BIND_TYPE:
+                    if child.bind.get('type') == SELECT_BIND_TYPE \
+                            and child.type == MULTIPLE_SELECT_TYPE:
                         choices = []
                         if self.SPLIT_SELECT_MULTIPLES:
                             choices = self._get_select_mulitples_choices(
@@ -527,7 +525,8 @@ class ExportBuilder(object):
                         _append_xpaths_to_section(
                             current_section_name, osm_fields,
                             child.get_abbreviated_xpath(), xpaths)
-                    if child.bind.get(u"type") == SELECT_ONE_BIND_TYPE:
+                    if child.bind.get(u"type") == SELECT_BIND_TYPE \
+                            and child.type == SELECT_ONE:
                         _append_xpaths_to_section(
                             current_section_name, select_ones,
                             child.get_abbreviated_xpath(), [])
@@ -1062,7 +1061,7 @@ class ExportBuilder(object):
                 parent_xpath = '/'.join(xpath.split('/')[:-1])
                 parent = data_dictionary.get_element(parent_xpath)
                 return (parent and parent.type == MULTIPLE_SELECT_TYPE)
-            elif element_type != SELECT_ONE_BIND_TYPE:
+            elif element_type != 'select1':
                 return False
 
             if var_name not in all_value_labels:

@@ -43,7 +43,8 @@ from onadata.libs.utils.common_tags import (DURATION, ID, KNOWN_MEDIA_TYPES,
                                             NOTES, SUBMISSION_TIME,
                                             SUBMITTED_BY, TAGS, TOTAL_MEDIA,
                                             UUID, VERSION, REVIEW_STATUS,
-                                            REVIEW_COMMENT)
+                                            REVIEW_COMMENT,
+                                            MULTIPLE_SELECT_TYPE)
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.mongo import _encode_for_mongo
 
@@ -437,7 +438,8 @@ class XFormMixin(object):
 
         # replace the single question column with a column for each
         # item in a select all that apply question.
-        if survey_element.bind.get(u'type') == u'select':
+        if survey_element.bind.get(u'type') == u'string' \
+                and survey_element.type == MULTIPLE_SELECT_TYPE:
             result.pop()
             for child in survey_element.children:
                 result.append('/'.join([path, child.name]))
@@ -475,7 +477,6 @@ class XFormMixin(object):
         """
         Return a list of headers for a csv file.
         """
-
         def shorten(xpath):
             xpath_list = xpath.split('/')
             return '/'.join(xpath_list[2:])

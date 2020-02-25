@@ -83,6 +83,7 @@ MODE = "mode"
 
 TEXTIT = 'textit'
 OSM = 'osm'
+SELECT_BIND_TYPE = 'string'
 MULTIPLE_SELECT_TYPE = 'select all that apply'
 GROUPNAME_REMOVED_FLAG = 'group-name-removed'
 DATAVIEW_EXPORT = U'dataview'
