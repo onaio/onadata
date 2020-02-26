@@ -8,12 +8,12 @@ import math
 from io import BytesIO
 
 import pytz
+from django.utils import six
 from django.utils.dateparse import parse_datetime
 from django.utils.encoding import smart_text
 from django.utils.xmlutils import SimplerXMLGenerator
 from future.utils import iteritems
 from rest_framework import negotiation
-from rest_framework.compat import six
 from rest_framework.renderers import (BaseRenderer, JSONRenderer,
                                       StaticHTMLRenderer, TemplateHTMLRenderer)
 from rest_framework.utils.encoders import JSONEncoder
