@@ -9,7 +9,6 @@ from tempfile import NamedTemporaryFile
 
 import geojson
 import requests
-from django.http.request import HttpRequest
 from django.test import RequestFactory
 from django.test.utils import override_settings
 from django.utils import timezone
@@ -2304,8 +2303,7 @@ class TestDataViewSet(TestBase):
             "instance": instance.id,
             "status": SubmissionReview.APPROVED
         }
-        request = HttpRequest()
-        request.user = self.user
+
         serializer_instance = SubmissionReviewSerializer(data=data, context={
             "request": request})
         serializer_instance.is_valid()
@@ -2356,6 +2354,38 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
+
+    @patch(
+        'onadata.apps.api.viewsets.data_viewset.send_mqtt_message')
+    def test_send_mqtt_message_upon_deletion(self, send_message_mock):
+        self._make_submissions()
+        self.xform.refresh_from_db()
+        formid = self.xform.pk
+        initial_count = self.xform.instances.filter(deleted_at=None).count()
+        self.assertEqual(initial_count, 4)
+        self.assertEqual(self.xform.num_of_submissions, 4)
+        view = DataViewSet.as_view({'delete': 'destroy'})
+
+        # test with valid instance id's
+        records_to_be_deleted = self.xform.instances.all()[:2]
+        instance_ids = ','.join([str(i.pk) for i in records_to_be_deleted])
+        data = {"instance_ids": instance_ids}
+
+        request = self.factory.delete('/', data=data, **self.extra)
+        response = view(request, pk=formid)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data.get('message'),
+            "%d records were deleted" % len(records_to_be_deleted)
+        )
+        self.assertTrue(send_message_mock.called)
+
+        self.xform.refresh_from_db()
+        current_count = self.xform.instances.filter(deleted_at=None).count()
+        self.assertNotEqual(current_count, initial_count)
+        self.assertEqual(current_count, 2)
+        self.assertEqual(self.xform.num_of_submissions, 2)
 
 
 class TestOSM(TestAbstractViewSet):

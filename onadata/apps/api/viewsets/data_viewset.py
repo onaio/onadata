@@ -309,7 +309,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 # send mqttt message
                 message = {
                     'type': 'submission_deleted',
-                    'ids': instance_ids,
+                    'instance_ids': instance_ids,
                     'xform_id': self.object.id
                 }
                 message = json.dumps(message)
