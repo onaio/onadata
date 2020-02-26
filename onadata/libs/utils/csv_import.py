@@ -401,7 +401,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                             username=submitted_by) if submitted_by else []
                         if users:
                             instance.user = users[0]
-                            instance.save()
+                        instance.save()
                 except Exception as e:
                     failed_import(rollback_uuids, xform, e, text(e))
                 finally:
