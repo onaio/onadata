@@ -4,6 +4,7 @@ Submission Review Serializer Test Module
 """
 from __future__ import unicode_literals
 
+from django.http import HttpRequest
 from rest_framework.exceptions import ValidationError
 
 from onadata.apps.logger.models import Instance, Note, SubmissionReview
@@ -33,8 +34,10 @@ class TestSubmissionReviewSerializer(TestBase):
             "note": "Hey there",
             "status": SubmissionReview.APPROVED
         }
-
-        serializer_instance = SubmissionReviewSerializer(data=data)
+        request = HttpRequest()
+        request.user = self.user
+        serializer_instance = SubmissionReviewSerializer(data=data, context={
+            "request": request})
         self.assertFalse(Note.objects.filter(instance=instance).exists())
 
         self.assertTrue(serializer_instance.is_valid())
@@ -98,8 +101,11 @@ class TestSubmissionReviewSerializer(TestBase):
         data['note'] = "Goodbye"
 
         self.assertEqual(len(Note.objects.all()), 1)
+        request = HttpRequest()
+        request.user = self.user
         serializer_instance = SubmissionReviewSerializer(
-            instance=submission_review, data=data)
+            instance=submission_review, data=data,
+            context={"request": request})
         self.assertTrue(serializer_instance.is_valid())
         new_review = serializer_instance.save()
 

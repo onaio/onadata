@@ -9,6 +9,7 @@ from tempfile import NamedTemporaryFile
 
 import geojson
 import requests
+from django.http.request import HttpRequest
 from django.test import RequestFactory
 from django.test.utils import override_settings
 from django.utils import timezone
@@ -35,10 +36,10 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs import permissions as role
 from onadata.libs.permissions import ReadOnlyRole, EditorRole, \
     EditorMinorRole, DataEntryOnlyRole, DataEntryMinorRole
-from onadata.libs.utils.common_tags import MONGO_STRFTIME
-from onadata.libs.utils.logger_tools import create_instance
 from onadata.libs.serializers.submission_review_serializer import \
     SubmissionReviewSerializer
+from onadata.libs.utils.common_tags import MONGO_STRFTIME
+from onadata.libs.utils.logger_tools import create_instance
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
@@ -2303,8 +2304,10 @@ class TestDataViewSet(TestBase):
             "instance": instance.id,
             "status": SubmissionReview.APPROVED
         }
-
-        serializer_instance = SubmissionReviewSerializer(data=data)
+        request = HttpRequest()
+        request.user = self.user
+        serializer_instance = SubmissionReviewSerializer(data=data, context={
+            "request": request})
         serializer_instance.is_valid()
         serializer_instance.save()
         instance.refresh_from_db()
@@ -2321,7 +2324,8 @@ class TestDataViewSet(TestBase):
             "status": SubmissionReview.PENDING
         }
 
-        serializer_instance = SubmissionReviewSerializer(data=data)
+        serializer_instance = SubmissionReviewSerializer(data=data, context={
+            "request": request})
         serializer_instance.is_valid()
         serializer_instance.save()
         instance.refresh_from_db()
@@ -2339,7 +2343,8 @@ class TestDataViewSet(TestBase):
             "note": "Testing"
         }
 
-        serializer_instance = SubmissionReviewSerializer(data=data)
+        serializer_instance = SubmissionReviewSerializer(data=data, context={
+            "request": request})
         serializer_instance.is_valid()
         serializer_instance.save()
         instance.refresh_from_db()
