@@ -1381,8 +1381,12 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request)
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.get('Cache-Control'), None)
-            error_msg = 'In strict mode, the XForm ID must be a valid slug'\
-                ' and contain no spaces.'
+            error_msg = ('In strict mode, the XForm ID must be '
+                         'a valid slug and contain no spaces.'
+                         ' Please ensure that you have set an'
+                         ' id_string in the settings sheet or '
+                         'have modified the filename to not '
+                         'contain any spaces.')
             self.assertEqual(response.data.get('text'), error_msg)
 
         path = os.path.join(

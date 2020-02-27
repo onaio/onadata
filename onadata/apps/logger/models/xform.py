@@ -164,7 +164,8 @@ def check_version_set(survey):
 
 
 def _expand_select_all_that_apply(d, key, e):
-    if e and e.bind.get(u"type") == u"select":
+    if e and e.bind.get(u"type") == u"string"\
+            and e.type == MULTIPLE_SELECT_TYPE:
         options_selected = d[key].split()
         for child in e.children:
             new_key = child.get_abbreviated_xpath()
@@ -864,7 +865,10 @@ class XForm(XFormMixin, BaseModel):
                     not re.search(r"^[\w-]+$", self.id_string):
                 raise XLSFormError(
                     _(u'In strict mode, the XForm ID must be a '
-                      'valid slug and contain no spaces.'))
+                      'valid slug and contain no spaces. Please ensure'
+                      ' that you have set an id_string in the settings sheet '
+                      'or have modified the filename to not contain'
+                      ' any spaces.'))
 
         if not self.sms_id_string and (update_fields is None or
                                        'id_string' in update_fields):
