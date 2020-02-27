@@ -572,7 +572,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             })
             formid = self.xform.pk
             data = {
-                "name": "transportation",
+                "name": "data",
                 "title": "transportation_2011_07_25",
                 "default_language": "default",
                 "id_string": "transportation_2011_07_25",
@@ -634,7 +634,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             uuid_nodes = [
                 node for node in model_node.childNodes
                 if node.nodeType == Node.ELEMENT_NODE and
-                node.getAttribute("nodeset") == "/transportation/formhub/uuid"]
+                node.getAttribute("nodeset") == "/data/formhub/uuid"]
             self.assertEqual(len(uuid_nodes), 1)
             uuid_node = uuid_nodes[0]
             uuid_node.setAttribute("calculate", "''")
@@ -2200,7 +2200,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         fhuuid = xml.find('formhub/uuid')
         self.assertEqual(
             xml[xml[:fhuuid].rfind('=') + 2:fhuuid],
-            '/transportation/'
+            '/data/'
         )
 
         view = XFormViewSet.as_view({
@@ -2237,7 +2237,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         fhuuid = xml.find('formhub/uuid')
         self.assertEqual(
             xml[xml[:fhuuid].rfind('=') + 2:fhuuid],
-            '/transportation/'
+            '/data/'
         )
 
     def test_update_xform_with_different_id_string_form_with_sub(self):
@@ -2346,7 +2346,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 response = view(request, pk=form_id)
                 self.assertEqual(response.status_code, 200)
                 xform = XForm.objects.get(pk=form_id)
-                self.assertEqual('transportation',
+                self.assertEqual('data',
                                  xform.survey.xml_instance().tagName)
 
     def test_id_strings_should_be_unique_in_each_account(self):

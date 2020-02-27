@@ -67,11 +67,11 @@ class TestCsvExport(TestBase):
         self.maxDiff = None
         data_dictionary = DataDictionary.objects.all()[0]
         xpaths = [
-            u'/double_repeat/bed_net[1]/member[1]/name',
-            u'/double_repeat/bed_net[1]/member[2]/name',
-            u'/double_repeat/bed_net[2]/member[1]/name',
-            u'/double_repeat/bed_net[2]/member[2]/name',
-            u'/double_repeat/meta/instanceID'
+            u'/data/bed_net[1]/member[1]/name',
+            u'/data/bed_net[1]/member[2]/name',
+            u'/data/bed_net[2]/member[1]/name',
+            u'/data/bed_net[2]/member[2]/name',
+            u'/data/meta/instanceID'
         ]
         self.assertEquals(data_dictionary.xpaths(repeat_iterations=2), xpaths)
         # test csv
