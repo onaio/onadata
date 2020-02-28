@@ -226,6 +226,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
                 }],
                 u'name': u'gender',
                 u'label': u'Sex',
+                u'list_name': u'gender',
                 u'type': u'select one'
             }, {
                 u'control': {
@@ -280,6 +281,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
                     }],
                     u'name': u'gender',
                     u'label': u'Sex',
+                    u'list_name': u'gender',
                     u'type': u'select one'
                 }],
                 u'name': u'info',
@@ -297,6 +299,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
                         }],
                         u'name': u'gender',
                         u'label': u'Sex',
+                        u'list_name': u'gender',
                         u'type': u'select one'
                     }],
                     u'name': u'person',
@@ -357,6 +360,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
                     }],
                     u'name': u'gender',
                     u'label': u'Sex',
+                    u'list_name': u'gender',
                     u'type': u'select one'
                 }],
                 u'name': u'info',
@@ -374,6 +378,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
                         }],
                         u'name': u'gender',
                         u'label': u'Sex',
+                        u'list_name': u'gender',
                         u'type': u'select one'
                     }],
                     u'name': u'person',
