@@ -111,13 +111,14 @@ class TestFormErrors(TestBase):
         xls_path = os.path.join(
             self.this_directory, 'fixtures', 'cascading_selects',
             'duplicate_choice_form.xls')
-        msg = ("There does not seem to be"
-               " a `allow_choice_duplicates`"
-               " column header defined in your settings sheet."
-               " You must have set `allow_choice_duplicates`"
-               " setting in your settings sheet"
-               " to have duplicate choice list names"
-               " in your choices sheet")
+        msg = ("The name column for the 'counties' choice list"
+               " contains these duplicates: 'king'. Duplicate "
+               "names will be impossible to identify in "
+               "analysis unless a previous value in a "
+               "cascading select differentiates them. If this "
+               "is intentional, you can set the "
+               "allow_choice_duplicates setting to 'yes'. "
+               "Read more: https://xlsform.org/#choice-names.")
         self.assertRaisesMessage(
             PyXFormError, msg, self._publish_xls_file, xls_path)
         self.assertEquals(XForm.objects.count(), count)
