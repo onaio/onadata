@@ -337,17 +337,21 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                                 status=status.HTTP_400_BAD_REQUEST)
 
             fname = request.FILES.get('xls_file').name
+            if isinstance(request.FILES.get('xls_file'), InMemoryUploadedFile):
+                xls_file_path = default_storage.save(
+                        f'tmp/async-upload-{owner.username}-{fname}',
+                        ContentFile(request.FILES.get('xls_file').read()))
+            else:
+                xls_file_path = request.FILES.get(
+                    'xls_file').temporary_file_path()
+
             resp.update(
                 {u'job_uuid':
                  tasks.publish_xlsform_async.delay(
-                     request.user, request.POST, owner,
-                     ({'name': fname,
-                       'data': request.FILES.get('xls_file').read()}
-                      if isinstance(request.FILES.get('xls_file'),
-                                    InMemoryUploadedFile) else
-                      {'name': fname,
-                       'path': request.FILES.get(
-                           'xls_file').temporary_file_path()})).task_id})
+                     request.user.id,
+                     request.POST,
+                     owner.id,
+                     {'name': fname, 'path': xls_file_path}).task_id})
             resp_code = status.HTTP_202_ACCEPTED
 
         return Response(data=resp, status=resp_code, headers=headers)

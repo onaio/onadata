@@ -1,13 +1,12 @@
 import os
 import sys
 from builtins import str
-from io import BytesIO
 
 from celery import task
 from celery.result import AsyncResult
 from django.conf import settings
-from django.core.files.uploadedfile import (InMemoryUploadedFile,
-                                            TemporaryUploadedFile)
+from django.core.files.uploadedfile import TemporaryUploadedFile
+from django.core.files.storage import default_storage
 from django.core.mail import EmailMultiAlternatives
 from django.contrib.auth.models import User
 from django.utils.datastructures import MultiValueDict
@@ -25,20 +24,18 @@ def recreate_tmp_file(name, path, mime_type):
 
 
 @task(bind=True)
-def publish_xlsform_async(self, user, post_data, owner, file_data):
+def publish_xlsform_async(self, user_id, post_data, owner_id, file_data):
     try:
         files = MultiValueDict()
-        files[u'xls_file'] = \
-            (InMemoryUploadedFile(
-                BytesIO(file_data.get('data')), None,
-                file_data.get('name'), u'application/octet-stream',
-                len(file_data.get('data')), None)
-             if file_data.get('data') else
-             recreate_tmp_file(file_data.get('name'),
-                               file_data.get('path'),
-                               u'application/octet-stream'))
+        files[u'xls_file'] = default_storage.open(file_data.get('path'))
 
+        owner = User.objects.get(id=owner_id)
+        if owner_id == user_id:
+            user = owner
+        else:
+            user = User.objects.get(id=user_id)
         survey = tools.do_publish_xlsform(user, post_data, files, owner)
+        default_storage.delete(file_data.get('path'))
 
         if isinstance(survey, XForm):
             return {"pk": survey.pk}
