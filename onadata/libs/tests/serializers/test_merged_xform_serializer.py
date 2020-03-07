@@ -235,7 +235,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
                     u'name': u'instanceID',
                     u'bind': {
                         u'readonly': u'true()',
-                        u'calculate': u"concat('uuid:', uuid())"
+                        u'jr:preload': u"uid"
                     },
                     u'type': u'calculate'
                 }],
@@ -314,7 +314,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
                     u'name': u'instanceID',
                     u'bind': {
                         u'readonly': u'true()',
-                        u'calculate': u"concat('uuid:', uuid())"
+                        u'jr:preload': u"uid"
                     },
                     u'type': u'calculate'
                 }],
@@ -391,7 +391,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
                     u'name': u'instanceID',
                     u'bind': {
                         u'readonly': u'true()',
-                        u'calculate': u"concat('uuid:', uuid())"
+                        u'jr:preload': u'uid'
                     },
                     u'type': u'calculate'
                 }],
@@ -431,7 +431,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
                     u'name': u'instanceID',
                     u'bind': {
                         u'readonly': u'true()',
-                        u'calculate': u"concat('uuid:', uuid())"
+                        u'jr:preload': u'uid'
                     },
                     u'type': u'calculate'
                 }],

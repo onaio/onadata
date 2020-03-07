@@ -522,7 +522,7 @@ class TestProcess(TestBase):
         pre_count = XForm.objects.count()
         xls_path = os.path.join(
             self.this_directory, "fixtures", "cascading_selects",
-            "new_cascading_select.xls")
+            "new_cascading_select.xlsx")
         file_name, file_ext = os.path.splitext(os.path.split(xls_path)[1])
         TestBase._publish_xls_file(self, xls_path)
         post_count = XForm.objects.count()

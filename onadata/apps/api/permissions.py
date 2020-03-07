@@ -508,7 +508,7 @@ class IsAuthenticatedSubmission(BasePermission):
                 # raises a permission denied exception, forces authentication
                 return False
             else:
-                user = get_object_or_404(User, username=username.lower())
+                user = get_object_or_404(User, username__iexact=username)
 
                 profile, _ = UserProfile.objects.get_or_create(user=user)
 

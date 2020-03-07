@@ -32,6 +32,7 @@ from httmock import HTTMock
 from mock import Mock, patch
 from rest_framework import status
 from rest_framework.viewsets import ModelViewSet
+from http.client import BadStatusLine
 
 from onadata.apps.api.tests.mocked_data import (
     enketo_error500_mock, enketo_error502_mock, enketo_error_mock, enketo_mock,
@@ -70,6 +71,13 @@ def fixtures_path(filepath):
     return open(os.path.join(
         settings.PROJECT_ROOT, 'libs', 'tests', 'utils', 'fixtures', filepath),
         'rb')
+
+
+def raise_bad_status_line(arg):
+    """
+    Raises http.client BadStatusLine
+    """
+    raise BadStatusLine('RANDOM STATUS')
 
 
 ROLES = [ReadOnlyRole,
@@ -1979,6 +1987,24 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.data.get('additions'), 9)
+            self.assertEqual(response.data.get('updates'), 0)
+
+    @override_settings(CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD=4*100000)
+    def test_large_csv_import(self):
+        with HTTMock(enketo_mock):
+            xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
+                                    "tests", "fixtures", "tutorial.xls")
+            self._publish_xls_form_to_project(xlsform_path=xls_path)
+            view = XFormViewSet.as_view(
+                {'post': 'csv_import', 'get': 'csv_import'})
+            csv_import = fixtures_path('large_csv_upload.csv')
+            post_data = {'csv_file': csv_import}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request, pk=self.xform.id)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.get('Cache-Control'), None)
+            self.assertEqual(response.data.get('additions'), 800)
             self.assertEqual(response.data.get('updates'), 0)
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
@@ -4563,3 +4589,27 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.status_code, 400)
             self.assertEqual(
                 response.data.get('error'), 'csv_file not a csv file')
+
+    @patch(
+        'onadata.apps.main.forms.urlopen', side_effect=raise_bad_status_line)
+    def test_error_raised_xform_url_upload_urllib_error(self, mock_urlopen):
+        """
+        Test that the BadStatusLine error thrown by urlopen when a status
+        code is not understood is handled properly
+        """
+        view = XFormViewSet.as_view({
+            'post': 'create'
+        })
+
+        xls_url = 'http://localhost:2000'
+
+        post_data = {'xls_url': xls_url}
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request)
+        error_msg = ('An error occurred while publishing the form. '
+                     'Please try again.')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data.get('text'),
+            error_msg)

@@ -3,8 +3,10 @@ from onadata.apps.api import tools
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.models.team import Team
 from django.db import IntegrityError
+from django.test import override_settings
 from django.core.cache import cache
 from onadata.libs.utils.cache_tools import IS_ORG, safe_delete
+from onadata.libs.permissions import OwnerRole
 
 
 class TestOrganizationProfile(TestBase):
@@ -30,6 +32,10 @@ class TestOrganizationProfile(TestBase):
         self.assertIn(team.group_ptr, self.user.groups.all())
         self.assertTrue(self.user.has_perm('api.is_org_owner'))
 
+        # Assert that the user has the OwnerRole for the Organization
+        self.assertTrue(
+            OwnerRole.user_has_role(self.user, organization_profile))
+
     def test_disallow_same_username_with_different_cases(self):
         tools.create_organization("modilabs", self.user)
         with self.assertRaises(IntegrityError):
@@ -51,3 +57,14 @@ class TestOrganizationProfile(TestBase):
         self.assertIsNone(cache.get('{}{}'.format(IS_ORG, profile_id)))
         self.assertEqual(count - 1,
                          OrganizationProfile.objects.all().count())
+
+    @override_settings(ORG_ON_CREATE_IS_ACTIVE=False)
+    def test_optional_organization_active_status(self):
+        """
+        Test that setting ORG_ON_CREATE_IS_ACTIVE
+        changes the default Organization is_active status
+        """
+        profile = tools.create_organization_object("modilabs", self.user)
+        profile.save()
+
+        self.assertFalse(profile.user.is_active)

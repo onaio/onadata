@@ -3,6 +3,7 @@ import os
 from hashlib import md5
 
 from django.db import models
+from django.contrib.auth.models import User
 
 
 def get_original_filename(filename):
@@ -52,6 +53,8 @@ class Attachment(models.Model):
     deleted_at = models.DateTimeField(null=True, default=None)
     file_size = models.PositiveIntegerField(default=0)
     name = models.CharField(max_length=100, null=True, blank=True)
+    deleted_by = models.ForeignKey(User, related_name='deleted_attachments',
+                                   null=True, on_delete=models.SET_NULL)
 
     class Meta:
         app_label = 'logger'

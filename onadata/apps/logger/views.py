@@ -159,7 +159,7 @@ def bulksubmission_form(request, username=None):
     """
     Bulk submission form view
     """
-    username = username if username is None else username.lower()
+    username = username if username is None else username
     if request.user.username == username:
         return render(request, 'bulk_submission_form.html')
 

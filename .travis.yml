@@ -1,5 +1,5 @@
 sudo: required
-dist: trusty
+dist: xenial
 language: python
 addons:
   postgresql: 9.6
@@ -35,8 +35,8 @@ before_install:
   - export DEBIAN_FRONTEND=noninteractive;
   - sudo rm -f /etc/apt/sources.list.d/mongodb-3.4.list
   - sudo -E apt-get -y update
-  - sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install postgresql-9.6-postgis-2.3
-  - sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install openjdk-8-jre-headless
+  - sudo -E apt-get -yq --no-install-suggests --no-install-recommends install postgresql-9.6-postgis-2.4
+  - sudo -E apt-get -yq --no-install-suggests --no-install-recommends install openjdk-8-jre-headless
   - ./script/database/install_postgis onadata_test postgres 127.0.0.1
 
 install:

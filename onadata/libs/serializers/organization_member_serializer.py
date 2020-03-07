@@ -41,6 +41,7 @@ def _set_organization_role_to_user(organization, user, role):
 
     # add the owner to owners team
     if role == OwnerRole.name:
+        role_cls.add(user, organization.userprofile_ptr)
         add_user_to_team(owners_team, user)
         # add user to org projects
         for project in organization.user.project_org.all():

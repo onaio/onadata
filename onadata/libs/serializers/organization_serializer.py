@@ -13,7 +13,8 @@ from rest_framework import serializers
 from onadata.apps.api import tools
 from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.api.tools import (_get_first_last_names,
-                                    get_organization_members)
+                                    get_organization_members,
+                                    get_organization_owners)
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.libs.permissions import get_role_in_org
 from onadata.libs.serializers.fields.json_field import JsonField
@@ -113,12 +114,23 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         """
         Return organization members.
         """
-        members = get_organization_members(obj) if obj else []
+        def create_user_list(user_list):
+            return [{
+                'user': u.username,
+                'role': get_role_in_org(u, obj),
+                'first_name': u.first_name,
+                'last_name': u.last_name,
+                'gravatar': u.profile.gravatar
+            } for u in user_list]
 
-        return [{
-            'user': u.username,
-            'role': get_role_in_org(u, obj),
-            'first_name': u.first_name,
-            'last_name': u.last_name,
-            'gravatar': u.profile.gravatar,
-        } for u in members]
+        members = get_organization_members(obj) if obj else []
+        owners = get_organization_owners(obj) if obj else []
+
+        if owners and members:
+            members = members.exclude(
+                username__in=[user.username for user in owners])
+
+        members_list = create_user_list(members)
+        owners_list = create_user_list(owners)
+
+        return owners_list + members_list

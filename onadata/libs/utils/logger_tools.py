@@ -24,6 +24,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.encoding import DjangoUnicodeDecodeError
 from django.utils.translation import ugettext as _
+from http.client import BadStatusLine
 from modilabs.utils.subprocess_timeout import ProcessTimedOut
 from multidb.pinning import use_master
 from pyxform.errors import PyXFormError
@@ -147,7 +148,7 @@ def get_xform_from_submission(xml, username, uuid=None):
         return get_object_or_404(
             XForm,
             id_string__iexact=id_string,
-            user__username=username,
+            user__username__iexact=username,
             deleted_at__isnull=True)
     except MultipleObjectsReturned:
         raise NonUniqueFormIdError()
@@ -213,7 +214,7 @@ def update_attachment_tracking(instance):
                                  'media_all_received', 'json'])
 
 
-def save_attachments(xform, instance, media_files):
+def save_attachments(xform, instance, media_files, remove_deleted_media=False):
     """
     Saves attachments for the given instance/submission.
     """
@@ -240,6 +241,9 @@ def save_attachments(xform, instance, media_files):
                 mimetype=content_type,
                 name=filename,
                 extension=extension)
+    if remove_deleted_media:
+        instance.soft_delete_attachments()
+
     update_attachment_tracking(instance)
 
 
@@ -250,7 +254,11 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
 
     instance = _get_instance(xml, new_uuid, submitted_by, status, xform,
                              checksum)
-    save_attachments(xform, instance, media_files)
+    save_attachments(
+        xform,
+        instance,
+        media_files,
+        remove_deleted_media=True)
 
     # override date created if required
     if date_created_override:
@@ -297,6 +305,7 @@ def create_instance(username,
         if request and request.user.is_authenticated else None
 
     if username:
+        # TODO: Why do we lower the username here ?
         username = username.lower()
 
     xml = xml_file.read()
@@ -312,7 +321,11 @@ def create_instance(username,
             (new_uuid or existing_instance.xform.has_start_time):
         # ensure we have saved the extra attachments
         with transaction.atomic():
-            save_attachments(xform, existing_instance, media_files)
+            save_attachments(
+                xform,
+                existing_instance,
+                media_files,
+                remove_deleted_media=True)
             existing_instance.save(update_fields=['json', 'date_modified'])
 
         # Ignore submission as a duplicate IFF
@@ -331,7 +344,11 @@ def create_instance(username,
         duplicate_instance = history.xform_instance
         # ensure we have saved the extra attachments
         with transaction.atomic():
-            save_attachments(xform, duplicate_instance, media_files)
+            save_attachments(
+                xform,
+                duplicate_instance,
+                media_files,
+                remove_deleted_media=True)
             duplicate_instance.save()
 
         return DuplicateInstance()
@@ -494,7 +511,7 @@ def publish_form(callback):
             'type': 'alert-error',
             'text': _(u'Form validation timeout, please try again.'),
         }
-    except (MemoryError, OSError):
+    except (MemoryError, OSError, BadStatusLine):
         return {
             'type': 'alert-error',
             'text': _((u'An error occurred while publishing the form. '

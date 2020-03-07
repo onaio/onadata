@@ -107,7 +107,7 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
                 decoded_token)
 
         if username:
-            if get_user({"username": username}):
+            if get_user({"username__iexact": username}):
                 error_msg = _("The username provided already exists. "
                               "Please choose a different one.")
                 data = {'error_msg': error_msg, 'id_token': id_token}

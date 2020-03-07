@@ -14,6 +14,7 @@ from onadata.libs.permissions import OwnerRole
 from onadata.apps.api.tools import (get_organization_owners_team,
                                     add_user_to_organization)
 from onadata.apps.api.models.organization_profile import OrganizationProfile
+from onadata.apps.main.models import UserProfile
 from rest_framework import status
 
 
@@ -85,6 +86,11 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         authenticated_user = self.user
         user_in_shared_organization, _ = User.objects.get_or_create(
             username='the_stalked')
+
+        UserProfile.objects.get_or_create(
+            user=user_in_shared_organization,
+            name=user_in_shared_organization.username
+        )
 
         unshared_organization, _ = User.objects.get_or_create(
             username='NotShared')
@@ -374,7 +380,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         for user in response.data['users']:
             username = user['user']
             role = user['role']
-            expected_role = 'owner' if username == 'denoinc' else user_role
+            expected_role = 'owner' if username == 'denoinc' or \
+                username == self.user.username else user_role
             self.assertEqual(role, expected_role)
 
     def test_add_members_to_org_with_anonymous_user(self):
@@ -584,7 +591,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         for user in response.data['users']:
             username = user['user']
             role = user['role']
-            expected_role = 'owner' if username == 'denoinc' else user_role
+            expected_role = 'owner' if username == 'denoinc' or \
+                username == self.user.username else user_role
             self.assertEqual(role, expected_role)
 
     def test_put_require_role(self):
@@ -719,8 +727,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['users'][1]['user'], 'aboy')
-        self.assertEqual(response.data['users'][1]['role'], 'editor')
+        self.assertEqual(response.data['users'][2]['user'], 'aboy')
+        self.assertEqual(response.data['users'][2]['role'], 'editor')
 
     def test_add_members_to_owner_role(self):
         self._org_create()
@@ -1000,3 +1008,78 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user='denoinc')
         expected_results = [u'denoinc']
         self.assertEqual(expected_results, response.data)
+
+    def test_creator_in_users(self):
+        """
+        Test that the creator of the organization is returned
+        in the value of the 'users' key within the response from /orgs
+        """
+        self._org_create()
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.status_code, 200)
+
+        expected_user = {
+            'user': self.user.username,
+            'role': 'owner',
+            'first_name': 'Bob',
+            'last_name': 'erama',
+            'gravatar': self.user.profile.gravatar
+        }
+        self.assertIn(expected_user, response.data[0]['users'])
+
+    def test_creator_permissions(self):
+        """
+        Test that the creator of the organization has the necessary
+        permissions
+        """
+        self._org_create()
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.status_code, 200)
+
+        orgs = OrganizationProfile.objects.filter(creator=self.user)
+        self.assertEqual(orgs.count(), 1)
+        org = orgs.first()
+
+        self.assertTrue(OwnerRole.user_has_role(self.user, org))
+        self.assertTrue(
+            OwnerRole.user_has_role(self.user, org.userprofile_ptr))
+
+        members_view = OrganizationProfileViewSet.as_view({
+            'post': 'members',
+            'delete': 'members'
+        })
+
+        # New admins should also have the required permissions
+        self.profile_data['username'] = "dave"
+        dave = self._create_user_profile().user
+
+        data = {'username': 'dave',
+                'role': 'owner'}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = members_view(request, user='denoinc')
+        self.assertEqual(response.status_code, 201)
+
+        # Ensure user has role
+        self.assertTrue(OwnerRole.user_has_role(dave, org))
+        self.assertTrue(
+            OwnerRole.user_has_role(dave, org.userprofile_ptr))
+
+        # Permissions should be removed when the user is removed from
+        # organization
+        request = self.factory.delete('/', data=json.dumps(data),
+                                      content_type="application/json",
+                                      **self.extra)
+        response = members_view(request, user='denoinc')
+        expected_results = [u'denoinc']
+        self.assertEqual(expected_results, response.data)
+
+        # Ensure permissions are removed
+        self.assertFalse(OwnerRole.user_has_role(dave, org))
+        self.assertFalse(
+            OwnerRole.user_has_role(dave, org.userprofile_ptr))

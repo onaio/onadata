@@ -24,10 +24,9 @@ class ShareProjectSerializer(serializers.Serializer):
     role = serializers.CharField(max_length=50)
 
     def create(self, validated_data):
-        usernames = validated_data.pop('username').split(',')
         created_instances = []
 
-        for username in usernames:
+        for username in validated_data.pop('username').split(','):
             validated_data['username'] = username
             instance = ShareProject(**validated_data)
             instance.save()
@@ -42,9 +41,7 @@ class ShareProjectSerializer(serializers.Serializer):
         return instance
 
     def validate(self, attrs):
-        usernames = attrs.get('username').split(',')
-
-        for username in usernames:
+        for username in attrs.get('username').split(','):
             user = User.objects.get(username=username)
             project = attrs.get('project')
 
@@ -61,7 +58,7 @@ class ShareProjectSerializer(serializers.Serializer):
 
     def validate_username(self, value):
         """Check that the username exists"""
-        usernames = value.split(',')
+        usernames = [u.strip() for u in value.split(',')]
         user = None
         non_existent_users = []
         inactive_users = []
@@ -88,7 +85,7 @@ class ShareProjectSerializer(serializers.Serializer):
                 _(f'The following user(s) is/are not active: {inactive_users}')
             )
 
-        return value
+        return (',').join(usernames)
 
     def validate_role(self, value):
         """check that the role exists"""

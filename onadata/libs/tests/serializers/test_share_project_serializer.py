@@ -104,6 +104,25 @@ class TestShareProjectSerializer(TestAbstractViewSet, TestBase):
         self.assertTrue(ReadOnlyRole.user_has_role(user_dave, project))
         self.assertTrue(ReadOnlyRole.user_has_role(user_jake, project))
 
+        # Test strips spaces between commas
+        user_sam = self._create_user('sam', 'sam')
+        user_joy = self._create_user('joy', 'joy')
+
+        self.assertFalse(ReadOnlyRole.user_has_role(user_sam, project))
+        self.assertFalse(ReadOnlyRole.user_has_role(user_joy, project))
+
+        data = {
+            'project': project.id,
+            'username': 'sam, joy',
+            'role': ReadOnlyRole.name
+        }
+
+        serializer = ShareProjectSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+        serializer.save()
+        self.assertTrue(ReadOnlyRole.user_has_role(user_sam, project))
+        self.assertTrue(ReadOnlyRole.user_has_role(user_joy, project))
+
     def test_error_on_non_existing_user(self):
         """
         Test that an error is raised when user(s) passed does not

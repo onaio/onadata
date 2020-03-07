@@ -100,6 +100,67 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             content = response.render().content.decode('utf-8')
             self.assertEqual(content, form_list_xml % data)
 
+    def test_form_id_filter_for_non_require_auth_account(self):
+        """
+        Test formList formID filter for account that requires authentication
+        """
+        # Bob submit forms
+        xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main", "tests",
+                                "fixtures", "tutorial.xls")
+        self._publish_xls_form_to_project(xlsform_path=xls_path)
+
+        xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "logger",
+                                     "fixtures",
+                                     "external_choice_form_v1.xlsx")
+        self._publish_xls_form_to_project(xlsform_path=xls_file_path)
+
+        # Set require auth to true for this user
+        self.user.profile.require_auth = True
+        self.user.profile.save()
+
+        # Ensure that anonymous users do not have access to private forms
+        self.xform.shared = False
+        self.xform.save()
+        request = self.factory.get(
+            f'/{self.user.username}/{self.xform.pk}/formList',
+            {'formID': self.xform.id_string})
+        response = self.view(
+            request,  username=self.user.username, xform_pk=self.xform.pk)
+        self.assertEqual(response.status_code, 401)
+
+        self.user.profile.require_auth = False
+        self.user.profile.save()
+
+        # make form public
+        self.xform.shared = True
+        self.xform.save()
+
+        alice_data = {
+            'username': 'alice',
+            'email': 'alice@localhost.com',
+            'password1': 'alice',
+            'password2': 'alice'
+        }
+        self._create_user_profile(alice_data)
+
+        auth = DigestAuth('alice', 'alice')
+        request = self.factory.get(
+            f'/{self.user.username}/{self.xform.pk}/formList',
+            {'formID': self.xform.id_string})
+        request.META.update(auth(request.META, response))
+        response = self.view(
+            request, username=self.user.username, xform_pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+
+        # ensure anonymous users still have access
+        # to the xform with id self.xform.pk
+        request = self.factory.get(
+            f'/{self.user.username}/{self.xform.pk}/formList',
+            {'formID': self.xform.id_string})
+        response = self.view(
+            request,  username=self.user.username, xform_pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+
     def test_form_id_filter_for_require_auth_account(self):
         """
         Test formList formID filter for account that requires authentication

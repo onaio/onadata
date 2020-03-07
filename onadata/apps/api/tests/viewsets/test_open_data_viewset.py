@@ -73,7 +73,7 @@ class TestOpenDataViewSet(TestBase):
             'name': self.xform.id_string
         }
 
-        data.update({'object_id': None})
+        data.update({'object_id': 'sup'})
         request = self.factory.post('/', data=data, **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 400)

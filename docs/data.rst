@@ -431,18 +431,26 @@ Query submissions with case insensitive and partial search
 
     curl -X GET https://api.ona.io/api/v1/data/22845?query={"name":{"$i":"hosee"}}
 
+Example V
+^^^^^^^
+Query submissions where age is 21 or name is hosee
+
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845?query={"$or": [{"age": "21", "name": "hosee"}]}
 
 All Filters Options
 
-========  ===================================
-Filter    Description
-========  ===================================
-**$gt**   Greater than
-**$gte**  Greater than or Equal to
-**$lt**   Less than
-**$lte**  Less or Equal to
-**$i**    Case insensitive or partial search
-========  ===================================
+=======  ===================================
+Filter   Description
+=======  ===================================
+**$gt**  Greater than
+**$gte** Greater than or Equal to
+**$lt**  Less than
+**$lte** Less or Equal to
+**$i**   Case insensitive or partial search
+**$or**  Or
+=======  ===================================
 
 Query submitted data of a specific form using date_created
 ----------------------------------------------------------

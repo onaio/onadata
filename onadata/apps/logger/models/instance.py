@@ -4,6 +4,7 @@ Instance model class
 """
 import math
 from datetime import datetime
+from django.db.models import Q
 
 from future.utils import python_2_unicode_compatible
 
@@ -66,7 +67,7 @@ def get_attachment_url(attachment, suffix=None):
 
 def _get_attachments_from_instance(instance):
     attachments = []
-    for a in instance.attachments.all():
+    for a in instance.attachments.filter(deleted_at__isnull=True):
         attachment = dict()
         attachment['download_url'] = get_attachment_url(a)
         attachment['small_download_url'] = get_attachment_url(a, 'small')
@@ -582,6 +583,17 @@ class Instance(models.Model, InstanceBaseClass):
         # force submission count re-calculation
         self.xform.submission_count(force_update=True)
         self.parsed_instance.save()
+
+    def soft_delete_attachments(self, user=None):
+        """
+        Soft deletes an attachment by adding a deleted_at timestamp.
+        """
+        queryset = self.attachments.filter(
+            ~Q(name__in=self.get_expected_media()))
+        kwargs = {'deleted_at': timezone.now()}
+        if user:
+            kwargs.update({'deleted_by': user})
+        queryset.update(**kwargs)
 
 
 def post_save_submission(sender, instance=None, created=False, **kwargs):

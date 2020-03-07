@@ -159,7 +159,8 @@ class CSVImportTestCase(TestBase):
                          'Non unicode csv import rollback failed!')
 
     def test_reject_spaces_in_headers(self):
-        self._publish_xls_file(self.xls_file_path)
+        xls_file_path = os.path.join(self.fixtures_dir, 'space_in_header.xlsx')
+        self._publish_xls_file(xls_file_path)
         self.xform = XForm.objects.get()
 
         non_utf8csv = open(os.path.join(self.fixtures_dir, 'header_space.csv'),
@@ -399,5 +400,38 @@ class CSVImportTestCase(TestBase):
             [u'6/12/2020 13:20', u'2019-03-11T16:00:51.147+02:00'])
         self.assertEqual(
             conv_datetime,
-            [u'2020-06-12T13:20:00.000000', u'2019-03-11T16:00:51.147+02:00'])
+            [u'2020-06-12T13:20:00',
+             u'2019-03-11T16:00:51.147000+02:00'])
         self.assertEqual(conv_dates, ['2019-03-01', '2019-02-26'])
+
+    def test_enforces_data_type_and_rollback(self):
+        """
+        Test that data type constraints are enforced and instances created
+        during the process are rolled back
+        """
+        # Test integer constraint is enforced
+        xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
+                                     "tests", "fixtures", "tutorial.xls")
+        self._publish_xls_file(xls_file_path)
+        self.xform = XForm.objects.last()
+
+        bad_data = open(
+            os.path.join(self.fixtures_dir, 'bad_data.csv'),
+            'rb')
+        count = Instance.objects.count()
+        result = csv_import.submit_csv(self.user.username, self.xform,
+                                       bad_data)
+
+        expected_error = (
+            "Invalid CSV data imported in row(s): {1: ['Unknown date format(s)"
+            ": 2014-0903', 'Unknown datetime format(s): sdsa', "
+            "'Unknown integer format(s): 21.53'], 2: ['Unknown integer format"
+            "(s): 22.32'], 4: ['Unknown date format(s): 2014-0900'], "
+            "5: ['Unknown date format(s): 2014-0901'], 6: ['Unknown "
+            "date format(s): 2014-0902'], 7: ['Unknown date format(s):"
+            " 2014-0903']}")
+        self.assertEqual(
+            result.get('error'),
+            expected_error)
+        # Assert all created instances were rolled back
+        self.assertEqual(count, Instance.objects.count())

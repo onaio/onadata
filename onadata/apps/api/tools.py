@@ -121,7 +121,10 @@ def create_organization_object(org_name, creator, attrs=None):
         first_name=first_name,
         last_name=last_name,
         email=email,
-        is_active=True)
+        is_active=getattr(
+            settings,
+            'ORG_ON_CREATE_IS_ACTIVE',
+            True))
     new_user.save()
     try:
         registration_profile = RegistrationProfile.objects.create_profile(
@@ -198,6 +201,13 @@ def remove_user_from_organization(organization, user):
     remove_user_from_team(owners_team, user)
 
     role = get_role_in_org(user, organization)
+    role_cls = ROLES.get(role)
+
+    if role_cls:
+        # Remove object permissions
+        role_cls.remove_obj_permissions(user, organization)
+        role_cls.remove_obj_permissions(user, organization.userprofile_ptr)
+
     # Remove user from all org projects
     for project in organization.user.project_org.all():
         ShareProject(project, user.username, role, remove=True).save()
@@ -255,6 +265,12 @@ def get_organization_members(organization):
     """Get members team user queryset"""
     team = get_organization_members_team(organization)
 
+    return team.user_set.all()
+
+
+def get_organization_owners(organization):
+    """Get owners team user queryset"""
+    team = get_organization_owners_team(organization)
     return team.user_set.all()
 
 
