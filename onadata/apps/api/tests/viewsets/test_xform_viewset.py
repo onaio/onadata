@@ -2864,6 +2864,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             self.assertIsNotNone(xform.deleted_at)
             self.assertTrue('deleted-at' in xform.id_string)
+            self.assertEqual(xform.deleted_by, self.user)
 
             view = XFormViewSet.as_view({
                 'get': 'retrieve'
