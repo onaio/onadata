@@ -710,7 +710,9 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         if request.method == 'DELETE':
             xform = self.get_object()
             resp = {
-                u'job_uuid': tasks.delete_xform_async.delay(xform.pk).task_id,
+                u'job_uuid': tasks.delete_xform_async.delay(
+                    xform.pk,
+                    request.user.id).task_id,
                 u'time_async_triggered': datetime.now()}
             resp_code = status.HTTP_202_ACCEPTED
 

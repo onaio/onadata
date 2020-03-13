@@ -9,6 +9,7 @@ from django.conf import settings
 from django.core.files.uploadedfile import (InMemoryUploadedFile,
                                             TemporaryUploadedFile)
 from django.core.mail import EmailMultiAlternatives
+from django.contrib.auth.models import User
 from django.utils.datastructures import MultiValueDict
 from past.builtins import basestring
 
@@ -59,10 +60,11 @@ def publish_xlsform_async(self, user, post_data, owner, file_data):
 
 
 @task()
-def delete_xform_async(xform_id):
+def delete_xform_async(xform_id, user_id):
     """Soft delete an XForm asynchrounous task"""
     xform = XForm.objects.get(pk=xform_id)
-    xform.soft_delete()
+    user = User.objects.get(pk=user_id)
+    xform.soft_delete(user)
 
 
 def get_async_status(job_uuid):
