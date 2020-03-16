@@ -294,7 +294,8 @@ def get_form_url(request,
                  username=None,
                  protocol='https',
                  preview=False,
-                 xform_pk=None):
+                 xform_pk=None,
+                 gen_consistent=False):
     """
     Return a form list url endpoint to be used to make a request to Enketo.
 
@@ -313,12 +314,13 @@ def get_form_url(request,
     url = '%s://%s' % (protocol, http_host)
 
     if preview:
-        url = '%s/preview' % url
+        url += '/preview'
 
-    if username and xform_pk is None:
-        url = "{}/{}".format(url, username)
-    if username and xform_pk:
-        url = "{}/{}/{}".format(url, username, xform_pk)
+    if xform_pk and gen_consistent:
+        url += "/enketo/{}".format(xform_pk)
+    elif username:
+        url += "/{}/{}".format(username, xform_pk) if xform_pk \
+             else "/{}".format(username)
 
     return url
 
@@ -340,10 +342,20 @@ def get_enketo_edit_url(request, instance, return_url):
     return url
 
 
-def get_enketo_preview_url(request, username, id_string, xform_pk=None):
+def get_enketo_preview_url(
+        request, id_string, username=None, xform_pk=None,
+        gen_consistent=False):
     """Return an Enketo preview URL."""
-    form_url = get_form_url(
-        request, username, settings.ENKETO_PROTOCOL, True, xform_pk=xform_pk)
+    form_url_kwargs = {
+        'request': request,
+        'protocol': settings.ENKETO_PROTOCOL,
+        'preview': True,
+        'xform_pk': xform_pk,
+        'username': username,
+        'gen_consistent': gen_consistent
+    }
+
+    form_url = get_form_url(**form_url_kwargs)
     values = {'form_id': id_string, 'server_url': form_url}
 
     response = requests.post(

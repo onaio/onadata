@@ -21,6 +21,8 @@ class Command(BaseCommand):
         parser.add_argument("-u", "--username", dest="username", default=None)
         parser.add_argument(
             "-x", "--id_string", dest="id_string", default=None)
+        parser.add_argument(
+            "-c", "--consistent_urls", dest="gen_consistent", default=True)
 
     def handle(self, *args, **options):
         request = HttpRequest()
@@ -29,6 +31,7 @@ class Command(BaseCommand):
         protocol = options.get('protocol')
         username = options.get('username')
         id_string = options.get('id_string')
+        gen_consistent = options.get('gen_consistent')
 
         if not server_name or not server_port or not protocol:
             raise CommandError(
@@ -53,12 +56,16 @@ class Command(BaseCommand):
                 xform = XForm.objects.get(
                     user__username=username, id_string=id_string)
                 form_url = get_form_url(request, username, protocol=protocol,
-                                        xform_pk=xform.pk)
+                                        xform_pk=xform.pk,
+                                        gen_consistent=gen_consistent)
                 id_string = xform.id_string
                 _url = enketo_url(form_url, id_string)
-                _preview_url = get_enketo_preview_url(request, username,
-                                                      id_string,
-                                                      xform_pk=xform.pk)
+                _preview_url = get_enketo_preview_url(
+                        request,
+                        username,
+                        id_string,
+                        xform_pk=xform.pk,
+                        gen_consistent=gen_consistent)
                 self.stdout.write('enketo url: %s | preview url: %s' %
                                   (_url, _preview_url))
                 self.stdout.write("enketo urls generation completed!!")
@@ -72,11 +79,13 @@ class Command(BaseCommand):
                 for xform in queryset_iterator(xforms):
                     form_url = get_form_url(request, username,
                                             protocol=protocol,
-                                            xform_pk=xform.pk)
+                                            xform_pk=xform.pk,
+                                            gen_consistent=gen_consistent)
                     id_string = xform.id_string
                     _url = enketo_url(form_url, id_string)
                     _preview_url = get_enketo_preview_url(
-                        request, username, id_string, xform_pk=xform.pk)
+                        request, username, id_string, xform_pk=xform.pk,
+                        gen_consistent=gen_consistent)
                     num_of_xforms -= 1
                     self.stdout.write(
                         'enketo url: %s | preview url: %s | remaining: %s' %
@@ -91,11 +100,12 @@ class Command(BaseCommand):
                 username = xform.user.username
                 id_string = xform.id_string
                 form_url = get_form_url(request, username, protocol=protocol,
-                                        xform_pk=xform.pk)
+                                        xform_pk=xform.pk,
+                                        gen_consistent=gen_consistent)
                 _url = enketo_url(form_url, id_string)
-                _preview_url = get_enketo_preview_url(request, username,
-                                                      id_string,
-                                                      xform_pk=xform.pk)
+                _preview_url = get_enketo_preview_url(
+                    request, id_string=id_string, xform_pk=xform.pk,
+                    gen_consistent=gen_consistent)
                 num_of_xforms -= 1
                 self.stdout.write(
                     'enketo url: %s | preview url: %s | remaining: %s' %

@@ -28,10 +28,15 @@ def get_request_and_username(context):
     request = context['request']
     view = context['view']
     username = view.kwargs.get('username')
+    form_pk = view.kwargs.get('form_pk')
 
     if not username:
-        # get the username from the user if not set
-        username = (request.user and request.user.username)
+        # get the username from the XForm object if form_id is
+        # present else utilize the request users username
+        if form_pk:
+            username = XForm.objects.get(pk=form_pk).user.username
+        else:
+            username = (request.user and request.user.username)
 
     return (request, username)
 
