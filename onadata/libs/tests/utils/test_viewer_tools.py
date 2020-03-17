@@ -157,7 +157,7 @@ class TestViewerTools(TestBase):
 
         # with form uuid url https://ona.io/enketo/492
         url = get_form_url(
-                request, xform_pk=492, gen_consistent=True)
+                request, xform_pk=492, generate_consistent_urls=True)
         self.assertEqual(url, 'https://ona.io/enketo/492')
 
     @override_settings(ZIP_REPORT_ATTACHMENT_LIMIT=8)

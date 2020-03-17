@@ -395,7 +395,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         form_url = get_form_url(
             request, self.object.user.username,
             protocol=settings.ENKETO_PROTOCOL,
-            xform_pk=self.object.pk, gen_consistent=True)
+            xform_pk=self.object.pk, generate_consistent_urls=True)
 
         data = {'message': _(u"Enketo not properly configured.")}
         http_status = status.HTTP_400_BAD_REQUEST
