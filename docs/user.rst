@@ -97,7 +97,9 @@ Response
 
 ::
 
-       HTTP 204 OK
+       {
+           "username": "demouser"
+       }
 
 Expire temporary token
 ======================
@@ -115,7 +117,7 @@ Example
 
 ::
 
-      curl -X DELETE https://api.ona.io/api/v1/user/expire 
+      curl -X DELETE https://api.ona.io/api/v1/user/expire
 
 Response
 --------
