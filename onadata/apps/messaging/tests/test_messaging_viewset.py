@@ -6,9 +6,9 @@ from __future__ import unicode_literals
 
 from builtins import str as text
 
-from django.test import TestCase
-
 from actstream.models import Action
+from django.test import TestCase
+from django.test.utils import override_settings
 from guardian.shortcuts import assign_perm
 from rest_framework.test import APIRequestFactory, force_authenticate
 
@@ -24,6 +24,7 @@ class TestMessagingViewSet(TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
 
+    @override_settings(FULL_MESSAGE_PAYLOAD=True)
     def _create_message(self, user=None):
         """
         Helper to create a single message

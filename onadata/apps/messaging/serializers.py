@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 from actstream.actions import action_handler
 from actstream.models import Action
 from actstream.signals import action
+from django.conf import settings
 from django.utils.translation import ugettext as _
 from rest_framework import exceptions, serializers
 
@@ -39,13 +40,25 @@ class MessageSerializer(serializers.ModelSerializer):
     target_id = serializers.IntegerField(source='target_object_id')
     target_type = ContentTypeChoiceField(
         TARGET_CHOICES, source='target_content_type')
+    user = serializers.CharField(source='actor', required=False)
+    verb = serializers.CharField(required=False)
 
     class Meta:
         """
         MessageSerializer metadata
         """
         model = Action
-        fields = ['id', 'message', 'target_id', 'target_type', 'timestamp']
+        fields = ['id', 'verb', 'message', 'user', 'target_id', 'target_type',
+                  'timestamp']
+
+    def __init__(self, *args, **kwargs):
+        super(MessageSerializer, self).__init__(*args, **kwargs)
+        request = self.context.get('request')
+        full_message_payload = getattr(settings, 'FULL_MESSAGE_PAYLOAD', False)
+        if request and request.method == 'GET' and not full_message_payload:
+            extra_fields = ['target_type', 'target_id']
+            for field in extra_fields:
+                self.fields.pop(field)
 
     def create(self, validated_data):
         """
@@ -54,6 +67,7 @@ class MessageSerializer(serializers.ModelSerializer):
         request = self.context['request']
         target_type = validated_data.get("target_content_type")
         target_id = validated_data.get("target_object_id")
+        verb = validated_data.get("verb", MESSAGE)
         try:
             content_type = get_target(target_type)
         except TargetDoesNotExist:
@@ -79,7 +93,7 @@ class MessageSerializer(serializers.ModelSerializer):
                     raise exceptions.PermissionDenied(detail=message)
                 results = action.send(
                     request.user,
-                    verb=MESSAGE,
+                    verb=verb,
                     target=target_object,
                     description=validated_data.get("description"))
 
