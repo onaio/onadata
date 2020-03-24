@@ -299,8 +299,9 @@ class TestConnectViewSet(TestAbstractViewSet):
         # with uid, should be successful
         request = self.factory.post('/', data=data)
         response = self.view(request)
-        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.status_code, 200)
         user = User.objects.get(email=self.user.email)
+        self.assertEqual(user.username, response.data['username'])
         self.assertTrue(user.check_password(new_password))
 
         request = self.factory.post('/', data=data)

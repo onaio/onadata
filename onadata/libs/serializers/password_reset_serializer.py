@@ -11,6 +11,8 @@ from django.utils.http import urlsafe_base64_encode
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from onadata.libs.utils.user_auth import invalidate_and_regen_tokens
+
 
 class CustomPasswordResetTokenGenerator(PasswordResetTokenGenerator):
     """Custom Password Token Generator Class."""
@@ -80,6 +82,7 @@ class PasswordResetChange(object):
         if user:
             user.set_password(self.new_password)
             user.save()
+            invalidate_and_regen_tokens(user)
 
 
 class PasswordReset(object):
