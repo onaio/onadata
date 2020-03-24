@@ -4,6 +4,7 @@ Messaging viewset filters module.
 """
 from __future__ import unicode_literals
 
+from django.contrib.auth.models import User
 from django.utils.translation import ugettext as _
 from rest_framework import exceptions, filters
 
@@ -57,5 +58,27 @@ class TargetIDFilterBackend(filters.BaseFilterBackend):
                 return queryset.filter(target_object_id=target_id)
 
             raise exceptions.ParseError(_("Parameter 'target_id' is missing."))
+
+        return queryset
+
+
+class UserFilterBackend(filters.BaseFilterBackend):
+    """
+    A filter backend that filters by username.
+    """
+
+    # pylint: disable=no-self-use
+    def filter_queryset(self, request, queryset, view):
+        """
+        Return a filtered queryset.
+        """
+
+        if view.action == 'list':
+            username = request.query_params.get('user')
+            try:
+                user = User.objects.get(username=username)
+                return queryset.filter(actor_object_id=user.id)
+            except User.DoesNotExist:
+                return queryset.none()
 
         return queryset

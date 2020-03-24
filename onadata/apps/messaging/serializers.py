@@ -12,7 +12,7 @@ from django.conf import settings
 from django.utils.translation import ugettext as _
 from rest_framework import exceptions, serializers
 
-from onadata.apps.messaging.constants import MESSAGE
+from onadata.apps.messaging.constants import MESSAGE, MESSAGE_VERBS
 from onadata.apps.messaging.utils import TargetDoesNotExist, get_target
 
 
@@ -41,7 +41,7 @@ class MessageSerializer(serializers.ModelSerializer):
     target_type = ContentTypeChoiceField(
         TARGET_CHOICES, source='target_content_type')
     user = serializers.CharField(source='actor', required=False)
-    verb = serializers.CharField(required=False)
+    verb = serializers.ChoiceField(MESSAGE_VERBS, default=MESSAGE)
 
     class Meta:
         """
