@@ -101,11 +101,12 @@ class MQTTBackend(BaseBackend):
         kwargs = {
             'target_id': instance.target_object_id,
             'target_name': instance.target._meta.model_name,
-            'topic_base': self.topic_base
+            'topic_base': self.topic_base,
+            'verb': instance.verb
         }
         return (
-            '/{topic_base}/{target_name}/{target_id}/messages/publish'.format(
-                **kwargs))
+            '/{topic_base}/{target_name}/{target_id}/{verb}/messages/publish'
+                .format(**kwargs))
 
     def send(self, instance):
         """
