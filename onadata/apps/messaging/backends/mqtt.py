@@ -9,6 +9,7 @@ import ssl
 from json import JSONDecodeError
 
 import paho.mqtt.publish as publish
+from django.conf import settings
 
 from onadata.apps.messaging.backends.base import BaseBackend
 from onadata.apps.messaging.constants import PROJECT, USER, XFORM
@@ -34,26 +35,36 @@ def get_payload(instance):
     """
     Constructs the message payload
     """
+    full_message_payload = getattr(settings, 'FULL_MESSAGE_PAYLOAD', False)
     try:
         description = json.loads(instance.description)
     except JSONDecodeError:
         description = instance.description
 
-    payload = {
-        'id': instance.id,
-        'time': instance.timestamp.isoformat(),
-        'payload': {
-            'author': {
-                'username': instance.actor.username,
-                'real_name': instance.actor.get_full_name()
-            },
-            'context': {
-                'type': instance.target._meta.model_name,
-                'metadata': get_target_metadata(instance.target)
-            },
-            'message': description
+    if not full_message_payload:
+        payload = {
+            "id": instance.id,
+            "verb": instance.verb,
+            "message": description,
+            "user": instance.actor.username,
+            "timestamp": instance.timestamp.isoformat()
         }
-    }
+    else:
+        payload = {
+            'id': instance.id,
+            'time': instance.timestamp.isoformat(),
+            'payload': {
+                'author': {
+                    'username': instance.actor.username,
+                    'real_name': instance.actor.get_full_name()
+                },
+                'context': {
+                    'type': instance.target._meta.model_name,
+                    'metadata': get_target_metadata(instance.target)
+                },
+                'message': description
+            }
+        }
 
     return json.dumps(payload)
 

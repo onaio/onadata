@@ -1,12 +1,12 @@
 import json
 import os
 import re
+from builtins import bytes as b, str as text
 from datetime import datetime
 from hashlib import md5
 from xml.dom import Node
 
 import pytz
-from builtins import bytes as b, str as text
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericRelation
@@ -32,6 +32,9 @@ from taggit.managers import TaggableManager
 
 from onadata.apps.logger.xform_instance_parser import (XLSFormError,
                                                        clean_and_parse_xml)
+from onadata.apps.messaging.constants import FORM_UPDATED
+from onadata.apps.messaging.constants import XFORM
+from onadata.apps.messaging.serializers import send_message
 from onadata.libs.models.base_model import BaseModel
 from onadata.libs.utils.cache_tools import (IS_ORG, PROJ_BASE_FORMS_CACHE,
                                             PROJ_FORMS_CACHE,
@@ -1036,6 +1039,19 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
         from onadata.libs.utils.project_utils import set_project_perms_to_xform
         set_project_perms_to_xform(instance, instance.project)
 
+
+def send_message_on_save(sender, instance, created=False, **kwargs):
+    """
+    Signal handler send message on save
+    """
+    send_message(
+        id=instance.id, target_id=instance.id,
+        target_type=XFORM, user=instance.created_by,
+        message_verb=FORM_UPDATED)
+
+
+post_save.connect(
+    send_message_on_save, sender=XForm, dispatch_uid='send_message_on_save')
 
 post_save.connect(
     set_object_permissions,

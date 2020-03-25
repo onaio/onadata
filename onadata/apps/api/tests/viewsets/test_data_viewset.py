@@ -2356,8 +2356,8 @@ class TestDataViewSet(TestBase):
         self.assertEqual(len(response.data), 4)
 
     @patch(
-        'onadata.apps.api.viewsets.data_viewset.send_mqtt_message')
-    def test_send_mqtt_message_upon_deletion(self, send_message_mock):
+        'onadata.apps.api.viewsets.data_viewset.send_message')
+    def test_send_message_upon_deletion(self, send_message_mock):
         self._make_submissions()
         self.xform.refresh_from_db()
         formid = self.xform.pk

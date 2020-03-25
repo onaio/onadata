@@ -3,16 +3,11 @@ Submission Review Serializer Module
 """
 from __future__ import unicode_literals
 
-import json
-
 from rest_framework import exceptions, serializers
 
 from onadata.apps.logger.models import Note, SubmissionReview
-from onadata.apps.messaging.constants import XFORM
-from onadata.apps.messaging.serializers import send_mqtt_message
 from onadata.libs.utils.common_tags import (COMMENT_REQUIRED,
-                                            SUBMISSION_REVIEW_INSTANCE_FIELD,
-                                            SUBMISSION_REVIEW)
+                                            SUBMISSION_REVIEW_INSTANCE_FIELD)
 
 
 class SubmissionReviewSerializer(serializers.ModelSerializer):
@@ -63,18 +58,6 @@ class SubmissionReviewSerializer(serializers.ModelSerializer):
 
         submission_review = SubmissionReview.objects.create(**validated_data)
 
-        from multidb.pinning import use_master
-
-        with use_master:
-            message = {
-                'type': SUBMISSION_REVIEW,
-                'json': submission_review.instance.json
-            }
-            message = json.dumps(message)
-            send_mqtt_message(
-                message=message, target_id=submission_review.instance.xform.id,
-                target_type=XFORM, request=request)
-
         return submission_review
 
     def update(self, instance, validated_data):
@@ -90,18 +73,5 @@ class SubmissionReviewSerializer(serializers.ModelSerializer):
         instance.status = validated_data.get('status', instance.status)
 
         instance.save()
-
-        # send message with new submission data
-        from multidb.pinning import use_master
-
-        with use_master:
-            message = {
-                'type': SUBMISSION_REVIEW,
-                'json': instance.instance.json
-            }
-            message = json.dumps(message)
-            send_mqtt_message(
-                message=message, target_id=instance.instance.xform.id,
-                target_type=XFORM, request=self.context.get('request'))
 
         return instance

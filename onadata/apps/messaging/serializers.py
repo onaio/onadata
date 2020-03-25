@@ -5,10 +5,14 @@ Message serializers
 
 from __future__ import unicode_literals
 
+import json
+
 from actstream.actions import action_handler
 from actstream.models import Action
 from actstream.signals import action
+from celery import task
 from django.conf import settings
+from django.http import HttpRequest
 from django.utils.translation import ugettext as _
 from rest_framework import exceptions, serializers
 
@@ -115,19 +119,24 @@ class MessageSerializer(serializers.ModelSerializer):
                     return instance
 
 
-def send_mqtt_message(message, target_id, target_type, request):
+@task
+def send_message(id, target_id, target_type, user, message_verb):
     """
-    Send an mqtt message.
-    :param message: message to send
+    Send a message.
+    :param id: id of instance/form that has changed
     :param target_id: id of the target_type
     :param target_type: any of these three ['xform', 'project', 'user']
     :param request: http request object
     :return:
     """
+    request = HttpRequest()
+    request.user = user
+    message = json.dumps({'id': id})
     data = {
         "message": message,
         "target_id": target_id,
-        "target_type": target_type
+        "target_type": target_type,
+        "verb": message_verb
     }
     message = MessageSerializer(data=data, context={"request": request})
     if message.is_valid():

@@ -4,24 +4,21 @@ Instance model class
 """
 import math
 from datetime import datetime
-from django.db.models import Q
 
-from future.utils import python_2_unicode_compatible
-
-from past.builtins import basestring  # pylint: disable=W0622
-
+from celery import task
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GeometryCollection, Point
 from django.contrib.postgres.fields import JSONField
 from django.db import connection, transaction
+from django.db.models import Q
 from django.db.models.signals import post_delete, post_save
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext as _
-
-from celery import task
+from future.utils import python_2_unicode_compatible
+from past.builtins import basestring  # pylint: disable=W0622
 from taggit.managers import TaggableManager
 
 from onadata.apps.logger.models.submission_review import SubmissionReview
@@ -30,6 +27,9 @@ from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH, XForm
 from onadata.apps.logger.xform_instance_parser import (XFormInstanceParser,
                                                        clean_and_parse_xml,
                                                        get_uuid_from_xml)
+from onadata.apps.messaging.constants import XFORM, \
+    SUBMISSION_EDITED, SUBMISSION_CREATED
+from onadata.apps.messaging.serializers import send_message
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import (DATAVIEW_COUNT, IS_ORG,
                                             PROJ_NUM_DATASET_CACHE,
@@ -597,14 +597,23 @@ class Instance(models.Model, InstanceBaseClass):
 
 
 def post_save_submission(sender, instance=None, created=False, **kwargs):
+    message_verb = SUBMISSION_CREATED if created else SUBMISSION_EDITED
     if ASYNC_POST_SUBMISSION_PROCESSING_ENABLED:
         update_xform_submission_count.apply_async(args=[instance.pk, created])
         save_full_json.apply_async(args=[instance.pk, created])
         update_project_date_modified.apply_async(args=[instance.pk, created])
+        send_message.apply_async(args=[
+            instance.instance.id, instance.instance.xform.id, XFORM,
+            instance.created_by, message_verb])
+
     else:
         update_xform_submission_count(instance.pk, created)
         save_full_json(instance.pk, created)
         update_project_date_modified(instance.pk, created)
+        send_message(
+            id=instance.instance.id, target_id=instance.instance.xform.id,
+            target_type=XFORM, user=instance.created_by,
+            message_verb=message_verb)
 
 
 post_save.connect(post_save_submission, sender=Instance,

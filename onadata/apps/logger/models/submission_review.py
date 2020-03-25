@@ -10,6 +10,9 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from onadata.apps.messaging.constants import XFORM, SUBMISSION_REVIEW
+from onadata.apps.messaging.serializers import send_message
+
 
 def update_instance_json_on_save(sender, instance, **kwargs):
     """
@@ -19,6 +22,16 @@ def update_instance_json_on_save(sender, instance, **kwargs):
     if not submission_instance.has_a_review:
         submission_instance.has_a_review = True
     submission_instance.save()
+
+
+def send_message_on_save(sender, instance, **kwargs):
+    """
+    Signal handler send message on save
+    """
+    send_message(
+        id=instance.instance.id, target_id=instance.instance.xform.id,
+        target_type=XFORM, user=instance.created_by,
+        message_verb=SUBMISSION_REVIEW)
 
 
 class SubmissionReview(models.Model):
@@ -92,3 +105,7 @@ class SubmissionReview(models.Model):
 post_save.connect(
     update_instance_json_on_save, sender=SubmissionReview,
     dispatch_uid='update_instance_json_on_save')
+
+post_save.connect(
+    send_message_on_save, sender=SubmissionReview,
+    dispatch_uid='send_message_on_save')

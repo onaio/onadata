@@ -26,8 +26,9 @@ from onadata.apps.logger.models import OsmData, MergedXForm
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.messaging.constants import SUBMISSION_DELETED
 from onadata.apps.messaging.constants import XFORM
-from onadata.apps.messaging.serializers import send_mqtt_message
+from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer.models.parsed_instance import get_etag_hash_from_query
 from onadata.apps.viewer.models.parsed_instance import get_sql_with_params
 from onadata.apps.viewer.models.parsed_instance import get_where_clause
@@ -306,16 +307,11 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 after_count = self.object.submission_count(force_update=True)
                 number_of_records_deleted = initial_count - after_count
 
-                # send mqttt message
-                message = {
-                    'type': 'submission_deleted',
-                    'instance_ids': instance_ids,
-                    'xform_id': self.object.id
-                }
-                message = json.dumps(message)
-                send_mqtt_message(
-                    message=message, target_id=self.object.id,
-                    target_type=XFORM, request=request)
+                # send message
+                send_message(
+                    id=instance_ids, target_id=self.object.id,
+                    target_type=XFORM, request=request,
+                    message_verb=SUBMISSION_DELETED)
 
                 return Response(
                     data={
