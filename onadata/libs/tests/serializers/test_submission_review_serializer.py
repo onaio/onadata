@@ -163,8 +163,8 @@ class TestSubmissionReviewSerializer(TestBase):
         self.assertTrue(serializer_instance.is_valid())
 
     @patch(
-        'onadata.libs.serializers.submission_review_serializer.send_mqtt_message')  # noqa pylint: disable=line-too-long
-    def test_send_mqtt_message(self, send_message_mock):
+        'onadata.libs.serializers.submission_review_serializer.send_message')  # noqa pylint: disable=line-too-long
+    def test_send_message(self, send_message_mock):
         # called upon creating a submission review
         data = self._create_submission_review()
         self.assertTrue(send_message_mock.called)

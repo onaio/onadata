@@ -120,7 +120,7 @@ class MessageSerializer(serializers.ModelSerializer):
 
 
 @task
-def send_message(id, target_id, target_type, user, message_verb):
+def send_message(instance_id, target_id, target_type, user, message_verb):
     """
     Send a message.
     :param id: id of instance/form that has changed
@@ -129,15 +129,16 @@ def send_message(id, target_id, target_type, user, message_verb):
     :param request: http request object
     :return:
     """
-    request = HttpRequest()
-    request.user = user
-    message = json.dumps({'id': id})
-    data = {
-        "message": message,
-        "target_id": target_id,
-        "target_type": target_type,
-        "verb": message_verb
-    }
-    message = MessageSerializer(data=data, context={"request": request})
-    if message.is_valid():
-        message.save()
+    if user:
+        request = HttpRequest()
+        request.user = user
+        message = json.dumps({'id': instance_id})
+        data = {
+            "message": message,
+            "target_id": target_id,
+            "target_type": target_type,
+            "verb": message_verb
+        }
+        message = MessageSerializer(data=data, context={"request": request})
+        if message.is_valid():
+            message.save()

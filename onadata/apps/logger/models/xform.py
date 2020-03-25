@@ -1045,7 +1045,7 @@ def send_message_on_save(sender, instance, created=False, **kwargs):
     Signal handler send message on save
     """
     send_message(
-        id=instance.id, target_id=instance.id,
+        instance_id=instance.id, target_id=instance.id,
         target_type=XFORM, user=instance.created_by,
         message_verb=FORM_UPDATED)
 

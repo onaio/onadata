@@ -4,12 +4,14 @@ Submission Review ViewSet Tests Module
 from __future__ import unicode_literals
 
 from guardian.shortcuts import assign_perm
+from mock import patch
 from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.viewsets.submission_review_viewset import \
     SubmissionReviewViewSet
 from onadata.apps.logger.models import SubmissionReview, Instance
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.messaging.constants import XFORM, SUBMISSION_REVIEW
 from onadata.libs.permissions import CAN_CHANGE_XFORM
 from onadata.libs.utils.common_tags import REVIEW_STATUS, REVIEW_COMMENT
 
@@ -54,11 +56,19 @@ class TestSubmissionReviewViewSet(TestBase):
 
         return response.data
 
-    def test_submission_review_create(self):
+    @patch('onadata.apps.logger.models.submission_review.send_message')
+    def test_submission_review_create(self, mock_send_message):
         """
         Test we can create a submission review
         """
-        self._create_submission_review()
+        submission_review_data = self._create_submission_review()
+        submission_review = SubmissionReview.objects.get(
+            id=submission_review_data['id'])
+        # sends message upon saving the submission review
+        self.assertTrue(mock_send_message.called)
+        mock_send_message.called_with(
+            submission_review.id, submission_review.instance.xform.id, XFORM,
+            submission_review.created_by, SUBMISSION_REVIEW)
 
     def test_bulk_create_submission_review(self):
         """

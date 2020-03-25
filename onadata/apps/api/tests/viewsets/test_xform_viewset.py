@@ -13,6 +13,7 @@ from builtins import open
 from collections import OrderedDict
 from datetime import datetime
 from datetime import timedelta
+from http.client import BadStatusLine
 from io import StringIO
 from xml.dom import Node
 from xml.dom import minidom
@@ -32,7 +33,6 @@ from httmock import HTTMock
 from mock import Mock, patch
 from rest_framework import status
 from rest_framework.viewsets import ModelViewSet
-from http.client import BadStatusLine
 
 from onadata.apps.api.tests.mocked_data import (
     enketo_error500_mock, enketo_error502_mock, enketo_error_mock, enketo_mock,
@@ -52,6 +52,7 @@ from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.models import MetaData
+from onadata.apps.messaging.constants import XFORM, FORM_UPDATED
 from onadata.apps.viewer.models import Export
 from onadata.libs.permissions import (
     ROLES_ORDERED, DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole,
@@ -98,7 +99,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             'get': 'list',
         })
 
-    def test_form_publishing_arabic(self):
+    @patch('onadata.apps.logger.models.xform.send_message')
+    def test_form_publishing_arabic(self, mock_send_message):
         with HTTMock(enketo_mock):
             xforms = XForm.objects.count()
             view = XFormViewSet.as_view({
@@ -113,6 +115,11 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response = view(request)
                 self.assertEqual(xforms + 1, XForm.objects.count())
                 self.assertEqual(response.status_code, 201)
+                # send send message upon form creation/update
+                xform = XForm.objects.get(id=response.data['formid'])
+                self.assertTrue(mock_send_message.called)
+                mock_send_message.called_with(
+                    xform.id, xform.id, XFORM, xform.created_by, FORM_UPDATED)
 
     def test_replace_form_with_external_choices(self):
         with HTTMock(enketo_mock):

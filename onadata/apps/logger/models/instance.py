@@ -603,16 +603,16 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
         save_full_json.apply_async(args=[instance.pk, created])
         update_project_date_modified.apply_async(args=[instance.pk, created])
         send_message.apply_async(args=[
-            instance.instance.id, instance.instance.xform.id, XFORM,
-            instance.created_by, message_verb])
+            instance.id, instance.xform.id, XFORM,
+            instance.user, message_verb])
 
     else:
         update_xform_submission_count(instance.pk, created)
         save_full_json(instance.pk, created)
         update_project_date_modified(instance.pk, created)
         send_message(
-            id=instance.instance.id, target_id=instance.instance.xform.id,
-            target_type=XFORM, user=instance.created_by,
+            instance_id=instance.id, target_id=instance.xform.id,
+            target_type=XFORM, user=instance.user,
             message_verb=message_verb)
 
 

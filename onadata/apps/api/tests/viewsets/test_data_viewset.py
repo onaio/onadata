@@ -32,6 +32,7 @@ from onadata.apps.main import tests as main_tests
 from onadata.apps.main.models import UserProfile
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.messaging.constants import XFORM, SUBMISSION_DELETED
 from onadata.libs import permissions as role
 from onadata.libs.permissions import ReadOnlyRole, EditorRole, \
     EditorMinorRole, DataEntryOnlyRole, DataEntryMinorRole
@@ -90,7 +91,8 @@ class TestDataViewSet(TestBase):
         self.extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
 
-    def test_data(self):
+    @patch('onadata.apps.logger.models.instance.send_message')
+    def test_data(self, mock_send_message):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
@@ -122,6 +124,10 @@ class TestDataViewSet(TestBase):
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertIsInstance(response.data, dict)
         self.assertDictContainsSubset(data, response.data)
+        self.assertTrue(mock_send_message.called)
+        mock_send_message.called_with(
+            dataid, formid, XFORM,
+            request.user, SUBMISSION_DELETED)
 
     @override_settings(STREAM_DATA=True)
     def test_data_streaming(self):
@@ -1449,7 +1455,10 @@ class TestDataViewSet(TestBase):
         instance.save()
         self.assertEqual(mock.call_count, 1)
 
-    def test_deletion_of_bulk_submissions(self):
+    @patch(
+        'onadata.apps.api.viewsets.data_viewset.send_message')
+    def test_deletion_of_bulk_submissions(self, send_message_mock):
+
         self._make_submissions()
         self.xform.refresh_from_db()
         formid = self.xform.pk
@@ -1488,6 +1497,10 @@ class TestDataViewSet(TestBase):
             response.data.get('message'),
             "%d records were deleted" % len(records_to_be_deleted)
         )
+        self.assertTrue(send_message_mock.called)
+        send_message_mock.called_with(
+            [str(i.pk) for i in records_to_be_deleted], formid, XFORM,
+            request.user, SUBMISSION_DELETED)
         self.xform.refresh_from_db()
         current_count = self.xform.instances.filter(deleted_at=None).count()
         self.assertNotEqual(current_count, initial_count)
@@ -2354,38 +2367,6 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
-
-    @patch(
-        'onadata.apps.api.viewsets.data_viewset.send_message')
-    def test_send_message_upon_deletion(self, send_message_mock):
-        self._make_submissions()
-        self.xform.refresh_from_db()
-        formid = self.xform.pk
-        initial_count = self.xform.instances.filter(deleted_at=None).count()
-        self.assertEqual(initial_count, 4)
-        self.assertEqual(self.xform.num_of_submissions, 4)
-        view = DataViewSet.as_view({'delete': 'destroy'})
-
-        # test with valid instance id's
-        records_to_be_deleted = self.xform.instances.all()[:2]
-        instance_ids = ','.join([str(i.pk) for i in records_to_be_deleted])
-        data = {"instance_ids": instance_ids}
-
-        request = self.factory.delete('/', data=data, **self.extra)
-        response = view(request, pk=formid)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.data.get('message'),
-            "%d records were deleted" % len(records_to_be_deleted)
-        )
-        self.assertTrue(send_message_mock.called)
-
-        self.xform.refresh_from_db()
-        current_count = self.xform.instances.filter(deleted_at=None).count()
-        self.assertNotEqual(current_count, initial_count)
-        self.assertEqual(current_count, 2)
-        self.assertEqual(self.xform.num_of_submissions, 2)
 
 
 class TestOSM(TestAbstractViewSet):
