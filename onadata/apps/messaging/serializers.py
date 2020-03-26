@@ -91,7 +91,8 @@ class MessageSerializer(serializers.ModelSerializer):
                 permission = '{}.change_{}'.format(
                     target_object._meta.app_label,
                     target_object._meta.model_name)
-                if not request.user.has_perm(permission, target_object):
+                if not request.user.has_perm(permission, target_object) \
+                        and verb == MESSAGE:
                     message = (_("You do not have permission to add messages "
                                "to target_id %s.") % target_object)
                     raise exceptions.PermissionDenied(detail=message)

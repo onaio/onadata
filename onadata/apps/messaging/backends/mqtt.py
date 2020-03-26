@@ -105,9 +105,9 @@ class MQTTBackend(BaseBackend):
         Constructs the message topic
 
         For sending messages it should look like:
-            /onadata/forms/[pk or uuid]/messages/publish
-            /onadata/projects/[pk or uuid]/messages/publish
-            /onadata/users/[pk or uuid]/messages/publish
+            /onadata/forms/[pk or uuid]/[verb]/messages/publish
+            /onadata/projects/[pk or uuid]/[verb]/messages/publish
+            /onadata/users/[pk or uuid]/[verb]/messages/publish
         """
         kwargs = {
             'target_id': instance.target_object_id,
