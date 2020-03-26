@@ -4,10 +4,7 @@ Submission Review Serializer Test Module
 """
 from __future__ import unicode_literals
 
-import json
-
 from django.http import HttpRequest
-from mock import patch
 from rest_framework.exceptions import ValidationError
 
 from onadata.apps.logger.models import Instance, Note, SubmissionReview
@@ -161,36 +158,3 @@ class TestSubmissionReviewSerializer(TestBase):
         serializer_instance = SubmissionReviewSerializer(
             data=list_data, many=True)
         self.assertTrue(serializer_instance.is_valid())
-
-    @patch(
-        'onadata.libs.serializers.submission_review_serializer.send_message')  # noqa pylint: disable=line-too-long
-    def test_send_message(self, send_message_mock):
-        # called upon creating a submission review
-        data = self._create_submission_review()
-        self.assertTrue(send_message_mock.called)
-
-        # called upon updating a submission review
-        submission_review = SubmissionReview.objects.first()
-        old_note_text = submission_review.note_text
-
-        data['note'] = "Goodbye"
-        self.assertEqual(len(Note.objects.all()), 1)
-        request = HttpRequest()
-        request.user = self.user
-        serializer_instance = SubmissionReviewSerializer(
-            instance=submission_review, data=data,
-            context={"request": request})
-        self.assertTrue(serializer_instance.is_valid())
-        new_review = serializer_instance.save()
-
-        # Doesnt create a new note
-        self.assertEqual(len(Note.objects.all()), 1)
-        self.assertNotEqual(old_note_text, new_review.note_text)
-        self.assertTrue(send_message_mock.called)
-        message = {
-            'type': 'submission_review',
-            'json': submission_review.instance.json
-        }
-        send_message_mock.assert_called_with(
-            message=json.dumps(message), target_id=self.xform.id,
-            target_type='xform', request=request)

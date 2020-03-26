@@ -116,8 +116,8 @@ class MQTTBackend(BaseBackend):
             'verb': instance.verb
         }
         return (
-            '/{topic_base}/{target_name}/{target_id}/{verb}/messages/publish'
-                .format(**kwargs))
+            '/{topic_base}/{target_name}/{target_id}/'
+            '{verb}/messages/publish'.format(**kwargs))
 
     def send(self, instance):
         """
