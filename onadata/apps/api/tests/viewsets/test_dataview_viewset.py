@@ -105,7 +105,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self._create_dataview()
 
         data = {
-            "name": "tutorial",
+            "name": "data",
             "title": "tutorial",
             "default_language": "default",
             "id_string": "tutorial",

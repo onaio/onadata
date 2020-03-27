@@ -43,7 +43,8 @@ from onadata.libs.utils.common_tags import (DURATION, ID, KNOWN_MEDIA_TYPES,
                                             NOTES, SUBMISSION_TIME,
                                             SUBMITTED_BY, TAGS, TOTAL_MEDIA,
                                             UUID, VERSION, REVIEW_STATUS,
-                                            REVIEW_COMMENT)
+                                            REVIEW_COMMENT,
+                                            MULTIPLE_SELECT_TYPE)
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.mongo import _encode_for_mongo
 
@@ -163,7 +164,8 @@ def check_version_set(survey):
 
 
 def _expand_select_all_that_apply(d, key, e):
-    if e and e.bind.get(u"type") == u"select":
+    if e and e.bind.get(u"type") == u"string"\
+            and e.type == MULTIPLE_SELECT_TYPE:
         options_selected = d[key].split()
         for child in e.children:
             new_key = child.get_abbreviated_xpath()
@@ -437,7 +439,8 @@ class XFormMixin(object):
 
         # replace the single question column with a column for each
         # item in a select all that apply question.
-        if survey_element.bind.get(u'type') == u'select':
+        if survey_element.bind.get(u'type') == u'string' \
+                and survey_element.type == MULTIPLE_SELECT_TYPE:
             result.pop()
             for child in survey_element.children:
                 result.append('/'.join([path, child.name]))
@@ -475,7 +478,6 @@ class XFormMixin(object):
         """
         Return a list of headers for a csv file.
         """
-
         def shorten(xpath):
             xpath_list = xpath.split('/')
             return '/'.join(xpath_list[2:])
@@ -863,7 +865,10 @@ class XForm(XFormMixin, BaseModel):
                     not re.search(r"^[\w-]+$", self.id_string):
                 raise XLSFormError(
                     _(u'In strict mode, the XForm ID must be a '
-                      'valid slug and contain no spaces.'))
+                      'valid slug and contain no spaces. Please ensure'
+                      ' that you have set an id_string in the settings sheet '
+                      'or have modified the filename to not contain'
+                      ' any spaces.'))
 
         if not self.sms_id_string and (update_fields is None or
                                        'id_string' in update_fields):

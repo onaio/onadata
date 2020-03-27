@@ -13,13 +13,20 @@ class TestInputs(TestBase):
     """
 
     def test_uniqueness_of_group_names_enforced(self):
+        """
+        Test an error is raised when a form containing a group
+        with the name "data" is present within the form.
+
+        This error is raised due to the fact that the root node
+        is named "data"
+        """
         pre_count = XForm.objects.count()
         self._create_user_and_login()
         self.assertRaisesMessage(
             PyXFormError,
-            "There are two sections with the name group_names_must_be_unique.",
+            "There are two sections with the name data.",
             self._publish_xls_file,
-            'fixtures/group_names_must_be_unique.xls')
+            'fixtures/group_names_must_be_unique.xlsx')
         self.assertEqual(XForm.objects.count(), pre_count)
 
     def test_mch(self):

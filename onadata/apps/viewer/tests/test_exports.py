@@ -824,7 +824,7 @@ class TestExports(TestBase):
         storage = get_storage_class()()
         with storage.open(filepath) as f:
             workbook = open_workbook(file_contents=f.read())
-        transportation_sheet = workbook.sheet_by_name("transportation")
+        transportation_sheet = workbook.sheet_by_name("data")
         self.assertTrue(transportation_sheet.nrows > 1)
         headers = transportation_sheet.row_values(0)
         column1 = transportation_sheet.row_values(1)
