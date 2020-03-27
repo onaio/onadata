@@ -264,7 +264,7 @@ SWAGGER_SETTINGS = {
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True
 CORS_ORIGIN_WHITELIST = (
-    'dev.ona.io',
+    'http://dev.ona.io',
 )
 CORS_URLS_ALLOW_ALL_REGEX = (
     r'^/api/v1/osm/.*$',

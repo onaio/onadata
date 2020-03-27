@@ -1026,7 +1026,8 @@ class TestExportBuilder(TestBase):
         rows = [row for row in children_sheet.rows]
         row = [a.value for a in rows[1]]
         attachment_id = xdata[0]['_attachments'][0]['id']
-        attachment_url = 'http://example.com/api/v1/files/{}?filename=bob/attachments/{}_{}/1300221157303.jpg'.format(attachment_id, self.xform.id, self.xform.id_string)  # noqa
+        attachment_filename = xdata[0]['_attachments'][0]['filename']
+        attachment_url = 'http://example.com/api/v1/files/{}?filename={}'.format(attachment_id, attachment_filename)  # noqa
         self.assertIn(attachment_url, row)
         temp_xls_file.close()
 
