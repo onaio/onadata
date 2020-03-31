@@ -215,6 +215,14 @@ class TestFormSubmission(TestBase):
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 202)
 
+        # Ensure one can resubmit the data if submissions is soft-deleted
+        instance = Instance.objects.last()
+        instance.set_deleted()
+        instance.save()
+
+        self._make_submission(xml_submission_file_path)
+        self.assertEqual(self.response.status_code, 201)
+
     def test_unicode_submission(self):
         """Test xml submissions that contain unicode characters
         """

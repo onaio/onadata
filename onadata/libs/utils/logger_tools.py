@@ -315,7 +315,8 @@ def create_instance(username,
 
     new_uuid = get_uuid_from_xml(xml)
     filtered_instances = get_filtered_instances(
-        Q(checksum=checksum) | Q(uuid=new_uuid), xform_id=xform.pk)
+        Q(checksum=checksum) | Q(uuid=new_uuid), xform_id=xform.pk,
+        deleted_at__isnull=True)
     existing_instance = get_first_record(filtered_instances.only('id'))
     if existing_instance and \
             (new_uuid or existing_instance.xform.has_start_time):
