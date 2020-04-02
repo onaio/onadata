@@ -181,7 +181,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                 auth = DigestAuth('alice', 'bobbob')
                 request.META.update(auth(request.META, response))
                 response = self.view(request)
-                self.assertEqual(response.status_code, 403)
+                self.assertEqual(response.status_code, 404)
 
     def test_post_submission_authenticated_json(self):
         """
