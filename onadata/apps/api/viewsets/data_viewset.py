@@ -288,18 +288,24 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                     raise ParseError(_(u"Invalid data ids were provided."))
 
                 initial_count = self.object.submission_count()
-                Instance.objects.filter(
+                queryset = Instance.objects.filter(
                     id__in=instance_ids,
                     xform=self.object,
                     # do not update this timestamp when the record have
                     # already been deleted.
                     deleted_at__isnull=True
-                ).update(
-                    deleted_at=timezone.now(), deleted_by=request.user)
+                )
+                # loop through queryset
+                # then call delete_instance that calls .save()
+                # to allow emitting post_save signal
+                for instance in queryset:
+                    delete_instance(instance, request.user)
                 # updates the num_of_submissions for the form.
                 after_count = self.object.submission_count(force_update=True)
                 number_of_records_deleted = initial_count - after_count
-
+                for id in instance_ids:
+                    instance = Instance.objects.get(id=id)
+                    delete_instance(instance, request.user)
                 return Response(
                     data={
                         "message":
