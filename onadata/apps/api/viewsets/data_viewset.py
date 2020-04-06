@@ -57,6 +57,7 @@ from onadata.libs.utils.common_tools import json_stream
 from onadata.apps.api.permissions import ConnectViewsetPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.instance import FormInactiveError
+from onadata.libs.utils.model_tools import queryset_iterator
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 BaseViewset = get_baseviewset_class()
@@ -298,14 +299,12 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 # loop through queryset
                 # then call delete_instance that calls .save()
                 # to allow emitting post_save signal
-                for instance in queryset:
+                for instance in queryset_iterator(queryset):
                     delete_instance(instance, request.user)
                 # updates the num_of_submissions for the form.
                 after_count = self.object.submission_count(force_update=True)
                 number_of_records_deleted = initial_count - after_count
-                for id in instance_ids:
-                    instance = Instance.objects.get(id=id)
-                    delete_instance(instance, request.user)
+
                 return Response(
                     data={
                         "message":
