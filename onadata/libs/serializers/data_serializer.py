@@ -318,6 +318,23 @@ class RapidProSubmissionSerializer(BaseRapidProSubmissionSerializer):
         return instance
 
 
+class RapidProJSONSubmissionSerializer(BaseRapidProSubmissionSerializer):
+    """
+    Rapidpro SubmissionSerializer - handles RapidPro JSON webhook posts
+    """
+    def create(self, validated_data):
+        """
+        Returns object instances based on validated data.
+        """
+        request, username = get_request_and_username(self.context)
+        post_data = request.data.get('results')
+        instance_data_dict = {
+            k: post_data[k].get('value') for k in post_data.keys()}
+        instance = create_submission(
+            request, username, instance_data_dict, validated_data['id_string'])
+        return instance
+
+
 class FLOIPListSerializer(serializers.ListSerializer):
     """
     Custom ListSerializer for a FLOIP submission.
