@@ -1028,7 +1028,8 @@ class ExportBuilder(object):
         @param var_names - list of existing var_names
         @return valid varName and list of var_names with new var name appended
         """
-        var_name = title.replace('/', '.').replace('-', '_').replace(':', '_')
+        var_name = title.replace('/', '.').replace('-', '_'). \
+            replace(':', '_').replace('{', '').replace('}', '')
         var_name = self._check_sav_column(var_name, var_names)
         var_name = '@' + var_name if var_name.startswith('_') else var_name
         var_names.append(var_name)
