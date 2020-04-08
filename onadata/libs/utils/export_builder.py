@@ -8,6 +8,7 @@ import csv
 import logging
 import sys
 import uuid
+import re
 from builtins import str as text
 from datetime import datetime, date
 from zipfile import ZipFile, ZIP_DEFLATED
@@ -721,6 +722,21 @@ class ExportBuilder(object):
         if SUBMISSION_TIME in row:
             row[SUBMISSION_TIME] = ExportBuilder.convert_type(
                 row[SUBMISSION_TIME], 'dateTime')
+
+        # Map dynamic values
+        for key, value in row.items():
+            if isinstance(value, str):
+                dynamic_val_regex = '\$\{\w+\}'  # noqa
+                # Find substrings that match ${`any_text`}
+                result = re.findall(dynamic_val_regex, value)
+                if result:
+                    for val in result:
+                        val_key = val.replace('${', '').replace('}', '')
+                        # Try retrieving value of ${`any_text`} from the
+                        # row data and replace the value
+                        if row.get(val_key):
+                            value = value.replace(val, row.get(val_key))
+                    row[key] = value
 
         return row
 

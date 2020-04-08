@@ -530,24 +530,26 @@ class TestExportBuilder(TestBase):
     def test_zipped_sav_export_dynamic_select_multiple(self):
         md = """
         | survey |
-        |        | type                  | name        | label                      | calculation                       |
-        |        | select_one sex        | sex         | Are you male or female?    |                                   |
-        |        | calculate             | text        |                            | if((${sex}=’male’), 'his', ‘her’) |
-        |        | text                  | name        | What's ${text} name?       |                                   |
-        |        | select_multiple brand | brand_known | Brands known in category   |                                   |
+        |        | type                  | name           | label                         | calculation                       |
+        |        | select_one sex        | sex            | Are they male or female?      |                                   |
+        |        | calculate             | text           |                               | if((${sex}=’male’), 'his', ‘her’) |
+        |        | text                  | favorite_brand | What's their favorite brand ? |                                   |
+        |        | text                  | name           | What's ${text} name?          |                                   |
+        |        | select_multiple brand | brand_known    | Brands known in category      |                                   |
 
         | choices |
-        |         | list name | name   | label  |
-        |         | sex       | male   | Male   |
-        |         | sex       | female | Female |
-        |         | brand     | ${text}| ${text}|
-        |         | brand     | a      | a      |
-        |         | brand     | b      | b      |
+        |         | list name | name             | label             |
+        |         | sex       | male             | Male              |
+        |         | sex       | female           | Female            |
+        |         | brand     | ${text}          | ${text}           |
+        |         | brand     | ${favorite_brand}| ${favorite_brand} |
+        |         | brand     | a                | a                 |
+        |         | brand     | b                | b                 |
         """  # noqa
         survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
         data = [
-            {"sex": "male", "text": "his",
-             "name": "Davis", "brand_known": "${text} a"}]
+            {"sex": "male", "text": "his", "favorite_brand": "Generic",
+             "name": "Davis", "brand_known": "${text} ${favorite_brand} a"}]
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
@@ -571,16 +573,20 @@ class TestExportBuilder(TestBase):
             self.assertEqual(rows[1][0], b'male')
             self.assertEqual(rows[0][1], b'text')
             self.assertEqual(rows[1][1], b'his')
-            self.assertEqual(rows[0][2], b'name')
-            self.assertEqual(rows[1][2], b'Davis')
-            self.assertEqual(rows[0][3], b'brand_known')
-            self.assertEqual(rows[1][3], b'${text} a')
-            self.assertEqual(rows[0][4], b'brand_known.$text')
-            self.assertEqual(rows[1][4], 1.0)
-            self.assertEqual(rows[0][5], b'brand_known.a')
+            self.assertEqual(rows[0][2], b'favorite_brand')
+            self.assertEqual(rows[1][2], b'Generic')
+            self.assertEqual(rows[0][3], b'name')
+            self.assertEqual(rows[1][3], b'Davis')
+            self.assertEqual(rows[0][4], b'brand_known')
+            self.assertEqual(rows[1][4], b'his Generic a')
+            self.assertEqual(rows[0][5], b'brand_known.$text')
             self.assertEqual(rows[1][5], 1.0)
-            self.assertEqual(rows[0][6], b'brand_known.b')
-            self.assertEqual(rows[1][6], 0.0)
+            self.assertEqual(rows[0][6], b'brand_known.$favorite_brand')
+            self.assertEqual(rows[1][6], 1.0)
+            self.assertEqual(rows[0][7], b'brand_known.a')
+            self.assertEqual(rows[1][7], 1.0)
+            self.assertEqual(rows[0][8], b'brand_known.b')
+            self.assertEqual(rows[1][8], 0.0)
 
         shutil.rmtree(temp_dir)
 
