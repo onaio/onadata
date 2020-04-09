@@ -5,6 +5,7 @@ OrganizationProfile module.
 from django.contrib.auth.models import Permission, User
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
+from django.core.cache import cache
 from django.db.models.signals import post_delete, post_save
 from django.utils.encoding import python_2_unicode_compatible
 
@@ -13,7 +14,8 @@ from guardian.shortcuts import assign_perm, get_perms_for_model
 
 from onadata.apps.api.models.team import Team
 from onadata.apps.main.models import UserProfile
-from onadata.libs.utils.cache_tools import IS_ORG, safe_delete
+from onadata.libs.utils.cache_tools import (
+    IS_ORG, ORG_AVATAR_CACHE, safe_delete)
 
 
 # pylint: disable=invalid-name,unused-argument
@@ -112,6 +114,11 @@ class OrganizationProfile(UserProfile):
         return u'%s[%s]' % (self.name, self.user.username)
 
     def save(self, *args, **kwargs):  # pylint: disable=arguments-differ
+        # set avatar url to cache
+        # key should be <username>-org-avatar format
+        if 'avatar-url' in self.metadata:
+            cache.set('{}{}'.format(
+                self.user, ORG_AVATAR_CACHE), self.metadata['avatar-url'])
         super(OrganizationProfile, self).save(*args, **kwargs)
 
     def remove_user_from_organization(self, user):

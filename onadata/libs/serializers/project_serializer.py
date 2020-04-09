@@ -25,7 +25,7 @@ from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE, PROJ_FORMS_CACHE, PROJ_NUM_DATASET_CACHE,
     PROJ_PERM_CACHE, PROJ_SUB_DATE_CACHE, PROJ_TEAM_USERS_CACHE,
-    PROJECT_LINKED_DATAVIEWS, PROJ_OWNER_CACHE, safe_delete)
+    PROJECT_LINKED_DATAVIEWS, PROJ_OWNER_CACHE, ORG_AVATAR_CACHE, safe_delete)
 from onadata.libs.utils.decorators import check_obj
 
 
@@ -139,6 +139,11 @@ def get_users(project, context, all_perms=True):
             if all_perms or user in [
                     context['request'].user, project.organization
             ]:
+                get_avatar_url = cache.get('{}{}'.format(
+                    user.username, ORG_AVATAR_CACHE))
+                if get_avatar_url:
+                    user.profile.metadata['avatar-url'] = get_avatar_url
+    
                 data[perm.user_id] = {
                     'permissions': [],
                     'is_org': is_organization(user.profile),
