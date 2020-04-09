@@ -117,8 +117,7 @@ class OrganizationProfile(UserProfile):
         # set avatar url to cache
         # key should be <username>-org-avatar format
         if 'avatar-url' in self.metadata:
-            cache.set('{}{}'.format(
-                self.user, ORG_AVATAR_CACHE), self.metadata['avatar-url'])
+            cache.set(f'{self.user.username}{ORG_AVATAR_CACHE}', self.metadata['avatar-url'])
         super(OrganizationProfile, self).save(*args, **kwargs)
 
     def remove_user_from_organization(self, user):

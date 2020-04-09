@@ -139,11 +139,11 @@ def get_users(project, context, all_perms=True):
             if all_perms or user in [
                     context['request'].user, project.organization
             ]:
-                get_avatar_url = cache.get('{}{}'.format(
-                    user.username, ORG_AVATAR_CACHE))
+                get_avatar_url = cache.get(
+                    f'{user.username}{ORG_AVATAR_CACHE}')
                 if get_avatar_url:
                     user.profile.metadata['avatar-url'] = get_avatar_url
-    
+
                 data[perm.user_id] = {
                     'permissions': [],
                     'is_org': is_organization(user.profile),

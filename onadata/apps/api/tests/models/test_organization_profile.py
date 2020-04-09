@@ -69,7 +69,7 @@ class TestOrganizationProfile(TestBase):
         profile.save()
 
         self.assertFalse(profile.user.is_active)
-    
+
     def test_cached_org_avatar(self):
         """
         Test that avatar url is set to cache
@@ -78,13 +78,12 @@ class TestOrganizationProfile(TestBase):
         profile = tools.create_organization_object("modilabs", self.user)
 
         # clear cache
-        cache.delete('{}{}'.format(profile.user, ORG_AVATAR_CACHE))
+        cache.delete(f'{profile.user}{ORG_AVATAR_CACHE}')
 
-        self.assertIsNone(cache.get('{}{}'.format(profile.user, ORG_AVATAR_CACHE)))
+        self.assertIsNone(cache.get(f'{profile.user}{ORG_AVATAR_CACHE}'))
 
         avatar_url = 'http://test.images.io/image/ffdc3526ba647278c7d4f3/test.png'
         profile.metadata['avatar-url'] = avatar_url
         profile.save()
         # check avatar url is saved in cache
-        self.assertEqual(cache.get('{}{}'.format(profile.user, ORG_AVATAR_CACHE)), avatar_url)
-
+        self.assertEqual(cache.get(f'{profile.user}{ORG_AVATAR_CACHE}'), avatar_url)
