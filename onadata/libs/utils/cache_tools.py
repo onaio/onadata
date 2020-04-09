@@ -37,6 +37,7 @@ CHANGE_PASSWORD_ATTEMPTS = 'change_password_attempts-'
 # cache avatar link
 ORG_AVATAR_CACHE = "-org-avatar"
 
+
 def safe_delete(key):
     """Safely deletes a given key from the cache."""
     _ = cache.get(key) and cache.delete(key)

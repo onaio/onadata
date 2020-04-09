@@ -82,8 +82,10 @@ class TestOrganizationProfile(TestBase):
 
         self.assertIsNone(cache.get(f'{profile.user}{ORG_AVATAR_CACHE}'))
 
-        avatar_url = 'http://test.images.io/image/ffdc3526ba647278c7d4f3/test.png'
+        avatar_url =\
+            'http://test.images.io/image/ffdc3526ba647278c7d4f3/test.png'
         profile.metadata['avatar-url'] = avatar_url
         profile.save()
         # check avatar url is saved in cache
-        self.assertEqual(cache.get(f'{profile.user}{ORG_AVATAR_CACHE}'), avatar_url)
+        self.assertEqual(cache.get(
+            f'{profile.user}{ORG_AVATAR_CACHE}'), avatar_url)
