@@ -25,7 +25,8 @@ from onadata.libs.mixins.openrosa_headers_mixin import OpenRosaHeadersMixin
 from onadata.libs.renderers.renderers import FLOIPRenderer, TemplateXMLRenderer
 from onadata.libs.serializers.data_serializer import (
     FLOIPSubmissionSerializer, JSONSubmissionSerializer,
-    RapidProSubmissionSerializer, SubmissionSerializer)
+    RapidProSubmissionSerializer, SubmissionSerializer,
+    RapidProJSONSubmissionSerializer)
 from onadata.libs.utils.logger_tools import OpenRosaResponseBadRequest
 
 BaseViewset = get_baseviewset_class()  # pylint: disable=C0103
@@ -83,9 +84,12 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
         content_type = self.request.content_type.lower()
 
         if 'application/json' in content_type:
+            if 'RapidProMailroom' in self.request.META.get(
+                    'HTTP_USER_AGENT', ''):
+                return RapidProJSONSubmissionSerializer
+
             self.request.accepted_renderer = JSONRenderer()
             self.request.accepted_media_type = 'application/json'
-
             return JSONSubmissionSerializer
 
         if 'application/x-www-form-urlencoded' in content_type:

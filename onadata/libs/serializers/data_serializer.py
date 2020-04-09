@@ -137,6 +137,31 @@ class SubmissionSuccessMixin(object):  # pylint: disable=R0903
         }
 
 
+class BaseRapidProSubmissionSerializer(SubmissionSuccessMixin,
+                                       serializers.Serializer):
+    """
+    Base Rapidpro SubmissionSerializer - Implements the basic functionalities
+    of a Rapidpro webhook serializer
+    """
+    def validate(self, attrs):
+        """
+        Validate that the XForm ID is passed in view kwargs
+        """
+        view = self.context['view']
+
+        if 'xform_pk' in view.kwargs:
+            xform_pk = view.kwargs.get('xform_pk')
+            xform = get_object_or_404(XForm, pk=xform_pk)
+            attrs.update({'id_string': xform.id_string})
+        else:
+            raise serializers.ValidationError({
+                'xform_pk':
+                _(u'Incorrect url format. Use format '
+                  u'https://api.ona.io/username/formid/submission')})
+
+        return super(BaseRapidProSubmissionSerializer, self).validate(attrs)
+
+
 # pylint: disable=W0223
 class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
     """
@@ -277,30 +302,10 @@ class JSONSubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
         return instance
 
 
-class RapidProSubmissionSerializer(SubmissionSuccessMixin,
-                                   serializers.Serializer):
+class RapidProSubmissionSerializer(BaseRapidProSubmissionSerializer):
     """
     Rapidpro SubmissionSerializer - handles Rapidpro webhook post.
     """
-    def validate(self, attrs):
-        """
-        Custom xform id validator in views kwargs.
-        """
-        view = self.context['view']
-
-        if 'xform_pk' in view.kwargs:
-            xform_pk = view.kwargs.get('xform_pk')
-            xform = get_object_or_404(XForm, pk=xform_pk)
-            attrs.update({'id_string': xform.id_string})
-        else:
-            raise serializers.ValidationError({
-                'xform_pk':
-                _(u'Incorrect url format, Use format '
-                  u'https://api.ona.io/username/formid/submission')
-            })
-
-        return super(RapidProSubmissionSerializer, self).validate(attrs)
-
     def create(self, validated_data):
         """
         Returns object instances based on the validated data.
@@ -310,6 +315,23 @@ class RapidProSubmissionSerializer(SubmissionSuccessMixin,
         instance = create_submission(request, username, rapidpro_dict,
                                      validated_data['id_string'])
 
+        return instance
+
+
+class RapidProJSONSubmissionSerializer(BaseRapidProSubmissionSerializer):
+    """
+    Rapidpro SubmissionSerializer - handles RapidPro JSON webhook posts
+    """
+    def create(self, validated_data):
+        """
+        Returns object instances based on validated data.
+        """
+        request, username = get_request_and_username(self.context)
+        post_data = request.data.get('results')
+        instance_data_dict = {
+            k: post_data[k].get('value') for k in post_data.keys()}
+        instance = create_submission(
+            request, username, instance_data_dict, validated_data['id_string'])
         return instance
 
 
