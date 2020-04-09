@@ -8,6 +8,7 @@ import csv
 import logging
 import sys
 import uuid
+import re
 from builtins import str as text
 from datetime import datetime, date
 from zipfile import ZipFile, ZIP_DEFLATED
@@ -722,6 +723,21 @@ class ExportBuilder(object):
             row[SUBMISSION_TIME] = ExportBuilder.convert_type(
                 row[SUBMISSION_TIME], 'dateTime')
 
+        # Map dynamic values
+        for key, value in row.items():
+            if isinstance(value, str):
+                dynamic_val_regex = '\$\{\w+\}'  # noqa
+                # Find substrings that match ${`any_text`}
+                result = re.findall(dynamic_val_regex, value)
+                if result:
+                    for val in result:
+                        val_key = val.replace('${', '').replace('}', '')
+                        # Try retrieving value of ${`any_text`} from the
+                        # row data and replace the value
+                        if row.get(val_key):
+                            value = value.replace(val, row.get(val_key))
+                    row[key] = value
+
         return row
 
     def to_zipped_csv(self, path, data, *args, **kwargs):
@@ -1028,7 +1044,8 @@ class ExportBuilder(object):
         @param var_names - list of existing var_names
         @return valid varName and list of var_names with new var name appended
         """
-        var_name = title.replace('/', '.').replace('-', '_').replace(':', '_')
+        var_name = title.replace('/', '.').replace('-', '_'). \
+            replace(':', '_').replace('{', '').replace('}', '')
         var_name = self._check_sav_column(var_name, var_names)
         var_name = '@' + var_name if var_name.startswith('_') else var_name
         var_names.append(var_name)

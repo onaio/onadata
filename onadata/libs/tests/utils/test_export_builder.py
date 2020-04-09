@@ -527,6 +527,69 @@ class TestExportBuilder(TestBase):
 
         shutil.rmtree(temp_dir)
 
+    def test_zipped_sav_export_dynamic_select_multiple(self):
+        md = """
+        | survey |
+        |        | type                  | name           | label                         | calculation                       |
+        |        | select_one sex        | sex            | Are they male or female?      |                                   |
+        |        | calculate             | text           |                               | if((${sex}=’male’), 'his', ‘her’) |
+        |        | text                  | favorite_brand | What's their favorite brand ? |                                   |
+        |        | text                  | name           | What's ${text} name?          |                                   |
+        |        | select_multiple brand | brand_known    | Brands known in category      |                                   |
+
+        | choices |
+        |         | list name | name             | label             |
+        |         | sex       | male             | Male              |
+        |         | sex       | female           | Female            |
+        |         | brand     | ${text}          | ${text}           |
+        |         | brand     | ${favorite_brand}| ${favorite_brand} |
+        |         | brand     | a                | a                 |
+        |         | brand     | b                | b                 |
+        """  # noqa
+        survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
+        data = [
+            {"sex": "male", "text": "his", "favorite_brand": "Generic",
+             "name": "Davis", "brand_known": "${text} ${favorite_brand} a"}]
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        export_builder.to_zipped_sav(temp_zip_file.name, data)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "exp.sav")))
+
+        with SavReader(os.path.join(temp_dir, "exp.sav"),
+                       returnHeader=True) as reader:
+            rows = [r for r in reader]
+            self.assertTrue(len(rows) > 1)
+            self.assertEqual(rows[0][0], b'sex')
+            self.assertEqual(rows[1][0], b'male')
+            self.assertEqual(rows[0][1], b'text')
+            self.assertEqual(rows[1][1], b'his')
+            self.assertEqual(rows[0][2], b'favorite_brand')
+            self.assertEqual(rows[1][2], b'Generic')
+            self.assertEqual(rows[0][3], b'name')
+            self.assertEqual(rows[1][3], b'Davis')
+            self.assertEqual(rows[0][4], b'brand_known')
+            self.assertEqual(rows[1][4], b'his Generic a')
+            self.assertEqual(rows[0][5], b'brand_known.$text')
+            self.assertEqual(rows[1][5], 1.0)
+            self.assertEqual(rows[0][6], b'brand_known.$favorite_brand')
+            self.assertEqual(rows[1][6], 1.0)
+            self.assertEqual(rows[0][7], b'brand_known.a')
+            self.assertEqual(rows[1][7], 1.0)
+            self.assertEqual(rows[0][8], b'brand_known.b')
+            self.assertEqual(rows[1][8], 0.0)
+
+        shutil.rmtree(temp_dir)
+
     def test_zipped_sav_export_with_zero_padded_select_one_field(self):
         md = """
         | survey |
@@ -2889,7 +2952,7 @@ class TestExportBuilder(TestBase):
         | choices |
         |         | list_name | name | label              | cf |
         |         | banks     | 1    | KCB                |    |
-        |         | banks     | 2    | Equity             |    | 
+        |         | banks     | 2    | Equity             |    |
         |         | banks     | 3    | Co-operative       |    |
         |         | banks     | 4    | CBA                |    |
         |         | banks     | 5    | Stanbic            |    |
@@ -2906,7 +2969,7 @@ class TestExportBuilder(TestBase):
         |         | primary   | 7    | Barclays           | 7  |
         |         | primary   | 8    | Standard Chattered | 8  |
         |         | primary   | 9    | Other bank         | 9  |
-        
+
         """
         survey = self.md_to_pyxform_survey(md_xform, {'name': 'data'})
         export_builder = ExportBuilder()
