@@ -34,6 +34,8 @@ LOGIN_ATTEMPTS = "login_attempts-"
 LOCKOUT_CHANGE_PASSWORD_USER = 'lockout_change_password_user-'
 CHANGE_PASSWORD_ATTEMPTS = 'change_password_attempts-'
 
+# cache avatar link
+ORG_AVATAR_CACHE = "-org-avatar"
 
 def safe_delete(key):
     """Safely deletes a given key from the cache."""
