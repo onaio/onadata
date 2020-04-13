@@ -3,6 +3,26 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.3.0(2020-04-07)*
+-------------------
+
+- Set deletied_by field when deleting XForms asynchronously
+  `PR #1798 <https://github.com/onaio/onadata/pull/1798>`_
+  [@DavisRayM]
+- Add and utilize consistent enketo URLS
+  `PR #1775 <https://github.com/onaio/onadata/pull/1775>`_
+  `PR #1799 <https://github.com/onaio/onadata/pull/1775>`_
+  [@DavisRayM]
+- Invalidate sessions on password change
+  `PR #1783 <https://github.com/onaio/onadata/pull/1783>`_
+  [@DavisRayM]
+- Update dependencies
+  `PR #1788 <https://github.com/onaio/onadata/pull/1788>`_
+  [@DavisRayM]
+- Update PyXForm to v1.1.0
+  `PR #1796 <https://github.com/onaio/onadata/pull/1796>`_
+  [@DavisRayM]
+
 v2.2.1 (2020-02-20)*
 -------------------
 
