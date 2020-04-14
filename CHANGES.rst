@@ -3,6 +3,19 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.3.1(2020-04-14)
+------------------
+
+- Use master database when fetching external export metadata information
+  `PR #1760 <https://github.com/onaio/onadata/pull/1760>`_
+  [@WinnyTroy]
+- Add support for latest RapidPro webhook posts
+  `PR #1807 <https://github.com/onaio/onadata/pull/1807>`_
+  [@DavisRayM]
+- Handle dynamic choice names while generating SAV exports
+  `PR #1806 <https://github.com/onaio/onadata/pull/1806>`_
+  [@DavisRayM]
+
 v2.3.0(2020-04-07)*
 -------------------
 
