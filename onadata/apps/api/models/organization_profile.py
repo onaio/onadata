@@ -14,8 +14,10 @@ from guardian.shortcuts import assign_perm, get_perms_for_model
 
 from onadata.apps.api.models.team import Team
 from onadata.apps.main.models import UserProfile
+from onadata.apps.logger.models import Project
+from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.cache_tools import (
-    IS_ORG, ORG_AVATAR_CACHE, safe_delete)
+    IS_ORG, ORG_AVATAR_CACHE, PROJ_PERM_CACHE, safe_delete)
 
 
 # pylint: disable=invalid-name,unused-argument
@@ -26,6 +28,14 @@ def org_profile_post_delete_callback(sender, instance, **kwargs):
     # delete the org_user too
     instance.user.delete()
     safe_delete('{}{}'.format(IS_ORG, instance.pk))
+
+
+def clear_proj_users_cache(sender, instance, created, **kwargs):
+    if not created:
+        projects = Project.objects.filter(organization=instance.id)
+        for project in queryset_iterator(projects):
+            # delete project users list from cache
+            safe_delete(f'{PROJ_PERM_CACHE}{project.pk}')
 
 
 def create_owner_team_and_assign_permissions(org):
@@ -143,8 +153,13 @@ class OrganizationProfile(UserProfile):
 
 
 post_save.connect(
+    clear_proj_users_cache,
+    sender=OrganizationProfile,
+    dispatch_uid='clear_proj_users_cache')
+
+post_save.connect(
     _post_save_create_owner_team, sender=OrganizationProfile,
-    dispatch_uid='create_owner_team_and_permissions')
+    dispatch_uid='_post_save_create_owner_team')
 
 post_delete.connect(org_profile_post_delete_callback,
                     sender=OrganizationProfile,
