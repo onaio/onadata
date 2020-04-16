@@ -113,6 +113,36 @@ class DataInstanceSerializer(serializers.ModelSerializer):
 
         return ret
 
+class OpenDataInstanceSerializer(serializers.ModelSerializer):
+    """
+    OpenDataInstanceSerializer class - excludes specific metadata fields.
+    """
+    json = JsonField()
+
+    class Meta:
+        model = Instance
+        fields = ('json', )
+
+    def to_representation(self, instance):
+        import ipdb; ipdb.set_trace()
+        remove_fields=[
+                    '_edited',
+                    '_xform_id',
+                    '_status',
+                    '_attachments',
+                    '_xform_id_string',
+                    '_bamboo_dataset_id',
+                    '_geolocation']
+        ret = super(OpenDataInstanceSerializer, self).to_representation(instance)
+        if 'json' in ret:
+            ret = ret['json']
+        if remove_fields:
+            # for multiple fields in a list
+            for field_name in remove_fields:
+                ret.pop(field_name)
+
+        return ret
+
 
 class SubmissionSuccessMixin(object):  # pylint: disable=R0903
     """

@@ -19,7 +19,7 @@ from onadata.libs.data import parse_int
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.pagination import StandardPageNumberPagination
-from onadata.libs.serializers.data_serializer import DataInstanceSerializer
+from onadata.libs.serializers.data_serializer import OpenDataInstanceSerializer
 from onadata.libs.serializers.open_data_serializer import OpenDataSerializer
 from onadata.libs.utils.common_tools import json_stream
 from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
@@ -142,7 +142,7 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
             csv_df_builder = CSVDataFrameBuilder(
                 xform.user.username, xform.id_string, include_images=False)
             data = csv_df_builder._format_for_dataframe(
-                DataInstanceSerializer(instances, many=True).data)
+                OpenDataInstanceSerializer(instances, many=True).data)
 
             return self._get_streaming_response(data)
 
