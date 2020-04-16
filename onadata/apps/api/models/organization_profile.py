@@ -31,6 +31,9 @@ def org_profile_post_delete_callback(sender, instance, **kwargs):
 
 
 def clear_proj_users_cache(sender, instance, created, **kwargs):
+    """
+    Signal handler to clear project users from cache.
+    """
     if not created:
         projects = Project.objects.filter(organization=instance.id)
         for project in queryset_iterator(projects):
