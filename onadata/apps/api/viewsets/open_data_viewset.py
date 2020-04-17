@@ -176,6 +176,9 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
         if isinstance(self.object.content_object, XForm):
             xform = self.object.content_object
             headers = xform.get_headers() + ['_id']
+            metadata_field = ['_review_status', '_review_comment']
+            for field in metadata_field:
+                headers.remove(field)
             self.xform_headers = replace_special_characters_with_underscores(
                 headers)
 
