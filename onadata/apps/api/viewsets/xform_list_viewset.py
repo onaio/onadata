@@ -84,9 +84,8 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
             profile = get_object_or_404(
                 UserProfile, user__username=username)
         elif form_pk:
-            queryset = queryset.filter(pk=form_pk)
-            form_owner = queryset.first().user
-            profile = form_owner.profile
+            form = get_object_or_404(XForm, pk=form_pk)
+            profile = form.user.profile
 
         if profile:
             if profile.require_auth and self.request.user.is_anonymous:
