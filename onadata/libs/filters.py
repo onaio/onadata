@@ -3,6 +3,7 @@ from uuid import UUID
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.cache import cache
 from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
@@ -15,6 +16,7 @@ from onadata.apps.api.models import OrganizationProfile, Team
 from onadata.apps.logger.models import Instance, Project, XForm
 from onadata.libs.utils.numeric import int_or_parse_error
 from onadata.libs.utils.common_tags import MEDIA_FILE_TYPES
+from onadata.libs.utils.cache_tools import OWNER_PROJECT_IDS
 
 
 class AnonDjangoObjectPermissionFilter(ObjectPermissionsFilter):
@@ -195,8 +197,13 @@ class ProjectOwnerFilter(filters.BaseFilterBackend):
                 self.owner_prefix + '__username__iexact': owner
             }
 
-            return queryset.filter(**kwargs) | Project.objects.filter(
+            _queryset = queryset.filter(**kwargs) | Project.objects.filter(
                 shared=True, deleted_at__isnull=True, **kwargs)
+
+            owner_proj_ids = [project.id for project in _queryset]
+            cache.set(f'{owner}-{OWNER_PROJECT_IDS}', owner_proj_ids)
+
+            return _queryset
 
         return queryset
 

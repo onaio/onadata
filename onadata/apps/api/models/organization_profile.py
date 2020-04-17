@@ -14,10 +14,8 @@ from guardian.shortcuts import assign_perm, get_perms_for_model
 
 from onadata.apps.api.models.team import Team
 from onadata.apps.main.models import UserProfile
-from onadata.apps.logger.models import Project
-from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.cache_tools import (
-    IS_ORG, ORG_AVATAR_CACHE, PROJ_PERM_CACHE, safe_delete)
+    IS_ORG, ORG_AVATAR_CACHE, PROJ_PERM_CACHE, OWNER_PROJECT_IDS, safe_delete)
 
 
 # pylint: disable=invalid-name,unused-argument
@@ -35,10 +33,12 @@ def clear_proj_users_cache(sender, instance, created, **kwargs):
     Signal handler to clear project users from cache.
     """
     if not created:
-        projects = Project.objects.filter(organization=instance.id)
-        for project in queryset_iterator(projects):
-            # delete project users list from cache
-            safe_delete(f'{PROJ_PERM_CACHE}{project.pk}')
+        project_ids = cache.get(
+            f'{instance.user.username}-{OWNER_PROJECT_IDS}')
+        if project_ids:
+            for project_id in project_ids:
+                # delete project users list from cache
+                safe_delete(f'{PROJ_PERM_CACHE}{project_id}')
 
 
 def create_owner_team_and_assign_permissions(org):
