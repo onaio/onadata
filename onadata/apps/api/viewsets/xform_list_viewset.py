@@ -73,7 +73,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
 
     def filter_queryset(self, queryset):
         username = self.kwargs.get('username')
-        form_pk = self.kwargs.get('form_pk')
+        form_pk = self.kwargs.get('xform_pk')
         if (not username and not form_pk) and \
                 self.request.user.is_anonymous:
             # raises a permission denied exception, forces authentication
@@ -84,8 +84,9 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
             profile = get_object_or_404(
                 UserProfile, user__username=username)
         elif form_pk:
-            form = get_object_or_404(XForm, pk=form_pk)
-            profile = form.user.profile
+            queryset = queryset.filter(pk=form_pk)
+            if queryset.first():
+                profile = queryset.first().user.profile
 
         if profile:
             if profile.require_auth and self.request.user.is_anonymous:
