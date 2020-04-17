@@ -188,9 +188,14 @@ def get_organization_owners_team(org):
     :param org: organization
     :return: Owners team of the organization
     """
-    return Team.objects.get(
-        name="{}#{}".format(org.user.username, Team.OWNER_TEAM_NAME),
-        organization=org.user)
+    team_name = f'{org.user.username}#{Team.OWNER_TEAM_NAME}'
+    try:
+        team = Team.objects.get(name=team_name, organization=org.user)
+    except Team.DoesNotExist:
+        from multidb.pinning import use_master  # pylint: disable=import-error
+        with use_master:
+            team = Team.objects.get(name=team_name, organization=org.user)
+    return team
 
 
 def remove_user_from_organization(organization, user):
