@@ -18,6 +18,7 @@ from taggit.managers import TaggableManager
 
 from onadata.libs.models.base_model import BaseModel
 from onadata.libs.utils.common_tags import OWNER_TEAM_NAME
+from onadata.libs.utils.cache_tools import (PROJ_FORMS_CACHE, safe_delete)
 
 
 class PrefetchManager(models.Manager):
@@ -152,6 +153,19 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
             if instance.created_by:
                 assign_perm(perm.codename, instance.created_by, instance)
 
+
+def project_post_save_callback(sender, instance, created=False, **kwargs):
+    """
+    Signal handler to delete xforms list from cache after uploading a form
+    """
+    if not created:
+        safe_delete(f'{PROJ_FORMS_CACHE}{instance.pk}')
+
+
+post_save.connect(
+    project_post_save_callback,
+    sender=Project,
+    dispatch_uid='project_post_save_callback')
 
 post_save.connect(set_object_permissions, sender=Project,
                   dispatch_uid='set_project_object_permissions')
