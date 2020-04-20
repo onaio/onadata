@@ -7,6 +7,8 @@ from django.utils.six import StringIO
 from django.contrib.auth.models import User
 from django.core.management import call_command
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.api.management.commands.delete_users import \
+    get_user_object_stats
 
 
 class DeleteUserTest(TestBase):
@@ -29,7 +31,7 @@ class DeleteUserTest(TestBase):
         call_command(
             'delete_users',
             user_details=new_user_details,
-            user_input=True,
+            user_input='True',
             stdout=out)
 
         self.assertEqual(
@@ -38,30 +40,19 @@ class DeleteUserTest(TestBase):
 
     @mock.patch(
         "onadata.apps.api.management.commands.delete_users.input")
-    def test_delete_users_no_input(self, mock_input):
+    def test_delete_users_no_input(self, mock_input):  # pylint: disable=R0201
         """
         Test that when user_input is not provided,
         the user account stats are provided for that user account
         before deletion
         """
-        def side_effect(str):
-            return False
-        mock_input.side_effect = side_effect
         user = User.objects.create(
             username="barbie",
             email="barbie@gmail.com")
         username = user.username
-        email = user.email
-        out = StringIO()
-        sys.stdout = out
-        new_user_details = [username+':'+email]
-        call_command(
-            'delete_users',
-            user_details=new_user_details,
-            stdout=out)
+        get_user_object_stats(username)
 
-        self.assertEqual(
+        mock_input.assert_called_with(
             "User account 'barbie' has 0 projects, "
             "0 forms and 0 submissions. "
-            "Do you wish to continue deleting this account?",
-            out.getvalue())
+            "Do you wish to continue deleting this account?")
