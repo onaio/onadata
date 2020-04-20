@@ -154,12 +154,19 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
                 assign_perm(perm.codename, instance.created_by, instance)
 
 
+def _post_clear_project_forms_cache(instance):
+    """
+    Util function to delete xforms list from cache
+    """
+    safe_delete(f'{PROJ_FORMS_CACHE}{instance.pk}')
+
+
 def project_post_save_callback(sender, instance, created=False, **kwargs):
     """
     Signal handler to delete xforms list from cache after uploading a form
     """
     if not created:
-        safe_delete(f'{PROJ_FORMS_CACHE}{instance.pk}')
+        _post_clear_project_forms_cache(instance)
 
 
 post_save.connect(

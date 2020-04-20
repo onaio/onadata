@@ -1,5 +1,6 @@
 import os
 
+from mock import patch
 from onadata.apps.api import tools
 from onadata.apps.api.tests.models.test_abstract_models import\
     TestAbstractModels
@@ -113,3 +114,35 @@ class TestProject(TestAbstractModels, TestBase):
             self.assertEquals(1, XForm.objects.filter(
                 deleted_at__isnull=True).count())
             self.assertIsNone(XForm.objects.all()[0].deleted_at)
+
+    @patch(
+        'onadata.apps.logger.models.project._post_clear_project_forms_cache')
+    def test_project_post_save_signal(self, mock_handler):
+        """
+        Testing project_post_save_callback signal handler is called
+        after uploading an xform
+        """
+        organization = self._create_organization("modilabs", self.user)
+        project_name = "demo"
+        project = self._create_project(organization, project_name, self.user)
+        sample_json = '{"default_language": "default", ' \
+                      '"id_string": "Water_2011_03_17", "children": [], ' \
+                      '"name": "Water_2011_03_17", ' \
+                      '"title": "Water_2011_03_17", "type": "survey"}'
+        f = open(os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            '../../../',
+            'logger/tests/',
+            "Water_Translated_2011_03_10.xml"
+        ))
+        xml = f.read()
+        f.close()
+        XForm.objects.create(
+            xml=xml, user=self.user, json=sample_json, project=project)
+        # test if project_post_save_callback signal handler is called after
+        # creating xform
+
+        self.assertTrue(mock_handler.called)
+
+        # test that it is called once afer publishing form
+        self.assertEqual(mock_handler.call_count, 1)
