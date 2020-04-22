@@ -285,7 +285,16 @@ def check_lockout(request):
         if not username:
             raise AuthenticationFailed(_("Invalid username"))
 
-        lockout = cache.get(safe_key("{}{}".format(LOCKOUT_USER, username)))
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            user = User.objects.get(email=username)
+            username = user.username
+
+        lockout = (
+            cache.get(safe_key("{}{}".format(LOCKOUT_USER, username))) or
+            cache.get(safe_key("{}{}".format(LOCKOUT_USER, user.email))))
+
         if lockout:
             time_locked_out = datetime.now() - datetime.strptime(
                 lockout, "%Y-%m-%dT%H:%M:%S"
