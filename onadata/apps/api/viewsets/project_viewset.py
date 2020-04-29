@@ -2,6 +2,7 @@ from distutils.util import strtobool
 
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
+from django.core.cache import cache
 
 from rest_framework import status
 from rest_framework.decorators import action
@@ -28,6 +29,7 @@ from onadata.libs.serializers.share_project_serializer import \
     (RemoveUserFromProjectSerializer, ShareProjectSerializer)
 from onadata.libs.serializers.user_profile_serializer import \
     UserProfileSerializer
+from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE
 from onadata.libs.serializers.xform_serializer import (XFormCreateSerializer,
                                                        XFormSerializer)
 from onadata.libs.utils.common_tools import merge_dicts
@@ -71,6 +73,16 @@ class ProjectViewSet(AuthenticateHeaderMixin,
                 deleted_at__isnull=True, organization__is_active=True)
 
         return super(ProjectViewSet, self).get_queryset()
+
+    def retrieve(self, request, *args, **kwargs):
+        project_id = kwargs.get('pk')
+        project = cache.get(f'{PROJ_OWNER_CACHE}{project_id}')
+        if project:
+            return Response(project)
+        self.object = self.get_object()
+        serializer = ProjectSerializer(
+            self.object, context={'request': request})
+        return Response(serializer.data)
 
     @action(methods=['POST', 'GET'], detail=True)
     def forms(self, request, **kwargs):
