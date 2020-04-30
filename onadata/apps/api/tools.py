@@ -192,11 +192,16 @@ def get_organization_owners_team(org):
     team_name = f'{org.user.username}#{Team.OWNER_TEAM_NAME}'
     try:
         team = Team.objects.get(name=team_name, organization=org.user)
+        return team
     except Team.DoesNotExist:
         from multidb.pinning import use_master  # pylint: disable=import-error
         with use_master:
-            team = Team.objects.get(name=team_name, organization=org.user)
-    return team
+            queryset = Team.objects.filter(
+                name=team_name, organization=org.user)
+            if queryset.count() > 0:
+                return queryset.first()
+            else:
+                return create_owner_team_and_assign_permissions(org)
 
 
 def remove_user_from_organization(organization, user):
