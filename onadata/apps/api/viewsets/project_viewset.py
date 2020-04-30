@@ -83,6 +83,8 @@ class ProjectViewSet(AuthenticateHeaderMixin,
         self.object = self.get_object()
         serializer = ProjectSerializer(
             self.object, context={'request': request})
+        cache.set(f'{PROJ_OWNER_CACHE}{self.object.pk}', serializer.data)
+
         return Response(serializer.data)
 
     @action(methods=['POST', 'GET'], detail=True)
