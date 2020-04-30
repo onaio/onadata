@@ -10,6 +10,7 @@ from operator import itemgetter
 
 from django.conf import settings
 from django.db.models import Q
+from django.core.cache import cache
 from httmock import HTTMock, urlmatch
 from mock import MagicMock, patch
 import requests
@@ -26,6 +27,7 @@ from onadata.apps.logger.models import Project, XForm
 from onadata.apps.main.models import MetaData
 from onadata.libs import permissions as role
 from onadata.libs.models.share_project import ShareProject
+from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_key
 from onadata.libs.permissions import (ROLES_ORDERED, DataEntryMinorRole,
                                       DataEntryOnlyRole, DataEntryRole,
                                       EditorMinorRole, EditorRole, ManagerRole,
@@ -1700,6 +1702,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=projectid)
 
         self.assertEqual(response.status_code, 400)
+        self.assertIsNone(
+            cache.get(safe_key(f'{PROJ_OWNER_CACHE}{self.project.pk}')))
         self.assertEqual(
             response.data,
             {'username': [u'The following user(s) is/are not active: alice']})
@@ -1729,6 +1733,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=projectid)
 
         self.assertEqual(response.status_code, 204)
+        self.assertIsNone(
+            cache.get(safe_key(f'{PROJ_OWNER_CACHE}{self.project.pk}')))
 
         self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user,
                                                    self.project))
@@ -2197,6 +2203,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=projectid)
 
         self.assertEqual(response.status_code, 204)
+        self.assertIsNone(
+            cache.get(safe_key(f'{PROJ_OWNER_CACHE}{self.project.pk}')))
 
         self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user,
                                                    self.project))

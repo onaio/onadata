@@ -29,7 +29,7 @@ from onadata.libs.serializers.share_project_serializer import \
     (RemoveUserFromProjectSerializer, ShareProjectSerializer)
 from onadata.libs.serializers.user_profile_serializer import \
     UserProfileSerializer
-from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE
+from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_delete
 from onadata.libs.serializers.xform_serializer import (XFormCreateSerializer,
                                                        XFormSerializer)
 from onadata.libs.utils.common_tools import merge_dicts
@@ -75,6 +75,7 @@ class ProjectViewSet(AuthenticateHeaderMixin,
         return super(ProjectViewSet, self).get_queryset()
 
     def retrieve(self, request, *args, **kwargs):
+        """ Retrieve single project """
         project_id = kwargs.get('pk')
         project = cache.get(f'{PROJ_OWNER_CACHE}{project_id}')
         if project:
@@ -152,6 +153,10 @@ class ProjectViewSet(AuthenticateHeaderMixin,
         else:
             return Response(data=serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
+
+        # clear cache
+        safe_delete(f'{PROJ_OWNER_CACHE}{self.object.pk}')
+
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['DELETE', 'GET', 'POST'], detail=True)
