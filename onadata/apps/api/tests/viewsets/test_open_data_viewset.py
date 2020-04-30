@@ -110,6 +110,36 @@ class TestOpenDataViewSet(TestBase):
         # cast generator response to list so that we can get the response count
         self.assertEqual(len(streaming_data(response)), 4)
 
+    def test_column_headers_are_synchronized(self):
+        self.view = OpenDataViewSet.as_view({
+            'get': 'schema'
+        })
+
+        _open_data = self.get_open_data_object()
+        uuid = _open_data.uuid
+        request1 = self.factory.get('/', **self.extra)
+        response1 = self.view(request1, uuid=uuid)
+        self.assertEqual(response1.status_code, 200)
+        self.assertListEqual(
+            ['column_headers', 'connection_name', 'table_alias'],
+            sorted(list(response1.data))
+        )
+
+        self._make_submissions()
+        self.view = OpenDataViewSet.as_view({
+            'get': 'data'
+        })
+        _open_data = self.get_open_data_object()
+        uuid = _open_data.uuid
+        request2 = self.factory.get('/', **self.extra)
+        response2 = self.view(request2, uuid=uuid)
+        self.assertEqual(response2.status_code, 200)
+        # cast generator response to list for easy manipulation
+        row_data = streaming_data(response2)
+        # assert that the length of the column_headers
+        # is equal to the row_headers randomly picked
+        self.assertEqual(len(response1.data['column_headers']), len(row_data[3]))
+
     def test_get_data_with_pagination(self):
         self._make_submissions()
         self.view = OpenDataViewSet.as_view({
