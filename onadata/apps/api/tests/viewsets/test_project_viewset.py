@@ -163,6 +163,13 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
+
+        # test serialized data
+        serializer = ProjectSerializer(self.project,
+                                       context={'request': request})
+        self.assertEqual(response.data, serializer.data)
+
+        self.assertIsNotNone(self.project_data)
         self.assertEqual(response.data, self.project_data)
         res_user_props = list(response.data['users'][0])
         res_user_props.sort()
