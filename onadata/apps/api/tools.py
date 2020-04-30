@@ -29,7 +29,8 @@ from registration.models import RegistrationProfile
 from rest_framework import exceptions
 from taggit.forms import TagField
 
-from onadata.apps.api.models.organization_profile import OrganizationProfile
+from onadata.apps.api.models.organization_profile import (
+    OrganizationProfile, create_owner_team_and_assign_permissions)
 from onadata.apps.api.models.team import Team
 from onadata.apps.logger.models import DataView, Instance, Project, XForm
 from onadata.apps.main.forms import QuickConverter
