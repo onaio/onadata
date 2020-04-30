@@ -11,7 +11,7 @@ from onadata.apps.api.viewsets.organization_profile_viewset import\
 from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.permissions import OwnerRole
-from onadata.apps.api.tools import (get_organization_owners_team,
+from onadata.apps.api.tools import (get_or_create_organization_owners_team,
                                     add_user_to_organization)
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.main.models import UserProfile
@@ -759,7 +759,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.data['users'][1]['user'], 'aboy')
         self.assertEqual(response.data['users'][1]['role'], 'owner')
 
-        owner_team = get_organization_owners_team(self.organization)
+        owner_team = get_or_create_organization_owners_team(self.organization)
 
         self.assertIn(aboy, owner_team.user_set.all())
 
@@ -772,7 +772,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 200)
 
-        owner_team = get_organization_owners_team(self.organization)
+        owner_team = get_or_create_organization_owners_team(self.organization)
 
         self.assertNotIn(aboy, owner_team.user_set.all())
 
