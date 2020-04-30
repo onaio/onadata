@@ -34,11 +34,13 @@ IGNORED_FIELD_TYPES = ['select one', 'select multiple']
 def replace_special_characters_with_underscores(data):
     return [re.sub(r"\W", r"_", a) for a in data]
 
+
 def remove_metadata_fields(data):
     for field in METADATA_FIELDS:
         if field in data:
             data.remove(field)
     return data
+
 
 class OpenDataViewSet(ETagsMixin, CacheControlMixin,
                       BaseViewset, ModelViewSet):
@@ -52,8 +54,8 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
 
     def clean_data_fields(self, data, xform):
         """
-        Streamlines the row header fields 
-        with the column header fields for the same form. 
+        Streamlines the row header fields
+        with the column header fields for the same form.
         """
         if len(data) > 1:
             result = []
@@ -73,7 +75,8 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
                 diff = column_headers.difference(row_headers)
 
                 # set default values for these additional fields
-                left_out_fields = {field:"" for field in diff if not field.startswith('_')}
+                left_out_fields = {
+                    field: "" for field in diff if not field.startswith('_')}
                 row.update(left_out_fields)
                 result.append(row)
         return result
@@ -122,7 +125,7 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
             })
 
         # Remove metadata fields from the column headers
-        headers = remove_metadata_fields(self.xform_headers)
+        remove_metadata_fields(self.xform_headers)
 
         # using nested loops to determine what valid data types to set for
         # tableau.
@@ -188,7 +191,8 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
 
             csv_df_builder = CSVDataFrameBuilder(
                 xform.user.username, xform.id_string, include_images=False)
-            data = csv_df_builder._format_for_dataframe(cleaned_instance_fields)
+            data = csv_df_builder._format_for_dataframe(
+                cleaned_instance_fields)
 
             return self._get_streaming_response(data)
 
@@ -225,7 +229,8 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
             self.xform_headers = replace_special_characters_with_underscores(
                 headers)
 
-            # cache a clean list of column headers using the form id_string as the key
+            # cache a clean list of column headers
+            # using the form id_string as the key
             column_headers = '{}_{}'.format(
                 TABLEAU_COLUMN_HEADERS, xform.id_string)
             cache.set(column_headers, self.xform_headers)

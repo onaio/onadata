@@ -138,7 +138,8 @@ class TestOpenDataViewSet(TestBase):
         row_data = streaming_data(response2)
         # assert that the length of the column_headers
         # is equal to the row_headers randomly picked
-        self.assertEqual(len(response1.data['column_headers']), len(row_data[3]))
+        self.assertEqual(
+            len(response1.data['column_headers']), len(row_data[3]))
 
     def test_get_data_with_pagination(self):
         self._make_submissions()

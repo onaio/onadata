@@ -27,7 +27,7 @@ PROJ_TEAM_USERS_CACHE = "ps-project-team-users"
 XFORM_LINKED_DATAVIEWS = "xfs-linked_dataviews"
 PROJECT_LINKED_DATAVIEWS = "ps-project-linked_dataviews"
 
-#cache names used in the open_data viewet
+# Cache names used in the open_data viewet
 TABLEAU_COLUMN_HEADERS = "tableau_column_headers"
 METADATA_FIELDS = [
     '_review_comment',
