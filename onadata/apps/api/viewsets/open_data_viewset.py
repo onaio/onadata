@@ -16,13 +16,11 @@ from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.logger.models.open_data import OpenData
 from onadata.libs.data import parse_int
-from onadata.libs.utils.cache_tools import (cache,
-                                            METADATA_FIELDS,
-                                            TABLEAU_COLUMN_HEADERS)
+from onadata.libs.utils.common_tags import METADATA_FIELDS
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.pagination import StandardPageNumberPagination
-from onadata.libs.serializers.data_serializer import DataInstanceSerializer
+from onadata.libs.serializers.data_serializer import TableauDataSerializer
 from onadata.libs.serializers.open_data_serializer import OpenDataSerializer
 from onadata.libs.utils.common_tools import json_stream
 from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
@@ -35,10 +33,33 @@ def replace_special_characters_with_underscores(data):
     return [re.sub(r"\W", r"_", a) for a in data]
 
 
+def clean_data_fields(data, xform):
+    """
+    Streamlines the row header fields
+    with the column header fields for the same form.
+    """
+    result = []
+    if data:
+        headers = xform.get_headers()
+        tableau_headers = remove_metadata_fields(headers)
+        for row in data:
+            # Include fields from the column headers
+            diff = set(tableau_headers).difference(set(row))
+            left_out_fields = {
+                field: None for field in diff}
+            row.update(left_out_fields)
+            result.append(row)
+    yield result
+
+
 def remove_metadata_fields(data):
+    """
+    Clean out unneccessary metadata fields
+    """
     for field in METADATA_FIELDS:
         if field in data:
             data.remove(field)
+        list(set(data))
     return data
 
 
@@ -51,35 +72,6 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
     flattened_dict = {}
     MAX_INSTANCES_PER_REQUEST = 1000
     pagination_class = StandardPageNumberPagination
-
-    def clean_data_fields(self, data, xform):
-        """
-        Streamlines the row header fields
-        with the column header fields for the same form.
-        """
-        if len(data) > 1:
-            result = []
-            for row in data:
-                # Get the column headers
-                # from cache using the xform id string
-                tableau_column_headers = '{}_{}'.format(
-                    TABLEAU_COLUMN_HEADERS, xform.id_string)
-                headers = xform.get_headers(
-                    cache.get(tableau_column_headers))
-                remove_metadata_fields(headers)
-
-                # Include fields from the column headers
-                # that are not present in the row headers
-                column_headers = set(headers)
-                row_headers = set(row)
-                diff = column_headers.difference(row_headers)
-
-                # set default values for these additional fields
-                left_out_fields = {
-                    field: "" for field in diff if not field.startswith('_')}
-                row.update(left_out_fields)
-                result.append(row)
-        return result
 
     def get_tableau_type(self, xform_type):
         '''
@@ -123,13 +115,12 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
                 'dataType': quest_type,
                 'alias': header
             })
-
         # Remove metadata fields from the column headers
-        remove_metadata_fields(self.xform_headers)
+        xform_headers = set(remove_metadata_fields(self.xform_headers))
 
         # using nested loops to determine what valid data types to set for
         # tableau.
-        for header in self.xform_headers:
+        for header in xform_headers:
             for quest_name, quest_type in self.flattened_dict.items():
                 if header == quest_name or header.endswith('_%s' % quest_name):
                     append_to_tableau_colulmn_headers(header, quest_type)
@@ -180,19 +171,14 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
 
             if should_paginate:
                 instances = self.paginate_queryset(instances)
-            # Remove metadata fields from the instance
-            for row in DataInstanceSerializer(instances, many=True).data:
-                for field in METADATA_FIELDS:
-                    if field in row:
-                        del row[field]
 
-            cleaned_instance_fields = self.clean_data_fields(
-                DataInstanceSerializer(instances, many=True).data, xform)
+            cleaned_instance_fields = clean_data_fields(
+                TableauDataSerializer(instances, many=True).data, xform)
 
             csv_df_builder = CSVDataFrameBuilder(
                 xform.user.username, xform.id_string, include_images=False)
             data = csv_df_builder._format_for_dataframe(
-                cleaned_instance_fields)
+                *cleaned_instance_fields)
 
             return self._get_streaming_response(data)
 
@@ -228,12 +214,6 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
             headers = xform.get_headers()
             self.xform_headers = replace_special_characters_with_underscores(
                 headers)
-
-            # cache a clean list of column headers
-            # using the form id_string as the key
-            column_headers = '{}_{}'.format(
-                TABLEAU_COLUMN_HEADERS, xform.id_string)
-            cache.set(column_headers, self.xform_headers)
 
             xform_json = json.loads(xform.json)
             self.flatten_xform_columns(

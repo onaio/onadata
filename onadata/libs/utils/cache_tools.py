@@ -27,32 +27,6 @@ PROJ_TEAM_USERS_CACHE = "ps-project-team-users"
 XFORM_LINKED_DATAVIEWS = "xfs-linked_dataviews"
 PROJECT_LINKED_DATAVIEWS = "ps-project-linked_dataviews"
 
-# Cache names used in the open_data viewet
-TABLEAU_COLUMN_HEADERS = "tableau_column_headers"
-METADATA_FIELDS = [
-    '_review_comment',
-    '_review_status',
-    '_status',
-    '_edited',
-    '_version',
-    '_duration',
-    '_notes',
-    '_uuid',
-    '_tags',
-    '_bamboo_dataset_id',
-    '_attachments',
-    '_geolocation',
-    '_media_count',
-    '_total_media',
-    '_submitted_by',
-    'meta_instanceID',
-    'meta/instanceID',
-    '_media_all_received',
-    '_xform_id_string',
-    '_submission_time',
-    '_xform_id']
-
-
 # cache login attempts
 LOCKOUT_USER = "lockout_user-"
 LOGIN_ATTEMPTS = "login_attempts-"
