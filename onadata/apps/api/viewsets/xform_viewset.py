@@ -5,6 +5,7 @@ from datetime import datetime
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -50,6 +51,7 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.renderers import renderers
+from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.serializers.clone_xform_serializer import \
     CloneXFormSerializer
 from onadata.libs.serializers.share_xform_serializer import \
@@ -76,6 +78,7 @@ from onadata.libs.utils.viewer_tools import (enketo_url,
                                              get_enketo_single_submit_url)
 from onadata.libs.exceptions import EnketoError
 from onadata.settings.common import XLS_EXTENSIONS, CSV_EXTENSION
+from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE
 
 ENKETO_AUTH_COOKIE = getattr(settings, 'ENKETO_AUTH_COOKIE',
                              '__enketo')
@@ -726,7 +729,9 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             resp = tasks.get_async_status(job_uuid)
             resp_code = status.HTTP_202_ACCEPTED
             self.etag_data = '{}'.format(timezone.now())
-
+        serializer = ProjectSerializer(
+            xform.project, context={'request': request})
+        cache.set(f'{PROJ_OWNER_CACHE}{xform.project.pk}', serializer.data)
         return Response(data=resp, status=resp_code)
 
     def destroy(self, request, *args, **kwargs):

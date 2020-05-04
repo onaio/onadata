@@ -109,8 +109,12 @@ class ProjectViewSet(AuthenticateHeaderMixin,
                 published_by_formbuilder = request.data.get(
                     'published_by_formbuilder'
                 )
+
                 if str_to_bool(published_by_formbuilder):
                     MetaData.published_by_formbuilder(survey, 'True')
+
+                # clear project from cache
+                safe_delete(f'{PROJ_OWNER_CACHE}{survey.project.pk}')
 
                 return Response(serializer.data,
                                 status=status.HTTP_201_CREATED)

@@ -37,7 +37,7 @@ from onadata.libs.utils.cache_tools import (IS_ORG, PROJ_BASE_FORMS_CACHE,
                                             PROJ_FORMS_CACHE,
                                             PROJ_NUM_DATASET_CACHE,
                                             PROJ_SUB_DATE_CACHE, XFORM_COUNT,
-                                            safe_delete)
+                                            PROJ_OWNER_CACHE, safe_delete)
 from onadata.libs.utils.common_tags import (DURATION, ID, KNOWN_MEDIA_TYPES,
                                             MEDIA_ALL_RECEIVED, MEDIA_COUNT,
                                             NOTES, SUBMISSION_TIME,
@@ -1052,6 +1052,7 @@ pre_save.connect(save_project, sender=XForm, dispatch_uid='save_project_xform')
 
 def xform_post_delete_callback(sender, instance, **kwargs):
     if instance.project_id:
+        safe_delete('{}{}'.format(PROJ_OWNER_CACHE, instance.project_id))
         safe_delete('{}{}'.format(PROJ_FORMS_CACHE, instance.project_id))
         safe_delete('{}{}'.format(PROJ_BASE_FORMS_CACHE, instance.project.pk))
         safe_delete('{}{}'.format(PROJ_SUB_DATE_CACHE, instance.project_id))
