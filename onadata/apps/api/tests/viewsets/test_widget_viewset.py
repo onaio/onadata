@@ -11,7 +11,7 @@ from onadata.apps.api.viewsets.widget_viewset import WidgetViewSet
 from onadata.libs.permissions import ReadOnlyRole
 from onadata.libs.permissions import DataEntryOnlyRole
 from onadata.libs.permissions import OwnerRole
-from onadata.apps.api.tools import get_organization_owners_team
+from onadata.apps.api.tools import get_or_create_organization_owners_team
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 
@@ -717,7 +717,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 201)
 
-        owners_team = get_organization_owners_team(self.organization)
+        owners_team = get_or_create_organization_owners_team(self.organization)
         self.assertIn(chuck_profile.user, owners_team.user_set.all())
 
         extra = {

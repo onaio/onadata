@@ -17,7 +17,7 @@ import requests
 from onadata.apps.api import tools
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
-from onadata.apps.api.tools import get_organization_owners_team
+from onadata.apps.api.tools import get_or_create_organization_owners_team
 from onadata.apps.api.viewsets.organization_profile_viewset import \
     OrganizationProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
@@ -774,7 +774,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, user=self.organization.user.username)
         self.assertEqual(response.status_code, 201)
 
-        owners_team = get_organization_owners_team(self.organization)
+        owners_team = get_or_create_organization_owners_team(self.organization)
         self.assertIn(alice_profile.user, owners_team.user_set.all())
 
         # let bob create a project in org
@@ -853,7 +853,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, user=self.organization.user.username)
         self.assertEqual(response.status_code, 201)
 
-        owners_team = get_organization_owners_team(self.organization)
+        owners_team = get_or_create_organization_owners_team(self.organization)
         self.assertIn(alice_profile.user, owners_team.user_set.all())
 
         # let alice create a project in org

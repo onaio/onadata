@@ -1005,7 +1005,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         request = self.factory.get(
             f'/enketo/{self.xform.pk}/formList')
         response = self.view(
-            request, form_pk=self.xform.pk)
+            request, xform_pk=self.xform.pk)
         self.assertEqual(response.status_code, 401)
 
         # Set require auth to false for form owner
@@ -1030,7 +1030,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             f'/enketo/{self.xform.pk}/formList')
         request.META.update(auth(request.META, response))
         response = self.view(
-            request, form_pk=self.xform.pk)
+            request, xform_pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
         self.assertEqual(
@@ -1041,7 +1041,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         request = self.factory.get(
             f'/enketo/{self.xform.pk}/formList')
         response = self.view(
-            request, form_pk=self.xform.pk)
+            request, xform_pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
         self.assertEqual(

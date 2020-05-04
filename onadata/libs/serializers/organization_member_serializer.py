@@ -10,7 +10,7 @@ from onadata.libs.permissions import ROLES
 from onadata.libs.permissions import OwnerRole
 from onadata.libs.permissions import is_organization
 from onadata.apps.api.tools import add_user_to_organization
-from onadata.apps.api.tools import get_organization_owners_team
+from onadata.apps.api.tools import get_or_create_organization_owners_team
 from onadata.apps.api.tools import add_user_to_team
 from onadata.apps.api.tools import remove_user_from_team
 from onadata.apps.api.tools import _get_owners
@@ -37,7 +37,7 @@ def _set_organization_role_to_user(organization, user, role):
     role_cls = ROLES.get(role)
     role_cls.add(user, organization)
 
-    owners_team = get_organization_owners_team(organization)
+    owners_team = get_or_create_organization_owners_team(organization)
 
     # add the owner to owners team
     if role == OwnerRole.name:

@@ -14,7 +14,7 @@ from rest_framework import serializers
 
 from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.api.tools import (get_organization_members_team,
-                                    get_organization_owners_team)
+                                    get_or_create_organization_owners_team)
 from onadata.apps.logger.models import Project, XForm
 from onadata.libs.permissions import (OwnerRole, ReadOnlyRole, get_role,
                                       is_organization)
@@ -401,7 +401,8 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             set_owners_permission(owner, instance)
 
             if is_organization(owner.profile):
-                owners_team = get_organization_owners_team(owner.profile)
+                owners_team = get_or_create_organization_owners_team(
+                        owner.profile)
                 members_team = get_organization_members_team(owner.profile)
                 OwnerRole.add(owners_team, instance)
                 ReadOnlyRole.add(members_team, instance)
