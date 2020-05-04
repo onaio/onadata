@@ -1,3 +1,7 @@
+"""
+Module containing the tests for the recover_deleted_attachments
+management command
+"""
 from io import BytesIO
 from datetime import datetime
 
@@ -11,6 +15,8 @@ from onadata.libs.utils.logger_tools import create_instance
 
 
 class TestRecoverDeletedAttachments(TestBase):
+    """TestRecoverDeletedAttachments Class"""
+    # pylint: disable=invalid-name
     def test_recovers_wrongly_deleted_attachments(self):
         """
         Test that the command recovers the correct
@@ -21,12 +27,12 @@ class TestRecoverDeletedAttachments(TestBase):
         |        | type  | name   | label |
         |        | file  | file   | File  |
         |        | image | image  | Image |
-        """
+        """  # pylint: disable=invalid-name
         self._create_user_and_login()
-        self.xform = self._publish_markdown(md, self.user)
+        xform = self._publish_markdown(md, self.user)
 
         xml_string = f"""
-        <data id="{self.xform.id_string}">
+        <data id="{xform.id_string}">
             <meta>
                 <instanceID>uuid:UJ5jz4EszdgH8uhy8nss1AsKaqBPO5VN7</instanceID>
             </meta>
