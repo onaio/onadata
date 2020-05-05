@@ -3,6 +3,16 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.3.2(2020-05-05)
+------------------
+
+- Update google sheets connection when data is updated or deleted
+  `PR #1808 <https://github.com/onaio/onadata/pull/1808>`_
+  [@KipSigei]
+- Fix errors encountered when utilizing a master-replica database setup
+  `PR #1813 <https://github.com/onaio/onadata/pull/1813>`_
+  [@DavisRayM]
+
 v2.3.1(2020-04-14)
 ------------------
 
