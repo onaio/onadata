@@ -29,6 +29,7 @@ from onadata.apps.main.models.user_profile import \
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.serializers.user_profile_serializer import \
     _get_first_last_names
+from onadata.libs.utils.cache_tools import USER_PROFILE_PREFIX, safe_key
 
 
 def _profile_data():
@@ -59,6 +60,12 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             'patch': 'partial_update',
             'put': 'update'
         })
+
+    def tearDown(self):
+        """
+        Specific to clear cache between tests
+        """
+        cache.clear()
 
     def test_profiles_list(self):
         request = self.factory.get('/', **self.extra)
@@ -196,6 +203,24 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.user_profile_data())
+
+    def test_retrieve_user_profile_from_cache(self):
+        """
+        Test that user_profiles are cached on retrieve
+        """
+        view = UserProfileViewSet.as_view({
+            'get': 'retrieve'
+        })
+
+        # clear cache
+        cache.delete(safe_key(f'{USER_PROFILE_PREFIX}bob'))
+
+        self.assertIsNone(cache.get(safe_key(f'{USER_PROFILE_PREFIX}bob')))
+
+        request = self.factory.get('/', **self.extra)
+        view(request, user='bob')
+
+        self.assertIsNotNone(cache.get(f'{USER_PROFILE_PREFIX}bob'))
 
     def test_profiles_get_anon(self):
         view = UserProfileViewSet.as_view({

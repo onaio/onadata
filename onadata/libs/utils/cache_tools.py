@@ -13,6 +13,7 @@ PROJ_OWNER_CACHE = "ps-project_owner-"
 
 # Cache names used in user_profile_serializer
 IS_ORG = "ups-is_org-"
+USER_PROFILE_PREFIX = "user_profile-"
 
 # Cache names user in xform_serializer
 XFORM_PERMISSIONS_CACHE = "xfs-get_xform_permissions"

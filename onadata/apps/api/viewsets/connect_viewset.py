@@ -25,6 +25,8 @@ from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.serializers.user_profile_serializer import \
     UserProfileWithTokenSerializer
 from onadata.settings.common import DEFAULT_SESSION_EXPIRY_TIME
+from onadata.libs.utils.cache_tools import (cache,
+                                            USER_PROFILE_PREFIX)
 
 
 def user_profile_w_token_response(request, status):
@@ -42,8 +44,14 @@ def user_profile_w_token_response(request, status):
     try:
         user_profile = request.user.profile
     except UserProfile.DoesNotExist:
-        user_profile, _ = UserProfile.objects.get_or_create(
-            user=request.user)
+        user_profile = cache.get(
+            f'{USER_PROFILE_PREFIX}{request.user.username}')
+        if not user_profile:
+            user_profile, __ = UserProfile.objects.get_or_create(
+                user=request.user)
+            cache.set(
+                f'{USER_PROFILE_PREFIX}{request.user.username}',
+                user_profile)
 
     serializer = UserProfileWithTokenSerializer(
         instance=user_profile, context={"request": request})
