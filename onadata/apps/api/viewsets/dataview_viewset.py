@@ -31,6 +31,7 @@ from onadata.libs.utils.api_export_tools import (custom_response_handler,
                                                  process_async_export,
                                                  response_for_format)
 from onadata.libs.utils.cache_tools import (PROJECT_LINKED_DATAVIEWS,
+                                            PROJ_OWNER_CACHE,
                                             safe_delete)
 from onadata.libs.utils.chart_tools import (get_chart_data_for_field,
                                             get_field_from_field_name)
@@ -249,6 +250,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
         dataview = self.get_object()
         user = request.user
         dataview.soft_delete(user)
+        safe_delete('{}{}'.format(PROJ_OWNER_CACHE, dataview.project.pk))
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 

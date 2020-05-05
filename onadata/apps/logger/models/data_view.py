@@ -20,6 +20,7 @@ from onadata.libs.models.sorting import (json_order_by, json_order_by_params,
 from onadata.libs.utils.cache_tools import (DATAVIEW_COUNT,
                                             DATAVIEW_LAST_SUBMISSION_TIME,
                                             XFORM_LINKED_DATAVIEWS,
+                                            PROJ_OWNER_CACHE,
                                             safe_delete)
 from onadata.libs.utils.common_tags import (ATTACHMENTS, EDITED, GEOLOCATION,
                                             ID, LAST_EDITED, MONGO_STRFTIME,
@@ -376,6 +377,7 @@ def clear_cache(sender, instance, **kwargs):
 def clear_dataview_cache(sender, instance, **kwargs):
     """ Post Save handler for clearing dataview cache on serialized fields.
     """
+    safe_delete('{}{}'.format(PROJ_OWNER_CACHE, instance.project.pk))
     safe_delete('{}{}'.format(DATAVIEW_COUNT, instance.xform.pk))
     safe_delete(
         '{}{}'.format(DATAVIEW_LAST_SUBMISSION_TIME, instance.xform.pk))
