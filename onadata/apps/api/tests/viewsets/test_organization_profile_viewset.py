@@ -352,7 +352,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, [expected_data])
+        self.assertEqual(dict(response.data[0]), expected_data)
 
     def test_role_for_org_non_owner(self):
         # creating org with member
