@@ -48,6 +48,7 @@ from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.common_tags import METADATA_FIELDS
 from onadata.libs.utils.common_tools import report_exception, get_uuid
+from onadata.libs import analytics
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -104,11 +105,18 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum):
         instance = Instance.objects.create(
             xml=xml, user=submitted_by, status=status, xform=xform,
             checksum=checksum)
+
+        # Track new submissions
+        analytics.track(instance.xform.user, 'submissions',
+                        {'xform_id': xform.pk})
+        analytics.track(submitted_by, 'submitted', {'xform_id': xform.pk})
+
     # send notification on submission creation
     send_message(
         instance_id=instance.id, target_id=instance.xform.id,
         target_type=XFORM, user=instance.user or instance.xform.user,
         message_verb=message_verb)
+
     return instance
 
 
