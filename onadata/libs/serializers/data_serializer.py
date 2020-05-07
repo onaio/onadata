@@ -28,7 +28,7 @@ def get_request_and_username(context):
     request = context['request']
     view = context['view']
     username = view.kwargs.get('username')
-    form_pk = view.kwargs.get('form_pk')
+    form_pk = view.kwargs.get('xform_pk')
 
     if not username:
         # get the username from the XForm object if form_id is
