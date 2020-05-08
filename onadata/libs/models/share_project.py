@@ -4,7 +4,8 @@ from django.db import transaction
 from onadata.libs.permissions import ROLES
 from onadata.libs.permissions import EditorRole, EditorMinorRole,\
     DataEntryRole, DataEntryMinorRole, DataEntryOnlyRole
-from onadata.libs.utils.cache_tools import PROJ_PERM_CACHE, safe_delete
+from onadata.libs.utils.cache_tools import (
+    PROJ_PERM_CACHE, PROJ_OWNER_CACHE, safe_delete)
 
 
 def remove_xform_permissions(project, user, role):
@@ -63,6 +64,7 @@ class ShareProject(object):
                         role.add(self.user, dataview.xform)
 
         # clear cache
+        safe_delete('{}{}'.format(PROJ_OWNER_CACHE, self.project.pk))
         safe_delete('{}{}'.format(PROJ_PERM_CACHE, self.project.pk))
 
     @transaction.atomic()

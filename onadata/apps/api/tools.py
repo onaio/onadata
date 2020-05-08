@@ -44,8 +44,8 @@ from onadata.libs.permissions import (
     EditorMinorRole, EditorRole, ManagerRole, OwnerRole, get_role,
     get_role_in_org, is_organization)
 from onadata.libs.utils.api_export_tools import custom_response_handler
-from onadata.libs.utils.cache_tools import (PROJ_BASE_FORMS_CACHE,
-                                            PROJ_FORMS_CACHE, safe_delete)
+from onadata.libs.utils.cache_tools import (
+    PROJ_BASE_FORMS_CACHE, PROJ_FORMS_CACHE, PROJ_OWNER_CACHE, safe_delete)
 from onadata.libs.utils.common_tags import MEMBERS, XFORM_META_PERMS
 from onadata.libs.utils.logger_tools import (publish_form,
                                              response_with_mimetype_and_name)
@@ -419,6 +419,7 @@ def publish_project_xform(request, project):
 
     if 'formid' in request.data:
         xform = get_object_or_404(XForm, pk=request.data.get('formid'))
+        safe_delete('{}{}'.format(PROJ_OWNER_CACHE, xform.project.pk))
         safe_delete('{}{}'.format(PROJ_FORMS_CACHE, xform.project.pk))
         safe_delete('{}{}'.format(PROJ_BASE_FORMS_CACHE, xform.project.pk))
         if not ManagerRole.user_has_role(request.user, xform):

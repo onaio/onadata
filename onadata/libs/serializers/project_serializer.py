@@ -25,7 +25,7 @@ from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE, PROJ_FORMS_CACHE, PROJ_NUM_DATASET_CACHE,
     PROJ_PERM_CACHE, PROJ_SUB_DATE_CACHE, PROJ_TEAM_USERS_CACHE,
-    PROJECT_LINKED_DATAVIEWS, safe_delete)
+    PROJECT_LINKED_DATAVIEWS, PROJ_OWNER_CACHE, safe_delete)
 from onadata.libs.utils.decorators import check_obj
 
 
@@ -437,7 +437,11 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         else:
             project.xform_set.exclude(shared=project.shared)\
                 .update(shared=project.shared, shared_data=project.shared)
-
+            request = self.context.get('request')
+            serializer = ProjectSerializer(
+                project, context={'request': request})
+            response = serializer.data
+            cache.set(f'{PROJ_OWNER_CACHE}{project.pk}', response)
             return project
 
     def get_users(self, obj):  # pylint: disable=no-self-use
