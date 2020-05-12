@@ -23,33 +23,66 @@ from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.data_serializer import TableauDataSerializer
 from onadata.libs.serializers.open_data_serializer import OpenDataSerializer
 from onadata.libs.utils.common_tools import json_stream
-from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
+from onadata.libs.utils.common_tags import (ATTACHMENTS, NOTES, GEOLOCATION)
 
 BaseViewset = get_baseviewset_class()
 IGNORED_FIELD_TYPES = ['select one', 'select multiple']
+
+# index tags
+DEFAULT_OPEN_TAG = '['
+DEFAULT_CLOSE_TAG = ']'
+DEFAULT_INDEX_TAGS = (DEFAULT_OPEN_TAG, DEFAULT_CLOSE_TAG)
 
 
 def replace_special_characters_with_underscores(data):
     return [re.sub(r"\W", r"_", a) for a in data]
 
 
-def clean_data_fields(data, xform):
+def process_tableau_data(data, xform):
     """
     Streamlines the row header fields
     with the column header fields for the same form.
+    Handles Flattenning repeat data for tableau
     """
     result = []
+    index_tags = DEFAULT_INDEX_TAGS
     if data:
         headers = xform.get_headers()
         tableau_headers = remove_metadata_fields(headers)
         for row in data:
-            # Include fields from the column headers
             diff = set(tableau_headers).difference(set(row))
             left_out_fields = {
                 field: None for field in diff}
-            row.update(left_out_fields)
-            result.append(row)
-    yield result
+            flat_dict = {}
+            for (key, value) in list(row.items()):
+                # capture and flatten repeat data here
+                # Loop through instance data and flatten repeat data
+                # given the key "children/details" and nested_key/
+                # abbreviated xpath "children/details/immunization/polio_1",
+                # generate ["children", index, "immunization/polio_1"]
+                if isinstance(value, list) and key not in [
+                        ATTACHMENTS, NOTES, GEOLOCATION]:
+                    for index, item in enumerate(value):
+                        index += 1
+                        for (nested_key, nested_val) in item.items():
+                            xpaths = [
+                                '{key}{open_tag}{index}{close_tag}'.format(
+                                    key=nested_key.split('/')[0],
+                                    open_tag=index_tags[0],
+                                    index=index,
+                                    close_tag=index_tags[1])] + [
+                                        nested_key.split('/')[1]]
+                            xpaths = "/".join(xpaths)
+                            flat_dict.update({xpaths: nested_val})
+                    row.pop(key)
+                else:
+                    flat_dict.update({key: value})
+            # Include fields not present within the instance
+            {
+                flat_dict.update({f: None}) for f in left_out_fields
+                if f not in flat_dict.keys()}
+            result.append(flat_dict)
+    return result
 
 
 def remove_metadata_fields(data):
@@ -59,8 +92,7 @@ def remove_metadata_fields(data):
     for field in METADATA_FIELDS:
         if field in data:
             data.remove(field)
-        list(set(data))
-    return data
+    return list(data)
 
 
 class OpenDataViewSet(ETagsMixin, CacheControlMixin,
@@ -172,13 +204,8 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
             if should_paginate:
                 instances = self.paginate_queryset(instances)
 
-            cleaned_instance_fields = clean_data_fields(
+            data = process_tableau_data(
                 TableauDataSerializer(instances, many=True).data, xform)
-
-            csv_df_builder = CSVDataFrameBuilder(
-                xform.user.username, xform.id_string, include_images=False)
-            data = csv_df_builder._format_for_dataframe(
-                *cleaned_instance_fields)
 
             return self._get_streaming_response(data)
 

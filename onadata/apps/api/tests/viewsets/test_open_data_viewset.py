@@ -2,10 +2,11 @@
 """
 OpenData tests.
 """
-
+import os
 import json
 
 from django.test import RequestFactory
+from django.utils.dateparse import parse_datetime
 from django.contrib.auth.models import User
 
 from onadata.apps.logger.models import OpenData, Instance
@@ -110,7 +111,7 @@ class TestOpenDataViewSet(TestBase):
         # cast generator response to list so that we can get the response count
         self.assertEqual(len(streaming_data(response)), 4)
 
-    def test_column_headers_match_row_heaaders(self):
+    def test_tableau_data_fetch(self):  # pylint: disable=invalid-name
         """
         Test that the row headers generated
         match the column headers for the same form
@@ -118,9 +119,17 @@ class TestOpenDataViewSet(TestBase):
         self.view = OpenDataViewSet.as_view({
             'get': 'schema'
         })
+        self._submission_time = parse_datetime('2013-02-18 15:54:01Z')
+        self.fixture_dir = os.path.join(
+            self.this_directory, 'fixtures', 'csv_export')
+        path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xls')
+        self._publish_xls_file_and_set_xform(path)
+        path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xml')
+        self._make_submission(
+            path, forced_submission_time=self._submission_time)
 
-        _open_data = self.get_open_data_object()
-        uuid = _open_data.uuid
+        _open_data = get_or_create_opendata(self.xform)
+        uuid = _open_data[0].uuid
         request1 = self.factory.get('/', **self.extra)
         response1 = self.view(request1, uuid=uuid)
         self.assertEqual(response1.status_code, 200)
@@ -128,24 +137,44 @@ class TestOpenDataViewSet(TestBase):
             ['column_headers', 'connection_name', 'table_alias'],
             sorted(list(response1.data))
         )
-        expected_column_header_fields = [
-            k['id'] for k in response1.data['column_headers']]
 
-        self._make_submissions()
+        expected_column_headers = [
+            '_gps_altitude',
+            '_gps_latitude',
+            '_gps_longitude',
+            '_gps_precision',
+            '_id',
+            'age',
+            'children_1__childs_age',
+            'children_1__childs_name',
+            'children_2__childs_age',
+            'children_2__childs_name',
+            'children_3__childs_age',
+            'children_3__childs_name',
+            'children_4__childs_age',
+            'children_4__childs_name',
+            'gps',
+            'has_children',
+            'meta_instanceID',
+            'name',
+            'picture',
+            'web_browsers_chrome',
+            'web_browsers_firefox',
+            'web_browsers_ie',
+            'web_browsers_safari'
+        ]
+
         self.view = OpenDataViewSet.as_view({
             'get': 'data'
         })
-        _open_data = self.get_open_data_object()
-        uuid = _open_data.uuid
         request2 = self.factory.get('/', **self.extra)
         response2 = self.view(request2, uuid=uuid)
         self.assertEqual(response2.status_code, 200)
         # cast generator response to list for easy manipulation
         row_data = streaming_data(response2)
-        row_data_fields = [k for k in row_data[2].keys()]
-        self.assertEqual(
-            row_data_fields.sort(),
-            expected_column_header_fields.sort())
+        row_data_fields = [k for k in row_data[0].keys()]
+        row_data_fields.sort()
+        self.assertEqual(row_data_fields, expected_column_headers)
 
     def test_get_data_with_pagination(self):
         self._make_submissions()
