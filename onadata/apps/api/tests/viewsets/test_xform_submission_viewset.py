@@ -726,7 +726,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                     f'/enketo/{self.xform.pk}/submission', data)
                 count = Instance.objects.filter(xform=self.xform).count()
                 request.user = AnonymousUser()
-                response = self.view(request, form_pk=self.xform.pk)
+                response = self.view(request, xform_pk=self.xform.pk)
                 self.assertContains(response, 'Successful submission',
                                     status_code=201)
                 self.assertTrue(response.has_header('X-OpenRosa-Version'))
