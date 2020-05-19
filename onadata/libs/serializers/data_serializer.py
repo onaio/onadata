@@ -11,8 +11,8 @@ from rest_framework.reverse import reverse
 
 from onadata.apps.logger.models.instance import Instance, InstanceHistory
 from onadata.apps.logger.models.xform import XForm
-from onadata.libs.utils.common_tags import METADATA_FIELDS
 from onadata.libs.serializers.fields.json_field import JsonField
+from onadata.libs.utils.logger_tools import remove_metadata_fields
 from onadata.libs.utils.dict_tools import (dict_lists2strings, dict_paths2dict,
                                            query_list_to_dict,
                                            floip_response_headers_dict)
@@ -129,9 +129,7 @@ class TableauDataSerializer(serializers.ModelSerializer):
         if 'json' in ret:
             ret = ret['json']
             # Remove metadata fields from the instance
-            for field in METADATA_FIELDS:
-                if field in ret:
-                    del ret[field]
+            remove_metadata_fields(ret)
 
         return ret
 

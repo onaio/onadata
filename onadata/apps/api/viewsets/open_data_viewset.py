@@ -1,6 +1,8 @@
 import json
 import re
+from collections import OrderedDict
 
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import PermissionDenied
 from django.http import StreamingHttpResponse
@@ -13,17 +15,22 @@ from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.api.permissions import OpenDataViewSetPermissions
 from onadata.apps.api.tools import get_baseviewset_class
-from onadata.apps.logger.models import Instance, XForm
+from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models.open_data import OpenData
+from onadata.apps.logger.models.xform import XForm, question_types_to_exclude
 from onadata.libs.data import parse_int
-from onadata.libs.utils.common_tags import METADATA_FIELDS
+from onadata.libs.utils.logger_tools import remove_metadata_fields
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.data_serializer import TableauDataSerializer
 from onadata.libs.serializers.open_data_serializer import OpenDataSerializer
 from onadata.libs.utils.common_tools import json_stream
-from onadata.libs.utils.common_tags import (ATTACHMENTS, NOTES, GEOLOCATION)
+from onadata.libs.utils.common_tags import (
+    ATTACHMENTS,
+    NOTES,
+    GEOLOCATION,
+    NA_REP)
 
 BaseViewset = get_baseviewset_class()
 IGNORED_FIELD_TYPES = ['select one', 'select multiple']
@@ -32,6 +39,7 @@ IGNORED_FIELD_TYPES = ['select one', 'select multiple']
 DEFAULT_OPEN_TAG = '['
 DEFAULT_CLOSE_TAG = ']'
 DEFAULT_INDEX_TAGS = (DEFAULT_OPEN_TAG, DEFAULT_CLOSE_TAG)
+DEFAULT_NA_REP = getattr(settings, 'NA_REP', NA_REP)
 
 
 def replace_special_characters_with_underscores(data):
@@ -44,55 +52,54 @@ def process_tableau_data(data, xform):
     with the column header fields for the same form.
     Handles Flattenning repeat data for tableau
     """
+    def get_ordered_repeat_value(key, item, index):
+        """
+        Return Ordered Dict of repeats in the order in which they appear in
+        the XForm.
+        """
+        index_tags = DEFAULT_INDEX_TAGS
+        children = xform.get_child_elements(key, split_select_multiples=False)
+        item_list = OrderedDict()
+        data = {}
+
+        for elem in children:
+            if not question_types_to_exclude(elem.type):
+                new_xpath = elem.get_abbreviated_xpath()
+                item_list[new_xpath] = item.get(new_xpath, DEFAULT_NA_REP)
+                # Loop through repeat data and flatten it
+                # given the key "children/details" and nested_key/
+                # abbreviated xpath "children/details/immunization/polio_1",
+                # generate ["children", index, "immunization/polio_1"]
+                for (nested_key, nested_val) in item_list.items():
+                    xpaths = [
+                        '{key}{open_tag}{index}{close_tag}'.format(
+                            key=nested_key.split('/')[0],
+                            open_tag=index_tags[0],
+                            index=index,
+                            close_tag=index_tags[1])] + [
+                                nested_key.split('/')[1]]
+                    xpaths = "/".join(xpaths)
+                    data[xpaths] = nested_val
+        return data
+
     result = []
-    index_tags = DEFAULT_INDEX_TAGS
     if data:
         headers = xform.get_headers()
         tableau_headers = remove_metadata_fields(headers)
         for row in data:
             diff = set(tableau_headers).difference(set(row))
-            left_out_fields = {
-                field: None for field in diff}
-            flat_dict = {}
-            for (key, value) in list(row.items()):
-                # capture and flatten repeat data here
-                # Loop through instance data and flatten repeat data
-                # given the key "children/details" and nested_key/
-                # abbreviated xpath "children/details/immunization/polio_1",
-                # generate ["children", index, "immunization/polio_1"]
+            flat_dict = dict.fromkeys(diff, None)
+            for (key, value) in row.items():
                 if isinstance(value, list) and key not in [
                         ATTACHMENTS, NOTES, GEOLOCATION]:
-                    for index, item in enumerate(value):
-                        index += 1
-                        for (nested_key, nested_val) in item.items():
-                            xpaths = [
-                                '{key}{open_tag}{index}{close_tag}'.format(
-                                    key=nested_key.split('/')[0],
-                                    open_tag=index_tags[0],
-                                    index=index,
-                                    close_tag=index_tags[1])] + [
-                                        nested_key.split('/')[1]]
-                            xpaths = "/".join(xpaths)
-                            flat_dict.update({xpaths: nested_val})
-                    row.pop(key)
+                    for index, item in enumerate(value, start=1):
+                        # order repeat according to xform order
+                        item = get_ordered_repeat_value(key, item, index)
+                        flat_dict.update(item)
                 else:
-                    flat_dict.update({key: value})
-            # Include fields not present within the instance
-            {
-                flat_dict.update({f: None}) for f in left_out_fields
-                if f not in flat_dict.keys()}
+                    flat_dict[key] = value
             result.append(flat_dict)
     return result
-
-
-def remove_metadata_fields(data):
-    """
-    Clean out unneccessary metadata fields
-    """
-    for field in METADATA_FIELDS:
-        if field in data:
-            data.remove(field)
-    return list(data)
 
 
 class OpenDataViewSet(ETagsMixin, CacheControlMixin,
@@ -148,6 +155,7 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
                 'alias': header
             })
         # Remove metadata fields from the column headers
+        # Calling set to remove duplicates in group data
         xform_headers = set(remove_metadata_fields(self.xform_headers))
 
         # using nested loops to determine what valid data types to set for
@@ -196,7 +204,9 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
             if gt_id:
                 qs_kwargs.update({'id__gt': gt_id})
 
-            instances = Instance.objects.filter(**qs_kwargs).order_by('pk')
+            # Filter out deleted submissions
+            instances = Instance.objects.filter(
+                **qs_kwargs, deleted_at__isnull=True).order_by('pk')
 
             if count:
                 return Response({'count': instances.count()})

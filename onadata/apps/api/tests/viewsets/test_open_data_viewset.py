@@ -111,70 +111,33 @@ class TestOpenDataViewSet(TestBase):
         # cast generator response to list so that we can get the response count
         self.assertEqual(len(streaming_data(response)), 4)
 
-    def test_tableau_data_fetch(self):  # pylint: disable=invalid-name
+    def test_tableau_get_group_data(self):
         """
-        Test that the row headers generated
-        match the column headers for the same form
+        Test tableau unpacks group data successfully
         """
-        self.view = OpenDataViewSet.as_view({
-            'get': 'schema'
-        })
-        self._submission_time = parse_datetime('2013-02-18 15:54:01Z')
-        self.fixture_dir = os.path.join(
-            self.this_directory, 'fixtures', 'csv_export')
-        path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xls')
-        self._publish_xls_file_and_set_xform(path)
-        path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xml')
-        self._make_submission(
-            path, forced_submission_time=self._submission_time)
-
-        _open_data = get_or_create_opendata(self.xform)
-        uuid = _open_data[0].uuid
-        request1 = self.factory.get('/', **self.extra)
-        response1 = self.view(request1, uuid=uuid)
-        self.assertEqual(response1.status_code, 200)
-        self.assertListEqual(
-            ['column_headers', 'connection_name', 'table_alias'],
-            sorted(list(response1.data))
-        )
-
-        expected_column_headers = [
-            '_gps_altitude',
-            '_gps_latitude',
-            '_gps_longitude',
-            '_gps_precision',
-            '_id',
-            'age',
-            'children_1__childs_age',
-            'children_1__childs_name',
-            'children_2__childs_age',
-            'children_2__childs_name',
-            'children_3__childs_age',
-            'children_3__childs_name',
-            'children_4__childs_age',
-            'children_4__childs_name',
-            'gps',
-            'has_children',
-            'meta_instanceID',
-            'name',
-            'picture',
-            'web_browsers_chrome',
-            'web_browsers_firefox',
-            'web_browsers_ie',
-            'web_browsers_safari'
-        ]
-
+        self._make_submissions()
         self.view = OpenDataViewSet.as_view({
             'get': 'data'
         })
-        request2 = self.factory.get('/', **self.extra)
-        response2 = self.view(request2, uuid=uuid)
-        self.assertEqual(response2.status_code, 200)
+        _open_data = self.get_open_data_object()
+        uuid = _open_data.uuid
+
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request, uuid=uuid)
+        self.assertEqual(response.status_code, 200)
         # cast generator response to list for easy manipulation
-        row_data = streaming_data(response2)
-        row_data_fields = [k for k in row_data[0].keys()]
-        row_data_fields.sort()
-        self.assertEqual(row_data_fields, expected_column_headers)
+        row_data = streaming_data(response)
+        self.assertEqual(len(row_data), 4)
+        # Confirm group data is available in tableau
+        self.assertEqual(
+            row_data[3]['transport_available_'
+                        'transportation_types_to_referral_facility'],  # noqa
+            'taxi other')
+        self.assertEqual(
+            row_data[3][
+                'transport_loop_over_transport_'
+                'types_frequency_taxi_frequency_to_referral_facility'],  # noqa
+            'daily')
 
     def test_get_data_with_pagination(self):
         self._make_submissions()
@@ -344,3 +307,128 @@ class TestOpenDataViewSet(TestBase):
         request = self.factory.get('/', **self.extra)
         response = self.view(request, uuid=uuid)
         self.assertEqual(response.status_code, 404)
+
+
+class TestOpenData(TestBase):
+    """
+    Test tableau unpacks repeat data successfully
+    """
+
+    def setUp(self):
+        super(TestOpenData, self).setUp()
+        self._create_user_and_login()
+        self._submission_time = parse_datetime('2020-02-18 15:54:01Z')
+        self.fixture_dir = os.path.join(
+            self.this_directory, 'fixtures', 'csv_export')
+        path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xls')
+        self._publish_xls_file_and_set_xform(path)
+        path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xml')
+        self.factory = RequestFactory()
+        self.extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        self._make_submission(
+            path, forced_submission_time=self._submission_time)
+
+        self.view = OpenDataViewSet.as_view({
+            'post': 'create',
+            'patch': 'partial_update',
+            'delete': 'destroy',
+            'get': 'data'
+        })
+
+    def test_tableau_data_fetch(self):  # pylint: disable=invalid-name
+        """
+        Test that the row headers generated
+        match the column headers for the same form
+        """
+        self.view = OpenDataViewSet.as_view({
+            'get': 'schema'
+        })
+
+        _open_data = get_or_create_opendata(self.xform)
+        uuid = _open_data[0].uuid
+        request1 = self.factory.get('/', **self.extra)
+        response1 = self.view(request1, uuid=uuid)
+        self.assertEqual(response1.status_code, 200)
+        self.assertListEqual(
+            ['column_headers', 'connection_name', 'table_alias'],
+            sorted(list(response1.data))
+        )
+
+        expected_column_headers = [
+            '_gps_altitude',
+            '_gps_latitude',
+            '_gps_longitude',
+            '_gps_precision',
+            '_id',
+            'age',
+            'children_1__childs_age',
+            'children_1__childs_name',
+            'children_2__childs_age',
+            'children_2__childs_name',
+            'children_3__childs_age',
+            'children_3__childs_name',
+            'children_4__childs_age',
+            'children_4__childs_name',
+            'gps',
+            'has_children',
+            'meta_instanceID',
+            'name',
+            'picture',
+            'web_browsers_chrome',
+            'web_browsers_firefox',
+            'web_browsers_ie',
+            'web_browsers_safari'
+        ]
+
+        self.view = OpenDataViewSet.as_view({
+            'get': 'data'
+        })
+        request2 = self.factory.get('/', **self.extra)
+        response2 = self.view(request2, uuid=uuid)
+        self.assertEqual(response2.status_code, 200)
+        # cast generator response to list for easy manipulation
+        row_data = streaming_data(response2)
+        row_data_fields = [k for k in row_data[0].keys()]
+        row_data_fields.sort()
+        self.assertEqual(row_data_fields, expected_column_headers)
+
+    def test_tableau_get_repeat_data(self):
+        """
+        Test that data received from repeats is flattened
+        and the tablau data endpoint returns accurate data
+        for this question type
+        """
+        self.view = OpenDataViewSet.as_view({
+            'get': 'data'
+        })
+
+        repeat_data = [
+            {
+                'children/childs_age': 12,
+                'children/childs_name': 'Tom'
+            },
+            {
+                'children/childs_age': 5,
+                'children/childs_name': 'Dick'
+            }
+        ]
+
+        inst = Instance.objects.filter(
+            xform=self.xform).first()
+        self.assertEqual(inst.json['children'], repeat_data)
+
+        _open_data = get_or_create_opendata(self.xform)
+        uuid = _open_data[0].uuid
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request, uuid=uuid)
+        self.assertEqual(response.status_code, 200)
+        # cast generator response to list for easy manipulation
+        row_data = streaming_data(response)
+        # Test that Tableau receives this data
+        self.assertEqual(
+            row_data[0]['children_1__childs_name'],
+            'Tom')
+        self.assertEqual(
+            row_data[0]['children_2__childs_age'],
+            5)

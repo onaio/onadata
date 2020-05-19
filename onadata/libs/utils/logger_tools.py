@@ -43,6 +43,7 @@ from onadata.apps.logger.xform_instance_parser import (
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
+from onadata.libs.utils.common_tags import METADATA_FIELDS
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -602,6 +603,19 @@ def publish_xml_form(xml_file, user, project, id_string=None, created_by=None):
         dd.save()
 
         return dd
+
+
+def remove_metadata_fields(data):
+    """
+    Clean out unneccessary metadata fields
+    """
+    for field in METADATA_FIELDS:
+        if field in data:
+            if isinstance(data, list):
+                data.remove(field)
+            else:
+                del data[field]
+    return data
 
 
 class BaseOpenRosaResponse(HttpResponse):

@@ -160,7 +160,6 @@ XLS_DATE_FIELDS = ['date', 'today']
 SUBMISSION_REVIEW = 'submission_review'
 XLS_DATETIME_FIELDS = ['start', 'end', 'dateTime', '_submission_time']
 
-# Cache names used in the open_data viewet
 METADATA_FIELDS = [
     '_review_comment',
     '_review_status',
