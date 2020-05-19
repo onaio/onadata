@@ -21,6 +21,7 @@ from onadata.apps.api.viewsets.xform_submission_viewset import \
     XFormSubmissionViewSet
 from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.libs.permissions import DataEntryRole
+from onadata.libs.utils.common_tools import get_uuid
 
 
 # pylint: disable=W0201,R0904,C0103
@@ -181,7 +182,60 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                 auth = DigestAuth('alice', 'bobbob')
                 request.META.update(auth(request.META, response))
                 response = self.view(request)
-                self.assertEqual(response.status_code, 403)
+                self.assertEqual(response.status_code, 404)
+
+    def test_post_submission_uuid_duplicate_no_username_provided(self):
+        """
+        Test submission to a duplicate of a form with a different uuid
+        from the original is properly routed to the request users version of
+        the form
+        """
+        alice_profile = self._create_user_profile({
+            'username': 'alice',
+            'email': 'alice@localhost.com'
+            })
+        s = self.surveys[0]
+        media_file = "1335783522563.jpg"
+        path = os.path.join(self.main_directory, 'fixtures',
+                            'transportation', 'instances', s, media_file)
+        with open(path, 'rb') as f:
+            f = InMemoryUploadedFile(f, 'media_file', media_file, 'image/jpg',
+                                     os.path.getsize(path), None)
+            path = os.path.join(
+                self.main_directory, 'fixtures',
+                'transportation', 'instances', s, s + '.xml')
+            path = self._add_uuid_to_submission_xml(path, self.xform)
+
+            with open(path, 'rb') as sf:
+                # Submits to the correct form
+                count = XForm.objects.count()
+                original_form_pk = self.xform.pk
+                duplicate_form = self.xform
+                duplicate_form.pk = None
+                duplicate_form.uuid = get_uuid()
+                duplicate_form.user = alice_profile.user
+                duplicate_form.save()
+                duplicate_form.refresh_from_db()
+
+                self.assertNotEqual(original_form_pk, duplicate_form.pk)
+                self.assertEqual(XForm.objects.count(), count + 1)
+
+                request = self.factory.post(
+                    '/submission',
+                    {'xml_submission_file': sf, 'media_file': f})
+                response = self.view(request)
+                self.assertEqual(response.status_code, 401)
+                auth = DigestAuth('alice', 'bobbob')
+                request.META.update(auth(request.META, response))
+                response = self.view(request)
+                self.assertEqual(response.status_code, 201)
+                duplicate_form.refresh_from_db()
+                self.assertEqual(
+                    duplicate_form.instances.all().count(),
+                    1)
+                self.assertEqual(
+                    XForm.objects.get(
+                        pk=original_form_pk).instances.all().count(), 0)
 
     def test_post_submission_authenticated_json(self):
         """

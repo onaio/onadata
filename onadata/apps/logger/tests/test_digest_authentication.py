@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.test.utils import override_settings
+from django.http import Http404
 from django.utils import timezone
 
 from cryptography.fernet import Fernet
@@ -60,10 +61,9 @@ class TestDigestAuthentication(TestBase):
         # Authentication required
         self.assertEqual(self.response.status_code, 401)
         auth = DigestAuth('dennis', 'dennis')
-        self._make_submission(xml_submission_file_path, add_uuid=True,
-                              auth=auth)
-        # Not allowed
-        self.assertEqual(self.response.status_code, 403)
+        with self.assertRaises(Http404):
+            self._make_submission(xml_submission_file_path, add_uuid=True,
+                                  auth=auth)
 
     @override_settings(
         DIGEST_ACCOUNT_BACKEND=ODK_TOKEN_STORAGE
