@@ -1,6 +1,7 @@
 import logging
 import os
 from hashlib import md5
+from typing import Optional
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
@@ -364,14 +365,14 @@ class XFormListSerializer(serializers.Serializer):
     manifestUrl = serializers.SerializerMethodField('get_manifest_url')
 
     @check_obj
-    def get_url(self, obj):
+    def get_url(self, obj: XForm) -> Optional[str]:
         kwargs = {'pk': obj.pk, 'username': obj.user.username}
         request = self.context.get('request')
 
         return reverse('download_xform', kwargs=kwargs, request=request)
 
     @check_obj
-    def get_manifest_url(self, obj):
+    def get_manifest_url(self, obj: XForm) -> Optional[str]:
         kwargs = {'pk': obj.pk, 'username': obj.user.username}
         request = self.context.get('request')
         object_list = MetaData.objects.filter(data_type='media',
@@ -379,6 +380,9 @@ class XFormListSerializer(serializers.Serializer):
         if object_list:
             return reverse('manifest-url', kwargs=kwargs, request=request)
         return None
+
+    class Meta:
+        model = XForm
 
 
 class XFormManifestSerializer(serializers.Serializer):

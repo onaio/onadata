@@ -70,3 +70,6 @@ class TeamSerializer(serializers.Serializer):
         return Team.objects.create(
             organization=org, name=team_name, created_by=created_by
         )
+
+    class Meta:
+        model = Team

@@ -1,4 +1,5 @@
 import datetime
+from typing import Optional
 
 from django.utils.translation import ugettext as _
 from django.core.cache import cache
@@ -174,7 +175,7 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
 
         return super(DataViewSerializer, self).validate(attrs)
 
-    def get_count(self, obj):
+    def get_count(self, obj) -> Optional[int]:
         if obj:
             count_dict = cache.get('{}{}'.format(DATAVIEW_COUNT, obj.xform.pk))
 
@@ -199,7 +200,7 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
 
         return None
 
-    def get_last_submission_time(self, obj):
+    def get_last_submission_time(self, obj) -> Optional[str]:
         if obj:
             last_submission_time = cache.get('{}{}'.format(
                 DATAVIEW_LAST_SUBMISSION_TIME, obj.xform.pk))
@@ -228,7 +229,7 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
 
         return None
 
-    def get_instances_with_geopoints(self, obj):
+    def get_instances_with_geopoints(self, obj) -> bool:
 
         if obj:
             check_geo = obj.has_geo_columnn_n_data()
@@ -240,7 +241,7 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
 
         return False
 
-    def get_has_hxl_support(self, obj):
+    def get_has_hxl_support(self, obj) -> bool:
         columns_with_hxl = get_columns_with_hxl(
             obj.xform.survey.get('children')
         )

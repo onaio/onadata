@@ -19,6 +19,8 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.exceptions import ParseError
 from rest_framework.settings import api_settings
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
 
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.api.tools import add_tags_to_instance
@@ -122,11 +124,22 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
     def get_serializer_class(self):
         pk_lookup, dataid_lookup = self.lookup_fields
-        pk = self.kwargs.get(pk_lookup)
-        dataid = self.kwargs.get(dataid_lookup)
-        fmt = self.kwargs.get('format', self.request.GET.get("format"))
-        sort = self.request.GET.get("sort")
-        fields = self.request.GET.get("fields")
+        pk = None
+        dataid = None
+        fmt = None
+        sort = None
+        fields = None
+
+        if self.kwargs:
+            pk: int = self.kwargs.get(pk_lookup)
+            dataid: int = self.kwargs.get(dataid_lookup)
+            fmt: str = self.kwargs.get(
+                'format', self.request.GET.get("format"))
+
+        if self.request:
+            sort: str = self.request.GET.get("sort")
+            fields: str = self.request.GET.get("fields")
+
         if fmt == Attachment.OSM:
             serializer_class = OSMSerializer
         elif fmt == 'geojson':

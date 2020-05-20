@@ -171,7 +171,7 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['GET'], detail=True)
-    def schema(self, request, **kwargs):
+    def open_data_schema(self, request, **kwargs):
         self.object = self.get_object()
         if isinstance(self.object.content_object, XForm):
             xform = self.object.content_object

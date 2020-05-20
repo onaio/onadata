@@ -66,7 +66,7 @@ class XFormListObjectPermissionFilter(AnonDjangoObjectPermissionFilter):
     perm_format = '%(app_label)s.report_%(model_name)s'
 
 
-class XFormListXFormPKFilter(object):
+class XFormListXFormPKFilter(filters.BaseFilterBackend):
 
     def filter_queryset(self, request, queryset, view):
         xform_pk = view.kwargs.get('xform_pk')
@@ -558,7 +558,7 @@ class ExportFilter(XFormPermissionFilterMixin,
         return all_qs | submitter_qs
 
 
-class PublicDatasetsFilter(object):
+class PublicDatasetsFilter(filters.BaseFilterBackend):
     def filter_queryset(self, request, queryset, view):
         if request and request.user.is_anonymous:
             return queryset.filter(shared=True)

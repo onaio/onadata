@@ -7,6 +7,7 @@ from django.conf.urls import include, url, i18n
 from django.contrib.staticfiles import views as staticfiles_views
 from django.urls import re_path
 from django.views.generic import RedirectView
+from drf_spectacular.views import SpectacularSwaggerView, SpectacularAPIView
 
 from onadata.apps import sms_support
 from onadata.apps.api.urls import router
@@ -56,6 +57,12 @@ urlpatterns = [
     re_path(r'^o/', include('oauth2_provider.urls',
         namespace='oauth2_provider')),
 
+    # Swagger API
+    re_path(r'^api/schema$', SpectacularAPIView.as_view(), name='schema'),
+    re_path(
+        r'^api/swagger-ui$',
+        SpectacularSwaggerView.as_view(url_name='schema'),
+        name='swagger-ui'),
     # main website views
     re_path(r'^$', main_views.home),
     re_path(r'^tutorial/$', main_views.tutorial, name='tutorial'),

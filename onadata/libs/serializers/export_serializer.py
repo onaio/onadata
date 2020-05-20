@@ -17,13 +17,13 @@ class ExportSerializer(serializers.HyperlinkedModelSerializer):
         fields = ('id', 'job_status', 'type', 'task_id', 'xform',
                   'date_created', 'filename', 'options', 'export_url')
 
-    def get_job_status(self, obj):
+    def get_job_status(self, obj) -> str:
         return status_msg.get(obj.internal_status)
 
-    def get_type(self, obj):
+    def get_type(self, obj) -> str:
         return obj.export_type
 
-    def get_export_url(self, obj):
+    def get_export_url(self, obj) -> str:
         if obj.export_url:
             return obj.export_url
 
