@@ -213,6 +213,7 @@ INSTALLED_APPS = (
     'actstream',
     'onadata.apps.messaging.apps.MessagingConfig',
     'django_celery_results',
+    'drf_spectacular',
 )
 
 OAUTH2_PROVIDER = {
@@ -247,17 +248,17 @@ REST_FRAMEWORK = {
         'rest_framework_jsonp.renderers.JSONPRenderer',
         'rest_framework_csv.renderers.CSVRenderer',
     ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
-SWAGGER_SETTINGS = {
-    "exclude_namespaces": [],    # List URL namespaces to ignore
-    "api_version": '1.0',  # Specify your API's version (optional)
-    "enabled_methods": [         # Methods to enable in UI
-        'get',
-        'post',
-        'put',
-        'patch',
-        'delete'
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Onadata API Specifications',
+    'DESCRIPTION': 'API Documentation for the Onadata platform',
+    'SERVERS': [
+        {
+            'url': 'http://localhost:8000',
+            'description': 'Test Server'
+        }
     ],
 }
 

@@ -62,6 +62,8 @@ setup(
         "djangorestframework-jsonapi",
         "djangorestframework-jsonp",
         "djangorestframework-xml",
+        # OpenAPI Support
+        "drf-spectacular",
         # geojson
         "geojson",
         # tagging
