@@ -42,16 +42,20 @@ def track(user, event_name, properties=None, context=None, request=None):
             submitted_by = get_user_id(properties.pop('submitted_by'))
             properties['event_by'] = submitted_by
             context['event_by'] = submitted_by
+            context['@event_by'] = submitted_by
 
         if 'xform_id' in properties:
             context['xform_id'] = properties['xform_id']
+            context['@xform_id'] = properties['xform_id']
 
         if request:
             context['userAgent'] = request.META.get('HTTP_USER_AGENT', '')
+            context['@userAgent'] = request.META.get('HTTP_USER_AGENT', '')
             context['ip'] = request.META.get('REMOTE_ADDR', '')
+            context['@ip'] = request.META.get('REMOTE_ADDR', '')
             context['page'] = {
                 'path': request.path,
-                'url': request.META.get('HTTP_HOST', ''),
+                'url': request.build_absolute_uri(),
             }
 
         user_id = get_user_id(user)
