@@ -48,7 +48,7 @@ from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.common_tags import METADATA_FIELDS
 from onadata.libs.utils.common_tools import report_exception, get_uuid
-from onadata.libs import analytics
+from onadata.libs.utils import analytics
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
 
