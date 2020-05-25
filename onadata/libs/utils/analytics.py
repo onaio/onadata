@@ -35,6 +35,8 @@ def track(user, event_name, properties=None, context=None, request=None):
 
         properties = properties or {}
 
+        user_id = get_user_id(user)
+
         if 'value' not in properties:
             properties['value'] = 1
 
@@ -42,21 +44,24 @@ def track(user, event_name, properties=None, context=None, request=None):
             submitted_by = get_user_id(properties.pop('submitted_by'))
             properties['event_by'] = submitted_by
             context['event_by'] = submitted_by
-            context['@event_by'] = submitted_by
 
         if 'xform_id' in properties:
             context['xform_id'] = properties['xform_id']
-            context['@xform_id'] = properties['xform_id']
 
         if request:
+            context['userId'] = user_id
             context['userAgent'] = request.META.get('HTTP_USER_AGENT', '')
-            context['@userAgent'] = request.META.get('HTTP_USER_AGENT', '')
             context['ip'] = request.META.get('REMOTE_ADDR', '')
-            context['@ip'] = request.META.get('REMOTE_ADDR', '')
             context['page'] = {
                 'path': request.path,
                 'url': request.build_absolute_uri(),
             }
+            context['tags'] = {
+                'path': request.path,
+                'url': request.build_absolute_uri(),
+                'userAgent': request.META.get('HTTP_USER_AGENT', ''),
+                'ip': request.META.get('REMOTE_ADDR', ''),
+                'userId': user_id,
+            }
 
-        user_id = get_user_id(user)
         segment_analytics.track(user_id, event_name, properties, context)
