@@ -28,6 +28,7 @@ from onadata.apps.api.viewsets.openid_connect_viewset import (
     OpenIDConnectViewSet
 )
 
+from onadata.libs.utils.analytics import init_analytics
 # enable the admin:
 from django.contrib import admin
 
@@ -334,3 +335,5 @@ if (settings.DEBUG or TESTING) and 'debug_toolbar' in settings.INSTALLED_APPS:
         urlpatterns += [
             re_path(r'^__debug__/', include(debug_toolbar.urls)),
         ]
+
+init_analytics()
