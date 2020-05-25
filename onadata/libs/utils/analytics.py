@@ -39,8 +39,9 @@ def track(user, event_name, properties=None, context=None, request=None):
             properties['value'] = 1
 
         if 'submitted_by' in properties:
-            properties['event_by'] = get_user_id(properties['submitted_by'])
-            context['event_by'] = properties['event_by']
+            submitted_by = get_user_id(properties.pop('submitted_by'))
+            properties['event_by'] = submitted_by
+            context['event_by'] = submitted_by
 
         if 'xform_id' in properties:
             context['xform_id'] = properties['xform_id']
