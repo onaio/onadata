@@ -15,6 +15,7 @@ def init_analytics():
     if segment_write_key:
         global _segment
         segment_analytics.write_key = segment_write_key
+        _segment = True
 
 
 def get_user_id(user):
