@@ -10,6 +10,7 @@ from operator import itemgetter
 
 from django.conf import settings
 from django.db.models import Q
+from django.core.cache import cache
 from httmock import HTTMock, urlmatch
 from mock import MagicMock, patch
 import requests
@@ -17,7 +18,7 @@ import requests
 from onadata.apps.api import tools
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
-from onadata.apps.api.tools import get_organization_owners_team
+from onadata.apps.api.tools import get_or_create_organization_owners_team
 from onadata.apps.api.viewsets.organization_profile_viewset import \
     OrganizationProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
@@ -26,6 +27,7 @@ from onadata.apps.logger.models import Project, XForm
 from onadata.apps.main.models import MetaData
 from onadata.libs import permissions as role
 from onadata.libs.models.share_project import ShareProject
+from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_key
 from onadata.libs.permissions import (ROLES_ORDERED, DataEntryMinorRole,
                                       DataEntryOnlyRole, DataEntryRole,
                                       EditorMinorRole, EditorRole, ManagerRole,
@@ -163,6 +165,13 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
+
+        # test serialized data
+        serializer = ProjectSerializer(self.project,
+                                       context={'request': request})
+        self.assertEqual(response.data, serializer.data)
+
+        self.assertIsNotNone(self.project_data)
         self.assertEqual(response.data, self.project_data)
         res_user_props = list(response.data['users'][0])
         res_user_props.sort()
@@ -774,7 +783,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, user=self.organization.user.username)
         self.assertEqual(response.status_code, 201)
 
-        owners_team = get_organization_owners_team(self.organization)
+        owners_team = get_or_create_organization_owners_team(self.organization)
         self.assertIn(alice_profile.user, owners_team.user_set.all())
 
         # let bob create a project in org
@@ -853,7 +862,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, user=self.organization.user.username)
         self.assertEqual(response.status_code, 201)
 
-        owners_team = get_organization_owners_team(self.organization)
+        owners_team = get_or_create_organization_owners_team(self.organization)
         self.assertIn(alice_profile.user, owners_team.user_set.all())
 
         # let alice create a project in org
@@ -1693,6 +1702,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=projectid)
 
         self.assertEqual(response.status_code, 400)
+        self.assertIsNone(
+            cache.get(safe_key(f'{PROJ_OWNER_CACHE}{self.project.pk}')))
         self.assertEqual(
             response.data,
             {'username': [u'The following user(s) is/are not active: alice']})
@@ -1722,6 +1733,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=projectid)
 
         self.assertEqual(response.status_code, 204)
+        self.assertIsNone(
+            cache.get(safe_key(f'{PROJ_OWNER_CACHE}{self.project.pk}')))
 
         self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user,
                                                    self.project))
@@ -2190,6 +2203,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=projectid)
 
         self.assertEqual(response.status_code, 204)
+        self.assertIsNone(
+            cache.get(safe_key(f'{PROJ_OWNER_CACHE}{self.project.pk}')))
 
         self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user,
                                                    self.project))

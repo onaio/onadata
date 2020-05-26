@@ -76,6 +76,7 @@ from onadata.libs.utils.viewer_tools import (enketo_url,
                                              get_enketo_single_submit_url)
 from onadata.libs.exceptions import EnketoError
 from onadata.settings.common import XLS_EXTENSIONS, CSV_EXTENSION
+from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_delete
 
 ENKETO_AUTH_COOKIE = getattr(settings, 'ENKETO_AUTH_COOKIE',
                              '__enketo')
@@ -719,6 +720,9 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                     xform.pk,
                     request.user.id).task_id,
                 u'time_async_triggered': datetime.now()}
+
+            # clear project from cache
+            safe_delete(f'{PROJ_OWNER_CACHE}{xform.project.pk}')
             resp_code = status.HTTP_202_ACCEPTED
 
         elif request.method == 'GET':

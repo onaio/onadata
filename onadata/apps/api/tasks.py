@@ -64,6 +64,13 @@ def delete_xform_async(xform_id, user_id):
     xform.soft_delete(user)
 
 
+def delete_user_async():
+    """Delete inactive user accounts"""
+    users = User.objects.filter(active=False)
+    for user in users:
+        user.delete()
+
+
 def get_async_status(job_uuid):
     """ Gets progress status or result """
 

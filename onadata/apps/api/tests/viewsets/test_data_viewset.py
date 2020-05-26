@@ -1410,6 +1410,45 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(len(response.data), 2)
 
+    @patch('onadata.apps.viewer.signals._post_process_submissions')
+    def test_post_save_signal_on_submission_deletion(self, mock):
+        # test that post_save_submission signal is sent
+        # create form
+        xls_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/tutorial.xls"
+        )
+        self._publish_xls_file_and_set_xform(xls_file_path)
+
+        # create submission
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "fixtures", "tutorial", "instances",
+            "tutorial_2012-06-27_11-27-53_w_uuid.xml"
+        )
+        self._make_submission(xml_submission_file_path)
+        view = DataViewSet.as_view({
+            'delete': 'destroy',
+            'get': 'list'
+        })
+
+        self.assertEqual(self.response.status_code, 201)
+
+        formid = self.xform.pk
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+        request = self.factory.delete('/', **self.extra)
+        response = view(request, pk=formid, dataid=dataid)
+
+        self.assertEqual(response.status_code, 204)
+
+        instance = self.xform.instances.first()
+        self.assertTrue(mock.called)
+        mock.assert_called_once_with(instance)
+        self.assertEqual(mock.call_count, 1)
+        # check that call_count is still one after saving instance again
+        instance.save()
+        self.assertEqual(mock.call_count, 1)
+
     def test_deletion_of_bulk_submissions(self):
         self._make_submissions()
         self.xform.refresh_from_db()

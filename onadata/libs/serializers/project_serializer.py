@@ -14,7 +14,7 @@ from rest_framework import serializers
 
 from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.api.tools import (get_organization_members_team,
-                                    get_organization_owners_team)
+                                    get_or_create_organization_owners_team)
 from onadata.apps.logger.models import Project, XForm
 from onadata.libs.permissions import (OwnerRole, ReadOnlyRole, get_role,
                                       is_organization)
@@ -25,7 +25,7 @@ from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE, PROJ_FORMS_CACHE, PROJ_NUM_DATASET_CACHE,
     PROJ_PERM_CACHE, PROJ_SUB_DATE_CACHE, PROJ_TEAM_USERS_CACHE,
-    PROJECT_LINKED_DATAVIEWS, safe_delete)
+    PROJECT_LINKED_DATAVIEWS, PROJ_OWNER_CACHE, safe_delete)
 from onadata.libs.utils.decorators import check_obj
 
 
@@ -401,7 +401,8 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             set_owners_permission(owner, instance)
 
             if is_organization(owner.profile):
-                owners_team = get_organization_owners_team(owner.profile)
+                owners_team = get_or_create_organization_owners_team(
+                        owner.profile)
                 members_team = get_organization_members_team(owner.profile)
                 OwnerRole.add(owners_team, instance)
                 ReadOnlyRole.add(members_team, instance)
@@ -436,7 +437,11 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         else:
             project.xform_set.exclude(shared=project.shared)\
                 .update(shared=project.shared, shared_data=project.shared)
-
+            request = self.context.get('request')
+            serializer = ProjectSerializer(
+                project, context={'request': request})
+            response = serializer.data
+            cache.set(f'{PROJ_OWNER_CACHE}{project.pk}', response)
             return project
 
     def get_users(self, obj):  # pylint: disable=no-self-use

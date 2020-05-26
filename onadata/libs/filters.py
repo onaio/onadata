@@ -25,10 +25,6 @@ class AnonDjangoObjectPermissionFilter(ObjectPermissionsFilter):
             view.lookup_field, view.kwargs.get('xform_pk'))
         lookup_field = view.lookup_field
 
-        if view.kwargs.get('form_pk'):
-            form_id = view.kwargs.get('form_pk')
-            lookup_field = 'pk'
-
         queryset = queryset.filter(deleted_at=None)
         if request.user.is_anonymous:
             return queryset

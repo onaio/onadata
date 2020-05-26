@@ -7,7 +7,7 @@ from onadata.apps.api.models import Team
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.tools import add_user_to_team
-from onadata.apps.api.tools import get_organization_owners_team, \
+from onadata.apps.api.tools import get_or_create_organization_owners_team, \
     get_organization_members_team
 from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import \
@@ -399,7 +399,7 @@ class TestTeamViewSet(TestAbstractViewSet, TestBase):
 
         self.assertEqual(response.status_code, 201)
 
-        owners_team = get_organization_owners_team(self.organization)
+        owners_team = get_or_create_organization_owners_team(self.organization)
         self.assertIn(chuck_profile.user, owners_team.user_set.all())
 
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}

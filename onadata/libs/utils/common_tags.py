@@ -90,7 +90,7 @@ DATAVIEW_EXPORT = U'dataview'
 OWNER_TEAM_NAME = "Owners"
 
 API_TOKEN = 'api-token'
-KNOWN_MEDIA_TYPES = ['photo', 'image', 'audio', 'video']
+KNOWN_MEDIA_TYPES = ['photo', 'image', 'audio', 'video', 'file']
 MEDIA_FILE_TYPES = {
     "image": ["image/png", "image/jpeg", "image/jpg"],
     "audio": ["audio/mp3", "audio/mp4"],
@@ -159,3 +159,25 @@ MEMBERS = 'members'
 XLS_DATE_FIELDS = ['date', 'today']
 SUBMISSION_REVIEW = 'submission_review'
 XLS_DATETIME_FIELDS = ['start', 'end', 'dateTime', '_submission_time']
+
+METADATA_FIELDS = [
+    '_review_comment',
+    '_review_status',
+    '_status',
+    '_edited',
+    '_version',
+    '_duration',
+    '_notes',
+    '_uuid',
+    '_tags',
+    '_bamboo_dataset_id',
+    '_attachments',
+    '_geolocation',
+    '_media_count',
+    '_total_media',
+    '_submitted_by',
+    '_media_all_received',
+    '_xform_id_string',
+    '_submission_time',
+    '_xform_id'
+]

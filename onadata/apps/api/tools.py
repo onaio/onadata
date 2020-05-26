@@ -29,7 +29,8 @@ from registration.models import RegistrationProfile
 from rest_framework import exceptions
 from taggit.forms import TagField
 
-from onadata.apps.api.models.organization_profile import OrganizationProfile
+from onadata.apps.api.models.organization_profile import (
+    OrganizationProfile, create_owner_team_and_assign_permissions)
 from onadata.apps.api.models.team import Team
 from onadata.apps.logger.models import DataView, Instance, Project, XForm
 from onadata.apps.main.forms import QuickConverter
@@ -43,8 +44,8 @@ from onadata.libs.permissions import (
     EditorMinorRole, EditorRole, ManagerRole, OwnerRole, get_role,
     get_role_in_org, is_organization)
 from onadata.libs.utils.api_export_tools import custom_response_handler
-from onadata.libs.utils.cache_tools import (PROJ_BASE_FORMS_CACHE,
-                                            PROJ_FORMS_CACHE, safe_delete)
+from onadata.libs.utils.cache_tools import (
+    PROJ_BASE_FORMS_CACHE, PROJ_FORMS_CACHE, PROJ_OWNER_CACHE, safe_delete)
 from onadata.libs.utils.common_tags import MEMBERS, XFORM_META_PERMS
 from onadata.libs.utils.logger_tools import (publish_form,
                                              response_with_mimetype_and_name)
@@ -182,22 +183,32 @@ def get_organization_members_team(organization):
     return team
 
 
-def get_organization_owners_team(org):
+# pylint: disable=invalid-name
+def get_or_create_organization_owners_team(org):
     """
     Get the owners team of an organization
     :param org: organization
     :return: Owners team of the organization
     """
-    return Team.objects.get(
-        name="{}#{}".format(org.user.username, Team.OWNER_TEAM_NAME),
-        organization=org.user)
+    team_name = f'{org.user.username}#{Team.OWNER_TEAM_NAME}'
+    try:
+        team = Team.objects.get(name=team_name, organization=org.user)
+    except Team.DoesNotExist:
+        from multidb.pinning import use_master  # pylint: disable=import-error
+        with use_master:
+            queryset = Team.objects.filter(
+                name=team_name, organization=org.user)
+            if queryset.count() > 0:
+                return queryset.first()  # pylint: disable=no-member
+            return create_owner_team_and_assign_permissions(org)
+    return team
 
 
 def remove_user_from_organization(organization, user):
     """Remove a user from an organization"""
     team = get_organization_members_team(organization)
     remove_user_from_team(team, user)
-    owners_team = get_organization_owners_team(organization)
+    owners_team = get_or_create_organization_owners_team(organization)
     remove_user_from_team(owners_team, user)
 
     role = get_role_in_org(user, organization)
@@ -225,7 +236,8 @@ def remove_user_from_team(team, user):
 
     # if team is owners team remove more perms
     if team.name.find(Team.OWNER_TEAM_NAME) > 0:
-        owners_team = get_organization_owners_team(team.organization.profile)
+        owners_team = get_or_create_organization_owners_team(
+            team.organization.profile)
         members_team = get_organization_members_team(team.organization.profile)
         for perm in get_perms_for_model(Team):
             remove_perm(perm.codename, user, owners_team)
@@ -254,7 +266,7 @@ def add_user_to_team(team, user):
 
 
 def _assign_organization_team_perms(organization, user):
-    owners_team = get_organization_owners_team(organization.profile)
+    owners_team = get_or_create_organization_owners_team(organization.profile)
     members_team = get_organization_members_team(organization.profile)
     for perm in get_perms_for_model(Team):
         assign_perm(perm.codename, user, owners_team)
@@ -270,7 +282,7 @@ def get_organization_members(organization):
 
 def get_organization_owners(organization):
     """Get owners team user queryset"""
-    team = get_organization_owners_team(organization)
+    team = get_or_create_organization_owners_team(organization)
     return team.user_set.all()
 
 
@@ -279,7 +291,8 @@ def _get_owners(organization):
 
     return [
         user
-        for user in get_organization_owners_team(organization).user_set.all()
+        for user in get_or_create_organization_owners_team(
+            organization).user_set.all()
         if get_role_in_org(user, organization) == 'owner'
         and organization.user != user
     ]
@@ -406,6 +419,7 @@ def publish_project_xform(request, project):
 
     if 'formid' in request.data:
         xform = get_object_or_404(XForm, pk=request.data.get('formid'))
+        safe_delete('{}{}'.format(PROJ_OWNER_CACHE, xform.project.pk))
         safe_delete('{}{}'.format(PROJ_FORMS_CACHE, xform.project.pk))
         safe_delete('{}{}'.format(PROJ_BASE_FORMS_CACHE, xform.project.pk))
         if not ManagerRole.user_has_role(request.user, xform):

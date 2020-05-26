@@ -26,50 +26,61 @@ def org_profile_post_delete_callback(sender, instance, **kwargs):
     safe_delete('{}{}'.format(IS_ORG, instance.pk))
 
 
-def create_owner_team_and_permissions(sender, instance, created, **kwargs):
+def create_owner_team_and_assign_permissions(org):
+    """
+    Creates an Owner Team for a given organization and
+    assigns the group and user permissions
+    """
+    team = Team.objects.create(
+        name=Team.OWNER_TEAM_NAME, organization=org.user,
+        created_by=org.created_by)
+    content_type = ContentType.objects.get(
+        app_label='api', model='organizationprofile')
+    # pylint: disable=unpacking-non-sequence
+    permission, _ = Permission.objects.get_or_create(
+        codename="is_org_owner", name="Organization Owner",
+        content_type=content_type)  # pylint: disable=
+    team.permissions.add(permission)
+    org.creator.groups.add(team)
+
+    for perm in get_perms_for_model(org.__class__):
+        assign_perm(perm.codename, org.user, org)
+
+        if org.creator:
+            assign_perm(perm.codename, org.creator, org)
+
+        if org.created_by and org.created_by != org.creator:
+            assign_perm(perm.codename, org.created_by, org)
+
+    if org.userprofile_ptr:
+        for perm in get_perms_for_model(
+                org.userprofile_ptr.__class__):
+            assign_perm(
+                perm.codename, org.user, org.userprofile_ptr)
+
+            if org.creator:
+                assign_perm(
+                    perm.codename,
+                    org.creator,
+                    org.userprofile_ptr)
+
+            if org.created_by and\
+                    org.created_by != org.creator:
+                assign_perm(
+                    perm.codename,
+                    org.created_by,
+                    org.userprofile_ptr)
+
+    return team
+
+
+def _post_save_create_owner_team(sender, instance, created, **kwargs):
     """
     Signal handler that creates the Owner team and assigns group and user
     permissions.
     """
     if created:
-        team = Team.objects.create(
-            name=Team.OWNER_TEAM_NAME, organization=instance.user,
-            created_by=instance.created_by)
-        content_type = ContentType.objects.get(
-            app_label='api', model='organizationprofile')
-        permission, created = Permission.objects.get_or_create(
-            codename="is_org_owner", name="Organization Owner",
-            content_type=content_type)
-        team.permissions.add(permission)
-        instance.creator.groups.add(team)
-
-        for perm in get_perms_for_model(instance.__class__):
-            assign_perm(perm.codename, instance.user, instance)
-
-            if instance.creator:
-                assign_perm(perm.codename, instance.creator, instance)
-
-            if instance.created_by and instance.created_by != instance.creator:
-                assign_perm(perm.codename, instance.created_by, instance)
-
-        if instance.userprofile_ptr:
-            for perm in get_perms_for_model(
-                    instance.userprofile_ptr.__class__):
-                assign_perm(
-                    perm.codename, instance.user, instance.userprofile_ptr)
-
-                if instance.creator:
-                    assign_perm(
-                        perm.codename,
-                        instance.creator,
-                        instance.userprofile_ptr)
-
-                if instance.created_by and\
-                        instance.created_by != instance.creator:
-                    assign_perm(
-                        perm.codename,
-                        instance.created_by,
-                        instance.userprofile_ptr)
+        create_owner_team_and_assign_permissions(instance)
 
 
 @python_2_unicode_compatible
@@ -124,7 +135,7 @@ class OrganizationProfile(UserProfile):
 
 
 post_save.connect(
-    create_owner_team_and_permissions, sender=OrganizationProfile,
+    _post_save_create_owner_team, sender=OrganizationProfile,
     dispatch_uid='create_owner_team_and_permissions')
 
 post_delete.connect(org_profile_post_delete_callback,

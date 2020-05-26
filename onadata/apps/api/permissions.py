@@ -503,7 +503,7 @@ class IsAuthenticatedSubmission(BasePermission):
 
     def has_permission(self, request, view):
         username = view.kwargs.get('username')
-        form_pk = view.kwargs.get('form_pk')
+        form_pk = view.kwargs.get('xform_pk')
         if request.method in ['HEAD', 'POST'] and request.user.is_anonymous:
             if username:
                 user = get_object_or_404(User, username__iexact=username)
