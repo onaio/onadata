@@ -328,6 +328,28 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
                 _('The public key is not a valid base64 RSA key'))
         return clean_public_key(value)
 
+    def _check_if_allowed_public(self, value):  # pylint: disable=no-self-use
+        """
+        Verify that users are allowed to create public
+        forms
+        """
+        if not settings.ALLOW_PUBLIC_DATASETS and value:
+            raise serializers.ValidationError(
+                _('Public forms are currently disabled.'))
+        return value
+
+    def validate_public_data(self, value):
+        """
+        Validate the public_data field
+        """
+        return self._check_if_allowed_public(value)
+
+    def validate_public(self, value):
+        """
+        Validate the public field
+        """
+        return self._check_if_allowed_public(value)
+
     def get_form_versions(self, obj):
         versions = []
         if obj:
