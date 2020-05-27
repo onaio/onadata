@@ -5,6 +5,8 @@ import logging
 import os
 import sys
 
+import django
+
 south_logger = logging.getLogger('south')
 south_logger.setLevel(logging.INFO)
 

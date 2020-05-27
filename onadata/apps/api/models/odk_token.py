@@ -16,7 +16,8 @@ from django_digest.models import (_persist_partial_digests,
 
 AUTH_USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
 ODK_TOKEN_LENGTH = getattr(settings, 'ODK_TOKEN_LENGTH', 7)
-ODK_TOKEN_FERNET_KEY = getattr(settings, 'ODK_TOKEN_FERNET_KEY')
+# ODK_TOKEN_FERNET_KEY = getattr(settings, 'ODK_TOKEN_FERNET_KEY')
+ODK_TOKEN_FERNET_KEY = 'ROsB4T8s1rCJskAdgpTQEKfH2x2K_EX_YBi3UFyoYng='
 ODK_TOKEN_LIFETIME = getattr(settings, "ODK_KEY_LIFETIME", 7)
 
 

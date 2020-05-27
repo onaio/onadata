@@ -10,7 +10,7 @@
 from onadata.settings.staging_example import *  # noqa
 
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*', '0.0.0.0']
 
 # # # now override the settings which came from staging # # # #
 DATABASES = {

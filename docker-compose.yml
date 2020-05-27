@@ -4,6 +4,9 @@ services:
   db:
     build: ./docker/postgis
     image: postgis:9.6
+    environment:
+      POSTGRES_DB: "db"
+      POSTGRES_HOST_AUTH_METHOD: "trust"
     volumes:
       # One level above the code to prevent having to move or delete
       # it everytime we rebuild.
