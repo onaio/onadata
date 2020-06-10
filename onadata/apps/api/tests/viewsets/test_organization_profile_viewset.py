@@ -1,21 +1,21 @@
 import json
-from mock import patch
 from builtins import str as text
 
 from django.contrib.auth.models import User
+from mock import patch
+from rest_framework import status
 
-from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
+from onadata.apps.api.models.organization_profile import OrganizationProfile
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
-from onadata.apps.api.viewsets.organization_profile_viewset import\
-    OrganizationProfileViewSet
-from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
-from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
-from onadata.libs.permissions import OwnerRole
 from onadata.apps.api.tools import (get_or_create_organization_owners_team,
                                     add_user_to_organization)
-from onadata.apps.api.models.organization_profile import OrganizationProfile
+from onadata.apps.api.viewsets.organization_profile_viewset import \
+    OrganizationProfileViewSet
+from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
+from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.main.models import UserProfile
-from rest_framework import status
+from onadata.libs.permissions import OwnerRole
 
 
 class TestOrganizationProfileViewSet(TestAbstractViewSet):
@@ -352,7 +352,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(dict(response.data[0]), expected_data)
+        self.assertDictEqual(dict(response.data[0]), expected_data)
 
     def test_role_for_org_non_owner(self):
         # creating org with member

@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import json
 import ssl
-from json import JSONDecodeError
 
 import paho.mqtt.publish as publish
 from django.conf import settings
@@ -39,7 +38,7 @@ def get_payload(instance):
     full_message_payload = getattr(settings, 'FULL_MESSAGE_PAYLOAD', False)
     try:
         description = json.loads(instance.description)
-    except JSONDecodeError:
+    except json.JSONDecodeError:
         description = instance.description
 
     if not full_message_payload:
@@ -118,7 +117,8 @@ class MQTTBackend(BaseBackend):
         }
         if kwargs['verb'] == MESSAGE:
             return (
-                '/{topic_base}/{target_name}/{target_id}/message/publish'.format(
+                '/{topic_base}/{target_name}/{target_id}/'
+                'messages/publish'.format(
                     **kwargs))
         return (
             '/{topic_base}/{target_name}/{target_id}/'

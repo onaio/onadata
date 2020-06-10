@@ -24,7 +24,8 @@ def update_instance_json_on_save(sender, instance, **kwargs):
     submission_instance.save()
 
 
-def send_message_on_save(sender, instance, **kwargs):
+def send_message_on_save(sender, instance,
+                         **kwargs):  # pylint: disable=unused-argument
     """
     Signal handler send message on save
     """

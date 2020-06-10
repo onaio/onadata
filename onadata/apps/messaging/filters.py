@@ -63,6 +63,7 @@ class TargetIDFilterBackend(filters.BaseFilterBackend):
         return queryset
 
 
+# pylint: disable=too-few-public-methods
 class UserFilterBackend(filters.BaseFilterBackend):
     """
     A filter backend that filters by username.
