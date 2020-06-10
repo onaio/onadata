@@ -12,6 +12,7 @@ import paho.mqtt.publish as publish
 from django.conf import settings
 
 from onadata.apps.messaging.backends.base import BaseBackend
+from onadata.apps.messaging.constants import MESSAGE
 from onadata.apps.messaging.constants import PROJECT, USER, XFORM
 
 
@@ -115,6 +116,10 @@ class MQTTBackend(BaseBackend):
             'topic_base': self.topic_base,
             'verb': instance.verb
         }
+        if kwargs['verb'] == MESSAGE:
+            return (
+                '/{topic_base}/{target_name}/{target_id}/message/publish'.format(
+                    **kwargs))
         return (
             '/{topic_base}/{target_name}/{target_id}/'
             '{verb}/messages/publish'.format(**kwargs))
