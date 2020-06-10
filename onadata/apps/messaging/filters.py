@@ -8,6 +8,7 @@ from django.contrib.auth.models import User
 from django.utils.translation import ugettext as _
 from rest_framework import exceptions, filters
 
+from onadata.apps.messaging.constants import MESSAGE
 from onadata.apps.messaging.utils import TargetDoesNotExist, get_target
 
 
@@ -79,6 +80,6 @@ class UserFilterBackend(filters.BaseFilterBackend):
                 user = User.objects.get(username=username)
                 return queryset.filter(actor_object_id=user.id)
             except User.DoesNotExist:
-                return queryset.none()
+                return queryset.filter(verb=MESSAGE)
 
         return queryset

@@ -93,6 +93,7 @@ class TestDataViewSet(TestBase):
 
     @patch('onadata.apps.logger.models.instance.send_message')
     def test_data(self, mock_send_message):
+        """Test DataViewSet list"""
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
