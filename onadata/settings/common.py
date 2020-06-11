@@ -213,6 +213,7 @@ INSTALLED_APPS = (
     'actstream',
     'onadata.apps.messaging.apps.MessagingConfig',
     'django_celery_results',
+    'oicd',
 )
 
 OAUTH2_PROVIDER = {
