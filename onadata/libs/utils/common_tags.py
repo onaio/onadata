@@ -181,3 +181,9 @@ METADATA_FIELDS = [
     '_submission_time',
     '_xform_id'
 ]
+
+APP_DOMAIN = [
+    'api.ona.io',
+    'stage-api.ona.io',
+    'localhost',
+    'api.preview.ona.io']

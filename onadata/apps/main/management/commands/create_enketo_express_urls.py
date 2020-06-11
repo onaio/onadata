@@ -6,6 +6,7 @@ from onadata.apps.logger.models import XForm
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.viewer_tools import (
     enketo_url, get_enketo_preview_url, get_form_url)
+from onadata.libs.utils.common_tags import APP_DOMAIN
 
 
 class Command(BaseCommand):
@@ -38,7 +39,7 @@ class Command(BaseCommand):
             raise CommandError(
                 'please provide a server_name, a server_port and a protocol')
 
-        if server_name not in ['api.ona.io', 'stage-api.ona.io', 'localhost']:
+        if server_name not in APP_DOMAIN:
             raise CommandError('server name provided is not valid')
 
         if protocol not in ['http', 'https']:
