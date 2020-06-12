@@ -160,6 +160,16 @@ class TestOpenIDConnectViewSet(TestAbstractViewSet):
         user = User.objects.get(username='davis')
         self.assertEqual(user.first_name, 'davis')
 
+        # Returns a 400 response if both family_name and given_name
+        # are missing
+        mock_get_decoded_id_token.return_value = {
+            'email': 'jake@doe.com'
+        }
+        data = {'id_token': 124, 'username': 'jake'}
+        request = self.factory.post('/', data=data)
+        response = self.view(request, openid_connect_provider='msft')
+        self.assertEqual(response.status_code, 400)
+
     @override_settings(OPENID_CONNECT_PROVIDERS=OPENID_CONNECT_PROVIDERS)
     @patch(('onadata.apps.api.viewsets.openid_connect_viewset.'
             'OpenIDHandler.verify_and_decode_id_token'))
