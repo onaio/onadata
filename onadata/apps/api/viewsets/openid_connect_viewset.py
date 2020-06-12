@@ -126,8 +126,10 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
                     return Response(
                         data, template_name='missing_oidc_detail.html')
 
-                first_name = claim_values.get(FIRST_NAME)
                 last_name = claim_values.get(LAST_NAME)
+                first_name = claim_values.get(FIRST_NAME)
+                if not first_name:
+                    first_name = last_name
                 user = create_or_get_user(first_name, last_name, email,
                                           username)
         else:
