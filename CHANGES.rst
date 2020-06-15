@@ -3,6 +3,13 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.3.4(2020-06-15)
+------------------
+
+- Use last name as first name if not present in OpenID Connect identification token
+  `PR #1831 <https://github.com/onaio/onadata/pull/1831>`_
+  [@DavisRayM]
+
 v2.3.3(2020-05-19)
 ------------------
 
