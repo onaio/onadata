@@ -82,6 +82,9 @@ ENKETO_AUTH_COOKIE = getattr(settings, 'ENKETO_AUTH_COOKIE',
                              '__enketo')
 ENKETO_META_UID_COOKIE = getattr(settings, 'ENKETO_META_UID_COOKIE',
                                  '__enketo_meta_uid')
+ENKETO_META_USERNAME_COOKIE = getattr(settings,
+                                      'ENKETO_META_USERNAME_COOKIE',
+                                      '__enketo_meta_username')
 
 BaseViewset = get_baseviewset_class()
 
@@ -172,6 +175,8 @@ def set_enketo_signed_cookies(resp, username=None, json_web_token=None):
         enketo['domain'] = settings.ENKETO_AUTH_COOKIE_DOMAIN
 
     resp.set_signed_cookie(ENKETO_META_UID_COOKIE, username, **enketo_meta_uid)
+    resp.set_signed_cookie(ENKETO_META_USERNAME_COOKIE, username,
+                           **enketo_meta_uid)
     resp.set_signed_cookie(ENKETO_AUTH_COOKIE, json_web_token, **enketo)
 
     return resp
