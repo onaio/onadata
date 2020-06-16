@@ -11,7 +11,7 @@ from onadata.apps.api.viewsets.submission_review_viewset import \
     SubmissionReviewViewSet
 from onadata.apps.logger.models import SubmissionReview, Instance
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.messaging.constants import XFORM, SUBMISSION_REVIEW
+from onadata.apps.messaging.constants import XFORM, SUBMISSION_REVIEWED
 from onadata.libs.permissions import CAN_CHANGE_XFORM
 from onadata.libs.utils.common_tags import REVIEW_STATUS, REVIEW_COMMENT
 
@@ -68,7 +68,7 @@ class TestSubmissionReviewViewSet(TestBase):
         self.assertTrue(mock_send_message.called)
         mock_send_message.called_with(
             submission_review.id, submission_review.instance.xform.id, XFORM,
-            submission_review.created_by, SUBMISSION_REVIEW)
+            submission_review.created_by, SUBMISSION_REVIEWED)
 
     def test_bulk_create_submission_review(self):
         """

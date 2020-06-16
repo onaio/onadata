@@ -10,7 +10,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from onadata.apps.messaging.constants import XFORM, SUBMISSION_REVIEW
+from onadata.apps.messaging.constants import XFORM, SUBMISSION_REVIEWED
 from onadata.apps.messaging.serializers import send_message
 
 
@@ -32,7 +32,7 @@ def send_message_on_save(sender, instance,
     send_message(
         instance_id=instance.instance.id, target_id=instance.instance.xform.id,
         target_type=XFORM, user=instance.created_by,
-        message_verb=SUBMISSION_REVIEW)
+        message_verb=SUBMISSION_REVIEWED)
 
 
 class SubmissionReview(models.Model):
