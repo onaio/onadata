@@ -28,7 +28,7 @@ from onadata.apps.main.models import UserProfile
 from onadata.libs.authentication import expired
 from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
 from onadata.libs.serializers.fields.json_field import JsonField
-from onadata.libs.utils.cache_tools import IS_ORG
+from onadata.libs.utils.cache_tools import IS_ORG, USER_PROFILE_PREFIX
 from onadata.libs.utils.email import (
     get_verification_url, get_verification_email_data
 )
@@ -273,6 +273,9 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             metadata=metadata
         )
         profile.save()
+
+        # cache user profile object
+        cache.set(f'{USER_PROFILE_PREFIX}{new_user.username}', profile)
 
         return profile
 
