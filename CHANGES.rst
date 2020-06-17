@@ -3,6 +3,19 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.3.5(2020-06-18)
+------------------
+
+- Introduced caching for UserProfile objects
+  `PR #1823 <https://github.com/onaio/onadata/pull/1823>`_
+  [@WinnyTroy]
+- Send CRUD notifications for Forms, Submissions and SubmissionReviews
+  `PR #1793 <https://github.com/onaio/onadata/pull/1793>`_
+  [@lincmba]
+- Set enketo cookie `__enketo_meta_username` on login
+  `PR #1834 <https://github.com/onaio/onadata/pull/1834>`_
+  [@FrankApiyo]
+
 v2.3.4(2020-06-15)
 ------------------
 
