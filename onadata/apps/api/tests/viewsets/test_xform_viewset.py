@@ -1064,6 +1064,13 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=formid)
             self.assertEqual(response.status_code, 302)
             self.assertEqual(response.get('Location'), return_url)
+            cookies = response.cookies
+            uid_cookie = cookies.get(settings.ENKETO_META_UID_COOKIE)._value
+            username_cookie = cookies.get(
+                settings.ENKETO_META_USERNAME_COOKIE)._value
+            # example cookie: bob:1jlVih:i2KvHoAtsQOlYB71CJeNuVUlEY0
+            self.assertEqual(username_cookie.split(':')[0], 'bob')
+            self.assertEqual(uid_cookie.split(':')[0], 'bob')
 
     def test_publish_xlsform(self):
         with HTTMock(enketo_mock):

@@ -107,6 +107,7 @@ ENKETO_API_SALT = 'secretsalt'
 VERIFY_SSL = True
 ENKETO_AUTH_COOKIE = '__enketo'
 ENKETO_META_UID_COOKIE = '__enketo_meta_uid'
+ENKETO_META_USERNAME_COOKIE = '__enketo_meta_username'
 
 # Login URLs
 LOGIN_URL = '/accounts/login/'
