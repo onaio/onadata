@@ -1,21 +1,22 @@
 import os
-
 from datetime import datetime
 from datetime import timedelta
+
+from django.http.request import HttpRequest
 from django.utils.timezone import utc
 from django_digest.test import DigestAuth
 from mock import patch
 
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm, Instance, SubmissionReview
 from onadata.apps.logger.models.instance import (
     get_id_string_from_xml_str, numeric_checker)
+from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.parsed_instance import (
     ParsedInstance, query_data)
-from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMISSION_TIME,\
-                                           XFORM_ID_STRING, SUBMITTED_BY
 from onadata.libs.serializers.submission_review_serializer import \
     SubmissionReviewSerializer
+from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMISSION_TIME, \
+    XFORM_ID_STRING, SUBMITTED_BY
 
 
 class TestInstance(TestBase):
@@ -230,8 +231,11 @@ class TestInstance(TestBase):
             "instance": instance.id,
             "status": SubmissionReview.APPROVED
         }
+        request = HttpRequest()
+        request.user = self.user
 
-        serializer_instance = SubmissionReviewSerializer(data=data)
+        serializer_instance = SubmissionReviewSerializer(data=data, context={
+            "request": request})
         serializer_instance.is_valid()
         serializer_instance.save()
         instance.refresh_from_db()
@@ -251,7 +255,8 @@ class TestInstance(TestBase):
             "status": SubmissionReview.APPROVED
         }
 
-        serializer_instance = SubmissionReviewSerializer(data=data)
+        serializer_instance = SubmissionReviewSerializer(data=data, context={
+            "request": request})
         serializer_instance.is_valid()
         serializer_instance.save()
         instance.refresh_from_db()

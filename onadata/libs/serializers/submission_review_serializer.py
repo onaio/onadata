@@ -56,7 +56,9 @@ class SubmissionReviewSerializer(serializers.ModelSerializer):
                 note = Note.objects.create(**note_data)
                 validated_data['note'] = note
 
-        return SubmissionReview.objects.create(**validated_data)
+        submission_review = SubmissionReview.objects.create(**validated_data)
+
+        return submission_review
 
     def update(self, instance, validated_data):
         """

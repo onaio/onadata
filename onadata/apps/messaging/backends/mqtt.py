@@ -8,8 +8,10 @@ import json
 import ssl
 
 import paho.mqtt.publish as publish
+from django.conf import settings
 
 from onadata.apps.messaging.backends.base import BaseBackend
+from onadata.apps.messaging.constants import MESSAGE
 from onadata.apps.messaging.constants import PROJECT, USER, XFORM
 
 
@@ -33,22 +35,36 @@ def get_payload(instance):
     """
     Constructs the message payload
     """
+    full_message_payload = getattr(settings, 'FULL_MESSAGE_PAYLOAD', False)
+    try:
+        description = json.loads(instance.description)
+    except json.JSONDecodeError:
+        description = instance.description
 
-    payload = {
-        'id': instance.id,
-        'time': instance.timestamp.isoformat(),
-        'payload': {
-            'author': {
-                'username': instance.actor.username,
-                'real_name': instance.actor.get_full_name()
-            },
-            'context': {
-                'type': instance.target._meta.model_name,
-                'metadata': get_target_metadata(instance.target)
-            },
-            'message': instance.description
+    if not full_message_payload:
+        payload = {
+            "id": instance.id,
+            "verb": instance.verb,
+            "message": description,
+            "user": instance.actor.username,
+            "timestamp": instance.timestamp.isoformat()
         }
-    }
+    else:
+        payload = {
+            'id': instance.id,
+            'time': instance.timestamp.isoformat(),
+            'payload': {
+                'author': {
+                    'username': instance.actor.username,
+                    'real_name': instance.actor.get_full_name()
+                },
+                'context': {
+                    'type': instance.target._meta.model_name,
+                    'metadata': get_target_metadata(instance.target)
+                },
+                'message': description
+            }
+        }
 
     return json.dumps(payload)
 
@@ -89,18 +105,24 @@ class MQTTBackend(BaseBackend):
         Constructs the message topic
 
         For sending messages it should look like:
-            /onadata/forms/[pk or uuid]/messages/publish
-            /onadata/projects/[pk or uuid]/messages/publish
-            /onadata/users/[pk or uuid]/messages/publish
+            /onadata/forms/[pk or uuid]/[verb]/messages/publish
+            /onadata/projects/[pk or uuid]/[verb]/messages/publish
+            /onadata/users/[pk or uuid]/[verb]/messages/publish
         """
         kwargs = {
             'target_id': instance.target_object_id,
             'target_name': instance.target._meta.model_name,
-            'topic_base': self.topic_base
+            'topic_base': self.topic_base,
+            'verb': instance.verb
         }
+        if kwargs['verb'] == MESSAGE:
+            return (
+                '/{topic_base}/{target_name}/{target_id}/'
+                'messages/publish'.format(
+                    **kwargs))
         return (
-            '/{topic_base}/{target_name}/{target_id}/messages/publish'.format(
-                **kwargs))
+            '/{topic_base}/{target_name}/{target_id}/'
+            '{verb}/messages/publish'.format(**kwargs))
 
     def send(self, instance):
         """
