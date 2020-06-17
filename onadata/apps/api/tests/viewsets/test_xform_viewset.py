@@ -1055,6 +1055,13 @@ class TestXFormViewSet(TestAbstractViewSet):
             query_data = {'return': url}
             request = self.factory.get('/', data=query_data)
             response = view(request, pk=formid)
+            cookies = response.cookies
+            uid_cookie = cookies.get(settings.ENKETO_META_UID_COOKIE)._value
+            username_cookie = cookies.get(settings.ENKETO_META_USERNAME_COOKIE)
+            username_cookie = username_cookie._value
+            # exmple cookie: bob:1jlVih:i2KvHoAtsQOlYB71CJeNuVUlEY0
+            self.assertEqual(username_cookie.split(':')[0], 'bob')
+            self.assertEqual(username_cookie.split(':')[0], 'bob')
             self.assertEqual(response.status_code, 302)
             self.assertEqual(response.get('Location'), return_url)
 
