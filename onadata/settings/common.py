@@ -107,6 +107,7 @@ ENKETO_API_SALT = 'secretsalt'
 VERIFY_SSL = True
 ENKETO_AUTH_COOKIE = '__enketo'
 ENKETO_META_UID_COOKIE = '__enketo_meta_uid'
+ENKETO_META_USERNAME_COOKIE = '__enketo_meta_username'
 
 # Login URLs
 LOGIN_URL = '/accounts/login/'
@@ -571,3 +572,7 @@ SECRET_KEY = 'mlfs33^s1l4xf6a36$0#j%dd*sisfoi&)&4s-v=91#^l01v)*j'
 LOCKOUT_TIME = 30 * 60
 MAX_LOGIN_ATTEMPTS = 10
 SUPPORT_EMAIL = "support@example.com"
+FULL_MESSAGE_PAYLOAD = False
+
+# Project & XForm Visibility Settings
+ALLOW_PUBLIC_DATASETS = True

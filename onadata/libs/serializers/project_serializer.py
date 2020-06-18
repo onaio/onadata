@@ -369,6 +369,15 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             })
         return attrs
 
+    def validate_public(self, value):  # pylint: disable=no-self-use
+        """
+        Validate the public field
+        """
+        if not settings.ALLOW_PUBLIC_DATASETS and value:
+            raise serializers.ValidationError(
+                _('Public projects are currently disabled.'))
+        return value
+
     def validate_metadata(self, value):  # pylint: disable=no-self-use
         """
         Validate metadaata is a valid JSON value.

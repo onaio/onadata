@@ -5,13 +5,18 @@ Message serializers
 
 from __future__ import unicode_literals
 
-from django.utils.translation import ugettext as _
+import json
+
 from actstream.actions import action_handler
 from actstream.models import Action
 from actstream.signals import action
+from celery import task
+from django.conf import settings
+from django.http import HttpRequest
+from django.utils.translation import ugettext as _
 from rest_framework import exceptions, serializers
 
-from onadata.apps.messaging.constants import MESSAGE
+from onadata.apps.messaging.constants import MESSAGE, MESSAGE_VERBS
 from onadata.apps.messaging.utils import TargetDoesNotExist, get_target
 
 
@@ -39,13 +44,25 @@ class MessageSerializer(serializers.ModelSerializer):
     target_id = serializers.IntegerField(source='target_object_id')
     target_type = ContentTypeChoiceField(
         TARGET_CHOICES, source='target_content_type')
+    user = serializers.CharField(source='actor', required=False)
+    verb = serializers.ChoiceField(MESSAGE_VERBS, default=MESSAGE)
 
     class Meta:
         """
         MessageSerializer metadata
         """
         model = Action
-        fields = ['id', 'message', 'target_id', 'target_type', 'timestamp']
+        fields = ['id', 'verb', 'message', 'user', 'target_id', 'target_type',
+                  'timestamp']
+
+    def __init__(self, *args, **kwargs):
+        super(MessageSerializer, self).__init__(*args, **kwargs)
+        request = self.context.get('request')
+        full_message_payload = getattr(settings, 'FULL_MESSAGE_PAYLOAD', False)
+        if request and request.method == 'GET' and not full_message_payload:
+            extra_fields = ['target_type', 'target_id']
+            for field in extra_fields:
+                self.fields.pop(field)
 
     def create(self, validated_data):
         """
@@ -54,6 +71,7 @@ class MessageSerializer(serializers.ModelSerializer):
         request = self.context['request']
         target_type = validated_data.get("target_content_type")
         target_id = validated_data.get("target_object_id")
+        verb = validated_data.get("verb", MESSAGE)
         try:
             content_type = get_target(target_type)
         except TargetDoesNotExist:
@@ -73,13 +91,14 @@ class MessageSerializer(serializers.ModelSerializer):
                 permission = '{}.change_{}'.format(
                     target_object._meta.app_label,
                     target_object._meta.model_name)
-                if not request.user.has_perm(permission, target_object):
+                if not request.user.has_perm(permission, target_object) \
+                        and verb == MESSAGE:
                     message = (_("You do not have permission to add messages "
                                "to target_id %s.") % target_object)
                     raise exceptions.PermissionDenied(detail=message)
                 results = action.send(
                     request.user,
-                    verb=MESSAGE,
+                    verb=verb,
                     target=target_object,
                     description=validated_data.get("description"))
 
@@ -99,3 +118,28 @@ class MessageSerializer(serializers.ModelSerializer):
                         "Message not created. Please retry.")
                 else:
                     return instance
+
+
+@task
+def send_message(instance_id, target_id, target_type, user, message_verb):
+    """
+    Send a message.
+    :param id: id of instance/form that has changed
+    :param target_id: id of the target_type
+    :param target_type: any of these three ['xform', 'project', 'user']
+    :param request: http request object
+    :return:
+    """
+    if user:
+        request = HttpRequest()
+        request.user = user
+        message = json.dumps({'id': instance_id})
+        data = {
+            "message": message,
+            "target_id": target_id,
+            "target_type": target_type,
+            "verb": message_verb
+        }
+        message = MessageSerializer(data=data, context={"request": request})
+        if message.is_valid():
+            message.save()

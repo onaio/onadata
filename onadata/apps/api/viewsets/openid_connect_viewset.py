@@ -1,4 +1,5 @@
 import secrets
+import json
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -126,8 +127,16 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
                     return Response(
                         data, template_name='missing_oidc_detail.html')
 
-                first_name = claim_values.get(FIRST_NAME)
                 last_name = claim_values.get(LAST_NAME)
+                first_name = claim_values.get(FIRST_NAME)
+                if not first_name and not last_name:
+                    return HttpResponseBadRequest(
+                        json.dumps(
+                            _('Missing required claims/fields:'
+                              f' {FIRST_NAME}, {LAST_NAME}')))
+                else:
+                    first_name = first_name or last_name
+
                 user = create_or_get_user(first_name, last_name, email,
                                           username)
         else:
@@ -144,7 +153,9 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
         elif data.get('id_token'):
             return Response(data, template_name='oidc_username_entry.html')
         else:
-            return HttpResponseBadRequest()
+            return HttpResponseBadRequest(
+                json.dumps(_(f'Unable to authenticate with {openid_provider}'))
+            )
 
 
 def create_or_get_user(

@@ -11,6 +11,7 @@ from operator import itemgetter
 from django.conf import settings
 from django.db.models import Q
 from django.core.cache import cache
+from django.test import override_settings
 from httmock import HTTMock, urlmatch
 from mock import MagicMock, patch
 import requests
@@ -825,6 +826,28 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=post_data, **self.extra)
         response = view(request, pk=org_project.id)
         self.assertEqual(response.status_code, 201)
+
+    @override_settings(ALLOW_PUBLIC_DATASETS=False)
+    def test_disallow_public_project_creation(self):
+        """
+        Test that an error is raised when a user tries to create a public
+        project when public projects are disabled.
+        """
+        view = ProjectViewSet.as_view({
+            'post': 'create'
+        })
+        data = {
+            'name': u'demo',
+            'owner':
+            'http://testserver/api/v1/users/%s' % self.user.username,
+            'public': True
+        }
+        request = self.factory.post('/', data=data, **self.extra)
+        response = view(request, owner=self.user.username)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data['public'][0],
+            "Public projects are currently disabled.")
 
     @patch('onadata.apps.api.viewsets.project_viewset.send_mail')
     def test_form_transfer_when_org_admin_not_creator_creates_project(

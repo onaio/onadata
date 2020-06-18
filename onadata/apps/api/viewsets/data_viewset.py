@@ -2,36 +2,40 @@ import json
 import types
 from builtins import str as text
 
+from django.conf import settings
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.db.models.query import QuerySet
 from django.db.utils import DataError
-from django.conf import settings
 from django.http import Http404
 from django.http import StreamingHttpResponse
 from django.utils import six
-from django.utils.translation import ugettext as _
-from django.core.exceptions import PermissionDenied
 from django.utils import timezone
+from django.utils.translation import ugettext as _
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.exceptions import ParseError
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet
-from rest_framework.exceptions import ParseError
 from rest_framework.settings import api_settings
+from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.api.tools import add_tags_to_instance
-from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models import OsmData, MergedXForm
-from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import Instance
+from onadata.apps.logger.models.xform import XForm
+from onadata.apps.messaging.constants import XFORM, SUBMISSION_DELETED
+from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer.models.parsed_instance import get_etag_hash_from_query
 from onadata.apps.viewer.models.parsed_instance import get_sql_with_params
 from onadata.apps.viewer.models.parsed_instance import get_where_clause
 from onadata.apps.viewer.models.parsed_instance import query_data
+from onadata.libs import filters
+from onadata.libs.data import parse_int
+from onadata.libs.exceptions import EnketoError
 from onadata.libs.exceptions import NoRecordsPermission
-from onadata.libs.renderers import renderers
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
 from onadata.libs.mixins.authenticate_header_mixin import \
@@ -39,26 +43,23 @@ from onadata.libs.mixins.authenticate_header_mixin import \
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.pagination import StandardPageNumberPagination
-from onadata.libs.serializers.data_serializer import DataSerializer
+from onadata.libs.permissions import CAN_DELETE_SUBMISSION, \
+    filter_queryset_xform_meta_perms, filter_queryset_xform_meta_perms_sql
+from onadata.libs.renderers import renderers
 from onadata.libs.serializers.data_serializer import (
     DataInstanceSerializer,
     InstanceHistorySerializer)
+from onadata.libs.serializers.data_serializer import DataSerializer
 from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.serializers.data_serializer import OSMSerializer
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
-from onadata.libs import filters
-from onadata.libs.permissions import CAN_DELETE_SUBMISSION,\
-    filter_queryset_xform_meta_perms, filter_queryset_xform_meta_perms_sql
-from onadata.libs.exceptions import EnketoError
-from onadata.libs.utils.viewer_tools import get_enketo_edit_url
 from onadata.libs.utils.api_export_tools import custom_response_handler
-from onadata.libs.data import parse_int
 from onadata.libs.utils.common_tools import json_stream
+from onadata.libs.utils.viewer_tools import get_enketo_edit_url
 from onadata.apps.api.permissions import ConnectViewsetPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.instance import FormInactiveError
 from onadata.libs.utils.model_tools import queryset_iterator
-
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 BaseViewset = get_baseviewset_class()
 
@@ -304,6 +305,12 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 # updates the num_of_submissions for the form.
                 after_count = self.object.submission_count(force_update=True)
                 number_of_records_deleted = initial_count - after_count
+
+                # send message
+                send_message(
+                    instance_id=instance_ids, target_id=self.object.id,
+                    target_type=XFORM, user=request.user,
+                    message_verb=SUBMISSION_DELETED)
 
                 return Response(
                     data={

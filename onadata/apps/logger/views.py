@@ -36,6 +36,8 @@ from onadata.apps.main.models import MetaData, UserProfile
 from onadata.libs.exceptions import EnketoError
 from onadata.libs.utils.decorators import is_owner
 from onadata.libs.utils.log import Actions, audit_log
+from onadata.libs.utils.cache_tools import (cache,
+                                            USER_PROFILE_PREFIX)
 from onadata.libs.utils.logger_tools import (
     BaseOpenRosaResponse, OpenRosaResponse, OpenRosaResponseBadRequest,
     PublishXForm, inject_instanceid, publish_form, remove_xform,
@@ -172,7 +174,11 @@ def formList(request, username):  # pylint: disable=C0103
     formList view, /formList OpenRosa Form Discovery API 1.0.
     """
     formlist_user = get_object_or_404(User, username__iexact=username)
-    profile, __ = UserProfile.objects.get_or_create(user=formlist_user)
+    profile = cache.get(
+        f'{USER_PROFILE_PREFIX}{formlist_user.username}')
+    if not profile:
+        profile, __ = UserProfile.objects.get_or_create(
+            user__username=formlist_user.username)
 
     if profile.require_auth:
         authenticator = HttpDigestAuthenticator()
@@ -231,7 +237,11 @@ def xformsManifest(request, username, id_string):  # pylint: disable=C0103
 
     xform = get_form(xform_kwargs)
     formlist_user = xform.user
-    profile, __ = UserProfile.objects.get_or_create(user=formlist_user)
+    profile = cache.get(
+        f'{USER_PROFILE_PREFIX}{formlist_user.username}')
+    if not profile:
+        profile, __ = UserProfile.objects.get_or_create(
+            user__username=formlist_user.username)
 
     if profile.require_auth:
         authenticator = HttpDigestAuthenticator()

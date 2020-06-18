@@ -10,6 +10,7 @@ from future.moves.urllib.parse import urlencode
 from past.builtins import basestring  # pylint: disable=redefined-builtin
 
 from django.conf import settings
+from django.core.cache import cache
 from django.core.validators import ValidationError
 from django.db.models import Count
 from django.http import HttpResponseRedirect, HttpResponseBadRequest
@@ -33,9 +34,10 @@ from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.models import UserProfile
 from onadata.libs.utils.email import (get_verification_email_data,
                                       get_verification_url)
-from onadata.libs.utils.cache_tools import (cache,
+from onadata.libs.utils.cache_tools import (safe_delete,
                                             CHANGE_PASSWORD_ATTEMPTS,
-                                            LOCKOUT_CHANGE_PASSWORD_USER)
+                                            LOCKOUT_CHANGE_PASSWORD_USER,
+                                            USER_PROFILE_PREFIX)
 from onadata.libs import filters
 from onadata.libs.utils.user_auth import invalidate_and_regen_tokens
 from onadata.libs.mixins.authenticate_header_mixin import \
@@ -167,6 +169,12 @@ class UserProfileViewSet(
         if self.kwargs.get(self.lookup_field, None) is None:
             raise ParseError(
                 'Expected URL keyword argument `%s`.' % self.lookup_field)
+        user_name = self.kwargs[self.lookup_field]
+        user_profile = cache.get(f'{USER_PROFILE_PREFIX}{user_name}')
+
+        if user_profile:
+            return user_profile
+
         if queryset is None:
             queryset = self.filter_queryset(self.get_queryset())
 
@@ -193,6 +201,10 @@ class UserProfileViewSet(
         # May raise a permission denied
         self.check_object_permissions(self.request, obj)
 
+        # cache user profile object
+        obj.refresh_from_db()
+        cache.set(f'{USER_PROFILE_PREFIX}{user_name}', obj)
+
         return obj
 
     @action(methods=['POST'], detail=True)
@@ -200,6 +212,8 @@ class UserProfileViewSet(
         """
         Change user's password.
         """
+        # clear cache
+        safe_delete(f'{USER_PROFILE_PREFIX}{request.user.username}')
         user_profile = self.get_object()
         current_password = request.data.get('current_password', None)
         new_password = request.data.get('new_password', None)
@@ -237,6 +251,8 @@ class UserProfileViewSet(
         return Response(data=lock_out, status=status.HTTP_400_BAD_REQUEST)
 
     def partial_update(self, request, *args, **kwargs):
+        # clear cache
+        safe_delete(f'{USER_PROFILE_PREFIX}{request.user.username}')
         profile = self.get_object()
         metadata = profile.metadata or {}
         if request.data.get('overwrite') == 'false':
@@ -254,6 +270,10 @@ class UserProfileViewSet(
 
             profile.metadata = metadata
             profile.save()
+
+            # cache user profile object
+            profile.refresh_from_db()
+            cache.set(f'{USER_PROFILE_PREFIX}{profile.user.username}', profile)
             return Response(data=profile.metadata, status=status.HTTP_200_OK)
 
         return super(UserProfileViewSet, self).partial_update(
@@ -262,6 +282,8 @@ class UserProfileViewSet(
     @action(methods=['GET'], detail=True)
     def monthly_submissions(self, request, *args, **kwargs):
         """ Get the total number of submissions for a user """
+        # clear cache
+        safe_delete(f'{USER_PROFILE_PREFIX}{request.user.username}')
         profile = self.get_object()
         month_param = self.request.query_params.get('month', None)
         year_param = self.request.query_params.get('year', None)
