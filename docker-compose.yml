@@ -30,3 +30,14 @@ services:
       - queue
     environment:
       - SELECTED_PYTHON=python3.6
+
+  nginx:
+    image: nginx
+    container_name: ng
+    ports: 
+      - "3030:3030"
+      - "8000:8000"
+    volumes: 
+      - ./config/nginx/:/etc/nginx/conf.d
+    depends_on: 
+      - web
