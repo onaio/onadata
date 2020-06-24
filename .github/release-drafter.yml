@@ -1,0 +1,3 @@
+template: |
+  $ CHANGES
+change-template: - $TITLE PR #$NUMBER [@$AUTHOR]
