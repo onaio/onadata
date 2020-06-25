@@ -30,6 +30,7 @@ from onadata.libs.utils.common_tags import (
     ATTACHMENTS,
     NOTES,
     GEOLOCATION,
+    MULTIPLE_SELECT_TYPE,
     NA_REP)
 
 BaseViewset = get_baseviewset_class()
@@ -99,7 +100,7 @@ def process_tableau_data(data, xform):
                 else:
                     try:
                         qstn_type = xform.get_element(key).type
-                        if qstn_type == "select all that apply":
+                        if qstn_type == MULTIPLE_SELECT_TYPE:
                             choices = value.split(" ")
                             for choice in choices:
                                 xpaths = f'{key}_{choice}'

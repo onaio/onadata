@@ -111,9 +111,10 @@ class TestOpenDataViewSet(TestBase):
         # cast generator response to list so that we can get the response count
         self.assertEqual(len(streaming_data(response)), 4)
 
-    def test_tableau_get_group_data(self):
+    def test_unpack_tableau_data_successfully(self):
         """
-        Test tableau unpacks group data successfully
+        Test group data as well as select multiple data
+        are unpacked successfully
         """
         self._make_submissions()
         self.view = OpenDataViewSet.as_view({
@@ -130,14 +131,23 @@ class TestOpenDataViewSet(TestBase):
         self.assertEqual(len(row_data), 4)
         # Confirm group data is available in tableau
         self.assertEqual(
-            row_data[3]['transport_available_'
-                        'transportation_types_to_referral_facility'],  # noqa
-            'taxi other')
+            row_data[1]['transport_loop_over_transport_types_'
+                'frequency_ambulance_frequency_to_referral_facility'],  # noqa
+            'daily')
         self.assertEqual(
             row_data[3][
                 'transport_loop_over_transport_'
                 'types_frequency_taxi_frequency_to_referral_facility'],  # noqa
             'daily')
+        # Confirm select_multiple data is available in tableau
+        self.assertEqual(
+            row_data[1]['transport_available_'
+                'transportation_types_to_referral_facility_ambulance'],  # noqa
+            'ambulance')
+        self.assertEqual(
+            row_data[1]['transport_available_'
+                'transportation_types_to_referral_facility_bicycle'],  # noqa
+            'bicycle')
 
     def test_get_data_with_pagination(self):
         self._make_submissions()
