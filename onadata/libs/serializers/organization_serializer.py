@@ -67,7 +67,6 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
 
         username = instance.user.username
         cache.set(f'{ORG_PROFILE_CACHE}{username}', instance)
-        print('instance: ', instance)
 
         return super(OrganizationSerializer, self).update(
             instance, validated_data

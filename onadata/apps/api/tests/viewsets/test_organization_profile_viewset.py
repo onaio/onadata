@@ -2,6 +2,7 @@ import json
 from builtins import str as text
 
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from mock import patch
 from rest_framework import status
 
@@ -27,6 +28,12 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             'post': 'create',
             'patch': 'partial_update',
         })
+
+    def tearDown(self):
+        """
+        Clear cache between tests
+        """
+        cache.clear()
 
     def test_partial_updates(self):
         self._org_create()
@@ -418,7 +425,6 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             content_type="application/json", **self.extra)
 
         response = view(request, user='denoinc')
-        # import ipdb; ipdb.set_trace()
         self.assertEqual(response.status_code, 404)
         self.assertNotEqual(set(response.data), set([u'denoinc', u'aboy']))
 
