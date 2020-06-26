@@ -418,6 +418,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             content_type="application/json", **self.extra)
 
         response = view(request, user='denoinc')
+        # import ipdb; ipdb.set_trace()
         self.assertEqual(response.status_code, 404)
         self.assertNotEqual(set(response.data), set([u'denoinc', u'aboy']))
 

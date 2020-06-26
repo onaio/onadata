@@ -1,5 +1,6 @@
 import json
 from django.conf import settings
+from django.core.cache import cache
 from django.utils.module_loading import import_string
 
 from rest_framework import status
@@ -23,6 +24,7 @@ from onadata.libs.serializers.organization_member_serializer import \
     OrganizationMemberSerializer
 from onadata.libs.serializers.organization_serializer import (
     OrganizationSerializer)
+from onadata.libs.utils.cache_tools import ORG_PROFILE_CACHE
 
 
 BaseViewset = get_baseviewset_class()
@@ -53,7 +55,12 @@ class OrganizationProfileViewSet(AuthenticateHeaderMixin,
 
     @action(methods=['DELETE', 'GET', 'POST', 'PUT'], detail=True)
     def members(self, request, *args, **kwargs):
-        organization = self.get_object()
+
+        username = kwargs.get('user')
+        organization = cache.get(f'{ORG_PROFILE_CACHE}{username}')
+        if not organization:
+            organization = self.get_object()
+
         data = merge_dicts(request.data,
                            request.query_params.dict(),
                            {'organization': organization.pk})

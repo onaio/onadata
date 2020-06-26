@@ -5,6 +5,7 @@ Organization Serializer
 from past.builtins import basestring  # pylint: disable=redefined-builtin
 
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.db.models.query import QuerySet
 from django.utils.translation import ugettext as _
 
@@ -18,6 +19,7 @@ from onadata.apps.api.tools import (_get_first_last_names,
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.libs.permissions import get_role_in_org
 from onadata.libs.serializers.fields.json_field import JsonField
+from onadata.libs.utils.cache_tools import ORG_PROFILE_CACHE
 
 
 class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
@@ -63,6 +65,10 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
             instance.user.last_name = last_name
             instance.user.save()
 
+        username = instance.user.username
+        cache.set(f'{ORG_PROFILE_CACHE}{username}', instance)
+        print('instance: ', instance)
+
         return super(OrganizationSerializer, self).update(
             instance, validated_data
         )
@@ -83,6 +89,9 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         profile = tools.create_organization_object(org, creator,
                                                    validated_data)
         profile.save()
+
+        username = profile.user.username
+        cache.set(f'{ORG_PROFILE_CACHE}{username}', profile)
 
         return profile
 
