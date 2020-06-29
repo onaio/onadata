@@ -57,9 +57,9 @@ class OrganizationProfileViewSet(AuthenticateHeaderMixin,
     def members(self, request, *args, **kwargs):
         username = kwargs.get('user')
         organization = cache.get(f'{ORG_PROFILE_CACHE}{username}')
-        obj = self.get_object()
-        if not organization:
-            organization = obj
+
+        if not organization or request.method != 'GET':
+            organization = self.get_object()
 
         data = merge_dicts(request.data,
                            request.query_params.dict(),
