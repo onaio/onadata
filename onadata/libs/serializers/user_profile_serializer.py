@@ -228,6 +228,9 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             # force django-digest to regenerate its stored partial digests
             update_partial_digests(instance.user, password)
 
+        # cache user profile object
+        cache.set(f'{USER_PROFILE_PREFIX}{new_user.username}', profile)
+
         return super(UserProfileSerializer, self).update(instance, params)
 
     def create(self, validated_data):
