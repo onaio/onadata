@@ -229,7 +229,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             update_partial_digests(instance.user, password)
 
         # cache user profile object
-        cache.set(f'{USER_PROFILE_PREFIX}{new_user.username}', profile)
+        cache.set(f'{USER_PROFILE_PREFIX}{instance.user.username}', instance)
 
         return super(UserProfileSerializer, self).update(instance, params)
 
