@@ -30,6 +30,7 @@ from onadata.libs.utils.common_tags import (
     ATTACHMENTS,
     NOTES,
     GEOLOCATION,
+    MULTIPLE_SELECT_TYPE,
     NA_REP)
 
 BaseViewset = get_baseviewset_class()
@@ -97,7 +98,18 @@ def process_tableau_data(data, xform):
                         item = get_ordered_repeat_value(key, item, index)
                         flat_dict.update(item)
                 else:
-                    flat_dict[key] = value
+                    try:
+                        qstn_type = xform.get_element(key).type
+                        if qstn_type == MULTIPLE_SELECT_TYPE:
+                            choices = value.split(" ")
+                            for choice in choices:
+                                xpaths = f'{key}_{choice}'
+                                flat_dict[xpaths] = choice
+                        else:
+                            flat_dict[key] = value
+                    except AttributeError:
+                        flat_dict[key] = value
+
             result.append(flat_dict)
     return result
 
