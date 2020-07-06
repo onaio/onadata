@@ -38,6 +38,9 @@ class DeleteUserTest(TestBase):
             "User bruce deleted successfully.",
             out.getvalue())
 
+        with self.assertRaises(User.DoesNotExist):
+            User.objects.get(email="bruce@gmail.com")
+
     @mock.patch(
         "onadata.apps.api.management.commands.delete_users.input")
     def test_delete_users_no_input(self, mock_input):  # pylint: disable=R0201
