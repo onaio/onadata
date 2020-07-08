@@ -72,15 +72,36 @@ def process_tableau_data(data, xform):
                 # abbreviated xpath "children/details/immunization/polio_1",
                 # generate ["children", index, "immunization/polio_1"]
                 for (nested_key, nested_val) in item_list.items():
-                    xpaths = [
-                        '{key}{open_tag}{index}{close_tag}'.format(
-                            key=nested_key.split('/')[0],
+                    if len(key.split('/')) > 1:
+                        # Given the key
+                        # "hospital/hiv_medication/person_repeat/person/first_name"
+                        # Use length of the key provided to determine nested
+                        # repeats/groups. Unpack the key to generate
+                        # hospital/hiv_medication/person_repeat[1]/person/first_name'
+
+                        split_key = nested_key.split('/')
+                        split_nested_key = key.split('/')
+                        nested_key_diff = "/".join([
+                            i for i in split_key + split_nested_key
+                            if i not in split_key or
+                            i not in split_nested_key])
+                        xpaths = '{key}{open_tag}{index}{close_tag}'.format(
+                            key=key,
                             open_tag=index_tags[0],
                             index=index,
-                            close_tag=index_tags[1])] + [
-                                nested_key.split('/')[1]]
-                    xpaths = "/".join(xpaths)
-                    data[xpaths] = nested_val
+                            close_tag=index_tags[1]) + '/' + nested_key_diff
+                        xpaths.replace('/', '_')
+                        data[xpaths] = nested_val
+                    else:
+                        xpaths = [
+                            '{key}{open_tag}{index}{close_tag}'.format(
+                                key=nested_key.split('/')[0],
+                                open_tag=index_tags[0],
+                                index=index,
+                                close_tag=index_tags[1])
+                                ] + [nested_key.split('/')[1]]
+                        xpaths = "/".join(xpaths)
+                        data[xpaths] = nested_val
         return data
 
     result = []
