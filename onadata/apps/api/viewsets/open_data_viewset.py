@@ -53,6 +53,12 @@ def process_tableau_data(data, xform):
     with the column header fields for the same form.
     Handles Flattenning repeat data for tableau
     """
+    def unpack_select_multiples(key, value, data):
+        choices = value.split(" ")
+        for choice in choices:
+            xpaths = f'{key}/{choice}'
+            data[xpaths] = choice
+
     def get_ordered_repeat_value(key, item, index):
         """
         Return Ordered Dict of repeats in the order in which they appear in
@@ -72,35 +78,26 @@ def process_tableau_data(data, xform):
                 # abbreviated xpath "children/details/immunization/polio_1",
                 # generate ["children", index, "immunization/polio_1"]
                 for (nested_key, nested_val) in item_list.items():
-                    if len(key.split('/')) > 1:
-                        # Given the key
-                        # "hospital/hiv_medication/person_repeat/person/first_name"
-                        # Use length of the key provided to determine nested
-                        # repeats/groups. Unpack the key to generate
-                        # hospital/hiv_medication/person_repeat[1]/person/first_name'
-
-                        split_key = nested_key.split('/')
-                        split_nested_key = key.split('/')
-                        nested_key_diff = "/".join([
-                            i for i in split_key + split_nested_key
-                            if i not in split_key or
-                            i not in split_nested_key])
-                        xpaths = '{key}{open_tag}{index}{close_tag}'.format(
-                            key=key,
+                    qstn_type = xform.get_element(nested_key).type
+                    nested_key_diff = set(
+                            key.split('/')).difference(
+                            set(nested_key.split('/')))
+                    xpaths = [
+                        '{key}{open_tag}{index}{close_tag}'.format(
+                            key=key if len(key) > 1
+                            else nested_key.split('/')[0],
                             open_tag=index_tags[0],
                             index=index,
-                            close_tag=index_tags[1]) + '/' + nested_key_diff
-                        xpaths.replace('/', '_')
-                        data[xpaths] = nested_val
+                            close_tag=index_tags[1])
+                            ]
+                    if len(key.split('/')) > 1:
+                        xpaths = xpaths[0] + '/' + nested_key_diff
                     else:
-                        xpaths = [
-                            '{key}{open_tag}{index}{close_tag}'.format(
-                                key=nested_key.split('/')[0],
-                                open_tag=index_tags[0],
-                                index=index,
-                                close_tag=index_tags[1])
-                                ] + [nested_key.split('/')[1]]
-                        xpaths = "/".join(xpaths)
+                        xpaths = xpaths + [nested_key.split('/')[1]]
+                    xpaths = "/".join(xpaths)
+                    if qstn_type == MULTIPLE_SELECT_TYPE:
+                        unpack_select_multiples(xpaths, nested_val, data)
+                    else:
                         data[xpaths] = nested_val
         return data
 
@@ -122,10 +119,7 @@ def process_tableau_data(data, xform):
                     try:
                         qstn_type = xform.get_element(key).type
                         if qstn_type == MULTIPLE_SELECT_TYPE:
-                            choices = value.split(" ")
-                            for choice in choices:
-                                xpaths = f'{key}_{choice}'
-                                flat_dict[xpaths] = choice
+                            unpack_select_multiples(key, value, flat_dict)
                         else:
                             flat_dict[key] = value
                     except AttributeError:
