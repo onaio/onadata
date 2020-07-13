@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models.signals import post_save
 
 from onadata.apps.logger.models.xform import XForm
+from onadata.libs.utils.model_tools import set_uuid
 
 
 class MergedXForm(XForm):
@@ -14,6 +15,10 @@ class MergedXForm(XForm):
 
     class Meta:
         app_label = 'logger'
+
+    def save(self, *args, **kwargs):
+        set_uuid(self)
+        return super(MergedXForm, self).save(*args, **kwargs)
 
 
 def set_object_permissions(sender, instance=None, created=False, **kwargs):

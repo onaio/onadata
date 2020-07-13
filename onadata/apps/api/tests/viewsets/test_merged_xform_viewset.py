@@ -129,6 +129,8 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             'project_name': self.project.name
         }
         self.assertEqual(response.data['xforms'][0], expected_xforms_data)
+        self.assertIsNotNone(response.data['uuid'])
+        self.assertEqual(len(response.data['uuid']), 32)
 
         return response.data
 
