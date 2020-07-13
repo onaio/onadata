@@ -4,6 +4,7 @@ Test FloipViewset module.
 """
 import json
 import os
+import uuid as uu
 from builtins import open
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
@@ -228,6 +229,9 @@ class TestFloipViewSet(TestAbstractViewSet):
             response.data['attributes']['responses'])
 
         self.assertEqual(response.data, correct_response_format['data'])
+        # The FLOIP Endpoint should always return the complete uuid
+        # hex digits + dashes
+        self.assertEqual(len(response.data['id']), 36)
 
     # pylint:disable=invalid-name
     def test_retrieve_responses_merged_dataset(self):

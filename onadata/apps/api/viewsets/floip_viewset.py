@@ -2,6 +2,7 @@
 """
 FloipViewSet: API endpoint for /api/floip
 """
+import uuid as uu
 
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
@@ -84,8 +85,9 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
         """
         status_code = status.HTTP_200_OK
         xform = self.get_object()
+        uuid = str(uu.UUID(uuid or xform.uuid, version=4))
         data = {
-            "id": uuid or xform.uuid,
+            "id": uuid,
             "type": "flow-results-data",
             "attributes": {}
         }
