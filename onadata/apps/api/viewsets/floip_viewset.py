@@ -2,7 +2,7 @@
 """
 FloipViewSet: API endpoint for /api/floip
 """
-import uuid as uu
+from uuid import UUID
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
@@ -66,7 +66,7 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
     def get_object(self):
         queryset = self.filter_queryset(self.get_queryset())
         uuid = self.kwargs.get(self.lookup_field)
-        uuid = uu.UUID(uuid, version=4)
+        uuid = UUID(uuid, version=4)
         obj = get_object_or_404(queryset, Q(uuid=uuid.hex) | Q(uuid=str(uuid)))
         self.check_object_permissions(self.request, obj)
 
@@ -86,8 +86,9 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
     def get_success_headers(self, data):
         headers = super(FloipViewSet, self).get_success_headers(data)
         headers['Content-Type'] = 'application/vnd.api+json'
+        uuid = str(UUID(data['id']))
         headers['Location'] = self.request.build_absolute_uri(
-            reverse('flow-results-detail', kwargs={'uuid': data['id']}))
+            reverse('flow-results-detail', kwargs={'uuid': uuid}))
 
         return headers
 
@@ -98,7 +99,7 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
         """
         status_code = status.HTTP_200_OK
         xform = self.get_object()
-        uuid = str(uu.UUID(uuid or xform.uuid, version=4))
+        uuid = str(UUID(uuid or xform.uuid, version=4))
         data = {
             "id": uuid,
             "type": "flow-results-data",
@@ -107,7 +108,7 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
         headers = {
             'Content-Type': 'application/vnd.api+json',
             'Location': self.request.build_absolute_uri(
-                reverse('flow-results-responses', kwargs={'uuid': xform.uuid}))
+                reverse('flow-results-responses', kwargs={'uuid': uuid}))
         }  # yapf: disable
         if request.method == 'POST':
             serializer = FlowResultsResponseSerializer(
