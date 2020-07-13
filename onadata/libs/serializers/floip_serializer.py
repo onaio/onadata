@@ -5,6 +5,7 @@ FloipSerializer module.
 """
 import json
 import os
+from uuid import UUID
 from copy import deepcopy
 from io import BytesIO
 
@@ -12,6 +13,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext_lazy as _
 
@@ -232,8 +234,11 @@ class FlowResultsResponseSerializer(serializers.Serializer):
         duplicates = 0
         request = self.context['request']
         responses = validated_data['responses']
-        xform = get_object_or_404(XForm, uuid=validated_data['id'],
-                                  deleted_at__isnull=True)
+        uuid = UUID(validated_data['id'])
+        xform = get_object_or_404(
+            XForm,
+            Q(uuid=str(uuid)) | Q(uuid=uuid.hex),
+            deleted_at__isnull=True)
         for submission in parse_responses(responses):
             xml_file = BytesIO(dict2xform(
                 submission, xform.id_string, 'data').encode('utf-8'))

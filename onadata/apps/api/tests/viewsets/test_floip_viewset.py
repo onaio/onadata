@@ -109,6 +109,28 @@ class TestFloipViewSet(TestAbstractViewSet):
         rendered_data = json.loads(response.rendered_content)
         self.assertEqual(rendered_data['data']['id'], data['id'])
 
+        # Test able to retrieve package using a complete uuid4 string
+        data_id = uu.UUID(data['id'], version=4)
+        response = view(request, uuid=str(data_id))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, data)
+
+        # Test able to retrieve package using only the hex
+        # characters of a uuid string
+        response = view(request, uuid=data_id.hex)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, data)
+
+        # Test able to retrieve public package
+        form: XForm = XForm.objects.filter(uuid=data['id']).first()
+        form.shared = True
+        form.shared_data = True
+        form.save()
+        data['modified'] = form.date_modified
+        response = view(request, uuid=str(data_id))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, data)
+
     def test_update_package(self):
         """
         Test updating a specific package.

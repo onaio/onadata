@@ -4,6 +4,8 @@ FloipViewSet: API endpoint for /api/floip
 """
 import uuid as uu
 
+from django.db.models import Q
+from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -60,6 +62,17 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
     renderer_classes = (FlowResultsJSONRenderer, )
 
     lookup_field = 'uuid'
+
+    def get_object(self):
+        queryset = self.filter_queryset(self.get_queryset())
+        uuid = self.kwargs.get(self.lookup_field)
+        uuid = uu.UUID(uuid, version=4)
+        obj = get_object_or_404(queryset, Q(uuid=uuid.hex) | Q(uuid=str(uuid)))
+        self.check_object_permissions(self.request, obj)
+
+        if self.request.user.is_anonymous and obj.require_auth:
+            self.permission_denied(self.request)
+        return obj
 
     def get_serializer_class(self):
         if self.action == 'list':

@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
@@ -29,18 +31,28 @@ class AnonDjangoObjectPermissionFilter(ObjectPermissionsFilter):
         if request.user.is_anonymous:
             return queryset
 
-        if form_id and lookup_field == 'pk':
-            int_or_parse_error(form_id, u'Invalid form ID: %s')
         if form_id:
-            xform_kwargs = {lookup_field: form_id}
-            # check if form is public and return it
+            if lookup_field == 'pk':
+                int_or_parse_error(form_id, u'Invalid form ID: %s')
+
             try:
-                form = queryset.get(**xform_kwargs)
+                if lookup_field == 'uuid':
+                    form_id = UUID(form_id)
+                    form = queryset.get(
+                        Q(uuid=form_id.hex) | Q(uuid=str(form_id)))
+                else:
+                    xform_kwargs = {lookup_field: form_id}
+                    form = queryset.get(**xform_kwargs)
             except ObjectDoesNotExist:
                 raise Http404
 
+            # Check if form is public and return it
             if form.shared:
-                return queryset.filter(Q(**xform_kwargs))
+                if lookup_field == 'uuid':
+                    return queryset.filter(
+                        Q(uuid=form_id.hex) | Q(uuid=str(form_id)))
+                else:
+                    return queryset.filter(Q(**xform_kwargs))
 
         return super(AnonDjangoObjectPermissionFilter, self)\
             .filter_queryset(request, queryset, view)
