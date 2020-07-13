@@ -80,6 +80,14 @@ def parse_responses(responses, session_id_index=SESSION_ID_INDEX,
     yield submission
 
 
+class ReadOnlyUUIDField(serializers.ReadOnlyField):
+    """
+    Custom ReadOnlyField for UUID
+    """
+    def to_representation(self, obj):  # pylint: disable=no-self-use
+        return str(UUID(obj))
+
+
 # pylint: disable=too-many-ancestors
 class FloipListSerializer(serializers.HyperlinkedModelSerializer):
     """
