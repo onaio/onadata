@@ -12,7 +12,7 @@ from rest_framework_json_api.parsers import JSONParser
 from rest_framework_json_api.renderers import JSONRenderer
 
 from onadata.apps.api.permissions import XFormPermissions
-from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models import XForm, Instance
 from onadata.libs import filters
 from onadata.libs.renderers.renderers import floip_list
 from onadata.libs.serializers.floip_serializer import (
@@ -105,7 +105,16 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
             else:
                 status_code = status.HTTP_201_CREATED
         else:
-            queryset = xform.instances.values_list('json', flat=True)
+            if xform.is_merged_dataset:
+                pks = xform.mergedxform.xforms.filter(
+                    deleted_at__isnull=True
+                ).values_list('pk', flat=True)
+                queryset = Instance.objects.filter(
+                    xform_id__in=pks,
+                    deleted_at__isnull=True).values_list('json', flat=True)
+            else:
+                queryset = xform.instances.values_list('json', flat=True)
+
             paginate_queryset = self.paginate_queryset(queryset)
             if paginate_queryset:
                 data['attributes']['responses'] = floip_list(paginate_queryset)
