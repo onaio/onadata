@@ -95,7 +95,7 @@ class FloipListSerializer(serializers.HyperlinkedModelSerializer):
     """
     url = serializers.HyperlinkedIdentityField(
         view_name='flow-results-detail', lookup_field='uuid')
-    id = serializers.ReadOnlyField(source='uuid')  # pylint: disable=C0103
+    id = ReadOnlyUUIDField(source='uuid')  # pylint: disable=C0103
     name = serializers.ReadOnlyField(source='id_string')
     created = serializers.ReadOnlyField(source='date_created')
     modified = serializers.ReadOnlyField(source='date_modified')
@@ -196,10 +196,11 @@ class FloipSerializer(serializers.HyperlinkedModelSerializer):
 
     def to_representation(self, instance):
         request = self.context['request']
+        data_id = str(UUID(instance.uuid))
         data_url = request.build_absolute_uri(
-            reverse('flow-results-responses', kwargs={'uuid': instance.uuid}))
+            reverse('flow-results-responses', kwargs={'uuid': data_id}))
         package = survey_to_floip_package(
-            json.loads(instance.json), instance.uuid, instance.date_created,
+            json.loads(instance.json), data_id, instance.date_created,
             instance.date_modified, data_url)
 
         data = package.descriptor
