@@ -31,6 +31,7 @@ from onadata.libs.utils.common_tags import (
     NOTES,
     GEOLOCATION,
     MULTIPLE_SELECT_TYPE,
+    REPEAT_SELECT_TYPE,
     NA_REP)
 
 BaseViewset = get_baseviewset_class()
@@ -53,18 +54,52 @@ def process_tableau_data(data, xform):
     with the column header fields for the same form.
     Handles Flattenning repeat data for tableau
     """
+
+    def get_xpath(key, nested_key):
+        index_tags = DEFAULT_INDEX_TAGS
+        nested_key_diff = list(set(
+            nested_key.split('/')).difference(
+                set(key.split('/'))))
+        xpaths = [
+            '{key}{open_tag}{index}{close_tag}'.format(
+                key=key if len(key.split('/')) > 1
+                else nested_key.split('/')[0],
+                open_tag=index_tags[0],
+                index=index,
+                close_tag=index_tags[1])
+                ]
+        if len(key.split('/')) > 1:
+            try:
+                xpaths = xpaths[0] + '/' + nested_key_diff
+            except TypeError:
+                xpaths = xpaths[0] + ('/').join(nested_key_diff)
+        else:
+            xpaths = xpaths + [nested_key.split('/')[1]]
+            xpaths = "/".join(xpaths)
+        return xpaths
+
     def unpack_select_multiples(key, value, data):
         choices = value.split(" ")
         for choice in choices:
             xpaths = f'{key}/{choice}'
             data[xpaths] = choice
 
+    def unpack_repeat_data(key, xpaths, value):
+        data = {}
+        try:
+            for index, item in enumerate(value, start=1):
+                for (nested_key, nested_val) in item.items():
+                    xpath = f'{xpaths}{DEFAULT_INDEX_TAGS[0]}{str(index)}{DEFAULT_INDEX_TAGS[1]}/{nested_key.split("/")[-1]}'  # noqa
+                    data[xpath] = nested_val
+        except AttributeError:
+            data[key] = value
+        return data
+
     def get_ordered_repeat_value(key, item, index):
         """
         Return Ordered Dict of repeats in the order in which they appear in
         the XForm.
         """
-        index_tags = DEFAULT_INDEX_TAGS
         children = xform.get_child_elements(key, split_select_multiples=False)
         item_list = OrderedDict()
         data = {}
@@ -79,24 +114,12 @@ def process_tableau_data(data, xform):
                 # generate ["children", index, "immunization/polio_1"]
                 for (nested_key, nested_val) in item_list.items():
                     qstn_type = xform.get_element(nested_key).type
-                    nested_key_diff = set(
-                            key.split('/')).difference(
-                            set(nested_key.split('/')))
-                    xpaths = [
-                        '{key}{open_tag}{index}{close_tag}'.format(
-                            key=key if len(key) > 1
-                            else nested_key.split('/')[0],
-                            open_tag=index_tags[0],
-                            index=index,
-                            close_tag=index_tags[1])
-                            ]
-                    if len(key.split('/')) > 1:
-                        xpaths = xpaths[0] + '/' + nested_key_diff
-                    else:
-                        xpaths = xpaths + [nested_key.split('/')[1]]
-                    xpaths = "/".join(xpaths)
+                    xpaths = get_xpath(key, nested_key)
                     if qstn_type == MULTIPLE_SELECT_TYPE:
                         unpack_select_multiples(xpaths, nested_val, data)
+                    elif qstn_type == REPEAT_SELECT_TYPE:
+                        item = unpack_repeat_data(key, xpaths, nested_val)
+                        data.update(item)
                     else:
                         data[xpaths] = nested_val
         return data
