@@ -40,6 +40,7 @@ class ODKToken(models.Model):
         default=ACTIVE,
         max_length=1)
     created = models.DateTimeField(auto_now_add=True)
+    expires = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         app_label = 'api'
@@ -59,6 +60,7 @@ class ODKToken(models.Model):
     def save(self, *args, **kwargs):  # pylint: disable=arguments-differ
         if not self.key:
             self.key = self.generate_key()
+
         return super(ODKToken, self).save(*args, **kwargs)
 
     def generate_key(self):
@@ -68,13 +70,6 @@ class ODKToken(models.Model):
 
     def __str__(self):
         return self.key
-
-    @property
-    def expires(self):
-        """
-        This property holds the datetime of when the Token expires
-        """
-        return self.created + timedelta(days=ODK_TOKEN_LIFETIME)
 
     @property
     def raw_key(self):
@@ -99,5 +94,15 @@ def _post_save_persist_partial_digests(sender, instance=None, **kwargs):
         _persist_partial_digests(instance.user)
 
 
+def _post_save_set_expiry_date(sender, instance=None, **kwargs):
+    if instance and not instance.expires:
+        expiry_date = instance.created + timedelta(days=ODK_TOKEN_LIFETIME)
+        instance.expires = expiry_date.astimezone(
+            instance.created.tzinfo)
+        instance.save()
+
+
 post_save.connect(
     _post_save_persist_partial_digests, sender=ODKToken)
+
+post_save.connect(_post_save_set_expiry_date, sender=ODKToken)

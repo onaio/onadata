@@ -128,7 +128,8 @@ class TestDigestAuthentication(TestBase):
         self.user.save()
         odk_token = ODKToken.objects.create(user=self.user)
 
-        odk_token.created = timezone.now() - timedelta(days=400)
+        # Set expiry date of the token to the past
+        odk_token.expires = timezone.now() - timedelta(days=400)
         odk_token.save()
 
         # The value odk_token.key is hashed we need to have the raw_key
