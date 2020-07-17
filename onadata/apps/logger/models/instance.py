@@ -44,7 +44,7 @@ from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID,
                                             SUBMISSION_TIME, SUBMITTED_BY,
                                             TAGS, TOTAL_MEDIA, UUID, VERSION,
                                             XFORM_ID, XFORM_ID_STRING,
-                                            REVIEW_COMMENT)
+                                            REVIEW_COMMENT, AUDIT_LOG_FILENAME)
 from onadata.libs.utils.dict_tools import get_values_matching_key
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.timing import calculate_duration
@@ -589,7 +589,8 @@ class Instance(models.Model, InstanceBaseClass):
         Soft deletes an attachment by adding a deleted_at timestamp.
         """
         queryset = self.attachments.filter(
-            ~Q(name__in=self.get_expected_media()))
+            ~Q(name__in=self.get_expected_media()) &
+            ~Q(name=AUDIT_LOG_FILENAME))
         kwargs = {'deleted_at': timezone.now()}
         if user:
             kwargs.update({'deleted_by': user})

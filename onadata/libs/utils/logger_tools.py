@@ -43,7 +43,7 @@ from onadata.apps.logger.xform_instance_parser import (
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
-from onadata.libs.utils.common_tags import METADATA_FIELDS
+from onadata.libs.utils.common_tags import METADATA_FIELDS, AUDIT_LOG_FILENAME
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -261,7 +261,7 @@ def save_attachments(xform, instance, media_files, remove_deleted_media=False):
             [instance.xml.decode('utf-8').find(filename) != -1 if
              isinstance(instance.xml, bytes) else
              instance.xml.find(filename) != -1])
-        if media_in_submission:
+        if media_in_submission or (filename == 'audit' and extension == 'csv'):
             Attachment.objects.get_or_create(
                 instance=instance,
                 media_file=f,
@@ -397,7 +397,8 @@ def create_instance(username,
                 for a in Attachment.objects.filter(instance=instance)
             ]
             media_files = [f for f in media_files
-                           if f.name not in attachment_names]
+                           if f.name not in attachment_names
+                           or not f.name == AUDIT_LOG_FILENAME]
             save_attachments(xform, instance, media_files)
             instance.save()
 

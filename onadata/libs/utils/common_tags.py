@@ -181,3 +181,4 @@ METADATA_FIELDS = [
     '_submission_time',
     '_xform_id'
 ]
+AUDIT_LOG_FILENAME = 'audit.csv'

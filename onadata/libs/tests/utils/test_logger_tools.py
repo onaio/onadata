@@ -10,7 +10,7 @@ from onadata.apps.logger.import_tools import django_file
 from onadata.apps.logger.models import Instance
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.common_tags import (MEDIA_ALL_RECEIVED, MEDIA_COUNT,
-                                            TOTAL_MEDIA)
+                                            TOTAL_MEDIA, AUDIT_LOG_FILENAME)
 from onadata.libs.utils.logger_tools import (
     create_instance, generate_content_disposition_header, get_first_record)
 
@@ -446,3 +446,37 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         record = get_first_record(Instance.objects.all().only('id'))
         self.assertIsNotNone(record)
         self.assertEqual(record.id, instance.id)
+
+    def test_track_audit_log(self):
+        """
+        Test that audit log is tracked
+        """
+        md = """
+        | survey |       |           |       |                            |
+        |        | type  | name      | label | parameters                 |
+        |        | text  | full_name | Name  |                            |
+        |        | audit | audit     |       | location-priority=balanced |
+        """
+        self._create_user_and_login()
+        self.xform = self._publish_markdown(md, self.user)
+        xml_string = f"""
+        <data id="{self.xform.id_string}">
+            <meta>
+                <audit>audit.csv</audit>
+                <instanceID>uuid:UJ5jz4EszdgH8uhy8nss1AsKaqBPO5VN7</instanceID>
+            </meta>
+            <full_name> Testing User </full_name>
+        </data>
+        """
+        audit_file_path = "{}/libs/tests/fixtures/audit.csv".format(
+            settings.PROJECT_ROOT)
+        audit_file = django_file(
+            path=audit_file_path, field_name='audit', content_type='text/csv')
+        instance = create_instance(
+            self.user.username,
+            BytesIO(xml_string.strip().encode('utf-8')),
+            media_files=[audit_file])
+        self.assertEqual(len(instance.json['_attachments']), 1)
+        self.assertEqual(
+            instance.json['_attachments'][0]['name'], AUDIT_LOG_FILENAME)
+        self.assertEqual(instance.json.get('meta/audit'), AUDIT_LOG_FILENAME)
