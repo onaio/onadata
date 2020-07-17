@@ -4,12 +4,15 @@ Test FloipViewset module.
 """
 import json
 import os
+import uuid as uu
 from builtins import open
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.floip_viewset import FloipViewSet
+from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
 from onadata.apps.logger.models import Instance, XForm
+from onadata.libs.utils.user_auth import get_user_default_project
 
 
 class TestFloipViewSet(TestAbstractViewSet):
@@ -105,6 +108,28 @@ class TestFloipViewSet(TestAbstractViewSet):
         response.render()
         rendered_data = json.loads(response.rendered_content)
         self.assertEqual(rendered_data['data']['id'], data['id'])
+
+        # Test able to retrieve package using a complete uuid4 string
+        data_id = uu.UUID(data['id'], version=4)
+        response = view(request, uuid=str(data_id))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, data)
+
+        # Test able to retrieve package using only the hex
+        # characters of a uuid string
+        response = view(request, uuid=data_id.hex)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, data)
+
+        # Test able to retrieve public package
+        form: XForm = XForm.objects.filter(uuid=data['id']).first()
+        form.shared = True
+        form.shared_data = True
+        form.save()
+        data['modified'] = form.date_modified
+        response = view(request, uuid=str(data_id))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, data)
 
     def test_update_package(self):
         """
@@ -226,3 +251,58 @@ class TestFloipViewSet(TestAbstractViewSet):
             response.data['attributes']['responses'])
 
         self.assertEqual(response.data, correct_response_format['data'])
+        # The FLOIP Endpoint should always return the complete uuid
+        # hex digits + dashes
+        self.assertEqual(len(response.data['id']), 36)
+
+    # pylint:disable=invalid-name
+    def test_retrieve_responses_merged_dataset(self):
+        """
+        Test that a user is able to retrieve FLOIP Responses for Merged
+        XForms
+        """
+        MD = """
+            | survey  |
+            |         | type  | name   | label   |
+            |         | photo | image1 | Photo   |
+            """
+        # Create Merged XForm
+        merged_dataset_view = MergedXFormViewSet.as_view({
+            'post': 'create',
+        })
+
+        project = get_user_default_project(self.user)
+        self._publish_xls_form_to_project()
+        self._make_submissions()
+        xform = self._publish_markdown(MD, self.user, id_string='a')
+
+        data = {
+            'xforms': [
+                f'http://testserver/api/v1/forms/{self.xform.pk}',
+                f'http://testserver/api/v1/forms/{xform.pk}',
+            ],
+            'name':
+            'Merged Dataset',
+            'project':
+            f'http://testserver/api/v1/projects/{project.pk}',
+        }
+
+        request = self.factory.post('/', data=data, **self.extra)
+        response = merged_dataset_view(request)
+        self.assertEqual(response.status_code, 201)
+        dataset_uuid = response.data['uuid']
+
+        # Assert that it's possible to retrieve the responses
+        view = FloipViewSet.as_view({'get': 'responses'})
+        request = self.factory.get(
+            f'/flow-results/packages/{dataset_uuid}/responses',
+            content_type='application/vnd.api+json', **self.extra)
+        response = view(request, uuid=dataset_uuid)
+        self.assertEqual(response.status_code, 200)
+
+        # Convert the returned generator object into a list
+        response.data['attributes']['responses'] = list(
+            response.data['attributes']['responses'])
+        # The transportation form(self.xform) contains 11 responses
+        # Assert that the responses are returned
+        self.assertEqual(len(response.data['attributes']['responses']), 11)

@@ -7,7 +7,7 @@
 -e git+https://github.com/onaio/django-digest.git@eb85c7ae19d70d4690eeb20983e94b9fde8ab8c2#egg=django-digest  # via -r requirements/base.in
 -e git+https://github.com/onaio/django-multidb-router.git@f711368180d58eef87eda54fadfd5f8355623d52#egg=django-multidb-router  # via -r requirements/base.in
 -e git+https://github.com/onaio/oauth2client.git@75dfdee77fb640ae30469145c66440571dfeae5c#egg=oauth2client  # via -r requirements/base.in
--e git+https://github.com/onaio/floip-py.git@3bbf5c76b34ec49c438a3099ab848870514d1e50#egg=pyfloip  # via -r requirements/base.in
+-e git+https://github.com/onaio/floip-py.git@3c980eb184069ae7c3c9136b18441978237cd41d#egg=pyfloip  # via -r requirements/base.in
 -e git+https://github.com/onaio/python-digest.git@3af1bd0ef6114e24bf23d0e8fd9d7ebf389845d1#egg=python-digest  # via -r requirements/base.in
 -e git+https://github.com/onaio/python-json2xlsclient.git@62b4645f7b4f2684421a13ce98da0331a9dd66a0#egg=python-json2xlsclient  # via -r requirements/base.in
 alabaster==0.7.12         # via sphinx

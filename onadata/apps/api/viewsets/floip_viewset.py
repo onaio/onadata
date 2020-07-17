@@ -2,7 +2,10 @@
 """
 FloipViewSet: API endpoint for /api/floip
 """
+from uuid import UUID
 
+from django.db.models import Q
+from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -12,7 +15,7 @@ from rest_framework_json_api.parsers import JSONParser
 from rest_framework_json_api.renderers import JSONRenderer
 
 from onadata.apps.api.permissions import XFormPermissions
-from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models import XForm, Instance
 from onadata.libs import filters
 from onadata.libs.renderers.renderers import floip_list
 from onadata.libs.serializers.floip_serializer import (
@@ -60,6 +63,17 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
 
     lookup_field = 'uuid'
 
+    def get_object(self):
+        queryset = self.filter_queryset(self.get_queryset())
+        uuid = self.kwargs.get(self.lookup_field)
+        uuid = UUID(uuid, version=4)
+        obj = get_object_or_404(queryset, Q(uuid=uuid.hex) | Q(uuid=str(uuid)))
+        self.check_object_permissions(self.request, obj)
+
+        if self.request.user.is_anonymous and obj.require_auth:
+            self.permission_denied(self.request)
+        return obj
+
     def get_serializer_class(self):
         if self.action == 'list':
             return FloipListSerializer
@@ -72,8 +86,9 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
     def get_success_headers(self, data):
         headers = super(FloipViewSet, self).get_success_headers(data)
         headers['Content-Type'] = 'application/vnd.api+json'
+        uuid = str(UUID(data['id']))
         headers['Location'] = self.request.build_absolute_uri(
-            reverse('flow-results-detail', kwargs={'uuid': data['id']}))
+            reverse('flow-results-detail', kwargs={'uuid': uuid}))
 
         return headers
 
@@ -84,15 +99,16 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
         """
         status_code = status.HTTP_200_OK
         xform = self.get_object()
+        uuid = str(UUID(uuid or xform.uuid, version=4))
         data = {
-            "id": uuid or xform.uuid,
+            "id": uuid,
             "type": "flow-results-data",
             "attributes": {}
         }
         headers = {
             'Content-Type': 'application/vnd.api+json',
             'Location': self.request.build_absolute_uri(
-                reverse('flow-results-responses', kwargs={'uuid': xform.uuid}))
+                reverse('flow-results-responses', kwargs={'uuid': uuid}))
         }  # yapf: disable
         if request.method == 'POST':
             serializer = FlowResultsResponseSerializer(
@@ -105,7 +121,16 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
             else:
                 status_code = status.HTTP_201_CREATED
         else:
-            queryset = xform.instances.values_list('json', flat=True)
+            if xform.is_merged_dataset:
+                pks = xform.mergedxform.xforms.filter(
+                    deleted_at__isnull=True
+                ).values_list('pk', flat=True)
+                queryset = Instance.objects.filter(
+                    xform_id__in=pks,
+                    deleted_at__isnull=True).values_list('json', flat=True)
+            else:
+                queryset = xform.instances.values_list('json', flat=True)
+
             paginate_queryset = self.paginate_queryset(queryset)
             if paginate_queryset:
                 data['attributes']['responses'] = floip_list(paginate_queryset)

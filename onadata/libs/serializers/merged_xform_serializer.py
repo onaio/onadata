@@ -150,7 +150,8 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = MergedXForm
         fields = ('url', 'id', 'xforms', 'name', 'project', 'title',
-                  'num_of_submissions', 'last_submission_time')
+                  'num_of_submissions', 'last_submission_time', 'uuid')
+        write_only_fields = ('uuid', )
 
     # pylint: disable=no-self-use
     def get_num_of_submissions(self, obj):

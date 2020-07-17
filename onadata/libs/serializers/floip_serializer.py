@@ -5,6 +5,7 @@ FloipSerializer module.
 """
 import json
 import os
+from uuid import UUID
 from copy import deepcopy
 from io import BytesIO
 
@@ -12,6 +13,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext_lazy as _
 
@@ -78,6 +80,14 @@ def parse_responses(responses, session_id_index=SESSION_ID_INDEX,
     yield submission
 
 
+class ReadOnlyUUIDField(serializers.ReadOnlyField):
+    """
+    Custom ReadOnlyField for UUID
+    """
+    def to_representation(self, obj):  # pylint: disable=no-self-use
+        return str(UUID(obj))
+
+
 # pylint: disable=too-many-ancestors
 class FloipListSerializer(serializers.HyperlinkedModelSerializer):
     """
@@ -85,7 +95,7 @@ class FloipListSerializer(serializers.HyperlinkedModelSerializer):
     """
     url = serializers.HyperlinkedIdentityField(
         view_name='flow-results-detail', lookup_field='uuid')
-    id = serializers.ReadOnlyField(source='uuid')  # pylint: disable=C0103
+    id = ReadOnlyUUIDField(source='uuid')  # pylint: disable=C0103
     name = serializers.ReadOnlyField(source='id_string')
     created = serializers.ReadOnlyField(source='date_created')
     modified = serializers.ReadOnlyField(source='date_modified')
@@ -186,10 +196,11 @@ class FloipSerializer(serializers.HyperlinkedModelSerializer):
 
     def to_representation(self, instance):
         request = self.context['request']
+        data_id = str(UUID(instance.uuid))
         data_url = request.build_absolute_uri(
-            reverse('flow-results-responses', kwargs={'uuid': instance.uuid}))
+            reverse('flow-results-responses', kwargs={'uuid': data_id}))
         package = survey_to_floip_package(
-            json.loads(instance.json), instance.uuid, instance.date_created,
+            json.loads(instance.json), data_id, instance.date_created,
             instance.date_modified, data_url)
 
         data = package.descriptor
@@ -232,8 +243,11 @@ class FlowResultsResponseSerializer(serializers.Serializer):
         duplicates = 0
         request = self.context['request']
         responses = validated_data['responses']
-        xform = get_object_or_404(XForm, uuid=validated_data['id'],
-                                  deleted_at__isnull=True)
+        uuid = UUID(validated_data['id'])
+        xform = get_object_or_404(
+            XForm,
+            Q(uuid=str(uuid)) | Q(uuid=uuid.hex),
+            deleted_at__isnull=True)
         for submission in parse_responses(responses):
             xml_file = BytesIO(dict2xform(
                 submission, xform.id_string, 'data').encode('utf-8'))
