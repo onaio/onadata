@@ -52,6 +52,7 @@ from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.models import MetaData
+from onadata.apps.messaging.constants import XFORM, FORM_UPDATED
 from onadata.apps.viewer.models import Export
 from onadata.libs.permissions import (
     ROLES_ORDERED, DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole,
@@ -114,7 +115,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertEqual(xforms + 1, XForm.objects.count())
                 self.assertEqual(response.status_code, 201)
 
-    def test_replace_form_with_external_choices(self):
+    @patch('onadata.apps.api.viewsets.xform_viewset.send_message')
+    def test_replace_form_with_external_choices(self, mock_send_message):
         with HTTMock(enketo_mock):
             xls_file_path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "logger", "fixtures",
@@ -145,6 +147,11 @@ class TestXFormViewSet(TestAbstractViewSet):
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
                 self.assertEqual(response.status_code, 200)
+            # send message upon form update
+            self.assertTrue(mock_send_message.called)
+            mock_send_message.called_with(self.xform.id, self.xform.id,
+                                          XFORM,
+                                          request.user, FORM_UPDATED)
 
     def test_form_publishing_using_invalid_text_xls_form(self):
         view = ProjectViewSet.as_view({

@@ -10,9 +10,12 @@ import mock
 import unicodecsv as ucsv
 from celery.backends.amqp import BacklogLimitExceeded
 from django.conf import settings
+from mock import patch
 
 from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.messaging.constants import \
+    XFORM, SUBMISSION_EDITED, SUBMISSION_CREATED
 from onadata.libs.utils import csv_import
 from onadata.libs.utils.csv_import import get_submission_meta_dict
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -119,7 +122,8 @@ class CSVImportTestCase(TestBase):
         self.xform.refresh_from_db()
         self.assertEqual(self.xform.num_of_submissions, count + 9)
 
-    def test_submit_csv_edits(self):
+    @patch('onadata.libs.utils.logger_tools.send_message')
+    def test_submit_csv_edits(self, send_message_mock):
         xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
                                      "tests", "fixtures", "tutorial.xls")
         self._publish_xls_file(xls_file_path)
@@ -141,6 +145,9 @@ class CSVImportTestCase(TestBase):
         csv_import.submit_csv(self.user.username, self.xform, edit_csv)
         self.assertEqual(Instance.objects.count(), count,
                          'submit_csv edits #2 test Failed!')
+        # message sent upon submission edit
+        self.assertTrue(send_message_mock.called)
+        send_message_mock.called_with(self.xform.id, XFORM, SUBMISSION_EDITED)
 
     def test_import_non_utf8_csv(self):
         xls_file_path = os.path.join(self.fixtures_dir, "mali_health.xls")
@@ -335,7 +342,8 @@ class CSVImportTestCase(TestBase):
             len(instance_id), len(single_instance_id),
             "Same uuid length in generated xml")
 
-    def test_data_upload(self):
+    @patch('onadata.libs.utils.logger_tools.send_message')
+    def test_data_upload(self, send_message_mock):
         """Data upload for submissions with no uuids"""
         self._publish_xls_file(self.xls_file_path)
         self.xform = XForm.objects.get()
@@ -345,6 +353,9 @@ class CSVImportTestCase(TestBase):
         csv_import.submit_csv(self.user.username, self.xform, single_csv)
         self.xform.refresh_from_db()
         self.assertEqual(self.xform.num_of_submissions, count + 1)
+        # message sent upon submission creation
+        self.assertTrue(send_message_mock.called)
+        send_message_mock.called_with(self.xform.id, XFORM, SUBMISSION_CREATED)
 
     def test_excel_date_conversion(self):
         """Convert date from 01/01/1900 to 01-01-1900"""

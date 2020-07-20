@@ -118,11 +118,11 @@ class MQTTBackend(BaseBackend):
         }
         if kwargs['target_name'] == XFORM:
             xform = XForm.objects.get(id=instance.target_object_id)
-            kwargs['organisation_id'] = xform.project.organization.id
+            kwargs['organization_username'] = xform.project.organization.id
             kwargs['verb'] = VERB_TOPIC_DICT[instance.verb]
             kwargs['project_id'] = xform.project.id
-            return ('/{topic_base}/organization/{organisation_id}/project/'
-                    '{project_id}/{target_name}/{target_id}/{verb}/'
+            return ('/{topic_base}/organization/{organization_username}/'
+                    'project/{project_id}/{target_name}/{target_id}/{verb}/'
                     'messages/publish').format(**kwargs)
 
         elif kwargs['verb'] == MESSAGE:
