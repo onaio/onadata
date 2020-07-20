@@ -21,11 +21,18 @@ APP_LABEL_MAPPING = {
 
 MESSAGE = 'message'
 UNKNOWN_TARGET = _("Unknown target.")
-SUBMISSION_CREATED = "submission/created"
-SUBMISSION_EDITED = "submission/edited"
-SUBMISSION_DELETED = "submission/deleted"
-SUBMISSION_REVIEWED = "submission/reviewed"
+SUBMISSION_CREATED = "submission_created"
+SUBMISSION_EDITED = "submission_edited"
+SUBMISSION_DELETED = "submission_deleted"
+SUBMISSION_REVIEWED = "submission_reviewed"
 FORM_UPDATED = "form/updated"
 MESSAGE_VERBS = [
     MESSAGE, SUBMISSION_REVIEWED, SUBMISSION_CREATED, SUBMISSION_EDITED,
     SUBMISSION_DELETED, FORM_UPDATED]
+VERB_TOPIC_DICT = {
+    SUBMISSION_CREATED: "submission/created",
+    SUBMISSION_EDITED: "submission/edited",
+    SUBMISSION_DELETED: "submission/deleted",
+    SUBMISSION_REVIEWED: "submission/reviewed",
+    FORM_UPDATED: "form/updated"
+}

@@ -13,7 +13,8 @@ from django.conf import settings
 from onadata.apps.logger.models import XForm
 from onadata.apps.messaging.backends.base import BaseBackend
 from onadata.apps.messaging.constants import MESSAGE
-from onadata.apps.messaging.constants import PROJECT, USER, XFORM
+from onadata.apps.messaging.constants import PROJECT, USER, XFORM, \
+    VERB_TOPIC_DICT
 
 
 def get_target_metadata(target_obj):
@@ -114,11 +115,11 @@ class MQTTBackend(BaseBackend):
             'target_id': instance.target_object_id,
             'target_name': instance.target._meta.model_name,
             'topic_base': self.topic_base,
-            'verb': instance.verb
         }
         if kwargs['target_name'] == XFORM:
             xform = XForm.objects.get(id=instance.target_object_id)
             kwargs['organisation_id'] = xform.project.organization.id
+            kwargs['verb'] = VERB_TOPIC_DICT[instance.verb]
             kwargs['project_id'] = xform.project.id
             return ('/{topic_base}/organization/{organisation_id}/project/'
                     '{project_id}/{target_name}/{target_id}/{verb}/'
