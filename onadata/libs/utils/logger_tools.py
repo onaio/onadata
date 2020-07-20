@@ -5,6 +5,7 @@ import tempfile
 from builtins import str as text
 from datetime import datetime
 from hashlib import sha256
+from http.client import BadStatusLine
 from wsgiref.util import FileWrapper
 from xml.dom import Node
 from xml.parsers.expat import ExpatError
@@ -24,7 +25,6 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.encoding import DjangoUnicodeDecodeError
 from django.utils.translation import ugettext as _
-from http.client import BadStatusLine
 from modilabs.utils.subprocess_timeout import ProcessTimedOut
 from multidb.pinning import use_master
 from pyxform.errors import PyXFormError
@@ -40,6 +40,9 @@ from onadata.apps.logger.xform_instance_parser import (
     InstanceMultipleNodeError, NonUniqueFormIdError, clean_and_parse_xml,
     get_deprecated_uuid_from_xml, get_submission_date_from_xml,
     get_uuid_from_xml)
+from onadata.apps.messaging.constants import XFORM, \
+    SUBMISSION_EDITED, SUBMISSION_CREATED
+from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
@@ -61,6 +64,7 @@ uuid_regex = re.compile(r'<formhub>\s*<uuid>\s*([^<]+)\s*</uuid>\s*</formhub>',
 def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum):
     history = None
     instance = None
+    message_verb = SUBMISSION_EDITED
     # check if its an edit submission
     old_uuid = get_deprecated_uuid_from_xml(xml)
     if old_uuid:
@@ -96,9 +100,15 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum):
             instance = history.xform_instance
     if old_uuid is None or (instance is None and history is None):
         # new submission
+        message_verb = SUBMISSION_CREATED
         instance = Instance.objects.create(
             xml=xml, user=submitted_by, status=status, xform=xform,
             checksum=checksum)
+    # send notification on submission creation
+    send_message(
+        instance_id=instance.id, target_id=instance.xform.id,
+        target_type=XFORM, user=instance.user,
+        message_verb=message_verb)
     return instance
 
 

@@ -25,6 +25,8 @@ try:
 except ImportError:
     pass
 
+from onadata.apps.messaging.constants import XFORM, FORM_UPDATED
+from onadata.apps.messaging.serializers import send_message
 from pyxform.builder import create_survey_element_from_dict
 from pyxform.xls2json import parse_file_to_json
 from rest_framework import exceptions, status
@@ -708,6 +710,11 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         if request.FILES or set(['xls_url',
                                  'dropbox_xls_url',
                                  'text_xls_form']) & set(request.data):
+            # send form update notification
+            send_message(
+                instance_id=self.object.id, target_id=self.object.id,
+                target_type=XFORM, user=self.request.user,
+                message_verb=FORM_UPDATED)
             return _try_update_xlsform(request, self.object, owner)
 
         try:
