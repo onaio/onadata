@@ -12,6 +12,8 @@ from rest_framework.viewsets import ModelViewSet
 from onadata.apps.api.permissions import SubmissionReviewPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import SubmissionReview
+from onadata.apps.messaging.constants import XFORM, SUBMISSION_REVIEWED
+from onadata.apps.messaging.serializers import send_message
 from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
 from onadata.libs.mixins.bulk_create_mixin import BulkCreateMixin
@@ -50,12 +52,19 @@ class SubmissionReviewViewSet(AuthenticateHeaderMixin, CacheControlMixin,
         """
         Custom create method. Handle bulk create
         """
-
+        self.object = self.get_object()
         if isinstance(request.data, list):
             serializer = self.get_serializer(data=request.data, many=True)
             serializer.is_valid(raise_exception=True)
-            self.perform_create(serializer)
+            submission_reviews = self.perform_create(serializer)
+            instance_ids = [sub_review.instance.id for sub_review in
+                            submission_reviews]
             headers = self.get_success_headers(serializer.data)
+            send_message(
+                instance_id=instance_ids,
+                target_id=self.object.instance.xform.id,
+                target_type=XFORM, user=request.user,
+                message_verb=SUBMISSION_REVIEWED)
             return Response(serializer.data, status=status.HTTP_201_CREATED,
                             headers=headers)
         return super(SubmissionReviewViewSet, self).create(

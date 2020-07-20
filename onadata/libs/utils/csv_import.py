@@ -28,6 +28,8 @@ from future.utils import iteritems
 from multidb.pinning import use_master
 
 from onadata.apps.logger.models import Instance, XForm
+from onadata.apps.messaging.constants import XFORM, SUBMISSION_DELETED
+from onadata.apps.messaging.serializers import send_message
 from onadata.libs.utils.async_status import (FAILED, async_status,
                                              celery_state_to_status)
 from onadata.libs.utils.common_tags import (MULTIPLE_SELECT_TYPE, EXCEL_TRUE,
@@ -287,9 +289,15 @@ def submit_csv(username, xform, csv_file, overwrite=False):
     }
 
     if overwrite:
+        instance_ids = [i['id'] for i in xform.instances.values('id')]
         xform.instances.filter(deleted_at__isnull=True)\
             .update(deleted_at=timezone.now(),
                     deleted_by=User.objects.get(username=username))
+        # send message
+        send_message(
+            instance_id=instance_ids, target_id=xform.id,
+            target_type=XFORM, user=User.objects.get(username=username),
+            message_verb=SUBMISSION_DELETED)
 
     try:
         for row_no, row in enumerate(csv_reader):
