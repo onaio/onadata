@@ -52,17 +52,19 @@ class SubmissionReviewViewSet(AuthenticateHeaderMixin, CacheControlMixin,
         """
         Custom create method. Handle bulk create
         """
-        self.object = self.get_object()
+        # self.object = self.get_object()
         if isinstance(request.data, list):
             serializer = self.get_serializer(data=request.data, many=True)
             serializer.is_valid(raise_exception=True)
-            submission_reviews = self.perform_create(serializer)
-            instance_ids = [sub_review.instance.id for sub_review in
-                            submission_reviews]
+            self.perform_create(serializer)
+            instance_ids = [sub_review['instance'] for sub_review in
+                            serializer.data]
             headers = self.get_success_headers(serializer.data)
+            xform = SubmissionReview.objects.get(
+                id=serializer.data[0]['id']).instance.xform
             send_message(
                 instance_id=instance_ids,
-                target_id=self.object.instance.xform.id,
+                target_id=xform.id,
                 target_type=XFORM, user=request.user,
                 message_verb=SUBMISSION_REVIEWED)
             return Response(serializer.data, status=status.HTTP_201_CREATED,

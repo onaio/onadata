@@ -91,8 +91,7 @@ class TestDataViewSet(TestBase):
         self.extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
 
-    @patch('onadata.apps.logger.models.instance.send_message')
-    def test_data(self, mock_send_message):
+    def test_data(self):
         """Test DataViewSet list"""
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
@@ -125,10 +124,6 @@ class TestDataViewSet(TestBase):
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertIsInstance(response.data, dict)
         self.assertDictContainsSubset(data, response.data)
-        self.assertTrue(mock_send_message.called)
-        mock_send_message.called_with(
-            dataid, formid, XFORM,
-            request.user, SUBMISSION_DELETED)
 
     @override_settings(STREAM_DATA=True)
     def test_data_streaming(self):
