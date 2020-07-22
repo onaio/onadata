@@ -60,6 +60,7 @@ def inactivate_users(users, user_input):
                     # to make the initial username available
                     deletion_suffix = timezone.now().strftime('-deleted-at-%s')
                     user.username += deletion_suffix
+                    user.email += deletion_suffix
 
                     user.save()
                     sys.stdout.write(

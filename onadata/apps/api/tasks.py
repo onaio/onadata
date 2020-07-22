@@ -64,9 +64,12 @@ def delete_xform_async(xform_id, user_id):
     xform.soft_delete(user)
 
 
+@task()
 def delete_user_async():
     """Delete inactive user accounts"""
-    users = User.objects.filter(active=False)
+    users = User.objects.filter(active=False,
+                                username__contains="deleted-at",
+                                email__contains="deleted-at")
     for user in users:
         user.delete()
 
