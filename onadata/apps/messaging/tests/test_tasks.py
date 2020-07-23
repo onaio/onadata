@@ -27,7 +27,7 @@ class TestTasks(TestCase):
         instance = _create_message(from_user, to_user, 'I love oov')
 
         with self.assertRaises(NotImplementedError):
-            call_backend_async.delay(
+            call_backend_async.apply_async(
                 backend='onadata.apps.messaging.backends.base.BaseBackend',
                 instance_id=instance.id,
                 backend_options=None).get()

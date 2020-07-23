@@ -4,10 +4,9 @@ Tests Messaging app signals.
 """
 from __future__ import unicode_literals
 
+from actstream.models import Action
 from django.test import TestCase
 from django.test.utils import override_settings
-
-from actstream.models import Action
 from mock import patch
 
 from onadata.apps.messaging.signals import messaging_backends_handler
@@ -26,7 +25,7 @@ class TestSignals(TestCase):
             },
         },
         MESSAGING_ASYNC_NOTIFICATION=True)
-    @patch('onadata.apps.messaging.signals.call_backend_async.delay')
+    @patch('onadata.apps.messaging.signals.call_backend_async.apply_async')
     def test_messaging_backends_handler_async(self, call_backend_async_mock):
         """
         Test messaging backends handler function.

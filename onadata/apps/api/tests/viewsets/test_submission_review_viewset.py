@@ -56,7 +56,7 @@ class TestSubmissionReviewViewSet(TestBase):
 
         return response.data
 
-    @patch('onadata.apps.logger.models.submission_review.send_message')
+    @patch('onadata.apps.api.viewsets.submission_review_viewset.send_message')
     def test_submission_review_create(self, mock_send_message):
         """
         Test we can create a submission review

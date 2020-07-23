@@ -4,9 +4,8 @@ Messaging notification base module.
 """
 from __future__ import unicode_literals
 
-from django.utils.module_loading import import_string
-
 from actstream.models import Action
+from django.utils.module_loading import import_string
 from multidb.pinning import use_master
 
 

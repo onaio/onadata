@@ -118,7 +118,8 @@ class MQTTBackend(BaseBackend):
         }
         if kwargs['target_name'] == XFORM:
             xform = XForm.objects.get(id=instance.target_object_id)
-            kwargs['organization_username'] = xform.project.organization.id
+            kwargs[
+                'organization_username'] = xform.project.organization.username
             kwargs['verb'] = VERB_TOPIC_DICT[instance.verb]
             kwargs['project_id'] = xform.project.id
             return ('/{topic_base}/organization/{organization_username}/'

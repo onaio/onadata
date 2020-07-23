@@ -144,6 +144,12 @@ def _try_update_xlsform(request, xform, owner):
         serializer = XFormSerializer(
             xform, context={'request': request})
 
+        # send form update notification
+        send_message(
+            instance_id=xform.id, target_id=xform.id,
+            target_type=XFORM, user=request.user or owner,
+            message_verb=FORM_UPDATED)
+
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     return Response(survey, status=status.HTTP_400_BAD_REQUEST)
@@ -710,11 +716,6 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         if request.FILES or set(['xls_url',
                                  'dropbox_xls_url',
                                  'text_xls_form']) & set(request.data):
-            # send form update notification
-            send_message(
-                instance_id=self.object.id, target_id=self.object.id,
-                target_type=XFORM, user=self.request.user,
-                message_verb=FORM_UPDATED)
             return _try_update_xlsform(request, self.object, owner)
 
         try:

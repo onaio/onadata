@@ -107,7 +107,7 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum):
     # send notification on submission creation
     send_message(
         instance_id=instance.id, target_id=instance.xform.id,
-        target_type=XFORM, user=instance.user,
+        target_type=XFORM, user=instance.user or instance.xform.user,
         message_verb=message_verb)
     return instance
 
