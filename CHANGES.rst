@@ -3,6 +3,19 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.3.6(2020-07-29)
+------------------
+
+- Return FLOIP data for Merged Datasets*
+  `PR #1773 <https://github.com/onaio/onadata/pull/1773>`_
+  [@DavisRayM]
+- Add deletion suffix to a Users email upon soft deletion
+  `PR #1844 <https://github.com/onaio/onadata/pull/1844>`_
+  [@WinnyTroy]
+- Add more flexible MQTT Topics
+  `PR #1850 <https://github.com/onaio/onadata/pull/1850>`_
+  [@lincmba]
+
 v2.3.5(2020-06-18)
 ------------------
 
