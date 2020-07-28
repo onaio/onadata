@@ -27,9 +27,6 @@ from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH, XForm
 from onadata.apps.logger.xform_instance_parser import (XFormInstanceParser,
                                                        clean_and_parse_xml,
                                                        get_uuid_from_xml)
-from onadata.apps.messaging.constants import XFORM, \
-    SUBMISSION_EDITED, SUBMISSION_CREATED
-from onadata.apps.messaging.serializers import send_message
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import (DATAVIEW_COUNT, IS_ORG,
                                             PROJ_NUM_DATASET_CACHE,
@@ -597,23 +594,15 @@ class Instance(models.Model, InstanceBaseClass):
 
 
 def post_save_submission(sender, instance=None, created=False, **kwargs):
-    message_verb = SUBMISSION_CREATED if created else SUBMISSION_EDITED
     if ASYNC_POST_SUBMISSION_PROCESSING_ENABLED:
         update_xform_submission_count.apply_async(args=[instance.pk, created])
         save_full_json.apply_async(args=[instance.pk, created])
         update_project_date_modified.apply_async(args=[instance.pk, created])
-        send_message.apply_async(args=[
-            instance.id, instance.xform.id, XFORM,
-            instance.user, message_verb])
 
     else:
         update_xform_submission_count(instance.pk, created)
         save_full_json(instance.pk, created)
         update_project_date_modified(instance.pk, created)
-        send_message(
-            instance_id=instance.id, target_id=instance.xform.id,
-            target_type=XFORM, user=instance.user,
-            message_verb=message_verb)
 
 
 post_save.connect(post_save_submission, sender=Instance,

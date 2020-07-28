@@ -29,3 +29,10 @@ FORM_UPDATED = "form_updated"
 MESSAGE_VERBS = [
     MESSAGE, SUBMISSION_REVIEWED, SUBMISSION_CREATED, SUBMISSION_EDITED,
     SUBMISSION_DELETED, FORM_UPDATED]
+VERB_TOPIC_DICT = {
+    SUBMISSION_CREATED: "submission/created",
+    SUBMISSION_EDITED: "submission/edited",
+    SUBMISSION_DELETED: "submission/deleted",
+    SUBMISSION_REVIEWED: "submission/reviewed",
+    FORM_UPDATED: "form/updated"
+}

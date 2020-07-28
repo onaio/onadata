@@ -99,8 +99,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             'get': 'list',
         })
 
-    @patch('onadata.apps.logger.models.xform.send_message')
-    def test_form_publishing_arabic(self, mock_send_message):
+    def test_form_publishing_arabic(self):
         with HTTMock(enketo_mock):
             xforms = XForm.objects.count()
             view = XFormViewSet.as_view({
@@ -115,13 +114,9 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response = view(request)
                 self.assertEqual(xforms + 1, XForm.objects.count())
                 self.assertEqual(response.status_code, 201)
-                # send send message upon form creation/update
-                xform = XForm.objects.get(id=response.data['formid'])
-                self.assertTrue(mock_send_message.called)
-                mock_send_message.called_with(
-                    xform.id, xform.id, XFORM, xform.created_by, FORM_UPDATED)
 
-    def test_replace_form_with_external_choices(self):
+    @patch('onadata.apps.api.viewsets.xform_viewset.send_message')
+    def test_replace_form_with_external_choices(self, mock_send_message):
         with HTTMock(enketo_mock):
             xls_file_path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "logger", "fixtures",
@@ -152,6 +147,11 @@ class TestXFormViewSet(TestAbstractViewSet):
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
                 self.assertEqual(response.status_code, 200)
+            # send message upon form update
+            self.assertTrue(mock_send_message.called)
+            mock_send_message.called_with(self.xform.id, self.xform.id,
+                                          XFORM,
+                                          request.user, FORM_UPDATED)
 
     def test_form_publishing_using_invalid_text_xls_form(self):
         view = ProjectViewSet.as_view({

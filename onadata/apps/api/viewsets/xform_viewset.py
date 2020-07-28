@@ -25,6 +25,8 @@ try:
 except ImportError:
     pass
 
+from onadata.apps.messaging.constants import XFORM, FORM_UPDATED
+from onadata.apps.messaging.serializers import send_message
 from pyxform.builder import create_survey_element_from_dict
 from pyxform.xls2json import parse_file_to_json
 from rest_framework import exceptions, status
@@ -141,6 +143,12 @@ def _try_update_xlsform(request, xform, owner):
     if isinstance(survey, XForm):
         serializer = XFormSerializer(
             xform, context={'request': request})
+
+        # send form update notification
+        send_message(
+            instance_id=xform.id, target_id=xform.id,
+            target_type=XFORM, user=request.user or owner,
+            message_verb=FORM_UPDATED)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 

@@ -56,7 +56,7 @@ class TestSubmissionReviewViewSet(TestBase):
 
         return response.data
 
-    @patch('onadata.apps.logger.models.submission_review.send_message')
+    @patch('onadata.apps.api.viewsets.submission_review_viewset.send_message')
     def test_submission_review_create(self, mock_send_message):
         """
         Test we can create a submission review
@@ -70,7 +70,8 @@ class TestSubmissionReviewViewSet(TestBase):
             submission_review.id, submission_review.instance.xform.id, XFORM,
             submission_review.created_by, SUBMISSION_REVIEWED)
 
-    def test_bulk_create_submission_review(self):
+    @patch('onadata.apps.api.viewsets.submission_review_viewset.send_message')
+    def test_bulk_create_submission_review(self, mock_send_message):
         """
         Test that we can bulk create submission reviews
         """
@@ -93,6 +94,11 @@ class TestSubmissionReviewViewSet(TestBase):
         self.assertEqual(201, response.status_code)
         self.assertEqual(4, len(response.data))
         already_seen = []
+        # sends message upon saving the submission review
+        self.assertTrue(mock_send_message.called)
+        mock_send_message.called_with(
+            [s.id for s in self.xform.instances.all()], self.xform.id, XFORM,
+            request.user, SUBMISSION_REVIEWED)
         for item in response.data:
             # the note should match what we provided
             self.assertEqual('This is not very good, is it?', item['note'])

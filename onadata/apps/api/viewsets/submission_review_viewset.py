@@ -12,6 +12,8 @@ from rest_framework.viewsets import ModelViewSet
 from onadata.apps.api.permissions import SubmissionReviewPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import SubmissionReview
+from onadata.apps.messaging.constants import XFORM, SUBMISSION_REVIEWED
+from onadata.apps.messaging.serializers import send_message
 from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
 from onadata.libs.mixins.bulk_create_mixin import BulkCreateMixin
@@ -55,8 +57,24 @@ class SubmissionReviewViewSet(AuthenticateHeaderMixin, CacheControlMixin,
             serializer = self.get_serializer(data=request.data, many=True)
             serializer.is_valid(raise_exception=True)
             self.perform_create(serializer)
+            instance_ids = [sub_review['instance'] for sub_review in
+                            serializer.data]
             headers = self.get_success_headers(serializer.data)
-            return Response(serializer.data, status=status.HTTP_201_CREATED,
-                            headers=headers)
-        return super(SubmissionReviewViewSet, self).create(
-            request, *args, **kwargs)
+            xform = SubmissionReview.objects.get(
+                id=serializer.data[0]['id']).instance.xform
+
+        else:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            instance_ids = serializer.data['instance']
+            headers = self.get_success_headers(serializer.data)
+            xform = SubmissionReview.objects.get(
+                id=serializer.data['id']).instance.xform
+        send_message(
+            instance_id=instance_ids,
+            target_id=xform.id,
+            target_type=XFORM, user=request.user,
+            message_verb=SUBMISSION_REVIEWED)
+        return Response(serializer.data, status=status.HTTP_201_CREATED,
+                        headers=headers)

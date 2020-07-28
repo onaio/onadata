@@ -27,6 +27,9 @@ def messaging_backends_handler(sender, **kwargs):  # pylint: disable=W0613
             backend = backends[name]['BACKEND']
             backend_options = backends[name].get('OPTIONS')
             if as_task:
-                call_backend_async.delay(backend, instance.id, backend_options)
+                # Sometimes the Action isn't created yet, hence
+                # the need to delay 2 seconds
+                call_backend_async.apply_async(
+                    (backend, instance.id, backend_options), countdown=2)
             else:
                 call_backend(backend, instance.id, backend_options)

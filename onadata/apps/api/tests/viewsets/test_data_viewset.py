@@ -91,8 +91,7 @@ class TestDataViewSet(TestBase):
         self.extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
 
-    @patch('onadata.apps.logger.models.instance.send_message')
-    def test_data(self, mock_send_message):
+    def test_data(self):
         """Test DataViewSet list"""
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
@@ -125,10 +124,6 @@ class TestDataViewSet(TestBase):
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertIsInstance(response.data, dict)
         self.assertDictContainsSubset(data, response.data)
-        self.assertTrue(mock_send_message.called)
-        mock_send_message.called_with(
-            dataid, formid, XFORM,
-            request.user, SUBMISSION_DELETED)
 
     @override_settings(STREAM_DATA=True)
     def test_data_streaming(self):
@@ -1367,7 +1362,8 @@ class TestDataViewSet(TestBase):
         self.assertIsInstance(response.data, dict)
         self.assertDictContainsSubset(data, response.data)
 
-    def test_delete_submission(self):
+    @patch('onadata.apps.api.viewsets.data_viewset.send_message')
+    def test_delete_submission(self, send_message_mock):
         self._make_submissions()
         formid = self.xform.pk
         dataid = self.xform.instances.all().order_by('id')[0].pk
@@ -1389,6 +1385,11 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 204)
         first_xform_instance = self.xform.instances.filter(pk=dataid)
         self.assertEqual(first_xform_instance[0].deleted_by, request.user)
+        # message sent upon delete
+        self.assertTrue(send_message_mock.called)
+        send_message_mock.called_with(
+            [dataid], formid, XFORM,
+            request.user, SUBMISSION_DELETED)
 
         # second delete of same submission should return 404
         request = self.factory.delete('/', **self.extra)
@@ -1417,8 +1418,10 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(len(response.data), 2)
 
+    @patch('onadata.apps.api.viewsets.data_viewset.send_message')
     @patch('onadata.apps.viewer.signals._post_process_submissions')
-    def test_post_save_signal_on_submission_deletion(self, mock):
+    def test_post_save_signal_on_submission_deletion(self, mock,
+                                                     send_message_mock):
         # test that post_save_submission signal is sent
         # create form
         xls_file_path = os.path.join(
@@ -1455,6 +1458,7 @@ class TestDataViewSet(TestBase):
         # check that call_count is still one after saving instance again
         instance.save()
         self.assertEqual(mock.call_count, 1)
+        self.assertTrue(send_message_mock.called)
 
     @patch(
         'onadata.apps.api.viewsets.data_viewset.send_message')
@@ -1508,7 +1512,8 @@ class TestDataViewSet(TestBase):
         self.assertEqual(current_count, 2)
         self.assertEqual(self.xform.num_of_submissions, 2)
 
-    def test_delete_submission_inactive_form(self):
+    @patch('onadata.apps.api.viewsets.data_viewset.send_message')
+    def test_delete_submission_inactive_form(self, send_message_mock):
         self._make_submissions()
         formid = self.xform.pk
         dataid = self.xform.instances.all().order_by('id')[0].pk
@@ -1532,8 +1537,10 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid, dataid=dataid)
 
         self.assertEqual(response.status_code, 400)
+        self.assertTrue(send_message_mock.called)
 
-    def test_delete_submission_by_editor(self):
+    @patch('onadata.apps.api.viewsets.data_viewset.send_message')
+    def test_delete_submission_by_editor(self, send_message_mock):
         self._make_submissions()
         formid = self.xform.pk
         dataid = self.xform.instances.all().order_by('id')[0].pk
@@ -1564,8 +1571,10 @@ class TestDataViewSet(TestBase):
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(len(response.data), 3)
+        self.assertTrue(send_message_mock.called)
 
-    def test_delete_submission_by_owner(self):
+    @patch('onadata.apps.api.viewsets.data_viewset.send_message')
+    def test_delete_submission_by_owner(self, send_message_mock):
         self._make_submissions()
         formid = self.xform.pk
         dataid = self.xform.instances.all().order_by('id')[0].pk
@@ -1596,6 +1605,7 @@ class TestDataViewSet(TestBase):
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(len(response.data), 3)
+        self.assertTrue(send_message_mock.called)
 
     def test_geojson_format(self):
         self._publish_submit_geojson()

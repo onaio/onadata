@@ -10,7 +10,6 @@ import json
 from actstream.actions import action_handler
 from actstream.models import Action
 from actstream.signals import action
-from celery import task
 from django.conf import settings
 from django.http import HttpRequest
 from django.utils.translation import ugettext as _
@@ -120,7 +119,6 @@ class MessageSerializer(serializers.ModelSerializer):
                     return instance
 
 
-@task
 def send_message(instance_id, target_id, target_type, user, message_verb):
     """
     Send a message.
@@ -131,6 +129,8 @@ def send_message(instance_id, target_id, target_type, user, message_verb):
     :return:
     """
     if user:
+        if isinstance(instance_id, int):
+            instance_id = [instance_id]
         request = HttpRequest()
         request.user = user
         message = json.dumps({'id': instance_id})

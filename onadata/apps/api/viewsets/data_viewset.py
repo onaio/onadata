@@ -20,10 +20,13 @@ from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 
+from onadata.apps.api.permissions import ConnectViewsetPermissions
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.api.tools import add_tags_to_instance
+from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import OsmData, MergedXForm
 from onadata.apps.logger.models.attachment import Attachment
+from onadata.apps.logger.models.instance import FormInactiveError
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.messaging.constants import XFORM, SUBMISSION_DELETED
@@ -55,11 +58,9 @@ from onadata.libs.serializers.data_serializer import OSMSerializer
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.utils.common_tools import json_stream
-from onadata.libs.utils.viewer_tools import get_enketo_edit_url
-from onadata.apps.api.permissions import ConnectViewsetPermissions
-from onadata.apps.api.tools import get_baseviewset_class
-from onadata.apps.logger.models.instance import FormInactiveError
 from onadata.libs.utils.model_tools import queryset_iterator
+from onadata.libs.utils.viewer_tools import get_enketo_edit_url
+
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 BaseViewset = get_baseviewset_class()
 
@@ -325,6 +326,11 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             if request.user.has_perm(
                     CAN_DELETE_SUBMISSION, self.object.xform):
                 delete_instance(self.object, request.user)
+                # send message
+                send_message(
+                    instance_id=self.object, target_id=self.object.xform.id,
+                    target_type=XFORM, user=request.user,
+                    message_verb=SUBMISSION_DELETED)
             else:
                 raise PermissionDenied(_(u"You do not have delete "
                                          u"permissions."))
