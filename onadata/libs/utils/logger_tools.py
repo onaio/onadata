@@ -112,10 +112,38 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum):
     return instance
 
 
-def dict2xform(jsform, form_id, root=None):
+def dict2xform(jsform, form_id, root=None, username=None):
+    """
+    Converts a dictionary containing submission data into an XML
+    Submission for the appropriate form.
+
+    :param jsform (dict): A python dictionary object containing the submission
+                          data
+    :param form_id (str or XForm): An XForm object or a string value
+                                   representing the forms id_string
+    :param root (str): An optional string that should be used as the
+                       root nodes name. Defaults to None
+    :param: username (str): An optional string representing a users
+                            username. Used alongside the `form_id` to
+                            locate the XForm object the user is
+                            trying to submit data too. Defaults to None
+    :returns: Returns a string containing the Submission XML
+    :rtype: str
+    """
     if not root:
-        root = form_id
-    return u"<?xml version='1.0' ?><{0} id='{1}'>{2}</{0}>".format(
+        if username:
+            if isinstance(form_id, XForm):
+                root = form_id.survey.name
+            else:
+                form = XForm.objects.filter(
+                    id_string__iexact=form_id,
+                    user__username__iexact=username,
+                    deleted_at__isnull=True).first()
+                root = form.survey.name if form else 'data'
+        else:
+            root = 'data'
+
+    return "<?xml version='1.0' ?><{0} id='{1}'>{2}</{0}>".format(
         root, form_id, dict2xml(jsform))
 
 

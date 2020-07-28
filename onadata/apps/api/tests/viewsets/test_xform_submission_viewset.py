@@ -556,16 +556,17 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertContains(response, 'Successful submission', status_code=201)
         self.assertTrue(response.has_header('Date'))
         self.assertEqual(response['Location'], 'http://testserver/submission')
-        # InstanceID is returned as uuid:<uuid>
+        # InstanceID is returned as uuid:<uuid>.
         # Retrieving the uuid without the prefix in order to retrieve
-        # the actual instance
+        # the Instance object
         uuid = response.data.get('instanceID').split(':')[1]
         instance = Instance.objects.get(uuid=uuid)
         expected_xml = (
-            "<?xml version='1.0' ?><data id="
+            f"<?xml version='1.0' ?><{self.xform.survey.name} id="
             "'transportation_2011_07_25'><fruit_name>orange"
-            "</fruit_name></data>")
+            f"</fruit_name></{self.xform.survey.name}>")
         self.assertEqual(instance.xml, expected_xml)
+        self.assertEqual(self.xform.survey.name, 'data')
 
     def test_legacy_rapidpro_post_submission(self):
         """
