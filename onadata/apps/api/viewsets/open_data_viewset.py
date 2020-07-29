@@ -31,7 +31,6 @@ from onadata.libs.utils.common_tags import (
     NOTES,
     GEOLOCATION,
     MULTIPLE_SELECT_TYPE,
-    REPEAT_SELECT_TYPE,
     NA_REP)
 
 BaseViewset = get_baseviewset_class()
@@ -56,44 +55,24 @@ def process_tableau_data(data, xform):
     """
 
     def get_xpath(key, nested_key):
-        index_tags = DEFAULT_INDEX_TAGS
-        nested_key_diff = list(set(
-            nested_key.split('/')).difference(
-                set(key.split('/'))))
-        xpaths = [
-            '{key}{open_tag}{index}{close_tag}'.format(
-                key=key if len(key.split('/')) > 1
-                else nested_key.split('/')[0],
-                open_tag=index_tags[0],
-                index=index,
-                close_tag=index_tags[1])
-                ]
-        if len(key.split('/')) > 1:
-            try:
-                xpaths = xpaths[0] + '/' + nested_key_diff
-            except TypeError:
-                xpaths = xpaths[0] + ('/').join(nested_key_diff)
-        else:
-            xpaths = xpaths + [nested_key.split('/')[1]]
-            xpaths = "/".join(xpaths)
+        val = nested_key.split('/')
+        nested_key_diff = val[len(key.split('/')):]
+        xpaths = key + f'[{index}]/' + '/'.join(nested_key_diff)
         return xpaths
 
-    def unpack_select_multiples(key, value, data):
-        choices = value.split(" ")
-        for choice in choices:
-            xpaths = f'{key}/{choice}'
-            data[xpaths] = choice
-
-    def unpack_repeat_data(key, xpaths, value):
-        data = {}
-        try:
-            for index, item in enumerate(value, start=1):
-                for (nested_key, nested_val) in item.items():
-                    xpath = f'{xpaths}{DEFAULT_INDEX_TAGS[0]}{str(index)}{DEFAULT_INDEX_TAGS[1]}/{nested_key.split("/")[-1]}'  # noqa
-                    data[xpath] = nested_val
-        except AttributeError:
-            data[key] = value
-        return data
+    def get_updated_data_dict(key, value, data_dict):
+        """
+        Generates key, value pairs for select multiple question types.
+        Defining the new xpaths from the
+        question name(key) and the choice name(value)
+        in accordance with how we generate the tableau schema.
+        """
+        if isinstance(value, str) and data_dict:
+            choices = value.split(" ")
+            for choice in choices:
+                xpaths = f'{key}/{choice}'
+                data_dict[xpaths] = choice
+        return data_dict
 
     def get_ordered_repeat_value(key, item, index):
         """
@@ -116,10 +95,8 @@ def process_tableau_data(data, xform):
                     qstn_type = xform.get_element(nested_key).type
                     xpaths = get_xpath(key, nested_key)
                     if qstn_type == MULTIPLE_SELECT_TYPE:
-                        unpack_select_multiples(xpaths, nested_val, data)
-                    elif qstn_type == REPEAT_SELECT_TYPE:
-                        item = unpack_repeat_data(key, xpaths, nested_val)
-                        data.update(item)
+                        data = get_updated_data_dict(
+                            xpaths, nested_val, data)
                     else:
                         data[xpaths] = nested_val
         return data
@@ -142,7 +119,8 @@ def process_tableau_data(data, xform):
                     try:
                         qstn_type = xform.get_element(key).type
                         if qstn_type == MULTIPLE_SELECT_TYPE:
-                            unpack_select_multiples(key, value, flat_dict)
+                            data = get_updated_data_dict(
+                                key, value, flat_dict)
                         else:
                             flat_dict[key] = value
                     except AttributeError:

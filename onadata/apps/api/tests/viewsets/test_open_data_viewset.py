@@ -493,6 +493,6 @@ class TestOpenData(TestBase):
 
         # Confirm nested repeat group data is available in tableau
         self.assertEqual(
-            row_data[0]['hospital_hiv_medication_person_'
-                        'repeat_2__person_first_name'],
-            'Susan')
+            row_data[0]['hospital_hiv_medication_person'
+                        '_repeat_1__person_first_name'],
+            'Timburt')
