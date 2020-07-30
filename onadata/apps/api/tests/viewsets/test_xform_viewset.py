@@ -2049,7 +2049,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
     def test_extra_data_passed_in_select_multiple(self):
         """
-        Test that extra details present in CSV Import is
+        Test that extra details present in CSV Import are
         safely removed
         """
         form_md = """
