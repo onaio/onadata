@@ -2047,6 +2047,33 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.data.get('additions'), 9)
             self.assertEqual(response.data.get('updates'), 0)
 
+    def test_extra_data_passed_in_select_multiple(self):
+        """
+        Test that extra details present in CSV Import is
+        safely removed
+        """
+        form_md = """
+        | survey |
+        |        | type                  | name | label                       |
+        |        | select_multiple moods | mood | How are you feeling today ? |
+        |        | dateTime              | now  | Current time                |
+        | choices |
+        |         | list_name | name  | label |
+        |         | moods     | happy | Happy |
+        |         | moods     | sad   | Sad   |
+        |         | moods     | meh   | Meh   |
+        """
+
+        xform = self._publish_markdown(form_md, self.user)
+        view = XFormViewSet.as_view({'post': 'csv_import'})
+        csv_import = fixtures_path('extra_details.csv')
+        post_data = {'csv_file': csv_import}
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request, pk=xform.id)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get('additions'), 3)
+
     @override_settings(CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD=4*100000)
     def test_large_csv_import(self):
         with HTTMock(enketo_mock):
