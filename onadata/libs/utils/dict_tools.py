@@ -65,7 +65,7 @@ def merge_list_of_dicts(list_of_dicts, override_keys: list = None):
                     if isinstance(v, dict):
                         try:
                             result[k] = merge_list_of_dicts([result[k], v])
-                        except AttributeError:
+                        except AttributeError as e:
                             # If the key is within the override_keys
                             # (Is a select_multiple question) We make
                             # the assumption that the dict values are
@@ -76,6 +76,8 @@ def merge_list_of_dicts(list_of_dicts, override_keys: list = None):
                                  k in override_keys:
                                 result[k] = {}
                                 result[k] = merge_list_of_dicts([result[k], v])
+                            else:
+                                raise e
                     else:
                         result = [result, row]
                 else:
