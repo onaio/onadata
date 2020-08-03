@@ -76,7 +76,6 @@ def merge_list_of_dicts(list_of_dicts, override_keys: list = None):
                                  k in override_keys:
                                 result[k] = {}
                                 result[k] = merge_list_of_dicts([result[k], v])
-                            return result
                     else:
                         result = [result, row]
                 else:
@@ -128,7 +127,7 @@ def csv_dict_to_nested_dict(csv_dict):
             result[key] = value
         else:
             if split_keys[0] not in select_question_keys and \
-                split_keys[0] != 'meta':
+                    split_keys[0] != 'meta':
                 select_question_keys.append(split_keys[0])
             result = list_to_dict(split_keys, value)
 

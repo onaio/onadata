@@ -2073,6 +2073,22 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data.get('additions'), 3)
+        # Delete instances
+        xform.instances.all().delete()
+
+        # Ensure data is correctly imported
+        csv_import = fixtures_path('single_submission_extra_details.csv')
+        post_data = {'csv_file': csv_import}
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request, pk=xform.id)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get('additions'), 1)
+        instance_data = xform.instances.first().json
+
+        self.assertEqual(instance_data.get('mood/meh'), '0')
+        self.assertEqual(instance_data.get('mood/sad'), '0')
+        self.assertEqual(instance_data.get('mood/happy'), '1')
 
     @override_settings(CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD=4*100000)
     def test_large_csv_import(self):
