@@ -127,7 +127,9 @@ def csv_dict_to_nested_dict(csv_dict):
         if len(split_keys) == 1:
             result[key] = value
         else:
-            select_question_keys.append(split_keys[0])
+            if split_keys[0] not in select_question_keys and \
+                split_keys[0] != 'meta':
+                select_question_keys.append(split_keys[0])
             result = list_to_dict(split_keys, value)
 
         results.append(result)
