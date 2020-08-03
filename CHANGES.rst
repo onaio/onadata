@@ -15,6 +15,9 @@ v2.3.6(2020-07-29)
 - Add more flexible MQTT Topics
   `PR #1850 <https://github.com/onaio/onadata/pull/1850>`_
   [@lincmba]
+- Include support for `select_multiple` questions on Tableau connector
+  `PR #1835 <https://github.com/onaio/onadata/pull/1850>`_
+  [@WinnyTroy]
 
 v2.3.5(2020-06-18)
 ------------------
