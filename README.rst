@@ -1,6 +1,10 @@
 Ona Platform
 ============
 
+.. image:: https://api.codacy.com/project/badge/Grade/ff02468403ae4e769cf78d92070e3d09
+   :alt: Codacy Badge
+   :target: https://app.codacy.com/manual/Ona/onadata?utm_source=github.com&utm_medium=referral&utm_content=onaio/onadata&utm_campaign=Badge_Grade_Dashboard
+
 Collect, Analyze and Share Data!
 
 .. image:: https://travis-ci.org/onaio/onadata.svg?branch=master
