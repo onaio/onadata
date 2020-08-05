@@ -206,10 +206,8 @@ def enketo_url(form_url,
         except ValueError:
             pass
         else:
-            url = (data.get('edit_url') or data.get('offline_url') or
-                   data.get('url'))
-            if url:
-                return url
+            if data:
+                return data
 
     handle_enketo_error(response)
 
@@ -340,65 +338,3 @@ def get_enketo_edit_url(request, instance, return_url):
         instance_id=instance.uuid,
         return_url=return_url)
     return url
-
-
-def get_enketo_preview_url(
-        request, id_string, username=None, xform_pk=None,
-        generate_consistent_urls=False):
-    """Return an Enketo preview URL."""
-    form_url_kwargs = {
-        'request': request,
-        'protocol': settings.ENKETO_PROTOCOL,
-        'preview': True,
-        'xform_pk': xform_pk,
-        'username': username,
-        'generate_consistent_urls': generate_consistent_urls
-    }
-
-    form_url = get_form_url(**form_url_kwargs)
-    values = {'form_id': id_string, 'server_url': form_url}
-
-    response = requests.post(
-        settings.ENKETO_PREVIEW_URL,
-        data=values,
-        auth=(settings.ENKETO_API_TOKEN, ''),
-        verify=getattr(settings, 'VERIFY_SSL', True))
-    resp_content = response.content
-    resp_content = resp_content.decode('utf-8') if hasattr(
-        resp_content, 'decode') else resp_content
-    try:
-        response = json.loads(resp_content)
-    except (ValueError, JSONDecodeError):
-        pass
-    else:
-        if 'preview_url' in response:
-            return response['preview_url']
-        elif 'message' in response:
-            raise EnketoError(response['message'])
-
-    return False
-
-
-def get_enketo_single_submit_url(request, username, id_string, xform_pk=None):
-    """Return single submit url of the submission instance."""
-    enketo_url = urljoin(settings.ENKETO_URL, getattr(
-        settings, 'ENKETO_SINGLE_SUBMIT_PATH', "/api/v2/survey/all"))
-    form_id = id_string
-    server_url = get_form_url(
-        request,
-        username,
-        settings.ENKETO_PROTOCOL)
-
-    url = '{}?server_url={}&form_id={}'.format(
-        enketo_url, server_url, form_id)
-
-    response = requests.get(url, auth=(settings.ENKETO_API_TOKEN, ''))
-
-    if response.status_code == 200:
-        try:
-            data = json.loads(response.content)
-        except ValueError:
-            pass
-        return data['single_url']
-
-    handle_enketo_error(response)

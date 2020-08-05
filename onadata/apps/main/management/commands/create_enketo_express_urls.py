@@ -5,7 +5,7 @@ from django.utils.translation import ugettext_lazy
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.viewer_tools import (
-    enketo_url, get_enketo_preview_url, get_form_url)
+    enketo_url, get_form_url)
 
 
 class Command(BaseCommand):
@@ -63,13 +63,11 @@ class Command(BaseCommand):
                         xform_pk=xform.pk,
                         generate_consistent_urls=generate_consistent_urls)
                 id_string = xform.id_string
-                _url = enketo_url(form_url, id_string)
-                _preview_url = get_enketo_preview_url(
-                        request,
-                        username,
-                        id_string,
-                        xform_pk=xform.pk,
-                        generate_consistent_urls=generate_consistent_urls)
+                data = enketo_url(form_url, id_string)
+                _url = (data.get('edit_url') or data.get('offline_url') or
+                        data.get('url'))
+                _preview_url = (data.get('preview_url'))
+
                 self.stdout.write('enketo url: %s | preview url: %s' %
                                   (_url, _preview_url))
                 self.stdout.write("enketo urls generation completed!!")
@@ -88,10 +86,10 @@ class Command(BaseCommand):
                             xform_pk=xform.pk,
                             generate_consistent_urls=generate_consistent_urls)
                     id_string = xform.id_string
-                    _url = enketo_url(form_url, id_string)
-                    _preview_url = get_enketo_preview_url(
-                        request, username, id_string, xform_pk=xform.pk,
-                        generate_consistent_urls=generate_consistent_urls)
+                    data = enketo_url(form_url, id_string)
+                    _url = (data.get('edit_url') or data.get('offline_url') or
+                            data.get('url'))
+                    _preview_url = (data.get('preview_url'))
                     num_of_xforms -= 1
                     self.stdout.write(
                         'enketo url: %s | preview url: %s | remaining: %s' %
@@ -111,10 +109,10 @@ class Command(BaseCommand):
                         protocol=protocol,
                         xform_pk=xform.pk,
                         generate_consistent_urls=generate_consistent_urls)
-                _url = enketo_url(form_url, id_string)
-                _preview_url = get_enketo_preview_url(
-                    request, id_string=id_string, xform_pk=xform.pk,
-                    generate_consistent_urls=generate_consistent_urls)
+                data = enketo_url(form_url, id_string)
+                _url = (data.get('edit_url') or data.get('offline_url') or
+                        data.get('url'))
+                _preview_url = (data.get('preview_url'))
                 num_of_xforms -= 1
                 self.stdout.write(
                     'enketo url: %s | preview url: %s | remaining: %s' %

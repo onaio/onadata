@@ -33,7 +33,7 @@ from onadata.libs.utils.common_tags import (GROUP_DELIMETER_TAG,
                                             REPEAT_INDEX_TAGS)
 from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.viewer_tools import (
-    enketo_url, get_enketo_preview_url, get_form_url)
+    enketo_url, get_form_url)
 
 
 def _create_enketo_url(request, xform):
@@ -50,7 +50,9 @@ def _create_enketo_url(request, xform):
     url = ""
 
     try:
-        url = enketo_url(form_url, xform.id_string)
+        data = enketo_url(form_url, xform.id_string)
+        if data:
+            url = data.get("single_url")
         MetaData.enketo_url(xform, url)
     except ConnectionError as e:
         logging.exception("Connection Error: %s" % e)
@@ -158,9 +160,9 @@ class XFormMixin(object):
             url = self._get_metadata(obj, 'enketo_preview_url')
             if url is None:
                 try:
-                    url = get_enketo_preview_url(
-                        self.context.get('request'), obj.user.username,
-                        obj.id_string, xform_pk=obj.pk)
+                    data = enketo_url(obj.url, obj.id_string)
+                    if data:
+                        url = data.get("enketo_preview_url")
                 except Exception:
                     return url
                 else:

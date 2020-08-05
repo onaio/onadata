@@ -73,9 +73,7 @@ from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.string import str2bool
 from onadata.libs.utils.viewer_tools import (enketo_url,
                                              generate_enketo_form_defaults,
-                                             get_enketo_preview_url,
-                                             get_form_url,
-                                             get_enketo_single_submit_url)
+                                             get_form_url)
 from onadata.libs.exceptions import EnketoError
 from onadata.settings.common import XLS_EXTENSIONS, CSV_EXTENSION
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_delete
@@ -423,15 +421,12 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             request_vars = request.GET
             defaults = generate_enketo_form_defaults(
                 self.object, **request_vars)
-            url = enketo_url(
+            data = enketo_url(
                 form_url, self.object.id_string, **defaults)
-            preview_url = get_enketo_preview_url(request,
-                                                 self.object.user.username,
-                                                 self.object.id_string,
-                                                 xform_pk=self.object.pk)
-            single_submit_url = get_enketo_single_submit_url(
-                request, self.object.user.username, self.object.id_string,
-                xform_pk=self.object.pk)
+            offline_url = (data.get('edit_url') or data.get('offline_url') or
+                           data.get('url'))
+            preview_url = (data.get('preview_url'))
+            single_submit_url = (data.get('single_url'))
         except EnketoError as e:
             data = {'message': _(u"Enketo error: %s" % e)}
         else:
@@ -439,7 +434,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                 data = {"single_submit_url": single_submit_url}
             else:
                 http_status = status.HTTP_200_OK
-                data = {"enketo_url": url,
+                data = {"enketo_url": offline_url,
                         "enketo_preview_url": preview_url,
                         "single_submit_url": single_submit_url}
 

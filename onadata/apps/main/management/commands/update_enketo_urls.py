@@ -5,7 +5,7 @@ from django.utils.translation import ugettext_lazy
 
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.utils.viewer_tools import (
-    enketo_url, get_enketo_preview_url, get_form_url)
+    enketo_url, get_form_url)
 
 
 class Command(BaseCommand):
@@ -60,18 +60,18 @@ class Command(BaseCommand):
             xform_pk = xform.pk
 
             with open('/tmp/enketo_url', 'a') as f:
+                form_url = get_form_url(
+                    request, username=username, id_string=id_string,
+                    xform_pk=xform_pk,
+                    generate_consistent_urls=generate_consistent_urls)
+                data = enketo_url(form_url, id_string)
                 if data_type == 'enketo_url':
-                    form_url = get_form_url(
-                        request, username=username, id_string=id_string,
-                        xform_pk=xform_pk,
-                        generate_consistent_urls=generate_consistent_urls)
-                    _enketo_url = enketo_url(form_url, id_string)
+                    _enketo_url = (data.get('edit_url') or
+                                   data.get('offline_url') or
+                                   data.get('url'))
                     MetaData.enketo_url(xform, _enketo_url)
                 elif data_type == 'enketo_preview_url':
-                    _enketo_preview_url = get_enketo_preview_url(
-                        request, id_string, username=username,
-                        xform_pk=xform_pk,
-                        generate_consistent_urls=generate_consistent_urls)
+                    _enketo_preview_url = (data.get('preview_url'))
                     MetaData.enketo_preview_url(xform, _enketo_preview_url)
 
                 f.write('%s : %s \n' % (id_string, data_value))

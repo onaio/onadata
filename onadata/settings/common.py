@@ -98,7 +98,7 @@ STATIC_URL = '/static/'
 # Enketo URL
 ENKETO_PROTOCOL = 'https'
 ENKETO_URL = 'https://enketo.ona.io/'
-ENKETO_API_SURVEY_PATH = '/api_v2/survey'
+ENKETO_API_SURVEY_PATH = '/api_v2/survey/all'
 ENKETO_API_INSTANCE_PATH = '/api_v2/instance'
 ENKETO_PREVIEW_URL = urljoin(ENKETO_URL, ENKETO_API_SURVEY_PATH + '/preview')
 ENKETO_API_TOKEN = ''
