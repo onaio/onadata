@@ -46,7 +46,8 @@ def create_submission(request, username, data_dict, xform_id):
     """
     Returns validated data object instances
     """
-    xml_string = dict2xform(data_dict, xform_id)
+    xml_string = dict2xform(
+        data_dict, xform_id, username=username)
     xml_file = BytesIO(xml_string.encode('utf-8'))
 
     error, instance = safe_create_instance(username, xml_file, [], None,
