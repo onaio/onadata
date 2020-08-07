@@ -20,7 +20,7 @@ from mock import patch
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
-    enketo_preview_url_mock
+    enketo_urls_mock
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
@@ -46,7 +46,7 @@ from onadata.libs.utils.logger_tools import create_instance
 def enketo_mock(url, request):
     response = requests.Response()
     response.status_code = 201
-    response._content = '{"url": "https://hmh2a.enketo.ona.io"}'
+    response._content = '{"url": "https:\\/\\/hmh2a.enketo.ona.io"}'
     return response
 
 
@@ -1851,7 +1851,7 @@ class TestDataViewSet(TestBase):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         formid = self.xform.pk
-        with HTTMock(enketo_preview_url_mock, enketo_mock):
+        with HTTMock(enketo_urls_mock):
             response = view(request, pk=formid)
             self.assertEquals(response.status_code, 200)
             self.assertEqual(len(response.data), 4)

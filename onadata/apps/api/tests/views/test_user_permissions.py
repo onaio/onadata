@@ -8,7 +8,7 @@ from httmock import HTTMock
 from rest_framework.renderers import JSONRenderer
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
-    TestAbstractViewSet, enketo_preview_url_mock, enketo_url_mock
+    TestAbstractViewSet, enketo_urls_mock
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
@@ -56,7 +56,7 @@ class TestUserPermissions(TestAbstractViewSet):
             post_data = {'xls_file': xls_file, 'owner': 'bob'}
             request = self.factory.post('/', data=post_data, **self.extra)
             role.ManagerRole.add(self.user, bob.profile)
-            with HTTMock(enketo_url_mock, enketo_preview_url_mock):
+            with HTTMock(enketo_urls_mock):
                 response = view(request)
                 self.assertEqual(response.status_code, 201)
 

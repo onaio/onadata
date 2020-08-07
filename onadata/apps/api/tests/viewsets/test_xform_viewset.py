@@ -36,12 +36,11 @@ from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.api.tests.mocked_data import (
     enketo_error500_mock, enketo_error502_mock, enketo_error_mock, enketo_mock,
-    enketo_mock_with_form_defaults, enketo_preview_url_mock,
-    enketo_url_mock, external_mock, external_mock_single_instance,
+    enketo_mock_with_form_defaults,
+    enketo_urls_mock, external_mock, external_mock_single_instance,
     external_mock_single_instance2, xls_url_no_extension_mock,
     xls_url_no_extension_mock_content_disposition_attr_jumbled_v1,
-    xls_url_no_extension_mock_content_disposition_attr_jumbled_v2,
-    enketo_single_submission_mock)
+    xls_url_no_extension_mock_content_disposition_attr_jumbled_v2)
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
@@ -286,7 +285,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.data, [])
 
     def test_public_form_list(self):
-        with HTTMock(enketo_preview_url_mock, enketo_url_mock):
+        with HTTMock(enketo_urls_mock):
             self._publish_xls_form_to_project()
             self.view = XFormViewSet.as_view({
                 'get': 'retrieve',
@@ -354,7 +353,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.data, [])
 
     def test_form_list_other_user_access(self):
-        with HTTMock(enketo_preview_url_mock, enketo_url_mock):
+        with HTTMock(enketo_urls_mock):
             """Test that a different user has no access to bob's form"""
             self._publish_xls_form_to_project()
             request = self.factory.get('/', **self.extra)
@@ -408,7 +407,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.data, [])
 
     def test_form_list_filter_by_user(self):
-        with HTTMock(enketo_preview_url_mock, enketo_url_mock):
+        with HTTMock(enketo_urls_mock):
             # publish bob's form
             self._publish_xls_form_to_project()
 
@@ -513,13 +512,13 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.data, [])
 
     def test_form_get(self):
-        self._publish_xls_form_to_project()
-        view = XFormViewSet.as_view({
-            'get': 'retrieve'
-        })
-        formid = self.xform.pk
-        request = self.factory.get('/', **self.extra)
-        with HTTMock(enketo_preview_url_mock, enketo_url_mock):
+        with HTTMock(enketo_urls_mock):
+            view = XFormViewSet.as_view({
+                'get': 'retrieve'
+            })
+            self._publish_xls_form_to_project()
+            formid = self.xform.pk
+            request = self.factory.get('/', **self.extra)
             response = view(request, pk=formid)
             self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
@@ -758,8 +757,7 @@ class TestXFormViewSet(TestAbstractViewSet):
     @override_settings(TESTING_MODE=False)
     def test_enketo_url(self):
         """Test functionality to expose enketo urls."""
-        with HTTMock(enketo_preview_url_mock, enketo_url_mock,
-                     enketo_single_submission_mock):
+        with HTTMock(enketo_urls_mock):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({
                 'get': 'enketo'
@@ -770,7 +768,10 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=formid)
             url = "https://enketo.ona.io/::YY8M"
             preview_url = "https://enketo.ona.io/preview/::YY8M"
-            data = {"enketo_url": url, "enketo_preview_url": preview_url}
+            single_url = "http://localhost:8005/single/::vtPuefbl"
+            data = {"enketo_url": url,
+                    "enketo_preview_url": preview_url,
+                    "single_submit_url": single_url}
             self.assertEqual(response.data, data)
 
             alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
@@ -798,8 +799,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.data, data)
 
     def test_get_single_submit_url(self):
-        with HTTMock(enketo_preview_url_mock, enketo_url_mock,
-                     enketo_single_submission_mock):
+        with HTTMock(enketo_urls_mock):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({
                 'get': 'enketo'
@@ -808,12 +808,11 @@ class TestXFormViewSet(TestAbstractViewSet):
             get_data = {'survey_type': 'single'}
             request = self.factory.get('/', data=get_data, **self.extra)
             response = view(request, pk=formid)
-            submit_url = "https://enketo.ona.io/single/::XZqoZ94y"
-            data = {"single_submit_url": submit_url}
-            self.assertEqual(response.data, data)
+            submit_url = "http://enketo.ona.io/single/::XZqoZ94y"
+            self.assertEqual(response.data["single_submit_url"], submit_url)
 
     def test_enketo_url_with_default_form_params(self):
-        with HTTMock(enketo_preview_url_mock, enketo_mock_with_form_defaults):
+        with HTTMock(enketo_mock_with_form_defaults):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({
                 'get': 'enketo'
@@ -824,9 +823,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get('/', data=get_data, **self.extra)
             response = view(request, pk=formid)
             url = "https://dmfrm.enketo.org/webform?d[%2Fnum]=1"
-            preview_url = "https://enketo.ona.io/preview/::YY8M"
-            data = {"enketo_url": url, "enketo_preview_url": preview_url}
-            self.assertEqual(response.data, data)
+            self.assertEqual(response.data['enketo_url'], url)
 
     def test_handle_memory_error_on_form_replacement(self):
         with HTTMock(enketo_mock):
@@ -949,7 +946,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertNotEquals(xform_old_hash, self.xform.hash)
 
     def test_login_enketo_no_redirect(self):
-        with HTTMock(enketo_preview_url_mock, enketo_url_mock):
+        with HTTMock(enketo_urls_mock):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({
                 'get': 'login'
@@ -962,7 +959,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
     @override_settings(ENKETO_CLIENT_LOGIN_URL='http://test.ona.io/login')
     def test_login_enketo_no_jwt_but_with_return_url(self):
-        with HTTMock(enketo_preview_url_mock, enketo_url_mock):
+        with HTTMock(enketo_urls_mock):
             self._publish_xls_form_to_project()
 
             view = XFormViewSet.as_view({
@@ -981,7 +978,7 @@ class TestXFormViewSet(TestAbstractViewSet):
     @override_settings(JWT_SECRET_KEY=JWT_SECRET_KEY,
                        JWT_ALGORITHM=JWT_ALGORITHM)
     def test_login_enketo_online_url_bad_token(self):
-        with HTTMock(enketo_preview_url_mock, enketo_url_mock):
+        with HTTMock(enketo_urls_mock):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({
                 'get': 'login'
@@ -1003,7 +1000,7 @@ class TestXFormViewSet(TestAbstractViewSet):
     @override_settings(JWT_SECRET_KEY=JWT_SECRET_KEY,
                        JWT_ALGORITHM=JWT_ALGORITHM)
     def test_login_enketo_offline_url_using_jwt(self):
-        with HTTMock(enketo_preview_url_mock, enketo_url_mock):
+        with HTTMock(enketo_urls_mock):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({
                 'get': 'login'
@@ -1034,7 +1031,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         mock_jwt_decode.side_effect = jwt.DecodeError(
             u'JWT DecodeError: Not enough segments')
 
-        with HTTMock(enketo_preview_url_mock, enketo_url_mock):
+        with HTTMock(enketo_urls_mock):
             with self.assertRaises(jwt.DecodeError):
                 self._publish_xls_form_to_project()
                 self.assertTrue(mock_jwt_decode.called)
@@ -1042,7 +1039,7 @@ class TestXFormViewSet(TestAbstractViewSet):
     @override_settings(JWT_SECRET_KEY=JWT_SECRET_KEY,
                        JWT_ALGORITHM=JWT_ALGORITHM)
     def test_login_enketo_online_url_using_jwt(self):
-        with HTTMock(enketo_preview_url_mock, enketo_url_mock):
+        with HTTMock(enketo_urls_mock):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({
                 'get': 'login'
@@ -1073,7 +1070,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(uid_cookie.split(':')[0], 'bob')
 
     def test_publish_xlsform(self):
-        with HTTMock(enketo_mock):
+        with HTTMock(enketo_urls_mock):
             view = XFormViewSet.as_view({
                 'post': 'create'
             })
@@ -1105,6 +1102,9 @@ class TestXFormViewSet(TestAbstractViewSet):
                     'url':
                     'http://testserver/api/v1/forms/%s' % xform.pk
                 })
+                MetaData.enketo_url(xform, response.data['enketo_url'])
+                MetaData.enketo_preview_url(xform, response.data[
+                    'enketo_preview_url'])
 
                 self.assertDictContainsSubset(data, response.data)
                 self.assertTrue(OwnerRole.user_has_role(self.user, xform))
@@ -1119,7 +1119,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                         object_id=xform.id, data_type="enketo_preview_url"))
 
     def test_publish_xlsforms_with_same_id_string(self):
-        with HTTMock(enketo_mock):
+        with HTTMock(enketo_urls_mock):
             counter = XForm.objects.count()
             view = XFormViewSet.as_view({
                 'post': 'create'
@@ -1151,6 +1151,9 @@ class TestXFormViewSet(TestAbstractViewSet):
                     'http://testserver/api/v1/forms/%s' % xform.pk,
                     'has_id_string_changed': False,
                 })
+                MetaData.enketo_url(xform, response.data['enketo_url'])
+                MetaData.enketo_preview_url(xform, response.data[
+                    'enketo_preview_url'])
 
                 self.assertDictContainsSubset(data, response.data)
                 self.assertTrue(OwnerRole.user_has_role(self.user, xform))
@@ -1183,6 +1186,9 @@ class TestXFormViewSet(TestAbstractViewSet):
                     'sms_id_string': u'Transportation_2011_07_25',
                     'has_id_string_changed': True,
                 })
+                MetaData.enketo_url(xform, response.data['enketo_url'])
+                MetaData.enketo_preview_url(xform, response.data[
+                    'enketo_preview_url'])
 
                 self.assertDictContainsSubset(data, response.data)
                 self.assertTrue(OwnerRole.user_has_role(self.user, xform))
@@ -1341,9 +1347,12 @@ class TestXFormViewSet(TestAbstractViewSet):
                 post_data = {'xls_file': xls_file}
                 request = self.factory.post('/', data=post_data, **self.extra)
                 response = view(request)
+                xform = self.user.xforms.all()[0]
+                MetaData.enketo_url(xform, response.data['enketo_url'])
+                MetaData.enketo_preview_url(xform, response.data[
+                    'enketo_preview_url'])
                 self.assertEqual(response.status_code, 201)
                 self.assertEqual(meta_count + 3, MetaData.objects.count())
-                xform = self.user.xforms.all()[0]
                 metadata = MetaData.objects.get(
                     object_id=xform.id, data_value='itemsets.csv')
                 self.assertIsNotNone(metadata)
@@ -4554,7 +4563,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
     def test_external_choice_integer_name_xlsform(self):
         """Test that names with integers are converted to strings"""
-        with HTTMock(enketo_mock):
+        with HTTMock(enketo_urls_mock):
             view = XFormViewSet.as_view({
                 'post': 'create'
             })
@@ -4567,9 +4576,12 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 post_data = {'xls_file': xls_file}
                 request = self.factory.post('/', data=post_data, **self.extra)
                 response = view(request)
+                xform = self.user.xforms.all()[0]
+                MetaData.enketo_url(xform, response.data['enketo_url'])
+                MetaData.enketo_preview_url(xform, response.data[
+                    'enketo_preview_url'])
                 self.assertEqual(response.status_code, 201)
                 self.assertEqual(meta_count + 3, MetaData.objects.count())
-                xform = self.user.xforms.all()[0]
                 metadata = MetaData.objects.get(
                     object_id=xform.id, data_value='itemsets.csv')
                 self.assertIsNotNone(metadata)

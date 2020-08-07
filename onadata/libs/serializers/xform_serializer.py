@@ -36,30 +36,37 @@ from onadata.libs.utils.viewer_tools import (
     enketo_url, get_form_url)
 
 
-def _create_enketo_url(request, xform):
+def _create_enketo_urls(request, xform):
     """
-    Generate enketo url for a form
+    Generate enketo urls for a form
 
     :param request:
     :param xform:
-    :return: enketo url
+    :return: enketo urls
     """
     form_url = get_form_url(request, xform.user.username,
                             settings.ENKETO_PROTOCOL, xform_pk=xform.pk,
                             generate_consistent_urls=True)
-    url = ""
-
+    data = {}
     try:
-        data = enketo_url(form_url, xform.id_string)
-        if data:
-            url = data.get("single_url")
-        MetaData.enketo_url(xform, url)
+        urls = enketo_url(form_url, xform.id_string)
+        offline_url = urls.get("offline_url")
+        MetaData.enketo_url(xform, offline_url)
+        data['offline_url'] = offline_url
+        if 'preview_url' in urls:
+            preview_url = urls.get("preview_url")
+            MetaData.enketo_preview_url(xform, preview_url)
+            data['preview_url'] = preview_url
+        if 'single_url' in urls:
+            single_url = urls.get("single_url")
+            MetaData.enketo_url(xform, single_url)
+            data['single_url'] = single_url
     except ConnectionError as e:
         logging.exception("Connection Error: %s" % e)
     except EnketoError as e:
         logging.exception("Enketo Error: %s" % e.message)
 
-    return url
+    return data
 
 
 def _set_cache(cache_key, cache_data, obj):
@@ -144,7 +151,8 @@ class XFormMixin(object):
 
             url = self._get_metadata(obj, 'enketo_url')
             if url is None:
-                url = _create_enketo_url(self.context.get('request'), obj)
+                data = _create_enketo_urls(self.context.get('request'), obj)
+                url = data.get('offline_url')
 
             return _set_cache(ENKETO_URL_CACHE, url, obj)
 
@@ -160,9 +168,9 @@ class XFormMixin(object):
             url = self._get_metadata(obj, 'enketo_preview_url')
             if url is None:
                 try:
-                    data = enketo_url(obj.url, obj.id_string)
-                    if data:
-                        url = data.get("enketo_preview_url")
+                    data = _create_enketo_urls(
+                        self.context.get('request'), obj)
+                    url = data.get('preview_url')
                 except Exception:
                     return url
                 else:
