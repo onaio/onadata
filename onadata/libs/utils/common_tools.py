@@ -48,11 +48,11 @@ def get_boolean_value(str_var, default=None):
     return str_var if default else False
 
 
-def get_uuid(hex: bool = True):
+def get_uuid(hex_only: bool = True):
     '''
     Return UUID4 hex value
     '''
-    return uuid.uuid4().hex if hex else str(uuid.uuid4())
+    return uuid.uuid4().hex if hex_only else str(uuid.uuid4())
 
 
 def report_exception(subject, info, exc_info=None):

@@ -42,12 +42,13 @@ def get_request_and_username(context):
     return (request, username)
 
 
-def create_submission(request, username, data_dict, xform_id):
+def create_submission(
+        request, username, data_dict, xform_id, gen_uuid: bool = False):
     """
     Returns validated data object instances
     """
     xml_string = dict2xform(
-        data_dict, xform_id, username=username)
+        data_dict, xform_id, username=username, gen_uuid=gen_uuid)
     xml_file = BytesIO(xml_string.encode('utf-8'))
 
     error, instance = safe_create_instance(username, xml_file, [], None,
@@ -334,7 +335,8 @@ class RapidProSubmissionSerializer(BaseRapidProSubmissionSerializer):
         request, username = get_request_and_username(self.context)
         rapidpro_dict = query_list_to_dict(request.data.get('values'))
         instance = create_submission(request, username, rapidpro_dict,
-                                     validated_data['id_string'])
+                                     validated_data['id_string'],
+                                     gen_uuid=True)
 
         return instance
 
@@ -352,7 +354,8 @@ class RapidProJSONSubmissionSerializer(BaseRapidProSubmissionSerializer):
         instance_data_dict = {
             k: post_data[k].get('value') for k in post_data.keys()}
         instance = create_submission(
-            request, username, instance_data_dict, validated_data['id_string'])
+            request, username, instance_data_dict,
+            validated_data['id_string'], gen_uuid=True)
         return instance
 
 
