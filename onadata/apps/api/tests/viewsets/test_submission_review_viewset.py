@@ -3,7 +3,6 @@ Submission Review ViewSet Tests Module
 """
 from __future__ import unicode_literals
 
-from guardian.shortcuts import assign_perm
 from mock import patch
 from rest_framework.test import APIRequestFactory
 
@@ -12,7 +11,7 @@ from onadata.apps.api.viewsets.submission_review_viewset import \
 from onadata.apps.logger.models import SubmissionReview, Instance
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.messaging.constants import XFORM, SUBMISSION_REVIEWED
-from onadata.libs.permissions import CAN_CHANGE_XFORM
+from onadata.libs.permissions import EditorRole, OwnerRole, ManagerRole
 from onadata.libs.utils.common_tags import REVIEW_STATUS, REVIEW_COMMENT
 
 
@@ -41,6 +40,9 @@ class TestSubmissionReviewViewSet(TestBase):
         Utility method creates Submission Review
         """
         instance_id = self._first_xform_instance.id
+        # Ensure Managers can create a Submission Review
+        self._create_user_and_login('bob', '1234')
+        ManagerRole.add(self.user, self._first_xform_instance.xform)
         submission_data = {
             'note': "Supreme Overload!",
             'instance': instance_id
@@ -196,8 +198,12 @@ class TestSubmissionReviewViewSet(TestBase):
         Test that submission review access to unauthorized users
         """
         data = self._create_submission_review()
+        form = Instance.objects.get(id=data['instance']).xform
         self._create_user_and_login('dave', '1234')
         extra = {'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        # Editors should not be able to create, update, delete
+        # reviews. Only Admins and Managers should have these permissions
+        EditorRole.add(self.user, form)
 
         view = SubmissionReviewViewSet.as_view({
             'post': 'create',
@@ -340,8 +346,8 @@ class TestSubmissionReviewViewSet(TestBase):
         self._create_user_and_login('dave', '1234')
         extra = {'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
 
-        assign_perm(CAN_CHANGE_XFORM, self.user,
-                    submission_review.instance.xform)
+        # Ensure user is an Admin
+        OwnerRole.add(self.user, submission_review.instance.xform)
 
         review_two_data = {
             'note': "Sup ?",

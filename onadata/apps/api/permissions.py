@@ -19,7 +19,8 @@ from onadata.apps.logger.models import DataView, Instance, Project, XForm
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.permissions import (CAN_ADD_XFORM_TO_PROFILE,
                                       CAN_CHANGE_XFORM, CAN_DELETE_SUBMISSION,
-                                      ManagerRole, ReadOnlyRoleNoDownload)
+                                      ReadOnlyRoleNoDownload,
+                                      OwnerRole, ManagerRole)
 
 SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
 
@@ -163,6 +164,11 @@ class SubmissionReviewPermissions(XFormPermissions):
         'DELETE': ['logger.delete_xform'],
     }
 
+    def _check_is_admin_or_manager(  # pylint: disable=no-self-use
+            self, user: User, xform: XForm) -> bool:
+        return OwnerRole.user_has_role(
+            user, xform) or ManagerRole.user_has_role(user, xform)
+
     def has_permission(self, request, view):
         """
         Custom has_permission method
@@ -179,15 +185,15 @@ class SubmissionReviewPermissions(XFormPermissions):
                 instances = Instance.objects.filter(
                     id__in=instance_ids).only('xform').order_by().distinct()
                 for instance in instances:
-                    if not request.user.has_perm(
-                            CAN_CHANGE_XFORM, instance.xform):
+                    if not self._check_is_admin_or_manager(
+                            request.user, instance.xform):
                         return False
                 return True  # everything is okay
 
             # Handle single create like normal
             instance_id = request.data.get('instance')
             xform = get_instance_xform_or_none(instance_id)
-            return request.user.has_perm(CAN_CHANGE_XFORM, xform)
+            return self._check_is_admin_or_manager(request.user, xform)
 
         return super(SubmissionReviewPermissions, self).has_permission(
             request, view)
@@ -198,7 +204,8 @@ class SubmissionReviewPermissions(XFormPermissions):
         """
         if (request.method == 'DELETE' and view.action == 'destroy') or (
                 request.method == 'PATCH' and view.action == 'partial_update'):
-            return ManagerRole.user_has_role(request.user, obj.instance.xform)
+            return self._check_is_admin_or_manager(
+                    request.user, obj.instance.xform)
 
         return super(SubmissionReviewPermissions, self).has_object_permission(
             request, view, obj)
