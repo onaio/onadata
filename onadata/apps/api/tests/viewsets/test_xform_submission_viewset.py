@@ -564,7 +564,8 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         expected_xml = (
             f"<?xml version='1.0' ?><{self.xform.survey.name} id="
             "'transportation_2011_07_25'><fruit_name>orange"
-            f"</fruit_name></{self.xform.survey.name}>")
+            f"</fruit_name>\n<meta>\n  <instanceID>uuid:{uuid}"
+            f"</instanceID>\n</meta></{self.xform.survey.name}>")
         self.assertEqual(instance.xml, expected_xml)
         self.assertEqual(self.xform.survey.name, 'data')
 

@@ -47,7 +47,7 @@ from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.common_tags import METADATA_FIELDS
-from onadata.libs.utils.common_tools import report_exception
+from onadata.libs.utils.common_tools import report_exception, get_uuid
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -112,7 +112,7 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum):
     return instance
 
 
-def dict2xform(jsform, form_id, root=None, username=None):
+def dict2xform(jsform, form_id, root=None, username=None, gen_uuid=False):
     """
     Converts a dictionary containing submission data into an XML
     Submission for the appropriate form.
@@ -142,6 +142,11 @@ def dict2xform(jsform, form_id, root=None, username=None):
                 root = form.survey.name if form else 'data'
         else:
             root = 'data'
+
+    if gen_uuid:
+        jsform['meta'] = {
+            'instanceID': 'uuid:' + get_uuid(hex_only=False)
+        }
 
     return "<?xml version='1.0' ?><{0} id='{1}'>{2}</{0}>".format(
         root, form_id, dict2xml(jsform))
