@@ -3,6 +3,22 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.3.7(2020-08-11)
+------------------
+
+- Add a way to elongate `ODKToken` expiry data *
+  `PR #1847 <https://github.com/onaio/onadata/pull/1847>`_
+  [@DavisRayM]
+- Set the correct root node for created submissions
+  `PR #1853 <https://github.com/onaio/onadata/pull/1853>`_
+  [@DavisRayM]
+- Ensure only XForm admins & managers can review submissions
+  `PR #1864 <https://github.com/onaio/onadata/pull/1864>`_
+  [@DavisRayM]
+- Stop duplication of RapidPro submissions on edit
+  `PR #1869 <https://github.com/onaio/onadata/pull/1869>`_
+  [@DavisRayM]
+
 v2.3.6(2020-07-29)
 ------------------
 
