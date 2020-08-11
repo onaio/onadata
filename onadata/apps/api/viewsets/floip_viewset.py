@@ -75,6 +75,17 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
             self.permission_denied(self.request)
         return obj
 
+    def filter_queryset(self, queryset):
+        if self.action == 'responses' and queryset.model == Instance:
+            for fil_key, fil_value in self.request.query_params.items():
+                if fil_key in FLOIP_FILTER_MAP:
+                    kwargs = {
+                        FLOIP_FILTER_MAP[fil_key]: fil_value
+                    }
+                    queryset = queryset.filter(**kwargs)
+            return queryset
+        return super().filter_queryset(queryset)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return FloipListSerializer
@@ -132,7 +143,7 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
             else:
                 queryset = xform.instances.values_list('json', flat=True)
 
-            queryset = floip_responses_filter(request.query_params, queryset)
+            queryset = self.filter_queryset(queryset)
             paginate_queryset = self.paginate_queryset(queryset)
             if paginate_queryset:
                 data['attributes']['responses'] = floip_list(paginate_queryset)
@@ -145,13 +156,3 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
             data['attributes']['responses'] = floip_list(queryset)
 
         return Response(data, headers=headers, status=status_code)
-
-
-def floip_responses_filter(query_params, queryset):
-    for fil in query_params.keys():
-        if fil in FLOIP_FILTER_MAP:
-            kwargs = {
-                FLOIP_FILTER_MAP[fil]: query_params.get(fil)
-            }
-            queryset = queryset.filter(**kwargs)
-    return queryset
