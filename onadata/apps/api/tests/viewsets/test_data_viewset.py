@@ -46,7 +46,7 @@ from onadata.libs.utils.logger_tools import create_instance
 def enketo_mock(url, request):
     response = requests.Response()
     response.status_code = 201
-    response._content = '{"url": "https:\\/\\/hmh2a.enketo.ona.io"}'
+    response._content = '{"url": "https://hmh2a.enketo.ona.io"}'
     return response
 
 

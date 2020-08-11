@@ -304,34 +304,53 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 200)
             self.form_data['public'] = True
             # pylint: disable=no-member
-            resultset = MetaData.objects.filter(Q(object_id=self.xform.pk), Q(
-                data_type='enketo_url') | Q(data_type='enketo_preview_url'))
+            resultset = MetaData.objects.filter(
+                Q(object_id=self.xform.pk), Q(data_type='enketo_url') |
+                Q(data_type='enketo_preview_url') |
+                Q(data_type='enketo_single_submit_url'))
             url = resultset.get(data_type='enketo_url')
             preview_url = resultset.get(data_type='enketo_preview_url')
-            self.form_data['metadata'] = [{
-                'id': preview_url.pk,
-                'xform': self.xform.pk,
-                'data_value': "https://enketo.ona.io/preview/::YY8M",
-                'data_type': u'enketo_preview_url',
-                'data_file': None,
-                'data_file_type': None,
-                u'url': u'http://testserver/api/v1/metadata/%s' %
-                preview_url.pk,
-                'file_hash': None,
-                'media_url': None,
-                'date_created': preview_url.date_created
-            }, {
-                'id': url.pk,
-                'data_value': "https://enketo.ona.io/::YY8M",
-                'xform': self.xform.pk,
-                'data_file': None,
-                'data_type': u'enketo_url',
-                u'url': u'http://testserver/api/v1/metadata/%s' % url.pk,
-                'data_file_type': None,
-                'file_hash': None,
-                'media_url': None,
-                'date_created': url.date_created
-            }]
+            single_submit_url = resultset.get(
+                data_type='enketo_single_submit_url')
+            self.form_data['metadata'] = [OrderedDict(
+                [
+                    ('id', url.pk),
+                    ('xform', self.xform.pk),
+                    ('data_value', 'https://enketo.ona.io/::YY8M'),
+                    ('data_type', 'enketo_url'),
+                    ('data_file', None),
+                    ('data_file_type', None),
+                    ('media_url', None),
+                    ('file_hash', None),
+                    ('url', 'http://testserver/api/v1/metadata/%s' % url.pk),
+                    ('date_created', url.date_created)]),
+                OrderedDict(
+                    [
+                        ('id', preview_url.pk),
+                        ('xform', self.xform.pk),
+                        ('data_value', 'https://enketo.ona.io/preview/::YY8M'),
+                        ('data_type', 'enketo_preview_url'),
+                        ('data_file', None),
+                        ('data_file_type', None),
+                        ('media_url', None),
+                        ('file_hash', None),
+                        ('url', 'http://testserver/api/v1/metadata/%s' %
+                                preview_url.pk),
+                        ('date_created', preview_url.date_created)]),
+                OrderedDict(
+                    [
+                        ('id', single_submit_url.pk),
+                        ('xform', self.xform.pk),
+                        ('data_value',
+                            'http://enketo.ona.io/single/::XZqoZ94y'),
+                        ('data_type', 'enketo_single_submit_url'),
+                        ('data_file', None),
+                        ('data_file_type', None),
+                        ('media_url', None),
+                        ('file_hash', None),
+                        ('url', 'http://testserver/api/v1/metadata/%s' %
+                                single_submit_url.pk),
+                        ('date_created', single_submit_url.date_created)])]
             del self.form_data['date_modified']
             del response.data[0]['date_modified']
 
@@ -524,35 +543,55 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 200)
             # pylint: disable=no-member
             resultset = MetaData.objects.filter(
-                Q(object_id=self.xform.pk),
-                Q(data_type='enketo_url') |
-                Q(data_type='enketo_preview_url'))
+                Q(object_id=self.xform.pk), Q(data_type='enketo_url') |
+                Q(data_type='enketo_preview_url') |
+                Q(data_type='enketo_single_submit_url'))
             url = resultset.get(data_type='enketo_url')
             preview_url = resultset.get(data_type='enketo_preview_url')
-            self.form_data['metadata'] = [OrderedDict([
-                ('id', preview_url.pk),
-                ('xform', self.xform.pk),
-                ('data_value', "https://enketo.ona.io/preview/::YY8M"),
-                ('data_type', 'enketo_preview_url'),
-                ('data_file', None),
-                ('data_file_type', None),
-                ('media_url', None),
-                ('file_hash', None),
-                ('url', 'http://testserver/api/v1/metadata/%s' %
-                 preview_url.pk),
-                ('date_created', preview_url.date_created)
-            ]), OrderedDict([
-                ('id', url.pk),
-                ('xform', self.xform.pk),
-                ('data_value', "https://enketo.ona.io/::YY8M"),
-                ('data_type', 'enketo_url'),
-                ('data_file', None),
-                ('data_file_type', None),
-                ('media_url', None),
-                ('file_hash', None),
-                ('url', 'http://testserver/api/v1/metadata/%s' % url.pk),
-                ('date_created', url.date_created)
-            ])]
+            single_submit_url = resultset.get(
+                data_type='enketo_single_submit_url')
+
+            self.form_data['metadata'] = [
+                OrderedDict(
+                    [
+                        ('id', url.pk),
+                        ('xform', self.xform.pk),
+                        ('data_value', 'https://enketo.ona.io/::YY8M'),
+                        ('data_type', 'enketo_url'),
+                        ('data_file', None),
+                        ('data_file_type', None),
+                        ('media_url', None),
+                        ('file_hash', None),
+                        ('url', 'http://testserver/api/v1/metadata/%s'
+                                % url.pk),
+                        ('date_created', url.date_created)]),
+                OrderedDict(
+                    [
+                        ('id', preview_url.pk),
+                        ('xform', self.xform.pk),
+                        ('data_value', 'https://enketo.ona.io/preview/::YY8M'),
+                        ('data_type', 'enketo_preview_url'),
+                        ('data_file', None),
+                        ('data_file_type', None),
+                        ('media_url', None),
+                        ('file_hash', None),
+                        ('url', 'http://testserver/api/v1/metadata/%s' %
+                                preview_url.pk),
+                        ('date_created', preview_url.date_created)]),
+                OrderedDict(
+                    [
+                        ('id', single_submit_url.pk),
+                        ('xform', self.xform.pk),
+                        ('data_value',
+                            'http://enketo.ona.io/single/::XZqoZ94y'),
+                        ('data_type', 'enketo_single_submit_url'),
+                        ('data_file', None),
+                        ('data_file_type', None),
+                        ('media_url', None),
+                        ('file_hash', None),
+                        ('url', 'http://testserver/api/v1/metadata/%s' %
+                                single_submit_url.pk),
+                        ('date_created', single_submit_url.date_created)])]
 
             self.form_data['metadata'] = sorted(
                 self.form_data['metadata'], key=lambda x: x['id'])
@@ -683,7 +722,12 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = list_view(request)
             self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.data, [self.form_data])
+            response_data = dict(response.data[0])
+            response_data.pop("date_modified")
+            response_data.pop("last_updated_at")
+            self.form_data.pop("date_modified")
+            self.form_data.pop("last_updated_at")
+            self.assertEqual(response_data, self.form_data)
 
             request = self.factory.get(
                 '/', data={"tags": "goodbye"}, **self.extra)
@@ -768,7 +812,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=formid)
             url = "https://enketo.ona.io/::YY8M"
             preview_url = "https://enketo.ona.io/preview/::YY8M"
-            single_url = "http://localhost:8005/single/::vtPuefbl"
+            single_url = "http://enketo.ona.io/single/::XZqoZ94y"
             data = {"enketo_url": url,
                     "enketo_preview_url": preview_url,
                     "single_submit_url": single_url}
@@ -1102,9 +1146,6 @@ class TestXFormViewSet(TestAbstractViewSet):
                     'url':
                     'http://testserver/api/v1/forms/%s' % xform.pk
                 })
-                MetaData.enketo_url(xform, response.data['enketo_url'])
-                MetaData.enketo_preview_url(xform, response.data[
-                    'enketo_preview_url'])
 
                 self.assertDictContainsSubset(data, response.data)
                 self.assertTrue(OwnerRole.user_has_role(self.user, xform))
@@ -1151,10 +1192,6 @@ class TestXFormViewSet(TestAbstractViewSet):
                     'http://testserver/api/v1/forms/%s' % xform.pk,
                     'has_id_string_changed': False,
                 })
-                MetaData.enketo_url(xform, response.data['enketo_url'])
-                MetaData.enketo_preview_url(xform, response.data[
-                    'enketo_preview_url'])
-
                 self.assertDictContainsSubset(data, response.data)
                 self.assertTrue(OwnerRole.user_has_role(self.user, xform))
                 self.assertEquals("owner", response.data['users'][0]['role'])
@@ -1186,9 +1223,6 @@ class TestXFormViewSet(TestAbstractViewSet):
                     'sms_id_string': u'Transportation_2011_07_25',
                     'has_id_string_changed': True,
                 })
-                MetaData.enketo_url(xform, response.data['enketo_url'])
-                MetaData.enketo_preview_url(xform, response.data[
-                    'enketo_preview_url'])
 
                 self.assertDictContainsSubset(data, response.data)
                 self.assertTrue(OwnerRole.user_has_role(self.user, xform))
@@ -1334,7 +1368,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(XForm.objects.count(), pre_count + 1)
 
     def test_publish_select_external_xlsform(self):
-        with HTTMock(enketo_mock):
+        with HTTMock(enketo_urls_mock):
             view = XFormViewSet.as_view({
                 'post': 'create'
             })
@@ -1348,11 +1382,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                 request = self.factory.post('/', data=post_data, **self.extra)
                 response = view(request)
                 xform = self.user.xforms.all()[0]
-                MetaData.enketo_url(xform, response.data['enketo_url'])
-                MetaData.enketo_preview_url(xform, response.data[
-                    'enketo_preview_url'])
                 self.assertEqual(response.status_code, 201)
-                self.assertEqual(meta_count + 3, MetaData.objects.count())
+                self.assertEqual(meta_count + 4, MetaData.objects.count())
                 metadata = MetaData.objects.get(
                     object_id=xform.id, data_value='itemsets.csv')
                 self.assertIsNotNone(metadata)
@@ -4577,11 +4608,8 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 request = self.factory.post('/', data=post_data, **self.extra)
                 response = view(request)
                 xform = self.user.xforms.all()[0]
-                MetaData.enketo_url(xform, response.data['enketo_url'])
-                MetaData.enketo_preview_url(xform, response.data[
-                    'enketo_preview_url'])
                 self.assertEqual(response.status_code, 201)
-                self.assertEqual(meta_count + 3, MetaData.objects.count())
+                self.assertEqual(meta_count + 4, MetaData.objects.count())
                 metadata = MetaData.objects.get(
                     object_id=xform.id, data_value='itemsets.csv')
                 self.assertIsNotNone(metadata)

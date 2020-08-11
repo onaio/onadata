@@ -19,7 +19,6 @@ from imp import reload
 from celery.signals import after_setup_logger
 from django.core.exceptions import SuspiciousOperation
 from django.utils.log import AdminEmailHandler
-from future.moves.urllib.parse import urljoin
 from past.builtins import basestring
 
 # setting default encoding to utf-8
@@ -98,9 +97,8 @@ STATIC_URL = '/static/'
 # Enketo URL
 ENKETO_PROTOCOL = 'https'
 ENKETO_URL = 'https://enketo.ona.io/'
-ENKETO_API_SURVEY_PATH = '/api_v2/survey/all'
+ENKETO_API_ALL_SURVEY_LINKS_PATH = '/api_v2/survey/all'
 ENKETO_API_INSTANCE_PATH = '/api_v2/instance'
-ENKETO_PREVIEW_URL = urljoin(ENKETO_URL, ENKETO_API_SURVEY_PATH + '/preview')
 ENKETO_API_TOKEN = ''
 ENKETO_API_INSTANCE_IFRAME_URL = ENKETO_URL + "api_v2/instance/iframe"
 ENKETO_API_SALT = 'secretsalt'

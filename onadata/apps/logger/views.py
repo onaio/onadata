@@ -504,7 +504,8 @@ def enter_data(request, username, id_string):
     form_url = get_form_url(request, username, settings.ENKETO_PROTOCOL)
 
     try:
-        url = enketo_url(form_url, xform.id_string)
+        enketo_urls = enketo_url(form_url, xform.id_string)
+        url = enketo_urls.get('url')
         if not url:
             return HttpResponseRedirect(
                 reverse(
@@ -587,6 +588,7 @@ def edit_data(request, username, id_string, data_id):
             fail_silently=True)
     else:
         if url:
+            url = url['edit_url']
             context.enketo = url
             return HttpResponseRedirect(url)
     return HttpResponseRedirect(

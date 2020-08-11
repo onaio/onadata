@@ -1383,14 +1383,14 @@ def qrcode(request, username, id_string):
     results = _(u"Unexpected Error occured: No QRCODE generated")
     status = 200
     try:
-        data = enketo_url(formhub_url, id_string)
+        enketo_urls = enketo_url(formhub_url, id_string)
     except Exception as e:
         error_msg = _(u"Error Generating QRCODE: %s" % e)
         results = """<div class="alert alert-error">%s</div>""" % error_msg
         status = 400
     else:
-        if data:
-            url = data.get("single_url")
+        if enketo_urls:
+            url = enketo_urls.get("url")
             image = generate_qrcode(url)
             results = """<img class="qrcode" src="%s" alt="%s" />
                     </br><a href="%s" target="_blank">%s</a>""" \
@@ -1412,10 +1412,10 @@ def enketo_preview(request, username, id_string):
         return HttpResponseForbidden(_(u'Not shared.'))
 
     try:
-        data = enketo_url(
+        enketo_urls = enketo_url(
                 xform.url, xform.id_string)
 
-        enketo_preview_url = (data.get('preview_url'))
+        enketo_preview_url = enketo_urls.get('preview_url')
     except EnketoError as e:
         return HttpResponse(e)
 

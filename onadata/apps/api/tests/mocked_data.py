@@ -151,7 +151,8 @@ def enketo_mock_with_form_defaults(url, request):  # pylint: disable=W0613
     response.status_code = 201
     # pylint: disable=protected-access
     response._content = \
-        '{\n  "url": "https:\\/\\/dmfrm.enketo.org\\/webform?d[%2Fnum]=1",\n'\
+        '{\n  "offline_url":'\
+        '    "https:\\/\\/dmfrm.enketo.org\\/webform?d[%2Fnum]=1",\n'\
         '  "code": "200"\n}'
     return response
 

@@ -64,14 +64,13 @@ class Command(BaseCommand):
                     request, username=username, id_string=id_string,
                     xform_pk=xform_pk,
                     generate_consistent_urls=generate_consistent_urls)
-                data = enketo_url(form_url, id_string)
+                enketo_urls = enketo_url(form_url, id_string)
                 if data_type == 'enketo_url':
-                    _enketo_url = (data.get('edit_url') or
-                                   data.get('offline_url') or
-                                   data.get('url'))
+                    _enketo_url = (enketo_urls.get('offline_url') or
+                                   enketo_urls.get('url'))
                     MetaData.enketo_url(xform, _enketo_url)
                 elif data_type == 'enketo_preview_url':
-                    _enketo_preview_url = (data.get('preview_url'))
+                    _enketo_preview_url = (enketo_urls.get('preview_url'))
                     MetaData.enketo_preview_url(xform, _enketo_preview_url)
 
                 f.write('%s : %s \n' % (id_string, data_value))

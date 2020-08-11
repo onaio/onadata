@@ -80,8 +80,8 @@ class TestFormEnterData(TestBase):
             server_url = "https://testserver.com/bob"
             form_id = "test_%s" % re.sub(re.compile("\."), "_", str(time()))  # noqa
             url = enketo_url(server_url, form_id)
-            self.assertIsInstance(url, basestring)
-            self.assertIsNone(URLValidator()(url))
+            self.assertIsInstance(url['url'], basestring)
+            self.assertIsNone(URLValidator()(url['url']))
 
     def test_enketo_url_with_http_protocol_on_formlist(self):
         if not self._running_enketo():
@@ -90,9 +90,9 @@ class TestFormEnterData(TestBase):
             server_url = "http://testserver.com/bob"
             form_id = "test_%s" % re.sub(re.compile("\."), "_", str(time()))  # noqa
             url = enketo_url(server_url, form_id)
-            self.assertIn("http:", url)
-            self.assertIsInstance(url, basestring)
-            self.assertIsNone(URLValidator()(url))
+            self.assertIn("http:", url['url'])
+            self.assertIsInstance(url['url'], basestring)
+            self.assertIsNone(URLValidator()(url['url']))
 
     def _get_grcode_view_response(self):
         factory = RequestFactory()

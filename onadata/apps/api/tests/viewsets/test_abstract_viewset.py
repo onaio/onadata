@@ -251,10 +251,6 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
                     'url':
                     'http://testserver/api/v1/forms/%s' % (self.xform.pk)
                 })
-                MetaData.enketo_url(self.xform, response.data['enketo_url'])
-                MetaData.enketo_preview_url(self.xform, response.data[
-                    'enketo_preview_url'])
-
                 # Input was a private so change to public if project public
                 if public:
                     data['public_data'] = data['public'] = True

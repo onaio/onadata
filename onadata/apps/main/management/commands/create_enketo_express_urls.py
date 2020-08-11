@@ -38,9 +38,6 @@ class Command(BaseCommand):
             raise CommandError(
                 'please provide a server_name, a server_port and a protocol')
 
-        if server_name not in ['api.ona.io', 'stage-api.ona.io', 'localhost']:
-            raise CommandError('server name provided is not valid')
-
         if protocol not in ['http', 'https']:
             raise CommandError('protocol provided is not valid')
 
@@ -63,10 +60,10 @@ class Command(BaseCommand):
                         xform_pk=xform.pk,
                         generate_consistent_urls=generate_consistent_urls)
                 id_string = xform.id_string
-                data = enketo_url(form_url, id_string)
-                _url = (data.get('edit_url') or data.get('offline_url') or
-                        data.get('url'))
-                _preview_url = (data.get('preview_url'))
+                enketo_urls = enketo_url(form_url, id_string)
+                _url = (enketo_urls.get('offline_url') or
+                        enketo_urls.get('url'))
+                _preview_url = enketo_urls.get('preview_url')
 
                 self.stdout.write('enketo url: %s | preview url: %s' %
                                   (_url, _preview_url))
@@ -86,10 +83,10 @@ class Command(BaseCommand):
                             xform_pk=xform.pk,
                             generate_consistent_urls=generate_consistent_urls)
                     id_string = xform.id_string
-                    data = enketo_url(form_url, id_string)
-                    _url = (data.get('edit_url') or data.get('offline_url') or
-                            data.get('url'))
-                    _preview_url = (data.get('preview_url'))
+                    enketo_urls = enketo_url(form_url, id_string)
+                    _url = (enketo_urls.get('offline_url') or
+                            enketo_urls.get('url'))
+                    _preview_url = enketo_urls.get('preview_url')
                     num_of_xforms -= 1
                     self.stdout.write(
                         'enketo url: %s | preview url: %s | remaining: %s' %
@@ -109,10 +106,10 @@ class Command(BaseCommand):
                         protocol=protocol,
                         xform_pk=xform.pk,
                         generate_consistent_urls=generate_consistent_urls)
-                data = enketo_url(form_url, id_string)
-                _url = (data.get('edit_url') or data.get('offline_url') or
-                        data.get('url'))
-                _preview_url = (data.get('preview_url'))
+                enketo_urls = enketo_url(form_url, id_string)
+                _url = (enketo_urls.get('offline_url') or
+                        enketo_urls.get('url'))
+                _preview_url = enketo_urls.get('preview_url')
                 num_of_xforms -= 1
                 self.stdout.write(
                     'enketo url: %s | preview url: %s | remaining: %s' %
