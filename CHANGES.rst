@@ -3,7 +3,7 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
-v2.3.7(2020-08-10)
+v2.3.7(2020-08-11)
 ------------------
 
 - Add a way to elongate `ODKToken` expiry data *
