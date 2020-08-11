@@ -15,6 +15,9 @@ v2.3.7(2020-08-10)
 - Ensure only XForm admins & managers can review submissions
   `PR #1864 <https://github.com/onaio/onadata/pull/1864>`_
   [@DavisRayM]
+- Stop duplication of RapidPro submissions on edit
+  `PR #1869 <https://github.com/onaio/onadata/pull/1869>`_
+  [@DavisRayM]
 
 v2.3.6(2020-07-29)
 ------------------
