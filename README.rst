@@ -5,6 +5,9 @@ Collect, Analyze and Share Data!
 
 .. image:: https://travis-ci.org/onaio/onadata.svg?branch=master
   :target: https://travis-ci.org/onaio/onadata
+  
+.. image:: https://app.codacy.com/project/badge/Grade/930267451b814f00af9a6d329b9d15ce
+  :target: https://www.codacy.com/gh/onaio/onadata?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=onaio/onadata&amp;utm_campaign=Badge_Grade
 
 About
 -----
