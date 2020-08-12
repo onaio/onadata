@@ -7,6 +7,7 @@ import json
 import os
 import uuid as uu
 from builtins import open
+from collections import OrderedDict
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
@@ -229,11 +230,12 @@ class TestFloipViewSet(TestAbstractViewSet):
         """
         floip_data = self._publish_floip()
         view = FloipViewSet.as_view({'post': 'responses', 'get': 'responses'})
+        floip_id = floip_data['id']
 
         correct_response_format = {
             "data": {
                 "type": "flow-results-data",
-                "id": floip_data['id'],
+                "id": floip_id,
                 "attributes": {
                     "responses": []
                 }
@@ -399,7 +401,6 @@ class TestFloipViewSet(TestAbstractViewSet):
                 content_type='application/vnd.api+json', **self.extra)
             get_response = view(get_request, uuid=floip_id)
             self.assertEqual(get_response.status_code, 200)
-
             # Convert generator to list
             response_data = list(
                 get_response.data['attributes']['responses'])
@@ -409,12 +410,11 @@ class TestFloipViewSet(TestAbstractViewSet):
             # whose ID is less than the first_id + 1
             data_id = first_id + 1
             get_request = self.factory.get(
-                f'/flow-results/package/{floip_id}/responses'
+                f'/api/v1/flow-results/package/{floip_id}/responses'
                 f'?page[beforeCursor]={data_id}',
                 content_type='application/vnd.api+json', **self.extra)
             get_response = view(get_request, uuid=floip_id)
             self.assertEqual(get_response.status_code, 200)
-
             # Convert generator to list
             response_data = list(
                 get_response.data['attributes']['responses'])
@@ -422,13 +422,42 @@ class TestFloipViewSet(TestAbstractViewSet):
 
             # Test page size filter
             get_request = get_request = self.factory.get(
-                f'/flow-results/package/{floip_id}/responses'
+                f'/api/v1/flow-results/packages/{floip_id}/responses'
                 f'?page[size]=1',
                 content_type='application/vnd.api+json', **self.extra)
             get_response = view(get_request, uuid=floip_id)
             self.assertEqual(get_response.status_code, 200)
-
             # Convert generator to list
-            response_data = list(
+            get_response.data['attributes']['responses'] = list(
                 get_response.data['attributes']['responses'])
-            self.assertEqual(len(response_data), 3)
+            self.assertEqual(
+                len(get_response.data['attributes']['responses']), 3)
+
+            # Ensure the paginated response is returned in the correct format
+            # https://floip.gitbook.io/flow-results-specification/api-specification#get-responses-for-a-package
+            base_url = ("http://testserver/api/v1/flow-results/"
+                        f"packages/{floip_id}")
+            self_url = (f"{base_url}/responses?"
+                        "page%5Bnumber%5D=1&page%5Bsize%5D=1")
+            next_url = (f"{base_url}/responses?"
+                        "page%5Bnumber%5D=2&page%5Bsize%5D=1")
+            expected_format = {
+                "type": "flow-results-data",
+                "id": floip_id,
+                "attributes": {
+                    "responses": get_response.data['attributes']['responses']
+                },
+                "relationships": {
+                    "descriptor": {
+                        "links": {
+                            "self": base_url
+                        }
+                    },
+                    "links": OrderedDict([
+                        ("self", self_url),
+                        ("next", next_url),
+                        ("previous", None)
+                    ])
+                }
+            }
+            self.assertEqual(get_response.data, expected_format)

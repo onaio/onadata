@@ -3,6 +3,7 @@
 FloipViewSet: API endpoint for /api/floip
 """
 from uuid import UUID
+from collections import OrderedDict
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
@@ -44,6 +45,38 @@ class FlowResultsJSONRenderer(JSONRenderer):
         return obj
 
 
+class FLOIPResponsePageNumberPagination(JsonApiPageNumberPagination):
+
+    def get_paginated_response(self, data, descriptor_id: str):
+        next_page_number = None
+        previous_page_number = None
+
+        if self.page.has_next():
+            next_page_number = self.page.next_page_number()
+        if self.page.has_previous():
+            previous_page_number = self.page.previous_page_number()
+
+        data_relationships: dict = data.get('relationships', {})
+        descriptor_url = self.request.build_absolute_uri(
+            reverse('flow-results-detail', kwargs={'uuid': descriptor_id}))
+        data_relationships.update(
+            {
+                "descriptor": {
+                    "links": {
+                        "self": descriptor_url
+                    }
+                },
+                "links": OrderedDict([
+                    ('self', self.build_link(self.page.number)),
+                    ('next', self.build_link(next_page_number)),
+                    ('previous', self.build_link(previous_page_number))
+                ]),
+            }
+        )
+        data["relationships"] = data_relationships
+        return Response(data)
+
+
 # pylint: disable=too-many-ancestors
 class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
                    mixins.ListModelMixin, mixins.RetrieveModelMixin,
@@ -58,7 +91,7 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
     queryset = XForm.objects.filter(deleted_at__isnull=True)
     serializer_class = FloipSerializer
 
-    pagination_class = JsonApiPageNumberPagination
+    pagination_class = FLOIPResponsePageNumberPagination
     parser_classes = (JSONParser, )
     renderer_classes = (FlowResultsJSONRenderer, )
 
@@ -104,6 +137,10 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
 
         return headers
 
+    def get_paginated_response(self, data, descriptor_id: str):
+        return self.paginator.get_paginated_response(
+            data, descriptor_id=descriptor_id)
+
     @action(methods=['GET', 'POST'], detail=True)
     def responses(self, request, uuid=None):
         """
@@ -147,7 +184,8 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
             paginate_queryset = self.paginate_queryset(queryset)
             if paginate_queryset:
                 data['attributes']['responses'] = floip_list(paginate_queryset)
-                response = self.get_paginated_response(data)
+                response = self.get_paginated_response(
+                    data, descriptor_id=uuid)
                 for key, value in headers.items():
                     response[key] = value
 
