@@ -339,7 +339,7 @@ class TestFloipViewSet(TestAbstractViewSet):
             # test filter version
             past_version = "{}01010000".format(this_year - 1)
             get_request = self.factory.get(
-                '/flow-results/packages/' + floip_data[
+                '/api/v1/flow-results/packages/' + floip_data[
                     'id'] + '/responses?filter[min-version]={}'.format(
                     past_version),
                 content_type='application/vnd.api+json', **self.extra)
@@ -352,7 +352,7 @@ class TestFloipViewSet(TestAbstractViewSet):
 
             next_version = "{}12310000".format(this_year + 1)
             get_request = self.factory.get(
-                '/flow-results/packages/' + floip_data[
+                '/api/v1/flow-results/packages/' + floip_data[
                     'id'] + '/responses?filter[min-version]={}'.format(
                     next_version),
                 content_type='application/vnd.api+json', **self.extra)
@@ -367,7 +367,7 @@ class TestFloipViewSet(TestAbstractViewSet):
             yesterday = (datetime.datetime.now() - datetime.timedelta(
                 days=1)).strftime('%Y-%m-%d %H:%M:%S')
             get_request = self.factory.get(
-                '/flow-results/packages/' + floip_data[
+                '/api/v1/flow-results/packages/' + floip_data[
                     'id'] + '/responses?filter[start-timestamp]={}'.format(
                     yesterday),
                 content_type='application/vnd.api+json', **self.extra)
@@ -379,7 +379,7 @@ class TestFloipViewSet(TestAbstractViewSet):
                              5)
 
             get_request = self.factory.get(
-                '/flow-results/packages/' + floip_data[
+                '/api/v1/flow-results/packages/' + floip_data[
                     'id'] + '/responses?filter[end-timestamp]={}'.format(
                     yesterday),
                 content_type='application/vnd.api+json', **self.extra)
@@ -396,7 +396,7 @@ class TestFloipViewSet(TestAbstractViewSet):
             first_id = Instance.objects.first().id
             floip_id = floip_data['id']
             get_request = self.factory.get(
-                f'/flow-results/package/{floip_id}/responses'
+                f'/api/v1/flow-results/package/{floip_id}/responses'
                 f'?page[afterCursor]={first_id}',
                 content_type='application/vnd.api+json', **self.extra)
             get_response = view(get_request, uuid=floip_id)
