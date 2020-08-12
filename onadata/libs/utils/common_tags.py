@@ -191,6 +191,6 @@ FLOIP_FILTER_MAP = {
     "filter[min-version]": "version__gte",
     "filter[start-timestamp]": "date_created__gte",
     "filter[end-timestamp]": "date_created__lte",
-    "page[afterCursor]": "id__gte",
-    "page[beforeCursor]": "id__lte",
+    "page[afterCursor]": "id__gt",
+    "page[beforeCursor]": "id__lt",
 }

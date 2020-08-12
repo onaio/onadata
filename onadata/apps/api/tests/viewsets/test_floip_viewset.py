@@ -387,3 +387,35 @@ class TestFloipViewSet(TestAbstractViewSet):
                 get_response.data['attributes']['responses'])
             self.assertEqual(len(get_response.data['attributes']['responses']),
                              0)
+
+            # test filter page
+            # Should only return the responses for the Instances
+            # that have an id greater than the first Instance
+            first_id = Instance.objects.first().id
+            floip_id = floip_data['id']
+            get_request = self.factory.get(
+                f'/flow-results/package/{floip_id}/responses'
+                f'?page[afterCursor]={first_id}',
+                content_type='application/vnd.api+json', **self.extra)
+            get_response = view(get_request, uuid=floip_id)
+            self.assertEqual(get_response.status_code, 200)
+
+            # Convert generator to list
+            response_data = list(
+                get_response.data['attributes']['responses'])
+            self.assertEqual(len(response_data), 2)
+
+            # Should only return responses for the Instances
+            # whose ID is less than the first_id + 1
+            data_id = first_id + 1
+            get_request = self.factory.get(
+                f'/flow-results/package/{floip_id}/responses'
+                f'?page[beforeCursor]={data_id}',
+                content_type='application/vnd.api+json', **self.extra)
+            get_response = view(get_request, uuid=floip_id)
+            self.assertEqual(get_response.status_code, 200)
+
+            # Convert generator to list
+            response_data = list(
+                get_response.data['attributes']['responses'])
+            self.assertEqual(len(response_data), 3)
