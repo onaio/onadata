@@ -10,7 +10,7 @@ from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
-from rest_framework_json_api.pagination import PageNumberPagination
+from rest_framework_json_api.pagination import JsonApiPageNumberPagination
 from rest_framework_json_api.parsers import JSONParser
 from rest_framework_json_api.renderers import JSONRenderer
 
@@ -58,7 +58,7 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
     queryset = XForm.objects.filter(deleted_at__isnull=True)
     serializer_class = FloipSerializer
 
-    pagination_class = PageNumberPagination
+    pagination_class = JsonApiPageNumberPagination
     parser_classes = (JSONParser, )
     renderer_classes = (FlowResultsJSONRenderer, )
 

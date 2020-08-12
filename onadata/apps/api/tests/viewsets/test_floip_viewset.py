@@ -419,3 +419,16 @@ class TestFloipViewSet(TestAbstractViewSet):
             response_data = list(
                 get_response.data['attributes']['responses'])
             self.assertEqual(len(response_data), 3)
+
+            # Test page size filter
+            get_request = get_request = self.factory.get(
+                f'/flow-results/package/{floip_id}/responses'
+                f'?page[size]=1',
+                content_type='application/vnd.api+json', **self.extra)
+            get_response = view(get_request, uuid=floip_id)
+            self.assertEqual(get_response.status_code, 200)
+
+            # Convert generator to list
+            response_data = list(
+                get_response.data['attributes']['responses'])
+            self.assertEqual(len(response_data), 3)
