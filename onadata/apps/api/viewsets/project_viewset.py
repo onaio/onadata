@@ -75,6 +75,12 @@ class ProjectViewSet(AuthenticateHeaderMixin,
 
         return super(ProjectViewSet, self).get_queryset()
 
+    def update(self, request, *args, **kwargs):
+        project_id = kwargs.get('pk')
+        response = super(ProjectViewSet, self).update(request, *args, **kwargs)
+        cache.set(f'{PROJ_OWNER_CACHE}{project_id}', response.data)
+        return response
+
     def retrieve(self, request, *args, **kwargs):
         """ Retrieve single project """
         project_id = kwargs.get('pk')
