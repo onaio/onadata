@@ -28,6 +28,9 @@ PROJ_TEAM_USERS_CACHE = "ps-project-team-users"
 XFORM_LINKED_DATAVIEWS = "xfs-linked_dataviews"
 PROJECT_LINKED_DATAVIEWS = "ps-project-linked_dataviews"
 
+# Cache names used in organization profile viewset
+ORG_PROFILE_CACHE = 'org-profile-'
+
 # cache login attempts
 LOCKOUT_USER = "lockout_user-"
 LOGIN_ATTEMPTS = "login_attempts-"

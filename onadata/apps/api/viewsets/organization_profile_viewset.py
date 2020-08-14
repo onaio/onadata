@@ -1,6 +1,7 @@
 import json
 from django.conf import settings
 from django.utils.module_loading import import_string
+from django.core.cache import cache
 
 from rest_framework import status
 from rest_framework.viewsets import ModelViewSet
@@ -23,6 +24,8 @@ from onadata.libs.serializers.organization_member_serializer import \
     OrganizationMemberSerializer
 from onadata.libs.serializers.organization_serializer import (
     OrganizationSerializer)
+from onadata.libs.utils.cache_tools import (
+    ORG_PROFILE_CACHE)
 
 
 BaseViewset = get_baseviewset_class()
@@ -50,6 +53,37 @@ class OrganizationProfileViewSet(AuthenticateHeaderMixin,
     permission_classes = [permissions.OrganizationProfilePermissions]
     filter_backends = (OrganizationPermissionFilter,
                        OrganizationsSharedWithUserFilter)
+
+    def retrieve(self, request, *args, **kwargs):
+        username = kwargs.get('user')
+        cached_org = cache.get(f'{ORG_PROFILE_CACHE}{username}')
+        if cached_org:
+            return Response(cached_org)
+        response = super(OrganizationProfileViewSet, self)\
+            .retrieve(request, *args, **kwargs)
+        return response
+
+    def create(self, request, *args, **kwargs):
+        """ Create and cache organization """
+        response = super(OrganizationProfileViewSet, self)\
+            .create(request, *args, **kwargs)
+        organization = response.data
+        username = organization.get('org')
+        cache.set(f'{ORG_PROFILE_CACHE}{username}', organization)
+        return response
+
+    def destroy(self, request, *args, **kwargs):
+        username = kwargs.get('user')
+        cache.clear(f'{ORG_PROFILE_CACHE}{username}')
+        return super(OrganizationProfileViewSet, self)\
+            .destroy(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        username = kwargs.get('user')
+        response = super(OrganizationProfileViewSet, self)\
+            .update(request, *args, **kwargs)
+        cache.set(f'{ORG_PROFILE_CACHE}{username}', response.data)
+        return response
 
     @action(methods=['DELETE', 'GET', 'POST', 'PUT'], detail=True)
     def members(self, request, *args, **kwargs):
