@@ -3,11 +3,13 @@
 Test FloipViewset module.
 """
 import datetime
+from datetime import timedelta
 import json
 import os
+from urllib.parse import urlencode
 import uuid as uu
 from builtins import open
-from collections import OrderedDict
+import pytz
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
@@ -313,10 +315,21 @@ class TestFloipViewSet(TestAbstractViewSet):
     def test_floip_filter_response(self):
         count = Instance.objects.count()
         floip_data = self._publish_floip()
+        floip_id = floip_data['id']
         view = FloipViewSet.as_view({'post': 'responses', 'get': 'responses'})
         path = os.path.join(os.path.dirname(__file__), "../", "fixtures",
                             "flow-results-example-2-api-data.json")
-        this_year = datetime.datetime.now().year
+
+        # Define filter value to use in testing
+        # the start-timestamp and end-timestamp filter
+        # This timestamp is in the format of an RFC 3339 date-time string
+        # according to
+        # https://floip.gitbook.io/flow-results-specification/api-specification#get-responses-for-a-package
+        current_time = datetime.datetime.now(pytz.UTC)
+        pre_submit_timestamp = current_time - timedelta(days=2)
+        pre_submit_timestamp = pre_submit_timestamp.isoformat()
+        post_submit_timestamp = current_time + timedelta(days=2)
+        post_submit_timestamp = post_submit_timestamp.isoformat()
 
         with open(path, encoding='utf-8') as json_file:
             descriptor = json.load(json_file)
@@ -336,128 +349,182 @@ class TestFloipViewSet(TestAbstractViewSet):
                 floip_data['id'] + '/responses')
             self.assertEqual(count + 2, Instance.objects.count())
 
-            # test filter version
-            past_version = "{}01010000".format(this_year - 1)
-            get_request = self.factory.get(
-                '/api/v1/flow-results/packages/' + floip_data[
-                    'id'] + '/responses?filter[min-version]={}'.format(
-                    past_version),
-                content_type='application/vnd.api+json', **self.extra)
-            get_response = view(get_request, uuid=floip_data['id'])
-            self.assertEqual(get_response.status_code, 200)
-            get_response.data['attributes']['responses'] = list(
-                get_response.data['attributes']['responses'])
-            self.assertEqual(len(get_response.data['attributes']['responses']),
-                             5)
+        # Retrieve all responses
+        request = self.factory.get(
+            f'/api/v1/flow-results/packages/{floip_id}/responses',
+            content_type='application/vnd.api+json', **self.extra)
+        response = view(request, uuid=floip_id)
+        self.assertEqual(response.status_code, 200)
+        response.data['attributes']['responses'] = list(
+            response.data['attributes']['responses']
+        )
+        all_responses = response.data['attributes']['responses']
+        self.assertEqual(len(all_responses), 5)
 
-            next_version = "{}12310000".format(this_year + 1)
-            get_request = self.factory.get(
-                '/api/v1/flow-results/packages/' + floip_data[
-                    'id'] + '/responses?filter[min-version]={}'.format(
-                    next_version),
-                content_type='application/vnd.api+json', **self.extra)
-            get_response = view(get_request, uuid=floip_data['id'])
-            self.assertEqual(get_response.status_code, 200)
-            get_response.data['attributes']['responses'] = list(
-                get_response.data['attributes']['responses'])
-            self.assertEqual(len(get_response.data['attributes']['responses']),
-                             0)
+        # Test page[size] filter
+        # Should only return the requested number of responses
+        expected_responses = 2
+        floip_id = floip_data['id']
+        request = self.factory.get(
+            f'/api/v1/flow-results/packages/{floip_id}'
+            f'/responses?page[size]={expected_responses}',
+            content_type='application/vnd.api+json', **self.extra)
+        response = view(request, uuid=floip_id)
+        self.assertEqual(response.status_code, 200)
+        response.data['attributes']['responses'] = list(
+            response.data['attributes']['responses']
+        )
+        self.assertEqual(
+            len(response.data['attributes']['responses']), expected_responses)
 
-            # test filter timestamp
-            yesterday = (datetime.datetime.now() - datetime.timedelta(
-                days=1)).strftime('%Y-%m-%d %H:%M:%S')
-            get_request = self.factory.get(
-                '/api/v1/flow-results/packages/' + floip_data[
-                    'id'] + '/responses?filter[start-timestamp]={}'.format(
-                    yesterday),
-                content_type='application/vnd.api+json', **self.extra)
-            get_response = view(get_request, uuid=floip_data['id'])
-            self.assertEqual(get_response.status_code, 200)
-            get_response.data['attributes']['responses'] = list(
-                get_response.data['attributes']['responses'])
-            self.assertEqual(len(get_response.data['attributes']['responses']),
-                             5)
+        # Test filter[max-version]
+        # Should return responses recorded on versions that are equal to
+        # or less than provided version
+        query_param = urlencode({'filter[max-version]': pre_submit_timestamp})
+        request = self.factory.get(
+            f'/api/v1/flow-results/packages/{floip_id}/responses?'
+            f'{query_param}',
+            content_type='application/vnd.api+json', **self.extra)
+        response = view(request, uuid=floip_data['id'])
+        self.assertEqual(response.status_code, 200)
+        response.data['attributes']['responses'] = list(
+            response.data['attributes']['responses'])
+        self.assertEqual(len(response.data['attributes']['responses']), 0)
 
-            get_request = self.factory.get(
-                '/api/v1/flow-results/packages/' + floip_data[
-                    'id'] + '/responses?filter[end-timestamp]={}'.format(
-                    yesterday),
-                content_type='application/vnd.api+json', **self.extra)
-            get_response = view(get_request, uuid=floip_data['id'])
-            self.assertEqual(get_response.status_code, 200)
-            get_response.data['attributes']['responses'] = list(
-                get_response.data['attributes']['responses'])
-            self.assertEqual(len(get_response.data['attributes']['responses']),
-                             0)
+        query_param = urlencode({'filter[max-version]': post_submit_timestamp})
+        request = self.factory.get(
+            f'/api/v1/flow-results/packages/{floip_id}/responses?'
+            f'{query_param}',
+            content_type='application/vnd.api+json', **self.extra)
+        response = view(request, uuid=floip_data['id'])
+        self.assertEqual(response.status_code, 200)
+        response.data['attributes']['responses'] = list(
+            response.data['attributes']['responses'])
+        self.assertEqual(
+            len(response.data['attributes']['responses']), len(all_responses))
 
-            # test filter page
-            # Should only return the responses for the Instances
-            # that have an id greater than the first Instance
-            first_id = Instance.objects.first().id
-            floip_id = floip_data['id']
-            get_request = self.factory.get(
-                f'/api/v1/flow-results/package/{floip_id}/responses'
-                f'?page[afterCursor]={first_id}',
-                content_type='application/vnd.api+json', **self.extra)
-            get_response = view(get_request, uuid=floip_id)
-            self.assertEqual(get_response.status_code, 200)
-            # Convert generator to list
-            response_data = list(
-                get_response.data['attributes']['responses'])
-            self.assertEqual(len(response_data), 2)
+        # Test filter[min-version]
+        # Should return responses recorded on versions that are equal to
+        # or greater than provided version
+        query_param = urlencode({'filter[min-version]': pre_submit_timestamp})
+        request = self.factory.get(
+            f'/api/v1/flow-results/packages/{floip_id}/responses?'
+            f'{query_param}',
+            content_type='application/vnd.api+json', **self.extra)
+        response = view(request, uuid=floip_data['id'])
+        self.assertEqual(response.status_code, 200)
+        response.data['attributes']['responses'] = list(
+            response.data['attributes']['responses'])
+        self.assertEqual(
+            len(response.data['attributes']['responses']), len(all_responses))
 
-            # Should only return responses for the Instances
-            # whose ID is less than the first_id + 1
-            data_id = first_id + 1
-            get_request = self.factory.get(
-                f'/api/v1/flow-results/package/{floip_id}/responses'
-                f'?page[beforeCursor]={data_id}',
-                content_type='application/vnd.api+json', **self.extra)
-            get_response = view(get_request, uuid=floip_id)
-            self.assertEqual(get_response.status_code, 200)
-            # Convert generator to list
-            response_data = list(
-                get_response.data['attributes']['responses'])
-            self.assertEqual(len(response_data), 3)
+        query_param = urlencode({'filter[min-version]': post_submit_timestamp})
+        request = self.factory.get(
+            f'/api/v1/flow-results/packages/{floip_id}/responses?'
+            f'{query_param}',
+            content_type='application/vnd.api+json', **self.extra)
+        response = view(request, uuid=floip_data['id'])
+        self.assertEqual(response.status_code, 200)
+        response.data['attributes']['responses'] = list(
+            response.data['attributes']['responses'])
+        self.assertEqual(
+            len(response.data['attributes']['responses']), 0)
 
-            # Test page size filter
-            get_request = get_request = self.factory.get(
-                f'/api/v1/flow-results/packages/{floip_id}/responses'
-                f'?page[size]=1',
-                content_type='application/vnd.api+json', **self.extra)
-            get_response = view(get_request, uuid=floip_id)
-            self.assertEqual(get_response.status_code, 200)
-            # Convert generator to list
-            get_response.data['attributes']['responses'] = list(
-                get_response.data['attributes']['responses'])
-            self.assertEqual(
-                len(get_response.data['attributes']['responses']), 3)
+        # Test filter[start-timestamp]
+        # Should only return responses that were collected after
+        # provided timestamp(Should be a RFC 3339 timestamp)
+        query_param = urlencode(
+            {'filter[start-timestamp]': pre_submit_timestamp})
+        request = self.factory.get(
+            f'/api/v1/flow-results/packages/{floip_id}/responses?'
+            f'{query_param}',
+            content_type='application/vnd.api+json', **self.extra)
+        response = view(request, uuid=floip_data['id'])
+        self.assertEqual(response.status_code, 200)
+        response.data['attributes']['responses'] = list(
+            response.data['attributes']['responses'])
+        self.assertEqual(
+            len(response.data['attributes']['responses']), len(all_responses))
 
-            # Ensure the paginated response is returned in the correct format
-            # https://floip.gitbook.io/flow-results-specification/api-specification#get-responses-for-a-package
-            base_url = ("http://testserver/api/v1/flow-results/"
-                        f"packages/{floip_id}")
-            self_url = (f"{base_url}/responses?"
-                        "page%5Bnumber%5D=1&page%5Bsize%5D=1")
-            next_url = (f"{base_url}/responses?"
-                        "page%5Bnumber%5D=2&page%5Bsize%5D=1")
-            expected_format = {
-                "type": "flow-results-data",
-                "id": floip_id,
-                "attributes": {
-                    "responses": get_response.data['attributes']['responses']
-                },
-                "relationships": {
-                    "descriptor": {
-                        "links": {
-                            "self": base_url
-                        }
-                    },
-                    "links": OrderedDict([
-                        ("self", self_url),
-                        ("next", next_url),
-                        ("previous", None)
-                    ])
-                }
-            }
-            self.assertEqual(get_response.data, expected_format)
+        query_param = urlencode(
+            {'filter[start-timestamp]': post_submit_timestamp})
+        request = self.factory.get(
+            f'/api/v1/flow-results/packages/{floip_id}/responses?'
+            f'{query_param}',
+            content_type='application/vnd.api+json', **self.extra)
+        response = view(request, uuid=floip_data['id'])
+        self.assertEqual(response.status_code, 200)
+        response.data['attributes']['responses'] = list(
+            response.data['attributes']['responses'])
+        self.assertEqual(
+            len(response.data['attributes']['responses']), 0)
+
+        # Test filter[end-timestamp]
+        # Should only return responses that where collected before and during
+        # provided timestamp(Should be a RFC 3339 timestamp)
+        query_param = urlencode(
+            {'filter[end-timestamp]': pre_submit_timestamp})
+        request = self.factory.get(
+            f'/api/v1/flow-results/packages/{floip_id}/responses?'
+            f'{query_param}',
+            content_type='application/vnd.api+json', **self.extra)
+        response = view(request, uuid=floip_data['id'])
+        self.assertEqual(response.status_code, 200)
+        response.data['attributes']['responses'] = list(
+            response.data['attributes']['responses'])
+        self.assertEqual(
+            len(response.data['attributes']['responses']), 0)
+
+        query_param = urlencode(
+            {'filter[end-timestamp]': post_submit_timestamp})
+        request = self.factory.get(
+            f'/api/v1/flow-results/packages/{floip_id}/responses?'
+            f'{query_param}',
+            content_type='application/vnd.api+json', **self.extra)
+        response = view(request, uuid=floip_data['id'])
+        self.assertEqual(response.status_code, 200)
+        response.data['attributes']['responses'] = list(
+            response.data['attributes']['responses'])
+        self.assertEqual(
+            len(response.data['attributes']['responses']), len(all_responses))
+
+        # Test page[afterCursor]
+        # Should only return the responses where the row_id is after this id
+        cursor = all_responses[1][1]
+        floip_id = floip_data['id']
+        request = self.factory.get(
+            f'/api/v1/flow-results/packages/{floip_id}'
+            f'/responses?page[afterCursor]={cursor}',
+            content_type='application/vnd.api+json', **self.extra)
+        response = view(request, uuid=floip_id)
+        self.assertEqual(response.status_code, 200)
+        response.data['attributes']['responses'] = list(
+            response.data['attributes']['responses']
+        )
+        self.assertEqual(
+            len(response.data['attributes']['responses']),
+            len(all_responses) - 2)
+        self.assertEqual(
+            response.data['attributes']['responses'],
+            all_responses[2:]
+        )
+
+        # Test page[beforeCursor]
+        # Should only return the responses where the row_id is before
+        # provided id
+        floip_id = floip_data['id']
+        request = self.factory.get(
+            f'/api/v1/flow-results/packages/{floip_id}'
+            f'/responses?page[beforeCursor]={cursor}',
+            content_type='application/vnd.api+json', **self.extra)
+        response = view(request, uuid=floip_id)
+        self.assertEqual(response.status_code, 200)
+        response.data['attributes']['responses'] = list(
+            response.data['attributes']['responses']
+        )
+        self.assertEqual(
+            len(response.data['attributes']['responses']), 1)
+        self.assertEqual(
+            response.data['attributes']['responses'],
+            [all_responses[0]]
+        )
