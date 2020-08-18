@@ -21,7 +21,6 @@ from onadata.libs import filters
 from onadata.libs.renderers.renderers import floip_list
 from onadata.libs.serializers.floip_serializer import (
     FloipListSerializer, FloipSerializer, FlowResultsResponseSerializer)
-from onadata.libs.utils.common_tags import FLOIP_FILTER_MAP
 
 
 class FlowResultsJSONRenderer(JSONRenderer):
@@ -96,6 +95,14 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
     renderer_classes = (FlowResultsJSONRenderer, )
 
     lookup_field = 'uuid'
+    filter_map = {
+        "filter[max-version]": "version__lte",
+        "filter[min-version]": "version__gte",
+        "filter[start-timestamp]": "date_created__gte",
+        "filter[end-timestamp]": "date_created__lte",
+        "page[afterCursor]": "id__gt",
+        "page[beforeCursor]": "id__lt",
+    }
 
     def get_object(self):
         queryset = self.filter_queryset(self.get_queryset())
@@ -111,9 +118,9 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
     def filter_queryset(self, queryset):
         if self.action == 'responses' and queryset.model == Instance:
             for fil_key, fil_value in self.request.query_params.items():
-                if fil_key in FLOIP_FILTER_MAP:
+                if fil_key in self.filter_map:
                     kwargs = {
-                        FLOIP_FILTER_MAP[fil_key]: fil_value
+                        self.filter_map[fil_key]: fil_value
                     }
                     queryset = queryset.filter(**kwargs)
             return queryset
