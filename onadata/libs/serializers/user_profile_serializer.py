@@ -273,10 +273,6 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             metadata=metadata
         )
         profile.save()
-
-        # cache user profile object
-        cache.set(f'{USER_PROFILE_PREFIX}{new_user.username}', profile)
-
         return profile
 
     def validate_username(self, value):

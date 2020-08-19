@@ -55,6 +55,7 @@ class OrganizationProfileViewSet(AuthenticateHeaderMixin,
                        OrganizationsSharedWithUserFilter)
 
     def retrieve(self, request, *args, **kwargs):
+        """ Get organization from cache or db """
         username = kwargs.get('user')
         cached_org = cache.get(f'{ORG_PROFILE_CACHE}{username}')
         if cached_org:
@@ -73,12 +74,14 @@ class OrganizationProfileViewSet(AuthenticateHeaderMixin,
         return response
 
     def destroy(self, request, *args, **kwargs):
+        """ Clear cache and destroy organization """
         username = kwargs.get('user')
         cache.clear(f'{ORG_PROFILE_CACHE}{username}')
         return super(OrganizationProfileViewSet, self)\
             .destroy(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
+        """ Update org in cache and db"""
         username = kwargs.get('user')
         response = super(OrganizationProfileViewSet, self)\
             .update(request, *args, **kwargs)
