@@ -4,6 +4,7 @@ FloipViewSet: API endpoint for /api/floip
 """
 from uuid import UUID
 from collections import OrderedDict
+import dateutil.parser
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
@@ -18,7 +19,8 @@ from rest_framework_json_api.renderers import JSONRenderer
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models import XForm, Instance
 from onadata.libs import filters
-from onadata.libs.renderers.renderers import floip_list
+from onadata.libs.renderers.renderers import (
+    convert_instances_to_floip_list, floip_list, inverse_pairing)
 from onadata.libs.serializers.floip_serializer import (
     FloipListSerializer, FloipSerializer, FlowResultsResponseSerializer)
 
@@ -98,10 +100,10 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
     filter_map = {
         "filter[max-version]": "version__lte",
         "filter[min-version]": "version__gte",
-        "filter[start-timestamp]": "date_created__gte",
+        "filter[start-timestamp]": "date_created__gt",
         "filter[end-timestamp]": "date_created__lte",
-        "page[afterCursor]": "id__gt",
-        "page[beforeCursor]": "id__lt",
+        "page[afterCursor]": "id__gte",
+        "page[beforeCursor]": "id__lte",
     }
 
     def get_object(self):
@@ -119,6 +121,15 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
         if self.action == 'responses' and queryset.model == Instance:
             for fil_key, fil_value in self.request.query_params.items():
                 if fil_key in self.filter_map:
+                    if fil_key in [
+                            "filter[max-version]", "filter[min-version]"]:
+                        fil_value = dateutil.parser.parse(fil_value)
+                        fil_value = fil_value.strftime("%Y%m%d%H%M")
+
+                    if fil_key in ["page[afterCursor]", "page[beforeCursor]"]:
+                        fil_value, _ = inverse_pairing(int(fil_value))
+                        fil_value = int(fil_value)
+
                     kwargs = {
                         self.filter_map[fil_key]: fil_value
                     }
@@ -188,16 +199,15 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
                 queryset = xform.instances.values_list('json', flat=True)
 
             queryset = self.filter_queryset(queryset)
-            paginate_queryset = self.paginate_queryset(queryset)
-            if paginate_queryset:
-                data['attributes']['responses'] = floip_list(paginate_queryset)
+            if "page[size]" in self.request.query_params:
+                responses = convert_instances_to_floip_list(queryset)
+                data['attributes']['responses'] = self.paginate_queryset(
+                    responses)
                 response = self.get_paginated_response(
                     data, descriptor_id=uuid)
                 for key, value in headers.items():
                     response[key] = value
-
                 return response
 
             data['attributes']['responses'] = floip_list(queryset)
-
         return Response(data, headers=headers, status=status_code)
