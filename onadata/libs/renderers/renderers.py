@@ -91,6 +91,17 @@ def floip_list(data):
             yield i
 
 
+def convert_instances_to_floip_list(data) -> list:
+    """
+    Generates a list of FLOIP Results from the data
+    """
+    responses = []
+    for item in data:
+        for response in floip_rows_list(item):
+            responses.append(response)
+    return responses
+
+
 class DecimalEncoder(JSONEncoder):
     """
     JSON DecimalEncoder that returns None for decimal nan json values.
