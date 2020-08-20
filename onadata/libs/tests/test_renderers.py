@@ -6,7 +6,9 @@ from collections import OrderedDict
 
 from django.test import TestCase
 
-from onadata.libs.renderers.renderers import floip_rows_list
+from onadata.libs.renderers.renderers import (floip_rows_list,
+                                              pairing,
+                                              inverse_pairing)
 
 
 class TestRenderers(TestCase):
@@ -51,3 +53,14 @@ class TestRenderers(TestCase):
         ]  # yapf: disable
         result = [_ for _ in floip_rows_list(data)]
         self.assertEquals(result, expected_data)
+
+    def test_inverse_pairing_function(self):
+        """
+        Test inverse_pairing function
+        """
+        expected_val1 = 20
+        expected_val2 = 1
+        paired_value = pairing(expected_val1, expected_val2)
+        val1, val2 = inverse_pairing(paired_value)
+        self.assertEqual(int(val1), expected_val1)
+        self.assertEqual(int(val2), expected_val2)

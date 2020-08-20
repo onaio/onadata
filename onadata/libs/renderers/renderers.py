@@ -47,6 +47,21 @@ def pairing(val1, val2):
     return (((val1 + val2) * (val1 + val2 + 1)) / 2) + val2
 
 
+def inverse_pairing(val) -> tuple:
+    """
+    Determines the value of val1 & val2 used to generate the inputted natural
+    number.
+    rtype: Tuple
+    returns: Returns a tuple of form (val1, val2)
+    Reference:
+    https://en.wikipedia.org/wiki/Pairing_function#Inverting_the_Cantor_pairing_function
+    """
+    w = math.floor((math.sqrt((8 * val) + 1) - 1) / 2)
+    t = (w ** 2 + w) / 2
+    y = val - t
+    return w - y, y
+
+
 def floip_rows_list(data):
     """
     Yields a row of FLOIP results data from dict data.
