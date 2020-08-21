@@ -491,7 +491,6 @@ class TestFloipViewSet(TestAbstractViewSet):
         # Test page[afterCursor]
         # Should only return the responses where the row_id is after this id
         cursor = all_responses[1][1]
-        floip_id = floip_data['id']
         request = self.factory.get(
             f'/api/v1/flow-results/packages/{floip_id}'
             f'/responses?page[afterCursor]={cursor}',
@@ -512,7 +511,6 @@ class TestFloipViewSet(TestAbstractViewSet):
         # Test page[beforeCursor]
         # Should only return the responses where the row_id is before
         # provided id
-        floip_id = floip_data['id']
         request = self.factory.get(
             f'/api/v1/flow-results/packages/{floip_id}'
             f'/responses?page[beforeCursor]={cursor}',
@@ -528,3 +526,46 @@ class TestFloipViewSet(TestAbstractViewSet):
             response.data['attributes']['responses'],
             [all_responses[0]]
         )
+
+        # Test page[beforeCursor] and page[afterCursor]
+        afterCursor = all_responses[1][1]
+        beforeCursor = all_responses[3][1]
+        query_param = urlencode({
+            'page[afterCursor]': afterCursor,
+            'page[beforeCursor]': beforeCursor})
+        request = self.factory.get(
+            f'/api/v1/flow-results/packages/{floip_id}'
+            f'/responses?{query_param}',
+            content_type='application/vnd.api+json', **self.extra)
+        response = view(request, uuid=floip_id)
+        self.assertEqual(response.status_code, 200)
+        response.data['attributes']['responses'] = list(
+            response.data['attributes']['responses']
+        )
+        self.assertEqual(len(response.data['attributes']['responses']), 1)
+        self.assertEqual(
+            response.data['attributes']['responses'],
+            all_responses[2:3]
+        )
+
+        # Test page[afterCursor], page[beforeCursor] and page[size]
+        expected_responses = 1
+        beforeCursor = all_responses[4][1]
+        query_param = urlencode({
+            'page[afterCursor]': afterCursor,
+            'page[beforeCursor]': beforeCursor,
+            'page[size]': expected_responses})
+        request = self.factory.get(
+            f'/api/v1/flow-results/packages/{floip_id}'
+            f'/responses?{query_param}',
+            content_type='application/vnd.api+json', **self.extra)
+        response = view(request, uuid=floip_id)
+        self.assertEqual(response.status_code, 200)
+        response.data['attributes']['responses'] = list(
+            response.data['attributes']['responses']
+        )
+        self.assertEqual(
+            len(response.data['attributes']['responses']), expected_responses)
+        self.assertEqual(
+            response.data['attributes']['responses'],
+            [all_responses[2]])

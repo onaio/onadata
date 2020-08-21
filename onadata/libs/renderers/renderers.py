@@ -82,23 +82,43 @@ def floip_rows_list(data):
             ]
 
 
-def floip_list(data):
+def floip_list(data, afterCursor: int = None, beforeCursor: int = None):
     """
     Yields FLOIP results data row from list data.
     """
+    yield_values = not afterCursor
+
     for item in data:
         for i in floip_rows_list(item):
-            yield i
+            if i[1] == beforeCursor:
+                yield_values = False
+
+            if yield_values:
+                yield i
+
+            if i[1] == afterCursor:
+                yield_values = True
 
 
-def convert_instances_to_floip_list(data) -> list:
+def convert_instances_to_floip_list(
+        data, afterCursor: int = None, beforeCursor: int = None) -> list:
     """
     Generates a list of FLOIP Results from the data
     """
+    append_values = not afterCursor
     responses = []
+
     for item in data:
         for response in floip_rows_list(item):
-            responses.append(response)
+            if response[1] == beforeCursor:
+                append_values = False
+
+            if append_values:
+                responses.append(response)
+
+            if response[1] == afterCursor:
+                append_values = True
+
     return responses
 
 

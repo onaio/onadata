@@ -199,8 +199,21 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
                 queryset = xform.instances.values_list('json', flat=True)
 
             queryset = self.filter_queryset(queryset)
+            afterCursor = None
+            beforeCursor = None
+            if 'page[afterCursor]' in self.request.query_params:
+                afterCursor = int(
+                    self.request.query_params['page[afterCursor]'])
+
+            if 'page[beforeCursor]' in self.request.query_params:
+                beforeCursor = int(
+                    self.request.query_params['page[beforeCursor]']
+                )
+
             if "page[size]" in self.request.query_params:
-                responses = convert_instances_to_floip_list(queryset)
+                responses = convert_instances_to_floip_list(
+                    queryset,
+                    afterCursor=afterCursor, beforeCursor=beforeCursor)
                 data['attributes']['responses'] = self.paginate_queryset(
                     responses)
                 response = self.get_paginated_response(
@@ -209,5 +222,6 @@ class FloipViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
                     response[key] = value
                 return response
 
-            data['attributes']['responses'] = floip_list(queryset)
+            data['attributes']['responses'] = floip_list(
+                queryset, afterCursor=afterCursor, beforeCursor=beforeCursor)
         return Response(data, headers=headers, status=status_code)
