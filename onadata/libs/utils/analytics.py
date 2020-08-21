@@ -4,6 +4,8 @@
 
 import analytics as segment_analytics
 from typing import Dict, List, Optional
+import appoptics_metrics
+from appoptics_metrics import sanitize_metric_name
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -14,16 +16,24 @@ from onadata.libs.utils.common_tags import (
     INSTANCE_CREATE_EVENT, INSTANCE_UPDATE_EVENT)
 
 
+_appoptics_api = None
 _segment = False
 
 
 def init_analytics():
     """Initialize the analytics agents with write credentials."""
     segment_write_key = getattr(settings, 'SEGMENT_WRITE_KEY', None)
+    appoptics_api_token = getattr(settings, "APPOPTICS_API_TOKEN", None)
     if segment_write_key:
         global _segment
         segment_analytics.write_key = segment_write_key
         _segment = True
+
+    if appoptics_api_token:
+        global _appoptics_api
+        _appoptics_api = appoptics_metrics.connect(
+            appoptics_api_token, hostname=settings.HOSTNAME,
+            sanitizer=sanitize_metric_name)
 
 
 def get_user_id(user):
@@ -138,7 +148,7 @@ class track_object_event(object):
 
 def track(user, event_name, properties=None, context=None, request=None):
     """Record actions with the track() API call to the analytics agents."""
-    if _segment:
+    if _segment or _appoptics_api:
         context = context or {}
         context['source'] = settings.HOSTNAME
 
@@ -154,23 +164,27 @@ def track(user, event_name, properties=None, context=None, request=None):
             properties['event_by'] = submitted_by
             context['event_by'] = submitted_by
 
+        if 'organization' in properties:
+            context['organization'] = properties.get('organization')
+
+        if 'from' in properties:
+            context['action_from'] = properties.get('from')
+
         if 'xform_id' in properties:
             context['xform_id'] = properties['xform_id']
 
         if request:
-            context['userId'] = user_id
+            context['path'] = request.path
+            context['url'] = request.build_absolute_uri()
             context['userAgent'] = request.META.get('HTTP_USER_AGENT', '')
             context['ip'] = request.META.get('REMOTE_ADDR', '')
-            context['page'] = {
-                'path': request.path,
-                'url': request.build_absolute_uri(),
-            }
-            context['tags'] = {
-                'path': request.path,
-                'url': request.build_absolute_uri(),
-                'userAgent': request.META.get('HTTP_USER_AGENT', ''),
-                'ip': request.META.get('REMOTE_ADDR', ''),
-                'userId': user_id,
-            }
+            context['userId'] = user.id
 
-        segment_analytics.track(user_id, event_name, properties, context)
+        if _segment:
+            segment_analytics.track(user_id, event_name, properties, context)
+
+        if _appoptics_api:
+            # Remove all empty values from context
+            tags = {k: v for k, v in context.items() if v}
+            _appoptics_api.submit_measurement(
+                event_name, properties['value'], tags=tags)

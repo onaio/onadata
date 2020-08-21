@@ -109,7 +109,9 @@ setup(
         "django-activity-stream",
         "paho-mqtt",
         "cryptography",
+        # Monitoring
         "analytics-python",
+        "appoptics-metrics",
     ],
     dependency_links=[
         'https://github.com/onaio/python-digest/tarball/3af1bd0ef6114e24bf23d0e8fd9d7ebf389845d1#egg=python-digest',  # noqa pylint: disable=line-too-long
