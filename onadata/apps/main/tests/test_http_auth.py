@@ -28,6 +28,14 @@ class TestBasicHttpAuthentication(TestBase):
                                    **self._set_auth_headers('bob', 'bob'))
         self.assertEqual(response.status_code, 200)
 
+        # Set user email
+        self.user.email = "bob@testing_pros.com"
+        self.user.save()
+        # headers with valid email/pass
+        response = self.client.get(
+            self.api_url, **self._set_auth_headers(self.user.email, 'bob'))
+        self.assertEqual(response.status_code, 200)
+
     def test_http_auth_shared_data(self):
         self.xform.shared_data = True
         self.xform.save()
