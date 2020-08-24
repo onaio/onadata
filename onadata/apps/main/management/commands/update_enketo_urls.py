@@ -5,7 +5,7 @@ from django.utils.translation import ugettext_lazy
 
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.utils.viewer_tools import (
-    enketo_url, get_form_url)
+    get_enketo_urls, get_form_url)
 
 
 class Command(BaseCommand):
@@ -64,7 +64,7 @@ class Command(BaseCommand):
                     request, username=username, id_string=id_string,
                     xform_pk=xform_pk,
                     generate_consistent_urls=generate_consistent_urls)
-                enketo_urls = enketo_url(form_url, id_string)
+                enketo_urls = get_enketo_urls(form_url, id_string)
                 if data_type == 'enketo_url':
                     _enketo_url = (enketo_urls.get('offline_url') or
                                    enketo_urls.get('url'))

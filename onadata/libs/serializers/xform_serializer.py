@@ -33,7 +33,7 @@ from onadata.libs.utils.common_tags import (GROUP_DELIMETER_TAG,
                                             REPEAT_INDEX_TAGS)
 from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.viewer_tools import (
-    enketo_url, get_form_url)
+    get_enketo_urls, get_form_url)
 
 
 def _create_enketo_urls(request, xform):
@@ -49,7 +49,7 @@ def _create_enketo_urls(request, xform):
                             generate_consistent_urls=True)
     data = {}
     try:
-        enketo_urls = enketo_url(form_url, xform.id_string)
+        enketo_urls = get_enketo_urls(form_url, xform.id_string)
         offline_url = enketo_urls.get("offline_url")
         MetaData.enketo_url(xform, offline_url)
         data['offline_url'] = offline_url
@@ -194,8 +194,6 @@ class XFormMixin(object):
                     url = enketo_urls.get('preview_url')
                 except Exception:
                     return url
-                else:
-                    MetaData.enketo_preview_url(obj, url)
 
             return _set_cache(ENKETO_PREVIEW_URL_CACHE, url, obj)
 

@@ -16,7 +16,7 @@ from onadata.apps.logger.views import enter_data
 from onadata.apps.main.models import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.main.views import qrcode, set_perm, show
-from onadata.libs.utils.viewer_tools import enketo_url
+from onadata.libs.utils.viewer_tools import get_enketo_urls
 
 
 @urlmatch(netloc=r"(.*\.)?enketo\.ona\.io$")
@@ -79,7 +79,7 @@ class TestFormEnterData(TestBase):
         with HTTMock(enketo_mock):
             server_url = "https://testserver.com/bob"
             form_id = "test_%s" % re.sub(re.compile("\."), "_", str(time()))  # noqa
-            url = enketo_url(server_url, form_id)
+            url = get_enketo_urls(server_url, form_id)
             self.assertIsInstance(url['url'], basestring)
             self.assertIsNone(URLValidator()(url['url']))
 
@@ -89,7 +89,7 @@ class TestFormEnterData(TestBase):
         with HTTMock(enketo_mock_http):
             server_url = "http://testserver.com/bob"
             form_id = "test_%s" % re.sub(re.compile("\."), "_", str(time()))  # noqa
-            url = enketo_url(server_url, form_id)
+            url = get_enketo_urls(server_url, form_id)
             self.assertIn("http:", url['url'])
             self.assertIsInstance(url['url'], basestring)
             self.assertIsNone(URLValidator()(url['url']))

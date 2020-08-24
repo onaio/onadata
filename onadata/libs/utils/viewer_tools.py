@@ -9,6 +9,7 @@ from builtins import open
 from future.utils import iteritems
 from json.decoder import JSONDecodeError
 from tempfile import NamedTemporaryFile
+from typing import Dict
 from xml.dom import minidom
 
 from future.moves.urllib.parse import urljoin
@@ -162,13 +163,13 @@ def get_client_ip(request):
     return request.META.get('REMOTE_ADDR')
 
 
-def enketo_url(form_url,
-               id_string,
-               instance_xml=None,
-               instance_id=None,
-               return_url=None,
-               **kwargs):
-    """Return Enketo webform URL."""
+def get_enketo_urls(form_url,
+                    id_string,
+                    instance_xml=None,
+                    instance_id=None,
+                    return_url=None,
+                    **kwargs) -> Dict[str, str]:
+    """Return Enketo URLs."""
     if (not hasattr(settings, 'ENKETO_URL') or
             not hasattr(settings, 'ENKETO_API_ALL_SURVEY_LINKS_PATH') or
             not hasattr(settings, 'ENKETO_API_TOKEN') or
@@ -321,21 +322,4 @@ def get_form_url(request,
         url += "/{}/{}".format(username, xform_pk) if xform_pk \
              else "/{}".format(username)
 
-    return url
-
-
-def get_enketo_edit_url(request, instance, return_url):
-    """Given a submssion instance,
-    returns an Enketo link to edit the specified submission."""
-    form_url = get_form_url(
-        request,
-        instance.xform.user.username,
-        settings.ENKETO_PROTOCOL,
-        xform_pk=instance.xform_id)
-    url = enketo_url(
-        form_url,
-        instance.xform.id_string,
-        instance_xml=instance.xml,
-        instance_id=instance.uuid,
-        return_url=return_url)
     return url

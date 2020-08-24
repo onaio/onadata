@@ -62,7 +62,7 @@ from onadata.libs.utils.user_auth import (add_cors_headers, check_and_set_user,
                                           get_xform_users_with_perms,
                                           has_permission,
                                           helper_auth_helper, set_profile_data)
-from onadata.libs.utils.viewer_tools import (enketo_url, get_form)
+from onadata.libs.utils.viewer_tools import (get_enketo_urls, get_form)
 
 
 def home(request):
@@ -1383,7 +1383,7 @@ def qrcode(request, username, id_string):
     results = _(u"Unexpected Error occured: No QRCODE generated")
     status = 200
     try:
-        enketo_urls = enketo_url(formhub_url, id_string)
+        enketo_urls = get_enketo_urls(formhub_url, id_string)
     except Exception as e:
         error_msg = _(u"Error Generating QRCODE: %s" % e)
         results = """<div class="alert alert-error">%s</div>""" % error_msg
@@ -1412,7 +1412,7 @@ def enketo_preview(request, username, id_string):
         return HttpResponseForbidden(_(u'Not shared.'))
 
     try:
-        enketo_urls = enketo_url(
+        enketo_urls = get_enketo_urls(
                 xform.url, xform.id_string)
 
         enketo_preview_url = enketo_urls.get('preview_url')

@@ -71,7 +71,7 @@ from onadata.libs.utils.export_tools import parse_request_export_options
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.string import str2bool
-from onadata.libs.utils.viewer_tools import (enketo_url,
+from onadata.libs.utils.viewer_tools import (get_enketo_urls,
                                              generate_enketo_form_defaults,
                                              get_form_url)
 from onadata.libs.exceptions import EnketoError
@@ -421,7 +421,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             request_vars = request.GET
             defaults = generate_enketo_form_defaults(
                 self.object, **request_vars)
-            enketo_urls = enketo_url(
+            enketo_urls = get_enketo_urls(
                 form_url, self.object.id_string, **defaults)
             offline_url = enketo_urls.get('offline_url')
             preview_url = enketo_urls.get('preview_url')

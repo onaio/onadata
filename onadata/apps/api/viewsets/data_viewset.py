@@ -59,7 +59,7 @@ from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.utils.common_tools import json_stream
 from onadata.libs.utils.model_tools import queryset_iterator
-from onadata.libs.utils.viewer_tools import get_form_url, enketo_url
+from onadata.libs.utils.viewer_tools import get_form_url, get_enketo_urls
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 BaseViewset = get_baseviewset_class()
@@ -269,7 +269,10 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                     raise ParseError(_(u"return_url not provided."))
 
                 try:
-                    data = enketo_url(form_url, self.object.xform.id_string)
+                    data = get_enketo_urls(
+                        form_url,
+                        self.object.xform.id_string,
+                        return_url)
 
                 except EnketoError as e:
                     raise ParseError(text(e))

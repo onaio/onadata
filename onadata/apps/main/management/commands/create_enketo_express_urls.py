@@ -5,7 +5,7 @@ from django.utils.translation import ugettext_lazy
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.viewer_tools import (
-    enketo_url, get_form_url)
+    get_enketo_urls, get_form_url)
 
 
 class Command(BaseCommand):
@@ -60,7 +60,7 @@ class Command(BaseCommand):
                         xform_pk=xform.pk,
                         generate_consistent_urls=generate_consistent_urls)
                 id_string = xform.id_string
-                enketo_urls = enketo_url(form_url, id_string)
+                enketo_urls = get_enketo_urls(form_url, id_string)
                 _url = (enketo_urls.get('offline_url') or
                         enketo_urls.get('url'))
                 _preview_url = enketo_urls.get('preview_url')
@@ -83,7 +83,7 @@ class Command(BaseCommand):
                             xform_pk=xform.pk,
                             generate_consistent_urls=generate_consistent_urls)
                     id_string = xform.id_string
-                    enketo_urls = enketo_url(form_url, id_string)
+                    enketo_urls = get_enketo_urls(form_url, id_string)
                     _url = (enketo_urls.get('offline_url') or
                             enketo_urls.get('url'))
                     _preview_url = enketo_urls.get('preview_url')
@@ -106,7 +106,7 @@ class Command(BaseCommand):
                         protocol=protocol,
                         xform_pk=xform.pk,
                         generate_consistent_urls=generate_consistent_urls)
-                enketo_urls = enketo_url(form_url, id_string)
+                enketo_urls = get_enketo_urls(form_url, id_string)
                 _url = (enketo_urls.get('offline_url') or
                         enketo_urls.get('url'))
                 _preview_url = enketo_urls.get('preview_url')
