@@ -380,7 +380,6 @@ class TestOpenData(TestBase):
             'children_3__childs_name',
             'children_4__childs_age',
             'children_4__childs_name',
-            'gps',
             'has_children',
             'meta_instanceID',
             'name',
@@ -435,13 +434,21 @@ class TestOpenData(TestBase):
         self.assertEqual(response.status_code, 200)
         # cast generator response to list for easy manipulation
         row_data = streaming_data(response)
-        # Test that Tableau receives this data
+        # Test that Tableau receives group data
         self.assertEqual(
             row_data[0]['children_1__childs_name'],
             'Tom')
         self.assertEqual(
             row_data[0]['children_2__childs_age'],
             5)
+        # Test that gps data is unpacked for Tableau appropriately.
+        self.assertEqual(
+            row_data[0]['_gps_latitude'],
+            '-1.2625621')
+        self.assertEqual(
+            row_data[0]['_gps_longitude'],
+            '36.7921711')
+
 
     def test_tableau_get_nested_repeat_group_data(self):
         """
