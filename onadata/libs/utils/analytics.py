@@ -3,7 +3,7 @@
 # Heavily borrowed from RapidPro's temba.utils.analytics
 
 import analytics as segment_analytics
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 import appoptics_metrics
 from appoptics_metrics import sanitize_metric_name
 
@@ -16,7 +16,7 @@ from onadata.libs.utils.common_tags import (
     INSTANCE_CREATE_EVENT, INSTANCE_UPDATE_EVENT)
 
 
-_appoptics_api = None
+appoptics_api = None
 _segment = False
 
 
@@ -30,10 +30,28 @@ def init_analytics():
         _segment = True
 
     if appoptics_api_token:
-        global _appoptics_api
-        _appoptics_api = appoptics_metrics.connect(
-            appoptics_api_token, hostname=settings.HOSTNAME,
-            sanitizer=sanitize_metric_name)
+        global appoptics_api
+        appoptics_api = appoptics_metrics.connect(
+            appoptics_api_token, sanitizer=sanitize_metric_name)
+
+
+def sanitize_metric_values(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Sanitizes values in order to ensure the values are valid
+    for AppOptics
+    """
+    sanitized_data = data.copy()
+    for key, value in sanitized_data.items():
+        if isinstance(value, str):
+            new_value = value
+            if ' ' in new_value:
+                new_value = new_value.replace(' ', '_')
+
+            if '(' in value or ')' in new_value:
+                new_value = new_value.replace(')', "").replace('(', "")
+
+            sanitized_data.update({key: new_value})
+    return sanitized_data
 
 
 def get_user_id(user):
@@ -148,7 +166,7 @@ class track_object_event(object):
 
 def track(user, event_name, properties=None, context=None, request=None):
     """Record actions with the track() API call to the analytics agents."""
-    if _segment or _appoptics_api:
+    if _segment or appoptics_api:
         context = context or {}
         context['source'] = settings.HOSTNAME
 
@@ -160,9 +178,13 @@ def track(user, event_name, properties=None, context=None, request=None):
             properties['value'] = 1
 
         if 'submitted_by' in properties:
-            submitted_by = get_user_id(properties.pop('submitted_by'))
+            submitted_by_user = properties.pop('submitted_by')
+            submitted_by = get_user_id(submitted_by_user)
             properties['event_by'] = submitted_by
-            context['event_by'] = submitted_by
+            if submitted_by_user:
+                context['event_by'] = submitted_by_user.username
+            else:
+                context['event_by'] = submitted_by
 
         if 'organization' in properties:
             context['organization'] = properties.get('organization')
@@ -174,17 +196,16 @@ def track(user, event_name, properties=None, context=None, request=None):
             context['xform_id'] = properties['xform_id']
 
         if request:
+            context['userAgent'] = request.META.get('HTTP_USER_AGENT', '')
             context['path'] = request.path
             context['url'] = request.build_absolute_uri()
-            context['userAgent'] = request.META.get('HTTP_USER_AGENT', '')
             context['ip'] = request.META.get('REMOTE_ADDR', '')
             context['userId'] = user.id
 
         if _segment:
             segment_analytics.track(user_id, event_name, properties, context)
 
-        if _appoptics_api:
-            # Remove all empty values from context
-            tags = {k: v for k, v in context.items() if v}
-            _appoptics_api.submit_measurement(
+        if appoptics_api:
+            tags = sanitize_metric_values(context)
+            appoptics_api.submit_measurement(
                 event_name, properties['value'], tags=tags)

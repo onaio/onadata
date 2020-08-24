@@ -57,7 +57,6 @@ class TestAnalytics(TestAbstractViewSet):
         appoptics_mock = MagicMock()
         onadata.libs.utils.analytics.segment_analytics = segment_mock
         onadata.libs.utils.analytics.init_analytics()
-        onadata.libs.utils.analytics._appoptics_api = appoptics_mock
         self.assertEqual(segment_mock.write_key, '123')
 
         # Test out that the track_object_event decorator
@@ -67,6 +66,7 @@ class TestAnalytics(TestAbstractViewSet):
             'head': 'create'
         })
         self._publish_xls_form_to_project()
+        onadata.libs.utils.analytics.appoptics_api = appoptics_mock
         s = self.surveys[0]
         media_file = "1335783522563.jpg"
         path = os.path.join(self.main_directory, 'fixtures',
@@ -93,39 +93,44 @@ class TestAnalytics(TestAbstractViewSet):
                                  'text/xml; charset=utf-8')
                 self.assertEqual(response['Location'],
                                  'http://testserver' + request_path)
+        form_id = self.xform.pk
+        username = self.user.username
         segment_mock.track.assert_called_with(
             'bob@columbia.edu',
             'Submission created',
             {
-                'xform_id': 1,
+                'xform_id': self.xform.pk,
                 'organization': 'Bob Inc.',
                 'from': 'XML Submissions',
-                'label': 'form-1-owned-by-bob',
+                'label': f'form-{form_id}-owned-by-{username}',
                 'value': 1,
                 'event_by': 'anonymous'
             },
             {
                 'source': 'test-server',
-                'event_by': 'anonymous',
                 'organization': 'Bob Inc.',
+                'event_by': 'anonymous',
                 'action_from': 'XML Submissions',
                 'xform_id': self.xform.pk,
-                'path': '/bob/submission',
-                'url': 'http://testserver/bob/submission',
                 'userAgent': '',
+                'path': f'/{username}/submission',
+                'url': f'http://testserver/{username}/submission',
                 'ip': '127.0.0.1',
                 'userId': self.user.id
             })
+
         appoptics_mock.submit_measurement.assert_called_with(
             'Submission created',
             1,
             tags={
                 'source': 'test-server',
                 'event_by': 'anonymous',
-                'organization': 'Bob Inc.',
-                'action_from': 'XML Submissions',
+                'organization': 'Bob_Inc.',
+                'action_from': 'XML_Submissions',
                 'xform_id': self.xform.pk,
-                'path': '/bob/submission',
-                'url': 'http://testserver/bob/submission',
+                'userAgent': '',
+                'path': f'/{username}/submission',
+                'url': f'http://testserver/{username}/submission',
                 'ip': '127.0.0.1',
-                'userId': self.user.id})
+                'userId': self.user.id
+            })
