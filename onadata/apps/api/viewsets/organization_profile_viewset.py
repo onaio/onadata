@@ -25,6 +25,7 @@ from onadata.libs.serializers.organization_member_serializer import \
 from onadata.libs.serializers.organization_serializer import (
     OrganizationSerializer)
 from onadata.libs.utils.cache_tools import (
+    safe_delete,
     ORG_PROFILE_CACHE)
 
 
@@ -62,6 +63,7 @@ class OrganizationProfileViewSet(AuthenticateHeaderMixin,
             return Response(cached_org)
         response = super(OrganizationProfileViewSet, self)\
             .retrieve(request, *args, **kwargs)
+        cache.set(f'{ORG_PROFILE_CACHE}{username}', response.data)
         return response
 
     def create(self, request, *args, **kwargs):
@@ -76,7 +78,7 @@ class OrganizationProfileViewSet(AuthenticateHeaderMixin,
     def destroy(self, request, *args, **kwargs):
         """ Clear cache and destroy organization """
         username = kwargs.get('user')
-        cache.clear(f'{ORG_PROFILE_CACHE}{username}')
+        safe_delete(f'{ORG_PROFILE_CACHE}{username}')
         return super(OrganizationProfileViewSet, self)\
             .destroy(request, *args, **kwargs)
 
@@ -106,8 +108,13 @@ class OrganizationProfileViewSet(AuthenticateHeaderMixin,
 
         serializer = OrganizationMemberSerializer(data=data)
 
+        username = kwargs.get('user')
         if serializer.is_valid():
             serializer.save()
+            organization = serializer.validated_data.get('organization')
+            data = OrganizationSerializer(organization,
+                                          context={'request': request}).data
+            cache.set(f'{ORG_PROFILE_CACHE}{username}', data)
 
         else:
             return Response(data=serializer.errors,

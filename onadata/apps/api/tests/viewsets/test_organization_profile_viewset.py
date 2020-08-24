@@ -2,6 +2,7 @@ import json
 from builtins import str as text
 
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from mock import patch
 from rest_framework import status
 
@@ -27,6 +28,13 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             'post': 'create',
             'patch': 'partial_update',
         })
+
+    def tearDown(self):
+        """
+        Specific to clear cache between tests
+        """
+        super(TestOrganizationProfileViewSet, self).tearDown()
+        cache.clear()
 
     def test_partial_updates(self):
         self._org_create()
@@ -171,7 +179,6 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user='denoinc')
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
-        del self.company_data['metadata']
         self.assertEqual(response.data, self.company_data)
         self.assertIn('users', list(response.data))
         for user in response.data['users']:
@@ -187,7 +194,6 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user='denoinc')
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
-        del self.company_data['metadata']
         self.assertEqual(response.data, self.company_data)
         self.assertIn('users', list(response.data))
         for user in response.data['users']:
