@@ -12,6 +12,7 @@ from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
 from io import BytesIO
+from typing import Dict, Any
 
 import unicodecsv as ucsv
 import xlrd
@@ -245,6 +246,21 @@ def validate_csv_file(csv_file, xform):
     return {'valid': True, 'additional_col': additional_col}
 
 
+def flatten_split_select_multiples(row: Dict[str, Any]) -> dict:
+    """
+    Flattens a select_multiple question that was previously split into
+    different choice columns into one column
+    """
+    for key, value in row.items():
+        if key != "meta" and isinstance(value, dict):
+            picked_choices = [
+                k for k, v in value.items()
+                if v in ['1', 'True', 'TRUE'] or v == k]
+            new_value = ' '.join(picked_choices)
+            row.update({key: new_value})
+    return row
+
+
 @use_master
 def submit_csv(username, xform, csv_file, overwrite=False):
     """Imports CSV data to an existing form
@@ -342,7 +358,8 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                             lambda: '', location_data.get(location_key))
                     })
 
-                row = csv_dict_to_nested_dict(row)
+                row = flatten_split_select_multiples(
+                    csv_dict_to_nested_dict(row))
                 location_data = csv_dict_to_nested_dict(location_data)
                 # Merge location_data into the Row data
                 row = dict_merge(row, location_data)

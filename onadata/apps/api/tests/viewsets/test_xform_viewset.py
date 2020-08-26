@@ -2086,9 +2086,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         self.assertEqual(response.data.get('additions'), 1)
         instance_data = xform.instances.first().json
 
-        self.assertEqual(instance_data.get('mood/meh'), '0')
-        self.assertEqual(instance_data.get('mood/sad'), '0')
-        self.assertEqual(instance_data.get('mood/happy'), '1')
+        self.assertEqual(instance_data.get('mood'), 'happy')
 
     @override_settings(CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD=4*100000)
     def test_large_csv_import(self):
