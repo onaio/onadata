@@ -31,7 +31,7 @@ setup(
     },
     packages=find_packages(exclude=['docs', 'tests']),
     install_requires=[
-        "Django>=2.2,<2.3",
+        "Django>=2.2,<3.2",
         "django-guardian",
         "django-registration-redux",
         "django-templated-email",
