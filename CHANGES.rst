@@ -3,6 +3,16 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.3.9(2020-08-27)
+------------------
+
+- Initial support for tracking submissions with Segment
+  `PR #1872 <https://github.com/onaio/onadata/pull/1872>`_
+  [@DavisRayM]
+- Add caching to the organization profile viewset
+  `PR #1876 <https://github.com/onaio/onadata/pull/1876>`_
+  [@FrankApiyo]
+
 v2.3.8(2020-08-25)
 ------------------
 
