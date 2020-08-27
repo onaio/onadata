@@ -12,7 +12,9 @@
 -e git+https://github.com/onaio/python-json2xlsclient.git@62b4645f7b4f2684421a13ce98da0331a9dd66a0#egg=python-json2xlsclient  # via -r requirements/base.in
 alabaster==0.7.12         # via sphinx
 amqp==2.5.2               # via kombu
+analytics-python==1.2.9   # via onadata
 appnope==0.1.0            # via ipython
+appoptics-metrics==5.1.0  # via onadata
 argparse==1.4.0           # via unittest2
 astroid==1.6.6            # via pylint
 attrs==19.3.0             # via jsonschema
@@ -124,20 +126,20 @@ pylint==1.9.4             # via -r requirements/dev.in, pylint-django, pylint-pl
 pymongo==3.10.1           # via onadata
 pyparsing==2.4.6          # via packaging
 pyrsistent==0.15.7        # via jsonschema
-python-dateutil==2.8.1    # via botocore, fleming, onadata, tableschema
+python-dateutil==2.8.1    # via analytics-python, botocore, fleming, onadata, tableschema
 python-memcached==1.59    # via onadata
 pytz==2019.3              # via babel, celery, django, django-query-builder, fleming, onadata
 pyxform==1.1.0            # via onadata, pyfloip
 raven==6.10.0             # via onadata
 recaptcha-client==1.0.6   # via onadata
 requests-mock==1.7.0      # via onadata
-requests==2.23.0          # via datapackage, django-oauth-toolkit, httmock, onadata, python-json2xlsclient, requests-mock, sphinx, tableschema, tabulator
+requests==2.23.0          # via analytics-python, datapackage, django-oauth-toolkit, httmock, onadata, python-json2xlsclient, requests-mock, sphinx, tableschema, tabulator
 rfc3986==1.3.2            # via tableschema
 rsa==4.0                  # via oauth2client
 s3transfer==0.3.3         # via boto3
 savreaderwriter==3.4.2    # via onadata
 simplejson==3.17.0        # via onadata
-six==1.14.0               # via astroid, cryptography, datapackage, dict2xml, django-extensions, django-query-builder, django-templated-email, djangorestframework-csv, isodate, jsonlines, jsonschema, linear-tsv, oauth2client, packaging, pylint, pyrsistent, python-dateutil, python-memcached, requests-mock, tableschema, tabulator, traitlets, unittest2
+six==1.14.0               # via analytics-python, appoptics-metrics, astroid, cryptography, datapackage, dict2xml, django-extensions, django-query-builder, django-templated-email, djangorestframework-csv, isodate, jsonlines, jsonschema, linear-tsv, oauth2client, packaging, pylint, pyrsistent, python-dateutil, python-memcached, requests-mock, tableschema, tabulator, traitlets, unittest2
 snowballstemmer==2.0.0    # via sphinx
 sphinx==2.4.2             # via onadata
 sphinxcontrib-applehelp==1.0.1  # via sphinx

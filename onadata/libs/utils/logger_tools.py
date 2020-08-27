@@ -61,7 +61,8 @@ uuid_regex = re.compile(r'<formhub>\s*<uuid>\s*([^<]+)\s*</uuid>\s*</formhub>',
                         re.DOTALL)
 
 
-def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum):
+def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum,
+                  request=None):
     history = None
     instance = None
     message_verb = SUBMISSION_EDITED
@@ -104,6 +105,7 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum):
         instance = Instance.objects.create(
             xml=xml, user=submitted_by, status=status, xform=xform,
             checksum=checksum)
+
     # send notification on submission creation
     send_message(
         instance_id=instance.id, target_id=instance.xform.id,
@@ -318,12 +320,12 @@ def save_attachments(xform, instance, media_files, remove_deleted_media=False):
 
 
 def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
-                    date_created_override, checksum):
+                    date_created_override, checksum, request=None):
     if not date_created_override:
         date_created_override = get_submission_date_from_xml(xml)
 
     instance = _get_instance(xml, new_uuid, submitted_by, status, xform,
-                             checksum)
+                             checksum, request)
     save_attachments(
         xform,
         instance,
@@ -428,7 +430,8 @@ def create_instance(username,
                 xml = xml.decode('utf-8')
             instance = save_submission(xform, xml, media_files, new_uuid,
                                        submitted_by, status,
-                                       date_created_override, checksum)
+                                       date_created_override, checksum,
+                                       request)
     except IntegrityError:
         instance = get_first_record(Instance.objects.filter(
             Q(checksum=checksum) | Q(uuid=new_uuid),

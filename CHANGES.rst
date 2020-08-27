@@ -3,6 +3,16 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.3.8(2020-08-25)
+------------------
+
+- Fix an issue where project endpoint cache would stay stale on Project Update
+  `PR #1874 <https://github.com/onaio/onadata/pull/1847>`_
+  [@FrankApiyo]
+- Add support for email:password login on the main views
+  `PR #1878 <https://github.com/onaio/onadata/pull/1878>`_
+  [@DavisRayM]
+
 v2.3.7(2020-08-11)
 ------------------
 
