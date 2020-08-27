@@ -169,11 +169,6 @@ class UserProfileViewSet(
         if self.kwargs.get(self.lookup_field, None) is None:
             raise ParseError(
                 'Expected URL keyword argument `%s`.' % self.lookup_field)
-        user_name = self.kwargs[self.lookup_field]
-        user_profile = cache.get(f'{USER_PROFILE_PREFIX}{user_name}')
-
-        if user_profile:
-            return user_profile
 
         if queryset is None:
             queryset = self.filter_queryset(self.get_queryset())
@@ -201,11 +196,35 @@ class UserProfileViewSet(
         # May raise a permission denied
         self.check_object_permissions(self.request, obj)
 
-        # cache user profile object
-        obj.refresh_from_db()
-        cache.set(f'{USER_PROFILE_PREFIX}{user_name}', obj)
-
         return obj
+
+    def update(self, request, *args, **kwargs):
+        """ Update user in cache and db"""
+        username = kwargs.get('user')
+        response = super(UserProfileViewSet, self)\
+            .update(request, *args, **kwargs)
+        cache.set(f'{USER_PROFILE_PREFIX}{username}', response.data)
+        return response
+
+    def retrieve(self, request, *args, **kwargs):
+        """ Get user profile from cache or db """
+        username = kwargs.get('user')
+        cached_user = cache.get(f'{USER_PROFILE_PREFIX}{username}')
+        if cached_user:
+            return Response(cached_user)
+        response = super(UserProfileViewSet, self)\
+            .retrieve(request, *args, **kwargs)
+        cache.set(f'{USER_PROFILE_PREFIX}{username}', response.data)
+        return response
+
+    def create(self, request, *args, **kwargs):
+        """ Create and cache user profile """
+        response = super(UserProfileViewSet, self)\
+            .create(request, *args, **kwargs)
+        profile = response.data
+        user_name = profile.get('username')
+        cache.set(f'{USER_PROFILE_PREFIX}{user_name}', profile)
+        return response
 
     @action(methods=['POST'], detail=True)
     def change_password(self, request, *args, **kwargs):  # noqa
@@ -251,8 +270,6 @@ class UserProfileViewSet(
         return Response(data=lock_out, status=status.HTTP_400_BAD_REQUEST)
 
     def partial_update(self, request, *args, **kwargs):
-        # clear cache
-        safe_delete(f'{USER_PROFILE_PREFIX}{request.user.username}')
         profile = self.get_object()
         metadata = profile.metadata or {}
         if request.data.get('overwrite') == 'false':
@@ -270,10 +287,6 @@ class UserProfileViewSet(
 
             profile.metadata = metadata
             profile.save()
-
-            # cache user profile object
-            profile.refresh_from_db()
-            cache.set(f'{USER_PROFILE_PREFIX}{profile.user.username}', profile)
             return Response(data=profile.metadata, status=status.HTTP_200_OK)
 
         return super(UserProfileViewSet, self).partial_update(

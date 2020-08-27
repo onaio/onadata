@@ -65,6 +65,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         """
         Specific to clear cache between tests
         """
+        super(TestUserProfileViewSet, self).tearDown()
         cache.clear()
 
     def test_profiles_list(self):

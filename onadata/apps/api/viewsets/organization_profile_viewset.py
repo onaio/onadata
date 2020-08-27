@@ -1,6 +1,7 @@
 import json
 from django.conf import settings
 from django.utils.module_loading import import_string
+from django.core.cache import cache
 
 from rest_framework import status
 from rest_framework.viewsets import ModelViewSet
@@ -23,6 +24,9 @@ from onadata.libs.serializers.organization_member_serializer import \
     OrganizationMemberSerializer
 from onadata.libs.serializers.organization_serializer import (
     OrganizationSerializer)
+from onadata.libs.utils.cache_tools import (
+    safe_delete,
+    ORG_PROFILE_CACHE)
 
 
 BaseViewset = get_baseviewset_class()
@@ -51,6 +55,41 @@ class OrganizationProfileViewSet(AuthenticateHeaderMixin,
     filter_backends = (OrganizationPermissionFilter,
                        OrganizationsSharedWithUserFilter)
 
+    def retrieve(self, request, *args, **kwargs):
+        """ Get organization from cache or db """
+        username = kwargs.get('user')
+        cached_org = cache.get(f'{ORG_PROFILE_CACHE}{username}')
+        if cached_org:
+            return Response(cached_org)
+        response = super(OrganizationProfileViewSet, self)\
+            .retrieve(request, *args, **kwargs)
+        cache.set(f'{ORG_PROFILE_CACHE}{username}', response.data)
+        return response
+
+    def create(self, request, *args, **kwargs):
+        """ Create and cache organization """
+        response = super(OrganizationProfileViewSet, self)\
+            .create(request, *args, **kwargs)
+        organization = response.data
+        username = organization.get('org')
+        cache.set(f'{ORG_PROFILE_CACHE}{username}', organization)
+        return response
+
+    def destroy(self, request, *args, **kwargs):
+        """ Clear cache and destroy organization """
+        username = kwargs.get('user')
+        safe_delete(f'{ORG_PROFILE_CACHE}{username}')
+        return super(OrganizationProfileViewSet, self)\
+            .destroy(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        """ Update org in cache and db"""
+        username = kwargs.get('user')
+        response = super(OrganizationProfileViewSet, self)\
+            .update(request, *args, **kwargs)
+        cache.set(f'{ORG_PROFILE_CACHE}{username}', response.data)
+        return response
+
     @action(methods=['DELETE', 'GET', 'POST', 'PUT'], detail=True)
     def members(self, request, *args, **kwargs):
         organization = self.get_object()
@@ -69,8 +108,13 @@ class OrganizationProfileViewSet(AuthenticateHeaderMixin,
 
         serializer = OrganizationMemberSerializer(data=data)
 
+        username = kwargs.get('user')
         if serializer.is_valid():
             serializer.save()
+            organization = serializer.validated_data.get('organization')
+            data = OrganizationSerializer(organization,
+                                          context={'request': request}).data
+            cache.set(f'{ORG_PROFILE_CACHE}{username}', data)
 
         else:
             return Response(data=serializer.errors,
