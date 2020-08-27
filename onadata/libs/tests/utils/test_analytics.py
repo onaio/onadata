@@ -14,7 +14,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.xform_submission_viewset import \
     XFormSubmissionViewSet
-from onadata.libs.utils.analytics import get_user_id
+from onadata.libs.utils.analytics import get_user_id, sanitize_metric_values
 
 
 class TestAnalytics(TestAbstractViewSet):
@@ -47,6 +47,34 @@ class TestAnalytics(TestAbstractViewSet):
             'testing track function',
             {'value': 1},
             {'source': 'test-server'})
+
+    def test_sanitize_metric_values(self):
+        """Test sanitize_metric_values()"""
+        expected_output = {
+            'action_from': 'XML_Submissions',
+            'event_by': 'bob',
+            'ip': '18.203.134.101',
+            'path': '/enketo/1814/submission',
+            'source': 'onadata-ona-stage',
+            'url': 'https://stage-api.ona.io/enketo/1814/submission',
+            'userId': 1,
+            'xform_id': 1}
+        context = {
+            'action_from': 'XML Submissions',
+            'event_by': 'bob',
+            'ip': '18.203.134.101',
+            'library': {
+                'name': 'analytics-python',
+                'version': '1.2.9'
+                },
+            'organization': '',
+            'path': '/enketo/1814/submission',
+            'source': 'onadata-ona-stage',
+            'url': 'https://stage-api.ona.io/enketo/1814/submission',
+            'userId': 1,
+            'xform_id': 1}
+
+        self.assertEqual(sanitize_metric_values(context), expected_output)
 
     @override_settings(
             SEGMENT_WRITE_KEY='123', HOSTNAME='test-server',
@@ -112,7 +140,6 @@ class TestAnalytics(TestAbstractViewSet):
                 'event_by': 'anonymous',
                 'action_from': 'XML Submissions',
                 'xform_id': self.xform.pk,
-                'userAgent': '',
                 'path': f'/{username}/submission',
                 'url': f'http://testserver/{username}/submission',
                 'ip': '127.0.0.1',
@@ -128,7 +155,6 @@ class TestAnalytics(TestAbstractViewSet):
                 'organization': 'Bob_Inc.',
                 'action_from': 'XML_Submissions',
                 'xform_id': self.xform.pk,
-                'userAgent': '',
                 'path': f'/{username}/submission',
                 'url': f'http://testserver/{username}/submission',
                 'ip': '127.0.0.1',
