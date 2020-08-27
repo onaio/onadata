@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 # Analytics package for tracking and measuring with services like Segment.
 # Heavily borrowed from RapidPro's temba.utils.analytics
+import sys
 
 import analytics as segment_analytics
 from typing import Dict, List, Optional, Any
 import appoptics_metrics
-from appoptics_metrics import sanitize_metric_name
+from appoptics_metrics import sanitize_metric_name, exceptions
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -14,6 +15,7 @@ from django.utils import timezone
 from onadata.apps.logger.models import Instance
 from onadata.libs.utils.common_tags import (
     INSTANCE_CREATE_EVENT, INSTANCE_UPDATE_EVENT)
+from onadata.libs.utils.common_tools import report_exception
 
 
 appoptics_api = None
@@ -41,16 +43,19 @@ def sanitize_metric_values(data: Dict[str, Any]) -> Dict[str, Any]:
     for AppOptics
     """
     sanitized_data = data.copy()
-    for key, value in sanitized_data.items():
-        if isinstance(value, str):
-            new_value = value
-            if ' ' in new_value:
-                new_value = new_value.replace(' ', '_')
+    for key, value in data.items():
+        new_value = value
+        if new_value and not isinstance(new_value, dict):
+            if isinstance(new_value, str):
+                if ' ' in new_value:
+                    new_value = new_value.replace(' ', '_')
 
-            if '(' in value or ')' in new_value:
-                new_value = new_value.replace(')', "").replace('(', "")
+                if '(' in value or ')' in new_value:
+                    new_value = new_value.replace(')', "").replace('(', "")
 
             sanitized_data.update({key: new_value})
+        else:
+            sanitized_data.pop(key)
     return sanitized_data
 
 
@@ -196,7 +201,6 @@ def track(user, event_name, properties=None, context=None, request=None):
             context['xform_id'] = properties['xform_id']
 
         if request:
-            context['userAgent'] = request.META.get('HTTP_USER_AGENT', '')
             context['path'] = request.path
             context['url'] = request.build_absolute_uri()
             context['ip'] = request.META.get('REMOTE_ADDR', '')
@@ -207,5 +211,10 @@ def track(user, event_name, properties=None, context=None, request=None):
 
         if appoptics_api:
             tags = sanitize_metric_values(context)
-            appoptics_api.submit_measurement(
-                event_name, properties['value'], tags=tags)
+            try:
+                appoptics_api.submit_measurement(
+                    event_name,
+                    properties['value'],
+                    tags=tags)
+            except exceptions.BadRequest as e:
+                report_exception("Bad AppOptics Request", e, sys.exc_info())
