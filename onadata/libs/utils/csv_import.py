@@ -30,11 +30,14 @@ from multidb.pinning import use_master
 from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.messaging.constants import XFORM, SUBMISSION_DELETED
 from onadata.apps.messaging.serializers import send_message
+from onadata.libs.utils import analytics
 from onadata.libs.utils.async_status import (FAILED, async_status,
                                              celery_state_to_status)
 from onadata.libs.utils.common_tags import (MULTIPLE_SELECT_TYPE, EXCEL_TRUE,
                                             XLS_DATE_FIELDS,
-                                            XLS_DATETIME_FIELDS, UUID, NA_REP)
+                                            XLS_DATETIME_FIELDS, UUID, NA_REP,
+                                            INSTANCE_CREATE_EVENT,
+                                            INSTANCE_UPDATE_EVENT)
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
 from onadata.libs.utils.logger_tools import (OpenRosaResponse, dict2xml,
@@ -429,8 +432,29 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                 errors) if errors else ''
         )
     else:
+        added_submissions = additions - inserts
+        event_by = User.objects.get(username=username)
+        event_name = None
+        tracking_properties = {
+            'xform_id': xform.pk,
+            'submitted_by': event_by,
+            'label': f'csv-import-for-form-{xform.pk}',
+            'from': 'CSV Import',
+        }
+        if added_submissions > 0:
+            tracking_properties['value'] = added_submissions
+            event_name = INSTANCE_CREATE_EVENT
+            analytics.track(
+                event_by, event_name, properties=tracking_properties)
+
+        if inserts > 0:
+            tracking_properties['value'] = inserts
+            event_name = INSTANCE_UPDATE_EVENT
+            analytics.track(
+                event_by, event_name, properties=tracking_properties)
+
         return {
-            'additions': additions - inserts,
+            'additions': added_submissions,
             'duplicates': duplicates,
             'updates': inserts,
             'info': "Additional column(s) excluded from the upload: '{0}'."

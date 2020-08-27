@@ -181,3 +181,6 @@ METADATA_FIELDS = [
     '_submission_time',
     '_xform_id'
 ]
+
+INSTANCE_CREATE_EVENT = 'Submission created'
+INSTANCE_UPDATE_EVENT = 'Submission updated'
