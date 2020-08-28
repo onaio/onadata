@@ -53,12 +53,32 @@ def process_tableau_data(data, xform):
     with the column header fields for the same form.
     Handles Flattenning repeat data for tableau
     """
+
+    def get_xpath(key, nested_key):
+        val = nested_key.split('/')
+        nested_key_diff = val[len(key.split('/')):]
+        xpaths = key + f'[{index}]/' + '/'.join(nested_key_diff)
+        return xpaths
+
+    def get_updated_data_dict(key, value, data_dict):
+        """
+        Generates key, value pairs for select multiple question types.
+        Defining the new xpaths from the
+        question name(key) and the choice name(value)
+        in accordance with how we generate the tableau schema.
+        """
+        if isinstance(value, str) and data_dict:
+            choices = value.split(" ")
+            for choice in choices:
+                xpaths = f'{key}/{choice}'
+                data_dict[xpaths] = choice
+        return data_dict
+
     def get_ordered_repeat_value(key, item, index):
         """
         Return Ordered Dict of repeats in the order in which they appear in
         the XForm.
         """
-        index_tags = DEFAULT_INDEX_TAGS
         children = xform.get_child_elements(key, split_select_multiples=False)
         item_list = OrderedDict()
         data = {}
@@ -72,15 +92,13 @@ def process_tableau_data(data, xform):
                 # abbreviated xpath "children/details/immunization/polio_1",
                 # generate ["children", index, "immunization/polio_1"]
                 for (nested_key, nested_val) in item_list.items():
-                    xpaths = [
-                        '{key}{open_tag}{index}{close_tag}'.format(
-                            key=nested_key.split('/')[0],
-                            open_tag=index_tags[0],
-                            index=index,
-                            close_tag=index_tags[1])] + [
-                                nested_key.split('/')[1]]
-                    xpaths = "/".join(xpaths)
-                    data[xpaths] = nested_val
+                    qstn_type = xform.get_element(nested_key).type
+                    xpaths = get_xpath(key, nested_key)
+                    if qstn_type == MULTIPLE_SELECT_TYPE:
+                        data = get_updated_data_dict(
+                            xpaths, nested_val, data)
+                    else:
+                        data[xpaths] = nested_val
         return data
 
     result = []
@@ -101,10 +119,8 @@ def process_tableau_data(data, xform):
                     try:
                         qstn_type = xform.get_element(key).type
                         if qstn_type == MULTIPLE_SELECT_TYPE:
-                            choices = value.split(" ")
-                            for choice in choices:
-                                xpaths = f'{key}_{choice}'
-                                flat_dict[xpaths] = choice
+                            data = get_updated_data_dict(
+                                key, value, flat_dict)
                         else:
                             flat_dict[key] = value
                     except AttributeError:
