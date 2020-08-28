@@ -18,6 +18,7 @@ from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models.open_data import OpenData
 from onadata.apps.logger.models.xform import XForm, question_types_to_exclude
+from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.data import parse_int
 from onadata.libs.utils.logger_tools import remove_metadata_fields
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
@@ -119,8 +120,18 @@ def process_tableau_data(data, xform):
                     try:
                         qstn_type = xform.get_element(key).type
                         if qstn_type == MULTIPLE_SELECT_TYPE:
-                            data = get_updated_data_dict(
+                            flat_dict = get_updated_data_dict(
                                 key, value, flat_dict)
+                        if qstn_type == 'geopoint':
+                            parts = value.split(' ')
+                            gps_xpaths = \
+                                DataDictionary.get_additional_geopoint_xpaths(
+                                    key)
+                            gps_parts = dict(
+                                [(xpath, None) for xpath in gps_xpaths])
+                            if len(parts) == 4:
+                                gps_parts = dict(zip(gps_xpaths, parts))
+                                flat_dict.update(gps_parts)
                         else:
                             flat_dict[key] = value
                     except AttributeError:
