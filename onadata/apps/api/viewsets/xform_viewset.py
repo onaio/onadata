@@ -71,11 +71,9 @@ from onadata.libs.utils.export_tools import parse_request_export_options
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.string import str2bool
-from onadata.libs.utils.viewer_tools import (enketo_url,
+from onadata.libs.utils.viewer_tools import (get_enketo_urls,
                                              generate_enketo_form_defaults,
-                                             get_enketo_preview_url,
-                                             get_form_url,
-                                             get_enketo_single_submit_url)
+                                             get_form_url)
 from onadata.libs.exceptions import EnketoError
 from onadata.settings.common import XLS_EXTENSIONS, CSV_EXTENSION
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_delete
@@ -423,24 +421,22 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             request_vars = request.GET
             defaults = generate_enketo_form_defaults(
                 self.object, **request_vars)
-            url = enketo_url(
+            enketo_urls = get_enketo_urls(
                 form_url, self.object.id_string, **defaults)
-            preview_url = get_enketo_preview_url(request,
-                                                 self.object.user.username,
-                                                 self.object.id_string,
-                                                 xform_pk=self.object.pk)
+            offline_url = enketo_urls.get('offline_url')
+            preview_url = enketo_urls.get('preview_url')
+            single_submit_url = enketo_urls.get('single_url')
         except EnketoError as e:
             data = {'message': _(u"Enketo error: %s" % e)}
         else:
             if survey_type == 'single':
-                single_submit_url = get_enketo_single_submit_url(
-                    request, self.object.user.username, self.object.id_string,
-                    xform_pk=self.object.pk)
-                data = {"single_submit_url": single_submit_url}
-            elif url and preview_url:
                 http_status = status.HTTP_200_OK
-                data = {"enketo_url": url,
-                        "enketo_preview_url": preview_url}
+                data = {"single_submit_url": single_submit_url}
+            else:
+                http_status = status.HTTP_200_OK
+                data = {"enketo_url": offline_url,
+                        "enketo_preview_url": preview_url,
+                        "single_submit_url": single_submit_url}
 
         return Response(data, http_status)
 

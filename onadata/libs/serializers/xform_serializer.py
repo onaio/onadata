@@ -26,38 +26,48 @@ from onadata.libs.serializers.dataview_serializer import \
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.utils.cache_tools import (
-    ENKETO_PREVIEW_URL_CACHE, ENKETO_URL_CACHE, XFORM_DATA_VERSIONS,
+    ENKETO_PREVIEW_URL_CACHE, ENKETO_URL_CACHE, ENKETO_SINGLE_SUBMIT_URL_CACHE,
     XFORM_LINKED_DATAVIEWS, XFORM_METADATA_CACHE, XFORM_PERMISSIONS_CACHE,
-    XFORM_COUNT)
+    XFORM_COUNT, XFORM_DATA_VERSIONS)
 from onadata.libs.utils.common_tags import (GROUP_DELIMETER_TAG,
                                             REPEAT_INDEX_TAGS)
 from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.viewer_tools import (
-    enketo_url, get_enketo_preview_url, get_form_url)
+    get_enketo_urls, get_form_url)
 
 
-def _create_enketo_url(request, xform):
+def _create_enketo_urls(request, xform):
     """
-    Generate enketo url for a form
+    Generate enketo urls for a form
 
     :param request:
     :param xform:
-    :return: enketo url
+    :return: enketo urls
     """
     form_url = get_form_url(request, xform.user.username,
                             settings.ENKETO_PROTOCOL, xform_pk=xform.pk,
                             generate_consistent_urls=True)
-    url = ""
-
+    data = {}
     try:
-        url = enketo_url(form_url, xform.id_string)
-        MetaData.enketo_url(xform, url)
+        enketo_urls = get_enketo_urls(form_url, xform.id_string)
+        offline_url = enketo_urls.get("offline_url")
+        MetaData.enketo_url(xform, offline_url)
+        data['offline_url'] = offline_url
+        if 'preview_url' in enketo_urls:
+            preview_url = enketo_urls.get("preview_url")
+            MetaData.enketo_preview_url(xform, preview_url)
+            data['preview_url'] = preview_url
+        if 'single_url' in enketo_urls:
+            single_url = enketo_urls.get("single_url")
+            MetaData.enketo_single_submit_url(
+                xform, single_url)
+            data['single_url'] = single_url
     except ConnectionError as e:
         logging.exception("Connection Error: %s" % e)
     except EnketoError as e:
         logging.exception("Enketo Error: %s" % e.message)
 
-    return url
+    return data
 
 
 def _set_cache(cache_key, cache_data, obj):
@@ -142,9 +152,30 @@ class XFormMixin(object):
 
             url = self._get_metadata(obj, 'enketo_url')
             if url is None:
-                url = _create_enketo_url(self.context.get('request'), obj)
+                enketo_urls = _create_enketo_urls(
+                    self.context.get('request'), obj)
+                url = enketo_urls.get('offline_url')
 
             return _set_cache(ENKETO_URL_CACHE, url, obj)
+
+        return None
+
+    def get_enketo_single_submit_url(self, obj):
+        if obj:
+            _enketo_single_submit_url = cache.get(
+                '{}{}'.format(ENKETO_SINGLE_SUBMIT_URL_CACHE,
+                              obj.pk))
+            if _enketo_single_submit_url:
+                return _enketo_single_submit_url
+
+            url = self._get_metadata(obj, 'enketo_url')
+            if url is None:
+                enketo_urls = _create_enketo_urls(
+                    self.context.get('request'), obj)
+                url = enketo_urls.get('offline_url')
+
+            return _set_cache(
+                ENKETO_SINGLE_SUBMIT_URL_CACHE, url, obj)
 
         return None
 
@@ -158,13 +189,11 @@ class XFormMixin(object):
             url = self._get_metadata(obj, 'enketo_preview_url')
             if url is None:
                 try:
-                    url = get_enketo_preview_url(
-                        self.context.get('request'), obj.user.username,
-                        obj.id_string, xform_pk=obj.pk)
+                    enketo_urls = _create_enketo_urls(
+                        self.context.get('request'), obj)
+                    url = enketo_urls.get('preview_url')
                 except Exception:
                     return url
-                else:
-                    MetaData.enketo_preview_url(obj, url)
 
             return _set_cache(ENKETO_PREVIEW_URL_CACHE, url, obj)
 
@@ -245,6 +274,7 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     users = serializers.SerializerMethodField()
     enketo_url = serializers.SerializerMethodField()
     enketo_preview_url = serializers.SerializerMethodField()
+    enketo_single_submit_url = serializers.SerializerMethodField()
     num_of_submissions = serializers.SerializerMethodField()
     last_submission_time = serializers.SerializerMethodField()
     data_views = serializers.SerializerMethodField()
@@ -284,6 +314,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     users = serializers.SerializerMethodField()
     enketo_url = serializers.SerializerMethodField()
     enketo_preview_url = serializers.SerializerMethodField()
+    enketo_single_submit_url = serializers.SerializerMethodField()
     num_of_submissions = serializers.SerializerMethodField()
     last_submission_time = serializers.SerializerMethodField()
     form_versions = serializers.SerializerMethodField()

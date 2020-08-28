@@ -7,6 +7,7 @@ import os
 from builtins import str
 from future.utils import iteritems
 from operator import itemgetter
+from collections import OrderedDict
 
 from django.conf import settings
 from django.db.models import Q
@@ -450,33 +451,56 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
 
-        resultset = MetaData.objects.filter(Q(object_id=self.xform.pk), Q(
-            data_type='enketo_url') | Q(data_type='enketo_preview_url'))
+        resultset = MetaData.objects.filter(
+                Q(object_id=self.xform.pk), Q(data_type='enketo_url') |
+                Q(data_type='enketo_preview_url') |
+                Q(data_type='enketo_single_submit_url'))
         url = resultset.get(data_type='enketo_url')
         preview_url = resultset.get(data_type='enketo_preview_url')
-        form_metadata = sorted([{
-            'id': preview_url.pk,
-            'xform': self.xform.pk,
-            'data_value': u"https://enketo.ona.io/preview/::YY8M",
-            'data_type': u'enketo_preview_url',
-            'data_file': None,
-            'data_file_type': None,
-            'url': 'http://testserver/api/v1/metadata/%s' % preview_url.pk,
-            'file_hash': None,
-            'media_url': None,
-            'date_created': preview_url.date_created
-        }, {
-            'id': url.pk,
-            'data_value': u"https://enketo.ona.io/::YY8M",
-            'xform': self.xform.pk,
-            'data_file': None,
-            'data_type': 'enketo_url',
-            'url': 'http://testserver/api/v1/metadata/%s' % url.pk,
-            'data_file_type': None,
-            'file_hash': None,
-            'media_url': None,
-            'date_created': url.date_created
-        }], key=itemgetter('id'))
+        single_submit_url = resultset.get(
+            data_type='enketo_single_submit_url')
+        form_metadata = sorted([
+                OrderedDict(
+                    [
+                        ('id', url.pk),
+                        ('xform', self.xform.pk),
+                        ('data_value', 'https://enketo.ona.io/::YY8M'),
+                        ('data_type', 'enketo_url'),
+                        ('data_file', None),
+                        ('data_file_type', None),
+                        ('media_url', None),
+                        ('file_hash', None),
+                        ('url', 'http://testserver/api/v1/metadata/%s'
+                                % url.pk),
+                        ('date_created', url.date_created)]),
+                OrderedDict(
+                    [
+                        ('id', preview_url.pk),
+                        ('xform', self.xform.pk),
+                        ('data_value', 'https://enketo.ona.io/preview/::YY8M'),
+                        ('data_type', 'enketo_preview_url'),
+                        ('data_file', None),
+                        ('data_file_type', None),
+                        ('media_url', None),
+                        ('file_hash', None),
+                        ('url', 'http://testserver/api/v1/metadata/%s' %
+                                preview_url.pk),
+                        ('date_created', preview_url.date_created)]),
+                OrderedDict(
+                    [
+                        ('id', single_submit_url.pk),
+                        ('xform', self.xform.pk),
+                        ('data_value',
+                            'http://enketo.ona.io/single/::XZqoZ94y'),
+                        ('data_type', 'enketo_single_submit_url'),
+                        ('data_file', None),
+                        ('data_file_type', None),
+                        ('media_url', None),
+                        ('file_hash', None),
+                        ('url', 'http://testserver/api/v1/metadata/%s' %
+                                single_submit_url.pk),
+                        ('date_created', single_submit_url.date_created)])],
+                        key=itemgetter('id'))
 
         # test metadata content separately
         response_metadata = sorted(

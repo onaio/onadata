@@ -4,6 +4,7 @@ from __future__ import absolute_import
 
 from .common import *  # nopep8
 
+# database settings
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
@@ -39,10 +40,8 @@ if TESTING_MODE:
     ENKETO_API_TOKEN = 'abc'
     ENKETO_PROTOCOL = 'https'
     ENKETO_URL = 'https://enketo.ona.io/'
-    ENKETO_API_SURVEY_PATH = '/api_v1/survey'
+    ENKETO_API_ALL_SURVEY_LINKS_PATH = '/api_v2/survey/all'
     ENKETO_API_INSTANCE_PATH = '/api_v1/instance'
-    ENKETO_PREVIEW_URL = urljoin(ENKETO_URL, ENKETO_API_SURVEY_PATH +
-                                 '/preview')
     ENKETO_SINGLE_SUBMIT_PATH = '/api/v2/survey/single/once'
     ENKETO_API_INSTANCE_IFRAME_URL = ENKETO_URL + "api_v1/instance/iframe"
 else:

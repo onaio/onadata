@@ -265,6 +265,11 @@ class MetaData(models.Model):
         return unique_type_for_form(content_object, data_type, data_value)
 
     @staticmethod
+    def enketo_single_submit_url(content_object, data_value=None):
+        data_type = 'enketo_single_submit_url'
+        return unique_type_for_form(content_object, data_type, data_value)
+
+    @staticmethod
     def form_license(content_object, data_value=None):
         data_type = 'form_license'
         obj = unique_type_for_form(content_object, data_type, data_value)

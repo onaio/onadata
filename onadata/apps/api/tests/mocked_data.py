@@ -6,7 +6,7 @@ urls.
 import json
 
 import requests
-from httmock import urlmatch, all_requests
+from httmock import urlmatch
 
 
 @urlmatch(netloc=r'(.*\.)?ona\.io$', path=r'^/examples/forms/tutorial/form$')
@@ -77,45 +77,32 @@ def enketo_mock(url, request):  # pylint: disable=unused-argument
     return response
 
 
-@all_requests
-def enketo_single_submission_mock(url, request):
-    """Return mocked enketo single submission Response object."""
-    response = requests.Response()
-    response.status_code = 200
-    # pylint: disable=protected-access
-    response._content = \
-        '{\n "single_url": "https:\\/\\/enketo.ona.io\\/single/::XZqoZ94y",\n'\
-        '  "code": "200"\n}'
-    return response
-
-
-@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$', path=r'^/api_v1/survey/preview$')
-def enketo_preview_url_mock(url, request):  # pylint: disable=unused-argument
+@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$', path=r'^/api_v2/survey/all$')
+def enketo_urls_mock(url, request):  # pylint: disable=unused-argument
     """
-    Returns mocked Enketo Response object for all queries to enketo.ona.io for
-    a preview link.
-    """
-    response = requests.Response()
-    response.status_code = 201
-    # pylint: disable=protected-access
-    response._content = \
-        '{\n  "preview_url": "https:\\/\\/enketo.ona.io\\/preview/::YY8M",\n'\
-        '  "code": "201"\n}'
-    return response
-
-
-@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$', path=r'^/api_v1/survey$')
-def enketo_url_mock(url, request):  # pylint: disable=unused-argument
-    """
-    Returns mocked Enketo Response object for all queries to enketo.ona.io to
-    create an Enketo link.
+    Returns mocked Enketo Response object for all enketo.ona.io urls.
     """
     response = requests.Response()
     response.status_code = 201
     # pylint: disable=protected-access
     response._content = \
         '{\n  "url": "https:\\/\\/enketo.ona.io\\/::YY8M",\n'\
-        '  "code": "201"\n}'
+        '   "single_url": "http:\\/\\/enketo.ona.io\\/single\\/::XZqoZ94y",\n'\
+        '   "single_once_url":'\
+        ' "http:\\/\\/enketo.ona.io\\/single'\
+        '\\/::2b27ac0cdcf2842eaac4984f688d9270",\n'\
+        '   "offline_url": "https:\\/\\/enketo.ona.io\\/::YY8M",\n'\
+        '   "preview_url": "https:\\/\\/enketo.ona.io\\/preview\\/::YY8M",\n'\
+        '   "iframe_url": "http:\\/\\/enketo.ona.io\\/i\\/::vtPuefbl",\n'\
+        '   "single_iframe_url":'\
+        ' "http:\\/\\/enketo.ona.io\\/single\\/i\\/::vtPuefbl",\n'\
+        '   "single_once_iframe_url":'\
+        '"http:\\/\\/enketo.ona.io\\/single\\/i\\'\
+        '/::2b27ac0cdcf2842eaac4984f688d9270",\n'\
+        '   "preview_iframe_url":'\
+        '"http:\\/\\/enketo.ona.io\\/preview\\/i\\/::vtPuefbl",\n'\
+        '   "enketo_id": "vtPuefbl",\n'\
+        '   "code": 200\n}'
     return response
 
 
@@ -164,7 +151,8 @@ def enketo_mock_with_form_defaults(url, request):  # pylint: disable=W0613
     response.status_code = 201
     # pylint: disable=protected-access
     response._content = \
-        '{\n  "url": "https:\\/\\/dmfrm.enketo.org\\/webform?d[%2Fnum]=1",\n'\
+        '{\n  "offline_url":'\
+        '    "https:\\/\\/dmfrm.enketo.org\\/webform?d[%2Fnum]=1",\n'\
         '  "code": "200"\n}'
     return response
 

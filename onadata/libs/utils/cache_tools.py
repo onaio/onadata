@@ -18,6 +18,7 @@ USER_PROFILE_PREFIX = "user_profile-"
 # Cache names user in xform_serializer
 XFORM_PERMISSIONS_CACHE = "xfs-get_xform_permissions"
 ENKETO_URL_CACHE = "xfs-get_enketo_url"
+ENKETO_SINGLE_SUBMIT_URL_CACHE = "xfs-get_enketosingle_submit__url"
 ENKETO_PREVIEW_URL_CACHE = "xfs-get_enketo_preview_url"
 XFORM_METADATA_CACHE = "xfs-get_xform_metadata"
 XFORM_DATA_VERSIONS = "xfs-get_xform_data_versions"
