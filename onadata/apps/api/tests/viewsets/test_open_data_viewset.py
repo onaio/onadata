@@ -449,7 +449,6 @@ class TestOpenData(TestBase):
             row_data[0]['_gps_longitude'],
             '36.7921711')
 
-
     def test_tableau_get_nested_repeat_group_data(self):
         """
         Test that data received from nested repeat groups
