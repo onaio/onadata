@@ -3,6 +3,25 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.4.0(2020-09-01)
+------------------
+
+- Initial support for tracking submissions with Segment
+  `PR #1872 <https://github.com/onaio/onadata/pull/1872>`_
+  [@DavisRayM]
+- Add caching to the organization profile viewset
+  `PR #1876 <https://github.com/onaio/onadata/pull/1876>`_
+  [@FrankApiyo]
+- Include support for repeat groups in the Tableau-Onadata integration
+  `PR #1845 <https://github.com/onaio/onadata/pull/1845>`_
+  [@WinnyTroy]
+- Enketo intergration updates
+  `PR #1857 <https://github.com/onaio/onadata/pull/1845>`_
+  [@WinnyTroy]
+- Unpack GPS data into separate columns for altitude, precision, latitude and longitude
+  `PR #1880 <https://github.com/onaio/onadata/pull/1880>`_
+  [@WinnyTroy]
+
 v2.3.8(2020-08-25)
 ------------------
 
