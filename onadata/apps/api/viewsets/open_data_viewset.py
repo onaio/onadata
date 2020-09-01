@@ -32,6 +32,7 @@ from onadata.libs.utils.common_tags import (
     NOTES,
     GEOLOCATION,
     MULTIPLE_SELECT_TYPE,
+    REPEAT_SELECT_TYPE,
     NA_REP)
 
 BaseViewset = get_baseviewset_class()
@@ -73,6 +74,15 @@ def process_tableau_data(data, xform):
             for choice in choices:
                 xpaths = f'{key}/{choice}'
                 data_dict[xpaths] = choice
+        elif isinstance(value, list):
+            try:
+                for item in value:
+                    for (nested_key, nested_val) in item.items():
+                        xpath = get_xpath(key, nested_key)
+                        data_dict[xpath] = nested_val
+            except AttributeError:
+                data_dict[key] = value
+
         return data_dict
 
     def get_ordered_repeat_value(key, item, index):
@@ -96,6 +106,9 @@ def process_tableau_data(data, xform):
                     qstn_type = xform.get_element(nested_key).type
                     xpaths = get_xpath(key, nested_key)
                     if qstn_type == MULTIPLE_SELECT_TYPE:
+                        data = get_updated_data_dict(
+                            xpaths, nested_val, data)
+                    elif qstn_type == REPEAT_SELECT_TYPE:
                         data = get_updated_data_dict(
                             xpaths, nested_val, data)
                     else:
