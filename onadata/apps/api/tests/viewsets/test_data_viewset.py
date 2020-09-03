@@ -43,10 +43,13 @@ from onadata.libs.utils.logger_tools import create_instance
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
-def enketo_mock(url, request):
+def enketo_edit_mock(url, request):
     response = requests.Response()
     response.status_code = 201
-    response._content = '{"url": "https://hmh2a.enketo.ona.io"}'
+    response._content = (
+        '{"edit_url": "https://hmh2a.enketo.ona.io/edit/XA0bG8D'
+        'f?instance_id=672927e3-9ad4-42bb-9538-388ea1fb6699&retu'
+        'rnUrl=http://test.io/test_url", "code": 201}')
     return response
 
 
@@ -1161,11 +1164,13 @@ class TestDataViewSet(TestBase):
             '/',
             data={'return_url': "http://test.io/test_url"}, **self.extra)
 
-        with HTTMock(enketo_mock):
+        with HTTMock(enketo_edit_mock):
             response = view(request, pk=formid, dataid=dataid)
             self.assertEqual(
                 response.data['url'],
-                "https://hmh2a.enketo.ona.io")
+                "https://hmh2a.enketo.ona.io/edit/XA0bG8Df?instance_id="
+                "672927e3-9ad4-42bb-9538-388ea1fb6699&returnUrl=http://test"
+                ".io/test_url")
 
         with HTTMock(enketo_mock_http_413):
             response = view(request, pk=formid, dataid=dataid)
