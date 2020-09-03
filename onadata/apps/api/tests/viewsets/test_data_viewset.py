@@ -1169,8 +1169,8 @@ class TestDataViewSet(TestBase):
             self.assertEqual(
                 response.data['url'],
                 "https://hmh2a.enketo.ona.io/edit/XA0bG8Df?instance_id="
-                "672927e3-9ad4-42bb-9538-388ea1fb6699&returnUrl=http://test.io/"
-                "test_url")
+                "672927e3-9ad4-42bb-9538-388ea1fb6699&returnUrl=http://test"
+                ".io/test_url")
 
         with HTTMock(enketo_mock_http_413):
             response = view(request, pk=formid, dataid=dataid)
