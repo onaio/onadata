@@ -37,7 +37,8 @@ from onadata.libs.utils.email import (get_verification_email_data,
 from onadata.libs.utils.cache_tools import (safe_delete,
                                             CHANGE_PASSWORD_ATTEMPTS,
                                             LOCKOUT_CHANGE_PASSWORD_USER,
-                                            USER_PROFILE_PREFIX)
+                                            USER_PROFILE_PREFIX,
+                                            ORG_PROFILE_CACHE)
 from onadata.libs import filters
 from onadata.libs.utils.user_auth import invalidate_and_regen_tokens
 from onadata.libs.mixins.authenticate_header_mixin import \
@@ -210,6 +211,8 @@ class UserProfileViewSet(
         """ Get user profile from cache or db """
         username = kwargs.get('user')
         cached_user = cache.get(f'{USER_PROFILE_PREFIX}{username}')
+        if not cached_user:
+            cached_user = cache.get(f'{ORG_PROFILE_CACHE}{username}')
         if cached_user:
             return Response(cached_user)
         response = super(UserProfileViewSet, self)\
