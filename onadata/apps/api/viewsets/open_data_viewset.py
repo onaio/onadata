@@ -30,13 +30,13 @@ from onadata.libs.utils.common_tools import json_stream
 from onadata.libs.utils.common_tags import (
     ATTACHMENTS,
     NOTES,
-    GEOLOCATION,
     MULTIPLE_SELECT_TYPE,
     REPEAT_SELECT_TYPE,
     NA_REP)
 
 BaseViewset = get_baseviewset_class()
 IGNORED_FIELD_TYPES = ['select one', 'select multiple']
+GPS_DATA = ['geopoint', 'gps']
 
 # index tags
 DEFAULT_OPEN_TAG = '['
@@ -62,19 +62,19 @@ def process_tableau_data(data, xform):
         xpaths = key + f'[{index}]/' + '/'.join(nested_key_diff)
         return xpaths
 
-    def get_updated_data_dict(key, value, data_dict):
+    def get_updated_data_dict(qstn_type, key, value, data_dict):
         """
         Generates key, value pairs for select multiple question types.
         Defining the new xpaths from the
         question name(key) and the choice name(value)
         in accordance with how we generate the tableau schema.
         """
-        if isinstance(value, str) and data_dict:
+        if qstn_type == MULTIPLE_SELECT_TYPE:
             choices = value.split(" ")
             for choice in choices:
                 xpaths = f'{key}/{choice}'
                 data_dict[xpaths] = choice
-        elif isinstance(value, list):
+        elif qstn_type == REPEAT_SELECT_TYPE:
             try:
                 for item in value:
                     for (nested_key, nested_val) in item.items():
@@ -82,6 +82,18 @@ def process_tableau_data(data, xform):
                         data_dict[xpath] = nested_val
             except AttributeError:
                 data_dict[key] = value
+        elif qstn_type in GPS_DATA:
+            parts = value.split(' ')
+            gps_xpaths = \
+                DataDictionary.get_additional_geopoint_xpaths(
+                    key)
+            gps_parts = dict(
+                [(xpath, None) for xpath in gps_xpaths])
+            if len(parts) == 4:
+                gps_parts = dict(zip(gps_xpaths, parts))
+                data_dict.update(gps_parts)
+        else:
+            data_dict[key] = value
 
         return data_dict
 
@@ -105,14 +117,8 @@ def process_tableau_data(data, xform):
                 for (nested_key, nested_val) in item_list.items():
                     qstn_type = xform.get_element(nested_key).type
                     xpaths = get_xpath(key, nested_key)
-                    if qstn_type == MULTIPLE_SELECT_TYPE:
-                        data = get_updated_data_dict(
-                            xpaths, nested_val, data)
-                    elif qstn_type == REPEAT_SELECT_TYPE:
-                        data = get_updated_data_dict(
-                            xpaths, nested_val, data)
-                    else:
-                        data[xpaths] = nested_val
+                    data = get_updated_data_dict(
+                        qstn_type, xpaths, nested_val, data)
         return data
 
     result = []
@@ -124,7 +130,7 @@ def process_tableau_data(data, xform):
             flat_dict = dict.fromkeys(diff, None)
             for (key, value) in row.items():
                 if isinstance(value, list) and key not in [
-                        ATTACHMENTS, NOTES, GEOLOCATION]:
+                        ATTACHMENTS, NOTES]:
                     for index, item in enumerate(value, start=1):
                         # order repeat according to xform order
                         item = get_ordered_repeat_value(key, item, index)
@@ -132,21 +138,8 @@ def process_tableau_data(data, xform):
                 else:
                     try:
                         qstn_type = xform.get_element(key).type
-                        if qstn_type == MULTIPLE_SELECT_TYPE:
-                            flat_dict = get_updated_data_dict(
-                                key, value, flat_dict)
-                        if qstn_type == 'geopoint':
-                            parts = value.split(' ')
-                            gps_xpaths = \
-                                DataDictionary.get_additional_geopoint_xpaths(
-                                    key)
-                            gps_parts = dict(
-                                [(xpath, None) for xpath in gps_xpaths])
-                            if len(parts) == 4:
-                                gps_parts = dict(zip(gps_xpaths, parts))
-                                flat_dict.update(gps_parts)
-                        else:
-                            flat_dict[key] = value
+                        flat_dict = get_updated_data_dict(
+                            qstn_type, key, value, flat_dict)
                     except AttributeError:
                         flat_dict[key] = value
 
