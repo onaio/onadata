@@ -3,6 +3,13 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.4.1(2020-09-03)
+------------------
+
+- Fix enketo edit link generation
+  `PR #1887 <https://github.com/onaio/onadata/pull/1887>`_
+  [@DavisRayM]
+
 v2.4.0(2020-09-01)
 ------------------
 
