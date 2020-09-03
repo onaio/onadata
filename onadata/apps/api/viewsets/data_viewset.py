@@ -272,8 +272,11 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                     data = get_enketo_urls(
                         form_url,
                         self.object.xform.id_string,
-                        return_url)
-
+                        instance_id=self.object.uuid,
+                        instance_xml=self.object.xml,
+                        return_url=return_url)
+                    if "edit_url" in data:
+                        data["url"] = data.pop("edit_url")
                 except EnketoError as e:
                     raise ParseError(text(e))
             else:
