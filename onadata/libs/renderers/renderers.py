@@ -371,7 +371,9 @@ class DebugToolbarRenderer(TemplateHTMLRenderer):  # pylint: disable=R0903
     def render(self, data, accepted_media_type=None, renderer_context=None):
         data = {
             'debug_data':
-            JSONRenderer().render(data, renderer_context=renderer_context)
+            str(
+                JSONRenderer().render(data, renderer_context=renderer_context),
+                self.charset)
         }
 
         return super(DebugToolbarRenderer, self).render(

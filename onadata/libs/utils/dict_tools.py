@@ -49,7 +49,7 @@ def list_to_dict(items, value):
     return result
 
 
-def merge_list_of_dicts(list_of_dicts):
+def merge_list_of_dicts(list_of_dicts, override_keys: list = None):
     """
     Merges a list of dicts to return one dict.
     """
@@ -63,7 +63,21 @@ def merge_list_of_dicts(list_of_dicts):
             else:
                 if k in result:
                     if isinstance(v, dict):
-                        result[k] = merge_list_of_dicts([result[k], v])
+                        try:
+                            result[k] = merge_list_of_dicts([result[k], v])
+                        except AttributeError as e:
+                            # If the key is within the override_keys
+                            # (Is a select_multiple question) We make
+                            # the assumption that the dict values are
+                            # more accurate as they usually mean that
+                            # the select_multiple has been split into
+                            # separate columns for each choice
+                            if isinstance(result[k], str) and \
+                                 k in override_keys:
+                                result[k] = {}
+                                result[k] = merge_list_of_dicts([result[k], v])
+                            else:
+                                raise e
                     else:
                         result = [result, row]
                 else:
@@ -104,6 +118,7 @@ def csv_dict_to_nested_dict(csv_dict):
     Converts a CSV dict to nested dicts.
     """
     results = []
+    select_question_keys = []
 
     for key in list(csv_dict):
         result = {}
@@ -113,11 +128,14 @@ def csv_dict_to_nested_dict(csv_dict):
         if len(split_keys) == 1:
             result[key] = value
         else:
+            if split_keys[0] not in select_question_keys and \
+                    split_keys[0] != 'meta':
+                select_question_keys.append(split_keys[0])
             result = list_to_dict(split_keys, value)
 
         results.append(result)
 
-    merged_dict = merge_list_of_dicts(results)
+    merged_dict = merge_list_of_dicts(results, select_question_keys)
 
     return remove_indices_from_dict(merged_dict)
 
