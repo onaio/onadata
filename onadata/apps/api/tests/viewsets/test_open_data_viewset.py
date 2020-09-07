@@ -448,6 +448,12 @@ class TestOpenData(TestBase):
         self.assertEqual(
             row_data[0]['_gps_longitude'],
             '36.7921711')
+        self.assertEqual(
+            row_data[0]['_gps_altitude'],
+            '0.0')
+        self.assertEqual(
+            row_data[0]['_gps_precision'],
+            '20.0')
 
     def test_tableau_get_nested_repeat_group_data(self):
         """
@@ -501,4 +507,32 @@ class TestOpenData(TestBase):
         self.assertEqual(
             row_data[0]['hospital_hiv_medication_person'
                         '_repeat_1__person_first_name'],
-            'Timburt')
+            'First nested repeat')
+
+        # Confirm nested repeat gps data is unpacked
+        self.assertEqual(
+            row_data[0]['hospital_hiv_medication_person'
+                        '_repeat_2__person__gps_longitude'],
+            '36.749044')
+        self.assertEqual(
+            row_data[0]['hospital_hiv_medication_person_'
+                        'repeat_2__person__gps_altitude'],
+            '0')
+        self.assertEqual(
+            row_data[0]['hospital_hiv_medication_person_'
+                        'repeat_1__person__gps_latitude'],
+            '-1.301446')
+        self.assertEqual(
+            row_data[0]['hospital_hiv_medication_person_'
+                        'repeat_1__person__gps_precision'],
+            '0')
+
+        # Confirm nested repeat select multiple data is unpacked
+        self.assertEqual(
+            row_data[0]['hospital_hiv_medication_person_repeat_'
+                        '1__person_pizza_topping_pepperoni'],
+            'pepperoni')
+        self.assertEqual(
+            row_data[0]['hospital_hiv_medication_person_repeat'
+                        '_2__person_pizza_topping_sausage'],
+            'sausage')

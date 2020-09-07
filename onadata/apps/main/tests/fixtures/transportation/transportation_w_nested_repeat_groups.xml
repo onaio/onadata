@@ -1,29 +1,38 @@
-<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx="http://openrosa.org/xforms" id="transportation" version="202007290756">
+<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx="http://openrosa.org/xforms" id="transportation" version="202009070957">
 <formhub>
-<uuid>cebbde117cbf44828c81718bd80fe58d</uuid>
+<uuid>9f530e1297294cc08a9cfffb61a6685f</uuid>
 </formhub>
 <hospital>
-<name>Pam Pam</name>
+<name>Test submission</name>
 <hiv_medication>
 <food>cake cheese ham vegetables</food>
-<have_hiv_medication/>
+<have_hiv_medication>yes</have_hiv_medication>
+<gps>-1.301725 36.748235 0 0</gps>
+<pizza_topping>pepperoni sausage other</pizza_topping>
+<customer_satisfaction>yes</customer_satisfaction>
 <person_repeat>
 <person>
-<first_name>Timburt</first_name>
-<last_name>Kalan</last_name>
-<age>23</age>
+<first_name>First nested repeat</first_name>
+<last_name>Last name test</last_name>
+<gps>-1.301446 36.746645 0 0</gps>
+<pizza_topping>cheese pepperoni sausage other</pizza_topping>
+<age>14</age>
+<customer_satisfaction>no</customer_satisfaction>
 </person>
 </person_repeat>
 <person_repeat>
 <person>
-<first_name>Babam</first_name>
-<last_name>Katan</last_name>
-<age>34</age>
+<first_name>Second nested repeat first name</first_name>
+<last_name>Second nested repeat last name</last_name>
+<gps>-1.302283 36.749044 0 0</gps>
+<pizza_topping>cheese pepperoni sausage</pizza_topping>
+<age>52</age>
+<customer_satisfaction>yes</customer_satisfaction>
 </person>
 </person_repeat>
 </hiv_medication>
 </hospital>
 <meta>
-<instanceID>uuid:6c38165f-9667-4644-ad18-1d8461b1d7d9</instanceID>
+<instanceID>uuid:b0ccddb8-0920-4cb2-ab2a-2d7b1129ab6e</instanceID>
 </meta>
 </data>
