@@ -143,12 +143,33 @@ class track_object_event(object):
             event_label = f"form-{form_id}-owned-by-{username}"
         return event_label
 
+    def get_request_origin(self, request, tracking_properties):
+        if isinstance(self.tracked_obj, Instance):
+            try:
+                user_agent = request.META['HTTP_USER_AGENT']
+                if 'Android' in user_agent:
+                    event_source = f'Submission collected from ODK COLLECT'
+                elif 'Chrome' or 'Mozilla' or 'Safari' in user_agent:
+                    event_source = f'Submission collected from Enketo'
+            except KeyError:
+                event_source = ""
+        else:
+            event_source = ""
+        tracking_properties.update({'event_source': event_source})
+        return tracking_properties
+
     def _track_object_event(self, obj, request=None) -> None:
         self.tracked_obj = obj
         self.set_user()
         event_name = self.get_event_name()
         label = self.get_event_label()
         tracking_properties = self.get_tracking_properties(label=label)
+        if tracking_properties['from'] == 'XML Submissions':
+            # Only introduce an `event_source` field for submissions
+            # created xml. This helps differentiate Enketo and ODK Collect
+            # instances. Otherwise, use the `from` tag in properties object
+            tracking_properties = self.get_request_origin(
+                request, tracking_properties)
         track(
             self.user, event_name,
             properties=tracking_properties, request=request)
@@ -172,12 +193,11 @@ class track_object_event(object):
 def track(user, event_name, properties=None, context=None, request=None):
     """Record actions with the track() API call to the analytics agents."""
     if _segment or appoptics_api:
-        context = context or {}
-        context['source'] = settings.HOSTNAME
-
-        properties = properties or {}
-
         user_id = get_user_id(user)
+        properties = properties or {}
+        context = context or {}
+        # Introduce inner page object within the context
+        context['page'] = {}
 
         if 'value' not in properties:
             properties['value'] = 1
@@ -186,25 +206,17 @@ def track(user, event_name, properties=None, context=None, request=None):
             submitted_by_user = properties.pop('submitted_by')
             submitted_by = get_user_id(submitted_by_user)
             properties['event_by'] = submitted_by
-            if submitted_by_user:
-                context['event_by'] = submitted_by_user.username
-            else:
-                context['event_by'] = submitted_by
 
-        if 'organization' in properties:
-            context['organization'] = properties.get('organization')
-
-        if 'from' in properties:
-            context['action_from'] = properties.get('from')
-
-        if 'xform_id' in properties:
-            context['xform_id'] = properties['xform_id']
+        context['active'] = True
 
         if request:
-            context['path'] = request.path
-            context['url'] = request.build_absolute_uri()
             context['ip'] = request.META.get('REMOTE_ADDR', '')
             context['userId'] = user.id
+            context['receivedAt'] = request.META['HTTP_DATE']
+            context['userAgent'] = request.META['HTTP_USER_AGENT']
+            context['page']['path'] = request.path
+            context['page']['referrer'] = request.META['HTTP_REFERER']
+            context['page']['url'] = request.build_absolute_uri()
 
         if _segment:
             segment_analytics.track(user_id, event_name, properties, context)

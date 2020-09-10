@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 
 from django.contrib.auth.models import User, AnonymousUser
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.conf import settings
 from django.test import override_settings
 
 import onadata.libs.utils.analytics
@@ -31,7 +32,7 @@ class TestAnalytics(TestAbstractViewSet):
         self.assertTrue(len(user2.email) > 0)
         self.assertEqual(get_user_id(user2), user2.email)
 
-    @override_settings(SEGMENT_WRITE_KEY='123', HOSTNAME='test-server')
+    @override_settings(SEGMENT_WRITE_KEY='123')
     def test_track(self):
         """Test analytics.track() function.
         """
@@ -46,7 +47,7 @@ class TestAnalytics(TestAbstractViewSet):
             user1.username,
             'testing track function',
             {'value': 1},
-            {'source': 'test-server'})
+            {'page': {}, 'active': True})
 
     def test_sanitize_metric_values(self):
         """Test sanitize_metric_values()"""
@@ -77,7 +78,7 @@ class TestAnalytics(TestAbstractViewSet):
         self.assertEqual(sanitize_metric_values(context), expected_output)
 
     @override_settings(
-            SEGMENT_WRITE_KEY='123', HOSTNAME='test-server',
+            SEGMENT_WRITE_KEY='123',
             APPOPTICS_API_TOKEN='123')
     def test_submission_tracking(self):
         """Test that submissions are tracked"""
@@ -110,6 +111,13 @@ class TestAnalytics(TestAbstractViewSet):
                 data = {'xml_submission_file': sf, 'media_file': f}
                 request = self.factory.post(request_path, data)
                 request.user = AnonymousUser()
+                request.META['HTTP_DATE'] = '2020-09-10T11:56:32.424726+00:00'
+                request.META['HTTP_REFERER'] = settings.HOSTNAME +\
+                    f':8000'
+                request.META['HTTP_USER_AGENT'] =\
+                    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit'\
+                    '/537.36 (KHTML, like Gecko) Chrome'\
+                    '/83.0.4103.61 Safari/537.36'
                 response = view(request, username=self.user.username)
                 self.assertContains(response, 'Successful submission',
                                     status_code=201)
@@ -128,35 +136,35 @@ class TestAnalytics(TestAbstractViewSet):
             'Submission created',
             {
                 'xform_id': self.xform.pk,
+                'project_id': self.xform.project.pk,
                 'organization': 'Bob Inc.',
                 'from': 'XML Submissions',
                 'label': f'form-{form_id}-owned-by-{username}',
+                'event_source': 'Submission collected from Enketo',
                 'value': 1,
                 'event_by': 'anonymous'
             },
-            {
-                'source': 'test-server',
-                'organization': 'Bob Inc.',
-                'event_by': 'anonymous',
-                'action_from': 'XML Submissions',
-                'xform_id': self.xform.pk,
-                'path': f'/{username}/submission',
-                'url': f'http://testserver/{username}/submission',
+            {'page': {
+                'path': '/bob/submission',
+                'referrer': settings.HOSTNAME + f':8000',
+                'url': 'http://testserver/bob/submission'
+                },
+                'active': True,
                 'ip': '127.0.0.1',
-                'userId': self.user.id
-            })
+                'userId': self.xform.user.pk,
+                'receivedAt': '2020-09-10T11:56:32.424726+00:00',
+                'userAgent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit'
+                '/537.36 (KHTML, like Gecko) Chrome'
+                '/83.0.4103.61 Safari/537.36'}
+            )
 
         appoptics_mock.submit_measurement.assert_called_with(
             'Submission created',
             1,
             tags={
-                'source': 'test-server',
-                'event_by': 'anonymous',
-                'organization': 'Bob_Inc.',
-                'action_from': 'XML_Submissions',
-                'xform_id': self.xform.pk,
-                'path': f'/{username}/submission',
-                'url': f'http://testserver/{username}/submission',
+                'active': True,
                 'ip': '127.0.0.1',
-                'userId': self.user.id
-            })
+                'userId': self.xform.user.pk,
+                'receivedAt': '2020-09-10T11:56:32.424726+00:00',
+                'userAgent': 'Mozilla/5.0_X11;_Linux_x86_64_AppleWebKit'
+                '/537.36_KHTML,_like_Gecko_Chrome/83.0.4103.61_Safari/537.36'})
