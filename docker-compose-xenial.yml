@@ -13,7 +13,7 @@ services:
   web:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.xenial
     image: onadata:py3
     volumes:
       - .:/srv/onadata
