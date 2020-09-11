@@ -34,7 +34,7 @@ RUN apt-get update \
     ghostscript \
     python3-celery \
     python3-sphinx \
-    openjdk-9-jre-headless \
+    openjdk-8-jre-headless \
     locales \
     pkg-config \
     gcc \
