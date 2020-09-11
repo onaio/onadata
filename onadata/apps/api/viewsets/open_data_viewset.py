@@ -27,12 +27,14 @@ from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.data_serializer import TableauDataSerializer
 from onadata.libs.serializers.open_data_serializer import OpenDataSerializer
 from onadata.libs.utils.common_tools import json_stream
-from onadata.libs.utils.common_tags import (
-    ATTACHMENTS,
-    NOTES,
-    MULTIPLE_SELECT_TYPE,
-    REPEAT_SELECT_TYPE,
-    NA_REP)
+
+from onadata.libs.utils.common_tags import (DURATION, ID, ATTACHMENTS,
+                                            MEDIA_ALL_RECEIVED, MEDIA_COUNT,
+                                            NOTES, SUBMISSION_TIME, NA_REP,
+                                            SUBMITTED_BY, TAGS, TOTAL_MEDIA,
+                                            UUID, VERSION, REVIEW_STATUS,
+                                            REVIEW_COMMENT, REPEAT_SELECT_TYPE,
+                                            MULTIPLE_SELECT_TYPE)
 
 BaseViewset = get_baseviewset_class()
 IGNORED_FIELD_TYPES = ['select one', 'select multiple']
@@ -288,12 +290,30 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
         self.get_object().delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    def _get_tableau_headers(self, xform):
+        """
+        Return a list of headers for tableau.
+        """
+        def shorten(xpath):
+            xpath_list = xpath.split('/')
+            return '/'.join(xpath_list[2:])
+
+        header_list = [
+            shorten(xpath) for xpath in xform.xpaths(
+                repeat_iterations=1)]
+        header_list += [
+            ID, UUID, SUBMISSION_TIME, TAGS, NOTES, REVIEW_STATUS,
+            REVIEW_COMMENT, VERSION, DURATION, SUBMITTED_BY, TOTAL_MEDIA,
+            MEDIA_COUNT, MEDIA_ALL_RECEIVED
+        ]
+        return header_list
+
     @action(methods=['GET'], detail=True)
     def schema(self, request, **kwargs):
         self.object = self.get_object()
         if isinstance(self.object.content_object, XForm):
             xform = self.object.content_object
-            headers = xform.get_headers()
+            headers = self._get_tableau_headers(xform)
             self.xform_headers = replace_special_characters_with_underscores(
                 headers)
 
