@@ -24,13 +24,14 @@ from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.mixins.profiler_mixin import ProfilerMixin
 from onadata.libs.serializers.project_serializer import \
-    (BaseProjectSerializer, ProjectSerializer)
+    (BaseProjectSerializer, BaseProjectXFormSerializer,
+     ProjectSerializer, ProjectXFormSerializer, get_project_xforms)
 from onadata.libs.serializers.share_project_serializer import \
     (RemoveUserFromProjectSerializer, ShareProjectSerializer)
 from onadata.libs.serializers.user_profile_serializer import \
     UserProfileSerializer
 from onadata.libs.utils.cache_tools import (
-    PROJ_OWNER_CACHE, safe_delete)
+    PROJ_BASE_FORMS_CACHE, PROJ_FORMS_CACHE, PROJ_OWNER_CACHE, safe_delete)
 from onadata.libs.serializers.xform_serializer import (XFormCreateSerializer,
                                                        XFormSerializer)
 from onadata.libs.utils.common_tools import merge_dicts
@@ -120,8 +121,24 @@ class ProjectViewSet(AuthenticateHeaderMixin,
                 if str_to_bool(published_by_formbuilder):
                     MetaData.published_by_formbuilder(survey, 'True')
 
-                # clear project from cache
-                safe_delete(f'{PROJ_OWNER_CACHE}{survey.project.pk}')
+                # Cache project information so that subsequent requests made
+                # to retrieve the information are up to date
+                project.refresh_from_db()
+                xforms = get_project_xforms(project)
+
+                serializer = ProjectXFormSerializer(
+                    xforms, context={'request': request}, many=True)
+                cache.set(
+                    f'{PROJ_FORMS_CACHE}{project.pk}', list(serializer.data))
+                serializer = BaseProjectXFormSerializer(
+                    xforms, context={'request': request}, many=True)
+                cache.set(
+                    f'{PROJ_BASE_FORMS_CACHE}{project.pk}',
+                    list(serializer.data)
+                )
+                serializer = ProjectSerializer(
+                    project, context={'request': request})
+                cache.set(f'{PROJ_OWNER_CACHE}{project.pk}', serializer.data)
 
                 return Response(serializer.data,
                                 status=status.HTTP_201_CREATED)

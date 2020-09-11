@@ -1024,6 +1024,7 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
     # clear cache
     safe_delete('{}{}'.format(PROJ_FORMS_CACHE, instance.project.pk))
     safe_delete('{}{}'.format(PROJ_BASE_FORMS_CACHE, instance.project.pk))
+    safe_delete('{}{}'.format(PROJ_OWNER_CACHE, instance.project.pk))
     safe_delete('{}{}'.format(IS_ORG, instance.pk))
 
     if created:
