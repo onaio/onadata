@@ -32,6 +32,8 @@ PROJECT_LINKED_DATAVIEWS = "ps-project-linked_dataviews"
 # Cache names used in organization profile viewset
 ORG_PROFILE_CACHE = 'org-profile-'
 
+TABLEAU_COLUMN_HEADERS = 'tableau_column_headers-'
+
 # cache login attempts
 LOCKOUT_USER = "lockout_user-"
 LOGIN_ATTEMPTS = "login_attempts-"

@@ -4,6 +4,7 @@ from collections import OrderedDict
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
+from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.http import StreamingHttpResponse
 from django.shortcuts import get_object_or_404
@@ -36,6 +37,8 @@ from onadata.libs.utils.common_tags import (DURATION, ID, ATTACHMENTS,
                                             REVIEW_COMMENT, REPEAT_SELECT_TYPE,
                                             MULTIPLE_SELECT_TYPE)
 
+from onadata.libs.utils.cache_tools import TABLEAU_COLUMN_HEADERS
+
 BaseViewset = get_baseviewset_class()
 IGNORED_FIELD_TYPES = ['select one', 'select multiple']
 GPS_DATA = ['geopoint', 'gps']
@@ -57,19 +60,42 @@ def process_tableau_data(data, xform):
     with the column header fields for the same form.
     Handles Flattenning repeat data for tableau
     """
-
     def get_xpath(key, nested_key):
         val = nested_key.split('/')
         nested_key_diff = val[len(key.split('/')):]
         xpaths = key + f'[{index}]/' + '/'.join(nested_key_diff)
         return xpaths
 
+    def get_ordered_repeat_value(key, item, index):
+        """
+        Return Ordered Dict of repeats in the order in which they appear in
+        the XForm.
+        """
+        children = xform.get_child_elements(
+            key, split_select_multiples=False)
+        item_list = OrderedDict()
+        data = {}
+
+        for elem in children:
+            if not question_types_to_exclude(elem.type):
+                new_xpath = elem.get_abbreviated_xpath()
+                item_list[new_xpath] = item.get(new_xpath, DEFAULT_NA_REP)
+                # Loop through repeat data and flatten it
+                # given the key "children/details" and nested_key/
+                # abbreviated xpath
+                # "children/details/immunization/polio_1",
+                # generate ["children", index, "immunization/polio_1"]
+                for (nested_key, nested_val) in item_list.items():
+                    qstn_type = xform.get_element(nested_key).type
+                    xpaths = get_xpath(key, nested_key)
+                    data = get_updated_data_dict(
+                        qstn_type, xpaths, nested_val, data)
+        return data
+
     def get_updated_data_dict(qstn_type, key, value, data_dict):
         """
-        Generates key, value pairs for select multiple question types.
-        Defining the new xpaths from the
-        question name(key) and the choice name(value)
-        in accordance with how we generate the tableau schema.
+        Unpacks row data in accordance
+        with various question types
         """
         if qstn_type == MULTIPLE_SELECT_TYPE:
             choices = value.split(" ")
@@ -99,33 +125,9 @@ def process_tableau_data(data, xform):
 
         return data_dict
 
-    def get_ordered_repeat_value(key, item, index):
-        """
-        Return Ordered Dict of repeats in the order in which they appear in
-        the XForm.
-        """
-        children = xform.get_child_elements(key, split_select_multiples=False)
-        item_list = OrderedDict()
-        data = {}
-
-        for elem in children:
-            if not question_types_to_exclude(elem.type):
-                new_xpath = elem.get_abbreviated_xpath()
-                item_list[new_xpath] = item.get(new_xpath, DEFAULT_NA_REP)
-                # Loop through repeat data and flatten it
-                # given the key "children/details" and nested_key/
-                # abbreviated xpath "children/details/immunization/polio_1",
-                # generate ["children", index, "immunization/polio_1"]
-                for (nested_key, nested_val) in item_list.items():
-                    qstn_type = xform.get_element(nested_key).type
-                    xpaths = get_xpath(key, nested_key)
-                    data = get_updated_data_dict(
-                        qstn_type, xpaths, nested_val, data)
-        return data
-
     result = []
     if data:
-        headers = xform.get_headers()
+        headers = cache.get(f'{TABLEAU_COLUMN_HEADERS}{xform.pk}')
         tableau_headers = remove_metadata_fields(headers)
         for row in data:
             diff = set(tableau_headers).difference(set(row))
@@ -149,6 +151,80 @@ def process_tableau_data(data, xform):
     return result
 
 
+def fetch_form_submissions(xform, gt_id=None, count_check=False):
+    """
+    Fetch submissions for Tableau
+    """
+    if xform.is_merged_dataset:
+        qs_kwargs = {'xform_id__in': list(
+            xform.mergedxform.xforms.values_list('pk', flat=True))}
+    else:
+        qs_kwargs = {'xform_id': xform.pk}
+    if gt_id:
+        qs_kwargs.update({'id__gt': gt_id})
+    instances = Instance.objects.filter(
+        **qs_kwargs, deleted_at__isnull=True).order_by('pk')
+
+    if count_check:
+        xform_json = json.loads(xform.json)
+        fields = xform_json.get('children')
+        # Capturing fields of type repeat at zero level on the form
+        repeat_fields = [
+            d['name'] for d in fields if d['type'] == 'repeat']
+
+        # Figure a way to get field path for nested repeat
+        # as the name field cannot resonate on the submission data fields
+
+        # for d in fields:
+        #     try:
+        #         if d['children']:
+        #             for x in d['children']:
+        #                 if x['type']  == 'repeat':
+        #                     repeat_fields.append(x['name'])
+        #     except (KeyError, NameError):
+        #         continue
+        repeat_subs_len = []
+        for field in repeat_fields:
+            for instance in instances:
+                val = len(instance.json[field])
+                repeat_subs_len.append({
+                    f'field_count': val,
+                    f'instance_id': instance.pk,
+                    f'repeat_field': field})
+
+        # This is an asumption also that there
+        # is only 1 repeat group defined on the xform.
+        # Another assumption is that the repeat count
+        # at zero level of the form is the
+        # same as the nested repeat count
+        largest_instance = max(
+            repeat_subs_len, key=lambda x: x['field_count'])
+        largest_repeat_count = largest_instance['field_count']
+
+        return largest_repeat_count
+
+    return instances
+
+
+def _get_tableau_headers(xform, repeat_iters):
+    """
+    Return a list of headers for tableau.
+    """
+    def shorten(xpath):
+        xpath_list = xpath.split('/')
+        return '/'.join(xpath_list[2:])
+
+    header_list = [
+        shorten(xpath) for xpath in xform.xpaths(
+            repeat_iterations=repeat_iters)]
+    header_list += [
+        ID, UUID, SUBMISSION_TIME, TAGS, NOTES, REVIEW_STATUS,
+        REVIEW_COMMENT, VERSION, DURATION, SUBMITTED_BY, TOTAL_MEDIA,
+        MEDIA_COUNT, MEDIA_ALL_RECEIVED
+    ]
+    return header_list
+
+
 class OpenDataViewSet(ETagsMixin, CacheControlMixin,
                       BaseViewset, ModelViewSet):
     permission_classes = (OpenDataViewSetPermissions, )
@@ -165,6 +241,7 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
         '''
         tableau_types = {
             'integer': 'int',
+            'calculate': 'int',
             'decimal': 'float',
             'dateTime': 'datetime',
             'text': 'string'
@@ -180,8 +257,7 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
         for a in json_of_columns_fields:
             self.flattened_dict[a.get('name')] = self.get_tableau_type(
                 a.get('type'))
-            # using IGNORED_FIELD_TYPES so that choice values are not included.
-            if a.get('children') and a.get('type') not in IGNORED_FIELD_TYPES:
+            if a.get('children'):
                 self.flatten_xform_columns(a.get('children'))
 
     def get_tableau_column_headers(self):
@@ -243,18 +319,8 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
                 return Response(status=status.HTTP_404_NOT_FOUND)
 
             xform = self.object.content_object
-            if xform.is_merged_dataset:
-                qs_kwargs = {'xform_id__in': list(
-                    xform.mergedxform.xforms.values_list('pk', flat=True))}
-            else:
-                qs_kwargs = {'xform_id': xform.pk}
-            if gt_id:
-                qs_kwargs.update({'id__gt': gt_id})
-
-            # Filter out deleted submissions
-            instances = Instance.objects.filter(
-                **qs_kwargs, deleted_at__isnull=True).order_by('pk')
-
+            instances = fetch_form_submissions(
+                            xform, gt_id)
             if count:
                 return Response({'count': instances.count()})
 
@@ -290,37 +356,19 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
         self.get_object().delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    def _get_tableau_headers(self, xform):
-        """
-        Return a list of headers for tableau.
-        """
-        def shorten(xpath):
-            xpath_list = xpath.split('/')
-            return '/'.join(xpath_list[2:])
-
-        header_list = [
-            shorten(xpath) for xpath in xform.xpaths(
-                repeat_iterations=1)]
-        header_list += [
-            ID, UUID, SUBMISSION_TIME, TAGS, NOTES, REVIEW_STATUS,
-            REVIEW_COMMENT, VERSION, DURATION, SUBMITTED_BY, TOTAL_MEDIA,
-            MEDIA_COUNT, MEDIA_ALL_RECEIVED
-        ]
-        return header_list
-
     @action(methods=['GET'], detail=True)
     def schema(self, request, **kwargs):
         self.object = self.get_object()
         if isinstance(self.object.content_object, XForm):
             xform = self.object.content_object
-            headers = self._get_tableau_headers(xform)
+            sub_with_largest_repeat = fetch_form_submissions(
+                                        xform, count_check=True)
+
+            headers = _get_tableau_headers(xform, sub_with_largest_repeat)
             self.xform_headers = replace_special_characters_with_underscores(
                 headers)
-
-            xform_json = json.loads(xform.json)
-            self.flatten_xform_columns(
-                json_of_columns_fields=xform_json.get('children'))
-
+            cache.set(
+                f'{TABLEAU_COLUMN_HEADERS}{xform.pk}', self.xform_headers)
             tableau_column_headers = self.get_tableau_column_headers()
 
             data = {
