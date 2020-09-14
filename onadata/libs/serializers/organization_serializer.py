@@ -32,6 +32,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
     creator = serializers.HyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username', read_only=True)
     users = serializers.SerializerMethodField()
+    is_org = serializers.SerializerMethodField()
     metadata = JsonField(required=False)
     name = serializers.CharField(max_length=30)
 
@@ -134,3 +135,6 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         owners_list = create_user_list(owners)
 
         return owners_list + members_list
+
+    def get_is_org(self, obj):
+        return obj.is_organization
