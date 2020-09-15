@@ -58,6 +58,15 @@ class ProjectViewSet(AuthenticateHeaderMixin,
                        ProjectOwnerFilter,
                        TagFilter)
 
+    def _clear_project_cache(self, object_id: int = None) -> None:
+        """
+        Clear all project related cache entries
+        """
+        project_id = object_id or self.get_object().pk
+        safe_delete('{}{}'.format(PROJ_FORMS_CACHE, project_id))
+        safe_delete('{}{}'.format(PROJ_BASE_FORMS_CACHE, project_id))
+        safe_delete('{}{}'.format(PROJ_OWNER_CACHE, project_id))
+
     def get_serializer_class(self):
         action = self.action
 
@@ -185,7 +194,7 @@ class ProjectViewSet(AuthenticateHeaderMixin,
                             status=status.HTTP_400_BAD_REQUEST)
 
         # clear cache
-        safe_delete(f'{PROJ_OWNER_CACHE}{self.object.pk}')
+        self._clear_project_cache()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
