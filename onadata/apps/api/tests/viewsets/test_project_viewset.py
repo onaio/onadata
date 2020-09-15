@@ -531,6 +531,13 @@ class TestProjectViewSet(TestAbstractViewSet):
         self._project_create({'name': project_name})
         self.assertTrue(self.project.name == project_name)
 
+        # Check previous form data
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=old_project.pk)
+        self.assertEqual(response.status_code, 200)
+        old_project_form_count = len(response.data.get('forms'))
+        old_project_num_datasets = response.data.get('num_datasets')
+
         project_id = self.project.pk
         post_data = {'formid': formid}
         request = self.factory.post('/', data=post_data, **self.extra)
@@ -542,8 +549,19 @@ class TestProjectViewSet(TestAbstractViewSet):
         # check if form added appears in the project details
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
         self.assertIn('forms', list(response.data))
         self.assertEqual(len(response.data['forms']), 1)
+
+        # Ensure forms list & num_datasets value of previous project was
+        # updated
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=old_project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            len(response.data.get('forms')), old_project_form_count - 1)
+        self.assertEqual(
+            response.data.get('num_datasets'), old_project_num_datasets - 1)
 
     def test_project_manager_can_assign_form_to_project(self):
         view = ProjectViewSet.as_view({
