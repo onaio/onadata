@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 from builtins import str as text
 
 from django.utils.translation import ugettext as _
+from django.conf import settings
 
 XFORM = text('xform')
 PROJECT = text('project')
@@ -36,3 +37,8 @@ VERB_TOPIC_DICT = {
     SUBMISSION_REVIEWED: "submission/reviewed",
     FORM_UPDATED: "form/updated"
 }
+
+if getattr(settings, 'GOOGLE_EXPORT', False):
+    from google_export.common_tags import GOOGLE_SHEETS_SYNCING
+    MESSAGE_VERBS.append(GOOGLE_SHEETS_SYNCING)
+    VERB_TOPIC_DICT[GOOGLE_SHEETS_SYNCING] = 'form/googlesheets/syncing'
