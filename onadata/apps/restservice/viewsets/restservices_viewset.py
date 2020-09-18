@@ -2,6 +2,8 @@ from django.conf import settings
 from django.utils.module_loading import import_string
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
+from rest_framework.status import HTTP_400_BAD_REQUEST
+from rest_framework.decorators import action
 
 from onadata.apps.api.permissions import RestServiceObjectPermissions
 from onadata.libs.serializers.textit_serializer import TextItSerializer
@@ -64,3 +66,14 @@ class RestServicesViewSet(AuthenticateHeaderMixin,
             serializer = self.get_serializer(instance)
 
         return Response(serializer.data)
+
+    @action(detail=True, methods=['GET'])
+    def service_status(self, request, *args, **kwargs):
+        instance: RestService = self.get_object()
+        service = instance.get_service_definition()()
+        data = {}
+        if hasattr(service, 'synchronization_status'):
+            data = service.synchronization_status(instance.xform.pk)
+            return Response(data)
+        data['error'] = 'Unable to retrieve service synchronization status'
+        return Response(data, status=HTTP_400_BAD_REQUEST)
