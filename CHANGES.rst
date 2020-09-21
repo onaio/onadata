@@ -3,6 +3,19 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.4.2(2020-09-21)
+------------------
+
+- CSV Import: Handle re-importing of select_multiple questions
+  `PR #1852 <https://github.com/onaio/onadata/pull/1852>`_
+  [@DavisRayM]
+- Limit message payload sizes
+  `PR #1893 <https://github.com/onaio/onadata/pull/1893>`_
+  [@DavisRayM]
+- Main API view updates
+  `PR #1900 <https://github.com/onaio/onadata/pull/1900>`_
+  [@DavisRayM]
+
 v2.4.1(2020-09-03)
 ------------------
 
