@@ -21,6 +21,7 @@ from django.shortcuts import get_object_or_404, render
 from django.template import RequestContext, loader
 from django.urls import reverse
 from django.utils.translation import ugettext as _
+from django.utils.html import conditional_escape
 from django.views.decorators.http import (require_GET, require_http_methods,
                                           require_POST)
 from guardian.shortcuts import assign_perm, remove_perm
@@ -519,7 +520,7 @@ def api(request, username=None, id_string=None):
 
         cursor = query_data(**args)
     except (ValueError, TypeError) as e:
-        return HttpResponseBadRequest(e.__str__())
+        return HttpResponseBadRequest(conditional_escape(e.__str__()))
 
     try:
         response_text = json_util.dumps([i for i in cursor])
