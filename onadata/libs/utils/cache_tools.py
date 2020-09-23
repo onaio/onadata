@@ -54,7 +54,7 @@ def safe_key(key):
 
 def reset_project_cache(project, request):
     """
-    Clears and updates project cache
+    Clears and sets project cache
     """
     from onadata.libs.serializers.project_serializer import ProjectSerializer
 
