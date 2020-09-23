@@ -535,6 +535,13 @@ class TestProjectViewSet(TestAbstractViewSet):
         self._project_create({'name': project_name})
         self.assertTrue(self.project.name == project_name)
 
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=old_project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('forms', list(response.data))
+        old_project_form_count = len(response.data['forms'])
+        old_project_num_datasets = response.data['num_datasets']
+
         project_id = self.project.pk
         post_data = {'formid': formid}
         request = self.factory.post('/', data=post_data, **self.extra)
@@ -548,6 +555,17 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=self.project.pk)
         self.assertIn('forms', list(response.data))
         self.assertEqual(len(response.data['forms']), 1)
+        self.assertEqual(response.data['num_datasets'], 1)
+
+        # Check if form transferred doesn't appear in the old project
+        # details
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=old_project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            len(response.data['forms']), old_project_form_count - 1)
+        self.assertEqual(
+            response.data['num_datasets'], old_project_num_datasets - 1)
 
     def test_project_manager_can_assign_form_to_project(self):
         view = ProjectViewSet.as_view({
