@@ -70,6 +70,10 @@ class TestProjectViewSet(TestAbstractViewSet):
             'post': 'create'
         })
 
+    def tearDown(self):
+        cache.clear()
+        super(TestProjectViewSet, self).tearDown()
+
     @patch('onadata.apps.main.forms.urlopen')
     def test_publish_xlsform_using_url_upload(self, mock_urlopen):
         with HTTMock(enketo_mock):
