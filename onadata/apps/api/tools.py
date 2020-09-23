@@ -457,7 +457,8 @@ def publish_project_xform(request, project):
     else:
         xform = publish_form(set_form)
 
-    reset_project_cache(xform.project, request)
+    if isinstance(xform, XForm):
+        reset_project_cache(xform.project, request)
     return xform
 
 
