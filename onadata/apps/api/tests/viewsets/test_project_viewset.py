@@ -3,6 +3,7 @@
 Test ProjectViewSet module.
 """
 import json
+from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 import os
 from builtins import str
 from future.utils import iteritems
@@ -2455,3 +2456,56 @@ class TestProjectViewSet(TestAbstractViewSet):
             ReadOnlyRole.user_has_role(tom_profile.user, self.project))
         self.assertTrue(
             ReadOnlyRole.user_has_role(tom_profile.user, self.xform))
+
+    def test_project_caching(self):
+        """
+        Test project viewset caching always keeps the latest version of
+        the project in cache
+        """
+        view = ProjectViewSet.as_view({
+            'post': 'forms',
+            'get': 'retrieve'
+        })
+        self._publish_xls_form_to_project()
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['forms']), 1)
+        self.assertEqual(
+            response.data['forms'][0]['name'], self.xform.title)
+        self.assertEqual(
+            response.data['forms'][0]['last_submission_time'],
+            self.xform.time_of_last_submission())
+        self.assertEqual(
+            response.data['forms'][0]['num_of_submissions'],
+            self.xform.num_of_submissions
+        )
+        self.assertEqual(response.data['num_datasets'], 1)
+
+        # Test on form detail update data returned from project viewset is
+        # updated
+        form_view = XFormViewSet.as_view({
+            'patch': 'partial_update'
+        })
+        post_data = {'title': 'new_name'}
+        request = self.factory.patch(
+            '/', data=post_data, **self.extra)
+        response = form_view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.xform.refresh_from_db()
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['forms']), 1)
+        self.assertEqual(
+            response.data['forms'][0]['name'], self.xform.title)
+        self.assertEqual(
+            response.data['forms'][0]['last_submission_time'],
+            self.xform.time_of_last_submission())
+        self.assertEqual(
+            response.data['forms'][0]['num_of_submissions'],
+            self.xform.num_of_submissions
+        )
+        self.assertEqual(response.data['num_datasets'], 1)
