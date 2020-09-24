@@ -1020,10 +1020,17 @@ post_delete.connect(
     dispatch_uid='update_profile_num_submissions')
 
 
+def clear_project_cache(project_id):
+    safe_delete('{}{}'.format(PROJ_OWNER_CACHE, project_id))
+    safe_delete('{}{}'.format(PROJ_FORMS_CACHE, project_id))
+    safe_delete('{}{}'.format(PROJ_BASE_FORMS_CACHE, project_id))
+    safe_delete('{}{}'.format(PROJ_SUB_DATE_CACHE, project_id))
+    safe_delete('{}{}'.format(PROJ_NUM_DATASET_CACHE, project_id))
+
+
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
     # clear cache
-    safe_delete('{}{}'.format(PROJ_FORMS_CACHE, instance.project.pk))
-    safe_delete('{}{}'.format(PROJ_BASE_FORMS_CACHE, instance.project.pk))
+    clear_project_cache(instance.project.pk)
     safe_delete('{}{}'.format(IS_ORG, instance.pk))
 
     if created:
@@ -1052,11 +1059,7 @@ pre_save.connect(save_project, sender=XForm, dispatch_uid='save_project_xform')
 
 def xform_post_delete_callback(sender, instance, **kwargs):
     if instance.project_id:
-        safe_delete('{}{}'.format(PROJ_OWNER_CACHE, instance.project_id))
-        safe_delete('{}{}'.format(PROJ_FORMS_CACHE, instance.project_id))
-        safe_delete('{}{}'.format(PROJ_BASE_FORMS_CACHE, instance.project.pk))
-        safe_delete('{}{}'.format(PROJ_SUB_DATE_CACHE, instance.project_id))
-        safe_delete('{}{}'.format(PROJ_NUM_DATASET_CACHE, instance.project_id))
+        clear_project_cache(instance.project_id)
 
 
 post_delete.connect(

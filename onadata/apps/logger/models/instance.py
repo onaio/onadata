@@ -175,6 +175,9 @@ def update_xform_submission_count(instance_id, created):
             safe_delete('{}{}'.format(XFORM_DATA_VERSIONS, instance.xform_id))
             safe_delete('{}{}'.format(DATAVIEW_COUNT, instance.xform_id))
             safe_delete('{}{}'.format(XFORM_COUNT, instance.xform_id))
+            # Clear project cache
+            from onadata.apps.logger.models.xform import clear_project_cache
+            clear_project_cache(instance.xform.project_id)
 
 
 def update_xform_submission_count_delete(sender, instance, **kwargs):
