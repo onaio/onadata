@@ -3,7 +3,6 @@
 Test ProjectViewSet module.
 """
 import json
-from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 import os
 from builtins import str
 from future.utils import iteritems
@@ -16,6 +15,7 @@ from django.core.cache import cache
 from django.test import override_settings
 from httmock import HTTMock, urlmatch
 from mock import MagicMock, patch
+import dateutil.parser
 import requests
 
 from onadata.apps.api import tools
@@ -26,6 +26,7 @@ from onadata.apps.api.viewsets.organization_profile_viewset import \
     OrganizationProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
+from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Project, XForm
 from onadata.apps.main.models import MetaData
 from onadata.libs import permissions as role
@@ -2503,6 +2504,27 @@ class TestProjectViewSet(TestAbstractViewSet):
             response.data['forms'][0]['name'], self.xform.title)
         self.assertEqual(
             response.data['forms'][0]['last_submission_time'],
+            self.xform.time_of_last_submission())
+        self.assertEqual(
+            response.data['forms'][0]['num_of_submissions'],
+            self.xform.num_of_submissions
+        )
+        self.assertEqual(response.data['num_datasets'], 1)
+
+        # Test that last_submission_time is updated correctly
+        self._make_submissions()
+        self.xform.refresh_from_db()
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['forms']), 1)
+        self.assertEqual(
+            response.data['forms'][0]['name'], self.xform.title)
+        self.assertIsNotNone(response.data['forms'][0]['last_submission_time'])
+        returned_date = dateutil.parser.parse(
+            response.data['forms'][0]['last_submission_time'])
+        self.assertEqual(
+            returned_date,
             self.xform.time_of_last_submission())
         self.assertEqual(
             response.data['forms'][0]['num_of_submissions'],
