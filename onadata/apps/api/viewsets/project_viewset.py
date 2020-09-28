@@ -90,8 +90,6 @@ class ProjectViewSet(AuthenticateHeaderMixin,
         self.object = self.get_object()
         serializer = ProjectSerializer(
             self.object, context={'request': request})
-        cache.set(f'{PROJ_OWNER_CACHE}{self.object.pk}', serializer.data)
-
         return Response(serializer.data)
 
     @action(methods=['POST', 'GET'], detail=True)
@@ -119,9 +117,6 @@ class ProjectViewSet(AuthenticateHeaderMixin,
 
                 if str_to_bool(published_by_formbuilder):
                     MetaData.published_by_formbuilder(survey, 'True')
-
-                # clear project from cache
-                safe_delete(f'{PROJ_OWNER_CACHE}{survey.project.pk}')
 
                 return Response(serializer.data,
                                 status=status.HTTP_201_CREATED)
