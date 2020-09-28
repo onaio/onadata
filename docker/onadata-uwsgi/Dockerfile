@@ -53,7 +53,7 @@ RUN dpkg-reconfigure locales
 RUN mkdir -p /srv/onadata
 RUN git clone -b ${release_version} https://github.com/onaio/onadata.git /srv/onadata
 
-ADD uwsgi.ini /uwsgi.ini
+COPY uwsgi.ini /uwsgi.ini
 
 RUN useradd -m onadata
 
@@ -63,7 +63,7 @@ RUN python3 -m pip install -U pip && \
     python3 -m pip install --no-cache-dir -r requirements/base.pip
 
 # Compile API Docs
-RUN cd docs && make html && cd ..
+RUN make -C docs html
 
 EXPOSE 8000
 
