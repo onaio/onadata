@@ -2,11 +2,8 @@ version: '3'
 
 services:
   db:
-    image: postgis/postgis:9.6-3.0
-    environment:
-      - POSTGRES_PASSWORD=onadata
-      - POSTGRES_USER=onadata
-      - POSTGRES_DB=onadata
+    build: ./docker/postgis
+    image: postgis:9.6
     volumes:
       # One level above the code to prevent having to move or delete
       # it everytime we rebuild.
@@ -16,19 +13,17 @@ services:
   web:
     build:
       context: .
-      dockerfile: Dockerfile
-    image: onadata:latest
+      dockerfile: Dockerfile.xenial
+    image: onadata:py3
     volumes:
-      # For local development
       - .:/srv/onadata
       - .inputrc:/home/onadata/.inputrc
       - .bash_history:/home/onadata/.bash_history
     ports:
+      - "3030:3030"
       - "8000:8000"
     depends_on:
       - db
       - queue
     environment:
       - SELECTED_PYTHON=python3.6
-      - INITDB=false
-

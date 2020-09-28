@@ -10,7 +10,7 @@ services:
     volumes:
       # One level above the code to prevent having to move or delete
       # it everytime we rebuild.
-      - ../.onadata_db:/var/lib/postgresql/data
+      - ../../../.onadata_db:/var/lib/postgresql/data
   queue:
     image: rabbitmq
   web:
@@ -20,15 +20,9 @@ services:
     image: onadata:latest
     volumes:
       # For local development
-      - .:/srv/onadata
-      - .inputrc:/home/onadata/.inputrc
-      - .bash_history:/home/onadata/.bash_history
+      - ../../.:/srv/onadata
     ports:
       - "8000:8000"
     depends_on:
       - db
       - queue
-    environment:
-      - SELECTED_PYTHON=python3.6
-      - INITDB=false
-
