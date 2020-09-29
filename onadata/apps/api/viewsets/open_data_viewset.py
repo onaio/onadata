@@ -269,11 +269,11 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
             data = process_tableau_data(
                 TableauDataSerializer(instances, many=True).data, xform)
 
-            return self._get_streaming_response(data)
+            return self.get_streaming_response(data)
 
         return Response(data)
 
-    def _get_streaming_response(self, data):
+    def get_streaming_response(self, data):
         """Get a StreamingHttpResponse response object"""
 
         def get_json_string(item):
