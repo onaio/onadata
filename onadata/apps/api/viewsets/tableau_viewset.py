@@ -1,5 +1,5 @@
 import re
-from rest_framework.decorators import action
+from rest_framework.decorators import action, schema
 from onadata.apps.logger.models.open_data import OpenData
 from onadata.apps.api.viewsets.open_data_viewset import OpenDataViewSet
 from onadata.apps.logger.models.xform import XForm
@@ -11,24 +11,6 @@ from onadata.libs.utils.common_tags import (DURATION, ID, ATTACHMENTS,
                                             REVIEW_COMMENT, REPEAT_SELECT_TYPE,
                                             MULTIPLE_SELECT_TYPE)
 
-def get_tableau_headers(xform):
-    """
-    Return a list of headers for Tableau.
-    """
-    def shorten(xpath):
-        xpath_list = xpath.split('/')
-        return '/'.join(xpath_list[2:])
-
-    header_list = [
-        shorten(xpath) for xpath in xform.xpaths(
-            repeat_iterations=1)]
-    header_list += [
-        ID, UUID, SUBMISSION_TIME, TAGS, NOTES, REVIEW_STATUS,
-        REVIEW_COMMENT, VERSION, DURATION, SUBMITTED_BY, TOTAL_MEDIA,
-        MEDIA_COUNT, MEDIA_ALL_RECEIVED
-    ]
-    return header_list
-
 
 class TableauViewSet(OpenDataViewSet):
     def data(self, request, **kwargs):
@@ -36,52 +18,26 @@ class TableauViewSet(OpenDataViewSet):
     
     @action(methods=['GET'], detail=True)
     def schema(self, request, **kwargs):
-        data = {}
         self.object = self.get_object()
         if isinstance(self.object.content_object, XForm):
             xform = self.object.content_object
-            headers = get_tableau_headers(xform)
-            repeat_fields = []
-            repeat_column_headers = []
-            nested_repeat_column_headers = []
+            headers = xform.get_headers(repeat_iterations=1)
+            schemas = {'data': {
+                'connection_name': f"{xform.project_id}_{xform.id_string}",
+                'headers': []
+            }}
 
             for child in headers:
-                # Use regex to identify indexes in headers
-                repeat_count = re.findall(r"\[+\d+\]", child) 
-                re_match = re.search(r"\[+\d+\]", child)
-                if re_match:
-                    # Using the repeat count length
-                    # to check for nested repeats
-                    if len(repeat_count) > 1:
-                        nested_re_match = re.search(
-                            r"\[+\d+\]",
-                            child[re_match.span()[1]:]
-                        )
-                        if nested_re_match:
-                            nested_repeat_column_headers.append(
-                                re.sub(r"/", "", child[re_match.span()[1]:][
-                                    nested_re_match.span()[1]:]))
-                    else:
-                        # Generate column headers for new tableau table
-                        repeat_column_headers.append(
-                            re.sub(r"/", "", child[re_match.span()[1]:]
-                        ))
-            data = [{
-                'column_headers': headers,
-                'connection_name': "%s_%s" % (xform.project_id,
-                                              xform.id_string),
-                'table_alias': xform.title
-            },
-            {
-                'column_headers': repeat_column_headers,
-                'connection_name': "%s_%s" % (xform.project_id,
-                                              xform.id_string),
-                'table_alias': xform.title
-            },
-            {
-                'column_headers': nested_repeat_column_headers,
-                'connection_name': "%s_%s" % (xform.project_id,
-                                              xform.id_string),
-                'table_alias': xform.title
-            }]
-
+                # Use regex to identify number of repeats
+                repeat_count = re.findall(r"\[+\d+\]", child)
+                if re.search(r"\[+\d+\]", child):
+                    table_name = child.split('/')[repeat_count - 1]
+                    table_name = table_name.replace('[1]', '')
+                    schemas['table_name']['headers'].append(
+                        child.split('/')[repeat_count:])
+                    if not schemas[table_name].get('connection_name'):
+                        schemas[table_name]['connection_name'] = f"{xform.project_id}_{xform.id_string}_{table_name}"
+                else:
+                    # No need to split the repeats down
+                    schemas['data']['headers'].append(child)
+            return schemas
