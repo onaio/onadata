@@ -14,31 +14,8 @@ from onadata.libs.utils.common_tags import (
     ATTACHMENTS,
     NOTES,
     GEOLOCATION,
-    MULTIPLE_SELECT_TYPE)
+    MULTIPLE_SELECT_TYPE, REPEAT_SELECT_TYPE)
 
-
-def unpack_repeat_data(
-        data: list, key: str = None, parent: str = None) -> Dict:
-    ret = defaultdict(list)
-    repeat_dict_key = None
-    for repeat in data:
-        repeat_data = {}
-        for k, v in repeat.items():
-            k = k.split('/')
-            if isinstance(v, list):
-                nested_repeat_key = ''.join(k[-1])
-                parent_key = key or ''.join(k[:1])
-                data = unpack_repeat_data(
-                    v, key=nested_repeat_key, parent=parent_key)
-                ret.update(data)
-            else:
-                repeat_dict_key = key or ''.join(k[:1])
-                k = ''.join(k[-1])
-                repeat_data.update({k: v})
-                if parent and not repeat_data.get('__parent_table'):
-                    repeat_data.update({'__parent_table': parent})
-        ret[repeat_dict_key].append(repeat_data)
-    return ret
 
 def unpack_data_per_qstn_type(key: str, value: str, qstn_type: str):
     data = defaultdict(dict)
@@ -49,7 +26,7 @@ def unpack_data_per_qstn_type(key: str, value: str, qstn_type: str):
             data[xpaths] = choice
     # Allow gps/ geopoint
     # for backward compatibility
-    if qstn_type == 'geopoint' or gps:
+    if qstn_type == 'geopoint':
         parts = value.split(' ')
         gps_xpaths = \
             DataDictionary.get_additional_geopoint_xpaths(
@@ -64,23 +41,48 @@ def unpack_data_per_qstn_type(key: str, value: str, qstn_type: str):
     return data
 
 
-def process_tableau_data(data, xform=None):
+def unpack_repeat_data(
+        data: list, xform, key: str = None, parent: str = None) -> Dict:
+    ret = defaultdict(list)
+    repeat_dict_key = None
+    for repeat in data:
+        repeat_data = {}
+        for k, v in repeat.items():
+            qstn_type = xform.get_element(k).type
+            k = k.split('/')
+            if qstn_type == REPEAT_SELECT_TYPE:
+                nested_repeat_key = ''.join(k[-1])
+                parent_key = key or ''.join(k[:1])
+                data = unpack_repeat_data(
+                    v, xform, key=nested_repeat_key, parent=parent_key)
+                ret.update(data)
+            else:
+                repeat_dict_key = key or ''.join(k[:1])
+                k = ''.join(k[-1])
+                repeat_data.update(unpack_data_per_qstn_type(k, v, qstn_type))
+                if parent and not repeat_data.get('__parent_table'):
+                    repeat_data.update({'__parent_table': parent})
+        ret[repeat_dict_key].append(repeat_data)
+    return ret
+
+
+def process_tableau_data(data, xform):
     result = []
     if data:
         for row in data:
             flat_dict = defaultdict(dict)
             for (key, value) in row.items():
-                if isinstance(value, list) and key not in [
-                        ATTACHMENTS, NOTES, GEOLOCATION]:
-                    flat_dict.update(unpack_repeat_data(value, parent='data'))
+                try:
+                    qstn_type = xform.get_element(key).type
+                except AttributeError:
+                    flat_dict[key] = value
                 else:
-                    try:
-                        qstn_type = xform.get_element(key).type
+                    if qstn_type == REPEAT_SELECT_TYPE:
+                        flat_dict.update(unpack_repeat_data(
+                            value, xform, parent='data'))
+                    else:
                         flat_dict.update(unpack_data_per_qstn_type(
-                            key, value, qstn_type))
-                    except AttributeError:
-                        flat_dict[key] = value
-
+                            key, value, qstn_type=qstn_type))
             result.append(dict(flat_dict))
     return result
 
