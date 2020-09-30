@@ -40,6 +40,24 @@ def unpack_repeat_data(
         ret[repeat_dict_key].append(repeat_data)
     return ret
 
+def unpack_data_per_qstn_type(key: str, value: str, qstn_type: str):
+    data = defaultdict(dict)
+    if qstn_type == MULTIPLE_SELECT_TYPE:
+        pass
+    if qstn_type == 'geopoint':
+        parts = value.split(' ')
+        gps_xpaths = \
+            DataDictionary.get_additional_geopoint_xpaths(
+                key)
+        gps_parts = dict(
+            [(xpath, None) for xpath in gps_xpaths])
+        if len(parts) == 4:
+            gps_parts = dict(zip(gps_xpaths, parts))
+            data.update(gps_parts)
+    else:
+        data[key] = value
+    return data
+
 
 def process_tableau_data(data, xform=None):
     result = []
@@ -53,22 +71,8 @@ def process_tableau_data(data, xform=None):
                 else:
                     try:
                         qstn_type = xform.get_element(key).type
-                        if qstn_type == MULTIPLE_SELECT_TYPE:
-                            # Not yet unpacked
-                            # select multiple data in this viewset
-                            continue
-                        if qstn_type == 'geopoint':
-                            parts = value.split(' ')
-                            gps_xpaths = \
-                                DataDictionary.get_additional_geopoint_xpaths(
-                                    key)
-                            gps_parts = dict(
-                                [(xpath, None) for xpath in gps_xpaths])
-                            if len(parts) == 4:
-                                gps_parts = dict(zip(gps_xpaths, parts))
-                                flat_dict.update(gps_parts)
-                        else:
-                            flat_dict[key] = value
+                        flat_dict.update(unpack_data_per_qstn_type(
+                            key, value, qstn_type))
                     except AttributeError:
                         flat_dict[key] = value
 
@@ -142,19 +146,20 @@ class TableauViewSet(OpenDataViewSet):
                         child.split('/')[repeat_count:])
                     if not schemas[table_name].get('connection_name'):
                         schemas[table_name]['connection_name'] =\
-                            f"{xform.project_id}_{xform.id_string}_{table_name}"  # noqa
+                            f"{xform.project_name}_\
+                                {xform.id_string}_{table_name}"
                     if not schemas[table_name].get('table_alias'):
                         schemas[table_name]['table_alias'] =\
-                            f"{xform.title}_{xform.id_string}_{table_name}"
+                            f"{table_name}"
                 else:
                     if not schemas['data'].get('headers'):
                         schemas['data']['headers'] = []
                     if not schemas['data'].get('connection_name'):
                         schemas['data']['connection_name'] =\
-                            f"{xform.project_id}_{xform.id_string}"
+                            f"{xform.project_name}_\
+                                {xform.id_string}"
                     if not schemas['data'].get('table_alias'):
-                        schemas['data']['table_alias'] =\
-                            f"{xform.title}_{xform.id_string}"
+                        schemas['data']['table_alias'] = f"data"
 
                     # No need to split the repeats down
                     schemas['data']['headers'].append(child)
