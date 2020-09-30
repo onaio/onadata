@@ -43,8 +43,13 @@ def unpack_repeat_data(
 def unpack_data_per_qstn_type(key: str, value: str, qstn_type: str):
     data = defaultdict(dict)
     if qstn_type == MULTIPLE_SELECT_TYPE:
-        pass
-    if qstn_type == 'geopoint':
+        choices = value.split(" ")
+        for choice in choices:
+            xpaths = f'{key}/{choice}'
+            data[xpaths] = choice
+    # Allow gps/ geopoint
+    # for backward compatibility
+    if qstn_type == 'geopoint' or gps:
         parts = value.split(' ')
         gps_xpaths = \
             DataDictionary.get_additional_geopoint_xpaths(
