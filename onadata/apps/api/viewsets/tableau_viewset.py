@@ -1,17 +1,20 @@
 import re
 from typing import Dict
+
 from rest_framework import status
 from collections import defaultdict
-from onadata.libs.data import parse_int
 from rest_framework.decorators import action
 from rest_framework.response import Response
+
+from onadata.libs.data import parse_int
+from onadata.libs.renderers.renderers import pairing
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.api.viewsets.open_data_viewset import OpenDataViewSet
 from onadata.libs.serializers.data_serializer import TableauDataSerializer
 from onadata.libs.utils.common_tags import (
-    MULTIPLE_SELECT_TYPE, REPEAT_SELECT_TYPE)
+    ID, MULTIPLE_SELECT_TYPE, REPEAT_SELECT_TYPE)
 
 
 def unpack_data_per_qstn_type(key: str, value: str, qstn_type: str) -> Dict:
@@ -39,11 +42,17 @@ def unpack_data_per_qstn_type(key: str, value: str, qstn_type: str) -> Dict:
 
 
 def unpack_repeat_data(
-        data: list, xform, key: str = None, parent: str = None) -> Dict:
+        data: list, xform, key: str = None, parent: str = None,
+        parent_id: int = None) -> Dict:
     ret = defaultdict(list)
     repeat_dict_key = None
-    for repeat in data:
+
+    for idx, repeat in enumerate(data, start=1):
         repeat_data = {}
+        repeat_id = None
+        if parent_id:
+            repeat_id = int(pairing(parent_id, idx))
+            repeat_data['_id'] = repeat_id
         for k, v in repeat.items():
             qstn_type = xform.get_element(k).type
             k = k.split('/')
@@ -51,14 +60,26 @@ def unpack_repeat_data(
                 nested_repeat_key = ''.join(k[-1])
                 parent_key = key or ''.join(k[:1])
                 data = unpack_repeat_data(
-                    v, xform, key=nested_repeat_key, parent=parent_key)
-                ret.update(data)
+                    v, xform, key=nested_repeat_key, parent=parent_key,
+                    parent_id=repeat_id)
+
+                for k, v in data.items():
+                    if isinstance(v, list):
+                        value = ret.get(k) or []
+                        value.extend(v)
+                        ret.update({k: value})
+                    else:
+                        ret.update({k: v})
             else:
                 repeat_dict_key = key or ''.join(k[:1])
                 k = ''.join(k[-1])
                 repeat_data.update(unpack_data_per_qstn_type(k, v, qstn_type))
                 if parent and not repeat_data.get('__parent_table'):
                     repeat_data.update({'__parent_table': parent})
+                if parent_id and not repeat_data.get('__parent_id'):
+                    repeat_data.update({'__parent_id': parent_id})
+        if not isinstance(ret.get(repeat_dict_key), list):
+            ret[repeat_dict_key] = []
         ret[repeat_dict_key].append(repeat_data)
     return ret
 
@@ -76,7 +97,7 @@ def process_tableau_data(data, xform):
                 else:
                     if qstn_type == REPEAT_SELECT_TYPE:
                         flat_dict.update(unpack_repeat_data(
-                            value, xform, parent='data'))
+                            value, xform, parent='data', parent_id=row.get(ID)))
                     else:
                         flat_dict.update(unpack_data_per_qstn_type(
                             key, value, qstn_type=qstn_type))
