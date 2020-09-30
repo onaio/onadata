@@ -1,4 +1,5 @@
 import re
+from typing import Dict
 from rest_framework import status
 from collections import defaultdict
 from rest_framework.decorators import action
@@ -16,7 +17,7 @@ from onadata.libs.utils.common_tags import (
     MULTIPLE_SELECT_TYPE)
 
 
-def unpack_repeat_data(data: list, key: str = None):
+def unpack_repeat_data(data: list, key: str = None) -> Dict:
     ret = defaultdict(list)
     repeat_dict_key = None
     for repeat in data:
@@ -26,7 +27,7 @@ def unpack_repeat_data(data: list, key: str = None):
             if isinstance(v, list):
                 nested_repeat_key = ''.join(k[-1])
                 data = unpack_repeat_data(v, key=nested_repeat_key)
-                ret[nested_repeat_key] = data
+                ret.update(data)
             else:
                 repeat_dict_key = key or ''.join(k[:1])
                 k = ''.join(k[-1])
