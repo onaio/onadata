@@ -171,8 +171,7 @@ class TableauViewSet(OpenDataViewSet):
                         child.split('/')[repeat_count:])
                     if not schemas[table_name].get('connection_name'):
                         schemas[table_name]['connection_name'] =\
-                            f"{xform.project_name}_\
-                                {xform.id_string}_{table_name}"
+                            f"{xform.project_id}_{xform.id_string}_{table_name}"
                     if not schemas[table_name].get('table_alias'):
                         schemas[table_name]['table_alias'] =\
                             f"{table_name}"
@@ -181,8 +180,7 @@ class TableauViewSet(OpenDataViewSet):
                         schemas['data']['headers'] = []
                     if not schemas['data'].get('connection_name'):
                         schemas['data']['connection_name'] =\
-                            f"{xform.project_name}_\
-                                {xform.id_string}"
+                            f"{xform.project_id}_{xform.id_string}"
                     if not schemas['data'].get('table_alias'):
                         schemas['data']['table_alias'] = f"data"
 

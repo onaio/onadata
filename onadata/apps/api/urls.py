@@ -134,7 +134,7 @@ router.register(r'messaging', MessagingViewSet, basename="messaging")
 router.register(r'metadata', MetaDataViewSet, basename='metadata')
 router.register(r'notes', NoteViewSet)
 router.register(r'open-data', OpenDataViewSet, basename='open-data')
-router.register(r'open-data/v2', TableauViewSet, basename='open-data-v2')
+router.register(r'open-data-v2', TableauViewSet, basename='open-data-v2')
 router.register(r'orgs', OrganizationProfileViewSet)
 router.register(r'osm', OsmViewSet, basename='osm')
 router.register(
