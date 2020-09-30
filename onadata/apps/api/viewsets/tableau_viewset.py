@@ -16,6 +16,25 @@ from onadata.libs.utils.common_tags import (
     MULTIPLE_SELECT_TYPE)
 
 
+def unpack_repeat_data(data: list, key: str = None):
+    ret = defaultdict(list)
+    repeat_dict_key = None
+    for repeat in data:
+        repeat_data = {}
+        for k, v in repeat.items():
+            k = k.split('/')
+            if isinstance(v, list):
+                nested_repeat_key = ''.join(k[-1])
+                data = unpack_repeat_data(v, key=nested_repeat_key)
+                ret[nested_repeat_key] = data
+            else:
+                repeat_dict_key = key or ''.join(k[:1])
+                k = ''.join(k[-1])
+                repeat_data.update({k: v})
+        ret[repeat_dict_key].append(repeat_data)
+    return ret
+
+
 def process_tableau_data(data, xform=None):
     result = []
     if data:
@@ -24,17 +43,7 @@ def process_tableau_data(data, xform=None):
             for (key, value) in row.items():
                 if isinstance(value, list) and key not in [
                         ATTACHMENTS, NOTES, GEOLOCATION]:
-                    for nested_row in value:
-                        for k, v in nested_row.items():
-                            k = k.split('/')
-                            if isinstance(v, str):
-                                repeat_dict_key = ''.join(k[:1])
-                                k = ''.join(k[1:])
-                                if not flat_dict.get(k):
-                                    flat_dict[repeat_dict_key].update({k: v})
-                            else:
-                                k = ''.join(k[1:])
-                                flat_dict[k] = v
+                    flat_dict.update(unpack_repeat_data(value))
                 else:
                     try:
                         qstn_type = xform.get_element(key).type
