@@ -2,27 +2,28 @@ import re
 from typing import Dict
 from rest_framework import status
 from collections import defaultdict
+from onadata.libs.data import parse_int
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from onadata.libs.data import parse_int
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.api.viewsets.open_data_viewset import OpenDataViewSet
 from onadata.libs.serializers.data_serializer import TableauDataSerializer
-from onadata.libs.utils.common_tags import (MULTIPLE_SELECT_TYPE, REPEAT_SELECT_TYPE)
+from onadata.libs.utils.common_tags import (
+    MULTIPLE_SELECT_TYPE, REPEAT_SELECT_TYPE)
 
 
-def unpack_data_per_qstn_type(key: str, value: str, qstn_type: str):
+def unpack_data_per_qstn_type(key: str, value: str, qstn_type: str) -> Dict:
     data = defaultdict(dict)
     if qstn_type == MULTIPLE_SELECT_TYPE:
         choices = value.split(" ")
         for choice in choices:
             xpaths = f'{key}/{choice}'
             data[xpaths] = choice
-    # Allow gps/ geopoint
+    # Allow gps/ geopoint qstn type
     # for backward compatibility
-    if qstn_type == 'geopoint':
+    elif qstn_type == 'geopoint':
         parts = value.split(' ')
         gps_xpaths = \
             DataDictionary.get_additional_geopoint_xpaths(
