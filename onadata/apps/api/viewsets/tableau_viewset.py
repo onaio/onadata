@@ -97,7 +97,8 @@ def process_tableau_data(data, xform):
                 else:
                     if qstn_type == REPEAT_SELECT_TYPE:
                         flat_dict.update(unpack_repeat_data(
-                            value, xform, parent='data', parent_id=row.get(ID)))
+                            value, xform, parent='data',
+                            parent_id=row.get(ID)))
                     else:
                         flat_dict.update(unpack_data_per_qstn_type(
                             key, value, qstn_type=qstn_type))
@@ -168,13 +169,13 @@ class TableauViewSet(OpenDataViewSet):
                     if not schemas[table_name].get('headers'):
                         schemas[table_name]['headers'] = []
                     schemas[table_name]['headers'].append(
-                        child.split('/')[repeat_count:])
+                        child.split('/')[repeat_count])
                     if not schemas[table_name].get('connection_name'):
-                        schemas[table_name]['connection_name'] =\
-                            f"{xform.project_id}_{xform.id_string}_{table_name}"
+                        schemas[table_name]['connection_name'] = (
+                            f"{xform.project_id}_"
+                            f"{xform.id_string}_{table_name}")
                     if not schemas[table_name].get('table_alias'):
-                        schemas[table_name]['table_alias'] =\
-                            f"{table_name}"
+                        schemas[table_name]['table_alias'] = table_name
                 else:
                     if not schemas['data'].get('headers'):
                         schemas['data']['headers'] = []
@@ -182,7 +183,7 @@ class TableauViewSet(OpenDataViewSet):
                         schemas['data']['connection_name'] =\
                             f"{xform.project_id}_{xform.id_string}"
                     if not schemas['data'].get('table_alias'):
-                        schemas['data']['table_alias'] = f"data"
+                        schemas['data']['table_alias'] = "data"
 
                     # No need to split the repeats down
                     schemas['data']['headers'].append(child)
