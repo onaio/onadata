@@ -10,11 +10,7 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.api.viewsets.open_data_viewset import OpenDataViewSet
 from onadata.libs.serializers.data_serializer import TableauDataSerializer
-from onadata.libs.utils.common_tags import (
-    ATTACHMENTS,
-    NOTES,
-    GEOLOCATION,
-    MULTIPLE_SELECT_TYPE, REPEAT_SELECT_TYPE)
+from onadata.libs.utils.common_tags import (MULTIPLE_SELECT_TYPE, REPEAT_SELECT_TYPE)
 
 
 def unpack_data_per_qstn_type(key: str, value: str, qstn_type: str):
