@@ -160,6 +160,7 @@ class TableauViewSet(OpenDataViewSet):
             headers = xform.get_headers(repeat_iterations=1)
             schemas = defaultdict(dict)
 
+            repeat_parent_fields = ['__parent_id', '__parent_table']
             for child in headers:
                 # Use regex to identify number of repeats
                 repeat_count = len(re.findall(r"\[+\d+\]", child))
@@ -168,8 +169,10 @@ class TableauViewSet(OpenDataViewSet):
                     table_name = table_name.replace('[1]', '')
                     if not schemas[table_name].get('headers'):
                         schemas[table_name]['headers'] = []
-                    schemas[table_name]['headers'].append(
-                        child.split('/')[repeat_count])
+                        schemas[table_name]['headers'].extend(
+                            repeat_parent_fields)
+                    schemas[table_name]['headers'].append(child.split(
+                        '/')[repeat_count])
                     if not schemas[table_name].get('connection_name'):
                         schemas[table_name]['connection_name'] = (
                             f"{xform.project_id}_"
@@ -188,7 +191,7 @@ class TableauViewSet(OpenDataViewSet):
                     # No need to split the repeats down
                     schemas['data']['headers'].append(child)
             response_data = [
-                v for k, v in dict(schemas).items()]
+                v for k, v in schemas.items()]
             return Response(data=response_data, status=status.HTTP_200_OK)
 
         return Response(status=status.HTTP_404_NOT_FOUND)
