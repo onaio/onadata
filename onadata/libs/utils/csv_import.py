@@ -246,13 +246,14 @@ def validate_csv_file(csv_file, xform):
     return {'valid': True, 'additional_col': additional_col}
 
 
-def flatten_split_select_multiples(row: Dict[str, Any]) -> dict:
+def flatten_split_select_multiples(row: Dict[str, Any], xform: XForm) -> dict:
     """
     Flattens a select_multiple question that was previously split into
     different choice columns into one column
     """
     for key, value in row.items():
-        if key != "meta" and isinstance(value, dict):
+        qstn = xform.get_element(key)
+        if qstn and qstn.type == MULTIPLE_SELECT_TYPE:
             picked_choices = [
                 k for k, v in value.items()
                 if v in ['1', 'True', 'TRUE'] or v == k]
@@ -359,7 +360,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                     })
 
                 row = flatten_split_select_multiples(
-                    csv_dict_to_nested_dict(row))
+                    csv_dict_to_nested_dict(row), xform=xform)
                 location_data = csv_dict_to_nested_dict(location_data)
                 # Merge location_data into the Row data
                 row = dict_merge(row, location_data)
