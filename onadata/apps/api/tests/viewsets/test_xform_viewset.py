@@ -2053,10 +2053,13 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         safely removed
         """
         form_md = """
-        | survey |
-        |        | type                  | name | label                       |
-        |        | select_multiple moods | mood | How are you feeling today ? |
-        |        | dateTime              | now  | Current time                |
+        | survey |        
+        |        | type                  | name         | label                       |
+        |        | select_multiple moods | mood         | How are you feeling today ? |
+        |        | dateTime              | now          | Current time                |
+        |        | begin group           | demographics | Demographics                |
+        |        | integer               | age          | Enter age                   |
+        |        | end group             |              |                             |
         | choices |
         |         | list_name | name  | label |
         |         | moods     | happy | Happy |
@@ -2087,6 +2090,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         instance_data = xform.instances.first().json
 
         self.assertEqual(instance_data.get('mood'), 'happy')
+        self.assertEqual(instance_data.get('demographics/age'), 20)
 
     @override_settings(CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD=4*100000)
     def test_large_csv_import(self):
