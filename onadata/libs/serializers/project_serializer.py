@@ -22,6 +22,7 @@ from onadata.libs.serializers.dataview_serializer import \
     DataViewMinimalSerializer
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
+from onadata.libs.utils.analytics import track_object_event
 from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE, PROJ_FORMS_CACHE, PROJ_NUM_DATASET_CACHE,
     PROJ_PERM_CACHE, PROJ_SUB_DATE_CACHE, PROJ_TEAM_USERS_CACHE,
@@ -438,6 +439,13 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
         return instance
 
+    @track_object_event(
+        user_field='created_by',
+        properties={
+            'created_by': 'created_by',
+            'project_id': 'pk',
+            'project_name': 'name'}
+    )
     def create(self, validated_data):
         metadata = validated_data.get('metadata', dict())
         if metadata is None:

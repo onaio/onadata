@@ -12,9 +12,14 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils import timezone
 
-from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models import Instance, XForm, Project
+from onadata.apps.main.models import UserProfile
 from onadata.libs.utils.common_tags import (
-    INSTANCE_CREATE_EVENT, INSTANCE_UPDATE_EVENT)
+    INSTANCE_CREATE_EVENT,
+    INSTANCE_UPDATE_EVENT,
+    XFORM_CREATION_EVENT,
+    PROJECT_CREATION_EVENT,
+    USER_CREATION_EVENT)
 from onadata.libs.utils.common_tools import report_exception
 
 
@@ -133,6 +138,12 @@ class track_object_event(object):
                 event_name = INSTANCE_UPDATE_EVENT
             else:
                 event_name = INSTANCE_CREATE_EVENT
+        elif isinstance(self.tracked_obj, XForm) and not event_name:
+            event_name = XFORM_CREATION_EVENT
+        elif isinstance(self.tracked_obj, Project):
+            event_name = PROJECT_CREATION_EVENT
+        elif isinstance(self.tracked_obj, UserProfile):
+            event_name = USER_CREATION_EVENT
         return event_name
 
     def get_event_label(self) -> str:
@@ -155,7 +166,7 @@ class track_object_event(object):
                 event_source = ""
         else:
             event_source = ""
-        tracking_properties.update({'event_source': event_source})
+        tracking_properties.update({'from': event_source})
         return tracking_properties
 
     def _track_object_event(self, obj, request=None) -> None:
@@ -164,12 +175,12 @@ class track_object_event(object):
         event_name = self.get_event_name()
         label = self.get_event_label()
         tracking_properties = self.get_tracking_properties(label=label)
-        if tracking_properties['from'] == 'XML Submissions':
-            # Only introduce an `event_source` field for submissions
-            # created xml. This helps differentiate Enketo and ODK Collect
-            # instances. Otherwise, use the `from` tag in properties object
-            tracking_properties = self.get_request_origin(
-                request, tracking_properties)
+        try:
+            if tracking_properties['from'] == 'XML Submissions':
+                tracking_properties = self.get_request_origin(
+                    request, tracking_properties)
+        except KeyError:
+            pass
         track(
             self.user, event_name,
             properties=tracking_properties, request=request)
