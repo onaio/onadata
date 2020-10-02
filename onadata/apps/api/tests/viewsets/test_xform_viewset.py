@@ -2059,6 +2059,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         |        | dateTime              | now          | Current time                |
         |        | begin group           | demographics | Demographics                |
         |        | integer               | age          | Enter age                   |
+        |        | select_multiple moods | mood_2       | How are you feeling today ? |
         |        | end group             |              |                             |
         | choices |
         |         | list_name | name  | label |
@@ -2090,6 +2091,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         instance_data = xform.instances.first().json
 
         self.assertEqual(instance_data.get('mood'), 'happy')
+        self.assertEqual(instance_data.get('demographics/mood_2'), 'happy')
         self.assertEqual(instance_data.get('demographics/age'), 20)
 
     @override_settings(CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD=4*100000)
