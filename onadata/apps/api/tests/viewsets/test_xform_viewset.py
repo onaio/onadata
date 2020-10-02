@@ -2052,8 +2052,8 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         Test that extra details present in CSV Import are
         safely removed
         """
-        form_md = """
-        | survey |        
+        form_md = """  # noqa
+        | survey |
         |        | type                  | name         | label                       |
         |        | select_multiple moods | mood         | How are you feeling today ? |
         |        | dateTime              | now          | Current time                |
