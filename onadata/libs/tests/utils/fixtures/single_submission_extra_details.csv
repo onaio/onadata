@@ -1,2 +1,2 @@
-mood,mood/happy,mood/sad,mood/meh,now,meta/instanceID,_id,_uuid,_submission_time,_tags,_notes,_version,_duration,_submitted_by,_total_media,_media_count,_media_all_received,_xform_id
-Feeling pretty happy today,1,0,0,2020-07-30T17:00:00.000+03:00,uuid:dc110d37-1d16-4492-8896-8314a3ce5567,52169,dc110d37-1d16-4492-8896-8314a3ce5567,2020-07-30T13:47:54,,,202007301346,,,0,0,True,1826
+mood,mood/happy,mood/sad,mood/meh,demographics/age,demographics/mood_2/happy,demographics/mood_2/sad,demographics/mood_2/meh,now,meta/instanceID,_id,_uuid,_submission_time,_tags,_notes,_version,_duration,_submitted_by,_total_media,_media_count,_media_all_received,_xform_id
+Feeling pretty happy today,1,0,0,20,1,0,0,2020-07-30T17:00:00.000+03:00,uuid:dc110d37-1d16-4492-8896-8314a3ce5567,52169,dc110d37-1d16-4492-8896-8314a3ce5567,2020-07-30T13:47:54,,,202007301346,,,0,0,True,1826

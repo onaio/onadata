@@ -12,7 +12,7 @@ from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
 from io import BytesIO
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 import unicodecsv as ucsv
 import xlrd
@@ -246,17 +246,23 @@ def validate_csv_file(csv_file, xform):
     return {'valid': True, 'additional_col': additional_col}
 
 
-def flatten_split_select_multiples(row: Dict[str, Any]) -> dict:
+def flatten_split_select_multiples(
+        row: Dict[str, Any], select_multiples: List[str]) -> dict:
     """
     Flattens a select_multiple question that was previously split into
     different choice columns into one column
     """
     for key, value in row.items():
-        if key != "meta" and isinstance(value, dict):
+        if key in select_multiples and isinstance(value, dict):
             picked_choices = [
                 k for k, v in value.items()
-                if v in ['1', 'True', 'TRUE'] or v == k]
+                if v in ['1', 'TRUE'] or v == k]
             new_value = ' '.join(picked_choices)
+            row.update({key: new_value})
+        elif isinstance(value, dict):
+            # Handle cases where select_multiples are within a group
+            new_value = flatten_split_select_multiples(
+                value, select_multiples)
             row.update({key: new_value})
     return row
 
@@ -292,6 +298,9 @@ def submit_csv(username, xform, csv_file, overwrite=False):
 
     csv_reader = ucsv.DictReader(csv_file, encoding='utf-8-sig')
     xform_json = json.loads(xform.json)
+    select_multiples = [
+        qstn.name for qstn in
+        xform.get_survey_elements_of_type(MULTIPLE_SELECT_TYPE)]
     ona_uuid = {'formhub': {'uuid': xform.uuid}}
     additions = duplicates = inserts = 0
     rollback_uuids = []
@@ -358,8 +367,10 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                             lambda: '', location_data.get(location_key))
                     })
 
+                nested_dict = csv_dict_to_nested_dict(
+                    row, select_multiples=select_multiples)
                 row = flatten_split_select_multiples(
-                    csv_dict_to_nested_dict(row))
+                    nested_dict, select_multiples=select_multiples)
                 location_data = csv_dict_to_nested_dict(location_data)
                 # Merge location_data into the Row data
                 row = dict_merge(row, location_data)
