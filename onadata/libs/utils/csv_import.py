@@ -253,7 +253,7 @@ def flatten_split_select_multiples(
     different choice columns into one column
     """
     for key, value in row.items():
-        if key in select_multiples:
+        if key in select_multiples and isinstance(value, dict):
             picked_choices = [
                 k for k, v in value.items()
                 if v in ['1', 'TRUE'] or v == k]
