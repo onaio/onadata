@@ -28,8 +28,8 @@ services:
   - postgresql
 
 env:
-  - TESTFOLDER="onadata/libs onadata/apps/main onadata/apps/restservice onadata/apps/sms_support onadata/apps/viewer"
-  - TESTFOLDER="onadata/apps/api onadata/apps/logger"
+  - TESTFOLDER="onadata/libs onadata/apps/main onadata/apps/restservice onadata/apps/sms_support onadata/apps/viewer" COVERAGEFOLDER="onadata/libs,onadata/apps/main,onadata/apps/restservice,onadata/apps/sms_support,onadata/apps/viewer"
+  - TESTFOLDER="onadata/apps/api onadata/apps/logger" COVERAGEFOLDER="onadata/apps/api,onadata/apps/logger"
 
 before_install:
   - export DEBIAN_FRONTEND=noninteractive;
@@ -42,8 +42,10 @@ before_install:
 install:
   - pip install --upgrade pip setuptools
   - pip install -r requirements/base.pip
-  - pip install flake8
+  - pip install flake8 coverage django_coverage_plugin
 script:
-  - python manage.py test $TESTFOLDER --noinput --settings=onadata.settings.travis_test --parallel 4 --verbosity=2
+  - coverage erase
+  - coverage run --source=$COVERAGEFOLDER manage.py test $TESTFOLDER --noinput --settings=onadata.settings.travis_test --parallel --verbosity=2
+  - coverage report
 notifications:
   slack: onaio:snkNXgprD498qQv4DgRREKJF
