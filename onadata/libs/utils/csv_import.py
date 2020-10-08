@@ -16,7 +16,7 @@ from typing import Dict, Any, List
 
 import unicodecsv as ucsv
 import xlrd
-from celery import current_task, task
+from celery import current_task
 from celery.backends.amqp import BacklogLimitExceeded
 from celery.result import AsyncResult
 from dateutil.parser import parse
@@ -31,6 +31,7 @@ from multidb.pinning import use_master
 from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.messaging.constants import XFORM, SUBMISSION_DELETED
 from onadata.apps.messaging.serializers import send_message
+from onadata.celery import app
 from onadata.libs.utils import analytics
 from onadata.libs.utils.async_status import (FAILED, async_status,
                                              celery_state_to_status)
@@ -142,7 +143,7 @@ def dict_pathkeys_to_nested_dicts(dictionary):
     return data
 
 
-@task()
+@app.task()
 def submit_csv_async(username, xform_id, file_path, overwrite=False):
     """Imports CSV data to an existing xform asynchrounously."""
     xform = XForm.objects.get(pk=xform_id)

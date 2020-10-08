@@ -5,10 +5,10 @@ import tempfile
 import zipfile
 from builtins import open
 
-from celery import task
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
 from onadata.apps.logger.xform_fs import XFormInstanceFS
+from onadata.celery import app
 from onadata.libs.utils.logger_tools import create_instance
 
 # odk
@@ -74,7 +74,7 @@ def import_instance(username, xform_path, photos, osm_files, status,
             return 0
 
 
-@task(ignore_result=True)
+@app.task(ignore_result=True)
 def import_instance_async(username, xform_path, photos, osm_files, status):
     import_instance(username, xform_path, photos, osm_files, status, False)
 

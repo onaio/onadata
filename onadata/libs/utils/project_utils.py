@@ -4,11 +4,11 @@ project_utils module - apply project permissions to a form.
 """
 import sys
 
-from celery import task
 from django.conf import settings
 from django.db import IntegrityError
 
 from onadata.apps.logger.models import Project, XForm
+from onadata.celery import app
 from onadata.libs.permissions import (ROLES, OwnerRole,
                                       get_object_users_with_permissions)
 from onadata.libs.utils.common_tags import OWNER_TEAM_NAME
@@ -59,7 +59,7 @@ def set_project_perms_to_xform(xform, project):
 
 
 # pylint: disable=invalid-name
-@task(bind=True, max_retries=3)
+@app.task(bind=True, max_retries=3)
 def set_project_perms_to_xform_async(self, xform_id, project_id):
     """
     Apply project permissions for ``project_id`` to a form ``xform_id`` task.

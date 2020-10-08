@@ -11,7 +11,6 @@ from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
-from celery import task
 from kombu.exceptions import OperationalError
 from requests import ConnectionError
 
@@ -23,6 +22,7 @@ from onadata.libs.utils.export_tools import (generate_attachments_zip_export,
                                              generate_external_export,
                                              generate_kml_export,
                                              generate_osm_export)
+from onadata.celery import app
 
 EXPORT_QUERY_KEY = 'query'
 
@@ -121,7 +121,7 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
     return None
 
 
-@task(track_started=True)
+@app.task(track_started=True)
 def create_xls_export(username, id_string, export_id, **options):
     """
     XLS export task.
@@ -159,7 +159,7 @@ def create_xls_export(username, id_string, export_id, **options):
         return gen_export.id
 
 
-@task(track_started=True)
+@app.task(track_started=True)
 def create_csv_export(username, id_string, export_id, **options):
     """
     CSV export task.
@@ -194,7 +194,7 @@ def create_csv_export(username, id_string, export_id, **options):
         return gen_export.id
 
 
-@task(track_started=True)
+@app.task(track_started=True)
 def create_kml_export(username, id_string, export_id, **options):
     """
     KML export task.
@@ -227,7 +227,7 @@ def create_kml_export(username, id_string, export_id, **options):
         return gen_export.id
 
 
-@task(track_started=True)
+@app.task(track_started=True)
 def create_osm_export(username, id_string, export_id, **options):
     """
     OSM export task.
@@ -261,7 +261,7 @@ def create_osm_export(username, id_string, export_id, **options):
         return gen_export.id
 
 
-@task(track_started=True)
+@app.task(track_started=True)
 def create_zip_export(username, id_string, export_id, **options):
     """
     Attachments zip export task.
@@ -293,7 +293,7 @@ def create_zip_export(username, id_string, export_id, **options):
         return gen_export.id
 
 
-@task(track_started=True)
+@app.task(track_started=True)
 def create_csv_zip_export(username, id_string, export_id, **options):
     """
     CSV zip export task.
@@ -320,7 +320,7 @@ def create_csv_zip_export(username, id_string, export_id, **options):
         return gen_export.id
 
 
-@task(track_started=True)
+@app.task(track_started=True)
 def create_sav_zip_export(username, id_string, export_id, **options):
     """
     SPSS sav export task.
@@ -346,7 +346,7 @@ def create_sav_zip_export(username, id_string, export_id, **options):
         return gen_export.id
 
 
-@task(track_started=True)
+@app.task(track_started=True)
 def create_external_export(username, id_string, export_id, **options):
     """
     XLSReport export task.
@@ -376,7 +376,7 @@ def create_external_export(username, id_string, export_id, **options):
         return gen_export.id
 
 
-@task(track_started=True)
+@app.task(track_started=True)
 def create_google_sheet_export(username, id_string, export_id, **options):
     """
     Google Sheets export task.
@@ -403,7 +403,7 @@ def create_google_sheet_export(username, id_string, export_id, **options):
         return gen_export.id
 
 
-@task(track_started=True)
+@app.task(track_started=True)
 def delete_export(export_id):
     """
     Delete export task with id export_id.
@@ -418,7 +418,7 @@ def delete_export(export_id):
     return False
 
 
-@task(ignore_result=True)
+@app.task(ignore_result=True)
 def mark_expired_pending_exports_as_failed():  # pylint: disable=invalid-name
     """
     Exports that have not completed within a set time should be marked as
@@ -431,7 +431,7 @@ def mark_expired_pending_exports_as_failed():  # pylint: disable=invalid-name
     exports.update(internal_status=Export.FAILED)
 
 
-@task(ignore_result=True)
+@app.task(ignore_result=True)
 def delete_expired_failed_exports():
     """
     Delete old failed exports

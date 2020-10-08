@@ -5,7 +5,6 @@ Instance model class
 import math
 from datetime import datetime
 
-from celery import task
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
@@ -27,6 +26,7 @@ from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH, XForm
 from onadata.apps.logger.xform_instance_parser import (XFormInstanceParser,
                                                        clean_and_parse_xml,
                                                        get_uuid_from_xml)
+from onadata.celery import app
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import (DATAVIEW_COUNT, IS_ORG,
                                             PROJ_NUM_DATASET_CACHE,
@@ -143,7 +143,7 @@ def submission_time():
     return timezone.now()
 
 
-@task
+@app.task
 @transaction.atomic()
 def update_xform_submission_count(instance_id, created):
     if created:
@@ -215,7 +215,7 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
             xform.save()
 
 
-@task
+@app.task
 def save_full_json(instance_id, created):
     """set json data, ensure the primary key is part of the json data"""
     if created:
@@ -228,7 +228,7 @@ def save_full_json(instance_id, created):
             instance.save(update_fields=['json'])
 
 
-@task
+@app.task
 def update_project_date_modified(instance_id, created):
     # update the date modified field of the project which will change
     # the etag value of the projects endpoint

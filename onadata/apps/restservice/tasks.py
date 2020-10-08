@@ -1,9 +1,8 @@
-from celery import task
-
 from onadata.apps.restservice.utils import call_service
+from onadata.celery import app
 
 
-@task()
+@app.task()
 def call_service_async(instance_pk):
     # load the parsed instance
     from onadata.apps.logger.models.instance import Instance

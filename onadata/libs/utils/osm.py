@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import logging
 
-from celery import task
 from django.contrib.gis.geos import (GeometryCollection, LineString, Point,
                                      Polygon)
 from django.contrib.gis.geos.error import GEOSException
@@ -18,6 +17,7 @@ from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.osmdata import OsmData
 from onadata.apps.restservice.signals import trigger_webhook
+from onadata.celery import app
 
 
 def _get_xml_obj(xml):
@@ -140,7 +140,7 @@ def parse_osm(osm_xml, include_osm_id=False):
     return nodes
 
 
-@task()
+@app.task()
 def save_osm_data_async(instance_id):
     """
     Async task for saving OSM data for the specified submission.
