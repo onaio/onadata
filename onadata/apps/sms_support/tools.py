@@ -172,9 +172,6 @@ def check_form_sms_compatibility(form, json_survey=None):
 
     if json_survey is None:
         json_survey = form.get('form_o', {})
-        form_text = u"%s<br />" % form['text']
-    else:
-        form_text = u""
 
     def prep_return(msg, comp=None):
 
@@ -208,7 +205,7 @@ def check_form_sms_compatibility(form, json_survey=None):
 
         return {'type': alert,
                 'text': u"%(msg)s%(outro)s"
-                        % {'intro': form_text, 'msg': msg, 'outro': outro}}
+                        % {'msg': msg, 'outro': outro}}
 
     # first level children. should be groups
     groups = json_survey.get('children', [{}])
