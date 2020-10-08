@@ -29,6 +29,7 @@ certifi==2019.11.28       # via requests
 cffi==1.14.0              # via cryptography
 chardet==3.0.4            # via requests
 click==7.0                # via datapackage, tableschema, tabulator
+coverage==5.3             # via -r requirements/dev.in, django-coverage-plugin
 cryptography==2.8         # via onadata
 datapackage==1.11.1       # via pyfloip
 decorator==4.4.1          # via ipython, traitlets
@@ -37,6 +38,7 @@ dict2xml==1.6.1           # via onadata
 django-activity-stream==0.8.0  # via onadata
 django-celery-results==1.2.0  # via onadata
 django-cors-headers==3.2.1  # via onadata
+django-coverage-plugin==1.8.0  # via -r requirements/dev.in
 django-debug-toolbar==2.2  # via onadata
 django-extensions==2.2.8  # via -r requirements/dev.in
 django-filter==2.2.0      # via onadata
@@ -139,7 +141,7 @@ rsa==4.0                  # via oauth2client
 s3transfer==0.3.3         # via boto3
 savreaderwriter==3.4.2    # via onadata
 simplejson==3.17.0        # via onadata
-six==1.14.0               # via analytics-python, appoptics-metrics, astroid, cryptography, datapackage, dict2xml, django-extensions, django-query-builder, django-templated-email, djangorestframework-csv, isodate, jsonlines, jsonschema, linear-tsv, oauth2client, packaging, pylint, pyrsistent, python-dateutil, python-memcached, requests-mock, tableschema, tabulator, traitlets, unittest2
+six==1.14.0               # via analytics-python, appoptics-metrics, astroid, cryptography, datapackage, dict2xml, django-coverage-plugin, django-extensions, django-query-builder, django-templated-email, djangorestframework-csv, isodate, jsonlines, jsonschema, linear-tsv, oauth2client, packaging, pylint, pyrsistent, python-dateutil, python-memcached, requests-mock, tableschema, tabulator, traitlets, unittest2
 snowballstemmer==2.0.0    # via sphinx
 sphinx==2.4.2             # via onadata
 sphinxcontrib-applehelp==1.0.1  # via sphinx

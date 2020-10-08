@@ -1,0 +1,10 @@
+[run]
+source = ./onadata
+branch = True
+plugins = 
+    django_coverage_plugin
+
+[report]
+fail_under = 95
+show_missing = True
+skip_covered = True

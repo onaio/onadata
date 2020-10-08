@@ -78,3 +78,10 @@ tags
 
 .bash_history
 .inputrc
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
