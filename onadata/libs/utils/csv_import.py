@@ -17,7 +17,7 @@ from typing import Dict, Any, List
 import unicodecsv as ucsv
 import xlrd
 from celery import current_task
-from celery.backends.amqp import BacklogLimitExceeded
+from celery.backends.rpc import BacklogLimitExceeded
 from celery.result import AsyncResult
 from dateutil.parser import parse
 from django.conf import settings
