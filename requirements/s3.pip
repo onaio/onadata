@@ -4,15 +4,14 @@
 #
 #    pip-compile --output-file=requirements/s3.pip requirements/s3.in
 #
-boto3==1.9.92
-botocore==1.12.92         # via boto3, s3transfer
-django-storages==1.7.1
-django==2.2.9             # via django-storages
-docutils==0.14            # via botocore
-jmespath==0.9.3           # via boto3, botocore
-python-dateutil==2.8.0    # via botocore
-pytz==2018.9              # via django
-s3transfer==0.2.0         # via boto3
-six==1.12.0               # via python-dateutil
-sqlparse==0.3.0           # via django
-urllib3==1.24.1           # via botocore
+boto3==1.15.14            # via -r requirements/s3.in
+botocore==1.18.14         # via boto3, s3transfer
+django-storages==1.10.1   # via -r requirements/s3.in
+django==2.2.16            # via -r requirements/s3.in, django-storages
+jmespath==0.10.0          # via boto3, botocore
+python-dateutil==2.8.1    # via botocore
+pytz==2020.1              # via django
+s3transfer==0.3.3         # via boto3
+six==1.15.0               # via python-dateutil
+sqlparse==0.4.1           # via django
+urllib3==1.25.10          # via botocore

@@ -1,2 +1,3 @@
 boto
+django >=2.2,<3
 django-ses

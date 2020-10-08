@@ -1,2 +1,3 @@
 django-storages
+django >=2.2,<3
 boto3
