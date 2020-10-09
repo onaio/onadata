@@ -3,7 +3,10 @@ from datetime import timedelta
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.test import TestCase
+from django.http.request import HttpRequest
 
+from mock import patch, MagicMock
+from oauth2_provider.models import AccessToken
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.test import APIRequestFactory
 
@@ -13,6 +16,7 @@ from onadata.libs.authentication import (
     TempTokenAuthentication,
     TempTokenURLParameterAuthentication,
     check_lockout,
+    MasterReplicaOAuth2Validator
 )
 
 
@@ -143,3 +147,29 @@ class TestLockout(TestCase):
         # passed as a username
         with self.assertRaises(AuthenticationFailed):
             check_lockout(request)
+
+
+class TestMasterReplicaOAuth2Validator(TestCase):
+
+    @patch('onadata.libs.authentication.AccessToken')
+    def test_reads_from_master(self, mock_token_class):
+        def is_valid_mock(*args, **kwargs):
+            return True
+        token = MagicMock()
+        token.is_valid = is_valid_mock
+        token.user = 'bob'
+        token.application = 'bob-test'
+        token.token = 'abc'
+        mock_token_class.DoesNotExist = AccessToken.DoesNotExist
+        mock_token_class.objects.select_related(
+            "application", "user").\
+            get.side_effect = [AccessToken.DoesNotExist, token]
+        req = HttpRequest()
+        self.assertTrue(
+            MasterReplicaOAuth2Validator().validate_bearer_token(
+                token, {}, req))
+        self.assertEqual(
+            mock_token_class.objects.select_related(
+                "application", "user").get.call_count, 2)
+        self.assertEqual(req.access_token, token)
+        self.assertEqual(req.user, token.user)
