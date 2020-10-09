@@ -3,6 +3,71 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.4.2(2020-09-21)
+------------------
+
+- CSV Import: Handle re-importing of select_multiple questions
+  `PR #1852 <https://github.com/onaio/onadata/pull/1852>`_
+  [@DavisRayM]
+- Limit message payload sizes
+  `PR #1893 <https://github.com/onaio/onadata/pull/1893>`_
+  [@DavisRayM]
+- Main API view updates
+  `PR #1900 <https://github.com/onaio/onadata/pull/1900>`_
+  [@DavisRayM]
+
+v2.4.1(2020-09-03)
+------------------
+
+- Fix enketo edit link generation
+  `PR #1887 <https://github.com/onaio/onadata/pull/1887>`_
+  [@DavisRayM]
+
+v2.4.0(2020-09-01)
+------------------
+
+- Initial support for tracking submissions with Segment
+  `PR #1872 <https://github.com/onaio/onadata/pull/1872>`_
+  [@DavisRayM]
+- Add caching to the organization profile viewset
+  `PR #1876 <https://github.com/onaio/onadata/pull/1876>`_
+  [@FrankApiyo]
+- Include support for repeat groups in the Tableau-Onadata integration
+  `PR #1845 <https://github.com/onaio/onadata/pull/1845>`_
+  [@WinnyTroy]
+- Enketo intergration updates
+  `PR #1857 <https://github.com/onaio/onadata/pull/1845>`_
+  [@WinnyTroy]
+- Unpack GPS data into separate columns for altitude, precision, latitude and longitude
+  `PR #1880 <https://github.com/onaio/onadata/pull/1880>`_
+  [@WinnyTroy]
+
+v2.3.8(2020-08-25)
+------------------
+
+- Fix an issue where project endpoint cache would stay stale on Project Update
+  `PR #1874 <https://github.com/onaio/onadata/pull/1847>`_
+  [@FrankApiyo]
+- Add support for email:password login on the main views
+  `PR #1878 <https://github.com/onaio/onadata/pull/1878>`_
+  [@DavisRayM]
+
+v2.3.7(2020-08-11)
+------------------
+
+- Add a way to elongate `ODKToken` expiry data *
+  `PR #1847 <https://github.com/onaio/onadata/pull/1847>`_
+  [@DavisRayM]
+- Set the correct root node for created submissions
+  `PR #1853 <https://github.com/onaio/onadata/pull/1853>`_
+  [@DavisRayM]
+- Ensure only XForm admins & managers can review submissions
+  `PR #1864 <https://github.com/onaio/onadata/pull/1864>`_
+  [@DavisRayM]
+- Stop duplication of RapidPro submissions on edit
+  `PR #1869 <https://github.com/onaio/onadata/pull/1869>`_
+  [@DavisRayM]
+
 v2.3.6(2020-07-29)
 ------------------
 

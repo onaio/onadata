@@ -3,7 +3,6 @@ import os
 import re
 from tempfile import NamedTemporaryFile
 
-import requests
 from builtins import open
 from django.conf import settings
 from django.contrib.auth import authenticate
@@ -11,11 +10,12 @@ from django.contrib.auth.models import Permission, User
 from django.test import TestCase
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
-from httmock import HTTMock, urlmatch
+from httmock import HTTMock
 from pyxform.tests_v1.pyxform_test_case import PyxformMarkdown
 from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.models import OrganizationProfile, Team
+from onadata.apps.api.tests.mocked_data import enketo_urls_mock
 from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
 from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import \
@@ -33,26 +33,6 @@ from onadata.apps.viewer.models import DataDictionary
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.utils.common_tools import merge_dicts
 from onadata.libs.utils.user_auth import get_user_default_project
-
-
-@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$', path=r'^/api_v1/survey/preview$')
-def enketo_preview_url_mock(url, request):
-    response = requests.Response()
-    response.status_code = 201
-    response._content = \
-        '{\n  "preview_url": "https:\\/\\/enketo.ona.io\\/preview/::YY8M",\n'\
-        '  "code": "201"\n}'
-    return response
-
-
-@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$', path=r'^/api_v1/survey$')
-def enketo_url_mock(url, request):
-    response = requests.Response()
-    response.status_code = 201
-    response._content = \
-        '{\n  "url": "https:\\/\\/enketo.ona.io\\/::YY8M",\n'\
-        '  "code": "200"\n}'
-    return response
 
 
 class TestAbstractViewSet(PyxformMarkdown, TestCase):
@@ -259,7 +239,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
             "transportation", "transportation.xls")
 
-        with HTTMock(enketo_preview_url_mock, enketo_url_mock):
+        with HTTMock(enketo_urls_mock):
             with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.post(
@@ -271,7 +251,6 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
                     'url':
                     'http://testserver/api/v1/forms/%s' % (self.xform.pk)
                 })
-
                 # Input was a private so change to public if project public
                 if public:
                     data['public_data'] = data['public'] = True

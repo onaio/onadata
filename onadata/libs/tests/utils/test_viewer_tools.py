@@ -2,8 +2,6 @@
 """Test onadata.libs.utils.viewer_tools."""
 import os
 
-import requests_mock
-from django.conf import settings
 from django.core.files.base import File
 from django.http import Http404
 from django.test.client import RequestFactory
@@ -13,13 +11,11 @@ from mock import patch
 
 from onadata.apps.logger.models import XForm, Instance, Attachment
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.exceptions import EnketoError
 from onadata.libs.utils.viewer_tools import (create_attachments_zipfile,
                                              export_def_from_filename,
                                              generate_enketo_form_defaults,
                                              get_client_ip, get_form,
-                                             get_form_url,
-                                             get_enketo_single_submit_url)
+                                             get_form_url)
 
 
 class TestViewerTools(TestBase):
@@ -183,52 +179,3 @@ class TestViewerTools(TestBase):
 
         self.assertTrue(rpt_mock.called)
         rpt_mock.assert_called_with(message[0], message[1])
-
-    @override_settings(TESTING_MODE=False, ENKETO_URL='https://enketo.ona.io')
-    @requests_mock.Mocker()
-    def test_get_enketo_single_submit_url(self, mocked):
-        """Test get_single_submit_url.
-
-        Ensures single submit url is being received.
-        """
-        request = RequestFactory().get('/')
-
-        mocked_response = {
-            "single_url": "https://enketo.ona.io/single/::XZqoZ94y",
-            "code": 200
-        }
-
-        enketo_url = settings.ENKETO_URL + "/api/v2/survey/single/once"
-        username = "bob"
-        server_url = get_form_url(
-            request, username, settings.ENKETO_PROTOCOL, True, xform_pk=1)
-
-        url = '{}?server_url={}&form_id={}'.format(
-            enketo_url, server_url, "tag_team")
-        mocked.get(url, json=mocked_response)
-        response = get_enketo_single_submit_url(
-            request, username, id_string="tag_team", xform_pk=1)
-
-        self.assertEqual(
-            response, 'https://enketo.ona.io/single/::XZqoZ94y')
-
-    @override_settings(TESTING_MODE=False, ENKETO_URL='https://enketo.ona.io')
-    @requests_mock.Mocker()
-    def test_get_single_submit_url_error_action(self, mocked):
-        """Test get_single_submit_url to raises EnketoError."""
-        request = RequestFactory().get('/')
-
-        enketo_url = settings.ENKETO_URL + "/api/v2/survey/single/once"
-        username = "Milly"
-        server_url = get_form_url(
-            request, username, settings.ENKETO_PROTOCOL, True, xform_pk=1)
-
-        url = '{}?server_url={}&form_id={}'.format(
-            enketo_url, server_url, "tag_team")
-        mocked.get(url, status_code=401)
-        msg = "There was a problem with your submissionor form."\
-            " Please contact support."
-        self.assertRaisesMessage(
-            EnketoError,
-            msg, get_enketo_single_submit_url,
-            request, username, "tag_team", 1)

@@ -21,6 +21,7 @@ from django.shortcuts import get_object_or_404, render
 from django.template import RequestContext, loader
 from django.urls import reverse
 from django.utils.translation import ugettext as _
+from django.utils.html import conditional_escape
 from django.views.decorators.http import (require_GET, require_http_methods,
                                           require_POST)
 from guardian.shortcuts import assign_perm, remove_perm
@@ -62,8 +63,7 @@ from onadata.libs.utils.user_auth import (add_cors_headers, check_and_set_user,
                                           get_xform_users_with_perms,
                                           has_permission,
                                           helper_auth_helper, set_profile_data)
-from onadata.libs.utils.viewer_tools import (enketo_url,
-                                             get_enketo_preview_url, get_form)
+from onadata.libs.utils.viewer_tools import (get_enketo_urls, get_form)
 
 
 def home(request):
@@ -520,7 +520,7 @@ def api(request, username=None, id_string=None):
 
         cursor = query_data(**args)
     except (ValueError, TypeError) as e:
-        return HttpResponseBadRequest(e.__str__())
+        return HttpResponseBadRequest(conditional_escape(e.__str__()))
 
     try:
         response_text = json_util.dumps([i for i in cursor])
@@ -1384,13 +1384,14 @@ def qrcode(request, username, id_string):
     results = _(u"Unexpected Error occured: No QRCODE generated")
     status = 200
     try:
-        url = enketo_url(formhub_url, id_string)
+        enketo_urls = get_enketo_urls(formhub_url, id_string)
     except Exception as e:
         error_msg = _(u"Error Generating QRCODE: %s" % e)
         results = """<div class="alert alert-error">%s</div>""" % error_msg
         status = 400
     else:
-        if url:
+        if enketo_urls:
+            url = enketo_urls.get("url")
             image = generate_qrcode(url)
             results = """<img class="qrcode" src="%s" alt="%s" />
                     </br><a href="%s" target="_blank">%s</a>""" \
@@ -1412,10 +1413,10 @@ def enketo_preview(request, username, id_string):
         return HttpResponseForbidden(_(u'Not shared.'))
 
     try:
-        enketo_preview_url = get_enketo_preview_url(request,
-                                                    owner.username,
-                                                    xform.id_string,
-                                                    xform_pk=xform.pk)
+        enketo_urls = get_enketo_urls(
+                xform.url, xform.id_string)
+
+        enketo_preview_url = enketo_urls.get('preview_url')
     except EnketoError as e:
         return HttpResponse(e)
 

@@ -49,7 +49,7 @@ def list_to_dict(items, value):
     return result
 
 
-def merge_list_of_dicts(list_of_dicts):
+def merge_list_of_dicts(list_of_dicts, override_keys: list = None):
     """
     Merges a list of dicts to return one dict.
     """
@@ -58,12 +58,30 @@ def merge_list_of_dicts(list_of_dicts):
     for row in list_of_dicts:
         for k, v in row.items():
             if isinstance(v, list):
-                z = merge_list_of_dicts(result[k] + v if k in result else v)
+                z = merge_list_of_dicts(result[k] + v if k in result else v,
+                                        override_keys=override_keys)
                 result[k] = z if isinstance(z, list) else [z]
             else:
                 if k in result:
                     if isinstance(v, dict):
-                        result[k] = merge_list_of_dicts([result[k], v])
+                        try:
+                            result[k] = merge_list_of_dicts(
+                                [result[k], v], override_keys=override_keys)
+                        except AttributeError as e:
+                            # If the key is within the override_keys
+                            # (Is a select_multiple question) We make
+                            # the assumption that the dict values are
+                            # more accurate as they usually mean that
+                            # the select_multiple has been split into
+                            # separate columns for each choice
+                            if override_keys and isinstance(result[k], str)\
+                                    and k in override_keys:
+                                result[k] = {}
+                                result[k] = merge_list_of_dicts(
+                                    [result[k], v],
+                                    override_keys=override_keys)
+                            else:
+                                raise e
                     else:
                         result = [result, row]
                 else:
@@ -99,7 +117,7 @@ def remove_indices_from_dict(obj):
     return result
 
 
-def csv_dict_to_nested_dict(csv_dict):
+def csv_dict_to_nested_dict(csv_dict, select_multiples=None):
     """
     Converts a CSV dict to nested dicts.
     """
@@ -117,7 +135,7 @@ def csv_dict_to_nested_dict(csv_dict):
 
         results.append(result)
 
-    merged_dict = merge_list_of_dicts(results)
+    merged_dict = merge_list_of_dicts(results, select_multiples)
 
     return remove_indices_from_dict(merged_dict)
 

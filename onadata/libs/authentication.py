@@ -16,6 +16,7 @@ from django.utils.translation import ugettext as _
 import jwt
 from django_digest import HttpDigestAuthenticator
 from multidb.pinning import use_master
+from oauth2_provider.models import AccessToken
 from rest_framework import exceptions
 from rest_framework.authentication import (
     BaseAuthentication,
@@ -24,6 +25,8 @@ from rest_framework.authentication import (
 )
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import AuthenticationFailed
+from oauth2_provider.oauth2_validators import OAuth2Validator
+from oauth2_provider.settings import oauth2_settings
 
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.tasks import send_account_lockout_email
@@ -167,7 +170,8 @@ class TempTokenAuthentication(TokenAuthentication):
             if getattr(settings, "SLAVE_DATABASES", []):
                 try:
                     with use_master:
-                        token = self.model.objects.get(key=key)
+                        token = self.model.objects\
+                            .select_related("user").get(key=key)
                 except self.model.DoesNotExist:
                     invalid_token = True
                 else:
@@ -362,3 +366,52 @@ def send_lockout_email(username):
             ],
             countdown=getattr(settings, "LOCKOUT_TIME", 1800) + 60,
         )
+
+
+class MasterReplicaOAuth2Validator(OAuth2Validator):
+    """
+    Custom OAuth2Validator class that takes into account replication lag
+    between Master & Replica databases
+    https://github.com/jazzband/django-oauth-toolkit/blob/3bde632d5722f1f85ffcd8277504955321f00fff/oauth2_provider/oauth2_validators.py#L49
+    """
+    def validate_bearer_token(self, token, scopes, request):
+        if not token:
+            return False
+
+        introspection_url = oauth2_settings.RESOURCE_SERVER_INTROSPECTION_URL
+        introspection_token = oauth2_settings.RESOURCE_SERVER_AUTH_TOKEN
+        introspection_credentials = oauth2_settings.\
+            RESOURCE_SERVER_INTROSPECTION_CREDENTIALS
+
+        try:
+            access_token = AccessToken.objects.select_related(
+                "application", "user").get(token=token)
+        except AccessToken.DoesNotExist:
+            # Try retrieving AccessToken from MasterDB if not available
+            # in Read replica
+            with use_master:
+                try:
+                    access_token = AccessToken.objects.select_related(
+                        "application", "user").get(token=token)
+                except AccessToken.DoesNotExist:
+                    access_token = None
+
+        if not access_token or not access_token.is_valid(scopes):
+            if introspection_url and (
+                    introspection_token or introspection_credentials):
+                access_token = self._get_token_from_authentication_server(
+                    token,
+                    introspection_url,
+                    introspection_token,
+                    introspection_credentials
+                )
+
+        if access_token and access_token.is_valid(scopes):
+            request.client = access_token.application
+            request.user = access_token.user
+            request.scopes = scopes
+            request.access_token = access_token
+            return True
+        else:
+            self._set_oauth2_error_on_request(request, access_token, scopes)
+            return False

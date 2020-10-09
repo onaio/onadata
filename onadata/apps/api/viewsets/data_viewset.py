@@ -59,7 +59,7 @@ from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.utils.common_tools import json_stream
 from onadata.libs.utils.model_tools import queryset_iterator
-from onadata.libs.utils.viewer_tools import get_enketo_edit_url
+from onadata.libs.utils.viewer_tools import get_form_url, get_enketo_urls
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 BaseViewset = get_baseviewset_class()
@@ -261,12 +261,22 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         elif(isinstance(self.object, Instance)):
             if request.user.has_perm("change_xform", self.object.xform):
                 return_url = request.query_params.get('return_url')
+                form_url = get_form_url(
+                    request,
+                    self.object.xform.user.username,
+                    xform_pk=self.object.xform.id)
                 if not return_url:
                     raise ParseError(_(u"return_url not provided."))
 
                 try:
-                    data["url"] = get_enketo_edit_url(
-                        request, self.object, return_url)
+                    data = get_enketo_urls(
+                        form_url,
+                        self.object.xform.id_string,
+                        instance_id=self.object.uuid,
+                        instance_xml=self.object.xml,
+                        return_url=return_url)
+                    if "edit_url" in data:
+                        data["url"] = data.pop("edit_url")
                 except EnketoError as e:
                     raise ParseError(text(e))
             else:

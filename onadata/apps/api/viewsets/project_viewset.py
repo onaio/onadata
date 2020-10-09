@@ -75,6 +75,12 @@ class ProjectViewSet(AuthenticateHeaderMixin,
 
         return super(ProjectViewSet, self).get_queryset()
 
+    def update(self, request, *args, **kwargs):
+        project_id = kwargs.get('pk')
+        response = super(ProjectViewSet, self).update(request, *args, **kwargs)
+        cache.set(f'{PROJ_OWNER_CACHE}{project_id}', response.data)
+        return response
+
     def retrieve(self, request, *args, **kwargs):
         """ Retrieve single project """
         project_id = kwargs.get('pk')
@@ -84,8 +90,6 @@ class ProjectViewSet(AuthenticateHeaderMixin,
         self.object = self.get_object()
         serializer = ProjectSerializer(
             self.object, context={'request': request})
-        cache.set(f'{PROJ_OWNER_CACHE}{self.object.pk}', serializer.data)
-
         return Response(serializer.data)
 
     @action(methods=['POST', 'GET'], detail=True)
@@ -113,9 +117,6 @@ class ProjectViewSet(AuthenticateHeaderMixin,
 
                 if str_to_bool(published_by_formbuilder):
                     MetaData.published_by_formbuilder(survey, 'True')
-
-                # clear project from cache
-                safe_delete(f'{PROJ_OWNER_CACHE}{survey.project.pk}')
 
                 return Response(serializer.data,
                                 status=status.HTTP_201_CREATED)

@@ -45,7 +45,8 @@ from onadata.libs.utils.logger_tools import (
 from onadata.libs.utils.user_auth import (
     HttpResponseNotAuthorized, add_cors_headers, has_edit_permission,
     has_permission, helper_auth_helper)
-from onadata.libs.utils.viewer_tools import enketo_url, get_form, get_form_url
+from onadata.libs.utils.viewer_tools import (
+    get_enketo_urls, get_form, get_form_url)
 
 IO_ERROR_STRINGS = [
     'request data read error', 'error during read(65536) on wsgi.input'
@@ -504,7 +505,8 @@ def enter_data(request, username, id_string):
     form_url = get_form_url(request, username, settings.ENKETO_PROTOCOL)
 
     try:
-        url = enketo_url(form_url, xform.id_string)
+        enketo_urls = get_enketo_urls(form_url, xform.id_string)
+        url = enketo_urls.get('url')
         if not url:
             return HttpResponseRedirect(
                 reverse(
@@ -569,7 +571,7 @@ def edit_data(request, username, id_string, data_id):
     form_url = get_form_url(request, username, settings.ENKETO_PROTOCOL)
 
     try:
-        url = enketo_url(
+        url = get_enketo_urls(
             form_url,
             xform.id_string,
             instance_xml=injected_xml,
@@ -587,6 +589,7 @@ def edit_data(request, username, id_string, data_id):
             fail_silently=True)
     else:
         if url:
+            url = url['edit_url']
             context.enketo = url
             return HttpResponseRedirect(url)
     return HttpResponseRedirect(

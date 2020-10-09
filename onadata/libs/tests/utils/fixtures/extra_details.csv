@@ -1,0 +1,4 @@
+mood,mood/happy,mood/sad,mood/meh,demographics/age,demographics/mood_2/happy,demographics/mood_2/sad,demographics/mood_2/meh,now,meta/instanceID,_id,_uuid,_submission_time,_tags,_notes,_version,_duration,_submitted_by,_total_media,_media_count,_media_all_received,_xform_id
+Feeling pretty happy today,1,0,0,20,1,0,0,2020-07-30T17:00:00.000+03:00,uuid:dc110d37-1d16-4492-8896-8314a3ce5567,52169,dc110d37-1d16-4492-8896-8314a3ce5567,2020-07-30T13:47:54,,,202007301346,,,0,0,True,1826
+Feeling pretty sad because I'm sad,0,0,1,20,1,0,0,2020-07-30T17:00:00.000+03:00,uuid:d24f54ab-34bf-4269-8372-d120efcad612,52170,d24f54ab-34bf-4269-8372-d120efcad612,2020-07-30T13:47:55,,,202007301346,,,0,0,True,1826
+Meh,0,1,0,20,1,0,0,2020-07-30T17:00:00.000+03:00,uuid:14bb6e59-ecb2-4f6d-ae10-e684cf3b7502,52171,14bb6e59-ecb2-4f6d-ae10-e684cf3b7502,2020-07-30T13:48:03,,,202007301346,,,0,0,True,1826

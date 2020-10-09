@@ -7,6 +7,7 @@ import os
 from builtins import str
 from future.utils import iteritems
 from operator import itemgetter
+from collections import OrderedDict
 
 from django.conf import settings
 from django.db.models import Q
@@ -14,6 +15,7 @@ from django.core.cache import cache
 from django.test import override_settings
 from httmock import HTTMock, urlmatch
 from mock import MagicMock, patch
+import dateutil.parser
 import requests
 
 from onadata.apps.api import tools
@@ -24,6 +26,7 @@ from onadata.apps.api.viewsets.organization_profile_viewset import \
     OrganizationProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
+from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Project, XForm
 from onadata.apps.main.models import MetaData
 from onadata.libs import permissions as role
@@ -68,6 +71,10 @@ class TestProjectViewSet(TestAbstractViewSet):
             'get': 'list',
             'post': 'create'
         })
+
+    def tearDown(self):
+        cache.clear()
+        super(TestProjectViewSet, self).tearDown()
 
     @patch('onadata.apps.main.forms.urlopen')
     def test_publish_xlsform_using_url_upload(self, mock_urlopen):
@@ -450,33 +457,56 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
 
-        resultset = MetaData.objects.filter(Q(object_id=self.xform.pk), Q(
-            data_type='enketo_url') | Q(data_type='enketo_preview_url'))
+        resultset = MetaData.objects.filter(
+                Q(object_id=self.xform.pk), Q(data_type='enketo_url') |
+                Q(data_type='enketo_preview_url') |
+                Q(data_type='enketo_single_submit_url'))
         url = resultset.get(data_type='enketo_url')
         preview_url = resultset.get(data_type='enketo_preview_url')
-        form_metadata = sorted([{
-            'id': preview_url.pk,
-            'xform': self.xform.pk,
-            'data_value': u"https://enketo.ona.io/preview/::YY8M",
-            'data_type': u'enketo_preview_url',
-            'data_file': None,
-            'data_file_type': None,
-            'url': 'http://testserver/api/v1/metadata/%s' % preview_url.pk,
-            'file_hash': None,
-            'media_url': None,
-            'date_created': preview_url.date_created
-        }, {
-            'id': url.pk,
-            'data_value': u"https://enketo.ona.io/::YY8M",
-            'xform': self.xform.pk,
-            'data_file': None,
-            'data_type': 'enketo_url',
-            'url': 'http://testserver/api/v1/metadata/%s' % url.pk,
-            'data_file_type': None,
-            'file_hash': None,
-            'media_url': None,
-            'date_created': url.date_created
-        }], key=itemgetter('id'))
+        single_submit_url = resultset.get(
+            data_type='enketo_single_submit_url')
+        form_metadata = sorted([
+                OrderedDict(
+                    [
+                        ('id', url.pk),
+                        ('xform', self.xform.pk),
+                        ('data_value', 'https://enketo.ona.io/::YY8M'),
+                        ('data_type', 'enketo_url'),
+                        ('data_file', None),
+                        ('data_file_type', None),
+                        ('media_url', None),
+                        ('file_hash', None),
+                        ('url', 'http://testserver/api/v1/metadata/%s'
+                                % url.pk),
+                        ('date_created', url.date_created)]),
+                OrderedDict(
+                    [
+                        ('id', preview_url.pk),
+                        ('xform', self.xform.pk),
+                        ('data_value', 'https://enketo.ona.io/preview/::YY8M'),
+                        ('data_type', 'enketo_preview_url'),
+                        ('data_file', None),
+                        ('data_file_type', None),
+                        ('media_url', None),
+                        ('file_hash', None),
+                        ('url', 'http://testserver/api/v1/metadata/%s' %
+                                preview_url.pk),
+                        ('date_created', preview_url.date_created)]),
+                OrderedDict(
+                    [
+                        ('id', single_submit_url.pk),
+                        ('xform', self.xform.pk),
+                        ('data_value',
+                            'http://enketo.ona.io/single/::XZqoZ94y'),
+                        ('data_type', 'enketo_single_submit_url'),
+                        ('data_file', None),
+                        ('data_file_type', None),
+                        ('media_url', None),
+                        ('file_hash', None),
+                        ('url', 'http://testserver/api/v1/metadata/%s' %
+                                single_submit_url.pk),
+                        ('date_created', single_submit_url.date_created)])],
+                        key=itemgetter('id'))
 
         # test metadata content separately
         response_metadata = sorted(
@@ -507,6 +537,13 @@ class TestProjectViewSet(TestAbstractViewSet):
         self._project_create({'name': project_name})
         self.assertTrue(self.project.name == project_name)
 
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=old_project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('forms', list(response.data))
+        old_project_form_count = len(response.data['forms'])
+        old_project_num_datasets = response.data['num_datasets']
+
         project_id = self.project.pk
         post_data = {'formid': formid}
         request = self.factory.post('/', data=post_data, **self.extra)
@@ -520,6 +557,17 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=self.project.pk)
         self.assertIn('forms', list(response.data))
         self.assertEqual(len(response.data['forms']), 1)
+        self.assertEqual(response.data['num_datasets'], 1)
+
+        # Check if form transferred doesn't appear in the old project
+        # details
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=old_project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            len(response.data['forms']), old_project_form_count - 1)
+        self.assertEqual(
+            response.data['num_datasets'], old_project_num_datasets - 1)
 
     def test_project_manager_can_assign_form_to_project(self):
         view = ProjectViewSet.as_view({
@@ -1148,6 +1196,35 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(project.metadata, json_metadata)
+
+    def test_cache_updated_on_project_update(self):
+        view = ProjectViewSet.as_view({
+            'get': 'retrieve',
+            'patch': 'partial_update'
+        })
+        self._project_create()
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(False, response.data.get("public"))
+        cached_project = cache.get(f'{PROJ_OWNER_CACHE}{self.project.pk}')
+        self.assertEqual(cached_project, response.data)
+
+        projectid = self.project.pk
+        data = {'public': True}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = view(request, pk=projectid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(True, response.data.get("public"))
+        cached_project = cache.get(f'{PROJ_OWNER_CACHE}{self.project.pk}')
+        self.assertEqual(cached_project, response.data)
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(True, response.data.get("public"))
+        cached_project = cache.get(f'{PROJ_OWNER_CACHE}{self.project.pk}')
+        self.assertEqual(cached_project, response.data)
 
     def test_project_put_updates(self):
         self._project_create()
@@ -2380,3 +2457,77 @@ class TestProjectViewSet(TestAbstractViewSet):
             ReadOnlyRole.user_has_role(tom_profile.user, self.project))
         self.assertTrue(
             ReadOnlyRole.user_has_role(tom_profile.user, self.xform))
+
+    def test_project_caching(self):
+        """
+        Test project viewset caching always keeps the latest version of
+        the project in cache
+        """
+        view = ProjectViewSet.as_view({
+            'post': 'forms',
+            'get': 'retrieve'
+        })
+        self._publish_xls_form_to_project()
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['forms']), 1)
+        self.assertEqual(
+            response.data['forms'][0]['name'], self.xform.title)
+        self.assertEqual(
+            response.data['forms'][0]['last_submission_time'],
+            self.xform.time_of_last_submission())
+        self.assertEqual(
+            response.data['forms'][0]['num_of_submissions'],
+            self.xform.num_of_submissions
+        )
+        self.assertEqual(response.data['num_datasets'], 1)
+
+        # Test on form detail update data returned from project viewset is
+        # updated
+        form_view = XFormViewSet.as_view({
+            'patch': 'partial_update'
+        })
+        post_data = {'title': 'new_name'}
+        request = self.factory.patch(
+            '/', data=post_data, **self.extra)
+        response = form_view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.xform.refresh_from_db()
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['forms']), 1)
+        self.assertEqual(
+            response.data['forms'][0]['name'], self.xform.title)
+        self.assertEqual(
+            response.data['forms'][0]['last_submission_time'],
+            self.xform.time_of_last_submission())
+        self.assertEqual(
+            response.data['forms'][0]['num_of_submissions'],
+            self.xform.num_of_submissions
+        )
+        self.assertEqual(response.data['num_datasets'], 1)
+
+        # Test that last_submission_time is updated correctly
+        self._make_submissions()
+        self.xform.refresh_from_db()
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['forms']), 1)
+        self.assertEqual(
+            response.data['forms'][0]['name'], self.xform.title)
+        self.assertIsNotNone(response.data['forms'][0]['last_submission_time'])
+        returned_date = dateutil.parser.parse(
+            response.data['forms'][0]['last_submission_time'])
+        self.assertEqual(
+            returned_date,
+            self.xform.time_of_last_submission())
+        self.assertEqual(
+            response.data['forms'][0]['num_of_submissions'],
+            self.xform.num_of_submissions
+        )
+        self.assertEqual(response.data['num_datasets'], 1)

@@ -380,7 +380,6 @@ class TestOpenData(TestBase):
             'children_3__childs_name',
             'children_4__childs_age',
             'children_4__childs_name',
-            'gps',
             'has_children',
             'meta_instanceID',
             'name',
@@ -435,10 +434,71 @@ class TestOpenData(TestBase):
         self.assertEqual(response.status_code, 200)
         # cast generator response to list for easy manipulation
         row_data = streaming_data(response)
-        # Test that Tableau receives this data
+        # Test that Tableau receives group data
         self.assertEqual(
             row_data[0]['children_1__childs_name'],
             'Tom')
         self.assertEqual(
             row_data[0]['children_2__childs_age'],
             5)
+        # Test that gps data is unpacked for Tableau appropriately.
+        self.assertEqual(
+            row_data[0]['_gps_latitude'],
+            '-1.2625621')
+        self.assertEqual(
+            row_data[0]['_gps_longitude'],
+            '36.7921711')
+
+    def test_tableau_get_nested_repeat_group_data(self):
+        """
+        Test that data received from nested repeat groups
+        is flattened and the tablau data endpoint
+        returns accurate data for this question type
+        """
+        # Create form with nested repeat groups
+        xls_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../../../main/tests/fixtures/transportation/transportation.xlsx"
+        )
+        self._publish_xls_file_and_set_xform(xls_file_path)
+
+        # Create submission
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../../..", "main", "tests", "fixtures", "transportation",
+            "transportation_w_nested_repeat_groups.xml"
+        )
+        self._make_submission(xml_submission_file_path)
+
+        # Get Tableau UUID from transportation test form
+        self.view = OpenDataViewSet.as_view({
+            'get': 'uuid'
+        })
+
+        _open_data = get_or_create_opendata(self.xform)
+        uuid = _open_data[0].uuid
+        data = {
+            'object_id': self.xform.id,
+            'data_type': 'xform',
+        }
+
+        request = self.factory.get('/', data=data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {'uuid': uuid})
+
+        # Fetch submission data
+        self.view = OpenDataViewSet.as_view({
+            'get': 'data'
+        })
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request, uuid=uuid)
+        self.assertEqual(response.status_code, 200)
+        # cast generator response to list for easy manipulation
+        row_data = streaming_data(response)
+
+        # Confirm nested repeat group data is available in tableau
+        self.assertEqual(
+            row_data[0]['hospital_hiv_medication_person'
+                        '_repeat_1__person_first_name'],
+            'Timburt')

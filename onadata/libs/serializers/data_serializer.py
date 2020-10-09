@@ -17,6 +17,7 @@ from onadata.libs.utils.dict_tools import (dict_lists2strings, dict_paths2dict,
                                            query_list_to_dict,
                                            floip_response_headers_dict)
 from onadata.libs.utils.logger_tools import dict2xform, safe_create_instance
+from onadata.libs.utils.analytics import track_object_event
 
 
 NUM_FLOIP_COLUMNS = 6
@@ -42,11 +43,13 @@ def get_request_and_username(context):
     return (request, username)
 
 
-def create_submission(request, username, data_dict, xform_id):
+def create_submission(
+        request, username, data_dict, xform_id, gen_uuid: bool = False):
     """
     Returns validated data object instances
     """
-    xml_string = dict2xform(data_dict, xform_id)
+    xml_string = dict2xform(
+        data_dict, xform_id, username=username, gen_uuid=gen_uuid)
     xml_file = BytesIO(xml_string.encode('utf-8'))
 
     error, instance = safe_create_instance(username, xml_file, [], None,
@@ -195,6 +198,14 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
 
         return super(SubmissionSerializer, self).validate(attrs)
 
+    @track_object_event(
+        user_field='xform__user',
+        properties={
+            'submitted_by': 'user',
+            'xform_id': 'xform__pk',
+            'organization': 'xform__user__profile__organization'},
+        additional_context={'from': 'XML Submissions'}
+    )
     def create(self, validated_data):
         """
         Returns object instances based on the validated data
@@ -302,6 +313,14 @@ class JSONSubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
 
         return super(JSONSubmissionSerializer, self).validate(attrs)
 
+    @track_object_event(
+        user_field='xform__user',
+        properties={
+            'submitted_by': 'user',
+            'xform_id': 'xform__pk',
+            'organization': 'xform__user__profile__organization'},
+        additional_context={'from': 'JSON Submission'}
+    )
     def create(self, validated_data):
         """
         Returns object instances based on the validated data
@@ -326,6 +345,11 @@ class RapidProSubmissionSerializer(BaseRapidProSubmissionSerializer):
     """
     Rapidpro SubmissionSerializer - handles Rapidpro webhook post.
     """
+    @track_object_event(
+        user_field='xform__user',
+        properties={'submitted_by': 'user', 'xform_id': 'xform__pk'},
+        additional_context={'from': 'RapidPro'}
+    )
     def create(self, validated_data):
         """
         Returns object instances based on the validated data.
@@ -333,7 +357,8 @@ class RapidProSubmissionSerializer(BaseRapidProSubmissionSerializer):
         request, username = get_request_and_username(self.context)
         rapidpro_dict = query_list_to_dict(request.data.get('values'))
         instance = create_submission(request, username, rapidpro_dict,
-                                     validated_data['id_string'])
+                                     validated_data['id_string'],
+                                     gen_uuid=True)
 
         return instance
 
@@ -342,6 +367,11 @@ class RapidProJSONSubmissionSerializer(BaseRapidProSubmissionSerializer):
     """
     Rapidpro SubmissionSerializer - handles RapidPro JSON webhook posts
     """
+    @track_object_event(
+        user_field='xform__user',
+        properties={'submitted_by': 'user', 'xform_id': 'xform__pk'},
+        additional_context={'from': 'RapidPro(JSON)'}
+    )
     def create(self, validated_data):
         """
         Returns object instances based on validated data.
@@ -351,7 +381,8 @@ class RapidProJSONSubmissionSerializer(BaseRapidProSubmissionSerializer):
         instance_data_dict = {
             k: post_data[k].get('value') for k in post_data.keys()}
         instance = create_submission(
-            request, username, instance_data_dict, validated_data['id_string'])
+            request, username, instance_data_dict,
+            validated_data['id_string'], gen_uuid=True)
         return instance
 
 
@@ -359,6 +390,11 @@ class FLOIPListSerializer(serializers.ListSerializer):
     """
     Custom ListSerializer for a FLOIP submission.
     """
+    @track_object_event(
+        user_field='xform__user',
+        properties={'submitted_by': 'user', 'xform_id': 'xform__pk'},
+        additional_context={'from': 'FLOIP'}
+    )
     def create(self, validated_data):
         """
         Returns object instances based on the validated data.

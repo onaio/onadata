@@ -10,6 +10,9 @@ PROJ_SUB_DATE_CACHE = "ps-last_submission_date-"
 PROJ_FORMS_CACHE = "ps-project_forms-"
 PROJ_BASE_FORMS_CACHE = "ps-project_base_forms-"
 PROJ_OWNER_CACHE = "ps-project_owner-"
+project_cache_prefixes = [PROJ_PERM_CACHE, PROJ_NUM_DATASET_CACHE,
+                          PROJ_SUB_DATE_CACHE, PROJ_FORMS_CACHE,
+                          PROJ_BASE_FORMS_CACHE, PROJ_OWNER_CACHE]
 
 # Cache names used in user_profile_serializer
 IS_ORG = "ups-is_org-"
@@ -18,6 +21,7 @@ USER_PROFILE_PREFIX = "user_profile-"
 # Cache names user in xform_serializer
 XFORM_PERMISSIONS_CACHE = "xfs-get_xform_permissions"
 ENKETO_URL_CACHE = "xfs-get_enketo_url"
+ENKETO_SINGLE_SUBMIT_URL_CACHE = "xfs-get_enketosingle_submit__url"
 ENKETO_PREVIEW_URL_CACHE = "xfs-get_enketo_preview_url"
 XFORM_METADATA_CACHE = "xfs-get_xform_metadata"
 XFORM_DATA_VERSIONS = "xfs-get_xform_data_versions"
@@ -27,6 +31,9 @@ DATAVIEW_LAST_SUBMISSION_TIME = "dvs-last_submission_time"
 PROJ_TEAM_USERS_CACHE = "ps-project-team-users"
 XFORM_LINKED_DATAVIEWS = "xfs-linked_dataviews"
 PROJECT_LINKED_DATAVIEWS = "ps-project-linked_dataviews"
+
+# Cache names used in organization profile viewset
+ORG_PROFILE_CACHE = 'org-profile-'
 
 # cache login attempts
 LOCKOUT_USER = "lockout_user-"
@@ -43,3 +50,20 @@ def safe_delete(key):
 def safe_key(key):
     """Return a hashed key."""
     return hashlib.sha256(force_bytes(key)).hexdigest()
+
+
+def reset_project_cache(project, request):
+    """
+    Clears and sets project cache
+    """
+    from onadata.libs.serializers.project_serializer import ProjectSerializer
+
+    # Clear all project cache entries
+    for prefix in project_cache_prefixes:
+        safe_delete(f'{prefix}{project.pk}')
+
+    # Reserialize project and cache value
+    # Note: The ProjectSerializer sets all the other cache entries
+    project_cache_data = ProjectSerializer(
+        project, context={'request': request}).data
+    cache.set(f'{PROJ_OWNER_CACHE}{project.pk}', project_cache_data)

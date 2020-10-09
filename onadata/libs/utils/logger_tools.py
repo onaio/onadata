@@ -47,7 +47,7 @@ from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.common_tags import METADATA_FIELDS
-from onadata.libs.utils.common_tools import report_exception
+from onadata.libs.utils.common_tools import report_exception, get_uuid
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -61,7 +61,8 @@ uuid_regex = re.compile(r'<formhub>\s*<uuid>\s*([^<]+)\s*</uuid>\s*</formhub>',
                         re.DOTALL)
 
 
-def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum):
+def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum,
+                  request=None):
     history = None
     instance = None
     message_verb = SUBMISSION_EDITED
@@ -104,6 +105,7 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum):
         instance = Instance.objects.create(
             xml=xml, user=submitted_by, status=status, xform=xform,
             checksum=checksum)
+
     # send notification on submission creation
     send_message(
         instance_id=instance.id, target_id=instance.xform.id,
@@ -112,10 +114,43 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum):
     return instance
 
 
-def dict2xform(jsform, form_id, root=None):
+def dict2xform(jsform, form_id, root=None, username=None, gen_uuid=False):
+    """
+    Converts a dictionary containing submission data into an XML
+    Submission for the appropriate form.
+
+    :param jsform (dict): A python dictionary object containing the submission
+                          data
+    :param form_id (str or XForm): An XForm object or a string value
+                                   representing the forms id_string
+    :param root (str): An optional string that should be used as the
+                       root nodes name. Defaults to None
+    :param: username (str): An optional string representing a users
+                            username. Used alongside the `form_id` to
+                            locate the XForm object the user is
+                            trying to submit data too. Defaults to None
+    :returns: Returns a string containing the Submission XML
+    :rtype: str
+    """
     if not root:
-        root = form_id
-    return u"<?xml version='1.0' ?><{0} id='{1}'>{2}</{0}>".format(
+        if username:
+            if isinstance(form_id, XForm):
+                root = form_id.survey.name
+            else:
+                form = XForm.objects.filter(
+                    id_string__iexact=form_id,
+                    user__username__iexact=username,
+                    deleted_at__isnull=True).first()
+                root = form.survey.name if form else 'data'
+        else:
+            root = 'data'
+
+    if gen_uuid:
+        jsform['meta'] = {
+            'instanceID': 'uuid:' + get_uuid(hex_only=False)
+        }
+
+    return "<?xml version='1.0' ?><{0} id='{1}'>{2}</{0}>".format(
         root, form_id, dict2xml(jsform))
 
 
@@ -285,12 +320,12 @@ def save_attachments(xform, instance, media_files, remove_deleted_media=False):
 
 
 def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
-                    date_created_override, checksum):
+                    date_created_override, checksum, request=None):
     if not date_created_override:
         date_created_override = get_submission_date_from_xml(xml)
 
     instance = _get_instance(xml, new_uuid, submitted_by, status, xform,
-                             checksum)
+                             checksum, request)
     save_attachments(
         xform,
         instance,
@@ -395,7 +430,8 @@ def create_instance(username,
                 xml = xml.decode('utf-8')
             instance = save_submission(xform, xml, media_files, new_uuid,
                                        submitted_by, status,
-                                       date_created_override, checksum)
+                                       date_created_override, checksum,
+                                       request)
     except IntegrityError:
         instance = get_first_record(Instance.objects.filter(
             Q(checksum=checksum) | Q(uuid=new_uuid),

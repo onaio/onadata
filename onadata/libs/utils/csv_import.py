@@ -12,6 +12,7 @@ from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
 from io import BytesIO
+from typing import Dict, Any, List
 
 import unicodecsv as ucsv
 import xlrd
@@ -30,11 +31,14 @@ from multidb.pinning import use_master
 from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.messaging.constants import XFORM, SUBMISSION_DELETED
 from onadata.apps.messaging.serializers import send_message
+from onadata.libs.utils import analytics
 from onadata.libs.utils.async_status import (FAILED, async_status,
                                              celery_state_to_status)
 from onadata.libs.utils.common_tags import (MULTIPLE_SELECT_TYPE, EXCEL_TRUE,
                                             XLS_DATE_FIELDS,
-                                            XLS_DATETIME_FIELDS, UUID, NA_REP)
+                                            XLS_DATETIME_FIELDS, UUID, NA_REP,
+                                            INSTANCE_CREATE_EVENT,
+                                            INSTANCE_UPDATE_EVENT)
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
 from onadata.libs.utils.logger_tools import (OpenRosaResponse, dict2xml,
@@ -242,6 +246,27 @@ def validate_csv_file(csv_file, xform):
     return {'valid': True, 'additional_col': additional_col}
 
 
+def flatten_split_select_multiples(
+        row: Dict[str, Any], select_multiples: List[str]) -> dict:
+    """
+    Flattens a select_multiple question that was previously split into
+    different choice columns into one column
+    """
+    for key, value in row.items():
+        if key in select_multiples and isinstance(value, dict):
+            picked_choices = [
+                k for k, v in value.items()
+                if v in ['1', 'TRUE'] or v == k]
+            new_value = ' '.join(picked_choices)
+            row.update({key: new_value})
+        elif isinstance(value, dict):
+            # Handle cases where select_multiples are within a group
+            new_value = flatten_split_select_multiples(
+                value, select_multiples)
+            row.update({key: new_value})
+    return row
+
+
 @use_master
 def submit_csv(username, xform, csv_file, overwrite=False):
     """Imports CSV data to an existing form
@@ -273,6 +298,9 @@ def submit_csv(username, xform, csv_file, overwrite=False):
 
     csv_reader = ucsv.DictReader(csv_file, encoding='utf-8-sig')
     xform_json = json.loads(xform.json)
+    select_multiples = [
+        qstn.name for qstn in
+        xform.get_survey_elements_of_type(MULTIPLE_SELECT_TYPE)]
     ona_uuid = {'formhub': {'uuid': xform.uuid}}
     additions = duplicates = inserts = 0
     rollback_uuids = []
@@ -339,7 +367,10 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                             lambda: '', location_data.get(location_key))
                     })
 
-                row = csv_dict_to_nested_dict(row)
+                nested_dict = csv_dict_to_nested_dict(
+                    row, select_multiples=select_multiples)
+                row = flatten_split_select_multiples(
+                    nested_dict, select_multiples=select_multiples)
                 location_data = csv_dict_to_nested_dict(location_data)
                 # Merge location_data into the Row data
                 row = dict_merge(row, location_data)
@@ -429,8 +460,29 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                 errors) if errors else ''
         )
     else:
+        added_submissions = additions - inserts
+        event_by = User.objects.get(username=username)
+        event_name = None
+        tracking_properties = {
+            'xform_id': xform.pk,
+            'submitted_by': event_by,
+            'label': f'csv-import-for-form-{xform.pk}',
+            'from': 'CSV Import',
+        }
+        if added_submissions > 0:
+            tracking_properties['value'] = added_submissions
+            event_name = INSTANCE_CREATE_EVENT
+            analytics.track(
+                event_by, event_name, properties=tracking_properties)
+
+        if inserts > 0:
+            tracking_properties['value'] = inserts
+            event_name = INSTANCE_UPDATE_EVENT
+            analytics.track(
+                event_by, event_name, properties=tracking_properties)
+
         return {
-            'additions': additions - inserts,
+            'additions': added_submissions,
             'duplicates': duplicates,
             'updates': inserts,
             'info': "Additional column(s) excluded from the upload: '{0}'."

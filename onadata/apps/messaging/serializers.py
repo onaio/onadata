@@ -4,6 +4,7 @@ Message serializers
 """
 
 from __future__ import unicode_literals
+from typing import Union
 
 import json
 
@@ -11,6 +12,7 @@ from actstream.actions import action_handler
 from actstream.models import Action
 from actstream.signals import action
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.http import HttpRequest
 from django.utils.translation import ugettext as _
 from rest_framework import exceptions, serializers
@@ -119,27 +121,47 @@ class MessageSerializer(serializers.ModelSerializer):
                     return instance
 
 
-def send_message(instance_id, target_id, target_type, user, message_verb):
+def send_message(
+        instance_id: Union[list, int],
+        target_id: int,
+        target_type: str, user: User, message_verb: str):
     """
     Send a message.
-    :param id: id of instance/form that has changed
+    :param id: A single ID or list of IDs that have been affected by an action
     :param target_id: id of the target_type
     :param target_type: any of these three ['xform', 'project', 'user']
     :param request: http request object
     :return:
     """
+    message_id_limit = getattr(settings, 'NOTIFICATION_ID_LIMIT', 100)
     if user:
         if isinstance(instance_id, int):
             instance_id = [instance_id]
         request = HttpRequest()
         request.user = user
-        message = json.dumps({'id': instance_id})
+
         data = {
-            "message": message,
             "target_id": target_id,
             "target_type": target_type,
             "verb": message_verb
         }
-        message = MessageSerializer(data=data, context={"request": request})
-        if message.is_valid():
-            message.save()
+
+        # If ID is a list and the message limit on the amount of IDs
+        # in one message is passed. Split the ids into
+        # chunks
+        if isinstance(instance_id, list) and\
+                len(instance_id) > message_id_limit:
+            ids = instance_id
+            while len(ids) > 0:
+                data["message"] = json.dumps({'id': ids[:message_id_limit]})
+                message = MessageSerializer(
+                    data=data, context={"request": request})
+                del ids[:message_id_limit]
+                if message.is_valid():
+                    message.save()
+        else:
+            data["message"] = json.dumps({'id': instance_id})
+            message = MessageSerializer(
+                data=data, context={"request": request})
+            if message.is_valid():
+                message.save()

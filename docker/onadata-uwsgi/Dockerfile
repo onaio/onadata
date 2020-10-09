@@ -1,8 +1,15 @@
 FROM ubuntu:18.04
 
+ARG release_version=v2.4.1
+
+# Silence configuration prompts
 ENV DEBIAN_FRONTEND noninteractive
+
 ENV PYTHONUNBUFFERED 1
 
+ENV DJANGO_SETTINGS_MODULE onadata.settings.docker
+
+# Install service dependencies
 RUN apt-get update -q &&\
     apt-get install -y --no-install-recommends software-properties-common=0.96.24.32.14 \
         binutils=2.30-21ubuntu1~18.04.4 \
@@ -14,7 +21,7 @@ RUN apt-get update -q &&\
         python3.6=3.6.9-1~18.04ubuntu1.1 \
         python3.6-dev=3.6.9-1~18.04ubuntu1.1 \
         python3-pip=9.0.1-2.3~ubuntu1.18.04.2 \
-        virtualenv=15.1.0+ds-1.1 \
+    python3-setuptools=39.0.1-2 \
         git=1:2.17.1-1ubuntu0.7 \
         libssl-dev=1.1.1-1ubuntu2.1~18.04.6 \
         libpq-dev=10.14-0ubuntu0.18.04.1 \
@@ -32,27 +39,32 @@ RUN apt-get update -q &&\
         automake=1:1.15.1-3ubuntu2 \
         libtool=2.4.6-2 \
         openjdk-11-jre-headless=11.0.8+10-0ubuntu1~18.04.1 \
-        locales=2.27-3ubuntu1.2 \
-        tmux=2.6-3 && \
+        uwsgi=2.0.15-10.2ubuntu2.1 \
+    locales=2.27-3ubuntu1.2 && \
     rm -rf /var/lib/apt/lists/*
 
+# Generate and set en_US.UTF-8 locale
 RUN locale-gen en_US.UTF-8
 ENV LC_ALL en_US.UTF-8
 ENV LC_CTYPE en_US.UTF-8
 RUN dpkg-reconfigure locales
 
+# Clone Repository
+RUN mkdir -p /srv/onadata
+RUN git clone -b ${release_version} https://github.com/onaio/onadata.git /srv/onadata
+
+COPY uwsgi.ini /uwsgi.ini
+
 RUN useradd -m onadata
-RUN mkdir -p /srv/onadata && chown -R onadata:onadata /srv/onadata
 
-USER onadata
+# Install service requirements
+WORKDIR /srv/onadata
+RUN python3 -m pip install -U pip && \
+    python3 -m pip install --no-cache-dir -r requirements/base.pip
 
-COPY . /srv/onadata
+# Compile API Docs
+RUN make -C docs html
 
-WORKDIR /srv/onadata/
+EXPOSE 8000
 
-ENV DJANGO_SETTINGS_MODULE onadata.settings.docker
-
-# Configure Tmux to use bash shell
-RUN echo "set-option -g default-shell /bin/bash" > ~/.tmux.conf
-
-CMD ["/srv/onadata/docker/docker-entrypoint.sh"]
+CMD ["/usr/local/bin/uwsgi", "--ini", "/uwsgi.ini"]

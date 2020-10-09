@@ -7,9 +7,9 @@ from django.core.exceptions import MultipleObjectsReturned
 from django.core.files.base import ContentFile
 from django.urls import reverse
 from httmock import HTTMock
+from django.test.utils import override_settings
 
-from onadata.apps.api.tests.viewsets.test_xform_viewset import \
-    enketo_preview_url_mock
+from onadata.apps.api.tests.mocked_data import enketo_urls_mock
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.views import download_xlsform, download_jsonform, \
     download_xform, delete_xform
@@ -466,8 +466,9 @@ class TestFormShow(TestBase):
             user=bob, id_string=id_string).count() == 0
         self.assertFalse(form_deleted)
 
+    @override_settings(TESTING_MODE=False)
     def test_enketo_preview(self):
-        with HTTMock(enketo_preview_url_mock):
+        with HTTMock(enketo_urls_mock):
             url = reverse(
                 enketo_preview, kwargs={'username': self.user.username,
                                         'id_string': self.xform.id_string})
@@ -475,7 +476,7 @@ class TestFormShow(TestBase):
             self.assertEqual(response.status_code, 302)
 
     def test_enketo_preview_works_on_shared_forms(self):
-        with HTTMock(enketo_preview_url_mock):
+        with HTTMock(enketo_urls_mock):
             self.xform.shared = True
             self.xform.save()
             url = reverse(
