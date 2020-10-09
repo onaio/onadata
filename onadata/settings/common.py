@@ -219,7 +219,8 @@ OAUTH2_PROVIDER = {
     'SCOPES': {
         'read': 'Read scope',
         'write': 'Write scope',
-        'groups': 'Access to your groups'}
+        'groups': 'Access to your groups'},
+    'OAUTH2_VALIDATOR_CLASS': 'onadata.libs.authentication.MasterReplicaOAuth2Validator'  # noqa
 }
 
 REST_FRAMEWORK = {
