@@ -6,6 +6,9 @@ Collect, Analyze and Share Data!
 .. image:: https://travis-ci.org/onaio/onadata.svg?branch=master
   :target: https://travis-ci.org/onaio/onadata
 
+.. image:: https://app.codacy.com/project/badge/Grade/82647e2b8f0c43f388fa1a789a130ff7
+  :target: https://www.codacy.com/manual/Ona/onadata
+
 About
 -----
 
