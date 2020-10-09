@@ -9,6 +9,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from rest_framework import mixins
+from multidb.pinning import use_master
 
 from onadata.apps.api.models.odk_token import ODKToken
 from onadata.apps.api.models.temp_token import TempToken
@@ -47,11 +48,12 @@ def user_profile_w_token_response(request, status):
         user_profile = cache.get(
             f'{USER_PROFILE_PREFIX}{request.user.username}')
         if not user_profile:
-            user_profile, __ = UserProfile.objects.get_or_create(
-                user=request.user)
-            cache.set(
-                f'{USER_PROFILE_PREFIX}{request.user.username}',
-                user_profile)
+            with use_master:
+                user_profile, _ = UserProfile.objects.get_or_create(
+                    user=request.user)
+                cache.set(
+                    f'{USER_PROFILE_PREFIX}{request.user.username}',
+                    user_profile)
 
     serializer = UserProfileWithTokenSerializer(
         instance=user_profile, context={"request": request})
