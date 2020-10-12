@@ -3,6 +3,19 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.4.3(2020-10-12)
+------------------
+
+- Project Viewset: Caching refactor
+  `PR #1902 <https://github.com/onaio/onadata/pull/1902>`_
+  [@DavisRayM]
+- Ensure only select_multiple questions are flattened into one column
+  `PR #1912 <https://github.com/onaio/onadata/pull/1912>`_
+  [@DavisRayM]
+- Handle replication lag when authenticating with a Bearer Token
+  `PR #1922 <https://github.com/onaio/onadata/pull/1922>`_
+  [@DavisRayM]
+
 v2.4.2(2020-09-21)
 ------------------
 
