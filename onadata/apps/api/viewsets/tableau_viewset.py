@@ -108,6 +108,19 @@ def process_tableau_data(data, xform):
     return result
 
 
+def clean_xform_headers(headers: list) -> list:
+    ret = []
+    for h in headers:
+        if re.search(r"\[+\d+\]", h):
+            repeat_count = len(re.findall(r"\[+\d+\]", h))
+            h = h.split('/')[repeat_count].replace('[1]', '')
+
+        # Replace special character with underscore
+        h = re.sub(r"\W", r"_", h)
+        ret.append(h)
+    return ret
+
+
 class TableauViewSet(OpenDataViewSet):
     flattened_dict = defaultdict(list)
 
@@ -157,7 +170,7 @@ class TableauViewSet(OpenDataViewSet):
         return Response(data)
 
     def flatten_xform_columns(
-            self, json_of_columns_fields, table: str = None):
+            self, json_of_columns_fields, table: str = None):  # noqa
         '''
         Flattens a json of column fields while splitting columns into separate
         table names for each repeat and then sets the result to a class
@@ -176,18 +189,6 @@ class TableauViewSet(OpenDataViewSet):
             # using IGNORED_FIELD_TYPES so that choice values are not included.
             if a.get('children') and a.get('type') not in IGNORED_FIELD_TYPES:
                 self.flatten_xform_columns(a.get('children'), table=table_name)
-
-    def clean_xform_headers(self, headers: list) -> list:
-        ret = []
-        for h in headers:
-            if re.search(r"\[+\d+\]", h):
-                repeat_count = len(re.findall(r"\[+\d+\]", h))
-                h = h.split('/')[repeat_count].replace('[1]', '')
-
-            # Replace special character with underscore
-            h = re.sub(r"\W", r"_", h)
-            ret.append(h)
-        return ret
 
     def get_tableau_column_headers(self):
         """
@@ -218,7 +219,6 @@ class TableauViewSet(OpenDataViewSet):
                         append_to_tableau_column_headers(
                             header, field["type"], table_name)
                         break
-            else:
                 if header == '_id':
                     append_to_tableau_column_headers(header, "int")
                 elif header.startswith('meta'):
@@ -259,7 +259,7 @@ class TableauViewSet(OpenDataViewSet):
             xform_json = json.loads(self.xform.json)
             headers = self.xform.get_headers(repeat_iterations=1)
             self.flatten_xform_columns(xform_json.get('children'))
-            self.xform_headers = self.clean_xform_headers(headers)
+            self.xform_headers = clean_xform_headers(headers)
             column_headers = self.get_tableau_column_headers()
             data = self.get_tableau_table_schemas(column_headers)
             return Response(data=data, status=status.HTTP_200_OK)
