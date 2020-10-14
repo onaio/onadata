@@ -22,10 +22,7 @@ from onadata.libs.utils.common_tags import (
 def unpack_data_per_qstn_type(key: str, value: str, qstn_type: str) -> Dict:
     data = defaultdict(dict)
     if qstn_type == MULTIPLE_SELECT_TYPE:
-        choices = value.split(" ")
-        for choice in choices:
-            xpaths = f'{key}/{choice}'
-            data[xpaths] = choice
+        data[key] = value
     # Allow gps/ geopoint qstn type
     # for backward compatibility
     elif qstn_type == 'geopoint':
@@ -110,14 +107,16 @@ def process_tableau_data(data, xform):
 
 def clean_xform_headers(headers: list) -> list:
     ret = []
-    for h in headers:
-        if re.search(r"\[+\d+\]", h):
-            repeat_count = len(re.findall(r"\[+\d+\]", h))
-            h = h.split('/')[repeat_count].replace('[1]', '')
+    for header in headers:
+        if re.search(r"\[+\d+\]", header):
+            repeat_count = len(re.findall(r"\[+\d+\]", header))
+            header = header.split('/')[repeat_count].replace('[1]', '')
+            if header == 'gps':
+                continue
 
         # Replace special character with underscore
-        h = re.sub(r"\W", r"_", h)
-        ret.append(h)
+        header = re.sub(r"\W", r"_", header)
+        ret.append(header)
     return ret
 
 
@@ -169,8 +168,9 @@ class TableauViewSet(OpenDataViewSet):
 
         return Response(data)
 
+    # pylint: disable=arguments-differ
     def flatten_xform_columns(
-            self, json_of_columns_fields, table: str = None):  # noqa
+            self, json_of_columns_fields, table: str = None):
         '''
         Flattens a json of column fields while splitting columns into separate
         table names for each repeat and then sets the result to a class
@@ -188,6 +188,13 @@ class TableauViewSet(OpenDataViewSet):
 
             # using IGNORED_FIELD_TYPES so that choice values are not included.
             if a.get('children') and a.get('type') not in IGNORED_FIELD_TYPES:
+                if a.get('type') == "group":
+                    for child in a.get('children'):
+                        self.flattened_dict[table_name].append(
+                            {
+                                "name": a.get('name') + f"_{child['name']}",
+                                "type": self.get_tableau_type(child['type'])
+                            })
                 self.flatten_xform_columns(a.get('children'), table=table_name)
 
     def get_tableau_column_headers(self):
@@ -211,6 +218,7 @@ class TableauViewSet(OpenDataViewSet):
         # Remove metadata fields from the column headers
         # Calling set to remove duplicates in group data
         xform_headers = set(remove_metadata_fields(self.xform_headers))
+        gps_parts = []
 
         for header in xform_headers:
             for table_name, fields in self.flattened_dict.items():
@@ -219,10 +227,16 @@ class TableauViewSet(OpenDataViewSet):
                         append_to_tableau_column_headers(
                             header, field["type"], table_name)
                         break
+                    elif 'gps' in field["name"]:
+                        if 'gps' in header:
+                            gps_parts.append({table_name: header})
                 if header == '_id':
                     append_to_tableau_column_headers(header, "int")
                 elif header.startswith('meta'):
                     append_to_tableau_column_headers(header)
+        for item in gps_parts:
+            for table_name, field in item.items():
+                append_to_tableau_column_headers(field, "string", table_name)
 
         # Add repeat parent fields
         for table_name in self.flattened_dict.keys():
