@@ -28,6 +28,7 @@ from kombu.exceptions import OperationalError
 from registration.models import RegistrationProfile
 from rest_framework import exceptions
 from taggit.forms import TagField
+from multidb.pinning import use_master
 
 from onadata.apps.api.models.organization_profile import (
     OrganizationProfile, create_owner_team_and_assign_permissions)
@@ -458,7 +459,11 @@ def publish_project_xform(request, project):
         xform = publish_form(set_form)
 
     if isinstance(xform, XForm):
-        reset_project_cache(xform.project, request)
+        with use_master:
+            # Ensure the cached project is the updated version.
+            # Django lazy loads related objects as such we need to
+            # ensure the project retrieved is up to date.
+            reset_project_cache(xform.project, request)
     return xform
 
 
