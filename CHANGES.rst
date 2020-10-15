@@ -3,6 +3,13 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.4.4(2020-10-15)
+------------------
+
+- Re-set project cache using up-to-date project object
+  `PR #1927 <https://github.com/onaio/onadata/pull/1927>`_
+  [@DavisRayM]
+
 v2.4.3(2020-10-12)
 ------------------
 
