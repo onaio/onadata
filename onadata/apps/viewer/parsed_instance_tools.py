@@ -104,8 +104,8 @@ def get_where_clause(query, form_integer_fields=None,
             if isinstance(query, dict) and '$or' in list(query):
                 or_dict = query.pop('$or')
 
-                for l in or_dict:
-                    for k, v in l.items():
+                for or_query in or_dict:
+                    for k, v in or_query.items():
                         if v is None:
                             or_where.extend([u"json->>'{}' IS NULL".format(k)])
                         else:

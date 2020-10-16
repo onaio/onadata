@@ -52,8 +52,8 @@ YES = 1
 NO = 0
 
 
-def remove_dups_from_list_maintain_order(l):
-    return list(OrderedDict.fromkeys(l))
+def remove_dups_from_list_maintain_order(lst):
+    return list(OrderedDict.fromkeys(lst))
 
 
 def get_prefix_from_xpath(xpath):

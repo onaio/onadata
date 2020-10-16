@@ -8,7 +8,7 @@ import sys
 from datetime import datetime
 
 import httplib2
-from celery.backends.amqp import BacklogLimitExceeded
+from celery.backends.rpc import BacklogLimitExceeded
 from celery.result import AsyncResult
 from django.conf import settings
 from django.http import Http404, HttpResponseRedirect

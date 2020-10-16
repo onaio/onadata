@@ -2,7 +2,6 @@ import os
 import sys
 from builtins import str
 
-from celery import task
 from celery.result import AsyncResult
 from django.conf import settings
 from django.core.files.uploadedfile import TemporaryUploadedFile
@@ -14,6 +13,7 @@ from past.builtins import basestring
 
 from onadata.apps.api import tools
 from onadata.apps.logger.models.xform import XForm
+from onadata.celery import app
 
 
 def recreate_tmp_file(name, path, mime_type):
@@ -23,7 +23,7 @@ def recreate_tmp_file(name, path, mime_type):
     return tmp_file
 
 
-@task(bind=True)
+@app.task(bind=True)
 def publish_xlsform_async(self, user_id, post_data, owner_id, file_data):
     try:
         files = MultiValueDict()
@@ -56,7 +56,7 @@ def publish_xlsform_async(self, user_id, post_data, owner_id, file_data):
         return {u'error': error_message}
 
 
-@task()
+@app.task()
 def delete_xform_async(xform_id, user_id):
     """Soft delete an XForm asynchrounous task"""
     xform = XForm.objects.get(pk=xform_id)
@@ -64,7 +64,7 @@ def delete_xform_async(xform_id, user_id):
     xform.soft_delete(user)
 
 
-@task()
+@app.task()
 def delete_user_async():
     """Delete inactive user accounts"""
     users = User.objects.filter(active=False,
@@ -105,7 +105,7 @@ def send_generic_email(email, message_txt, subject):
     email_message.send()
 
 
-@task()
+@app.task()
 def send_verification_email(email, message_txt, subject):
     """
     Sends a verification email
@@ -113,6 +113,6 @@ def send_verification_email(email, message_txt, subject):
     send_generic_email(email, message_txt, subject)
 
 
-@task()
+@app.task()
 def send_account_lockout_email(email, message_txt, subject):
     send_generic_email(email, message_txt, subject)

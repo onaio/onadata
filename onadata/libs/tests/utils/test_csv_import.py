@@ -8,7 +8,7 @@ from xml.etree.ElementTree import fromstring
 
 import mock
 import unicodecsv as ucsv
-from celery.backends.amqp import BacklogLimitExceeded
+from celery.backends.rpc import BacklogLimitExceeded
 from django.conf import settings
 from mock import patch
 

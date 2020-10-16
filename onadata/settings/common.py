@@ -211,7 +211,7 @@ INSTALLED_APPS = (
     'reversion',
     'actstream',
     'onadata.apps.messaging.apps.MessagingConfig',
-    'django_celery_results',
+    'django_filters',
 )
 
 OAUTH2_PROVIDER = {

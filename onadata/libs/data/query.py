@@ -193,8 +193,8 @@ def _select_key(field, name, xform):
     return result
 
 
-def flatten(l):
-    return [item for sublist in l for item in sublist]
+def flatten(lst):
+    return [item for sublist in lst for item in sublist]
 
 
 def get_date_fields(xform):

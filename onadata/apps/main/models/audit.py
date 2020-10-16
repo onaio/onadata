@@ -74,9 +74,11 @@ class AuditLog(object):
             or_params = []
             if '$or' in list(query):
                 or_dict = query.pop('$or')
-                for l in or_dict:
-                    or_where.extend([u"json->>%s = %s" for i in l.items()])
-                    [or_params.extend(i) for i in l.items()]
+                for or_query in or_dict:
+                    or_where.extend(
+                        [u"json->>%s = %s" for i in or_query.items()])
+                    [  # pylint: disable=expression-not-assigned
+                        or_params.extend(i) for i in or_query.items()]
 
                 or_where = [u"".join([u"(", u" OR ".join(or_where), u")"])]
 

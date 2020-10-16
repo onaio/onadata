@@ -175,8 +175,6 @@ class InstanceFilter(django_filter_filters.FilterSet):
                   'last_edited': date_field_lookups,
                   'media_all_received': ['exact'],
                   'status': ['exact'],
-                  'submitted_by__id': ['exact'],
-                  'submitted_by__username': ['exact'],
                   'survey_type__slug': ['exact'],
                   'user__id': ['exact'],
                   'user__username': ['exact'],

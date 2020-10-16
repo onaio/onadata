@@ -5,7 +5,7 @@ Test api_export_tools module.
 from collections import OrderedDict, defaultdict
 
 import mock
-from celery.backends.amqp import BacklogLimitExceeded
+from celery.backends.rpc import BacklogLimitExceeded
 from django.http import Http404
 from django.test.utils import override_settings
 from kombu.exceptions import OperationalError
