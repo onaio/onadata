@@ -21,7 +21,7 @@ billiard==3.6.3.0         # via celery
 boto3==1.15.17            # via tabulator
 botocore==1.18.17         # via boto3, s3transfer
 cached-property==1.5.2    # via tableschema
-celery==5.0.0             # via onadata
+celery==5.0.1             # via onadata
 certifi==2020.6.20        # via requests
 cffi==1.14.3              # via cryptography
 chardet==3.0.4            # via datapackage, requests, tabulator
