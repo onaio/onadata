@@ -1,7 +1,28 @@
+FROM python:3.6 as intermediate
+
+ENV DEBIAN_FRONTEND noninteractive
+ENV PYTHONUNBUFFERED 1
+
+ARG optional_packages
+# Optional Argument; Used in cases where the optional
+# packages require some sort of authentication i.e Private repositories on github
+ARG ssh_private_key
+
+# Create SSH Key file
+RUN mkdir /root/.ssh/
+RUN echo "${ssh_private_key}" > /root/.ssh/id_rsa && chmod 600 /root/.ssh/id_rsa
+
+# Add github to accepted domains
+RUN touch /root/.ssh/known_hosts
+RUN ssh-keyscan github.com > /root/.ssh/known_hosts
+
+# Install optional requirements
+RUN if [ ! -z "$optional_packages" ]; then pip install ${optional_packages} ; fi
+
 FROM ubuntu:18.04
+COPY --from=intermediate /usr/local/lib/python3.6/site-packages/ /usr/local/lib/python3.6/dist-packages/
 
 ARG release_version=v2.4.1
-ARG optional_packages
 
 # Silence configuration prompts
 ENV DEBIAN_FRONTEND noninteractive
@@ -62,9 +83,6 @@ RUN useradd -m onadata
 WORKDIR /srv/onadata
 RUN python3 -m pip install -U pip && \
     python3 -m pip install --no-cache-dir -r requirements/base.pip
-
-# Install optional requirements
-RUN if [ ! -z "$optional_packages"]; then pip install -e ${optional_packages} ; fi
 
 # Compile API Docs
 RUN make -C docs html
