@@ -3,7 +3,7 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
-v2.4.5(2020-10-21)
+v2.4.5(2020-10-23)
 ------------------
 
 - Update Requirements
