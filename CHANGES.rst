@@ -3,6 +3,13 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.4.5(2020-10-23)
+------------------
+
+- Update Requirements
+  `PR #1905 <https://github.com/onaio/onadata/pull/1905>`_
+  [@DavisRayM]
+
 v2.4.4(2020-10-15)
 ------------------
 
