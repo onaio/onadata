@@ -901,7 +901,9 @@ class TestProjectViewSet(TestAbstractViewSet):
             {'username': bob.username, 'email': bob.email})
         self._org_create()
         self.assertEqual(self.organization.created_by, bob)
-        org_url = f'http://testserver/api/v1/users/{self.organization.user.username}'
+        org_url = (
+            'http://testserver/api/v1/users/'
+            f'{self.organization.user.username}')
         view = OrganizationProfileViewSet.as_view({
             'post': 'members'
         })
