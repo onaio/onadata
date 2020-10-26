@@ -218,7 +218,6 @@ class TableauViewSet(OpenDataViewSet):
         # Remove metadata fields from the column headers
         # Calling set to remove duplicates in group data
         xform_headers = set(remove_metadata_fields(self.xform_headers))
-        gps_parts = []
 
         for header in xform_headers:
             for table_name, fields in self.flattened_dict.items():
@@ -227,16 +226,15 @@ class TableauViewSet(OpenDataViewSet):
                         append_to_tableau_column_headers(
                             header, field["type"], table_name)
                         break
-                    elif 'gps' in field["name"]:
-                        if 'gps' in header:
-                            gps_parts.append({table_name: header})
+                    elif 'gps' in field["name"] and 'gps' in header:
+                        append_to_tableau_column_headers(
+                            header, "string", table_name)
+                        break
+            else:
                 if header == '_id':
                     append_to_tableau_column_headers(header, "int")
                 elif header.startswith('meta'):
                     append_to_tableau_column_headers(header)
-        for item in gps_parts:
-            for table_name, field in item.items():
-                append_to_tableau_column_headers(field, "string", table_name)
 
         # Add repeat parent fields
         for table_name in self.flattened_dict.keys():
