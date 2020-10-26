@@ -16,7 +16,7 @@ from onadata.apps.api.viewsets.open_data_viewset import (
     OpenDataViewSet, IGNORED_FIELD_TYPES, remove_metadata_fields)
 from onadata.libs.serializers.data_serializer import TableauDataSerializer
 from onadata.libs.utils.common_tags import (
-    ID, MULTIPLE_SELECT_TYPE, REPEAT_SELECT_TYPE)
+    ID, MULTIPLE_SELECT_TYPE, REPEAT_SELECT_TYPE, METADATA_FIELDS)
 
 
 def unpack_data_per_qstn_type(key: str, value: str, qstn_type: str) -> Dict:
@@ -92,7 +92,8 @@ def process_tableau_data(data, xform):
                 try:
                     qstn_type = xform.get_element(key).type
                 except AttributeError:
-                    flat_dict[key] = value
+                    if key not in ["formhub/uuid"] + METADATA_FIELDS:
+                        flat_dict[key] = value
                 else:
                     if qstn_type == REPEAT_SELECT_TYPE:
                         flat_dict.update(unpack_repeat_data(
