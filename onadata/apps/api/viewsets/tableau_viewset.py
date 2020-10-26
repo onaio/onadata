@@ -209,12 +209,17 @@ class TableauViewSet(OpenDataViewSet):
             table_name = table or 'data'
             quest_type = question_type or 'string'
 
-            # alias can be updated in the future to question labels
-            tableau_column_headers[table_name].append({
-                'id': header,
-                'dataType': quest_type,
-                'alias': header
-            })
+            # alias can be updated in the future to question labels.
+
+            # Ensure no duplicate headers are added
+            if not any(
+                    column['id'] == header
+                    for column in tableau_column_headers[table_name]):
+                tableau_column_headers[table_name].append({
+                    'id': header,
+                    'dataType': quest_type,
+                    'alias': header
+                })
 
         # Remove metadata fields from the column headers
         # Calling set to remove duplicates in group data
