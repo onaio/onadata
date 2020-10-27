@@ -9,6 +9,8 @@ from django.utils.translation import ugettext_lazy as _
 # These are common variable tags that we'll want to access
 INSTANCE_DOC_NAME = "_name"
 ID = "_id"
+PARENT_TABLE = "__parent_table"
+PARENT_ID = "__parent_id"
 UUID = "_uuid"
 PICTURE = "picture"
 GPS = "location/gps"
