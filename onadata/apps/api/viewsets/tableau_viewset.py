@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Dict, List
+from typing import List
 
 from rest_framework import status
 from collections import defaultdict
@@ -13,95 +13,107 @@ from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.api.viewsets.open_data_viewset import (
-    OpenDataViewSet, IGNORED_FIELD_TYPES, remove_metadata_fields)
+    OpenDataViewSet)
 from onadata.libs.serializers.data_serializer import TableauDataSerializer
 from onadata.libs.utils.common_tags import (
-    ID, MULTIPLE_SELECT_TYPE, REPEAT_SELECT_TYPE, METADATA_FIELDS)
+    ID, MULTIPLE_SELECT_TYPE, REPEAT_SELECT_TYPE, PARENT_TABLE, PARENT_ID)
 
 
-def unpack_data_per_qstn_type(key: str, value: str, qstn_type: str) -> Dict:
-    data = defaultdict(dict)
-    if qstn_type == MULTIPLE_SELECT_TYPE:
-        data[key] = value
-    # Allow gps/ geopoint qstn type
-    # for backward compatibility
-    elif qstn_type == 'geopoint':
-        parts = value.split(' ')
-        gps_xpaths = \
-            DataDictionary.get_additional_geopoint_xpaths(
-                key)
-        gps_parts = dict(
-            [(xpath, None) for xpath in gps_xpaths])
-        if len(parts) == 4:
-            gps_parts = dict(zip(gps_xpaths, parts))
-            data.update(gps_parts)
-    else:
-        data[key] = value
-    return data
+DEFAULT_TABLE_NAME = 'data'
+gps_parts = ['altitude', 'precision', 'longitude', 'latitude']
 
 
-def unpack_repeat_data(
-        data: list, xform, key: str = None, parent: str = None,
-        parent_id: int = None) -> Dict:
-    ret = defaultdict(list)
-    repeat_dict_key = None
-
-    for idx, repeat in enumerate(data, start=1):
-        repeat_data = {}
-        repeat_id = None
-        if parent_id:
-            repeat_id = int(pairing(parent_id, idx))
-            repeat_data['_id'] = repeat_id
-        for k, v in repeat.items():
-            qstn_type = xform.get_element(k).type
-            k = k.split('/')
-            if qstn_type == REPEAT_SELECT_TYPE:
-                nested_repeat_key = ''.join(k[-1])
-                parent_key = key or ''.join(k[:1])
-                data = unpack_repeat_data(
-                    v, xform, key=nested_repeat_key, parent=parent_key,
-                    parent_id=repeat_id)
-
-                for k, v in data.items():
-                    if isinstance(v, list):
-                        value = ret.get(k) or []
-                        value.extend(v)
-                        ret.update({k: value})
-                    else:
-                        ret.update({k: v})
-            else:
-                repeat_dict_key = key or ''.join(k[:1])
-                k = ''.join(k[-1])
-                repeat_data.update(unpack_data_per_qstn_type(k, v, qstn_type))
-                if parent and not repeat_data.get('__parent_table'):
-                    repeat_data.update({'__parent_table': parent})
-                if parent_id and not repeat_data.get('__parent_id'):
-                    repeat_data.update({'__parent_id': parent_id})
-        if not isinstance(ret.get(repeat_dict_key), list):
-            ret[repeat_dict_key] = []
-        ret[repeat_dict_key].append(repeat_data)
-    return ret
-
-
-def process_tableau_data(data, xform):
+def process_tableau_data(
+        data, xform,
+        parent_table: str = None,
+        parent_id: int = None,
+        current_table: str = DEFAULT_TABLE_NAME):
     result = []
     if data:
-        for row in data:
-            flat_dict = defaultdict(dict)
+        for idx, row in enumerate(data, start=1):
+            flat_dict = defaultdict(list)
+            row_id = row.get('_id')
+
+            if not row_id and parent_id:
+                row_id = int(pairing(parent_id, idx))
+                flat_dict[PARENT_ID] = parent_id
+                flat_dict[PARENT_TABLE] = parent_table
+                flat_dict[ID] = row_id
+            else:
+                flat_dict[ID] = row_id
+
             for (key, value) in row.items():
-                try:
-                    qstn_type = xform.get_element(key).type
-                except AttributeError:
-                    if key not in ["formhub/uuid"] + METADATA_FIELDS:
-                        flat_dict[key] = value
-                else:
+                qstn = xform.get_element(key)
+                if qstn:
+                    qstn_type = qstn.get('type')
+                    qstn_name = qstn.get('name')
+
+                    prefix_parts = [
+                        question['name'] for question in qstn.get_lineage()
+                        if question['type'] == 'group'
+                    ]
+                    prefix = "_".join(prefix_parts)
+
                     if qstn_type == REPEAT_SELECT_TYPE:
-                        flat_dict.update(unpack_repeat_data(
-                            value, xform, parent='data',
-                            parent_id=row.get(ID)))
+                        repeat_data = process_tableau_data(
+                            value, xform,
+                            parent_table=current_table,
+                            parent_id=row_id,
+                            current_table=qstn_name)
+                        # Pop any list within the returned repeat data.
+                        # Lists represent a repeat group which should be in a
+                        # separate field.
+                        cleaned_data = []
+                        for data_dict in repeat_data:
+                            remove_keys = []
+                            for k, v in data_dict.items():
+                                if isinstance(v, list):
+                                    remove_keys.append(k)
+                                    flat_dict[k].extend(v)
+                            # pylint: disable=expression-not-assigned
+                            [data_dict.pop(k) for k in remove_keys]
+                            cleaned_data.append(data_dict)
+                        flat_dict[qstn_name] = cleaned_data
+                    elif qstn_type == MULTIPLE_SELECT_TYPE:
+                        picked_choices = value.split(" ")
+                        choice_names = [
+                            question["name"] for question in qstn["children"]]
+                        list_name = qstn.get('list_name')
+                        for choice in choice_names:
+                            qstn_name = f"{list_name}_{choice}"
+
+                            if prefix:
+                                qstn_name = prefix + '_' + qstn_name
+
+                            if choice in picked_choices:
+                                flat_dict[qstn_name] = "TRUE"
+                            else:
+                                flat_dict[qstn_name] = "FALSE"
+                    elif qstn_type == 'geopoint':
+                        value_parts = value.split(' ')
+                        gps_xpaths = \
+                            DataDictionary.get_additional_geopoint_xpaths(
+                                key)
+                        # Clean gps xpaths before assigning values
+                        repeat_names = [
+                            question['name'] for question in qstn.get_lineage()
+                            if question['type'] == 'repeat'
+                        ]
+                        gps_xpath_parts = []
+                        for xpath in gps_xpaths:
+                            xpath = xpath.replace("/", "_")
+                            for repeat in repeat_names:
+                                xpath = xpath.replace(f"_{repeat}", "")
+                            gps_xpath_parts.append((xpath, None))
+
+                        if len(value_parts) == 4:
+                            gps_parts = dict(
+                                zip(dict(gps_xpath_parts), value_parts))
+                            flat_dict.update(gps_parts)
                     else:
-                        flat_dict.update(unpack_data_per_qstn_type(
-                            key, value, qstn_type=qstn_type))
+                        if prefix:
+                            qstn_name = f"{prefix}_{qstn_name}"
+                        flat_dict[qstn_name] = value
             result.append(dict(flat_dict))
     return result
 
@@ -112,18 +124,15 @@ def clean_xform_headers(headers: list) -> list:
         if re.search(r"\[+\d+\]", header):
             repeat_count = len(re.findall(r"\[+\d+\]", header))
             header = header.split('/')[repeat_count].replace('[1]', '')
-            if header == 'gps':
-                continue
 
-        # Replace special character with underscore
-        header = re.sub(r"\W", r"_", header)
-        ret.append(header)
+        if not header.endswith('gps'):
+            # Replace special character with underscore
+            header = re.sub(r"\W", r"_", header)
+            ret.append(header)
     return ret
 
 
 class TableauViewSet(OpenDataViewSet):
-    flattened_dict = defaultdict(list)
-
     @action(methods=['GET'], detail=True)
     def data(self, request, **kwargs):
         self.object = self.get_object()
@@ -171,100 +180,97 @@ class TableauViewSet(OpenDataViewSet):
 
     # pylint: disable=arguments-differ
     def flatten_xform_columns(
-            self, json_of_columns_fields, table: str = None):
+            self, json_of_columns_fields, table: str = None,
+            field_prefix: str = None):
         '''
         Flattens a json of column fields while splitting columns into separate
-        table names for each repeat and then sets the result to a class
-        variable
+        table names for each repeat
         '''
-        for a in json_of_columns_fields:
-            table_name = table or 'data'
-            if a.get('type') != 'repeat':
-                self.flattened_dict[table_name].append(
-                    {
-                        'name': a.get('name'),
-                        'type': self.get_tableau_type(a.get('type'))})
-            else:
-                table_name = a.get('name')
+        ret = defaultdict(list)
+        for field in json_of_columns_fields:
+            table_name = table or DEFAULT_TABLE_NAME
+            prefix = field_prefix or ""
+            field_type = field.get('type')
 
-            # using IGNORED_FIELD_TYPES so that choice values are not included.
-            if a.get('children') and a.get('type') not in IGNORED_FIELD_TYPES:
-                if a.get('type') == "group":
-                    for child in a.get('children'):
-                        self.flattened_dict[table_name].append(
-                            {
-                                "name": a.get('name') + f"_{child['name']}",
-                                "type": self.get_tableau_type(child['type'])
-                            })
-                self.flatten_xform_columns(a.get('children'), table=table_name)
+            if field_type in [REPEAT_SELECT_TYPE, 'group']:
+                if field_type == 'repeat':
+                    table_name = field.get('name')
+                else:
+                    prefix = prefix + f"{field['name']}_"
+
+                columns = self.flatten_xform_columns(
+                    field.get('children'), table=table_name,
+                    field_prefix=prefix)
+                for key in columns.keys():
+                    ret[key].extend(columns[key])
+            elif field_type == MULTIPLE_SELECT_TYPE:
+                for option in field.get('children'):
+                    list_name = field.get('list_name')
+                    option_name = option.get('name')
+                    ret[table_name].append(
+                        {
+                            'name': f'{prefix}{list_name}_{option_name}',
+                            'type': self.get_tableau_type('text')
+                        }
+                    )
+            elif field_type == 'geopoint':
+                for part in gps_parts:
+                    ret[table_name].append({
+                        'name': f'{prefix}_{field["name"]}_{part}',
+                        'type': self.get_tableau_type(field.get('type'))
+                    })
+            else:
+                ret[table_name].append(
+                    {
+                        'name': prefix + field.get('name'),
+                        'type': self.get_tableau_type(field.get('type'))
+                    }
+                )
+        return ret
 
     def get_tableau_column_headers(self):
         """
         Retrieve column headers that are valid in tableau
         """
         tableau_column_headers = defaultdict(list)
-
-        def append_to_tableau_column_headers(
-                header, question_type=None, table=None):
-            table_name = table or 'data'
-            quest_type = question_type or 'string'
-
-            # alias can be updated in the future to question labels.
-
-            # Ensure no duplicate headers are added
-            if not any(
-                    column['id'] == header
-                    for column in tableau_column_headers[table_name]):
-                tableau_column_headers[table_name].append({
-                    'id': header,
-                    'dataType': quest_type,
-                    'alias': header
+        for table, columns in self.flattened_dict.items():
+            # Add ID Fields
+            tableau_column_headers[table].append({
+                'id': ID,
+                'dataType': 'int',
+                'alias': ID
+            })
+            if table != DEFAULT_TABLE_NAME:
+                tableau_column_headers[table].append({
+                    'id': PARENT_ID,
+                    'dataType': 'int',
+                    'alias': PARENT_ID
+                })
+                tableau_column_headers[table].append({
+                    'id': PARENT_TABLE,
+                    'dataType': 'string',
+                    'alias': PARENT_TABLE
                 })
 
-        # Remove metadata fields from the column headers
-        # Calling set to remove duplicates in group data
-        xform_headers = set(remove_metadata_fields(self.xform_headers))
-
-        for header in xform_headers:
-            for table_name, fields in self.flattened_dict.items():
-                for field in fields:
-                    if header == field["name"]:
-                        append_to_tableau_column_headers(
-                            header, field["type"], table_name)
-                        break
-                    elif 'gps' in field["name"] and 'gps' in header:
-                        append_to_tableau_column_headers(
-                            header, "string", table_name)
-                        break
-            else:
-                if header == '_id':
-                    append_to_tableau_column_headers(header, "int")
-                elif header.startswith('meta'):
-                    append_to_tableau_column_headers(header)
-
-        # Add repeat parent fields
-        for table_name in self.flattened_dict.keys():
-            if table_name != 'data':
-                append_to_tableau_column_headers(
-                    "_id", "int", table_name)
-                append_to_tableau_column_headers(
-                    "__parent_id", "int", table_name)
-                append_to_tableau_column_headers(
-                    "__parent_table", table=table_name)
-
+            for column in columns:
+                tableau_column_headers[table].append({
+                    'id': column.get('name'),
+                    'dataType': column.get('type'),
+                    'alias': column.get('name')
+                })
         return tableau_column_headers
 
-    def get_tableau_table_schemas(
-            self, column_headers: dict) -> List[dict]:
+    def get_tableau_table_schemas(self) -> List[dict]:
         ret = []
         project = self.xform.project_id
         id_str = self.xform.id_string
+        column_headers = self.get_tableau_column_headers()
         for table_name, headers in column_headers.items():
             table_schema = {}
             table_schema['table_alias'] = table_name
             table_schema['connection_name'] = f"{project}_{id_str}"
             table_schema['column_headers'] = headers
-            if table_name != 'data':
+            if table_name != DEFAULT_TABLE_NAME:
                 table_schema['connection_name'] += f"_{table_name}"
             ret.append(table_schema)
         return ret
@@ -276,9 +282,9 @@ class TableauViewSet(OpenDataViewSet):
             self.xform = self.object.content_object
             xform_json = json.loads(self.xform.json)
             headers = self.xform.get_headers(repeat_iterations=1)
-            self.flatten_xform_columns(xform_json.get('children'))
+            self.flattened_dict = self.flatten_xform_columns(
+                xform_json.get('children'))
             self.xform_headers = clean_xform_headers(headers)
-            column_headers = self.get_tableau_column_headers()
-            data = self.get_tableau_table_schemas(column_headers)
+            data = self.get_tableau_table_schemas()
             return Response(data=data, status=status.HTTP_200_OK)
         return Response(status=status.HTTP_404_NOT_FOUND)
