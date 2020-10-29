@@ -291,9 +291,9 @@ def check_submission_encryption(xform: XForm, xml: bytes) -> NoReturn:
     if encryption_status != xform.encrypted:
         form_status = "encrypted" if xform.encrypted else "unencrypted"
         submisison_status = "Encrypted" if encryption_status else "Unencrypted"
-        raise InstanceEncryptionError(
+        raise InstanceEncryptionError(_(
             f"{submisison_status} submissions are not"
-            f" allowed for {form_status} forms.")
+            f" allowed for {form_status} forms."))
 
 
 def update_attachment_tracking(instance):
