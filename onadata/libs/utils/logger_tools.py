@@ -6,8 +6,10 @@ from builtins import str as text
 from datetime import datetime
 from hashlib import sha256
 from http.client import BadStatusLine
+from typing import NoReturn
 from wsgiref.util import FileWrapper
 from xml.dom import Node
+import xml.etree.ElementTree as ET
 from xml.parsers.expat import ExpatError
 
 import pytz
@@ -37,9 +39,9 @@ from onadata.apps.logger.models.instance import (
 from onadata.apps.logger.models.xform import XLSFormError
 from onadata.apps.logger.xform_instance_parser import (
     DuplicateInstance, InstanceEmptyError, InstanceInvalidUserError,
-    InstanceMultipleNodeError, NonUniqueFormIdError, clean_and_parse_xml,
-    get_deprecated_uuid_from_xml, get_submission_date_from_xml,
-    get_uuid_from_xml)
+    InstanceMultipleNodeError, InstanceEncryptionError, NonUniqueFormIdError,
+    clean_and_parse_xml, get_deprecated_uuid_from_xml,
+    get_submission_date_from_xml, get_uuid_from_xml)
 from onadata.apps.messaging.constants import XFORM, \
     SUBMISSION_EDITED, SUBMISSION_CREATED
 from onadata.apps.messaging.serializers import send_message
@@ -275,6 +277,25 @@ def check_submission_permissions(request, xform):
               }))
 
 
+def check_submission_encryption(xform: XForm, xml: bytes) -> NoReturn:
+    """
+    Check that the submission is encrypted or unencrypted depending on the
+    encryption status of an XForm.
+
+    The submission is invalid if the XForm's encryption status is different
+    from the submissions
+    """
+    submission_element = ET.fromstring(xml)
+    encryption_status = submission_element.attrib.get('encrypted') == "yes"
+
+    if encryption_status != xform.encrypted:
+        form_status = "encrypted" if xform.encrypted else "unencrypted"
+        submisison_status = "Encrypted" if encryption_status else "Unencrypted"
+        raise InstanceEncryptionError(
+            f"{submisison_status} submissions are not"
+            f" allowed for {form_status} forms.")
+
+
 def update_attachment_tracking(instance):
     """
     Takes an Instance object and updates attachment tracking fields
@@ -382,6 +403,7 @@ def create_instance(username,
     xml = xml_file.read()
     xform = get_xform_from_submission(xml, username, uuid, request=request)
     check_submission_permissions(request, xform)
+    check_submission_encryption(xform, xml)
     checksum = sha256(xml).hexdigest()
 
     new_uuid = get_uuid_from_xml(xml)
@@ -468,6 +490,8 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
     except InstanceEmptyError:
         error = OpenRosaResponseBadRequest(
             _(u"Received empty submission. No instance was created"))
+    except InstanceEncryptionError as e:
+        error = OpenRosaResponseBadRequest(e)
     except (FormInactiveError, FormIsMergedDatasetError) as e:
         error = OpenRosaResponseNotAllowed(text(e))
     except XForm.DoesNotExist:
