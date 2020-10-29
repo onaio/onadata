@@ -491,7 +491,7 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
         error = OpenRosaResponseBadRequest(
             _(u"Received empty submission. No instance was created"))
     except InstanceEncryptionError as e:
-        error = OpenRosaResponseBadRequest(e)
+        error = OpenRosaResponseBadRequest(text(e))
     except (FormInactiveError, FormIsMergedDatasetError) as e:
         error = OpenRosaResponseNotAllowed(text(e))
     except XForm.DoesNotExist:
