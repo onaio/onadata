@@ -482,6 +482,26 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         self.assertEqual(response.status_code, 400)
         self.assertIn(expected_error, str(response.content))
 
+        # Test incorrectly formatted encrypted submission is rejected
+        instance_xml = f"""
+        <data id="{self.xform.id_string}" version="{self.xform.version}" encrypted="yes"
+            xmlns="http://www.opendatakit.org/xforms/encrypted">
+            <orx:meta xmlns:orx="http://openrosa.org/xforms">
+                <orx:instanceID>uuid:6850c987-fcd6-4469-a843-7ce200af00e2</orx:instanceID>
+            </orx:meta>\n<encryptedXmlFile>submission.xml.enc</encryptedXmlFile>
+            <base64EncryptedElementSignature>PfYw8EIFutyhT03rdOf6rT/1FuETsOHbcnIOJdB9qBre7BWGu0k4fRUpv3QdyTil9wCez64MyOXbsHzFyTcazAkBmBPKuqiK7k3dws57rRuJEpmLjOtniQoAuTaXnAlTwp2x6KEvLt9Kqfa8kD8cFvwsRBs8rvkolAl33UAuNjzO7j9h0N94R9syqc6jNR5gGGaG74KlhYvAZnekoPXGb3MjZMDqjCSnYdiPz8iVOUsPBvuitzYIqGdfe1sW8EkQBOp0ACsD31EQ03iWyb8Mg5JSTCdz7T+qdtd0R65EjQ4ZTpDv72/owocteXVV6dCKi564YFXbiwpdkzf80B+QoQ==</base64EncryptedElementSignature>
+        </data>
+        """  # noqa
+        ret = safe_create_instance(
+            self.user.username,
+            BytesIO(instance_xml.strip().encode('utf-8')), [], None, req)
+        response = ret[0]
+        expected_error = (
+            "Encrypted submission incorrectly formatted.")
+        self.assertIsNone(ret[1])
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(expected_error, str(response.content))
+
         form_path = (f"{settings.PROJECT_ROOT}/libs/tests/"
                      "fixtures/tutorial/tutorial.xls")
         self._publish_xls_file_and_set_xform(form_path)
