@@ -40,7 +40,7 @@ from onadata.apps.logger.models.xform import XLSFormError
 from onadata.apps.logger.xform_instance_parser import (
     DuplicateInstance, InstanceEmptyError, InstanceInvalidUserError,
     InstanceMultipleNodeError, InstanceEncryptionError, NonUniqueFormIdError,
-    clean_and_parse_xml, get_deprecated_uuid_from_xml,
+    InstanceFormatError, clean_and_parse_xml, get_deprecated_uuid_from_xml,
     get_submission_date_from_xml, get_uuid_from_xml)
 from onadata.apps.messaging.constants import XFORM, \
     SUBMISSION_EDITED, SUBMISSION_CREATED
@@ -58,6 +58,9 @@ HTTP_OPEN_ROSA_VERSION_HEADER = 'HTTP_X_OPENROSA_VERSION'
 OPEN_ROSA_VERSION = '1.0'
 DEFAULT_CONTENT_TYPE = 'text/xml; charset=utf-8'
 DEFAULT_CONTENT_LENGTH = settings.DEFAULT_CONTENT_LENGTH
+REQUIRED_ENCRYPTED_FILE_ELEMENTS = [
+    "{http://www.opendatakit.org/xforms/encrypted}base64EncryptedKey",
+    "{http://www.opendatakit.org/xforms/encrypted}encryptedXmlFile"]
 
 uuid_regex = re.compile(r'<formhub>\s*<uuid>\s*([^<]+)\s*</uuid>\s*</formhub>',
                         re.DOTALL)
@@ -285,8 +288,20 @@ def check_submission_encryption(xform: XForm, xml: bytes) -> NoReturn:
     The submission is invalid if the XForm's encryption status is different
     from the submissions
     """
+    encryption_status = False
     submission_element = ET.fromstring(xml)
-    encryption_status = submission_element.attrib.get('encrypted') == "yes"
+    encrypted_attrib = submission_element.attrib.get('encrypted')
+    required_encryption_elems = [
+        elem.tag for elem in submission_element
+        if elem.tag in REQUIRED_ENCRYPTED_FILE_ELEMENTS]
+
+    # Check the validity of the submission
+    if encrypted_attrib == "yes" or len(required_encryption_elems) > 1:
+        if (not len(required_encryption_elems) == 2 or
+                not encrypted_attrib == "yes") and xform.encrypted:
+            raise InstanceFormatError(
+                "Encrypted submission incorrectly formatted.")
+        encryption_status = True
 
     if encryption_status != xform.encrypted:
         form_status = "encrypted" if xform.encrypted else "unencrypted"
@@ -491,6 +506,8 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
         error = OpenRosaResponseBadRequest(
             _(u"Received empty submission. No instance was created"))
     except InstanceEncryptionError as e:
+        error = OpenRosaResponseBadRequest(text(e))
+    except InstanceFormatError as e:
         error = OpenRosaResponseBadRequest(text(e))
     except (FormInactiveError, FormIsMergedDatasetError) as e:
         error = OpenRosaResponseNotAllowed(text(e))
