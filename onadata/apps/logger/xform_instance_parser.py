@@ -39,6 +39,10 @@ class InstanceEmptyError(InstanceParseError):
         return _(u'Empty instance')
 
 
+class InstanceFormatError(Exception):
+    pass
+
+
 class InstanceEncryptionError(Exception):
     pass
 
