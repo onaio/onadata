@@ -294,18 +294,20 @@ def check_submission_encryption(xform: XForm, xml: bytes) -> NoReturn:
     required_encryption_elems = [
         elem.tag for elem in submission_element
         if elem.tag in REQUIRED_ENCRYPTED_FILE_ELEMENTS]
+    encryption_elems_num = len(required_encryption_elems)
 
     # Check the validity of the submission
-    if encrypted_attrib == "yes" or len(required_encryption_elems) > 1:
-        if (not len(required_encryption_elems) == 2 or
+    if encrypted_attrib == "yes" or encryption_elems_num > 1:
+        if (not encryption_elems_num == 2 or
                 not encrypted_attrib == "yes") and xform.encrypted:
             raise InstanceFormatError(
                 "Encrypted submission incorrectly formatted.")
         encryption_status = True
 
     if encryption_status != xform.encrypted:
-        form_status = "encrypted" if xform.encrypted else "unencrypted"
-        submisison_status = "Encrypted" if encryption_status else "Unencrypted"
+        form_status = _("encrypted") if xform.encrypted else _("unencrypted")
+        submisison_status = _("Encrypted") if encryption_status else _(
+            "Unencrypted")
         raise InstanceEncryptionError(_(
             f"{submisison_status} submissions are not"
             f" allowed for {form_status} forms."))
