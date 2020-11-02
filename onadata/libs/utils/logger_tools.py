@@ -301,7 +301,7 @@ def check_submission_encryption(xform: XForm, xml: bytes) -> NoReturn:
         if (not encryption_elems_num == 2 or
                 not encrypted_attrib == "yes") and xform.encrypted:
             raise InstanceFormatError(
-                "Encrypted submission incorrectly formatted.")
+                _("Encrypted submission incorrectly formatted."))
         submission_encrypted = True
 
     if xform.encrypted and not submission_encrypted:
