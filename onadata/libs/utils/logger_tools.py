@@ -288,7 +288,7 @@ def check_submission_encryption(xform: XForm, xml: bytes) -> NoReturn:
     The submission is invalid if the XForm's encryption status is different
     from the submissions
     """
-    encryption_status = False
+    submission_encrypted = False
     submission_element = ET.fromstring(xml)
     encrypted_attrib = submission_element.attrib.get('encrypted')
     required_encryption_elems = [
@@ -302,15 +302,11 @@ def check_submission_encryption(xform: XForm, xml: bytes) -> NoReturn:
                 not encrypted_attrib == "yes") and xform.encrypted:
             raise InstanceFormatError(
                 "Encrypted submission incorrectly formatted.")
-        encryption_status = True
+        submission_encrypted = True
 
-    if encryption_status != xform.encrypted:
-        form_status = _("encrypted") if xform.encrypted else _("unencrypted")
-        submisison_status = _("Encrypted") if encryption_status else _(
-            "Unencrypted")
+    if xform.encrypted and not submission_encrypted:
         raise InstanceEncryptionError(_(
-            f"{submisison_status} submissions are not"
-            f" allowed for {form_status} forms."))
+            "Unencrytped submissions are not allowed for encrypted forms."))
 
 
 def update_attachment_tracking(instance):
