@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-05-14 15:57+0000\n"
+"POT-Creation-Date: 2020-11-02 10:46+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,59 +17,151 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: static/js/mapview.js:3
+#: static/js/instance.js:126
+msgid "Change Language:"
+msgstr ""
+
+#: static/js/instance.js:142
+msgid "Record 1 of 6"
+msgstr ""
+
+#: static/js/instance.js:146
+msgid "← Previous"
+msgstr ""
+
+#: static/js/instance.js:146
+msgid "Next →"
+msgstr ""
+
+#: static/js/instance.js:153
+msgid "edit"
+msgstr ""
+
+#: static/js/instance.js:153
+msgid "Delete"
+msgstr ""
+
+#: static/js/instance.js:161
+msgid "Add note to instance"
+msgstr ""
+
+#: static/js/instance.js:164
+msgid "Save note"
+msgstr ""
+
+#: static/js/instance.js:171 static/js/map_embed.js:4 static/js/mapview.js:4
+msgid "Question"
+msgstr ""
+
+#: static/js/instance.js:171 static/js/map_embed.js:5 static/js/mapview.js:5
+msgid "Response"
+msgstr ""
+
+#: static/js/instance.js:240 static/js/instance.js:274
+msgid "BAD REQUEST"
+msgstr ""
+
+#: static/js/instance.js:412
+msgid "Edit note"
+msgstr ""
+
+#: static/js/instance.js:426
+msgid "The requested content was not found."
+msgstr ""
+
+#: static/js/map_embed.js:2 static/js/mapview.js:2
 msgid "Proportion of surveys with response(s): "
 msgstr ""
 
-#: static/js/mapview.js:4
+#: static/js/map_embed.js:3 static/js/mapview.js:3
 msgid ""
 "ERROR: constants not found; please include main/static/js/formManagers.js"
 msgstr ""
 
-#: static/js/mapview.js:5
-msgid "Question"
+#: static/js/map_embed.js:6 static/js/mapview.js:6
+msgid "Hide options without data"
 msgstr ""
 
-#: static/js/mapview.js:6
-msgid "Response"
+#: static/js/map_embed.js:7 static/js/mapview.js:7
+msgid "Display options without data"
 msgstr ""
 
-#: static/js/mapview.js:16
+#: static/js/map_embed.js:23 static/js/mapview.js:23
 msgid "Mapbox Streets"
 msgstr ""
 
-#: static/js/mapview.js:17
+#: static/js/map_embed.js:24 static/js/mapview.js:24
 msgid "MapBox Streets Light"
 msgstr ""
 
-#: static/js/mapview.js:18
+#: static/js/map_embed.js:25 static/js/mapview.js:25
 msgid "MapBox Streets Zenburn"
 msgstr ""
 
-#: static/js/mapview.js:19
-msgid "Natural Earth II"
+#: static/js/map_embed.js:26 static/js/mapview.js:26
+msgid "Cloudless Earth"
 msgstr ""
 
-#: static/js/mapview.js:24
+#: static/js/map_embed.js:30 static/js/mapview.js:31
 msgid "Not Specified"
 msgstr ""
 
-#: static/js/mapview.js:42
+#: static/js/map_embed.js:48 static/js/mapview.js:49
 msgid "Marker Layer"
 msgstr ""
 
-#: static/js/mapview.js:46
+#: static/js/map_embed.js:52 static/js/mapview.js:53
 msgid "Bing Satellite Map"
 msgstr ""
 
-#: static/js/mapview.js:46
+#: static/js/map_embed.js:52 static/js/mapview.js:53
 msgid "Bing Road Map"
 msgstr ""
 
-#: static/js/mapview.js:47
+#: static/js/map_embed.js:53 static/js/mapview.js:54
 msgid " Map data (c) OpenStreetMap contributors, CC-BY-SA"
 msgstr ""
 
-#: static/js/mapview.js:141
+#: static/js/map_embed.js:168 static/js/mapview.js:186
 msgid "Google Satellite Map"
+msgstr ""
+
+#: static/js/map_embed.js:224
+msgid "Refresh Map"
+msgstr ""
+
+#: static/js/map_embed.js:234
+msgid "Data"
+msgstr ""
+
+#: static/js/map_embed.js:243
+msgid "csv"
+msgstr ""
+
+#: static/js/map_embed.js:244
+msgid "xls"
+msgstr ""
+
+#: static/js/map_embed.js:245
+msgid "kml"
+msgstr ""
+
+#: static/js/map_embed.js:355 static/js/mapview.js:369
+msgid "View By"
+msgstr ""
+
+#: static/js/map_embed.js:361 static/js/mapview.js:382
+msgid "None"
+msgstr ""
+
+#: static/js/map_embed.js:386 static/js/mapview.js:327
+msgid "Language"
+msgstr ""
+
+#: static/js/map_embed.js:735 static/js/mapview.js:729
+msgid "Number of submissions"
+msgstr ""
+
+#: static/js/mapview.js:404
+msgid "Container %(cont)s not found"
 msgstr ""
