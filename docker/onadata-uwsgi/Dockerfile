@@ -17,7 +17,8 @@ RUN touch /root/.ssh/known_hosts
 RUN ssh-keyscan github.com > /root/.ssh/known_hosts
 
 # Install optional requirements
-RUN if [ ! -z "$optional_packages" ]; then pip install ${optional_packages} ; fi
+# hadolint ignore=DL3013
+RUN if [ -n "$optional_packages" ]; then pip install ${optional_packages} ; fi
 
 FROM ubuntu:18.04
 COPY --from=intermediate /usr/local/lib/python3.6/site-packages/ /usr/local/lib/python3.6/dist-packages/
