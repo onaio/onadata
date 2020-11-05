@@ -11,7 +11,6 @@ from onadata.libs.data import parse_int
 from onadata.libs.renderers.renderers import pairing
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models.xform import XForm
-from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.api.viewsets.open_data_viewset import (
     OpenDataViewSet)
 from onadata.libs.serializers.data_serializer import TableauDataSerializer
@@ -20,7 +19,7 @@ from onadata.libs.utils.common_tags import (
 
 
 DEFAULT_TABLE_NAME = 'data'
-gps_parts = ['altitude', 'precision', 'longitude', 'latitude']
+GPS_PARTS = ['latitude', 'longitude', 'altitude', 'precision']
 
 
 def process_tableau_data(
@@ -60,62 +59,75 @@ def process_tableau_data(
                             parent_table=current_table,
                             parent_id=row_id,
                             current_table=qstn_name)
-                        # Pop any list within the returned repeat data.
-                        # Lists represent a repeat group which should be in a
-                        # separate field.
-                        cleaned_data = []
-                        for data_dict in repeat_data:
-                            remove_keys = []
-                            for k, v in data_dict.items():
-                                if isinstance(v, list):
-                                    remove_keys.append(k)
-                                    flat_dict[k].extend(v)
-                            # pylint: disable=expression-not-assigned
-                            [data_dict.pop(k) for k in remove_keys]
-                            cleaned_data.append(data_dict)
+                        cleaned_data = unpack_repeat_data(
+                            repeat_data, flat_dict)
                         flat_dict[qstn_name] = cleaned_data
                     elif qstn_type == MULTIPLE_SELECT_TYPE:
                         picked_choices = value.split(" ")
                         choice_names = [
                             question["name"] for question in qstn["children"]]
                         list_name = qstn.get('list_name')
-                        for choice in choice_names:
-                            qstn_name = f"{list_name}_{choice}"
-
-                            if prefix:
-                                qstn_name = prefix + '_' + qstn_name
-
-                            if choice in picked_choices:
-                                flat_dict[qstn_name] = "TRUE"
-                            else:
-                                flat_dict[qstn_name] = "FALSE"
+                        unpack_select_multiple_data(
+                            picked_choices,
+                            list_name,
+                            choice_names,
+                            prefix,
+                            flat_dict)
                     elif qstn_type == 'geopoint':
-                        value_parts = value.split(' ')
-                        gps_xpaths = \
-                            DataDictionary.get_additional_geopoint_xpaths(
-                                key)
-                        # Clean gps xpaths before assigning values
-                        repeat_names = [
-                            question['name'] for question in qstn.get_lineage()
-                            if question['type'] == 'repeat'
-                        ]
-                        gps_xpath_parts = []
-                        for xpath in gps_xpaths:
-                            xpath = xpath.replace("/", "_")
-                            for repeat in repeat_names:
-                                xpath = xpath.replace(f"_{repeat}", "")
-                            gps_xpath_parts.append((xpath, None))
-
-                        if len(value_parts) == 4:
-                            gps_parts = dict(
-                                zip(dict(gps_xpath_parts), value_parts))
-                            flat_dict.update(gps_parts)
+                        gps_parts = unpack_gps_data(
+                            value, qstn_name, prefix)
+                        flat_dict.update(gps_parts)
                     else:
                         if prefix:
                             qstn_name = f"{prefix}_{qstn_name}"
                         flat_dict[qstn_name] = value
             result.append(dict(flat_dict))
     return result
+
+
+def unpack_select_multiple_data(picked_choices, list_name,
+                                choice_names, prefix, flat_dict):
+    for choice in choice_names:
+        qstn_name = f"{list_name}_{choice}"
+
+        if prefix:
+            qstn_name = prefix + '_' + qstn_name
+
+        if choice in picked_choices:
+            flat_dict[qstn_name] = "TRUE"
+        else:
+            flat_dict[qstn_name] = "FALSE"
+
+
+def unpack_repeat_data(repeat_data, flat_dict):
+    # Pop any list within the returned repeat data.
+    # Lists represent a repeat group which should be in a
+    # separate field.
+    cleaned_data = []
+    for data_dict in repeat_data:
+        remove_keys = []
+        for k, v in data_dict.items():
+            if isinstance(v, list):
+                remove_keys.append(k)
+                flat_dict[k].extend(v)
+        # pylint: disable=expression-not-assigned
+        [data_dict.pop(k) for k in remove_keys]
+        cleaned_data.append(data_dict)
+    return cleaned_data
+
+
+def unpack_gps_data(value, qstn_name, prefix):
+    value_parts = value.split(' ')
+    gps_xpath_parts = []
+    for part in GPS_PARTS:
+        name = f"_{qstn_name}_{part}"
+        if prefix:
+            name = prefix + '_' + name
+        gps_xpath_parts.append((name, None))
+    if len(value_parts) == 4:
+        gps_parts = dict(
+            zip(dict(gps_xpath_parts), value_parts))
+        return gps_parts
 
 
 def clean_xform_headers(headers: list) -> list:
@@ -214,9 +226,12 @@ class TableauViewSet(OpenDataViewSet):
                         }
                     )
             elif field_type == 'geopoint':
-                for part in gps_parts:
+                for part in GPS_PARTS:
+                    name = f'_{field["name"]}_{part}'
+                    if prefix:
+                        name = prefix + name
                     ret[table_name].append({
-                        'name': f'{prefix}_{field["name"]}_{part}',
+                        'name': name,
                         'type': self.get_tableau_type(field.get('type'))
                     })
             else:
