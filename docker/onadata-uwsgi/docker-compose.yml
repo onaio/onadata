@@ -14,7 +14,13 @@ services:
   queue:
     image: rabbitmq
   web:
-    image: onaio/onadata:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: onadata:latest
+    volumes:
+      # For local development
+      - ../../.:/srv/onadata
     ports:
       - "8000:8000"
     depends_on:

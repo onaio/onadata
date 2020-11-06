@@ -20,7 +20,7 @@ RUN ssh-keyscan github.com > /root/.ssh/known_hosts
 # hadolint ignore=DL3013
 RUN if [ -n "$optional_packages" ]; then pip install ${optional_packages} ; fi
 
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 COPY --from=intermediate /usr/local/lib/python3.6/site-packages/ /usr/local/lib/python3.6/dist-packages/
 
 ARG release_version=v2.4.1
@@ -41,8 +41,8 @@ RUN apt-get update -q &&\
         memcached \
         libmemcached-dev \
         build-essential \
-        python3.6 \
-        python3.6-dev \
+        python3.8 \
+        python3.8-dev \
         python3-pip \
         python3-setuptools \
         git \
@@ -55,8 +55,8 @@ RUN apt-get update -q &&\
         libxslt1-dev \
         zlib1g-dev \
         ghostscript \
-        python-celery \
-        python-sphinx \
+        python3-celery \
+        python3-sphinx \
         pkg-config \
         gcc \
         automake \
@@ -82,7 +82,7 @@ RUN useradd -m onadata
 
 # Install service requirements
 WORKDIR /srv/onadata
-RUN python3 -m pip install -U pip && \
+RUN python3 -m pip install --no-cache-dir -U pip && \
     python3 -m pip install --no-cache-dir -r requirements/base.pip
 
 # Compile API Docs
