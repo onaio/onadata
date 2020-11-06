@@ -41,7 +41,7 @@ setup(
         "django-ordered-model",
         # generic relation
         "django-query-builder",
-        "celery",
+        "celery<5",
         # cors
         "django-cors-headers",
         "django-debug-toolbar",
