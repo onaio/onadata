@@ -430,7 +430,6 @@ THUMB_ORDER = ['large', 'medium', 'small']
 DEFAULT_IMG_FILE_TYPE = 'jpg'
 
 # celery
-CELERY_RESULT_BACKEND = 'django-db'
 CELERY_TASK_ALWAYS_EAGER = False
 CELERY_TASK_IGNORE_RESULT = False
 CELERY_TASK_TRACK_STARTED = True
