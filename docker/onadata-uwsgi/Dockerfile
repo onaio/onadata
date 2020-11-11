@@ -82,6 +82,7 @@ RUN useradd -m onadata
 
 # Install service requirements
 WORKDIR /srv/onadata
+# hadolint ignore=DL3013
 RUN python3 -m pip install --no-cache-dir -U pip && \
     python3 -m pip install --no-cache-dir -r requirements/base.pip
 
