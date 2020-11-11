@@ -192,13 +192,6 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         request = self.factory.post(
             '/', data=json.dumps(data),
             content_type="application/json", **self.extra)
-        request.META['HTTP_DATE'] = '2020-09-10T11:56:32.424726+00:00'
-        request.META['HTTP_REFERER'] = settings.HOSTNAME +\
-            f':8000'
-        request.META['HTTP_USER_AGENT'] =\
-            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit'\
-            '/537.36 (KHTML, like Gecko) Chrome'\
-            '/83.0.4103.61 Safari/537.36'
         response = view(request, owner=self.user.username)
         self.assertEqual(response.status_code, 201)
         self.project = Project.objects.filter(
@@ -251,13 +244,6 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
                 post_data = {'xls_file': xls_file}
                 request = self.factory.post(
                     '/', data=post_data, **self.extra)
-                request.META['HTTP_DATE'] = '2020-09-10T11:56:32.424726+00:00'
-                request.META['HTTP_REFERER'] = settings.HOSTNAME +\
-                    f':8000'
-                request.META['HTTP_USER_AGENT'] =\
-                    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit'\
-                    '/537.36 (KHTML, like Gecko) Chrome'\
-                    '/83.0.4103.61 Safari/537.36'
                 response = view(request, pk=project_id)
                 self.assertEqual(response.status_code, 201)
                 self.xform = XForm.objects.all().order_by('pk').reverse()[0]

@@ -1,12 +1,8 @@
 # -*- coding: utf-8 -*-
 # Analytics package for tracking and measuring with services like Segment.
 # Heavily borrowed from RapidPro's temba.utils.analytics
-import sys
-
 import analytics as segment_analytics
-from typing import Dict, List, Optional, Any
-import appoptics_metrics
-from appoptics_metrics import sanitize_metric_name, exceptions
+from typing import Dict, List, Optional
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -20,48 +16,17 @@ from onadata.libs.utils.common_tags import (
     XFORM_CREATION_EVENT,
     PROJECT_CREATION_EVENT,
     USER_CREATION_EVENT)
-from onadata.libs.utils.common_tools import report_exception
 
-
-appoptics_api = None
 _segment = False
 
 
 def init_analytics():
     """Initialize the analytics agents with write credentials."""
     segment_write_key = getattr(settings, 'SEGMENT_WRITE_KEY', None)
-    appoptics_api_token = getattr(settings, "APPOPTICS_API_TOKEN", None)
     if segment_write_key:
         global _segment
         segment_analytics.write_key = segment_write_key
         _segment = True
-
-    if appoptics_api_token:
-        global appoptics_api
-        appoptics_api = appoptics_metrics.connect(
-            appoptics_api_token, sanitizer=sanitize_metric_name)
-
-
-def sanitize_metric_values(data: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Sanitizes values in order to ensure the values are valid
-    for AppOptics
-    """
-    sanitized_data = data.copy()
-    for key, value in data.items():
-        new_value = value
-        if new_value and not isinstance(new_value, dict):
-            if isinstance(new_value, str):
-                if ' ' in new_value:
-                    new_value = new_value.replace(' ', '_')
-
-                if '(' in value or ')' in new_value:
-                    new_value = new_value.replace(')', "").replace('(', "")
-
-            sanitized_data.update({key: new_value})
-        else:
-            sanitized_data.pop(key)
-    return sanitized_data
 
 
 def get_user_id(user):
@@ -159,9 +124,9 @@ class track_object_event(object):
             try:
                 user_agent = request.META['HTTP_USER_AGENT']
                 if 'Android' in user_agent:
-                    event_source = f'Submission collected from ODK COLLECT'
+                    event_source = 'Submission collected from ODK COLLECT'
                 elif 'Chrome' or 'Mozilla' or 'Safari' in user_agent:
-                    event_source = f'Submission collected from Enketo'
+                    event_source = 'Submission collected from Enketo'
             except KeyError:
                 event_source = ""
         else:
@@ -203,12 +168,13 @@ class track_object_event(object):
 
 def track(user, event_name, properties=None, context=None, request=None):
     """Record actions with the track() API call to the analytics agents."""
-    if _segment or appoptics_api:
+    if _segment:
         user_id = get_user_id(user)
         properties = properties or {}
         context = context or {}
-        # Introduce inner page object within the context
+        # Introduce inner page and campaign object within the context
         context['page'] = {}
+        context['campaign'] = {}
 
         if 'value' not in properties:
             properties['value'] = 1
@@ -223,21 +189,12 @@ def track(user, event_name, properties=None, context=None, request=None):
         if request:
             context['ip'] = request.META.get('REMOTE_ADDR', '')
             context['userId'] = user.id
-            context['receivedAt'] = request.META['HTTP_DATE']
-            context['userAgent'] = request.META['HTTP_USER_AGENT']
+            context['receivedAt'] = request.META.get('HTTP_DATE', '')
+            context['userAgent'] = request.META.get('HTTP_USER_AGENT', '')
+            context['campaign']['source'] = settings.HOSTNAME
             context['page']['path'] = request.path
-            context['page']['referrer'] = request.META['HTTP_REFERER']
+            context['page']['referrer'] = request.META.get('HTTP_REFERER', '')
             context['page']['url'] = request.build_absolute_uri()
 
         if _segment:
             segment_analytics.track(user_id, event_name, properties, context)
-
-        if appoptics_api:
-            tags = sanitize_metric_values(context)
-            try:
-                appoptics_api.submit_measurement(
-                    event_name,
-                    properties['value'],
-                    tags=tags)
-            except exceptions.BadRequest as e:
-                report_exception("Bad AppOptics Request", e, sys.exc_info())
