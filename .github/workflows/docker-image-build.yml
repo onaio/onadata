@@ -41,10 +41,11 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: ./docker/onadata-uwsgi
-          file: ./Dockerfile
+          file: ./docker/onadata-uwsgi/Dockerfile
           platforms: linux/amd64
           build-args: |
             release_version=${{ steps.get_version.outputs.VERSION }}
+            optional_packages=PyYAML
           push: true
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
