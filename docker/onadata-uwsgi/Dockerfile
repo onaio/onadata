@@ -84,7 +84,9 @@ RUN useradd -m onadata
 WORKDIR /srv/onadata
 # hadolint ignore=DL3013
 RUN python3 -m pip install --no-cache-dir -U pip && \
-    python3 -m pip install --no-cache-dir -r requirements/base.pip
+    python3 -m pip install --no-cache-dir -r requirements/base.pip && \
+    python3 -m pip install --no-cache-dir -r requirements/s3.pip && \
+    python3 -m pip install --no-cache-dir -r requirements/ses.pip
 
 # Compile API Docs
 RUN make -C docs html
