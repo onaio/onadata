@@ -74,7 +74,7 @@ RUN dpkg-reconfigure locales
 
 # Clone Repository
 RUN mkdir -p /srv/onadata
-RUN git clone -b ${release_version} https://github.com/onaio/onadata.git /srv/onadata
+RUN git clone -b ${release_version} https://github.com/DavisRayM/onadata.git /srv/onadata
 
 COPY uwsgi.ini /uwsgi.ini
 
