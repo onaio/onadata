@@ -3,6 +3,29 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+2.4.6(2020-11-10)
+-----------------
+
+- Ensure project permissions are upgraded on project transfer
+  `PR #1932 <https://github.com/onaio/onadata/pull/1905>`_
+  [@DavisRayM]
+- Check submission encryption status before Instance creation
+  `PR #1938 <https://github.com/onaio/onadata/pull/1938>`_
+  [@DavisRayM]
+- Downgrade celery requirement
+  `PR #1942 <https://github.com/onaio/onadata/pull/1942>`_
+  [@DavisRayM]
+- Dockerfile updates
+  `PR #1937 <https://github.com/onaio/onadata/pull/1937>`_
+  [@DavisRayM]
+
+v2.4.5(2020-10-23)
+------------------
+
+- Update Requirements
+  `PR #1905 <https://github.com/onaio/onadata/pull/1905>`_
+  [@DavisRayM]
+
 v2.4.4(2020-10-15)
 ------------------
 

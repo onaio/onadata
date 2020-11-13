@@ -415,6 +415,17 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
                 members_team = get_organization_members_team(owner.profile)
                 OwnerRole.add(owners_team, instance)
                 ReadOnlyRole.add(members_team, instance)
+                owners = owners_team.user_set.all()
+                # Owners are also members
+                members = members_team.user_set.exclude(
+                    username__in=[
+                        user.username for user in owners])
+                # Exclude new owner if in members
+                members = members.exclude(username=owner.username)
+
+                # Add permissions to all users in Owners and Members team
+                [OwnerRole.add(owner, instance) for owner in owners]
+                [ReadOnlyRole.add(member, instance) for member in members]
 
             # clear cache
             safe_delete('{}{}'.format(PROJ_PERM_CACHE, instance.pk))

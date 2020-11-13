@@ -6,8 +6,10 @@ from builtins import str as text
 from datetime import datetime
 from hashlib import sha256
 from http.client import BadStatusLine
+from typing import NoReturn
 from wsgiref.util import FileWrapper
 from xml.dom import Node
+import xml.etree.ElementTree as ET
 from xml.parsers.expat import ExpatError
 
 import pytz
@@ -37,9 +39,9 @@ from onadata.apps.logger.models.instance import (
 from onadata.apps.logger.models.xform import XLSFormError
 from onadata.apps.logger.xform_instance_parser import (
     DuplicateInstance, InstanceEmptyError, InstanceInvalidUserError,
-    InstanceMultipleNodeError, NonUniqueFormIdError, clean_and_parse_xml,
-    get_deprecated_uuid_from_xml, get_submission_date_from_xml,
-    get_uuid_from_xml)
+    InstanceMultipleNodeError, InstanceEncryptionError, NonUniqueFormIdError,
+    InstanceFormatError, clean_and_parse_xml, get_deprecated_uuid_from_xml,
+    get_submission_date_from_xml, get_uuid_from_xml)
 from onadata.apps.messaging.constants import XFORM, \
     SUBMISSION_EDITED, SUBMISSION_CREATED
 from onadata.apps.messaging.serializers import send_message
@@ -56,6 +58,9 @@ HTTP_OPEN_ROSA_VERSION_HEADER = 'HTTP_X_OPENROSA_VERSION'
 OPEN_ROSA_VERSION = '1.0'
 DEFAULT_CONTENT_TYPE = 'text/xml; charset=utf-8'
 DEFAULT_CONTENT_LENGTH = settings.DEFAULT_CONTENT_LENGTH
+REQUIRED_ENCRYPTED_FILE_ELEMENTS = [
+    "{http://www.opendatakit.org/xforms/encrypted}base64EncryptedKey",
+    "{http://www.opendatakit.org/xforms/encrypted}encryptedXmlFile"]
 
 uuid_regex = re.compile(r'<formhub>\s*<uuid>\s*([^<]+)\s*</uuid>\s*</formhub>',
                         re.DOTALL)
@@ -275,6 +280,35 @@ def check_submission_permissions(request, xform):
               }))
 
 
+def check_submission_encryption(xform: XForm, xml: bytes) -> NoReturn:
+    """
+    Check that the submission is encrypted or unencrypted depending on the
+    encryption status of an XForm.
+
+    The submission is invalid if the XForm's encryption status is different
+    from the submissions
+    """
+    submission_encrypted = False
+    submission_element = ET.fromstring(xml)
+    encrypted_attrib = submission_element.attrib.get('encrypted')
+    required_encryption_elems = [
+        elem.tag for elem in submission_element
+        if elem.tag in REQUIRED_ENCRYPTED_FILE_ELEMENTS]
+    encryption_elems_num = len(required_encryption_elems)
+
+    # Check the validity of the submission
+    if encrypted_attrib == "yes" or encryption_elems_num > 1:
+        if (not encryption_elems_num == 2 or
+                not encrypted_attrib == "yes") and xform.encrypted:
+            raise InstanceFormatError(
+                _("Encrypted submission incorrectly formatted."))
+        submission_encrypted = True
+
+    if xform.encrypted and not submission_encrypted:
+        raise InstanceEncryptionError(_(
+            "Unencrypted submissions are not allowed for encrypted forms."))
+
+
 def update_attachment_tracking(instance):
     """
     Takes an Instance object and updates attachment tracking fields
@@ -382,6 +416,7 @@ def create_instance(username,
     xml = xml_file.read()
     xform = get_xform_from_submission(xml, username, uuid, request=request)
     check_submission_permissions(request, xform)
+    check_submission_encryption(xform, xml)
     checksum = sha256(xml).hexdigest()
 
     new_uuid = get_uuid_from_xml(xml)
@@ -468,6 +503,10 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
     except InstanceEmptyError:
         error = OpenRosaResponseBadRequest(
             _(u"Received empty submission. No instance was created"))
+    except InstanceEncryptionError as e:
+        error = OpenRosaResponseBadRequest(text(e))
+    except InstanceFormatError as e:
+        error = OpenRosaResponseBadRequest(text(e))
     except (FormInactiveError, FormIsMergedDatasetError) as e:
         error = OpenRosaResponseNotAllowed(text(e))
     except XForm.DoesNotExist:

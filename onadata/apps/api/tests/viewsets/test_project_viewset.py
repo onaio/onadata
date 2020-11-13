@@ -13,6 +13,7 @@ from django.conf import settings
 from django.db.models import Q
 from django.core.cache import cache
 from django.test import override_settings
+from rest_framework.authtoken.models import Token
 from httmock import HTTMock, urlmatch
 from mock import MagicMock, patch
 import dateutil.parser
@@ -874,6 +875,88 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=post_data, **self.extra)
         response = view(request, pk=org_project.id)
         self.assertEqual(response.status_code, 201)
+
+    def test_project_transfer_upgrades_permissions(self):
+        """
+        Test that existing project permissions are updated when necessary
+        on project owner change
+        """
+        bob = self.user
+
+        # create user alice with a project
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+        self._login_user_and_profile(alice_data)
+        alice_url = f'http://testserver/api/v1/users/{alice_data["username"]}'
+        self._project_create({
+            'name': 'test project',
+            'owner': alice_url,
+            'public': False,
+        }, merge=False)
+        self.assertEqual(self.project.created_by, alice_profile.user)
+        alice_project = self.project
+
+        # create org owned by bob then make alice admin
+        self._login_user_and_profile(
+            {'username': bob.username, 'email': bob.email})
+        self._org_create()
+        self.assertEqual(self.organization.created_by, bob)
+        org_url = (
+            'http://testserver/api/v1/users/'
+            f'{self.organization.user.username}')
+        view = OrganizationProfileViewSet.as_view({
+            'post': 'members'
+        })
+        data = {'username': alice_profile.user.username,
+                'role': OwnerRole.name}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, user=self.organization.user.username)
+        self.assertEqual(response.status_code, 201)
+
+        owners_team = get_or_create_organization_owners_team(self.organization)
+        self.assertIn(alice_profile.user, owners_team.user_set.all())
+
+        # Share project to bob as editor
+        data = {'username': bob.username, 'role': EditorRole.name}
+        view = ProjectViewSet.as_view({
+            'post': 'share'
+        })
+        alice_auth_token = Token.objects.get(user=alice_profile.user).key
+        auth_credentials = {
+            'HTTP_AUTHORIZATION': f'Token {alice_auth_token}'
+        }
+        request = self.factory.post('/', data=data, **auth_credentials)
+        response = view(request, pk=alice_project.pk)
+        self.assertEqual(response.status_code, 204)
+
+        # Transfer project to Bobs Organization
+        data = {'owner': org_url, 'name': alice_project.name}
+        view = ProjectViewSet.as_view({
+            'patch': 'partial_update'
+        })
+        request = self.factory.patch('/', data=data, **auth_credentials)
+        response = view(request, pk=alice_project.pk)
+        self.assertEqual(response.status_code, 200)
+
+        # Ensure all Admins have admin privileges to the project
+        # once transferred
+        view = ProjectViewSet.as_view({
+            'get': 'retrieve'
+        })
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=alice_project.pk)
+        self.assertEqual(response.status_code, 200)
+        project_users = response.data['users']
+
+        org_owners = get_or_create_organization_owners_team(
+            self.organization).user_set.all()
+
+        for user in project_users:
+            owner = org_owners.filter(username=user['user']).first()
+            if owner:
+                self.assertEqual(user['role'], OwnerRole.name)
 
     @override_settings(ALLOW_PUBLIC_DATASETS=False)
     def test_disallow_public_project_creation(self):

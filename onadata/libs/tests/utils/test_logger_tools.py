@@ -2,6 +2,7 @@ import re
 from io import BytesIO
 
 from django.conf import settings
+from django.http.request import HttpRequest
 from mock import patch
 
 from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
@@ -12,7 +13,8 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.common_tags import (MEDIA_ALL_RECEIVED, MEDIA_COUNT,
                                             TOTAL_MEDIA)
 from onadata.libs.utils.logger_tools import (
-    create_instance, generate_content_disposition_header, get_first_record)
+    create_instance, generate_content_disposition_header, get_first_record,
+    safe_create_instance)
 
 
 class TestLoggerTools(PyxformTestCase, TestBase):
@@ -446,3 +448,57 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         record = get_first_record(Instance.objects.all().only('id'))
         self.assertIsNotNone(record)
         self.assertEqual(record.id, instance.id)
+
+    def test_check_encryption_status(self):
+        """
+        Test that the encryption status of a submission is checked and
+        unencrypted submissions are rejected when made to encrypted forms.
+        """
+        form_path = (f"{settings.PROJECT_ROOT}/libs/tests/"
+                     "fixtures/tutorial/tutorial_encrypted.xlsx")
+        self._publish_xls_file_and_set_xform(form_path)
+        instance_xml = f"""
+        <data xmlns:jr="http://openrosa.org/javarosa"
+            xmlns:orx="http://openrosa.org/xforms" id="{self.xform.id_string}" version="{self.xform.version}">
+            <name>Bob</name>
+            <age>20</age>
+            <picture/>
+            <has_children>0</has_children>
+            <gps/>
+            <web_browsers>firefox chrome safari</web_browsers>
+            <meta>
+                <instanceID>uuid:332f956b-b923-4f88-899d-849485ae66d0</instanceID>
+            </meta>
+        </data>
+        """  # noqa
+        req = HttpRequest()
+        req.user = self.user
+        ret = safe_create_instance(
+            self.user.username,
+            BytesIO(instance_xml.strip().encode('utf-8')), [], None, req)
+        response = ret[0]
+        expected_error = ("Unencrypted submissions are not allowed"
+                          " for encrypted forms.")
+        self.assertIsNone(ret[1])
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(expected_error, str(response.content))
+
+        # Test incorrectly formatted encrypted submission is rejected
+        instance_xml = f"""
+        <data id="{self.xform.id_string}" version="{self.xform.version}" encrypted="yes"
+            xmlns="http://www.opendatakit.org/xforms/encrypted">
+            <orx:meta xmlns:orx="http://openrosa.org/xforms">
+                <orx:instanceID>uuid:6850c987-fcd6-4469-a843-7ce200af00e2</orx:instanceID>
+            </orx:meta>\n<encryptedXmlFile>submission.xml.enc</encryptedXmlFile>
+            <base64EncryptedElementSignature>PfYw8EIFutyhT03rdOf6rT/1FuETsOHbcnIOJdB9qBre7BWGu0k4fRUpv3QdyTil9wCez64MyOXbsHzFyTcazAkBmBPKuqiK7k3dws57rRuJEpmLjOtniQoAuTaXnAlTwp2x6KEvLt9Kqfa8kD8cFvwsRBs8rvkolAl33UAuNjzO7j9h0N94R9syqc6jNR5gGGaG74KlhYvAZnekoPXGb3MjZMDqjCSnYdiPz8iVOUsPBvuitzYIqGdfe1sW8EkQBOp0ACsD31EQ03iWyb8Mg5JSTCdz7T+qdtd0R65EjQ4ZTpDv72/owocteXVV6dCKi564YFXbiwpdkzf80B+QoQ==</base64EncryptedElementSignature>
+        </data>
+        """  # noqa
+        ret = safe_create_instance(
+            self.user.username,
+            BytesIO(instance_xml.strip().encode('utf-8')), [], None, req)
+        response = ret[0]
+        expected_error = (
+            "Encrypted submission incorrectly formatted.")
+        self.assertIsNone(ret[1])
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(expected_error, str(response.content))
