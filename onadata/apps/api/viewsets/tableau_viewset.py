@@ -67,12 +67,9 @@ def process_tableau_data(
                         choice_names = [
                             question["name"] for question in qstn["children"]]
                         list_name = qstn.get('list_name')
-                        unpack_select_multiple_data(
-                            picked_choices,
-                            list_name,
-                            choice_names,
-                            prefix,
-                            flat_dict)
+                        select_multiple_data = unpack_select_multiple_data(
+                            picked_choices, list_name, choice_names, prefix)
+                        flat_dict.update(select_multiple_data)
                     elif qstn_type == 'geopoint':
                         gps_parts = unpack_gps_data(
                             value, qstn_name, prefix)
@@ -86,7 +83,8 @@ def process_tableau_data(
 
 
 def unpack_select_multiple_data(picked_choices, list_name,
-                                choice_names, prefix, flat_dict):
+                                choice_names, prefix):
+    unpacked_data = {}
     for choice in choice_names:
         qstn_name = f"{list_name}_{choice}"
 
@@ -94,9 +92,10 @@ def unpack_select_multiple_data(picked_choices, list_name,
             qstn_name = prefix + '_' + qstn_name
 
         if choice in picked_choices:
-            flat_dict[qstn_name] = "TRUE"
+            unpacked_data[qstn_name] = "TRUE"
         else:
-            flat_dict[qstn_name] = "FALSE"
+            unpacked_data[qstn_name] = "FALSE"
+        return unpacked_data
 
 
 def unpack_repeat_data(repeat_data, flat_dict):

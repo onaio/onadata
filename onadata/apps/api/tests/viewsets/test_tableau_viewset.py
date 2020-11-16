@@ -7,9 +7,7 @@ import json
 
 from django.test import RequestFactory
 from django.utils.dateparse import parse_datetime
-from django.contrib.auth.models import User
 
-from onadata.apps.logger.models import OpenData, Instance
 from onadata.apps.logger.models.open_data import get_or_create_opendata
 from onadata.apps.api.viewsets.tableau_viewset import TableauViewSet
 
@@ -44,10 +42,9 @@ class TestTableauViewSet(TestBase):
             'delete': 'destroy',
             'get': 'data'
         })
-    
+
     def get_open_data_object(self):
         return get_or_create_opendata(self.xform)[0]
-
 
     def test_tableau_data_and_fetch(self):  # pylint: disable=invalid-name
         """
@@ -62,7 +59,7 @@ class TestTableauViewSet(TestBase):
         expected_schema = [
             {
                 'table_alias': 'data',
-                'connection_name': '1_tutorial_w_repeats',
+                'connection_name': f'{self.xform.project_id}_{self.xform.id_string}',  # noqa
                 'column_headers': [
                     {
                         'id': '_id',
@@ -138,7 +135,7 @@ class TestTableauViewSet(TestBase):
             },
             {
                 'table_alias': 'children',
-                'connection_name': '1_tutorial_w_repeats_children',
+                'connection_name': f'{self.xform.project_id}_{self.xform.id_string}_children',  # noqa
                 'column_headers': [
                     {
                         'id': '_id',
@@ -179,11 +176,9 @@ class TestTableauViewSet(TestBase):
             sorted(list(response1.data[0].keys()))
         )
 
-        connection_name = u"%s_%s" % (
-            self.xform.project_id,
-            self.xform.id_string
-        )
-        self.assertEqual(connection_name, response1.data[0].get('connection_name'))
+        connection_name = f'{self.xform.project_id}_{self.xform.id_string}'
+        self.assertEqual(
+            connection_name, response1.data[0].get('connection_name'))
         # Test that the table alias field being sent to Tableau
         # for each schema contains the right table name
         self.assertEqual(
@@ -199,38 +194,41 @@ class TestTableauViewSet(TestBase):
             if a.get('id') == '_id'][0]
         self.assertEqual(_id_datatype, 'int')
 
-        expected_data = [
-            {
-                '_gps_altitude': '0.0',
-                '_gps_latitude': '-1.2625621',
-                '_gps_longitude': '36.7921711',
-                '_gps_precision': '20.0',
-                '_id': 1,
-                'age': 25,
-                'children': [{'__parent_id': 1,
-                                '__parent_table': 'data',
-                                '_id': 4,
-                                'childs_age': 12,
-                                'childs_name': 'Tom'},
-                            {'__parent_id': 1,
-                                '__parent_table': 'data',
-                                '_id': 8,
-                                'childs_age': 5,
-                                'childs_name': 'Dick'}],
-                'has_children': '1',
-                'meta_instanceID': 'uuid:b31c6ac2-b8ca-4180-914f-c844fa10ed3b',
-                'name': 'Bob'
-            }]
-        
-
         self.view = TableauViewSet.as_view({
             'get': 'data'
         })
         request2 = self.factory.get('/', **self.extra)
         response2 = self.view(request2, uuid=uuid)
         self.assertEqual(response2.status_code, 200)
+
         # cast generator response to list for easy manipulation
         row_data = streaming_data(response2)
+        expected_data = [
+            {
+                '_gps_altitude': '0.0',
+                '_gps_latitude': '-1.2625621',
+                '_gps_longitude': '36.7921711',
+                '_gps_precision': '20.0',
+                '_id': self.xform.instances.first().id,
+                'age': 25,
+                'children': [
+                    {
+                        '__parent_id': self.xform.instances.first().id,
+                        '__parent_table': 'data',
+                        '_id': 2609471,
+                        'childs_age': 12,
+                        'childs_name': 'Tom'},
+                    {
+                        '__parent_id': self.xform.instances.first().id,
+                        '__parent_table': 'data',
+                        '_id': 2611757,
+                        'childs_age': 5,
+                        'childs_name': 'Dick'}],
+                'has_children': '1',
+                'meta_instanceID': 'uuid:b31c6ac2-b8ca-4180-914f-c844fa10ed3b',
+                'name': 'Bob'
+            }]
+
         # Test to confirm that the repeat tables generated
         # are related to the main table
         self.assertEqual(
