@@ -19,10 +19,7 @@ def call_webhooks(sender, **kwargs):  # pylint: disable=W0613
     Call webhooks signal.
     """
     instance_id = kwargs['instance'].pk
-    if ASYNC_POST_SUBMISSION_PROCESSING_ENABLED:
-        call_service_async.apply_async(args=[instance_id], countdown=1)
-    else:
-        call_service_async(instance_id)
+    call_service_async.apply_async(args=[instance_id], countdown=1)
 
 
 trigger_webhook.connect(call_webhooks, dispatch_uid='call_webhooks')
