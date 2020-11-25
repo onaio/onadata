@@ -21,7 +21,7 @@ RUN ssh-keyscan github.com > /root/.ssh/known_hosts
 RUN if [ -n "$optional_packages" ]; then pip install ${optional_packages} ; fi
 
 FROM ubuntu:20.04
-COPY --from=intermediate /usr/local/lib/python3.6/site-packages/ /usr/local/lib/python3.6/dist-packages/
+COPY --from=intermediate /usr/local/lib/python3.8/site-packages/ /usr/local/lib/python3.8/dist-packages/
 
 ARG release_version=v2.4.1
 
