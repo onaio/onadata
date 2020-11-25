@@ -45,7 +45,7 @@ jobs:
           platforms: linux/amd64
           build-args: |
             release_version=${{ steps.get_version.outputs.VERSION }}
-            optional_packages="PyYAML django-redis"
+            optional_packages=PyYAML django-redis
           push: true
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
