@@ -1,4 +1,4 @@
-FROM python:3.6 as intermediate
+FROM python:3.8 as intermediate
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV PYTHONUNBUFFERED 1
