@@ -72,14 +72,14 @@ ENV LC_ALL en_US.UTF-8
 ENV LC_CTYPE en_US.UTF-8
 RUN dpkg-reconfigure locales
 
-# Clone Repository
-RUN mkdir -p /srv/onadata
-RUN git clone -b ${release_version} https://github.com/onaio/onadata.git /srv/onadata
-
-COPY uwsgi.ini /uwsgi.ini
-
 RUN useradd -m onadata
 
+# Clone Repository and Change owner
+RUN mkdir -p /srv/onadata && \
+    git clone -b ${release_version} https://github.com/onaio/onadata.git /srv/onadata && \
+    chown -R onadata:onadata /srv/onadata
+
+COPY uwsgi.ini /uwsgi.ini
 # Install service requirements
 WORKDIR /srv/onadata
 # hadolint ignore=DL3013
