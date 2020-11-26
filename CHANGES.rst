@@ -3,6 +3,13 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.4.7(2020-11-16)
+------------------
+
+- Change Instance Webhooks to be fully asynchronous
+  `PR #1949 <https://github.com/onaio/onadata/pull/1949>`_
+  [@DavisRayM]
+
 2.4.6(2020-11-10)
 -----------------
 
