@@ -129,7 +129,7 @@ function createTable(canEdit)
         for(i = 0; i < languages.length; i++)
         {
             var language = languages[i];
-            var languageOption = $('<option value="' + i +'">' + language + '</opton>');
+            var languageOption = $('<option value="' + i +'">' + language + '</option>');
             languageSelect.append(languageOption);
         }
         languageStr.append(languageSelect);
@@ -361,7 +361,7 @@ function updatePrevNextControls(data)
 
 function reDraw(context, data, canEdit)
 {
-    // make sure we have some data, if the id was in valid we would gte a blank array
+    // make sure we have some data, if the id was in valid we would get a blank array
     if(data)
     {
         var cleanData = {};
