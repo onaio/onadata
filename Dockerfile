@@ -11,13 +11,13 @@ RUN apt-get update -q &&\
         memcached=1.5.6-0ubuntu1.2 \
         libmemcached-dev=1.0.18-4.2ubuntu0.18.04.1 \
         build-essential=12.4ubuntu1 \
-        python3.6=3.6.9-1~18.04ubuntu1.1 \
-        python3.6-dev=3.6.9-1~18.04ubuntu1.1 \
-        python3-pip=9.0.1-2.3~ubuntu1.18.04.2 \
+        python3.6=3.6.9-1~18.04ubuntu1.3 \
+        python3.6-dev=3.6.9-1~18.04ubuntu1.3 \
+        python3-pip=9.0.1-2.3~ubuntu1.18.04.4 \
         virtualenv=15.1.0+ds-1.1 \
         git=1:2.17.1-1ubuntu0.7 \
         libssl-dev=1.1.1-1ubuntu2.1~18.04.6 \
-        libpq-dev=10.14-0ubuntu0.18.04.1 \
+        libpq-dev=10.15-0ubuntu0.18.04.1 \
         gfortran=4:7.4.0-1ubuntu2.3 \
         libatlas-base-dev=3.10.3-5 \
         libjpeg-dev=8c-2ubuntu8 \
@@ -31,7 +31,7 @@ RUN apt-get update -q &&\
         gcc=4:7.4.0-1ubuntu2.3 \
         automake=1:1.15.1-3ubuntu2 \
         libtool=2.4.6-2 \
-        openjdk-11-jre-headless=11.0.8+10-0ubuntu1~18.04.1 \
+        openjdk-11-jre-headless=11.0.9.1+1-0ubuntu1~18.04 \
         locales=2.27-3ubuntu1.2 \
         tmux=2.6-3 && \
     rm -rf /var/lib/apt/lists/*
