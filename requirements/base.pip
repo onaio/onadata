@@ -108,7 +108,7 @@ pyrsistent==0.17.3        # via jsonschema
 python-dateutil==2.8.1    # via analytics-python, botocore, fleming, onadata, tableschema
 python-memcached==1.59    # via onadata
 pytz==2020.1              # via babel, celery, django, django-query-builder, fleming, onadata
-pyxform==1.1.0            # via onadata, pyfloip
+pyxform==1.2.1            # via onadata, pyfloip
 raven==6.10.0             # via onadata
 recaptcha-client==1.0.6   # via onadata
 requests-mock==1.8.0      # via onadata
