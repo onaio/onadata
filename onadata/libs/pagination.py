@@ -1,5 +1,6 @@
 from django.core.paginator import Paginator
-from rest_framework.pagination import PageNumberPagination, InvalidPage, NotFound
+from rest_framework.pagination import (
+    PageNumberPagination, InvalidPage, NotFound)
 
 
 class StandardPageNumberPagination(PageNumberPagination):

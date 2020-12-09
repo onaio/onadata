@@ -529,7 +529,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                         xform, query=query, sort=sort, start_index=start,
                         limit=limit, fields=fields
                     )
-                    self.etag_hash = get_etag_hash_from_query(records, sql, params)
+                    self.etag_hash = get_etag_hash_from_query(
+                        records, sql, params)
         except ValueError as e:
             raise ParseError(text(e))
         except DataError as e:
