@@ -62,6 +62,9 @@ from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.viewer_tools import get_form_url, get_enketo_urls
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
+SUBMISSION_RETRIEVAL_THRESHOLD = getattr(settings,
+                                         "SUBMISSION_RETRIEVAL_THRESHOLD",
+                                         10000)
 BaseViewset = get_baseviewset_class()
 
 
@@ -469,8 +472,12 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
     def set_object_list(
             self, query, fields, sort, start, limit, is_public_request):
         try:
+            enable_etag = True
             if not is_public_request:
                 xform = self.get_object()
+                self.data_count = xform.num_of_submissions
+                enable_etag = self.data_count <\
+                    SUBMISSION_RETRIEVAL_THRESHOLD
 
             where, where_params = get_where_clause(query)
             if where:
@@ -495,14 +502,17 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 except NoRecordsPermission:
                     self.object_list = []
 
-            if isinstance(self.object_list, QuerySet):
-                self.etag_hash = get_etag_hash_from_query(self.object_list)
-            else:
-                sql, params, records = get_sql_with_params(
-                    xform, query=query, sort=sort, start_index=start,
-                    limit=limit, fields=fields
-                )
-                self.etag_hash = get_etag_hash_from_query(records, sql, params)
+            # ETags are Disabled for XForms with Submissions that surpass
+            # the configured SUBMISSION_RETRIEVAL_THRESHOLD setting
+            if enable_etag:
+                if isinstance(self.object_list, QuerySet):
+                    self.etag_hash = get_etag_hash_from_query(self.object_list)
+                else:
+                    sql, params, records = get_sql_with_params(
+                        xform, query=query, sort=sort, start_index=start,
+                        limit=limit, fields=fields
+                    )
+                    self.etag_hash = get_etag_hash_from_query(records, sql, params)
         except ValueError as e:
             raise ParseError(text(e))
         except DataError as e:
