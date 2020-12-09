@@ -45,7 +45,7 @@ from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
-from onadata.libs.pagination import StandardPageNumberPagination
+from onadata.libs.pagination import CountOverridablePageNumberPagination
 from onadata.libs.permissions import CAN_DELETE_SUBMISSION, \
     filter_queryset_xform_meta_perms, filter_queryset_xform_meta_perms_sql
 from onadata.libs.renderers import renderers
@@ -121,8 +121,9 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
     lookup_field = 'pk'
     lookup_fields = ('pk', 'dataid')
     extra_lookup_fields = None
+    data_count = None
     public_data_endpoint = 'public'
-    pagination_class = StandardPageNumberPagination
+    pagination_class = CountOverridablePageNumberPagination
 
     queryset = XForm.objects.filter(deleted_at__isnull=True)
 
@@ -533,6 +534,14 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             raise ParseError(text(e))
         except DataError as e:
             raise ParseError(text(e))
+
+    def paginate_queryset(self, queryset):
+        if self.paginator is None:
+            return None
+        return self.paginator.paginate_queryset(queryset,
+                                                self.request,
+                                                view=self,
+                                                count=self.data_count)
 
     def _get_data(self, query, fields, sort, start, limit, is_public_request):
         self.set_object_list(
