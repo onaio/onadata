@@ -65,6 +65,7 @@ SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 SUBMISSION_RETRIEVAL_THRESHOLD = getattr(settings,
                                          "SUBMISSION_RETRIEVAL_THRESHOLD",
                                          10000)
+
 BaseViewset = get_baseviewset_class()
 
 
@@ -412,12 +413,27 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             xform_id, is_merged_dataset = qs[0] if qs else (lookup, False)
             pks = [xform_id]
             if is_merged_dataset:
-                xforms = MergedXForm.objects.filter(
-                    pk=xform_id, xforms__deleted_at__isnull=True)\
-                    .values_list('xforms', flat=True)
-                pks = [pk for pk in xforms if pk] or [xform_id]
+                merged_form = MergedXForm.objects.get(pk=xform_id)
+                qs = merged_form.xforms.filter(
+                    deleted_at__isnull=True).values_list(
+                        'id', 'num_of_submissions')
+                try:
+                    pks, num_of_submissions = [
+                        list(value) for value in zip(*qs)]
+                    num_of_submissions = sum(num_of_submissions)
+                except ValueError:
+                    pks, num_of_submissions = [], 0
+            else:
+                num_of_submissions = XForm.objects.get(
+                    id=xform_id).num_of_submissions
             self.object_list = Instance.objects.filter(
-                xform_id__in=pks, deleted_at=None).only('json').order_by('id')
+                xform_id__in=pks, deleted_at=None).only('json')
+
+            # Enable ordering for XForms with Submissions that are less
+            # than the SUBMISSION_RETRIEVAL_THRESHOLD
+            if num_of_submissions < SUBMISSION_RETRIEVAL_THRESHOLD:
+                self.object_list = self.object_list.order_by('id')
+
             xform = self.get_object()
             self.object_list = \
                 filter_queryset_xform_meta_perms(xform, request.user,
