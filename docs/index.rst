@@ -36,6 +36,7 @@ Forms
    :maxdepth: 2
 
    forms
+   formlist
    media
    metadata
    notes
