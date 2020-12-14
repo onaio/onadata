@@ -9,6 +9,7 @@ from hashlib import md5
 from xml.dom import minidom, Node
 
 import pytz
+import requests
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 from django.urls import reverse
@@ -87,8 +88,9 @@ class TestProcess(TestBase):
     def test_publish_xlsx_file(self):
         self._publish_xlsx_file()
 
+    @patch('onadata.apps.main.forms.requests')
     @patch('onadata.apps.main.forms.urlopen')
-    def test_google_url_upload(self, mock_urlopen):
+    def test_google_url_upload(self, mock_urlopen, mock_requests):
         if self._internet_on(url="http://google.com"):
             xls_url = "https://docs.google.com/spreadsheet/pub?"\
                 "key=0AvhZpT7ZLAWmdDhISGhqSjBOSl9XdXd5SHZHUUE2RFE&output=xls"
@@ -99,12 +101,22 @@ class TestProcess(TestBase):
                 "transportation", "transportation.xls")
 
             xls_file = open(path, 'rb')
+            mock_response = requests.Response()
+            mock_response.status_code = 200
+            mock_response.headers = {
+                'content-type': ("application/vnd.openxmlformats-"
+                                 "officedocument.spreadsheetml.sheet"),
+                'content-disposition': (
+                    'attachment; filename="transportation.'
+                    'xls"; filename*=UTF-8\'\'transportation.xls')
+            }
+            mock_requests.get.return_value = mock_response
             mock_urlopen.return_value = xls_file
-
             response = self.client.post('/%s/' % self.user.username,
                                         {'xls_url': xls_url})
 
             mock_urlopen.assert_called_with(xls_url)
+            mock_requests.get.assert_called_with(xls_url)
             # cleanup the resources
             xls_file.close()
             # make sure publishing the survey worked

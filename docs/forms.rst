@@ -217,8 +217,7 @@ Set Form Information
 --------------------
 
 You can use ``PUT`` or ``PATCH`` http methods to update or set form data elements.
-If you are using ``PUT``, you have to provide the `uuid, description,
-downloadable, owner, public, public_data, title` fields. With ``PATCH`` you only need to provide at least one of the fields.
+If you are using ``PUT``, you have to provide the `uuid, description, downloadable, owner, public, public_data, title` fields. With ``PATCH`` you only need to provide at least one of the fields.
 
 Replacing a Form
 ----------------

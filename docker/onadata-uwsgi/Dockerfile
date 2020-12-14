@@ -1,4 +1,4 @@
-FROM python:3.6 as intermediate
+FROM python:3.8 as intermediate
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV PYTHONUNBUFFERED 1
@@ -21,7 +21,7 @@ RUN ssh-keyscan github.com > /root/.ssh/known_hosts
 RUN if [ -n "$optional_packages" ]; then pip install ${optional_packages} ; fi
 
 FROM ubuntu:20.04
-COPY --from=intermediate /usr/local/lib/python3.6/site-packages/ /usr/local/lib/python3.6/dist-packages/
+COPY --from=intermediate /usr/local/lib/python3.8/site-packages/ /usr/local/lib/python3.8/dist-packages/
 
 ARG release_version=v2.4.1
 
@@ -72,14 +72,14 @@ ENV LC_ALL en_US.UTF-8
 ENV LC_CTYPE en_US.UTF-8
 RUN dpkg-reconfigure locales
 
-# Clone Repository
-RUN mkdir -p /srv/onadata
-RUN git clone -b ${release_version} https://github.com/onaio/onadata.git /srv/onadata
-
-COPY uwsgi.ini /uwsgi.ini
-
 RUN useradd -m onadata
 
+# Clone Repository and Change owner
+RUN mkdir -p /srv/onadata && \
+    git clone -b ${release_version} https://github.com/onaio/onadata.git /srv/onadata && \
+    chown -R onadata:onadata /srv/onadata
+
+COPY uwsgi.ini /uwsgi.ini
 # Install service requirements
 WORKDIR /srv/onadata
 # hadolint ignore=DL3013

@@ -176,7 +176,7 @@ Where:
 
 -  ``access_token`` - access token - expires
 -  ``refresh_token`` - token to use to request a new ``access_token`` in
-   case it has expored.
+   case it has expired.
 
 Now that you have an ``access_token`` you can make API calls.
 
