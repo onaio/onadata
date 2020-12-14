@@ -185,3 +185,6 @@ METADATA_FIELDS = [
 
 INSTANCE_CREATE_EVENT = 'Submission created'
 INSTANCE_UPDATE_EVENT = 'Submission updated'
+XFORM_CREATION_EVENT = 'XForm created'
+PROJECT_CREATION_EVENT = 'Project created'
+USER_CREATION_EVENT = 'User account created'
