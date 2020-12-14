@@ -347,9 +347,12 @@ class UserProfileViewSet(
                 rp.save()
 
                 set_is_email_verified(rp.user.profile, True)
+                username = rp.user.username
+                # Clear profiles cache
+                safe_delete(f'{USER_PROFILE_PREFIX}{username}')
 
                 response_data = {
-                    'username': rp.user.username,
+                    'username': username,
                     'is_email_verified': True
                 }
 
