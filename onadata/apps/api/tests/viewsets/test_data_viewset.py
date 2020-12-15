@@ -9,6 +9,7 @@ from tempfile import NamedTemporaryFile
 
 import geojson
 import requests
+from django.db.utils import OperationalError
 from django.test import RequestFactory
 from django.test.utils import override_settings
 from django.utils import timezone
@@ -1737,6 +1738,21 @@ class TestDataViewSet(TestBase):
         }
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
+
+    @patch('onadata.apps.api.viewsets.data_viewset.DataViewSet.paginate_queryset')
+    def test_retry_on_operational_error(self, mock_paginate_queryset):
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+        mock_paginate_queryset.side_effect = [
+            OperationalError,
+            Instance.objects.filter(xform_id=formid)[:2]]
+
+        request = self.factory.get('/', data={"page": "1", "page_size": 2},
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(mock_paginate_queryset.call_count, 2)
 
     def test_geojson_geofield(self):
         self._publish_submit_geojson()
