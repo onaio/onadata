@@ -2347,7 +2347,7 @@ class TestDataViewSet(TestBase):
         self.assertEqual(
             form.submission_count_for_today, current_count)
 
-        # Confirm submission count isn't deleted if the
+        # Confirm submission count isn't decreased if the
         # date_created is different
         future_date = c_date - timedelta(days=1)
         inst_two.date_created = future_date
