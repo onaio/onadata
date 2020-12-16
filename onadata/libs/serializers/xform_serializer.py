@@ -28,7 +28,7 @@ from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.utils.cache_tools import (
     ENKETO_PREVIEW_URL_CACHE, ENKETO_URL_CACHE, ENKETO_SINGLE_SUBMIT_URL_CACHE,
     XFORM_LINKED_DATAVIEWS, XFORM_METADATA_CACHE, XFORM_PERMISSIONS_CACHE,
-    XFORM_COUNT, XFORM_DATA_VERSIONS)
+    XFORM_DATA_VERSIONS, XFORM_COUNT)
 from onadata.libs.utils.common_tags import (GROUP_DELIMETER_TAG,
                                             REPEAT_INDEX_TAGS)
 from onadata.libs.utils.decorators import check_obj

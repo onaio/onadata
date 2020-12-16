@@ -1740,7 +1740,9 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
 
-    @patch('onadata.apps.api.viewsets.data_viewset.DataViewSet.paginate_queryset')
+    @patch(
+        'onadata.apps.api.viewsets.data_viewset'
+        '.DataViewSet.paginate_queryset')
     def test_retry_on_operational_error(self, mock_paginate_queryset):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
@@ -2345,7 +2347,8 @@ class TestDataViewSet(TestBase):
         self.assertEqual(
             form.submission_count_for_today, current_count)
 
-        # Confirm submission count isn't deleted if the date_created is different
+        # Confirm submission count isn't deleted if the
+        # date_created is different
         future_date = c_date - timedelta(days=1)
         inst_two.date_created = future_date
         inst_two.save()
@@ -2353,7 +2356,6 @@ class TestDataViewSet(TestBase):
         self.assertEqual(
             form.submission_count_for_today, current_count
         )
-
 
     def test_data_query_ornull(self):
         """
