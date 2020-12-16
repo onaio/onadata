@@ -9,6 +9,7 @@ from tempfile import NamedTemporaryFile
 
 import geojson
 import requests
+from django.core.cache import cache
 from django.db.utils import OperationalError
 from django.test import RequestFactory
 from django.test.utils import override_settings
@@ -2318,6 +2319,41 @@ class TestDataViewSet(TestBase):
             floip_row[4],
             'transport/available_transportation_types_to_referral_facility')
         self.assertEqual(floip_row[5], 'none')
+
+    def test_submission_count_for_day_tracking(self):
+        """
+        Test that the submission_count_for_today value is accurately tracked
+        """
+        # Ensure cache is cleared
+        cache.clear()
+        # Ensure that new submissions are added into the count
+        self._make_submissions()
+        form = self.xform
+        c_date = datetime.datetime.today()
+        instances = Instance.objects.filter(date_created__date=c_date.date())
+        current_count = instances.count()
+        self.assertEqual(
+            form.submission_count_for_today, current_count)
+
+        # Confirm that the submission count is decreased
+        # accordingly
+        inst_one = instances.first()
+        inst_two = instances.last()
+
+        inst_one.set_deleted()
+        current_count -= 1
+        self.assertEqual(
+            form.submission_count_for_today, current_count)
+
+        # Confirm submission count isn't deleted if the date_created is different
+        future_date = c_date - timedelta(days=1)
+        inst_two.date_created = future_date
+        inst_two.save()
+        inst_two.set_deleted()
+        self.assertEqual(
+            form.submission_count_for_today, current_count
+        )
+
 
     def test_data_query_ornull(self):
         """
