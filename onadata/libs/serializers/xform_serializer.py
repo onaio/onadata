@@ -36,6 +36,11 @@ from onadata.libs.utils.viewer_tools import (
     get_enketo_urls, get_form_url)
 
 
+SUBMISSION_RETRIEVAL_THRESHOLD = getattr(settings,
+                                         "SUBMISSION_RETRIEVAL_THRESHOLD",
+                                         10000)
+
+
 def _create_enketo_urls(request, xform):
     """
     Generate enketo urls for a form
@@ -388,6 +393,8 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
 
             if versions:
                 return versions
+            elif obj.num_of_submissions > SUBMISSION_RETRIEVAL_THRESHOLD:
+                return []
 
             versions = list(
                 Instance.objects.filter(xform=obj, deleted_at__isnull=True)
