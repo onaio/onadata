@@ -3,7 +3,17 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
-v2.4.8(2020-12-10)
+v2.4.9(2020-12-17)
+------------------
+
+- Update submission metrics collection
+  `PR #1895 <https://github.com/onaio/onadata/pull/1895`_
+  [@WinnyTroy]
+- XForm and Data ViewSet updates
+  `PR #1971 <https://github.com/onaio/onadata/pull/1971`_
+  [@DavisRayM]
+
+v2.4.8(2020-12-14)
 ------------------
 
 - Fix failing URL upload test
