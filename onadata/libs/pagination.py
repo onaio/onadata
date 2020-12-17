@@ -1,4 +1,5 @@
 from django.core.paginator import Paginator
+from django.conf import settings
 from rest_framework.pagination import (
     PageNumberPagination, InvalidPage, NotFound)
 
@@ -6,7 +7,8 @@ from rest_framework.pagination import (
 class StandardPageNumberPagination(PageNumberPagination):
     page_size = 1000
     page_size_query_param = 'page_size'
-    max_page_size = 10000
+    max_page_size = getattr(
+        settings, "STANDARD_PAGINATION_MAX_PAGE_SIZE", 10000)
 
 
 class CountOverridablePaginator(Paginator):

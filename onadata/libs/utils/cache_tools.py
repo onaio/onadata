@@ -41,6 +41,10 @@ LOGIN_ATTEMPTS = "login_attempts-"
 LOCKOUT_CHANGE_PASSWORD_USER = 'lockout_change_password_user-'
 CHANGE_PASSWORD_ATTEMPTS = 'change_password_attempts-'
 
+# Cache names used in XForm Model
+XFORM_SUBMISSION_COUNT_FOR_DAY = "xfm-get_submission_count-"
+XFORM_SUBMISSION_COUNT_FOR_DAY_DATE = "xfm-get_submission_count_date-"
+
 
 def safe_delete(key):
     """Safely deletes a given key from the cache."""

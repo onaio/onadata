@@ -6,7 +6,7 @@ from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.db.models.query import QuerySet
-from django.db.utils import DataError
+from django.db.utils import DataError, OperationalError
 from django.http import Http404
 from django.http import StreamingHttpResponse
 from django.utils import six
@@ -554,7 +554,10 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         should_paginate = any([k in query_param_keys for k in pagination_keys])
         if not isinstance(self.object_list, types.GeneratorType) and \
                 should_paginate:
-            self.object_list = self.paginate_queryset(self.object_list)
+            try:
+                self.object_list = self.paginate_queryset(self.object_list)
+            except OperationalError:
+                self.object_list = self.paginate_queryset(self.object_list)
 
         STREAM_DATA = getattr(settings, 'STREAM_DATA', False)
         if STREAM_DATA:

@@ -9,6 +9,8 @@ from tempfile import NamedTemporaryFile
 
 import geojson
 import requests
+from django.core.cache import cache
+from django.db.utils import OperationalError
 from django.test import RequestFactory
 from django.test.utils import override_settings
 from django.utils import timezone
@@ -1738,6 +1740,23 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
 
+    @patch(
+        'onadata.apps.api.viewsets.data_viewset'
+        '.DataViewSet.paginate_queryset')
+    def test_retry_on_operational_error(self, mock_paginate_queryset):
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+        mock_paginate_queryset.side_effect = [
+            OperationalError,
+            Instance.objects.filter(xform_id=formid)[:2]]
+
+        request = self.factory.get('/', data={"page": "1", "page_size": 2},
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(mock_paginate_queryset.call_count, 2)
+
     def test_geojson_geofield(self):
         self._publish_submit_geojson()
 
@@ -2302,6 +2321,41 @@ class TestDataViewSet(TestBase):
             floip_row[4],
             'transport/available_transportation_types_to_referral_facility')
         self.assertEqual(floip_row[5], 'none')
+
+    def test_submission_count_for_day_tracking(self):
+        """
+        Test that the submission_count_for_today value is accurately tracked
+        """
+        # Ensure cache is cleared
+        cache.clear()
+        # Ensure that new submissions are added into the count
+        self._make_submissions()
+        form = self.xform
+        c_date = datetime.datetime.today()
+        instances = Instance.objects.filter(date_created__date=c_date.date())
+        current_count = instances.count()
+        self.assertEqual(
+            form.submission_count_for_today, current_count)
+
+        # Confirm that the submission count is decreased
+        # accordingly
+        inst_one = instances.first()
+        inst_two = instances.last()
+
+        inst_one.set_deleted()
+        current_count -= 1
+        self.assertEqual(
+            form.submission_count_for_today, current_count)
+
+        # Confirm submission count isn't decreased if the
+        # date_created is different
+        future_date = c_date - timedelta(days=1)
+        inst_two.date_created = future_date
+        inst_two.save()
+        inst_two.set_deleted()
+        self.assertEqual(
+            form.submission_count_for_today, current_count
+        )
 
     def test_data_query_ornull(self):
         """
