@@ -29,7 +29,6 @@ from onadata.apps.main.models.user_profile import \
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.serializers.user_profile_serializer import \
     _get_first_last_names
-from onadata.libs.utils.cache_tools import USER_PROFILE_PREFIX, safe_key
 
 
 def _profile_data():
