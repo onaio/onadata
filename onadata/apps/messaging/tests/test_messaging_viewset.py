@@ -250,3 +250,46 @@ class TestMessagingViewSet(TestCase):
         force_authenticate(request, user=user)
         response = view(request=request, pk=message_data['id'])
         self.assertEqual(response.status_code, 200)
+
+    def test_messaging_timestamp_filter(self):
+        """
+        Test that a user is able to filter messages using the timestamp
+        """
+        user = _create_user()
+        message_one = self._create_message(user)
+        message_two = self._create_message(user)
+
+        view = MessagingViewSet.as_view({'get': 'list'})
+        message_one_timestamp = message_one['timestamp']
+        target_id = user.id
+        request = self.factory.get(
+            f'/messaging?timestamp={message_one_timestamp}&'
+            f'target_type=user&target_id={target_id}')
+        force_authenticate(request, user=user)
+        response = view(request=request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(
+            response.data[0].get('id'), message_one['id'])
+
+        request = self.factory.get(
+            f'/messaging?timestamp__gt={message_one_timestamp}&'
+            f'target_type=user&target_id={target_id}')
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(
+            response.data[0].get('id'), message_two['id'])
+
+        message_two_timestamp = message_two['timestamp']
+        request = self.factory.get(
+            f'/messaging?timestamp__lt={message_two_timestamp}&'
+            f'target_type=user&target_id={target_id}')
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(
+            response.data[0].get('id'), message_one['id'])

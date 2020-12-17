@@ -30,4 +30,4 @@ class MessagingViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
     permission_classes = [IsAuthenticated, TargetObjectPermissions]
     filter_backends = (TargetTypeFilterBackend, TargetIDFilterBackend,
                        UserFilterBackend, DjangoFilterBackend)
-    filter_fields = ['verb']
+    filter_fields = ['verb', 'timestamp']
