@@ -26,6 +26,7 @@ from rest_framework.filters import OrderingFilter
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
+from multidb.pinning import use_master
 
 from onadata.apps.api.tasks import send_verification_email
 from onadata.apps.api.permissions import UserProfilePermissions
@@ -100,7 +101,7 @@ def serializer_from_settings():
 
 
 def set_is_email_verified(profile, is_email_verified):
-    profile.metadata.update({"is_email_verified": is_email_verified})
+    profile.metadata.update({'is_email_verified': is_email_verified})
     profile.save()
 
 
@@ -214,7 +215,6 @@ class UserProfileViewSet(
             return Response(cached_user)
         response = super(UserProfileViewSet, self)\
             .retrieve(request, *args, **kwargs)
-        cache.set(f'{USER_PROFILE_PREFIX}{username}', response.data)
         return response
 
     def create(self, request, *args, **kwargs):
@@ -337,19 +337,31 @@ class UserProfileViewSet(
         verification_key = request.query_params.get('verification_key')
         response_message = _("Missing or invalid verification key")
         if verification_key:
+            rp = None
             try:
-                rp = RegistrationProfile.objects.get(
-                    activation_key=verification_key)
+                rp = RegistrationProfile.objects.select_related(
+                        'user', 'user__profile').get(
+                            activation_key=verification_key)
             except RegistrationProfile.DoesNotExist:
-                pass
-            else:
+                with use_master:
+                    try:
+                        rp = RegistrationProfile.objects.select_related(
+                            'user', 'user__profile').get(
+                                activation_key=verification_key)
+                    except RegistrationProfile.DoesNotExist:
+                        pass
+
+            if rp:
                 rp.activation_key = verified_key_text
                 rp.save()
 
+                username = rp.user.username
                 set_is_email_verified(rp.user.profile, True)
+                # Clear profiles cache
+                safe_delete(f'{USER_PROFILE_PREFIX}{username}')
 
                 response_data = {
-                    'username': rp.user.username,
+                    'username': username,
                     'is_email_verified': True
                 }
 
