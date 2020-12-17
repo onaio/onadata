@@ -251,6 +251,7 @@ class TestMessagingViewSet(TestCase):
         response = view(request=request, pk=message_data['id'])
         self.assertEqual(response.status_code, 200)
 
+    @override_settings(USE_TZ=False)
     def test_messaging_timestamp_filter(self):
         """
         Test that a user is able to filter messages using the timestamp
@@ -440,6 +441,84 @@ class TestMessagingViewSet(TestCase):
         request = self.factory.get(
             f'/messaging?timestamp__year__lte={year}&'
             f'target_type=user&target_id={target_id}')
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+        # Test able to use hour & minute filters
+        hour = Action.objects.get(
+            id=message_one['id']).timestamp.hour
+        minute = Action.objects.get(
+            id=message_one['id']).timestamp.minute
+
+        request = self.factory.get(
+            f'/messaging?timestamp__hour={hour}&target_type=user&'
+            f'target_id={target_id}')
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+        request = self.factory.get(
+            f'/messaging?timestamp__hour__lt={hour}&target_type=user&'
+            f'target_id={target_id}')
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
+
+        request = self.factory.get(
+            f'/messaging?timestamp__hour__gt={hour}&target_type=user&'
+            f'target_id={target_id}')
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
+
+        request = self.factory.get(
+            f'/messaging?timestamp__hour__lte={hour}&target_type=user&'
+            f'target_id={target_id}')
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+        request = self.factory.get(
+            f'/messaging?timestamp__hour__gte={hour}&target_type=user&'
+            f'target_id={target_id}')
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+        request = self.factory.get(
+            f'/messaging?timestamp__minute__gt={minute}&target_type=user&'
+            f'target_id={target_id}')
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
+
+        request = self.factory.get(
+            f'/messaging?timestamp__minute__lt={minute}&target_type=user&'
+            f'target_id={target_id}')
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
+
+        request = self.factory.get(
+            f'/messaging?timestamp__minute__gte={minute}&target_type=user&'
+            f'target_id={target_id}')
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+        request = self.factory.get(
+            f'/messaging?timestamp__minute__lte={minute}&target_type=user&'
+            f'target_id={target_id}')
         force_authenticate(request, user=user)
         response = view(request=request)
         self.assertEqual(response.status_code, 200)

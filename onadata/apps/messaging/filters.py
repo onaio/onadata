@@ -34,6 +34,16 @@ DATETIME_LOOKUPS = [
     "day__lt",
     "day__gte",
     "day__lte",
+    "hour",
+    "hour__gt",
+    "hour__lt",
+    "hour__gte",
+    "hour__lte",
+    "minute",
+    "minute__gt",
+    "minute__lt",
+    "minute__gte",
+    "minute__lte",
 ]
 
 
