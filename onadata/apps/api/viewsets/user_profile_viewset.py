@@ -100,7 +100,8 @@ def serializer_from_settings():
 
 
 def set_is_email_verified(profile, is_email_verified):
-    profile.metadata.update({"is_email_verified": is_email_verified})
+    profile.refresh_from_db()
+    profile.metadata.update({'is_email_verified': is_email_verified})
     profile.save()
 
 
@@ -214,7 +215,6 @@ class UserProfileViewSet(
             return Response(cached_user)
         response = super(UserProfileViewSet, self)\
             .retrieve(request, *args, **kwargs)
-        cache.set(f'{USER_PROFILE_PREFIX}{username}', response.data)
         return response
 
     def create(self, request, *args, **kwargs):

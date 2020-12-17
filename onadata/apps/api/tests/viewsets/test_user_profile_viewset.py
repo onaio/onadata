@@ -205,24 +205,6 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.user_profile_data())
 
-    def test_retrieve_user_profile_from_cache(self):
-        """
-        Test that user_profiles are cached on retrieve
-        """
-        view = UserProfileViewSet.as_view({
-            'get': 'retrieve'
-        })
-
-        # clear cache
-        cache.delete(safe_key(f'{USER_PROFILE_PREFIX}bob'))
-
-        self.assertIsNone(cache.get(safe_key(f'{USER_PROFILE_PREFIX}bob')))
-
-        request = self.factory.get('/', **self.extra)
-        view(request, user='bob')
-
-        self.assertIsNotNone(cache.get(f'{USER_PROFILE_PREFIX}bob'))
-
     def test_profiles_get_anon(self):
         view = UserProfileViewSet.as_view({
             'get': 'retrieve'
