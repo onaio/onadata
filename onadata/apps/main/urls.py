@@ -327,9 +327,6 @@ urlpatterns = [
     re_path(r'^static/(?P<path>.*)$', staticfiles_views.serve)
 ]
 
-# messaging urls
-urlpatterns.append(url('^', include('onadata.apps.messaging.urls')))
-
 CUSTOM_URLS = getattr(settings, 'CUSTOM_MAIN_URLS', None)
 
 if CUSTOM_URLS:

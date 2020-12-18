@@ -38,6 +38,7 @@ from onadata.apps.api.viewsets.xform_list_viewset import XFormListViewSet
 from onadata.apps.api.viewsets.xform_submission_viewset import \
     XFormSubmissionViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
+from onadata.apps.messaging.viewsets import MessagingViewSet
 from onadata.apps.restservice.viewsets.restservices_viewset import \
     RestServicesViewSet
 
@@ -128,6 +129,7 @@ router.register(r'forms', XFormViewSet)
 router.register(r'media', AttachmentViewSet, basename='attachment')
 router.register(
     r'merged-datasets', MergedXFormViewSet, basename='merged-xform')
+router.register(r'messaging', MessagingViewSet, basename="messaging")
 router.register(r'metadata', MetaDataViewSet, basename='metadata')
 router.register(r'notes', NoteViewSet)
 router.register(r'open-data', OpenDataViewSet, basename='open-data')

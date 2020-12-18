@@ -3,12 +3,57 @@
 Messaging viewset filters module.
 """
 from __future__ import unicode_literals
+from actstream.models import Action
 
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext as _
 from rest_framework import exceptions, filters
+from django_filters import rest_framework as rest_filters
 
 from onadata.apps.messaging.utils import TargetDoesNotExist, get_target
+
+
+DATETIME_LOOKUPS = [
+    "exact",
+    "gt",
+    "lt",
+    "gte",
+    "lte",
+    "year",
+    "year__gt",
+    "year__lt",
+    "year__gte",
+    "year__lte",
+    "month",
+    "month__gt",
+    "month__lt",
+    "month__gte",
+    "month__lte",
+    "day",
+    "day__gt",
+    "day__lt",
+    "day__gte",
+    "day__lte",
+    "hour",
+    "hour__gt",
+    "hour__lt",
+    "hour__gte",
+    "hour__lte",
+    "minute",
+    "minute__gt",
+    "minute__lt",
+    "minute__gte",
+    "minute__lte",
+]
+
+
+class ActionFilterSet(rest_filters.FilterSet):
+    class Meta:
+        model = Action
+        fields = {
+            "verb": ["exact"],
+            "timestamp": DATETIME_LOOKUPS
+        }
 
 
 class TargetTypeFilterBackend(filters.BaseFilterBackend):
