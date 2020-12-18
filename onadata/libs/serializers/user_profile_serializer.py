@@ -29,6 +29,7 @@ from onadata.libs.authentication import expired
 from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.cache_tools import IS_ORG
+from onadata.libs.utils.analytics import track_object_event
 from onadata.libs.utils.email import (
     get_verification_url, get_verification_email_data
 )
@@ -229,6 +230,11 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
         return super(UserProfileSerializer, self).update(instance, params)
 
+    @track_object_event(
+        user_field='user',
+        properties={
+            'name': 'name',
+            'country': 'country'})
     def create(self, validated_data):
         params = validated_data
         request = self.context.get('request')

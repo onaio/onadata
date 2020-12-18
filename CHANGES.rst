@@ -3,6 +3,32 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.4.9(2020-12-17)
+------------------
+
+- Update submission metrics collection
+  `PR #1895 <https://github.com/onaio/onadata/pull/1895`_
+  [@WinnyTroy]
+- XForm and Data ViewSet updates
+  `PR #1971 <https://github.com/onaio/onadata/pull/1971`_
+  [@DavisRayM]
+
+v2.4.8(2020-12-14)
+------------------
+
+- Fix failing URL upload test
+  `PR #1954 <https://github.com/onaio/onadata/pull/1954>`_
+  [@DavisRayM]
+- Add enketo-preview url routed to PreviewXFormListViewSet
+  `PR #1953 <https://github.com/onaio/onadata/pull/1953>`_
+  [@FrankApiyo]
+- Data viewset retrieval optimisations
+  `PR #1966 <https://github.com/onaio/onadata/pull/1966>`_
+  [@DavisRayM]
+- Update "onadata-uwsgi" docker file
+  `PR #1956 <https://github.com/onaio/onadata/pull/1956>`_
+  [@DavisRayM]
+
 v2.4.7(2020-11-16)
 ------------------
 

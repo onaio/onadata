@@ -6,7 +6,7 @@ from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.db.models.query import QuerySet
-from django.db.utils import DataError
+from django.db.utils import DataError, OperationalError
 from django.http import Http404
 from django.http import StreamingHttpResponse
 from django.utils import six
@@ -45,7 +45,7 @@ from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
-from onadata.libs.pagination import StandardPageNumberPagination
+from onadata.libs.pagination import CountOverridablePageNumberPagination
 from onadata.libs.permissions import CAN_DELETE_SUBMISSION, \
     filter_queryset_xform_meta_perms, filter_queryset_xform_meta_perms_sql
 from onadata.libs.renderers import renderers
@@ -62,6 +62,10 @@ from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.viewer_tools import get_form_url, get_enketo_urls
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
+SUBMISSION_RETRIEVAL_THRESHOLD = getattr(settings,
+                                         "SUBMISSION_RETRIEVAL_THRESHOLD",
+                                         10000)
+
 BaseViewset = get_baseviewset_class()
 
 
@@ -117,8 +121,9 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
     lookup_field = 'pk'
     lookup_fields = ('pk', 'dataid')
     extra_lookup_fields = None
+    data_count = None
     public_data_endpoint = 'public'
-    pagination_class = StandardPageNumberPagination
+    pagination_class = CountOverridablePageNumberPagination
 
     queryset = XForm.objects.filter(deleted_at__isnull=True)
 
@@ -409,12 +414,27 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             xform_id, is_merged_dataset = qs[0] if qs else (lookup, False)
             pks = [xform_id]
             if is_merged_dataset:
-                xforms = MergedXForm.objects.filter(
-                    pk=xform_id, xforms__deleted_at__isnull=True)\
-                    .values_list('xforms', flat=True)
-                pks = [pk for pk in xforms if pk] or [xform_id]
+                merged_form = MergedXForm.objects.get(pk=xform_id)
+                qs = merged_form.xforms.filter(
+                    deleted_at__isnull=True).values_list(
+                        'id', 'num_of_submissions')
+                try:
+                    pks, num_of_submissions = [
+                        list(value) for value in zip(*qs)]
+                    num_of_submissions = sum(num_of_submissions)
+                except ValueError:
+                    pks, num_of_submissions = [], 0
+            else:
+                num_of_submissions = XForm.objects.get(
+                    id=xform_id).num_of_submissions
             self.object_list = Instance.objects.filter(
-                xform_id__in=pks, deleted_at=None).only('json').order_by('id')
+                xform_id__in=pks, deleted_at=None).only('json')
+
+            # Enable ordering for XForms with Submissions that are less
+            # than the SUBMISSION_RETRIEVAL_THRESHOLD
+            if num_of_submissions < SUBMISSION_RETRIEVAL_THRESHOLD:
+                self.object_list = self.object_list.order_by('id')
+
             xform = self.get_object()
             self.object_list = \
                 filter_queryset_xform_meta_perms(xform, request.user,
@@ -469,8 +489,12 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
     def set_object_list(
             self, query, fields, sort, start, limit, is_public_request):
         try:
+            enable_etag = True
             if not is_public_request:
                 xform = self.get_object()
+                self.data_count = xform.num_of_submissions
+                enable_etag = self.data_count <\
+                    SUBMISSION_RETRIEVAL_THRESHOLD
 
             where, where_params = get_where_clause(query)
             if where:
@@ -495,18 +519,30 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 except NoRecordsPermission:
                     self.object_list = []
 
-            if isinstance(self.object_list, QuerySet):
-                self.etag_hash = get_etag_hash_from_query(self.object_list)
-            else:
-                sql, params, records = get_sql_with_params(
-                    xform, query=query, sort=sort, start_index=start,
-                    limit=limit, fields=fields
-                )
-                self.etag_hash = get_etag_hash_from_query(records, sql, params)
+            # ETags are Disabled for XForms with Submissions that surpass
+            # the configured SUBMISSION_RETRIEVAL_THRESHOLD setting
+            if enable_etag:
+                if isinstance(self.object_list, QuerySet):
+                    self.etag_hash = get_etag_hash_from_query(self.object_list)
+                else:
+                    sql, params, records = get_sql_with_params(
+                        xform, query=query, sort=sort, start_index=start,
+                        limit=limit, fields=fields
+                    )
+                    self.etag_hash = get_etag_hash_from_query(
+                        records, sql, params)
         except ValueError as e:
             raise ParseError(text(e))
         except DataError as e:
             raise ParseError(text(e))
+
+    def paginate_queryset(self, queryset):
+        if self.paginator is None:
+            return None
+        return self.paginator.paginate_queryset(queryset,
+                                                self.request,
+                                                view=self,
+                                                count=self.data_count)
 
     def _get_data(self, query, fields, sort, start, limit, is_public_request):
         self.set_object_list(
@@ -518,7 +554,10 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         should_paginate = any([k in query_param_keys for k in pagination_keys])
         if not isinstance(self.object_list, types.GeneratorType) and \
                 should_paginate:
-            self.object_list = self.paginate_queryset(self.object_list)
+            try:
+                self.object_list = self.paginate_queryset(self.object_list)
+            except OperationalError:
+                self.object_list = self.paginate_queryset(self.object_list)
 
         STREAM_DATA = getattr(settings, 'STREAM_DATA', False)
         if STREAM_DATA:

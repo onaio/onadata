@@ -203,6 +203,7 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
         properties={
             'submitted_by': 'user',
             'xform_id': 'xform__pk',
+            'project_id': 'xform__project__pk',
             'organization': 'xform__user__profile__organization'},
         additional_context={'from': 'XML Submissions'}
     )
@@ -318,6 +319,7 @@ class JSONSubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
         properties={
             'submitted_by': 'user',
             'xform_id': 'xform__pk',
+            'project_id': 'xform__project__pk',
             'organization': 'xform__user__profile__organization'},
         additional_context={'from': 'JSON Submission'}
     )
@@ -347,7 +349,11 @@ class RapidProSubmissionSerializer(BaseRapidProSubmissionSerializer):
     """
     @track_object_event(
         user_field='xform__user',
-        properties={'submitted_by': 'user', 'xform_id': 'xform__pk'},
+        properties={
+            'submitted_by': 'user',
+            'xform_id': 'xform__pk',
+            'project_id': 'xform__project__pk',
+            },
         additional_context={'from': 'RapidPro'}
     )
     def create(self, validated_data):
@@ -369,7 +375,11 @@ class RapidProJSONSubmissionSerializer(BaseRapidProSubmissionSerializer):
     """
     @track_object_event(
         user_field='xform__user',
-        properties={'submitted_by': 'user', 'xform_id': 'xform__pk'},
+        properties={
+            'submitted_by': 'user',
+            'xform_id': 'xform__pk',
+            'project_id': 'xform__project__pk',
+            },
         additional_context={'from': 'RapidPro(JSON)'}
     )
     def create(self, validated_data):
@@ -392,7 +402,11 @@ class FLOIPListSerializer(serializers.ListSerializer):
     """
     @track_object_event(
         user_field='xform__user',
-        properties={'submitted_by': 'user', 'xform_id': 'xform__pk'},
+        properties={
+            'submitted_by': 'user',
+            'xform_id': 'xform__pk',
+            'project_id': 'xform__project__pk',
+            },
         additional_context={'from': 'FLOIP'}
     )
     def create(self, validated_data):

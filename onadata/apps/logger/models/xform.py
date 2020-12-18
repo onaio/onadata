@@ -11,6 +11,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericRelation
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.cache import cache
 from django.db import models, transaction
 from django.db.models import Sum
 from django.db.models.signals import post_delete, post_save, pre_save
@@ -33,11 +34,11 @@ from taggit.managers import TaggableManager
 from onadata.apps.logger.xform_instance_parser import (XLSFormError,
                                                        clean_and_parse_xml)
 from onadata.libs.models.base_model import BaseModel
-from onadata.libs.utils.cache_tools import (IS_ORG, PROJ_BASE_FORMS_CACHE,
-                                            PROJ_FORMS_CACHE,
-                                            PROJ_NUM_DATASET_CACHE,
-                                            PROJ_SUB_DATE_CACHE, XFORM_COUNT,
-                                            PROJ_OWNER_CACHE, safe_delete)
+from onadata.libs.utils.cache_tools import (
+    IS_ORG, PROJ_BASE_FORMS_CACHE, PROJ_FORMS_CACHE,
+    PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE, XFORM_COUNT,
+    PROJ_OWNER_CACHE, XFORM_SUBMISSION_COUNT_FOR_DAY,
+    XFORM_SUBMISSION_COUNT_FOR_DAY_DATE, safe_delete)
 from onadata.libs.utils.common_tags import (DURATION, ID, KNOWN_MEDIA_TYPES,
                                             MEDIA_ALL_RECEIVED, MEDIA_COUNT,
                                             NOTES, SUBMISSION_TIME,
@@ -959,9 +960,11 @@ class XForm(XFormMixin, BaseModel):
         current_timezone = pytz.timezone(current_timzone_name)
         today = datetime.today()
         current_date = current_timezone.localize(
-            datetime(today.year, today.month, today.day))
-        count = self.instances.filter(
-            deleted_at__isnull=True, date_created=current_date).count()
+            datetime(today.year, today.month, today.day)).isoformat()
+        count = cache.get(
+            f"{XFORM_SUBMISSION_COUNT_FOR_DAY}{self.id}") if cache.get(
+                f"{XFORM_SUBMISSION_COUNT_FOR_DAY_DATE}{self.id}"
+                ) == current_date else 0
         return count
 
     def geocoded_submission_count(self):

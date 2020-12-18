@@ -466,6 +466,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):
         event_name = None
         tracking_properties = {
             'xform_id': xform.pk,
+            'project_id': xform.project.pk,
             'submitted_by': event_by,
             'label': f'csv-import-for-form-{xform.pk}',
             'from': 'CSV Import',

@@ -48,6 +48,7 @@ from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
+from onadata.libs.utils.analytics import track_object_event
 from onadata.libs.utils.common_tags import METADATA_FIELDS
 from onadata.libs.utils.common_tools import report_exception, get_uuid
 from onadata.libs.utils.model_tools import set_uuid
@@ -634,6 +635,14 @@ def publish_form(callback):
         return {'type': 'alert-error', 'text': text(e)}
 
 
+@track_object_event(
+    user_field='user',
+    properties={
+        'created_by': 'user',
+        'xform_id': 'pk',
+        'xform_name': 'title'},
+    additional_context={'from': 'Publish XLS Form'}
+)
 @transaction.atomic()
 def publish_xls_form(xls_file, user, project, id_string=None, created_by=None):
     """Create or update DataDictionary with xls_file, user
@@ -655,6 +664,14 @@ def publish_xls_form(xls_file, user, project, id_string=None, created_by=None):
             project=project)
 
 
+@track_object_event(
+    user_field='user',
+    properties={
+        'created_by': 'user',
+        'xform_id': 'pk',
+        'xform_name': 'title'},
+    additional_context={'from': 'Publish XML Form'}
+)
 def publish_xml_form(xml_file, user, project, id_string=None, created_by=None):
     xml = xml_file.read()
     if isinstance(xml, bytes):

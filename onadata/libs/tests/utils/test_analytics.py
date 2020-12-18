@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 
 from django.contrib.auth.models import User, AnonymousUser
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.conf import settings
 from django.test import override_settings
 
 import onadata.libs.utils.analytics
@@ -14,7 +15,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.xform_submission_viewset import \
     XFormSubmissionViewSet
-from onadata.libs.utils.analytics import get_user_id, sanitize_metric_values
+from onadata.libs.utils.analytics import get_user_id
 
 
 class TestAnalytics(TestAbstractViewSet):
@@ -31,7 +32,7 @@ class TestAnalytics(TestAbstractViewSet):
         self.assertTrue(len(user2.email) > 0)
         self.assertEqual(get_user_id(user2), user2.email)
 
-    @override_settings(SEGMENT_WRITE_KEY='123', HOSTNAME='test-server')
+    @override_settings(SEGMENT_WRITE_KEY='123')
     def test_track(self):
         """Test analytics.track() function.
         """
@@ -46,55 +47,39 @@ class TestAnalytics(TestAbstractViewSet):
             user1.username,
             'testing track function',
             {'value': 1},
-            {'source': 'test-server'})
-
-    def test_sanitize_metric_values(self):
-        """Test sanitize_metric_values()"""
-        expected_output = {
-            'action_from': 'XML_Submissions',
-            'event_by': 'bob',
-            'ip': '18.203.134.101',
-            'path': '/enketo/1814/submission',
-            'source': 'onadata-ona-stage',
-            'url': 'https://stage-api.ona.io/enketo/1814/submission',
-            'userId': 1,
-            'xform_id': 1}
-        context = {
-            'action_from': 'XML Submissions',
-            'event_by': 'bob',
-            'ip': '18.203.134.101',
-            'library': {
-                'name': 'analytics-python',
-                'version': '1.2.9'
-                },
-            'organization': '',
-            'path': '/enketo/1814/submission',
-            'source': 'onadata-ona-stage',
-            'url': 'https://stage-api.ona.io/enketo/1814/submission',
-            'userId': 1,
-            'xform_id': 1}
-
-        self.assertEqual(sanitize_metric_values(context), expected_output)
+            {'page': {}, 'campaign': {}, 'active': True})
 
     @override_settings(
-            SEGMENT_WRITE_KEY='123', HOSTNAME='test-server',
-            APPOPTICS_API_TOKEN='123')
+            SEGMENT_WRITE_KEY='123')
     def test_submission_tracking(self):
         """Test that submissions are tracked"""
         segment_mock = MagicMock()
-        appoptics_mock = MagicMock()
         onadata.libs.utils.analytics.segment_analytics = segment_mock
         onadata.libs.utils.analytics.init_analytics()
         self.assertEqual(segment_mock.write_key, '123')
 
         # Test out that the track_object_event decorator
-        # Tracks created submissions
+        # Tracks created submissions, XForms and Projects
         view = XFormSubmissionViewSet.as_view({
             'post': 'create',
             'head': 'create'
         })
         self._publish_xls_form_to_project()
-        onadata.libs.utils.analytics.appoptics_api = appoptics_mock
+        segment_mock.track.assert_called_with(
+            'bob@columbia.edu',
+            'XForm created',
+            {
+                'created_by': self.xform.user,
+                'xform_id': self.xform.pk,
+                'xform_name': self.xform.title,
+                'from': 'Publish XLS Form',
+                'value': 1
+            },
+            {
+                'page': {},
+                'campaign': {},
+                'active': True
+            })
         s = self.surveys[0]
         media_file = "1335783522563.jpg"
         path = os.path.join(self.main_directory, 'fixtures',
@@ -110,6 +95,13 @@ class TestAnalytics(TestAbstractViewSet):
                 data = {'xml_submission_file': sf, 'media_file': f}
                 request = self.factory.post(request_path, data)
                 request.user = AnonymousUser()
+                request.META['HTTP_DATE'] = '2020-09-10T11:56:32.424726+00:00'
+                request.META['HTTP_REFERER'] = settings.HOSTNAME +\
+                    ':8000'
+                request.META['HTTP_USER_AGENT'] =\
+                    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit'\
+                    '/537.36 (KHTML, like Gecko) Chrome'\
+                    '/83.0.4103.61 Safari/537.36'
                 response = view(request, username=self.user.username)
                 self.assertContains(response, 'Successful submission',
                                     status_code=201)
@@ -128,35 +120,25 @@ class TestAnalytics(TestAbstractViewSet):
             'Submission created',
             {
                 'xform_id': self.xform.pk,
+                'project_id': self.xform.project.pk,
                 'organization': 'Bob Inc.',
-                'from': 'XML Submissions',
+                'from': 'Submission collected from Enketo',
                 'label': f'form-{form_id}-owned-by-{username}',
                 'value': 1,
                 'event_by': 'anonymous'
             },
-            {
-                'source': 'test-server',
-                'organization': 'Bob Inc.',
-                'event_by': 'anonymous',
-                'action_from': 'XML Submissions',
-                'xform_id': self.xform.pk,
-                'path': f'/{username}/submission',
-                'url': f'http://testserver/{username}/submission',
+            {'page': {
+                'path': '/bob/submission',
+                'referrer': settings.HOSTNAME + ':8000',
+                'url': 'http://testserver/bob/submission'
+                },
+                'campaign': {
+                    'source': settings.HOSTNAME},
+                'active': True,
                 'ip': '127.0.0.1',
-                'userId': self.user.id
-            })
-
-        appoptics_mock.submit_measurement.assert_called_with(
-            'Submission created',
-            1,
-            tags={
-                'source': 'test-server',
-                'event_by': 'anonymous',
-                'organization': 'Bob_Inc.',
-                'action_from': 'XML_Submissions',
-                'xform_id': self.xform.pk,
-                'path': f'/{username}/submission',
-                'url': f'http://testserver/{username}/submission',
-                'ip': '127.0.0.1',
-                'userId': self.user.id
-            })
+                'userId': self.xform.user.pk,
+                'receivedAt': '2020-09-10T11:56:32.424726+00:00',
+                'userAgent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit'
+                '/537.36 (KHTML, like Gecko) Chrome'
+                '/83.0.4103.61 Safari/537.36'}
+            )

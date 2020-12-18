@@ -16,4 +16,4 @@ class TestOnaApi(TestAbstractViewSet):
         request = self.factory.get(path)
         request.resolver_match = resolve(path)
         response = view(request)
-        self.assertEquals(len(response.data), 28)
+        self.assertEquals(len(response.data), 29)

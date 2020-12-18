@@ -29,7 +29,6 @@ from onadata.apps.main.models.user_profile import \
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.serializers.user_profile_serializer import \
     _get_first_last_names
-from onadata.libs.utils.cache_tools import USER_PROFILE_PREFIX, safe_key
 
 
 def _profile_data():
@@ -204,24 +203,6 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.user_profile_data())
-
-    def test_retrieve_user_profile_from_cache(self):
-        """
-        Test that user_profiles are cached on retrieve
-        """
-        view = UserProfileViewSet.as_view({
-            'get': 'retrieve'
-        })
-
-        # clear cache
-        cache.delete(safe_key(f'{USER_PROFILE_PREFIX}bob'))
-
-        self.assertIsNone(cache.get(safe_key(f'{USER_PROFILE_PREFIX}bob')))
-
-        request = self.factory.get('/', **self.extra)
-        view(request, user='bob')
-
-        self.assertIsNotNone(cache.get(f'{USER_PROFILE_PREFIX}bob'))
 
     def test_profiles_get_anon(self):
         view = UserProfileViewSet.as_view({
@@ -1207,6 +1188,38 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEquals(response.status_code, 200)
         self.assertFalse(self.xform.shared)
         self.assertEquals(response.data, {'private': count})
+
+    @override_settings(ENABLE_EMAIL_VERIFICATION=True)
+    @patch(
+        'onadata.apps.api.viewsets.user_profile_viewset.RegistrationProfile')
+    def test_reads_from_master(self, mock_rp_class):
+        """
+        Test that on failure to retrieve a UserProfile in the first
+        try a second query is run on the master database
+        """
+        data = _profile_data()
+        self._create_user_using_profiles_endpoint(data)
+
+        view = UserProfileViewSet.as_view({'get': 'verify_email'})
+        rp = RegistrationProfile.objects.get(
+            user__username=data.get('username')
+        )
+        _data = {'verification_key': rp.activation_key}
+        mock_rp_class.DoesNotExist = RegistrationProfile.DoesNotExist
+        mock_rp_class.objects.select_related(
+            'user', 'user__profile'
+            ).get.side_effect = [RegistrationProfile.DoesNotExist, rp]
+        request = self.factory.get('/', data=_data)
+        response = view(request)
+        self.assertEquals(response.status_code, 200)
+        self.assertIn('is_email_verified', response.data)
+        self.assertIn('username', response.data)
+        self.assertTrue(response.data.get('is_email_verified'))
+        self.assertEquals(
+            response.data.get('username'), data.get('username'))
+        self.assertEqual(
+            mock_rp_class.objects.select_related(
+                'user', 'user__profile').get.call_count, 2)
 
     def test_change_password_attempts(self):
         view = UserProfileViewSet.as_view(

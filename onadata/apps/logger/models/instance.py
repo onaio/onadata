@@ -3,6 +3,7 @@
 Instance model class
 """
 import math
+import pytz
 from datetime import datetime
 
 from django.conf import settings
@@ -10,6 +11,7 @@ from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GeometryCollection, Point
 from django.contrib.postgres.fields import JSONField
+from django.core.cache import cache
 from django.db import connection, transaction
 from django.db.models import Q
 from django.db.models.signals import post_delete, post_save
@@ -28,10 +30,10 @@ from onadata.apps.logger.xform_instance_parser import (XFormInstanceParser,
                                                        get_uuid_from_xml)
 from onadata.celery import app
 from onadata.libs.data.query import get_numeric_fields
-from onadata.libs.utils.cache_tools import (DATAVIEW_COUNT, IS_ORG,
-                                            PROJ_NUM_DATASET_CACHE,
-                                            PROJ_SUB_DATE_CACHE, XFORM_COUNT,
-                                            XFORM_DATA_VERSIONS, safe_delete)
+from onadata.libs.utils.cache_tools import (
+    DATAVIEW_COUNT, IS_ORG, PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE,
+    XFORM_COUNT, XFORM_DATA_VERSIONS, XFORM_SUBMISSION_COUNT_FOR_DAY,
+    XFORM_SUBMISSION_COUNT_FOR_DAY_DATE, safe_delete)
 from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID,
                                             DELETEDAT, DURATION, EDITED, END,
                                             GEOLOCATION, ID, LAST_EDITED,
@@ -143,6 +145,34 @@ def submission_time():
     return timezone.now()
 
 
+def _update_submission_count_for_today(
+        form_id: int, incr: bool = True, date_created=None):
+    # Track submissions made today
+    current_timzone_name = timezone.get_current_timezone_name()
+    current_timezone = pytz.timezone(current_timzone_name)
+    today = datetime.today()
+    current_date = current_timezone.localize(
+        datetime(today.year, today.month, today.day)).isoformat()
+    date_cache_key = (f"{XFORM_SUBMISSION_COUNT_FOR_DAY_DATE}" f"{form_id}")
+    count_cache_key = (f"{XFORM_SUBMISSION_COUNT_FOR_DAY}{form_id}")
+
+    if not cache.get(date_cache_key) == current_date:
+        cache.set(date_cache_key, current_date, 86400)
+
+    if date_created:
+        date_created = current_timezone.localize(
+            datetime(date_created.year, date_created.month, date_created.day)
+        ).isoformat()
+
+    current_count = cache.get(count_cache_key)
+    if not current_count and incr:
+        cache.set(count_cache_key, 1, 86400)
+    elif incr:
+        cache.incr(count_cache_key)
+    elif current_count > 0 and date_created == current_date:
+        cache.decr(count_cache_key)
+
+
 @app.task
 @transaction.atomic()
 def update_xform_submission_count(instance_id, created):
@@ -171,6 +201,9 @@ def update_xform_submission_count(instance_id, created):
                 'WHERE user_id = %s'
             )
             cursor.execute(sql, [instance.xform.user_id])
+
+            # Track submissions made today
+            _update_submission_count_for_today(instance.xform_id)
 
             safe_delete('{}{}'.format(XFORM_DATA_VERSIONS, instance.xform_id))
             safe_delete('{}{}'.format(DATAVIEW_COUNT, instance.xform_id))
@@ -201,6 +234,10 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
             if profile.num_of_submissions < 0:
                 profile.num_of_submissions = 0
             profile.save()
+
+        # Track submissions made today
+        _update_submission_count_for_today(
+            xform.id, incr=False, date_created=instance.date_created)
 
         for a in [PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE]:
             safe_delete('{}{}'.format(a, xform.project.pk))
@@ -597,6 +634,11 @@ class Instance(models.Model, InstanceBaseClass):
 
 
 def post_save_submission(sender, instance=None, created=False, **kwargs):
+    if instance.deleted_at is not None:
+        _update_submission_count_for_today(instance.xform_id,
+                                           incr=False,
+                                           date_created=instance.date_created)
+
     if ASYNC_POST_SUBMISSION_PROCESSING_ENABLED:
         update_xform_submission_count.apply_async(args=[instance.pk, created])
         save_full_json.apply_async(args=[instance.pk, created])

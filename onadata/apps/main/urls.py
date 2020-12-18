@@ -232,6 +232,9 @@ urlpatterns = [
     re_path(r'^enketo/(?P<xform_pk>\w+)/formList$',
             XFormListViewSet.as_view({'get': 'list', 'head': 'list'}),
             name='form-list'),
+    re_path(r'^enketo-preview/(?P<xform_pk>\w+)/formList$',
+            PreviewXFormListViewSet.as_view({'get': 'list', 'head': 'list'}),
+            name='form-list'),
     re_path(r'^(?P<username>\w+)/(?P<xform_pk>\d+)/formList$',
             XFormListViewSet.as_view({'get': 'list', 'head': 'list'}),
             name='form-list'),
@@ -323,9 +326,6 @@ urlpatterns = [
                                  permanent=True)),
     re_path(r'^static/(?P<path>.*)$', staticfiles_views.serve)
 ]
-
-# messaging urls
-urlpatterns.append(url('^', include('onadata.apps.messaging.urls')))
 
 CUSTOM_URLS = getattr(settings, 'CUSTOM_MAIN_URLS', None)
 
