@@ -475,7 +475,8 @@ class XFormMixin(object):
             u'_attachments', u'_potential_duplicates'
         ]
 
-    def get_headers(self, include_additional_headers=False):
+    def get_headers(
+            self, include_additional_headers=False, repeat_iterations=4):
         """
         Return a list of headers for a csv file.
         """
@@ -483,7 +484,9 @@ class XFormMixin(object):
             xpath_list = xpath.split('/')
             return '/'.join(xpath_list[2:])
 
-        header_list = [shorten(xpath) for xpath in self.xpaths()]
+        header_list = [
+            shorten(xpath) for xpath in self.xpaths(
+                repeat_iterations=repeat_iterations)]
         header_list += [
             ID, UUID, SUBMISSION_TIME, TAGS, NOTES, REVIEW_STATUS,
             REVIEW_COMMENT, VERSION, DURATION, SUBMITTED_BY, TOTAL_MEDIA,

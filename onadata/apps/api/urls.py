@@ -21,6 +21,7 @@ from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
 from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
 from onadata.apps.api.viewsets.note_viewset import NoteViewSet
 from onadata.apps.api.viewsets.open_data_viewset import OpenDataViewSet
+from onadata.apps.api.viewsets.tableau_viewset import TableauViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import \
     OrganizationProfileViewSet
 from onadata.apps.api.viewsets.osm_viewset import OsmViewSet
@@ -133,6 +134,7 @@ router.register(r'messaging', MessagingViewSet, basename="messaging")
 router.register(r'metadata', MetaDataViewSet, basename='metadata')
 router.register(r'notes', NoteViewSet)
 router.register(r'open-data', OpenDataViewSet, basename='open-data')
+router.register(r'open-data-v2', TableauViewSet, basename='open-data-v2')
 router.register(r'orgs', OrganizationProfileViewSet)
 router.register(r'osm', OsmViewSet, basename='osm')
 router.register(

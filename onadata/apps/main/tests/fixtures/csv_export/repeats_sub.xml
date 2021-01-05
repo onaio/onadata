@@ -1,0 +1,15 @@
+<tutorial_w_repeats id="tutorial_w_repeats" version="2014111">
+<name>Tom</name>
+<age>32</age>
+<picture>wotm_01_green_desktop-10_36_1.jpg</picture>
+<has_children>1</has_children>
+<children>
+<childs_name>Harry</childs_name>
+<childs_age>2</childs_age>
+</children><children>
+<childs_name>Potter</childs_name>
+<childs_age>5</childs_age>
+</children>
+<gps>26.431228 58.157921 0 0</gps>
+<web_browsers>firefox chrome ie safari</web_browsers>
+</tutorial_w_repeats>
