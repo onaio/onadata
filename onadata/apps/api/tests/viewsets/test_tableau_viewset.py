@@ -7,11 +7,11 @@ import json
 
 from django.test import RequestFactory
 from django.utils.dateparse import parse_datetime
-
-from onadata.apps.logger.models.open_data import get_or_create_opendata
-from onadata.apps.api.viewsets.tableau_viewset import TableauViewSet
-
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.logger.models.open_data import get_or_create_opendata
+from onadata.apps.api.viewsets.tableau_viewset import (
+    TableauViewSet, unpack_select_multiple_data,
+    unpack_gps_data)
 
 
 def streaming_data(response):
@@ -29,7 +29,7 @@ class TestTableauViewSet(TestBase):
             self.this_directory, 'fixtures', 'csv_export')
         path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xls')
         self._publish_xls_file_and_set_xform(path)
-        path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xml')
+        path = os.path.join(self.fixture_dir, 'repeats_sub.xml')
         self.factory = RequestFactory()
         self.extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
@@ -205,28 +205,32 @@ class TestTableauViewSet(TestBase):
         row_data = streaming_data(response2)
         expected_data = [
             {
-                '_gps_altitude': '0.0',
-                '_gps_latitude': '-1.2625621',
-                '_gps_longitude': '36.7921711',
-                '_gps_precision': '20.0',
+                '_gps_altitude': '0',
+                '_gps_latitude': '26.431228',
+                '_gps_longitude': '58.157921',
+                '_gps_precision': '0',
                 '_id': self.xform.instances.first().id,
-                'age': 25,
+                'age': 32,
+                'browsers_chrome': 'TRUE',
+                'browsers_firefox': 'TRUE',
+                'browsers_ie': 'TRUE',
+                'browsers_safari': 'TRUE',
                 'children': [
                     {
                         '__parent_id': self.xform.instances.first().id,
                         '__parent_table': 'data',
                         '_id': 2609471,
-                        'childs_age': 12,
-                        'childs_name': 'Tom'},
+                        'childs_age': 2,
+                        'childs_name': 'Harry'},
                     {
                         '__parent_id': self.xform.instances.first().id,
                         '__parent_table': 'data',
                         '_id': 2611757,
                         'childs_age': 5,
-                        'childs_name': 'Dick'}],
+                        'childs_name': 'Potter'}],
                 'has_children': '1',
-                'meta_instanceID': 'uuid:b31c6ac2-b8ca-4180-914f-c844fa10ed3b',
-                'name': 'Bob'
+                'name': 'Tom',
+                'picture': 'wotm_01_green_desktop-10_36_1.jpg'
             }]
 
         # Test to confirm that the repeat tables generated
@@ -235,3 +239,60 @@ class TestTableauViewSet(TestBase):
             row_data[0]['children'][0]['__parent_table'],
             response1.data[0]['table_alias'])
         self.assertEqual(row_data, expected_data)
+
+    def test_unpack_select_multiple_data(self):
+        """
+        Test expected output when `unpack_select_multiple_data`
+        function is run.
+        """
+        picked_choices = ['firefox', 'chrome', 'ie', 'safari']
+        list_name = 'browsers'
+        choices_names = ['firefox', 'chrome', 'ie', 'safari']
+        prefix = ''
+
+        expected_data = {
+            'browsers_chrome': 'TRUE',
+            'browsers_firefox': 'TRUE',
+            'browsers_ie': 'TRUE',
+            'browsers_safari': 'TRUE'
+            }
+
+        select_multiple_data = unpack_select_multiple_data(
+            picked_choices, list_name, choices_names, prefix)
+        self.assertEqual(select_multiple_data, expected_data)
+
+        # Confirm expected data when 2 choices are selected
+        picked_choices = ['firefox', 'safari']
+
+        select_multiple_data = unpack_select_multiple_data(
+            picked_choices, list_name, choices_names, prefix)
+
+        expected_data = {
+            'browsers_chrome': 'FALSE',
+            'browsers_firefox': 'TRUE',
+            'browsers_ie': 'FALSE',
+            'browsers_safari': 'TRUE'
+            }
+
+        self.assertEqual(select_multiple_data, expected_data)
+
+    def test_unpack_gps_data(self):
+        """
+        Test that gps data is unpacked into 4 separate columns
+        specific to latitude, longitude, alitude and precision.
+        """
+        # We receive gps data as a string
+        # with 4 space separated values
+        gps_data = '26.431228 58.157921 0 0'
+
+        qstn_name = "gps"
+        prefix = ""
+        data = unpack_gps_data(
+            gps_data, qstn_name, prefix)
+        expected_data = {
+            '_gps_latitude': '26.431228',
+            '_gps_longitude': '58.157921',
+            '_gps_altitude': '0',
+            '_gps_precision': '0'
+            }
+        self.assertEqual(data, expected_data)

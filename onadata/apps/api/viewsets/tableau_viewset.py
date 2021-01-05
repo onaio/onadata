@@ -95,7 +95,7 @@ def unpack_select_multiple_data(picked_choices, list_name,
             unpacked_data[qstn_name] = "TRUE"
         else:
             unpacked_data[qstn_name] = "FALSE"
-        return unpacked_data
+    return unpacked_data
 
 
 def unpack_repeat_data(repeat_data, flat_dict):
