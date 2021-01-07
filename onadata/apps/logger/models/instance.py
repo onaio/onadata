@@ -169,7 +169,7 @@ def _update_submission_count_for_today(
         cache.set(count_cache_key, 1, 86400)
     elif incr:
         cache.incr(count_cache_key)
-    elif current_count > 0 and date_created == current_date:
+    elif current_count and current_count > 0 and date_created == current_date:
         cache.decr(count_cache_key)
 
 
