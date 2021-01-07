@@ -300,32 +300,31 @@ def check_lockout(request) -> Tuple[Optional[str], Optional[str]]:
     Raises AuthenticationFailed on lockout.
     """
     uri_path = request.get_full_path()
-    if any(part in LOCKOUT_EXCLUDED_PATHS for part in uri_path.split("/")):
-        return None
+    if not any(part in LOCKOUT_EXCLUDED_PATHS for part in uri_path.split("/")):
+        ip, username = retrieve_user_identification(request)
 
-    ip, username = retrieve_user_identification(request)
-
-    if ip and username:
-        lockout = cache.get(safe_key("{}{}".format(
-            LOCKOUT_IP, ip)))
-        if lockout:
-            time_locked_out = datetime.now() - datetime.strptime(
-                lockout, "%Y-%m-%dT%H:%M:%S"
-            )
-            remaining_time = round(
-                (
-                    getattr(settings, "LOCKOUT_TIME", 1800)
-                    - time_locked_out.seconds
+        if ip and username:
+            lockout = cache.get(safe_key("{}{}".format(
+                LOCKOUT_IP, ip)))
+            if lockout:
+                time_locked_out = datetime.now() - datetime.strptime(
+                    lockout, "%Y-%m-%dT%H:%M:%S"
                 )
-                / 60
-            )
-            raise AuthenticationFailed(
-                _(
-                    "Locked out. Too many wrong username/password attempts. "
-                    "Try again in {} minutes.".format(remaining_time)
+                remaining_time = round(
+                    (
+                        getattr(settings, "LOCKOUT_TIME", 1800)
+                        - time_locked_out.seconds
+                    )
+                    / 60
                 )
-            )
-        return ip, username
+                raise AuthenticationFailed(
+                    _(
+                        "Locked out. Too many wrong username"
+                        "/password attempts. "
+                        "Try again in {} minutes.".format(remaining_time)
+                    )
+                )
+            return ip, username
     return None, None
 
 
@@ -366,8 +365,8 @@ def send_lockout_email(username, ip):
     except User.DoesNotExist:
         pass
     else:
-        email_data = get_account_lockout_email_data(username)
-        end_email_data = get_account_lockout_email_data(username, end=True)
+        email_data = get_account_lockout_email_data(username, ip)
+        end_email_data = get_account_lockout_email_data(username, ip, end=True)
 
         send_account_lockout_email.apply_async(
             args=[

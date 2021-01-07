@@ -107,22 +107,22 @@ class TestLockout(TestCase):
     def test_check_lockout(self):
         """Test check_lockout() function."""
         request = self.factory.get("/formList", **self.extra)
-        self.assertIsNone(check_lockout(request))
+        self.assertEqual(check_lockout(request), (None, None))
 
         request = self.factory.get("/bob/formList", **self.extra)
-        self.assertIsNone(check_lockout(request))
+        self.assertEqual(check_lockout(request), (None, None))
 
         request = self.factory.get("/submission", **self.extra)
-        self.assertIsNone(check_lockout(request))
+        self.assertEqual(check_lockout(request), (None, None))
 
         request = self.factory.get("/bob/submission", **self.extra)
-        self.assertIsNone(check_lockout(request))
+        self.assertEqual(check_lockout(request), (None, None))
 
         request = self.factory.get("/123/form.xml", **self.extra)
-        self.assertIsNone(check_lockout(request))
+        self.assertEqual(check_lockout(request), (None, None))
 
         request = self.factory.get("/xformsManifest/123", **self.extra)
-        self.assertIsNone(check_lockout(request))
+        self.assertEqual(check_lockout(request), (None, None))
 
         request = self.factory.get(
             "/", **{"HTTP_AUTHORIZATION": b"Digest bob"}
