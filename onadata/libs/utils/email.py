@@ -44,7 +44,7 @@ def get_verification_email_data(email, username, verification_url, request):
     return email_data
 
 
-def get_account_lockout_email_data(username, end=False):
+def get_account_lockout_email_data(username, ip, end=False):
     """Generates both the email upon start and end of account lockout"""
     message_path = 'account_lockout/lockout_start.txt'
     subject_path = 'account_lockout/lockout_email_subject.txt'
@@ -52,6 +52,7 @@ def get_account_lockout_email_data(username, end=False):
         message_path = 'account_lockout/lockout_end.txt'
     ctx_dict = {
         'username': username,
+        'remote_ip': ip,
         'lockout_time': getattr(settings, 'LOCKOUT_TIME', 1800) / 60,
         'support_email': getattr(
             settings, 'SUPPORT_EMAIL', 'support@example.com')

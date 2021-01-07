@@ -127,10 +127,19 @@ class TestLockout(TestCase):
         request = self.factory.get(
             "/", **{"HTTP_AUTHORIZATION": b"Digest bob"}
         )
-        self.assertIsNone(check_lockout(request))
+        self.assertEqual(check_lockout(request), (None, None))
 
         request = self.factory.get("/", **self.extra)
-        self.assertEqual(check_lockout(request), "bob")
+        self.assertEqual(
+            check_lockout(request),
+            (request.META.get('REMOTE_ADDR'), "bob"))
+
+        # Uses X_REAL_IP if present
+        self.assertNotIn('HTTP_X_REAL_IP', request.META)
+        request.META.update({'HTTP_X_REAL_IP': '1.2.3.4'})
+        self.assertEqual(
+            check_lockout(request),
+            ('1.2.3.4', "bob"))
 
     def test_exception_on_username_with_whitespaces(self):
         """

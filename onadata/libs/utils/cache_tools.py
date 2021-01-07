@@ -36,7 +36,7 @@ PROJECT_LINKED_DATAVIEWS = "ps-project-linked_dataviews"
 ORG_PROFILE_CACHE = 'org-profile-'
 
 # cache login attempts
-LOCKOUT_USER = "lockout_user-"
+LOCKOUT_IP = "lockout_ip-"
 LOGIN_ATTEMPTS = "login_attempts-"
 LOCKOUT_CHANGE_PASSWORD_USER = 'lockout_change_password_user-'
 CHANGE_PASSWORD_ATTEMPTS = 'change_password_attempts-'
