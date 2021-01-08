@@ -2339,8 +2339,9 @@ class TestDataViewSet(TestBase):
 
         # Confirm that the submission count is decreased
         # accordingly
-        inst_one = instances.first()
-        inst_two = instances.last()
+        inst_one = instances[0]
+        inst_two = instances[1]
+        inst_three = instances[2]
 
         inst_one.set_deleted()
         current_count -= 1
@@ -2356,6 +2357,11 @@ class TestDataViewSet(TestBase):
         self.assertEqual(
             form.submission_count_for_today, current_count
         )
+
+        # Check that deletes made with no current count cached
+        # are successful
+        cache.clear()
+        inst_three.set_deleted()
 
     def test_data_query_ornull(self):
         """
