@@ -11,7 +11,6 @@ import geojson
 import requests
 from django.core.cache import cache
 from django.db.utils import OperationalError
-from django.db.models import Q
 from django.test import RequestFactory
 from django.test.utils import override_settings
 from django.utils import timezone
@@ -2388,6 +2387,17 @@ class TestDataViewSet(TestBase):
                     ) in ['daily', 'weekly']:
                 count += 1
 
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), count)
+
+        query_str = (
+            '{"$or":[{"transport/loop_over_transport_types_frequency'
+            '/ambulance/frequency_to_referral_facility":"weekly"}, {"t'
+            'ransport/loop_over_transport_types_frequency/ambulanc'
+            'e/frequency_to_referral_facility":"daily"}]}'
+        )
+        request = self.factory.get(f'/?query={query_str}', **self.extra)
+        response = view(request, pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), count)
 
