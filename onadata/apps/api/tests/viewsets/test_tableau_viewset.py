@@ -12,6 +12,7 @@ from onadata.apps.logger.models.open_data import get_or_create_opendata
 from onadata.apps.api.viewsets.tableau_viewset import (
     TableauViewSet, unpack_select_multiple_data,
     unpack_gps_data)
+from onadata.libs.renderers.renderers import pairing
 
 
 def streaming_data(response):
@@ -219,13 +220,15 @@ class TestTableauViewSet(TestBase):
                     {
                         '__parent_id': self.xform.instances.first().id,
                         '__parent_table': 'data',
-                        '_id': 2609471,
+                        '_id': int(pairing(
+                            self.xform.instances.first().id, 1)),
                         'childs_age': 2,
                         'childs_name': 'Harry'},
                     {
                         '__parent_id': self.xform.instances.first().id,
                         '__parent_table': 'data',
-                        '_id': 2611757,
+                        '_id': int(pairing(
+                            self.xform.instances.first().id, 2)),
                         'childs_age': 5,
                         'childs_name': 'Potter'}],
                 'has_children': '1',
