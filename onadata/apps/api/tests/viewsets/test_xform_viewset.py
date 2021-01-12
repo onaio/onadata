@@ -27,6 +27,7 @@ from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
+from django.utils.html import conditional_escape
 from django.utils.timezone import utc
 from django_digest.test import DigestAuth
 from httmock import HTTMock
@@ -2686,6 +2687,52 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             # diff versions
             self.assertEquals(self.xform.version, "212121211")
             self.assertEquals(form_id, self.xform.pk)
+
+    def test_update_xform_using_put_with_invalid_input(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            form_id = self.xform.pk
+
+            unsanitized_html_str = "<h1>HTML Injection testing</h1>"
+            version = unsanitized_html_str
+            view = XFormViewSet.as_view({
+                'put': 'update',
+            })
+
+            put_data = {
+                'uuid': 'ae631e898bd34ced91d2a309d8b72das',
+                'description': unsanitized_html_str,
+                'downloadable': False,
+                'owner': 'http://testserver/api/v1/users/{0}'.
+                format(self.user),
+                'created_by':
+                'http://testserver/api/v1/users/{0}'.format(self.user),
+                'public': False,
+                'public_data': False,
+                'project': 'http://testserver/api/v1/projects/{0}'.format(
+                    self.xform.project.pk),
+                'title': 'Transport Form',
+                'version': unsanitized_html_str
+            }
+
+            # trigger error is form version is invalid
+            with self.assertRaises(XLSFormError):
+                request = self.factory.put('/', data=put_data, **self.extra)
+                response = view(request, pk=form_id)
+
+            put_data['version'] = self.xform.version
+
+            request = self.factory.put('/', data=put_data, **self.extra)
+            response = view(request, pk=form_id)
+            self.assertEqual(response.status_code, 200, response.data)
+
+            self.xform.refresh_from_db()
+
+            # check that description has been sanitized
+            self.assertEquals(
+                conditional_escape(unsanitized_html_str),
+                self.xform.description
+            )
 
     def test_update_xform_using_put(self):
         with HTTMock(enketo_mock):
