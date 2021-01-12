@@ -33,6 +33,7 @@ from taggit.managers import TaggableManager
 
 from onadata.apps.logger.xform_instance_parser import (XLSFormError,
                                                        clean_and_parse_xml)
+from django.utils.html import conditional_escape
 from onadata.libs.models.base_model import BaseModel
 from onadata.libs.utils.cache_tools import (
     IS_ORG, PROJ_BASE_FORMS_CACHE, PROJ_FORMS_CACHE,
@@ -900,6 +901,13 @@ class XForm(XFormMixin, BaseModel):
                         ' Please change the "id_string" or "form_id" values'
                         'in settings sheet or reduce the file name if you do'
                         ' not have a settings sheets.' % self.MAX_ID_LENGTH))
+
+        if contains_xml_invalid_char(self.version):
+            raise XLSFormError(
+                _("Version shouldn't have any invalid "
+                  "characters ('>' '&' '<')"))
+
+        self.description = conditional_escape(self.description)
 
         super(XForm, self).save(*args, **kwargs)
 
