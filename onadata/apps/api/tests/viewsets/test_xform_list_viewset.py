@@ -980,6 +980,30 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             '/%s</manifestUrl>') % (self.user.username, self.xform.id)
         self.assertTrue(manifest_url in content)
 
+    def test_form_list_case_insensitivity(self):
+        """
+        Test that the <username>/formList endpoint utilizes the username in a
+        case insensitive manner
+        """
+        request = self.factory.get(
+            f'/{self.user.username}/formList', **self.extra)
+        response = self.view(request, username=self.user.username)
+        self.assertEqual(response.status_code, 200)
+
+        request = self.factory.get(
+            f'/{self.user.username.capitalize()}', **self.extra)
+        response_2 = self.view(
+            request, username=self.user.username.capitalize())
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, response_2.data)
+
+        request = self.factory.get(
+            f'/{self.user.username.swapcase()}', **self.extra)
+        response_3 = self.view(
+            request, username=self.user.username.capitalize())
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, response_3.data)
+
     def test_retrieve_form_using_pk(self):
         """
         Test formList endpoint utilizing primary key is able to retrieve
