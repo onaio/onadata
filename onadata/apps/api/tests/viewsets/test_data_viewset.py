@@ -2382,6 +2382,44 @@ class TestDataViewSet(TestBase):
         cache.clear()
         inst_three.set_deleted()
 
+    def test_data_query_multiple_condition(self):
+        """
+        Test that all conditions are met when a user queries for
+        data
+        """
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        query_str = (
+            '{"$or":[{"transport/loop_over_transport_types_frequency'
+            '/ambulance/frequency_to_referral_facility":"weekly","t'
+            'ransport/loop_over_transport_types_frequency/ambulanc'
+            'e/frequency_to_referral_facility":"daily"}]}'
+        )
+        request = self.factory.get(f'/?query={query_str}', **self.extra)
+        response = view(request, pk=self.xform.pk)
+        count = 0
+
+        for inst in self.xform.instances.all():
+            if inst.json.get(
+                    'transport/loop_over_transport_types_frequency'
+                    '/ambulance/frequency_to_referral_facility'
+                    ) in ['daily', 'weekly']:
+                count += 1
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), count)
+
+        query_str = (
+            '{"$or":[{"transport/loop_over_transport_types_frequency'
+            '/ambulance/frequency_to_referral_facility":"weekly"}, {"t'
+            'ransport/loop_over_transport_types_frequency/ambulanc'
+            'e/frequency_to_referral_facility":"daily"}]}'
+        )
+        request = self.factory.get(f'/?query={query_str}', **self.extra)
+        response = view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), count)
+
     def test_data_query_ornull(self):
         """
         Test that a user is able to query for null with the
