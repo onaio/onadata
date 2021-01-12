@@ -473,6 +473,25 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
 
+        # Link pagination headers are present and work as intended
+        self.assertIn('Link', response)
+        self.assertEqual(
+            response['Link'],
+            '<http://testserver/?page=2&page_size=2>; rel="next"'
+        )
+
+        request = self.factory.get(
+            '/', data={"page": 2, "page_size": 1}, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Link', response)
+        self.assertEqual(
+            response['Link'],
+            ('<http://testserver/?page=1&page_size=1>; rel="prev", '
+             '<http://testserver/?page=3&page_size=1>; rel="next", '
+             '<http://testserver/?page=4&page_size=1>; rel="last", '
+             '<http://testserver/?page=1&page_size=1>; rel="first"'))
+
         request = self.factory.get('/', data={"page_size": "3"}, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
