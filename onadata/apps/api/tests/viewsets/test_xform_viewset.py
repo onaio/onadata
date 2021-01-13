@@ -2694,7 +2694,6 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             form_id = self.xform.pk
 
             unsanitized_html_str = "<h1>HTML Injection testing</h1>"
-            version = unsanitized_html_str
             view = XFormViewSet.as_view({
                 'put': 'update',
             })

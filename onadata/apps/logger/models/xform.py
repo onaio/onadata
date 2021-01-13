@@ -902,7 +902,8 @@ class XForm(XFormMixin, BaseModel):
                         'in settings sheet or reduce the file name if you do'
                         ' not have a settings sheets.' % self.MAX_ID_LENGTH))
 
-        if contains_xml_invalid_char(self.version):
+        is_version_available = self.version is not None
+        if is_version_available and contains_xml_invalid_char(self.version):
             raise XLSFormError(
                 _("Version shouldn't have any invalid "
                   "characters ('>' '&' '<')"))
