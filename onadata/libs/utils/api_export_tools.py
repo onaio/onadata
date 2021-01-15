@@ -18,7 +18,8 @@ from django.utils.translation import ugettext as _
 from kombu.exceptions import OperationalError
 from oauth2client import client as google_client
 from oauth2client.client import (HttpAccessTokenRefreshError,
-                                 OAuth2WebServerFlow, TokenRevokeError)
+                                 TokenRevokeError)
+from google_auth_oauthlib.flow import InstalledAppFlow
 from oauth2client.contrib.django_util.storage import \
     DjangoORMStorage as Storage
 from requests import ConnectionError
@@ -541,8 +542,11 @@ def response_for_format(data, format=None):  # pylint: disable=W0622
 
 def generate_google_web_flow(request):
     """
-    Returns a OAuth2WebServerFlow object from the request redirect_uri.
+    Returns a OAuth2 Flow object from the request redirect_uri.
     """
+    client_secrets_file = os.path.join(
+        settings.PROJECT_ROOT, "settings", "client_secrets.json")
+
     if 'redirect_uri' in request.GET:
         redirect_uri = request.GET.get('redirect_uri')
     elif 'redirect_uri' in request.POST:
@@ -553,16 +557,12 @@ def generate_google_web_flow(request):
         redirect_uri = request.data.get('redirect_uri')
     else:
         redirect_uri = settings.GOOGLE_STEP2_URI
-    return OAuth2WebServerFlow(
-        client_id=settings.GOOGLE_OAUTH2_CLIENT_ID,
-        client_secret=settings.GOOGLE_OAUTH2_CLIENT_SECRET,
-        scope=' '.join([
-            'https://docs.google.com/feeds/',
-            'https://spreadsheets.google.com/feeds/',
-            'https://www.googleapis.com/auth/drive.file'
-        ]),
-        redirect_uri=redirect_uri,
-        prompt="consent")
+    return InstalledAppFlow.from_client_secrets_file(
+        client_secrets_file, scopes=[
+            'https://www.googleapis.com/auth/docs',
+            'https://www.googleapis.com/auth/spreadsheets',
+            'https://www.googleapis.com/auth/drive.file'],
+        redirect_uri=redirect_uri)
 
 
 def _get_google_credential(request):
@@ -585,5 +585,5 @@ def _get_google_credential(request):
 
     if not credential or credential.invalid:
         google_flow = generate_google_web_flow(request)
-        return HttpResponseRedirect(google_flow.step1_get_authorize_url())
+        return google_flow.run_local_server()
     return credential

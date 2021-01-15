@@ -434,8 +434,7 @@ def _get_google_credential(request):
     elif request.session.get('access_token'):
         credential = google_client.OAuth2Credentials.from_json(token)
 
-    return credential or HttpResponseRedirect(
-        google_flow.step1_get_authorize_url())
+    return credential or google_flow.run_local_server()
 
 
 def export_list(request, username, id_string, export_type):
@@ -733,7 +732,7 @@ def google_xls_export(request, username, id_string):
             google_xls_export,
             kwargs={'username': username,
                     'id_string': id_string})
-        return HttpResponseRedirect(google_flow.step1_get_authorize_url())
+        return google_flow.run_local_server()
 
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_form({'user': owner, 'id_string__iexact': id_string})
