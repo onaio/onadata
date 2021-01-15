@@ -8,6 +8,8 @@ from rest_framework import viewsets
 from rest_framework.permissions import AllowAny
 from rest_framework.exceptions import ParseError
 
+from onadata.libs.utils.presigned_download_url import generate_presigned_download_url
+
 from onadata.apps.logger.models import Attachment
 from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
