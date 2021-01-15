@@ -9,7 +9,7 @@ from django.test import RequestFactory
 from django.utils.dateparse import parse_datetime
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.open_data import get_or_create_opendata
-from onadata.apps.api.viewsets.tableau_viewset import (
+from onadata.apps.api.viewsets.v2.tableau_viewset import (
     TableauViewSet, unpack_select_multiple_data,
     unpack_gps_data, clean_xform_headers)
 from onadata.libs.renderers.renderers import pairing

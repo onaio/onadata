@@ -21,7 +21,7 @@ Schema Endpoint Example
 ^^^^^^^^^^^^^^^^^^^^^^^
 ::
 
-    curl -X GET /api/v1/open-data-v2/24fde84caec342a19a7f2e3ea0c36e3f/schema
+    curl -X GET /api/v2/open-data/24fde84caec342a19a7f2e3ea0c36e3f/schema
 
 Response
 ^^^^^^^^
@@ -227,7 +227,7 @@ Data Endpoint Example
 ^^^^^^^^^^^^^^^^^^^^^
 ::
 
-       curl -X GET /api/v1/open-data-v2/5d3da685cbe64fc6b97a1b03ffccd847/data
+       curl -X GET /api/v2/open-data/5d3da685cbe64fc6b97a1b03ffccd847/data
 
 Response
 ^^^^^^^^
