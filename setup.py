@@ -49,6 +49,9 @@ setup(
         "django-oauth-toolkit",
         # "oauth2client",
         "jsonpickle",
+        "google-auth",
+        "google-auth-oauthlib",
+        "google-api-python-client",
         # jwt
         "PyJWT",
         # captcha

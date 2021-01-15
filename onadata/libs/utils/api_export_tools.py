@@ -585,5 +585,9 @@ def _get_google_credential(request):
 
     if not credential or credential.invalid:
         google_flow = generate_google_web_flow(request)
-        return google_flow.run_local_server()
+        # Run the OAuth 2.0 flow to obtain credentials from the user.
+        google_flow.run_local_server()
+
+        credential = google_flow.credentials
+        return credential
     return credential
