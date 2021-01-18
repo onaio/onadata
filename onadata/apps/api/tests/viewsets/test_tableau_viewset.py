@@ -4,14 +4,14 @@ OpenData tests.
 """
 import os
 import json
-
+from re import search
 from django.test import RequestFactory
 from django.utils.dateparse import parse_datetime
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.open_data import get_or_create_opendata
-from onadata.apps.api.viewsets.tableau_viewset import (
+from onadata.apps.api.viewsets.v2.tableau_viewset import (
     TableauViewSet, unpack_select_multiple_data,
-    unpack_gps_data)
+    unpack_gps_data, clean_xform_headers)
 from onadata.libs.renderers.renderers import pairing
 
 
@@ -299,3 +299,20 @@ class TestTableauViewSet(TestBase):
             '_gps_precision': '0'
             }
         self.assertEqual(data, expected_data)
+
+    def test_clean_xform_headers(self):
+        """
+        Test that column header fields for group columns
+        do not contain indexing when schema columns
+        are being pushed to Tableau.
+        """
+        headers = self.xform.get_headers(repeat_iterations=1)
+        group_columns = [
+            field for field in headers if search(r"\[+\d+\]", field)]
+        self.assertEqual(group_columns,
+                         ['children[1]/childs_name',
+                          'children[1]/childs_age'])
+
+        cleaned_data = clean_xform_headers(group_columns)
+        self.assertEqual(cleaned_data,
+                         ['childs_name', 'childs_age'])
