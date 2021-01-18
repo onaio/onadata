@@ -66,7 +66,8 @@ class MediaViewSet(AuthenticateHeaderMixin,
                         raise Http404()
 
             if not url:
-                url = obj.media_file.url
+                url = generate_presigned_download_url(obj.media_file.name, obj.media_file.url)
+
 
             return HttpResponseRedirect(url)
 
