@@ -10,19 +10,22 @@ def generate_presigned_download_url(file_path: str, file_url: str, expiration: i
     default_storage = get_storage_class()()
     filename = file_path.split("/")[-1]
     s3 = get_storage_class('storages.backends.s3boto3.S3Boto3Storage')()
-    bucket_name = s3.bucket.name
-    s3_client = boto3.client('s3')
 
-    try:
-        response = s3_client.generate_presigned_url('get_object',
+    if default_storage.__class__ != s3.__class__:
+        return file_url
+    else:
+        try:
+            bucket_name = s3.bucket.name
+            s3_client = boto3.client('s3')
+            response = s3_client.generate_presigned_url('get_object',
                                                     Params={'Bucket': bucket_name,
                                                             'Key': file_path,
                                                             'ResponseContentDisposition': 'attachment;filename={}'.format(filename),
                                                             'ResponseContentType': 'application/octet-stream',},
                                                     ExpiresIn=expiration)
-    except ClientError as e:
-        logging.error(e)
-        return None
+        except ClientError as e:
+            logging.error(e)
+            return None
 
-    # The response contains the presigned URL
-    return response
+        # The response contains the presigned URL
+        return response
