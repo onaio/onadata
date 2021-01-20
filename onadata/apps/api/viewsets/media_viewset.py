@@ -14,7 +14,7 @@ from onadata.libs.mixins.authenticate_header_mixin import \
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.utils.presigned_download_url import \
-    generate_presigned_download_url
+    generate_media_download_url
 from onadata.libs.utils.image_tools import image_url
 from onadata.apps.api.tools import get_baseviewset_class
 
@@ -66,8 +66,9 @@ class MediaViewSet(AuthenticateHeaderMixin,
                         raise Http404()
 
             if not url:
-                url = generate_presigned_download_url(obj.media_file.name,
-                                                      obj.media_file.url)
+                response = generate_media_download_url(obj.media_file.name)
+
+                return response
 
             return HttpResponseRedirect(url)
 
