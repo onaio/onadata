@@ -15,7 +15,7 @@ def generate_media_download_url(file_path: str, expiration: int = 3600):
     s3 = get_storage_class('storages.backends.s3boto3.S3Boto3Storage')()
 
     if default_storage.__class__ != s3.__class__:
-        file_obj = open(file_path)
+        file_obj = open(file_path, 'rb')
         response = HttpResponse(FileWrapper(file_obj),
                                 content_type='image/jpg')
         response['Content-Disposition'] = 'attachment; filename=' + filename
