@@ -33,7 +33,9 @@ class AnonDjangoObjectPermissionFilter(ObjectPermissionsFilter):
 
         if form_id:
             if lookup_field == 'pk':
-                int_or_parse_error(form_id, u'Invalid form ID: %s')
+                int_or_parse_error(form_id,
+                                   u'Invalid form ID. It must be a positive'
+                                   ' integer')
 
             try:
                 if lookup_field == 'uuid':
@@ -214,7 +216,7 @@ class AnonUserProjectFilter(ObjectPermissionsFilter):
 
         if project_id:
             int_or_parse_error(project_id,
-                               u"Invalid value for project_id '%s' must be a"
+                               u"Invalid value for project_id. It must be a"
                                " positive integer.")
 
             # check if project is public and return it
@@ -251,7 +253,9 @@ class XFormPermissionFilterMixin(object):
         xform = request.query_params.get('xform')
         public_forms = XForm.objects.none()
         if xform:
-            int_or_parse_error(xform, u"Invalid value for formid %s.")
+            int_or_parse_error(xform,
+                               u"Invalid value for formid. It must be a"
+                               " positive integer.")
             self.xform = get_object_or_404(XForm, pk=xform)
             xform_qs = XForm.objects.filter(pk=self.xform.pk)
             public_forms = XForm.objects.filter(pk=self.xform.pk,
@@ -278,7 +282,9 @@ class ProjectPermissionFilterMixin(object):
         project_id = request.query_params.get("project")
 
         if project_id:
-            int_or_parse_error(project_id, u"Invalid value for projectid %s.")
+            int_or_parse_error(project_id,
+                               u"Invalid value for projectid. It must be a"
+                               " positive integer.")
 
             project = get_object_or_404(Project, pk=project_id)
             project_qs = Project.objects.filter(pk=project.id)
@@ -311,7 +317,8 @@ class InstancePermissionFilterMixin(object):
         if instance_id and project_id and xform_id:
             for object_id in [instance_id, project_id]:
                 int_or_parse_error(object_id,
-                                   u"Invalid value for instanceid %s.")
+                                   u"Invalid value for instanceid. It must be"
+                                   " a positive integer.")
 
             instance = get_object_or_404(Instance, pk=instance_id)
             # test if user has permissions on the project
@@ -407,7 +414,8 @@ class AttachmentFilter(XFormPermissionFilterMixin,
         instance_id = request.query_params.get('instance')
         if instance_id:
             int_or_parse_error(instance_id,
-                               u"Invalid value for instance %s.")
+                               u"Invalid value for instance_id. It must be"
+                               " a positive integer.")
             instance = get_object_or_404(Instance, pk=instance_id)
             queryset = queryset.filter(instance=instance)
 
@@ -527,7 +535,8 @@ class NoteFilter(filters.BaseFilterBackend):
 
         if instance_id:
             int_or_parse_error(instance_id,
-                               u"Invalid value for instance %s.")
+                               u"Invalid value for instance_id. It must be"
+                               " a positive integer")
 
             instance = get_object_or_404(Instance, pk=instance_id)
             queryset = queryset.filter(instance=instance)

@@ -9,4 +9,4 @@ def int_or_parse_error(value, error_string):
     try:
         int(value)
     except ValueError:
-        raise ParseError(error_string % value)
+        raise ParseError(error_string)

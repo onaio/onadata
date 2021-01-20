@@ -821,8 +821,8 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.get('Cache-Control'), None)
-        data = {'detail': 'Invalid form ID: INVALID'}
-        self.assertEqual(response.data, data)
+        error_message = "Invalid form ID. It must be a positive integer"
+        self.assertEqual(str(response.data['detail']), error_message)
 
     def test_data_bad_dataid(self):
         self._make_submissions()
