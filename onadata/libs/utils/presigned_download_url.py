@@ -15,20 +15,30 @@ def generate_media_download_url(file_path: str, expiration: int = 3600):
     s3 = get_storage_class('storages.backends.s3boto3.S3Boto3Storage')()
 
     if default_storage.__class__ != s3.__class__:
-        return file_url
+        file_obj = open(file_path)
+        response = HttpResponse(FileWrapper(file_obj),
+                                content_type='image/jpg')
+        response['Content-Disposition'] = 'attachment; filename=' + filename
+
+        return response
+
     else:
         try:
             bucket_name = s3.bucket.name
             s3_client = boto3.client('s3')
-            response = s3_client.generate_presigned_url('get_object',
-                                                        Params={'Bucket': bucket_name,
-                                                                'Key': file_path,
-                                                                'ResponseContentDisposition': 'attachment;filename={}'.format(filename),
-                                                                'ResponseContentType': 'application/octet-stream', },
-                                                        ExpiresIn=expiration)
+
+            # Generate a presigned URL for the S3 object
+            response = s3_client.generate_presigned_url(
+                'get_object',
+                Params={
+                    'Bucket': bucket_name,
+                    'Key': file_path,
+                    'ResponseContentDisposition':
+                    'attachment;filename={}'.format(filename),
+                    'ResponseContentType': 'application/octet-stream', },
+                ExpiresIn=expiration)
         except ClientError as e:
             logging.error(e)
             return None
 
-        # The response contains the presigned URL
-        return response
+        return HttpResponseRedirect(response)
