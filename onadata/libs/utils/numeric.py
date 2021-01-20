@@ -1,8 +1,4 @@
-import re
-
 from rest_framework.exceptions import ParseError
-from django.utils.html import conditional_escape
-from urllib.parse import quote
 
 
 def int_or_parse_error(value, error_string):
@@ -13,7 +9,4 @@ def int_or_parse_error(value, error_string):
     try:
         int(value)
     except ValueError:
-        value = conditional_escape(value)
-        if re.findall(r"://([\w\-\.]+)(:(\d+))?", value):
-            value = quote(value)
-        raise ParseError(error_string % value)
+        raise ParseError(error_string)
