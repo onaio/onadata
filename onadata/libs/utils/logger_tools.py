@@ -41,7 +41,7 @@ from onadata.apps.logger.xform_instance_parser import (
     DuplicateInstance, InstanceEmptyError, InstanceInvalidUserError,
     InstanceMultipleNodeError, InstanceEncryptionError, NonUniqueFormIdError,
     InstanceFormatError, clean_and_parse_xml, get_deprecated_uuid_from_xml,
-    get_submission_date_from_xml, get_uuid_from_xml)
+    get_submission_date_from_xml, get_uuid_from_xml, AttachmentNameError)
 from onadata.apps.messaging.constants import XFORM, \
     SUBMISSION_EDITED, SUBMISSION_CREATED
 from onadata.apps.messaging.serializers import send_message
@@ -336,6 +336,9 @@ def save_attachments(xform, instance, media_files, remove_deleted_media=False):
             xform.instances_with_osm = True
             xform.save()
         filename = os.path.basename(f.name)
+        # Validate Attachment file name length
+        if len(filename) > 100:
+            raise AttachmentNameError(filename)
         media_in_submission = (
             filename in instance.get_expected_media() or
             [instance.xml.decode('utf-8').find(filename) != -1 if
@@ -515,6 +518,11 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
             _(u"Form does not exist on this account"))
     except ExpatError:
         error = OpenRosaResponseBadRequest(_(u"Improperly formatted XML."))
+    except AttachmentNameError:
+        response = OpenRosaResponseBadRequest(
+            _("Attachment file name exceeds 100 chars"))
+        response.status_code = 400
+        error = response
     except DuplicateInstance:
         response = OpenRosaResponse(_(u"Duplicate submission"))
         response.status_code = 202
