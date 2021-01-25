@@ -1,3 +1,4 @@
+import os
 import re
 from io import BytesIO
 
@@ -15,6 +16,8 @@ from onadata.libs.utils.common_tags import (MEDIA_ALL_RECEIVED, MEDIA_COUNT,
 from onadata.libs.utils.logger_tools import (
     create_instance, generate_content_disposition_header, get_first_record,
     safe_create_instance)
+from onadata.apps.logger.xform_instance_parser import AttachmentNameError
+from django.core.files.uploadedfile import InMemoryUploadedFile
 
 
 class TestLoggerTools(PyxformTestCase, TestBase):
@@ -502,3 +505,46 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         self.assertIsNone(ret[1])
         self.assertEqual(response.status_code, 400)
         self.assertIn(expected_error, str(response.content))
+
+    def test_attachment_file_name_validation(self):
+        """
+        Test that a clear exception is raised when an attachement
+        is received whose file name exceeds 100 chars
+        """
+        md = """
+        | survey |       |        |       |
+        |        | type  | name   | label |
+        |        | image | image1 | Photo |
+        |        | image | image2 | Photo |
+        """
+        self._create_user_and_login()
+        self.xform = self._publish_markdown(md, self.user)
+
+        xml_string = """
+        <data id="{}">
+            <meta>
+                <instanceID>uuid:UJ5jSMAJ1Jz4EszdgHy8n851AsKaqBPO5</instanceID>
+            </meta>
+            <image1>1300221157303.jpg</image1>
+            <image2>1300375832136.jpg</image2>
+        </data>
+        """.format(self.xform.id_string)
+
+        file_path = "{}/apps/logger/tests/Health_2011_03_13."\
+                    "xml_2011-03-15_20-30-28/1300221157303"\
+                    ".jpg".format(settings.PROJECT_ROOT)
+        f = open(file_path, 'rb')
+        media_file = InMemoryUploadedFile(
+            file=f,
+            field_name="image1",
+            name=f'{f.name} +\
+            test_file_name_test_file_name_test_file_name_test_file_name_test_file_name_test_file_name',  # noqa
+            content_type="image/jpeg",
+            size=os.path.getsize(file_path),
+            charset=None
+        )
+        with self.assertRaises(AttachmentNameError):
+            create_instance(
+                self.user.username,
+                BytesIO(xml_string.strip().encode('utf-8')),
+                media_files=[media_file])

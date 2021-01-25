@@ -43,6 +43,10 @@ class InstanceFormatError(Exception):
     pass
 
 
+class AttachmentNameError(Exception):
+    pass
+
+
 class InstanceEncryptionError(Exception):
     pass
 
