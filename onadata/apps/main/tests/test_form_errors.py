@@ -118,7 +118,7 @@ class TestFormErrors(TestBase):
                "cascading select differentiates them. If this "
                "is intentional, you can set the "
                "allow_choice_duplicates setting to 'yes'. "
-               "Read more: https://xlsform.org/#choice-names.")
+               "Learn more: https://xlsform.org/#choice-names.")
         self.assertRaisesMessage(
             PyXFormError, msg, self._publish_xls_file, xls_path)
         self.assertEquals(XForm.objects.count(), count)
