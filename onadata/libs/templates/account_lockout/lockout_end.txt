@@ -2,7 +2,7 @@
 {% blocktrans with username=username %}
 Hi {{ username }},
 
-You are no longer locked out of Ona, you can now log in to your account.
+IP {{ remote_ip }} is no longer locked out of Ona, you can now log in to your account.
 
 Thank you for choosing Ona!
 

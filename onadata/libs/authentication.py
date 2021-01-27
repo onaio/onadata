@@ -4,6 +4,7 @@
 from __future__ import unicode_literals
 
 from datetime import datetime
+from typing import Optional, Tuple
 
 from django.conf import settings
 from django.contrib.auth.models import User, update_last_login
@@ -31,7 +32,7 @@ from oauth2_provider.settings import oauth2_settings
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.tasks import send_account_lockout_email
 from onadata.libs.utils.cache_tools import (
-    LOCKOUT_USER,
+    LOCKOUT_IP,
     LOGIN_ATTEMPTS,
     cache,
     safe_key,
@@ -263,16 +264,14 @@ class SSOHeaderAuthentication(BaseAuthentication):
         return None
 
 
-def check_lockout(request):
-    """Check request user is not locked out on authentication.
+def retrieve_user_identification(
+        request) -> Tuple[Optional[str], Optional[str]]:
+    ip = None
 
-    Returns the username if not locked out, None if request path is in
-    LOCKOUT_EXCLUDED_PATHS.
-    Raises AuthenticationFailed on lockout.
-    """
-    uri_path = request.get_full_path()
-    if any(part in LOCKOUT_EXCLUDED_PATHS for part in uri_path.split("/")):
-        return None
+    if request.META.get('HTTP_X_REAL_IP'):
+        ip = request.META['HTTP_X_REAL_IP'].split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
 
     try:
         if isinstance(request.META["HTTP_AUTHORIZATION"], bytes):
@@ -282,51 +281,70 @@ def check_lockout(request):
                 .split('"')[1].strip()
             )
         else:
-            username = request.META["HTTP_AUTHORIZATION"].split('"')[1].strip()
+            username = request.META["HTTP_AUTHORIZATION"].split(
+                '"')[1].strip()
     except (TypeError, AttributeError, IndexError):
         pass
     else:
         if not username:
             raise AuthenticationFailed(_("Invalid username"))
+        return ip, username
+    return None, None
 
-        lockout = cache.get(safe_key("{}{}".format(LOCKOUT_USER, username)))
-        if lockout:
-            time_locked_out = datetime.now() - datetime.strptime(
-                lockout, "%Y-%m-%dT%H:%M:%S"
-            )
-            remaining_time = round(
-                (
-                    getattr(settings, "LOCKOUT_TIME", 1800)
-                    - time_locked_out.seconds
-                )
-                / 60
-            )
-            raise AuthenticationFailed(
-                _(
-                    "Locked out. Too many wrong username/password attempts. "
-                    "Try again in {} minutes.".format(remaining_time)
-                )
-            )
-        return username
 
-    return None
+def check_lockout(request) -> Tuple[Optional[str], Optional[str]]:
+    """Check request user is not locked out on authentication.
+
+    Returns the username if not locked out, None if request path is in
+    LOCKOUT_EXCLUDED_PATHS.
+    Raises AuthenticationFailed on lockout.
+    """
+    uri_path = request.get_full_path()
+    if not any(part in LOCKOUT_EXCLUDED_PATHS for part in uri_path.split("/")):
+        ip, username = retrieve_user_identification(request)
+
+        if ip and username:
+            lockout = cache.get(safe_key("{}{}".format(
+                LOCKOUT_IP, ip)))
+            if lockout:
+                time_locked_out = datetime.now() - datetime.strptime(
+                    lockout, "%Y-%m-%dT%H:%M:%S"
+                )
+                remaining_time = round(
+                    (
+                        getattr(settings, "LOCKOUT_TIME", 1800)
+                        - time_locked_out.seconds
+                    )
+                    / 60
+                )
+                raise AuthenticationFailed(
+                    _(
+                        "Locked out. Too many wrong username"
+                        "/password attempts. "
+                        "Try again in {} minutes.".format(remaining_time)
+                    )
+                )
+            return ip, username
+    return None, None
 
 
 def login_attempts(request):
-    """Track number of login attempts made by user within a specified amount
-     of time"""
-    username = check_lockout(request)
-    attempts_key = safe_key("{}{}".format(LOGIN_ATTEMPTS, username))
+    """
+    Track number of login attempts made by a specific IP within
+    a specified amount of time
+    """
+    ip, username = check_lockout(request)
+    attempts_key = safe_key("{}{}".format(LOGIN_ATTEMPTS, ip))
     attempts = cache.get(attempts_key)
 
     if attempts:
         cache.incr(attempts_key)
         attempts = cache.get(attempts_key)
         if attempts >= getattr(settings, "MAX_LOGIN_ATTEMPTS", 10):
-            lockout_key = safe_key("{}{}".format(LOCKOUT_USER, username))
+            lockout_key = safe_key("{}{}".format(LOCKOUT_IP, ip))
             lockout = cache.get(lockout_key)
             if not lockout:
-                send_lockout_email(username)
+                send_lockout_email(username, ip)
                 cache.set(
                     lockout_key,
                     datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
@@ -341,14 +359,14 @@ def login_attempts(request):
     return cache.get(attempts_key)
 
 
-def send_lockout_email(username):
+def send_lockout_email(username, ip):
     try:
         user = User.objects.get(username=username)
     except User.DoesNotExist:
         pass
     else:
-        email_data = get_account_lockout_email_data(username)
-        end_email_data = get_account_lockout_email_data(username, end=True)
+        email_data = get_account_lockout_email_data(username, ip)
+        end_email_data = get_account_lockout_email_data(username, ip, end=True)
 
         send_account_lockout_email.apply_async(
             args=[

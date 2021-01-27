@@ -2,7 +2,7 @@
 {% blocktrans with lockout_time=lockout_time username=username %}
 Hi {{ username }},
 
-You have been locked out from your Ona account because you have entered too many wrong passwords.
+IP {{ remote_ip }} has been locked out from your Ona account because the user has entered too many wrong passwords.
 
 Please wait for {{ lockout_time }} minutes before trying to access your account again.
 
