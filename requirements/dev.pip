@@ -4,163 +4,436 @@
 #
 #    pip-compile --output-file=requirements/dev.pip requirements/dev.in
 #
--e git+https://github.com/onaio/django-digest.git@eb85c7ae19d70d4690eeb20983e94b9fde8ab8c2#egg=django-digest  # via -r requirements/base.in
--e git+https://github.com/onaio/django-multidb-router.git@f711368180d58eef87eda54fadfd5f8355623d52#egg=django-multidb-router  # via -r requirements/base.in
--e git+https://github.com/onaio/oauth2client.git@75dfdee77fb640ae30469145c66440571dfeae5c#egg=oauth2client  # via -r requirements/base.in
--e git+https://github.com/onaio/floip-py.git@3c980eb184069ae7c3c9136b18441978237cd41d#egg=pyfloip  # via -r requirements/base.in
--e git+https://github.com/onaio/python-digest.git@3af1bd0ef6114e24bf23d0e8fd9d7ebf389845d1#egg=python-digest  # via -r requirements/base.in
--e git+https://github.com/onaio/python-json2xlsclient.git@62b4645f7b4f2684421a13ce98da0331a9dd66a0#egg=python-json2xlsclient  # via -r requirements/base.in
-alabaster==0.7.12         # via sphinx
-amqp==2.6.1               # via kombu
-analytics-python==1.2.9   # via onadata
-appnope==0.1.0            # via ipython
-appoptics-metrics==5.1.0  # via onadata
-argparse==1.4.0           # via unittest2
-astroid==1.6.6            # via pylint
-attrs==20.2.0             # via jsonschema
-babel==2.8.0              # via sphinx
-backcall==0.2.0           # via ipython
-billiard==3.6.3.0         # via celery
-boto3==1.15.17            # via tabulator
-botocore==1.18.17         # via boto3, s3transfer
-cached-property==1.5.2    # via tableschema
-celery==4.4.7             # via onadata
-certifi==2020.6.20        # via requests
-cffi==1.14.3              # via cryptography
-chardet==3.0.4            # via datapackage, requests, tabulator
-click==7.1.2              # via datapackage, tableschema, tabulator
-cryptography==3.1.1       # via onadata
-datapackage==1.15.1       # via pyfloip
-decorator==4.4.2          # via ipython
-defusedxml==0.6.0         # via djangorestframework-xml
-dict2xml==1.7.0           # via onadata
-django-activity-stream==0.9.0  # via onadata
-django-cors-headers==3.5.0  # via onadata
-django-debug-toolbar==3.1.1  # via onadata
-django-extensions==3.0.9  # via -r requirements/dev.in
-django-filter==2.4.0      # via onadata
-django-guardian==2.3.0    # via djangorestframework-guardian, onadata
-django-nose==1.4.7        # via onadata
-django-oauth-toolkit==1.3.2  # via onadata
-django-ordered-model==3.4.1  # via onadata
-django-query-builder==1.2.0  # via onadata
-django-registration-redux==2.8  # via onadata
-django-render-block==0.8.1  # via django-templated-email
-django-reversion==3.0.8   # via onadata
-django-taggit==1.3.0      # via onadata
-django-templated-email==2.3.0  # via onadata
-django==2.2.16            # via django-cors-headers, django-debug-toolbar, django-filter, django-guardian, django-oauth-toolkit, django-query-builder, django-render-block, django-reversion, django-taggit, djangorestframework, djangorestframework-guardian, djangorestframework-jsonapi, jsonfield, onadata
-djangorestframework-csv==2.1.0  # via onadata
-djangorestframework-gis==0.16  # via onadata
-djangorestframework-guardian==0.3.0  # via onadata
-djangorestframework-jsonapi==3.2.0  # via onadata
-djangorestframework-jsonp==1.0.2  # via onadata
-djangorestframework-xml==2.0.0  # via onadata
-djangorestframework==3.11.2  # via djangorestframework-csv, djangorestframework-gis, djangorestframework-guardian, djangorestframework-jsonapi, onadata
-docutils==0.16            # via sphinx
-dpath==2.0.1              # via onadata
-elaphe3==0.2.0            # via onadata
-et-xmlfile==1.0.1         # via openpyxl
-flake8==3.8.4             # via onadata
-fleming==0.5.0            # via django-query-builder
-formencode==2.0.0         # via pyxform
-future==0.18.2            # via python-json2xlsclient
-geojson==2.5.0            # via onadata
-httmock==1.3.0            # via onadata
-httplib2==0.18.1          # via oauth2client, onadata
-idna==2.10                # via requests
-ijson==3.1.2              # via tabulator
-imagesize==1.2.0          # via sphinx
-importlib-metadata==2.0.0  # via jsonpickle
-inflection==0.5.1         # via djangorestframework-jsonapi
-ipdb==0.13.4              # via -r requirements/dev.in
-ipython-genutils==0.2.0   # via traitlets
-ipython==7.18.1           # via ipdb
-isodate==0.6.0            # via tableschema
-isort==5.6.4              # via -r requirements/dev.in, pylint
-jdcal==1.4.1              # via openpyxl
-jedi==0.17.2              # via ipython
-jinja2==2.11.2            # via sphinx
-jmespath==0.10.0          # via boto3, botocore
-jsonfield==0.9.23         # via onadata
-jsonlines==1.2.0          # via tabulator
-jsonpickle==1.4.1         # via onadata
-jsonpointer==2.0          # via datapackage
-jsonschema==3.2.0         # via datapackage, tableschema
-kombu==4.6.11             # via celery
-lazy-object-proxy==1.5.1  # via astroid
-linear-tsv==1.1.0         # via tabulator
-linecache2==1.0.0         # via traceback2
-lxml==4.5.2               # via onadata
-markdown==3.3.1           # via onadata
-markupsafe==1.1.1         # via jinja2
-mccabe==0.6.1             # via flake8, pylint
-mock==4.0.2               # via onadata
-modilabs-python-utils==0.1.5  # via onadata
-nose==1.3.7               # via django-nose
-numpy==1.19.2             # via onadata
-oauthlib==3.1.0           # via django-oauth-toolkit
-openpyxl==3.0.5           # via onadata, tabulator
-packaging==20.4           # via sphinx
-paho-mqtt==1.5.1          # via onadata
-parso==0.7.1              # via jedi
-pexpect==4.8.0            # via ipython
-pickleshare==0.7.5        # via ipython
-pillow==8.0.0             # via elaphe3, onadata
-prompt-toolkit==3.0.8     # via ipython
-psycopg2==2.8.6           # via onadata
-ptyprocess==0.6.0         # via pexpect
-pyasn1-modules==0.2.8     # via oauth2client
-pyasn1==0.4.8             # via oauth2client, pyasn1-modules, rsa
-pycodestyle==2.6.0        # via flake8
-pycparser==2.20           # via cffi
-pyflakes==2.2.0           # via flake8
-pygments==2.7.1           # via ipython, sphinx
-pyjwt==1.7.1              # via onadata
-pylibmc==1.6.1            # via onadata
-pylint-django==0.11.1     # via -r requirements/dev.in
-pylint-plugin-utils==0.6  # via pylint-django
-pylint==1.9.4             # via -r requirements/dev.in, pylint-django, pylint-plugin-utils
-pymongo==3.11.0           # via onadata
-pyparsing==2.4.7          # via packaging
-pyrsistent==0.17.3        # via jsonschema
-python-dateutil==2.8.1    # via analytics-python, botocore, fleming, onadata, tableschema
-python-memcached==1.59    # via onadata
-pytz==2020.1              # via babel, celery, django, django-query-builder, fleming, onadata
-pyxform==1.1.0            # via onadata, pyfloip
-raven==6.10.0             # via onadata
-recaptcha-client==1.0.6   # via onadata
-requests-mock==1.8.0      # via onadata
-requests==2.24.0          # via analytics-python, datapackage, django-oauth-toolkit, httmock, onadata, python-json2xlsclient, requests-mock, sphinx, tableschema, tabulator
-rfc3986==1.4.0            # via tableschema
-rsa==4.6                  # via oauth2client
-s3transfer==0.3.3         # via boto3
-savreaderwriter==3.4.2    # via onadata
-simplejson==3.17.2        # via onadata
-six==1.15.0               # via analytics-python, appoptics-metrics, astroid, cryptography, datapackage, django-query-builder, django-templated-email, djangorestframework-csv, formencode, isodate, jsonlines, jsonschema, linear-tsv, oauth2client, packaging, pylint, python-dateutil, python-memcached, requests-mock, tableschema, tabulator, unittest2
-snowballstemmer==2.0.0    # via sphinx
-sphinx==3.2.1             # via onadata
-sphinxcontrib-applehelp==1.0.2  # via sphinx
-sphinxcontrib-devhelp==1.0.2  # via sphinx
-sphinxcontrib-htmlhelp==1.0.3  # via sphinx
-sphinxcontrib-jsmath==1.0.1  # via sphinx
-sphinxcontrib-qthelp==1.0.3  # via sphinx
-sphinxcontrib-serializinghtml==1.1.4  # via sphinx
-sqlalchemy==1.3.20        # via tabulator
-sqlparse==0.4.1           # via django, django-debug-toolbar
-tableschema==1.20.0       # via datapackage
-tabulator==1.52.4         # via datapackage, tableschema
-traceback2==1.4.0         # via unittest2
-traitlets==5.0.5          # via ipython
-unicodecsv==0.14.1        # via datapackage, djangorestframework-csv, onadata, pyxform, tableschema, tabulator
-unittest2==1.1.0          # via pyxform
-urllib3==1.25.10          # via botocore, requests
-uwsgi==2.0.19.1           # via onadata
-vine==1.3.0               # via amqp, celery
-wcwidth==0.2.5            # via prompt-toolkit
-wrapt==1.12.1             # via astroid
-xlrd==1.2.0               # via onadata, pyxform, tabulator
-xlwt==1.3.0               # via onadata
-yapf==0.30.0              # via -r requirements/dev.in
-zipp==3.3.1               # via importlib-metadata
-
+-e git+https://github.com/onaio/django-digest.git@eb85c7ae19d70d4690eeb20983e94b9fde8ab8c2#egg=django-digest
+    # via -r requirements/base.in
+-e git+https://github.com/onaio/django-multidb-router.git@f711368180d58eef87eda54fadfd5f8355623d52#egg=django-multidb-router
+    # via -r requirements/base.in
+-e git+https://github.com/onaio/oauth2client.git@75dfdee77fb640ae30469145c66440571dfeae5c#egg=oauth2client
+    # via -r requirements/base.in
+-e git+https://github.com/onaio/floip-py.git@3c980eb184069ae7c3c9136b18441978237cd41d#egg=pyfloip
+    # via -r requirements/base.in
+-e git+https://github.com/onaio/python-digest.git@3af1bd0ef6114e24bf23d0e8fd9d7ebf389845d1#egg=python-digest
+    # via -r requirements/base.in
+-e git+https://github.com/onaio/python-json2xlsclient.git@62b4645f7b4f2684421a13ce98da0331a9dd66a0#egg=python-json2xlsclient
+    # via -r requirements/base.in
+alabaster==0.7.12
+    # via sphinx
+amqp==2.6.1
+    # via kombu
+analytics-python==1.2.9
+    # via onadata
+appnope==0.1.0
+    # via ipython
+appoptics-metrics==5.1.0
+    # via onadata
+argparse==1.4.0
+    # via unittest2
+astroid==1.6.6
+    # via pylint
+attrs==20.2.0
+    # via jsonschema
+babel==2.8.0
+    # via sphinx
+backcall==0.2.0
+    # via ipython
+billiard==3.6.3.0
+    # via celery
+boto3==1.15.17
+    # via tabulator
+botocore==1.18.17
+    # via
+    #   boto3
+    #   s3transfer
+cached-property==1.5.2
+    # via tableschema
+celery==4.4.7
+    # via onadata
+certifi==2020.6.20
+    # via requests
+cffi==1.14.3
+    # via cryptography
+chardet==3.0.4
+    # via
+    #   datapackage
+    #   requests
+    #   tabulator
+click==7.1.2
+    # via
+    #   datapackage
+    #   tableschema
+    #   tabulator
+cryptography==3.1.1
+    # via onadata
+datapackage==1.15.1
+    # via pyfloip
+decorator==4.4.2
+    # via ipython
+defusedxml==0.6.0
+    # via djangorestframework-xml
+dict2xml==1.7.0
+    # via onadata
+django-activity-stream==0.9.0
+    # via onadata
+django-cors-headers==3.5.0
+    # via onadata
+django-debug-toolbar==3.1.1
+    # via onadata
+django-extensions==3.0.9
+    # via -r requirements/dev.in
+django-filter==2.4.0
+    # via onadata
+django-guardian==2.3.0
+    # via
+    #   djangorestframework-guardian
+    #   onadata
+django-nose==1.4.7
+    # via onadata
+django-oauth-toolkit==1.3.2
+    # via onadata
+django-ordered-model==3.4.1
+    # via onadata
+django-query-builder==1.2.0
+    # via onadata
+django-registration-redux==2.8
+    # via onadata
+django-render-block==0.8.1
+    # via django-templated-email
+django-reversion==3.0.8
+    # via onadata
+django-taggit==1.3.0
+    # via onadata
+django-templated-email==2.3.0
+    # via onadata
+django==2.2.16
+    # via
+    #   django-cors-headers
+    #   django-debug-toolbar
+    #   django-filter
+    #   django-guardian
+    #   django-oauth-toolkit
+    #   django-query-builder
+    #   django-render-block
+    #   django-reversion
+    #   django-taggit
+    #   djangorestframework
+    #   djangorestframework-guardian
+    #   djangorestframework-jsonapi
+    #   jsonfield
+    #   onadata
+djangorestframework-csv==2.1.0
+    # via onadata
+djangorestframework-gis==0.16
+    # via onadata
+djangorestframework-guardian==0.3.0
+    # via onadata
+djangorestframework-jsonapi==3.2.0
+    # via onadata
+djangorestframework-jsonp==1.0.2
+    # via onadata
+djangorestframework-xml==2.0.0
+    # via onadata
+djangorestframework==3.11.2
+    # via
+    #   djangorestframework-csv
+    #   djangorestframework-gis
+    #   djangorestframework-guardian
+    #   djangorestframework-jsonapi
+    #   onadata
+docutils==0.16
+    # via sphinx
+dpath==2.0.1
+    # via onadata
+elaphe3==0.2.0
+    # via onadata
+et-xmlfile==1.0.1
+    # via openpyxl
+flake8==3.8.4
+    # via onadata
+fleming==0.5.0
+    # via django-query-builder
+formencode==2.0.0
+    # via pyxform
+future==0.18.2
+    # via python-json2xlsclient
+geojson==2.5.0
+    # via onadata
+httmock==1.3.0
+    # via onadata
+httplib2==0.18.1
+    # via
+    #   oauth2client
+    #   onadata
+idna==2.10
+    # via requests
+ijson==3.1.2
+    # via tabulator
+imagesize==1.2.0
+    # via sphinx
+importlib-metadata==2.0.0
+    # via jsonpickle
+inflection==0.5.1
+    # via djangorestframework-jsonapi
+ipdb==0.13.4
+    # via -r requirements/dev.in
+ipython-genutils==0.2.0
+    # via traitlets
+ipython==7.18.1
+    # via ipdb
+isodate==0.6.0
+    # via tableschema
+isort==5.6.4
+    # via
+    #   -r requirements/dev.in
+    #   pylint
+jdcal==1.4.1
+    # via openpyxl
+jedi==0.17.2
+    # via ipython
+jinja2==2.11.2
+    # via sphinx
+jmespath==0.10.0
+    # via
+    #   boto3
+    #   botocore
+jsonfield==0.9.23
+    # via onadata
+jsonlines==1.2.0
+    # via tabulator
+jsonpickle==1.4.1
+    # via onadata
+jsonpointer==2.0
+    # via datapackage
+jsonschema==3.2.0
+    # via
+    #   datapackage
+    #   tableschema
+kombu==4.6.11
+    # via celery
+lazy-object-proxy==1.5.1
+    # via astroid
+linear-tsv==1.1.0
+    # via tabulator
+linecache2==1.0.0
+    # via traceback2
+lxml==4.5.2
+    # via onadata
+markdown==3.3.1
+    # via onadata
+markupsafe==1.1.1
+    # via jinja2
+mccabe==0.6.1
+    # via
+    #   flake8
+    #   pylint
+mock==4.0.2
+    # via onadata
+modilabs-python-utils==0.1.5
+    # via onadata
+nose==1.3.7
+    # via django-nose
+numpy==1.19.2
+    # via onadata
+oauthlib==3.1.0
+    # via django-oauth-toolkit
+openpyxl==3.0.5
+    # via
+    #   onadata
+    #   tabulator
+packaging==20.4
+    # via sphinx
+paho-mqtt==1.5.1
+    # via onadata
+parso==0.7.1
+    # via jedi
+pexpect==4.8.0
+    # via ipython
+pickleshare==0.7.5
+    # via ipython
+pillow==8.0.0
+    # via
+    #   elaphe3
+    #   onadata
+prompt-toolkit==3.0.8
+    # via ipython
+psycopg2==2.8.6
+    # via onadata
+ptyprocess==0.6.0
+    # via pexpect
+pyasn1-modules==0.2.8
+    # via oauth2client
+pyasn1==0.4.8
+    # via
+    #   oauth2client
+    #   pyasn1-modules
+    #   rsa
+pycodestyle==2.6.0
+    # via flake8
+pycparser==2.20
+    # via cffi
+pyflakes==2.2.0
+    # via flake8
+pygments==2.7.1
+    # via
+    #   ipython
+    #   sphinx
+pyjwt==1.7.1
+    # via onadata
+pylibmc==1.6.1
+    # via onadata
+pylint-django==0.11.1
+    # via -r requirements/dev.in
+pylint-plugin-utils==0.6
+    # via pylint-django
+pylint==1.9.4
+    # via
+    #   -r requirements/dev.in
+    #   pylint-django
+    #   pylint-plugin-utils
+pymongo==3.11.0
+    # via onadata
+pyparsing==2.4.7
+    # via packaging
+pyrsistent==0.17.3
+    # via jsonschema
+python-dateutil==2.8.1
+    # via
+    #   analytics-python
+    #   botocore
+    #   fleming
+    #   onadata
+    #   tableschema
+python-memcached==1.59
+    # via onadata
+pytz==2020.1
+    # via
+    #   babel
+    #   celery
+    #   django
+    #   django-query-builder
+    #   fleming
+    #   onadata
+pyxform==1.1.0
+    # via
+    #   onadata
+    #   pyfloip
+raven==6.10.0
+    # via onadata
+recaptcha-client==1.0.6
+    # via onadata
+requests-mock==1.8.0
+    # via onadata
+requests==2.24.0
+    # via
+    #   analytics-python
+    #   datapackage
+    #   django-oauth-toolkit
+    #   httmock
+    #   onadata
+    #   python-json2xlsclient
+    #   requests-mock
+    #   sphinx
+    #   tableschema
+    #   tabulator
+rfc3986==1.4.0
+    # via tableschema
+rsa==4.6
+    # via oauth2client
+s3transfer==0.3.3
+    # via boto3
+savreaderwriter==3.4.2
+    # via onadata
+simplejson==3.17.2
+    # via onadata
+six==1.15.0
+    # via
+    #   analytics-python
+    #   appoptics-metrics
+    #   astroid
+    #   cryptography
+    #   datapackage
+    #   django-query-builder
+    #   django-templated-email
+    #   djangorestframework-csv
+    #   formencode
+    #   isodate
+    #   jsonlines
+    #   jsonschema
+    #   linear-tsv
+    #   oauth2client
+    #   packaging
+    #   pylint
+    #   python-dateutil
+    #   python-memcached
+    #   requests-mock
+    #   tableschema
+    #   tabulator
+    #   unittest2
+snowballstemmer==2.0.0
+    # via sphinx
+sphinx==3.2.1
+    # via onadata
+sphinxcontrib-applehelp==1.0.2
+    # via sphinx
+sphinxcontrib-devhelp==1.0.2
+    # via sphinx
+sphinxcontrib-htmlhelp==1.0.3
+    # via sphinx
+sphinxcontrib-jsmath==1.0.1
+    # via sphinx
+sphinxcontrib-qthelp==1.0.3
+    # via sphinx
+sphinxcontrib-serializinghtml==1.1.4
+    # via sphinx
+sqlalchemy==1.3.20
+    # via tabulator
+sqlparse==0.4.1
+    # via
+    #   django
+    #   django-debug-toolbar
+tableschema==1.20.0
+    # via datapackage
+tabulator==1.52.4
+    # via
+    #   datapackage
+    #   tableschema
+traceback2==1.4.0
+    # via unittest2
+traitlets==5.0.5
+    # via ipython
+unicodecsv==0.14.1
+    # via
+    #   datapackage
+    #   djangorestframework-csv
+    #   onadata
+    #   pyxform
+    #   tableschema
+    #   tabulator
+unittest2==1.1.0
+    # via pyxform
+urllib3==1.25.10
+    # via
+    #   botocore
+    #   requests
+uwsgi==2.0.19.1
+    # via onadata
+vine==1.3.0
+    # via
+    #   amqp
+    #   celery
+wcwidth==0.2.5
+    # via prompt-toolkit
+wrapt==1.12.1
+    # via astroid
+xlrd==1.2.0
+    # via
+    #   onadata
+    #   pyxform
+    #   tabulator
+xlwt==1.3.0
+    # via onadata
+xmltodict==0.12.0
+    # via onadata
+yapf==0.30.0
+    # via -r requirements/dev.in
+zipp==3.3.1
+    # via importlib-metadata
