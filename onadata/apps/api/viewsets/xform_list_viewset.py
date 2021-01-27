@@ -82,7 +82,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
         profile = None
         if username:
             profile = get_object_or_404(
-                UserProfile, user__username=username)
+                UserProfile, user__username__iexact=username)
         elif form_pk:
             queryset = queryset.filter(pk=form_pk)
             if queryset.first():

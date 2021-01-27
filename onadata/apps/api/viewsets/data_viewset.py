@@ -1,6 +1,7 @@
 import json
 import types
 from builtins import str as text
+from typing import Union
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
@@ -388,6 +389,69 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 _(u"'%(_format)s' format unknown or not implemented!" %
                   {'_format': _format}))
 
+    def _set_pagination_headers(
+            self, xform: XForm, current_page: Union[int, str],
+            current_page_size: Union[int, str] =
+            SUBMISSION_RETRIEVAL_THRESHOLD):
+        """
+        Sets the self.headers value for the viewset
+        """
+        import math
+
+        url = self.request.build_absolute_uri()
+        base_url = url.split('?')[0]
+        num_of_records = xform.num_of_submissions
+        next_page_url = None
+        prev_page_url = None
+        first_page_url = None
+        last_page_url = None
+        links = []
+
+        if isinstance(current_page, str):
+            try:
+                current_page = int(current_page)
+            except ValueError:
+                return
+
+        if isinstance(current_page_size, str):
+            try:
+                current_page_size = int(current_page_size)
+            except ValueError:
+                return
+
+        if (current_page * current_page_size) < num_of_records:
+            next_page_url = (
+                f"{base_url}?page={current_page + 1}&"
+                f"page_size={current_page_size}")
+
+        if current_page > 1:
+            prev_page_url = (
+                f"{base_url}?page={current_page - 1}"
+                f"&page_size={current_page_size}")
+
+        last_page = math.ceil(num_of_records / current_page_size)
+        if last_page != current_page and last_page != current_page + 1:
+            last_page_url = (
+                f"{base_url}?page={last_page}&page_size={current_page_size}"
+            )
+
+        if current_page != 1:
+            first_page_url = (
+                f"{base_url}?page=1&page_size={current_page_size}"
+            )
+
+        if not hasattr(self, 'headers'):
+            self.headers = {}
+
+        for rel, link in (
+                ('prev', prev_page_url),
+                ('next', next_page_url),
+                ('last', last_page_url),
+                ('first', first_page_url)):
+            if link:
+                links.append(f'<{link}>; rel="{rel}"')
+        self.headers.update({'Link': ', '.join(links)})
+
     def list(self, request, *args, **kwargs):
         fields = request.GET.get("fields")
         query = request.GET.get("query", {})
@@ -554,6 +618,18 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         should_paginate = any([k in query_param_keys for k in pagination_keys])
         if not isinstance(self.object_list, types.GeneratorType) and \
                 should_paginate:
+            current_page = query_param_keys.get(
+                self.paginator.page_query_param, 1)
+            current_page_size = query_param_keys.get(
+                self.paginator.page_size_query_param,
+                SUBMISSION_RETRIEVAL_THRESHOLD)
+
+            self._set_pagination_headers(
+                self.get_object(),
+                current_page=current_page,
+                current_page_size=current_page_size
+            )
+
             try:
                 self.object_list = self.paginate_queryset(self.object_list)
             except OperationalError:
@@ -564,7 +640,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             response = self._get_streaming_response()
         else:
             serializer = self.get_serializer(self.object_list, many=True)
-            response = Response(serializer.data)
+            response = Response(serializer.data, headers=self.headers)
 
         return response
 

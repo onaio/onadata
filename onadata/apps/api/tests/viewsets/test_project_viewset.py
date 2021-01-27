@@ -1531,9 +1531,9 @@ class TestProjectViewSet(TestAbstractViewSet):
         # invalid id
         response = view(request, pk='1w')
         self.assertEqual(response.status_code, 400)
-        error_data = {u'detail': u"Invalid value for project_id '1w' must be a"
-                                 " positive integer."}
-        self.assertEqual(response.data, error_data)
+        error_msg = ("Invalid value for project_id. It must be a "
+                     "positive integer.")
+        self.assertEqual(str(response.data['detail']), error_msg)
 
     def test_publish_to_public_project(self):
         public_project = Project(name='demo',

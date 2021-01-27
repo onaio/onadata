@@ -3,6 +3,40 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.5.0(2021-01-21)
+------------------
+
+- Clear cache and refresh user profile on email verification
+  `PR #1970 <https://github.com/onaio/onadata/pull/1970>`_
+  [@DavisRayM]
+- Add timestamp filter for the Messaging Viewset
+  `PR #1973 <https://github.com/onaio/onadata/pull/1973>`_
+  [@DavisRayM]
+- Introduce Tableau v2
+  `PR #1910 <https://github.com/onaio/onadata/pull/1910>`_
+  [@WinnyTroy]
+- Handle TypeError raised when `current_count` value is None 
+  `PR #1980 <https://github.com/onaio/onadata/pull/1980>`_
+  [@DavisRayM]
+- Add pagination headers to the paginated DataViewSet response
+  `PR #1977 <https://github.com/onaio/onadata/pull/1977>`_
+  [@DavisRayM]
+- Add support for querying a column with multiple conditions
+  `PR #1981 <https://github.com/onaio/onadata/pull/1981>`_
+  [@DavisRayM]
+- Retrieve user profile using case insensitive username filter
+  `PR #1988 <https://github.com/onaio/onadata/pull/1988>`_
+  [@DavisRayM]
+- validate input fields on put form endpoint requests
+  `PR #1991 <https://github.com/onaio/onadata/pull/1991>`_
+  [@ivermac]
+- Update Tableau Documentation
+  `PR #1989 <https://github.com/onaio/onadata/pull/1989>`_
+  [@WinnyTroy]
+- sanitize input recieved by media endpoint 
+  `PR #1997 <https://github.com/onaio/onadata/pull/1997>`_
+  [@ivermac]
+
 v2.4.9(2020-12-17)
 ------------------
 

@@ -243,13 +243,45 @@ Paginate data of a specific form
 Returns a list of json submitted data for a specific form using page number and the number of items per page. Use the ``page`` parameter to specify page number and ``page_size`` parameter is used to set the custom page size.
 
 - ``page`` - Integer representing the page.
-- ``page_size`` - Integer representing the number of records that should be returned in a single page. *Has a maximum value of 10,000 records*
+- ``page_size`` - Integer representing the number of records that should be returned in a single page.
+
+There are a few important facts to note about retrieving paginated data:
+
+1. The maximum number of items that can be requested in a page via the ``page_size`` query param is 10,000
+2. Information regrading transversal of the paginated responses can be found in `the Link header <https://tools.ietf.org/html/rfc5988>`_ returned in the response. *Note: Some relational links may not be present depending on the page accessed i.e the ``first`` relational page link won't be present on the first page response*
 
 Example
 ^^^^^^^^
 ::
 
       curl -X GET https://api.ona.io/api/v1/data/328.json?page=1&page_size=4
+
+Sample response with link header
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+::
+
+      curl -i "localhost:8000/api/v1/data/2?page=1&page_size=1"
+
+**Response Header:** ::
+
+      ...
+      Link: <http://localhost:8000/api/v1/data/2?page=2&page_size=1>; rel="next", <http://localhost:8000/api/v1/data/2?page=3&page_size=1>; rel="last"
+
+**Response:** ::
+
+      [
+        {
+            "_id":1,"_tags":[],"_uuid":"78afb566-8293-4f42-a83f-99d5ba0061e2",
+            "_notes":[]"_edited":false,"_status":"submitted_via_web",
+            "_version":"202010260841","_duration":"","_xform_id":2,
+            "plot_count":"1","_attachments":[],"_geolocation":[null,null],
+            "_media_count":0,"_total_media":0,"formhub/uuid":"281845ab2d214ff6ac08526c0484fe34",
+            "_submitted_by":null,"meta/instanceID":"uuid:78afb566-8293-4f42-a83f-99d5ba0061e2",
+            "_submission_time":"2020-10-26T08:49:06","_xform_id_string":"nested_repea",
+            "_bamboo_dataset_id":"","_media_all_received":true
+        }
+      ]
 
 
 Sort submitted data of a specific form using existing fields

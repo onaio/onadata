@@ -3,6 +3,7 @@ import six
 import datetime
 from builtins import str as text
 from future.utils import iteritems
+from typing import Any, Tuple
 
 from onadata.libs.utils.common_tags import MONGO_STRFTIME, DATE_FORMAT
 
@@ -82,6 +83,21 @@ def _parse_where(query, known_integers, known_decimals, or_where, or_params):
     return where + or_where, where_params + or_params
 
 
+def _merge_duplicate_keys(pairs: Tuple[str, Any]):
+    ret = {}
+
+    for field, value in pairs:
+        if not ret.get(field):
+            ret[field] = []
+        ret[field].append(value)
+
+    for key, value in ret.items():
+        if len(value) == 1:
+            ret[key] = value[0]
+
+    return ret
+
+
 def get_where_clause(query, form_integer_fields=None,
                      form_decimal_fields=None):
     if form_integer_fields is None:
@@ -95,7 +111,8 @@ def get_where_clause(query, form_integer_fields=None,
 
     try:
         if query and isinstance(query, (dict, six.string_types)):
-            query = query if isinstance(query, dict) else json.loads(query)
+            query = query if isinstance(query, dict) else json.loads(
+                query, object_pairs_hook=_merge_duplicate_keys)
             or_where = []
             or_params = []
             if isinstance(query, list):
@@ -108,6 +125,10 @@ def get_where_clause(query, form_integer_fields=None,
                     for k, v in or_query.items():
                         if v is None:
                             or_where.extend([u"json->>'{}' IS NULL".format(k)])
+                        elif isinstance(v, list):
+                            for value in v:
+                                or_where.extend(["json->>%s = %s"])
+                                or_params.extend([k, value])
                         else:
                             or_where.extend(
                                 [u"json->>%s = %s"])

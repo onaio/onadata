@@ -73,6 +73,14 @@ Flow Results Packages
 
   flow-results
 
+Onadata-Tableau Intergration
+------------------------------
+
+.. toctree::
+    :maxdepth: 2
+
+  onadata-tableau
+
 Ona Tagging API
 ~~~~~~~~~~~~~~~
 

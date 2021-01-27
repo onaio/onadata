@@ -473,6 +473,25 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
 
+        # Link pagination headers are present and work as intended
+        self.assertIn('Link', response)
+        self.assertEqual(
+            response['Link'],
+            '<http://testserver/?page=2&page_size=2>; rel="next"'
+        )
+
+        request = self.factory.get(
+            '/', data={"page": 2, "page_size": 1}, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Link', response)
+        self.assertEqual(
+            response['Link'],
+            ('<http://testserver/?page=1&page_size=1>; rel="prev", '
+             '<http://testserver/?page=3&page_size=1>; rel="next", '
+             '<http://testserver/?page=4&page_size=1>; rel="last", '
+             '<http://testserver/?page=1&page_size=1>; rel="first"'))
+
         request = self.factory.get('/', data={"page_size": "3"}, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
@@ -802,8 +821,8 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.get('Cache-Control'), None)
-        data = {'detail': 'Invalid form ID: INVALID'}
-        self.assertEqual(response.data, data)
+        error_message = "Invalid form ID. It must be a positive integer"
+        self.assertEqual(str(response.data['detail']), error_message)
 
     def test_data_bad_dataid(self):
         self._make_submissions()
@@ -2362,6 +2381,44 @@ class TestDataViewSet(TestBase):
         # are successful
         cache.clear()
         inst_three.set_deleted()
+
+    def test_data_query_multiple_condition(self):
+        """
+        Test that all conditions are met when a user queries for
+        data
+        """
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        query_str = (
+            '{"$or":[{"transport/loop_over_transport_types_frequency'
+            '/ambulance/frequency_to_referral_facility":"weekly","t'
+            'ransport/loop_over_transport_types_frequency/ambulanc'
+            'e/frequency_to_referral_facility":"daily"}]}'
+        )
+        request = self.factory.get(f'/?query={query_str}', **self.extra)
+        response = view(request, pk=self.xform.pk)
+        count = 0
+
+        for inst in self.xform.instances.all():
+            if inst.json.get(
+                    'transport/loop_over_transport_types_frequency'
+                    '/ambulance/frequency_to_referral_facility'
+                    ) in ['daily', 'weekly']:
+                count += 1
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), count)
+
+        query_str = (
+            '{"$or":[{"transport/loop_over_transport_types_frequency'
+            '/ambulance/frequency_to_referral_facility":"weekly"}, {"t'
+            'ransport/loop_over_transport_types_frequency/ambulanc'
+            'e/frequency_to_referral_facility":"daily"}]}'
+        )
+        request = self.factory.get(f'/?query={query_str}', **self.extra)
+        response = view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), count)
 
     def test_data_query_ornull(self):
         """

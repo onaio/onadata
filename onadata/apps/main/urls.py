@@ -9,13 +9,14 @@ from django.urls import re_path
 from django.views.generic import RedirectView
 
 from onadata.apps import sms_support
-from onadata.apps.api.urls import router
-from onadata.apps.api.urls import XFormListViewSet
+from onadata.apps.api.urls.v1_urls import router as api_v1_router
+from onadata.apps.api.urls.v2_urls import router as api_v2_router
+from onadata.apps.api.urls.v1_urls import XFormListViewSet
 from onadata.apps.api.viewsets.xform_list_viewset import (
     PreviewXFormListViewSet
 )
-from onadata.apps.api.urls import XFormSubmissionViewSet
-from onadata.apps.api.urls import BriefcaseViewset
+from onadata.apps.api.urls.v1_urls import XFormSubmissionViewSet
+from onadata.apps.api.urls.v1_urls import BriefcaseViewset
 from onadata.apps.logger import views as logger_views
 from onadata.apps.main import views as main_views
 from onadata.apps.main.registration_urls import (
@@ -39,7 +40,8 @@ admin.autodiscover()
 urlpatterns = [
     # change Language
     re_path(r'^i18n/', include(i18n)),
-    url('^api/v1/', include(router.urls)),
+    url('^api/v1/', include(api_v1_router.urls)),
+    url('^api/v2/', include(api_v2_router.urls)),
     re_path(r'^api-docs/',
             RedirectView.as_view(url=settings.STATIC_DOC, permanent=True)),
     re_path(r'^api/$',
