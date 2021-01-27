@@ -177,40 +177,44 @@ def _update_submission_count_for_today(
 @transaction.atomic()
 def update_xform_submission_count(instance_id, created):
     if created:
-        try:
-            instance = Instance.objects.select_related('xform').only(
-                'xform__user_id', 'date_created').get(pk=instance_id)
-        except Instance.DoesNotExist:
-            pass
-        else:
-            # update xform.num_of_submissions
-            cursor = connection.cursor()
-            sql = (
-                'UPDATE logger_xform SET '
-                'num_of_submissions = num_of_submissions + 1, '
-                'last_submission_time = %s '
-                'WHERE id = %s'
-            )
-            params = [instance.date_created, instance.xform_id]
+        from multidb.pinning import use_master
+        with use_master:
+            try:
+                instance = Instance.objects.select_related('xform').only(
+                    'xform__user_id', 'date_created').get(pk=instance_id)
+            except Instance.DoesNotExist:
+                pass
+            else:
+                # update xform.num_of_submissions
+                cursor = connection.cursor()
+                sql = (
+                    'UPDATE logger_xform SET '
+                    'num_of_submissions = num_of_submissions + 1, '
+                    'last_submission_time = %s '
+                    'WHERE id = %s'
+                )
+                params = [instance.date_created, instance.xform_id]
 
-            # update user profile.num_of_submissions
-            cursor.execute(sql, params)
-            sql = (
-                'UPDATE main_userprofile SET '
-                'num_of_submissions = num_of_submissions + 1 '
-                'WHERE user_id = %s'
-            )
-            cursor.execute(sql, [instance.xform.user_id])
+                # update user profile.num_of_submissions
+                cursor.execute(sql, params)
+                sql = (
+                    'UPDATE main_userprofile SET '
+                    'num_of_submissions = num_of_submissions + 1 '
+                    'WHERE user_id = %s'
+                )
+                cursor.execute(sql, [instance.xform.user_id])
 
-            # Track submissions made today
-            _update_submission_count_for_today(instance.xform_id)
+                # Track submissions made today
+                _update_submission_count_for_today(instance.xform_id)
 
-            safe_delete('{}{}'.format(XFORM_DATA_VERSIONS, instance.xform_id))
-            safe_delete('{}{}'.format(DATAVIEW_COUNT, instance.xform_id))
-            safe_delete('{}{}'.format(XFORM_COUNT, instance.xform_id))
-            # Clear project cache
-            from onadata.apps.logger.models.xform import clear_project_cache
-            clear_project_cache(instance.xform.project_id)
+                safe_delete('{}{}'.format(
+                    XFORM_DATA_VERSIONS, instance.xform_id))
+                safe_delete('{}{}'.format(DATAVIEW_COUNT, instance.xform_id))
+                safe_delete('{}{}'.format(XFORM_COUNT, instance.xform_id))
+                # Clear project cache
+                from onadata.apps.logger.models.xform import \
+                    clear_project_cache
+                clear_project_cache(instance.xform.project_id)
 
 
 def update_xform_submission_count_delete(sender, instance, **kwargs):
