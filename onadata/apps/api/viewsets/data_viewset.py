@@ -641,7 +641,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 self.object_list = self.paginate_queryset(self.object_list)
 
         STREAM_DATA = getattr(settings, 'STREAM_DATA', False)
-        if STREAM_DATA:
+        if STREAM_DATA and self.kwargs.get('format') != 'xml':
             response = self._get_streaming_response()
         else:
             serializer = self.get_serializer(self.object_list, many=True)
