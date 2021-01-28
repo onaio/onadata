@@ -32,7 +32,7 @@ class TestMediaViewSet(TestAbstractViewSet):
         request = self.factory.get('/', {
             'filename': self.attachment.media_file.name}, **self.extra)
         response = self.retrieve_view(request, self.attachment.pk)
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
         self.assertTrue(response['Location'], attachment_url(self.attachment))
 
     @patch('onadata.apps.api.viewsets.media_viewset.image_url')
