@@ -6,11 +6,12 @@ import decimal
 import json
 import math
 from io import BytesIO
+from typing import Tuple
 
 import pytz
 from django.utils import six
 from django.utils.dateparse import parse_datetime
-from django.utils.encoding import smart_text
+from django.utils.encoding import smart_text, force_str
 from django.utils.xmlutils import SimplerXMLGenerator
 from future.utils import iteritems
 from rest_framework import negotiation
@@ -302,6 +303,57 @@ class TemplateXMLRenderer(TemplateHTMLRenderer):  # pylint: disable=R0903
 
         return super(TemplateXMLRenderer,
                      self).render(data, accepted_media_type, renderer_context)
+
+
+class InstanceXMLRenderer(XMLRenderer):
+    """
+    InstanceXMLRenderer - Renders Instance XML
+    """
+    item_tag_name = 'submission-item'
+
+    def _pop_xml_attributes(self, xml_dictionary: dict) -> Tuple[dict, dict]:
+        ret = xml_dictionary.copy()
+        attributes = {}
+
+        for key, value in xml_dictionary.items():
+            if key.startswith('@'):
+                attributes.update({key.replace('@', ''): value})
+                del ret[key]
+
+        return ret, attributes
+
+    def _to_xml(self, xml, data):
+        if isinstance(data, (list, tuple)):
+            for item in data:
+                item, attributes = self._pop_xml_attributes(item)
+                xml.startElement(self.item_tag_name, attributes)
+                self._to_xml(xml, item)
+                xml.endElement(self.item_tag_name)
+
+        elif isinstance(data, dict):
+            for key, value in data.items():
+                if isinstance(value, (list, tuple)):
+                    for v in value:
+                        xml.startElement(key, {})
+                        self._to_xml(xml, v)
+                        xml.endElement(key)
+
+                elif isinstance(value, dict):
+                    value, attributes = self._pop_xml_attributes(value)
+                    xml.startElement(key, attributes)
+                    self._to_xml(xml, value)
+                    xml.endElement(key)
+
+                else:
+                    xml.startElement(key, {})
+                    self._to_xml(xml, value)
+                    xml.endElement(key)
+
+        elif data is None:
+            pass
+
+        else:
+            xml.characters(force_str(data))
 
 
 class StaticXMLRenderer(StaticHTMLRenderer):  # pylint: disable=R0903
