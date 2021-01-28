@@ -51,7 +51,7 @@ from onadata.libs.permissions import CAN_DELETE_SUBMISSION, \
     filter_queryset_xform_meta_perms, filter_queryset_xform_meta_perms_sql
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.data_serializer import (
-    DataInstanceSerializer,
+    DataInstanceSerializer, DataInstanceXMLSerializer,
     InstanceHistorySerializer)
 from onadata.libs.serializers.data_serializer import DataSerializer
 from onadata.libs.serializers.data_serializer import JsonDataSerializer
@@ -107,11 +107,12 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         renderers.CSVRenderer,
         renderers.CSVZIPRenderer,
         renderers.SAVZIPRenderer,
+        renderers.InstanceXMLRenderer,
         renderers.SurveyRenderer,
         renderers.GeoJsonRenderer,
         renderers.KMLRenderer,
         renderers.OSMRenderer,
-        renderers.FLOIPRenderer
+        renderers.FLOIPRenderer,
     ]
 
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,
@@ -139,6 +140,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             serializer_class = OSMSerializer
         elif fmt == 'geojson':
             serializer_class = GeoJsonSerializer
+        elif fmt == 'xml':
+            serializer_class = DataInstanceXMLSerializer
         elif pk is not None and dataid is None \
                 and pk != self.public_data_endpoint:
             if sort or fields:
@@ -520,7 +523,9 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 self.object_list = \
                     self.object_list.exclude(tags__name__in=not_tagged)
 
-        if (export_type is None or export_type in ['json', 'jsonp', 'debug']) \
+        if (
+            export_type is None or
+            export_type in ['json', 'jsonp', 'debug', 'xml']) \
                 and hasattr(self, 'object_list'):
             return self._get_data(query, fields, sort, start, limit,
                                   is_public_request)
