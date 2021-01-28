@@ -2501,6 +2501,20 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
 
+    def test_data_list_xml_format(self):
+        """Test DataViewSet list XML"""
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        formid = self.xform.pk
+        response = view(request, pk=formid, format='xml')
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+
+        # Ensure response is renderable
+        response.render()
+        self.assertEqual(response.accepted_media_type, 'application/xml')
+
 
 class TestOSM(TestAbstractViewSet):
     """
