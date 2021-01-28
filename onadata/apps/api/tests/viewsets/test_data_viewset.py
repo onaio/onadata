@@ -2503,7 +2503,20 @@ class TestDataViewSet(TestBase):
 
     def test_data_list_xml_format(self):
         """Test DataViewSet list XML"""
-        self._make_submissions()
+        # create form
+        xls_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/tutorial.xls"
+        )
+        self._publish_xls_file_and_set_xform(xls_file_path)
+
+        # create submission
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "fixtures", "tutorial", "instances",
+            "tutorial_2012-06-27_11-27-53_w_uuid.xml"
+        )
+        self._make_submission(xml_submission_file_path)
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         formid = self.xform.pk
@@ -2514,6 +2527,15 @@ class TestDataViewSet(TestBase):
         # Ensure response is renderable
         response.render()
         self.assertEqual(response.accepted_media_type, 'application/xml')
+        instance = self.xform.instances.first()
+        expected_xml = (
+            '<?xml version="1.0" encoding="utf-8"?>\n<root>'
+            f'<submission-item formVersion="{instance.version}" lastModified="{instance.date_modified.isoformat()}" objectID="{instance.id}">'  # noqa
+            '<tutorial id="tutorial"><name>Larry\n        Again</name><age>23</age><picture>1333604907194.jpg</picture>'  # noqa
+            '<has_children>0</has_children><gps>-1.2836198 36.8795437 0.0 1044.0</gps><web_browsers>firefox chrome safari'  # noqa
+            '</web_browsers><meta><instanceID>uuid:729f173c688e482486a48661700455ff</instanceID></meta></tutorial>'  # noqa
+            '</submission-item></root>')
+        self.assertEqual(expected_xml, response.content.decode('utf-8'))
 
 
 class TestOSM(TestAbstractViewSet):
