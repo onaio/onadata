@@ -2,6 +2,7 @@
 """
 Submission data serializers module.
 """
+import xmltodict
 from io import BytesIO
 
 from django.shortcuts import get_object_or_404
@@ -97,6 +98,32 @@ class InstanceHistorySerializer(serializers.ModelSerializer):
                     self).to_representation(instance)
 
         return ret['json'] if 'json' in ret else ret
+
+
+class DataInstanceXMLSerializer(serializers.ModelSerializer):
+    """
+    DataInstanceXMLSerializer class - for XML field data representation
+    on the Instance model.
+    """
+
+    class Meta:
+        model = Instance
+        fields = ('xml', )
+
+    def to_representation(self, instance):
+        ret = super(
+            DataInstanceXMLSerializer, self).to_representation(instance)
+        if 'xml' in ret:
+            ret = xmltodict.parse(ret['xml'])
+
+        # Add Instance attributes to representation
+        instance_attributes = {
+            '@formVersion': instance.version,
+            '@lastModified': instance.date_modified.isoformat(),
+            '@objectID': str(instance.id)
+        }
+        ret.update(instance_attributes)
+        return ret
 
 
 class DataInstanceSerializer(serializers.ModelSerializer):
