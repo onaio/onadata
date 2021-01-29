@@ -641,7 +641,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 self.object_list = self.paginate_queryset(self.object_list)
 
         STREAM_DATA = getattr(settings, 'STREAM_DATA', False)
-        if STREAM_DATA and self.kwargs.get('format') != 'xml':
+        if STREAM_DATA:
             response = self._get_streaming_response()
         else:
             serializer = self.get_serializer(self.object_list, many=True)
@@ -657,10 +657,17 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             return json.dumps(
                 item.json if isinstance(item, Instance) else item)
 
-        response = StreamingHttpResponse(
-            json_stream(self.object_list, get_json_string),
-            content_type="application/json"
-        )
+        if self.kwargs.get('format') == 'xml':
+            response = StreamingHttpResponse(
+                renderers.InstanceXMLRenderer().stream_data(
+                    self.object_list, self.get_serializer),
+                content_type="application/xml"
+            )
+        else:
+            response = StreamingHttpResponse(
+                json_stream(self.object_list, get_json_string),
+                content_type="application/json"
+            )
 
         # calculate etag value and add it to response headers
         if hasattr(self, 'etag_hash'):
