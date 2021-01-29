@@ -5,11 +5,11 @@ Custom renderers for use with django rest_framework.
 import decimal
 import json
 import math
-from io import BytesIO
+from io import BytesIO, StringIO
 from typing import Tuple
 
 import pytz
-from django.utils import six
+from django.utils import six, timezone
 from django.utils.dateparse import parse_datetime
 from django.utils.encoding import smart_text, force_str
 from django.utils.xmlutils import SimplerXMLGenerator
@@ -309,7 +309,27 @@ class InstanceXMLRenderer(XMLRenderer):
     """
     InstanceXMLRenderer - Renders Instance XML
     """
+    root_tag_name = 'submission-batch'
     item_tag_name = 'submission-item'
+
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        if data is None:
+            return ""
+
+        stream = StringIO()
+
+        xml = SimplerXMLGenerator(stream, self.charset)
+        xml.startDocument()
+        xml.startElement(
+            self.root_tag_name,
+            {'serverTime': timezone.now().isoformat()})
+
+        self._to_xml(xml, data)
+
+        xml.endElement(self.root_tag_name)
+        xml.endDocument()
+
+        return stream.getvalue()
 
     def _pop_xml_attributes(self, xml_dictionary: dict) -> Tuple[dict, dict]:
         ret = xml_dictionary.copy()
