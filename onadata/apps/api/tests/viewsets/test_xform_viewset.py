@@ -2710,14 +2710,41 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 'public_data': False,
                 'project': 'http://testserver/api/v1/projects/{0}'.format(
                     self.xform.project.pk),
-                'title': 'Transport Form',
+                'title': 'http://api.kfc.burger-king.nandos.io',
                 'version': unsanitized_html_str
             }
 
-            # trigger error is form version is invalid
-            with self.assertRaises(XLSFormError):
+            with self.assertRaises(XLSFormError) as err:
                 request = self.factory.put('/', data=put_data, **self.extra)
                 response = view(request, pk=form_id)
+
+            self.assertEqual(
+                "Invalid title value; value shouldn't match a URL",
+                str(err.exception)
+            )
+
+            put_data['title'] = 'api.kfc.burger-king.nandos.io'
+
+            with self.assertRaises(XLSFormError) as err:
+                request = self.factory.put('/', data=put_data, **self.extra)
+                response = view(request, pk=form_id)
+
+            self.assertEqual(
+                "Invalid title value; value shouldn't match a URL",
+                str(err.exception)
+            )
+
+            put_data['title'] = 'Transport Form'
+
+            # trigger error is form version is invalid
+            with self.assertRaises(XLSFormError) as err:
+                request = self.factory.put('/', data=put_data, **self.extra)
+                response = view(request, pk=form_id)
+
+            self.assertEqual(
+                "Version shouldn't have any invalid characters ('>' '&' '<')",
+                str(err.exception)
+            )
 
             put_data['version'] = self.xform.version
 
