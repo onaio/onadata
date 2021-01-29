@@ -312,6 +312,55 @@ class InstanceXMLRenderer(XMLRenderer):
     root_tag_name = 'submission-batch'
     item_tag_name = 'submission-item'
 
+    def _get_current_buffer_data(self):
+        if hasattr(self, 'stream'):
+            ret = self.stream.getvalue()
+            self.stream.truncate(0)
+            self.stream.seek(0)
+            return ret
+
+    def stream_data(self, data, serializer):
+        if data is None:
+            yield ""
+
+        self.stream = StringIO()
+
+        xml = SimplerXMLGenerator(self.stream, self.charset)
+        xml.startDocument()
+        xml.startElement(
+            self.root_tag_name,
+            {'serverTime': timezone.now().isoformat()}
+        )
+
+        yield self._get_current_buffer_data()
+
+        data = data.__iter__()
+        out = next(data)
+
+        while out:
+            try:
+                next_item = next(data)
+                out = serializer(out).data
+                out, attributes = self._pop_xml_attributes(out)
+                xml.startElement(self.item_tag_name, attributes)
+                self._to_xml(xml, out)
+                xml.endElement(self.item_tag_name)
+                yield self._get_current_buffer_data()
+                out = next_item
+            except StopIteration:
+                out = serializer(out).data
+                out, attributes = self._pop_xml_attributes(out)
+                xml.startElement(self.item_tag_name, attributes)
+                self._to_xml(xml, out)
+                xml.endElement(self.item_tag_name)
+                yield self._get_current_buffer_data()
+                break
+
+        xml.endElement(self.root_tag_name)
+        xml.endDocument()
+
+        yield self._get_current_buffer_data()
+
     def render(self, data, accepted_media_type=None, renderer_context=None):
         if data is None:
             return ""
