@@ -818,12 +818,12 @@ class XForm(XFormMixin, BaseModel):
                 _("Title shouldn't have any invalid xml "
                   "characters ('>' '&' '<')"))
 
-        pattern = str("http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|"
+        pattern = str("(http[s]?://)?(?:[a-zA-Z]|[0-9]|[$-_@.&+]|"
                       "[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+")
 
         if re.match(pattern, self.title):
             raise XLSFormError(
-                _("Invalid title value; shouldn't matches a url"))
+                _("Invalid title value; value shouldn't match a URL"))
 
         self.title = title_xml
 
