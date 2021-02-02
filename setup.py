@@ -83,6 +83,8 @@ setup(
         # memcached support
         "pylibmc",
         "python-memcached",
+        # XML Instance API utility
+        "xmltodict",
         # docs
         "sphinx",
         "Markdown",

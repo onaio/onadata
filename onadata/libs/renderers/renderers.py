@@ -5,12 +5,13 @@ Custom renderers for use with django rest_framework.
 import decimal
 import json
 import math
-from io import BytesIO
+from io import BytesIO, StringIO
+from typing import Tuple
 
 import pytz
-from django.utils import six
+from django.utils import six, timezone
 from django.utils.dateparse import parse_datetime
-from django.utils.encoding import smart_text
+from django.utils.encoding import smart_text, force_str
 from django.utils.xmlutils import SimplerXMLGenerator
 from future.utils import iteritems
 from rest_framework import negotiation
@@ -302,6 +303,126 @@ class TemplateXMLRenderer(TemplateHTMLRenderer):  # pylint: disable=R0903
 
         return super(TemplateXMLRenderer,
                      self).render(data, accepted_media_type, renderer_context)
+
+
+class InstanceXMLRenderer(XMLRenderer):
+    """
+    InstanceXMLRenderer - Renders Instance XML
+    """
+    root_tag_name = 'submission-batch'
+    item_tag_name = 'submission-item'
+
+    def _get_current_buffer_data(self):
+        if hasattr(self, 'stream'):
+            ret = self.stream.getvalue()
+            self.stream.truncate(0)
+            self.stream.seek(0)
+            return ret
+
+    def stream_data(self, data, serializer):
+        if data is None:
+            yield ""
+
+        self.stream = StringIO()
+
+        xml = SimplerXMLGenerator(self.stream, self.charset)
+        xml.startDocument()
+        xml.startElement(
+            self.root_tag_name,
+            {'serverTime': timezone.now().isoformat()}
+        )
+
+        yield self._get_current_buffer_data()
+
+        data = data.__iter__()
+        out = next(data)
+
+        while out:
+            try:
+                next_item = next(data)
+                out = serializer(out).data
+                out, attributes = self._pop_xml_attributes(out)
+                xml.startElement(self.item_tag_name, attributes)
+                self._to_xml(xml, out)
+                xml.endElement(self.item_tag_name)
+                yield self._get_current_buffer_data()
+                out = next_item
+            except StopIteration:
+                out = serializer(out).data
+                out, attributes = self._pop_xml_attributes(out)
+                xml.startElement(self.item_tag_name, attributes)
+                self._to_xml(xml, out)
+                xml.endElement(self.item_tag_name)
+                yield self._get_current_buffer_data()
+                break
+
+        xml.endElement(self.root_tag_name)
+        xml.endDocument()
+
+        yield self._get_current_buffer_data()
+
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        if data is None:
+            return ""
+
+        stream = StringIO()
+
+        xml = SimplerXMLGenerator(stream, self.charset)
+        xml.startDocument()
+        xml.startElement(
+            self.root_tag_name,
+            {'serverTime': timezone.now().isoformat()})
+
+        self._to_xml(xml, data)
+
+        xml.endElement(self.root_tag_name)
+        xml.endDocument()
+
+        return stream.getvalue()
+
+    def _pop_xml_attributes(self, xml_dictionary: dict) -> Tuple[dict, dict]:
+        ret = xml_dictionary.copy()
+        attributes = {}
+
+        for key, value in xml_dictionary.items():
+            if key.startswith('@'):
+                attributes.update({key.replace('@', ''): value})
+                del ret[key]
+
+        return ret, attributes
+
+    def _to_xml(self, xml, data):
+        if isinstance(data, (list, tuple)):
+            for item in data:
+                item, attributes = self._pop_xml_attributes(item)
+                xml.startElement(self.item_tag_name, attributes)
+                self._to_xml(xml, item)
+                xml.endElement(self.item_tag_name)
+
+        elif isinstance(data, dict):
+            for key, value in data.items():
+                if isinstance(value, (list, tuple)):
+                    for v in value:
+                        xml.startElement(key, {})
+                        self._to_xml(xml, v)
+                        xml.endElement(key)
+
+                elif isinstance(value, dict):
+                    value, attributes = self._pop_xml_attributes(value)
+                    xml.startElement(key, attributes)
+                    self._to_xml(xml, value)
+                    xml.endElement(key)
+
+                else:
+                    xml.startElement(key, {})
+                    self._to_xml(xml, value)
+                    xml.endElement(key)
+
+        elif data is None:
+            pass
+
+        else:
+            xml.characters(force_str(data))
 
 
 class StaticXMLRenderer(StaticHTMLRenderer):  # pylint: disable=R0903

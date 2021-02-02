@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import datetime
 import json
 import os
+import defusedxml.ElementTree as ET
 from builtins import open
 from datetime import timedelta
 from tempfile import NamedTemporaryFile
@@ -2500,6 +2501,44 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
+
+    def test_data_list_xml_format(self):
+        """Test DataViewSet list XML"""
+        # create form
+        xls_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/tutorial.xls"
+        )
+        self._publish_xls_file_and_set_xform(xls_file_path)
+
+        # create submission
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "fixtures", "tutorial", "instances",
+            "tutorial_2012-06-27_11-27-53_w_uuid.xml"
+        )
+        self._make_submission(xml_submission_file_path)
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        formid = self.xform.pk
+        response = view(request, pk=formid, format='xml')
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+
+        # Ensure response is renderable
+        response.render()
+        self.assertEqual(response.accepted_media_type, 'application/xml')
+        instance = self.xform.instances.first()
+        returned_xml = response.content.decode('utf-8')
+        server_time = ET.fromstring(returned_xml).attrib.get('serverTime')
+        expected_xml = (
+            f'<?xml version="1.0" encoding="utf-8"?>\n<submission-batch serverTime="{server_time}">'  # noqa
+            f'<submission-item formVersion="{instance.version}" lastModified="{instance.date_modified.isoformat()}" objectID="{instance.id}">'  # noqa
+            '<tutorial id="tutorial"><name>Larry\n        Again</name><age>23</age><picture>1333604907194.jpg</picture>'  # noqa
+            '<has_children>0</has_children><gps>-1.2836198 36.8795437 0.0 1044.0</gps><web_browsers>firefox chrome safari'  # noqa
+            '</web_browsers><meta><instanceID>uuid:729f173c688e482486a48661700455ff</instanceID></meta></tutorial>'  # noqa
+            '</submission-item></submission-batch>')
+        self.assertEqual(expected_xml, returned_xml)
 
 
 class TestOSM(TestAbstractViewSet):
