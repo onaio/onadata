@@ -115,6 +115,8 @@ Get Submitted data for a specific form
 ------------------------------------------
 Provides a list of json submitted data for a specific form.
 
+Note: Responses are automatically paginated when requesting a list of data that surpasses 10,000 records.
+
 .. raw:: html
 
   <pre class="prettyprint">
