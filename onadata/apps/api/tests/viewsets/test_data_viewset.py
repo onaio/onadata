@@ -2540,6 +2540,27 @@ class TestDataViewSet(TestBase):
             '</submission-item></submission-batch>')
         self.assertEqual(expected_xml, returned_xml)
 
+    @override_settings(SUBMISSION_RETRIEVAL_THRESHOLD=1)
+    def test_data_paginated_past_threshold(self):
+        """
+        Test that the data viewset paginates responses by default when
+        the requested data surpasses the SUBMISSION_RETRIEVAL_THRESHOLD
+        """
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        formid = self.xform.pk
+        count = self.xform.instances.all().count()
+        self.assertTrue(count > 1)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertIn('Link', response)
+        self.assertEqual(
+            response['Link'],
+            '<http://testserver/?page=2&page_size=1>; rel="next", '
+            '<http://testserver/?page=4&page_size=1>; rel="last"')
+
 
 class TestOSM(TestAbstractViewSet):
     """
