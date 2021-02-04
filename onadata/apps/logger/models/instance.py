@@ -385,8 +385,13 @@ class InstanceBaseClass(object):
             if not self.date_created:
                 self.date_created = submission_time()
 
+            if not self.date_modified:
+                doc[DATE_MODIFIED] = ""
+            else:
+                doc[DATE_MODIFIED] = self.date_modified.strftime(
+                    MONGO_STRFTIME)
+
             doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
-            doc[DATE_MODIFIED] = self.date_modified.strftime(MONGO_STRFTIME)
 
             doc[TOTAL_MEDIA] = self.total_media
             doc[MEDIA_COUNT] = self.media_count
