@@ -16,7 +16,7 @@ from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import (ParsedInstance,
                                                         query_data)
 from onadata.libs.exceptions import NoRecordsFoundError
-from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID,
+from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID, DATE_MODIFIED,
                                             DELETEDAT, DURATION, EDITED,
                                             GEOLOCATION, ID,
                                             MEDIA_ALL_RECEIVED, MEDIA_COUNT,
@@ -150,7 +150,7 @@ class AbstractDataFrameBuilder(object):
     ADDITIONAL_COLUMNS = [
         ID, UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION, DURATION,
         SUBMITTED_BY, TOTAL_MEDIA, MEDIA_COUNT,
-        MEDIA_ALL_RECEIVED]
+        MEDIA_ALL_RECEIVED, DATE_MODIFIED]
     BINARY_SELECT_MULTIPLES = False
     VALUE_SELECT_MULTIPLES = False
     """

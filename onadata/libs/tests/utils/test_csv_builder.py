@@ -502,7 +502,7 @@ class TestCSVDataFrameBuilder(TestBase):
         # remove dynamic fields
         ignore_list = [
             '_uuid', 'meta/instanceID', 'formhub/uuid', '_submission_time',
-            '_id', '_bamboo_dataset_id'
+            '_id', '_bamboo_dataset_id', '_date_modified'
         ]
         for item in ignore_list:
             data_0.pop(item)
