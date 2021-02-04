@@ -576,10 +576,10 @@ class TestCSVDataFrameBuilder(TestBase):
             'kids_age', 'gps', '_gps_latitude', '_gps_longitude',
             '_gps_altitude', '_gps_precision', 'web_browsers/firefox',
             'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
-            'instanceID', '_id', '_uuid', '_submission_time', '_tags',
-            '_notes', '_version', '_duration', '_submitted_by', '_total_media',
-            '_media_count', '_media_all_received', '_review_status',
-            '_review_comment'
+            'instanceID', '_id', '_uuid', '_submission_time', '_date_modified',
+            '_tags', '_notes', '_version', '_duration', '_submitted_by',
+            '_total_media', '_media_count', '_media_all_received',
+            '_review_status', '_review_comment'
         ]
         self.assertEqual(expected_header, header)
         rows = []
@@ -622,10 +622,10 @@ class TestCSVDataFrameBuilder(TestBase):
             'kids_age', 'gps', '_gps_latitude', '_gps_longitude',
             '_gps_altitude', '_gps_precision', 'web_browsers/firefox',
             'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
-            'instanceID', '_id', '_uuid', '_submission_time', '_tags',
-            '_notes', '_version', '_duration', '_submitted_by', '_total_media',
-            '_media_count', '_media_all_received', '_review_status',
-            '_review_comment'
+            'instanceID', '_id', '_uuid', '_submission_time', '_date_modified',
+            '_tags', '_notes', '_version', '_duration', '_submitted_by',
+            '_total_media', '_media_count', '_media_all_received',
+            '_review_status', '_review_comment'
         ]
         self.assertEqual(expected_header, header)
         labels = next(csv_reader)
@@ -637,8 +637,8 @@ class TestCSVDataFrameBuilder(TestBase):
             '_gps_precision', 'web_browsers/Mozilla Firefox',
             'web_browsers/Google Chrome', 'web_browsers/Internet Explorer',
             'web_browsers/Safari', 'instanceID', '_id', '_uuid',
-            '_submission_time', '_tags', '_notes', '_version', '_duration',
-            '_submitted_by', '_total_media', '_media_count',
+            '_submission_time', '_date_modified', '_tags', '_notes', '_version',
+            '_duration', '_submitted_by', '_total_media', '_media_count',
             '_media_all_received', '_review_status', '_review_comment'
         ]
         self.assertEqual(expected_labels, labels)
@@ -684,8 +684,8 @@ class TestCSVDataFrameBuilder(TestBase):
             '_gps_precision', 'web_browsers/Mozilla Firefox',
             'web_browsers/Google Chrome', 'web_browsers/Internet Explorer',
             'web_browsers/Safari', 'instanceID', '_id', '_uuid',
-            '_submission_time', '_tags', '_notes', '_version', '_duration',
-            '_submitted_by', '_total_media', '_media_count',
+            '_submission_time', '_date_modified', '_tags', '_notes', '_version',
+            '_duration', '_submitted_by', '_total_media', '_media_count',
             '_media_all_received', '_review_status', '_review_comment'
         ]
         self.assertEqual(expected_labels, labels)
@@ -781,9 +781,9 @@ class TestCSVDataFrameBuilder(TestBase):
             'kids_age', 'gps', '_gps_latitude', '_gps_longitude',
             '_gps_altitude', '_gps_precision', 'web_browsers/firefox',
             'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
-            'instanceID', '_id', '_uuid', '_submission_time', '_tags',
-            '_notes', '_version', '_duration', '_submitted_by', '_total_media',
-            '_media_count', '_media_all_received', '_xform_id',
+            'instanceID', '_id', '_uuid', '_submission_time', '_date_modified',
+            '_tags', '_notes', '_version', '_duration', '_submitted_by',
+            '_total_media', '_media_count', '_media_all_received', '_xform_id',
             '_review_status', '_review_comment'
         ]
         self.assertEqual(expected_header, header)
@@ -824,7 +824,7 @@ class TestCSVDataFrameBuilder(TestBase):
         # remove dynamic fields
         ignore_list = [
             '_uuid', 'meta/instanceID', 'formhub/uuid', '_submission_time',
-            '_id', '_bamboo_dataset_id'
+            '_id', '_bamboo_dataset_id', '_date_modified'
         ]
         for item in ignore_list:
             result.pop(item)
@@ -1341,9 +1341,9 @@ class TestCSVDataFrameBuilder(TestBase):
             'food_repeat_2[2]/food_group_2/Salad',
             'food_repeat_2[2]/food_group_2/Sandwich', 'gps', '_gps_latitude',
             '_gps_longitude', '_gps_altitude', '_gps_precision',
-            'meta/instanceID', '_id', '_uuid', '_submission_time', '_tags',
-            '_notes', '_version', '_duration', '_submitted_by', '_total_media',
-            '_media_count', '_media_all_received']
+            'meta/instanceID', '_id', '_uuid', '_submission_time', 'date_modified',
+            '_tags', '_notes', '_version', '_duration', '_submitted_by',
+            '_total_media', '_media_count', '_media_all_received']
 
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username, self.xform.id_string, include_images=False)
