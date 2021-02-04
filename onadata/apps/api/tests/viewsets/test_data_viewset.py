@@ -2558,7 +2558,7 @@ class TestDataViewSet(TestBase):
         server_time = ET.fromstring(returned_xml).attrib.get('serverTime')
         expected_xml = (
             f'<?xml version="1.0" encoding="utf-8"?>\n<submission-batch serverTime="{server_time}">'  # noqa
-            f'<submission-item formVersion="{instance.version}" lastModified="{instance.date_modified.isoformat()}" objectID="{instance.id}">'  # noqa
+            f'<submission-item created="{instance.date_created.isoformat()}" formVersion="{instance.version}" lastModified="{instance.date_modified.isoformat()}" objectID="{instance.id}">'  # noqa
             '<tutorial id="tutorial"><name>Larry\n        Again</name><age>23</age><picture>1333604907194.jpg</picture>'  # noqa
             '<has_children>0</has_children><gps>-1.2836198 36.8795437 0.0 1044.0</gps><web_browsers>firefox chrome safari'  # noqa
             '</web_browsers><meta><instanceID>uuid:729f173c688e482486a48661700455ff</instanceID></meta></tutorial>'  # noqa

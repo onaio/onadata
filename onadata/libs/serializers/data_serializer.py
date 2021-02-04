@@ -120,6 +120,7 @@ class DataInstanceXMLSerializer(serializers.ModelSerializer):
         instance_attributes = {
             '@formVersion': instance.version,
             '@lastModified': instance.date_modified.isoformat(),
+            '@created': instance.date_created.isoformat(),
             '@objectID': str(instance.id)
         }
         ret.update(instance_attributes)
