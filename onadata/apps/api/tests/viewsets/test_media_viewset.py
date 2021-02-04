@@ -33,7 +33,7 @@ class TestMediaViewSet(TestAbstractViewSet):
             'filename': self.attachment.media_file.name}, **self.extra)
         response = self.retrieve_view(request, self.attachment.pk)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response['Location'], attachment_url(self.attachment))
+        self.assertEqual(type(response.content), bytes)
 
     @patch('onadata.apps.api.viewsets.media_viewset.image_url')
     def test_handle_image_exception(self, mock_image_url):

@@ -4,7 +4,7 @@ import logging
 
 from django.conf import settings
 from django.core.files.storage import get_storage_class
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 
 from wsgiref.util import FileWrapper
 
