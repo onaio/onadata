@@ -34,16 +34,13 @@ from onadata.libs.utils.cache_tools import (
     DATAVIEW_COUNT, IS_ORG, PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE,
     XFORM_COUNT, XFORM_DATA_VERSIONS, XFORM_SUBMISSION_COUNT_FOR_DAY,
     XFORM_SUBMISSION_COUNT_FOR_DAY_DATE, safe_delete)
-from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID, DATE_MODIFIED,
-                                            DELETEDAT, DURATION, EDITED, END,
-                                            GEOLOCATION, ID, LAST_EDITED,
-                                            MEDIA_ALL_RECEIVED, MEDIA_COUNT,
-                                            MONGO_STRFTIME, NOTES,
-                                            REVIEW_STATUS, START, STATUS,
-                                            SUBMISSION_TIME, SUBMITTED_BY,
-                                            TAGS, TOTAL_MEDIA, UUID, VERSION,
-                                            XFORM_ID, XFORM_ID_STRING,
-                                            REVIEW_COMMENT)
+from onadata.libs.utils.common_tags import (
+    ATTACHMENTS, BAMBOO_DATASET_ID, DATE_MODIFIED,
+    DELETEDAT, DURATION, EDITED, END, GEOLOCATION, ID, LAST_EDITED,
+    MEDIA_ALL_RECEIVED, MEDIA_COUNT, MONGO_STRFTIME, NOTES,
+    REVIEW_STATUS, START, STATUS, SUBMISSION_TIME, SUBMITTED_BY,
+    TAGS, TOTAL_MEDIA, UUID, VERSION, XFORM_ID, XFORM_ID_STRING,
+    REVIEW_COMMENT)
 from onadata.libs.utils.dict_tools import get_values_matching_key
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.timing import calculate_duration
