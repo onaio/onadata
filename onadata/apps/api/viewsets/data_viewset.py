@@ -617,20 +617,32 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         self.set_object_list(
             query, fields, sort, start, limit, is_public_request)
 
+        xform = self.get_object()
+        retrieval_threshold = getattr(
+            settings, "SUBMISSION_RETRIEVAL_THRESHOLD", 10000)
         pagination_keys = [self.paginator.page_query_param,
                            self.paginator.page_size_query_param]
         query_param_keys = self.request.query_params
         should_paginate = any([k in query_param_keys for k in pagination_keys])
+
+        if not should_paginate:
+            # Paginate requests that try to retrieve data that surpasses
+            # the submission retrieval threshold
+            num_of_submissions = xform.num_of_submissions
+            should_paginate = num_of_submissions > retrieval_threshold
+            if should_paginate:
+                self.paginator.page_size = retrieval_threshold
+
         if not isinstance(self.object_list, types.GeneratorType) and \
                 should_paginate:
             current_page = query_param_keys.get(
                 self.paginator.page_query_param, 1)
             current_page_size = query_param_keys.get(
                 self.paginator.page_size_query_param,
-                SUBMISSION_RETRIEVAL_THRESHOLD)
+                retrieval_threshold)
 
             self._set_pagination_headers(
-                self.get_object(),
+                xform,
                 current_page=current_page,
                 current_page_size=current_page_size
             )
