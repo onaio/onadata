@@ -868,6 +868,31 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
 
+    def test_filter_by_date_modified(self):
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        formid = self.xform.pk
+        instance = self.xform.instances.all().order_by('pk')[0]
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        instance = self.xform.instances.all().order_by('-date_created')[0]
+        date_modified = instance.date_modified.strftime(MONGO_STRFTIME)
+
+        query_str = ('{"_date_modified": {"$gte": "%s"},'
+                     ' "_submitted_by": "%s"}' % (date_modified, 'bob'))
+        data = {
+            'query': query_str
+        }
+        request = self.factory.get('/', data=data, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        expected_count = self.xform.instances.filter(
+            json___date_modified__gte=date_modified).count()
+        self.assertEqual(len(response.data), expected_count)
+
     def test_filter_by_submission_time_and_submitted_by_with_data_arg(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
