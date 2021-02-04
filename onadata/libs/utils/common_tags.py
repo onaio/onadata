@@ -168,25 +168,26 @@ SUBMISSION_REVIEW = 'submission_review'
 XLS_DATETIME_FIELDS = ['start', 'end', 'dateTime', '_submission_time']
 
 METADATA_FIELDS = [
-    '_review_comment',
-    '_review_status',
-    '_status',
-    '_edited',
-    '_version',
-    '_duration',
-    '_notes',
-    '_uuid',
-    '_tags',
-    '_bamboo_dataset_id',
-    '_attachments',
-    '_geolocation',
-    '_media_count',
-    '_total_media',
-    '_submitted_by',
-    '_media_all_received',
-    '_xform_id_string',
-    '_submission_time',
-    '_xform_id'
+    REVIEW_COMMENT,
+    REVIEW_STATUS,
+    STATUS,
+    EDITED,
+    VERSION,
+    DURATION,
+    NOTES,
+    UUID,
+    TAGS,
+    BAMBOO_DATASET_ID,
+    ATTACHMENTS,
+    GEOLOCATION,
+    MEDIA_COUNT,
+    TOTAL_MEDIA,
+    SUBMITTED_BY,
+    MEDIA_ALL_RECEIVED,
+    XFORM_ID_STRING,
+    SUBMISSION_TIME,
+    XFORM_ID,
+    DATE_MODIFIED
 ]
 
 INSTANCE_CREATE_EVENT = 'Submission created'
