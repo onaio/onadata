@@ -34,7 +34,7 @@ from onadata.libs.utils.cache_tools import (
     DATAVIEW_COUNT, IS_ORG, PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE,
     XFORM_COUNT, XFORM_DATA_VERSIONS, XFORM_SUBMISSION_COUNT_FOR_DAY,
     XFORM_SUBMISSION_COUNT_FOR_DAY_DATE, safe_delete)
-from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID,
+from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID, DATE_MODIFIED,
                                             DELETEDAT, DURATION, EDITED, END,
                                             GEOLOCATION, ID, LAST_EDITED,
                                             MEDIA_ALL_RECEIVED, MEDIA_COUNT,
@@ -389,6 +389,7 @@ class InstanceBaseClass(object):
                 self.date_created = submission_time()
 
             doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
+            doc[DATE_MODIFIED] = self.date_modified.strftime(MONGO_STRFTIME)
 
             doc[TOTAL_MEDIA] = self.total_media
             doc[MEDIA_COUNT] = self.media_count

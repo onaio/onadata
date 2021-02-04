@@ -58,6 +58,10 @@ INDEX = "_index"
 PARENT_INDEX = "_parent_index"
 PARENT_TABLE_NAME = "_parent_table_name"
 
+# Instance last modified field
+# The 'date_modified' is a Django auto updated timestamp
+# that's updated every time an Instance object is saved.
+DATE_MODIFIED = "_date_modified"
 # instance flags
 EDITED = "_edited"
 LAST_EDITED = "_last_edited"
