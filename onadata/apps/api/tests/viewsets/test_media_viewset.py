@@ -34,14 +34,6 @@ class TestMediaViewSet(TestAbstractViewSet):
         response = self.retrieve_view(request, self.attachment.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(type(response.content), bytes)
-     
-    @patch('onadata.apps.api.viewsets.media_viewset.generate_media_download_url')
-    def test_retrieve_image_from_aws(self, mock_presigned_url):
-        mock_presigned_url.return_value = "https://testing.s3.amazonaws.com/1/bob/check_fields.hyper?AWSAccessKeyId=key&Signature=sig&Expires=1609838540"
-        request = self.factory.get('/', {
-            'filename': self.attachment.media_file.name}, **self.extra)
-        response = self.retrieve_view(request, self.attachment.pk)
-        print(">>>>response:", response)
 
     def test_retrieve_view_with_suffix(self):
         request = self.factory.get('/', {

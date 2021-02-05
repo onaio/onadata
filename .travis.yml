@@ -42,7 +42,6 @@ before_install:
 install:
   - pip install --upgrade pip setuptools
   - pip install -r requirements/base.pip
-  - pip install -r requirements/s3.pip
   - pip install flake8
 script:
   - python manage.py test $TESTFOLDER --noinput --settings=onadata.settings.travis_test --parallel 4 --verbosity=2
