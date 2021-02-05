@@ -9,15 +9,20 @@ from django.http import HttpResponse, HttpResponseRedirect
 from wsgiref.util import FileWrapper
 
 
-def generate_media_download_url(file_path: str, expiration: int = 3600):
+def generate_media_download_url(obj, expiration: int = 3600):
+    file_path = obj.media_file.name
     default_storage = get_storage_class()()
     filename = file_path.split("/")[-1]
-    s3 = get_storage_class('storages.backends.s3boto3.S3Boto3Storage')()
+
+    try:
+        s3 = get_storage_class('storages.backends.s3boto3.S3Boto3Storage')()
+    except Exception:
+        return obj.media_file.url
 
     if default_storage.__class__ != s3.__class__:
         file_obj = open(settings.MEDIA_ROOT + file_path, 'rb')
         response = HttpResponse(FileWrapper(file_obj),
-                                content_type='image/jpg')
+                                content_type = obj.mimetype)
         response['Content-Disposition'] = 'attachment; filename=' + filename
 
         return response
