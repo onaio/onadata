@@ -386,7 +386,7 @@ class InstanceBaseClass(object):
                 self.date_created = submission_time()
 
             if not self.date_modified:
-                doc[DATE_MODIFIED] = ""
+                doc[DATE_MODIFIED] = self.date_created
             else:
                 doc[DATE_MODIFIED] = self.date_modified.strftime(
                     MONGO_STRFTIME)
