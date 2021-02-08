@@ -16,8 +16,8 @@ def generate_media_download_url(obj, expiration: int = 3600):
 
     try:
         s3 = get_storage_class('storages.backends.s3boto3.S3Boto3Storage')()
-    except Exception:
-        return obj.media_file.url
+    except ModuleNotFoundError:
+        return HttpResponseRedirect(obj.media_file.url)
 
     if default_storage.__class__ != s3.__class__:
         file_obj = open(settings.MEDIA_ROOT + file_path, 'rb')
