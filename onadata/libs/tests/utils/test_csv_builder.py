@@ -1341,7 +1341,7 @@ class TestCSVDataFrameBuilder(TestBase):
             'food_repeat_2[2]/food_group_2/Salad',
             'food_repeat_2[2]/food_group_2/Sandwich', 'gps', '_gps_latitude',
             '_gps_longitude', '_gps_altitude', '_gps_precision',
-            'meta/instanceID', '_id', '_uuid', '_submission_time', 'date_modified',
+            'meta/instanceID', '_id', '_uuid', '_submission_time', '_date_modified',
             '_tags', '_notes', '_version', '_duration', '_submitted_by',
             '_total_media', '_media_count', '_media_all_received']
 

@@ -428,9 +428,9 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         headers = next(csv_reader)
         self.assertEqual(headers, [
             'fruit', 'meta/instanceID', '_id', '_uuid', '_submission_time',
-            '_tags', '_notes', '_version', '_duration', '_submitted_by',
-            '_total_media', '_media_count', '_media_all_received,',
-            '_date_modified'])
+            '_date_modified', '_tags', '_notes', '_version', '_duration',
+            '_submitted_by', '_total_media', '_media_count',
+            '_media_all_received,'])
         row1 = next(csv_reader)
         self.assertEqual(row1[0], 'orange')
         row2 = next(csv_reader)
