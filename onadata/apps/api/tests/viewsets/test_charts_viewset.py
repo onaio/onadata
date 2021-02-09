@@ -3,19 +3,46 @@ import os
 import mock
 
 from django.utils import timezone
+from django.core.cache import cache
 from rest_framework.test import APIClient
 from rest_framework.test import APIRequestFactory
 from rest_framework.test import force_authenticate
 from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
+from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.instance import Instance
 from django.db.utils import DataError
 from onadata.libs.utils.timing import calculate_duration
+from onadata.libs.utils.user_auth import get_user_default_project
 from onadata.libs.renderers.renderers import DecimalJSONRenderer
 
 
 def raise_data_error(a):
     raise DataError
+
+
+MD = """
+| survey  |
+|         | type              | name  | label   |
+|         | select one fruits | fruits | Fruit   |
+
+| choices |
+|         | list name         | name   | label  |
+|         | fruits            | orange | Orange |
+|         | fruits            | mango  | Mango  |
+"""
+
+
+MD2 = """
+| survey  |
+|         | type              | name  | label   |
+|         | select one fruits | fruits | Fruit   |
+
+| choices |
+|         | list name         | name   | label  |
+|         | fruits            | apple  | Apple  |
+|         | fruits            | cherries  | Cherries  |
+"""
 
 
 class TestChartsViewSet(TestBase):
@@ -46,6 +73,59 @@ class TestChartsViewSet(TestBase):
             os.path.join(
                 os.path.dirname(__file__), '..', 'fixtures', 'forms',
                 'tutorial', 'instances', '3.xml'))
+
+    def test_correct_merged_dataset_data_for_charts(self):
+        """Return correct data from the charts endpoint"""
+        view = MergedXFormViewSet.as_view({
+            'post': 'create',
+        })
+        # pylint: disable=attribute-defined-outside-init
+        self.project = get_user_default_project(self.user)
+        xform_a = self._publish_markdown(MD, self.user, id_string='a')
+        xform_b = self._publish_markdown(MD2, self.user, id_string='b')
+
+        data = {
+            'xforms': [
+                "http://testserver/api/v1/forms/%s" % xform_a.pk,
+                "http://testserver/api/v1/forms/%s" % xform_b.pk,
+            ],
+            'name':
+            'Merged Dataset',
+            'project':
+            "http://testserver/api/v1/projects/%s" % self.project.pk,
+        }
+        # anonymous user
+        request = self.factory.post('/', data=data)
+        response = view(request)
+        self.assertEqual(response.status_code, 401)
+
+        request = self.factory.post('/', data=data)
+        force_authenticate(request, user=self.user)
+        response = view(request)
+        self.assertEqual(response.status_code, 201)
+
+        # make submission to form a
+        xml = '<data id="b"><fruits>orange mango</fruits></data>'
+        Instance(xform=xform_a, xml=xml).save()
+
+        # make submission to form b
+        xml = '<data id="b"><fruits>apple cherries</fruits></data>'
+        Instance(xform=xform_b, xml=xml).save()
+
+        data = {'field_xpath': 'fruits'}
+        request = self.factory.get('/charts', data=data)
+        force_authenticate(request, user=self.user)
+        response = self.view(
+            request,
+            pk=response.data['id']
+        )
+        self.assertEqual(response.status_code, 200)
+        # check that the data is correct
+        expected_data = [{'fruits': ['Apple', 'Cherries'], 'count': 1},
+                         {'fruits': ['Orange', 'Mango'], 'count': 1}]
+        self.assertEqual(response.data['data'],
+                         expected_data)
+        cache.clear()
 
     def test_duration_field_on_metadata(self):
         # the instance below has valid start and end times

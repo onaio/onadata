@@ -472,12 +472,8 @@ def get_chart_data_for_field(field_name,
 
     choices = get_field_choices(field, xform)
     # check if xform is a MergedXForm and if it is, merge the field's choices
-    try:
+    if xform.is_merged_dataset:
         merged_xform = MergedXForm.objects.get(pk=xform.pk)
-    except MergedXForm.DoesNotExist:
-        # this is not  a MergedXForm
-        pass
-    else:
         children = []
         for xform in merged_xform.xforms.all():
             form_field = _get_form_field_from_name_or_xpath(xform,
