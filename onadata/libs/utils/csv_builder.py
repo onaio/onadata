@@ -16,17 +16,12 @@ from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import (ParsedInstance,
                                                         query_data)
 from onadata.libs.exceptions import NoRecordsFoundError
-from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID, DATE_MODIFIED,
-                                            DELETEDAT, DURATION, EDITED,
-                                            GEOLOCATION, ID,
-                                            MEDIA_ALL_RECEIVED, MEDIA_COUNT,
-                                            NA_REP, NOTES, STATUS,
-                                            SUBMISSION_TIME, SUBMITTED_BY,
-                                            TAGS, TOTAL_MEDIA, UUID, VERSION,
-                                            XFORM_ID_STRING, REVIEW_STATUS,
-                                            REVIEW_COMMENT,
-                                            MULTIPLE_SELECT_TYPE,
-                                            SELECT_BIND_TYPE)
+from onadata.libs.utils.common_tags import (
+    ATTACHMENTS, BAMBOO_DATASET_ID, DATE_MODIFIED, DELETEDAT, DURATION,
+    EDITED, GEOLOCATION, ID, MEDIA_ALL_RECEIVED, MEDIA_COUNT, NA_REP,
+    NOTES, STATUS, SUBMISSION_TIME, SUBMITTED_BY, TAGS, TOTAL_MEDIA,
+    UUID, VERSION, XFORM_ID_STRING, REVIEW_STATUS, REVIEW_COMMENT,
+    MULTIPLE_SELECT_TYPE, SELECT_BIND_TYPE)
 from onadata.libs.utils.export_builder import (get_choice_label,
                                                get_value_or_attachment_uri,
                                                track_task_progress)
