@@ -3405,31 +3405,36 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             request = self.factory.get('/', data=data, **self.extra)
             response = view(request, pk=self.xform.pk, format='csv')
             self.assertEqual(response.status_code, 200)
-            data_id = self.xform.instances.first().pk
+            instance = self.xform.instances.first()
+            data_id, date_modified = (
+                    instance.pk,
+                    instance.date_modified.strftime(MONGO_STRFTIME))
 
             content = get_response_content(response)
 
             expected_content_py2 = (
                 '\ufeffage,\ufeffname,\ufeffmeta/instanceID,\ufeff_id,'
-                '\ufeff_uuid,\ufeff_submission_time,\ufeff_tags,\ufeff_notes,'
-                '\ufeff_version,\ufeff_duration,\ufeff_submitted_by,'
-                '\ufeff_total_media,\ufeff_media_count,'
+                '\ufeff_uuid,\ufeff_submission_time,\ufeff_date_modified,'
+                '\ufeff_tags,\ufeff_notes,\ufeff_version,\ufeff_duration,'
+                '\ufeff_submitted_by,\ufeff_total_media,\ufeff_media_count,'
                 '\ufeff_media_all_received\n'
                 '\ufeff#age,,,,,,,,,,,,,\n29,'
                 '\ufeffLionel Messi,'
                 '\ufeffuuid:74ee8b73-48aa-4ced-9072-862f93d49c16,%s,'
                 '\ufeff74ee8b73-48aa-4ced-9072-862f93d49c16,'
-                '\ufeff2013-02-18T15:54:01,\ufeff,\ufeff,\ufeff201604121155,'
-                '\ufeff,\ufeffbob,0,0,True\n' % data_id)
+                '\ufeff2013-02-18T15:54:01,%s,\ufeff,\ufeff,\ufeff'
+                '201604121155,\ufeff,\ufeffbob,0,0,True\n'
+                % (data_id, date_modified))
+
             expected_content_py3 = (
                 '\ufeffage,name,meta/instanceID,_id,_uuid,_submission_time,'
-                '_tags,_notes,_version,_duration,_submitted_by,_total_media,'
-                '_media_count,'
-                '_media_all_received\n\ufeff#age,,,,,,,,,,,,,\n'
-                '\ufeff29,Lionel Messi,'
-                'uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,%s,'
-                '74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01,,,'
-                '201604121155,,bob,0,0,True\n' % data_id)
+                '_date_modified,_tags,_notes,_version,_duration,_submitted_by,'
+                '_total_media,_media_count,_media_all_received\n\ufeff#age'
+                ',,,,,,,,,,,,,,\n\ufeff'
+                '29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,'
+                '%s,74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01,'
+                '%s,,,201604121155,,bob,0,0,True\n' % (data_id, date_modified)
+            )
             self.assertIn(content, [expected_content_py2,
                                     expected_content_py3])
             headers = dict(response.items())
@@ -3446,13 +3451,13 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             content = get_response_content(response)
             expected_content = (
-                'age,name,meta/instanceID,_id,_uuid,_submission_time,_tags,'
-                '_notes,_version,_duration,_submitted_by,_total_media,'
-                '_media_count,_media_all_received\n'
-                '#age,,,,,,,,,,,,,\n'
+                'age,name,meta/instanceID,_id,_uuid,_submission_time,'
+                '_date_modified,_tags,_notes,_version,_duration,_submi'
+                'tted_by,_total_media,_media_count,_media_all_received\n'
+                '#age,,,,,,,,,,,,,,\n'
                 '29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16'
                 ',%s,74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01,'
-                ',,201604121155,,bob,0,0,True\n' % data_id
+                '%s,,,201604121155,,bob,0,0,True\n' % (data_id, date_modified)
             )
 
             self.assertEqual(expected_content, content)
@@ -3521,13 +3526,14 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             content = get_response_content(response)
             expected_content = (
-                'age,name,meta/instanceID,_id,_uuid,_submission_time,_tags,'
-                '_notes,_version,_duration,_submitted_by,_total_media,'
-                '_media_count,_media_all_received,_date_modified\n'
+                'age,name,meta/instanceID,_id,_uuid,_submission_time,'
+                '_date_modified,_tags,_notes,_version,_duration,'
+                '_submitted_by,_total_media,_media_count,'
+                '_media_all_received\n'
                 '#age,,,,,,,,,,,,,,\n'
                 '29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,'
                 '%s,74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01'
-                ',,,201604121155,,bob,0,0,True,%s\n' % (data_id, date_modified)
+                ',%s,,,201604121155,,bob,0,0,True\n' % (data_id, date_modified)
             )
             self.assertEqual(expected_content, content)
             headers = dict(response.items())
