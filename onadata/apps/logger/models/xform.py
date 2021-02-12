@@ -46,7 +46,8 @@ from onadata.libs.utils.common_tags import (DURATION, ID, KNOWN_MEDIA_TYPES,
                                             SUBMITTED_BY, TAGS, TOTAL_MEDIA,
                                             UUID, VERSION, REVIEW_STATUS,
                                             REVIEW_COMMENT,
-                                            MULTIPLE_SELECT_TYPE)
+                                            MULTIPLE_SELECT_TYPE,
+                                            DATE_MODIFIED)
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.mongo import _encode_for_mongo
 
@@ -489,9 +490,10 @@ class XFormMixin(object):
             shorten(xpath) for xpath in self.xpaths(
                 repeat_iterations=repeat_iterations)]
         header_list += [
-            ID, UUID, SUBMISSION_TIME, TAGS, NOTES, REVIEW_STATUS,
-            REVIEW_COMMENT, VERSION, DURATION, SUBMITTED_BY, TOTAL_MEDIA,
-            MEDIA_COUNT, MEDIA_ALL_RECEIVED
+            ID, UUID, SUBMISSION_TIME, DATE_MODIFIED, TAGS, NOTES,
+            REVIEW_STATUS, REVIEW_COMMENT, VERSION, DURATION,
+            SUBMITTED_BY, TOTAL_MEDIA, MEDIA_COUNT,
+            MEDIA_ALL_RECEIVED
         ]
         if include_additional_headers:
             header_list += self._additional_headers()
