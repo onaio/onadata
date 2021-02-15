@@ -542,12 +542,12 @@ class XFormMixin(object):
         if elem:
             label = elem.label
 
-            if language and isinstance(label, dict):
-                label = label[language]
-
-            elif isinstance(label, dict):
-                language = self.get_language(list(label))
-                label = label[language] if language else ''
+            if isinstance(label, dict):
+                if language and language in label:
+                    label = label[language]
+                else:
+                    language = self.get_language(list(label))
+                    label = label[language] if language else ''
 
             return label
 

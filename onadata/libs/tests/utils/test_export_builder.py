@@ -283,6 +283,19 @@ class TestExportBuilder(TestBase):
         self.assertEqual(
             sorted(expected_element_names), sorted(element_names))
 
+        # use default language when the language passed does not exist
+        export_builder.language = 'Kiswahili'
+        export_builder.set_survey(survey)
+        expected_element_names = \
+            ['Name of respondent', 'Age', 'Sex of respondent', 'Fruits',
+             'Fruits/Apple', 'Fruits/Banana', 'Fruits/Pear', 'Fruits/Mango',
+             'Fruits/Other', 'Fruits/None of the above', 'Cities',
+             'meta/instanceID']
+        section = export_builder.section_by_name(survey.name)
+        element_names = [element['label'] for element in section['elements']]
+        self.assertEqual(
+            sorted(expected_element_names), sorted(element_names))
+
     def test_build_sections_from_survey(self):
         survey = self._create_childrens_survey()
         export_builder = ExportBuilder()
