@@ -437,7 +437,8 @@ class TestProcess(TestBase):
         ]
 
         dd = DataDictionary.objects.get(pk=self.xform.pk)
-        additional_headers = dd._additional_headers() + ['_id']
+        additional_headers = dd._additional_headers() + [
+            '_id', '_date_modified']
         for row, expected_dict in zip(actual_csv, data):
             test_dict = {}
             d = dict(zip(headers, row))
