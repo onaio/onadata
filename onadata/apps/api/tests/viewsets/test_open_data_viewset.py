@@ -387,7 +387,7 @@ class TestOpenData(TestBase):
             'web_browsers_chrome',
             'web_browsers_firefox',
             'web_browsers_ie',
-            'web_browsers_safari'
+            'web_browsers_safari',
         ]
 
         self.view = OpenDataViewSet.as_view({

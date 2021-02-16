@@ -23,7 +23,7 @@ from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, \
     GEOLOCATION, SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, \
     DELETEDAT, TAGS, NOTES, SUBMITTED_BY, VERSION, DURATION, EDITED, \
     MEDIA_COUNT, TOTAL_MEDIA, MEDIA_ALL_RECEIVED, XFORM_ID, REVIEW_STATUS, \
-    REVIEW_COMMENT
+    REVIEW_COMMENT, DATE_MODIFIED
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.mongo import _is_invalid_for_mongo
 
@@ -284,6 +284,8 @@ class ParsedInstance(models.Model):
             self.STATUS: self.instance.status,
             GEOLOCATION: [self.lat, self.lng],
             SUBMISSION_TIME: self.instance.date_created.strftime(
+                MONGO_STRFTIME),
+            DATE_MODIFIED: self.instance.date_modified.strftime(
                 MONGO_STRFTIME),
             TAGS: list(self.instance.tags.names()),
             NOTES: self.get_notes(),

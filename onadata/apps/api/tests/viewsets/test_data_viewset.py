@@ -868,6 +868,31 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
 
+    def test_filter_by_date_modified(self):
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        formid = self.xform.pk
+        instance = self.xform.instances.all().order_by('pk')[0]
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        instance = self.xform.instances.all().order_by('-date_created')[0]
+        date_modified = instance.date_modified.strftime(MONGO_STRFTIME)
+
+        query_str = ('{"_date_modified": {"$gte": "%s"},'
+                     ' "_submitted_by": "%s"}' % (date_modified, 'bob'))
+        data = {
+            'query': query_str
+        }
+        request = self.factory.get('/', data=data, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        expected_count = self.xform.instances.filter(
+            json___date_modified__gte=date_modified).count()
+        self.assertEqual(len(response.data), expected_count)
+
     def test_filter_by_submission_time_and_submitted_by_with_data_arg(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
@@ -2533,7 +2558,7 @@ class TestDataViewSet(TestBase):
         server_time = ET.fromstring(returned_xml).attrib.get('serverTime')
         expected_xml = (
             f'<?xml version="1.0" encoding="utf-8"?>\n<submission-batch serverTime="{server_time}">'  # noqa
-            f'<submission-item formVersion="{instance.version}" lastModified="{instance.date_modified.isoformat()}" objectID="{instance.id}">'  # noqa
+            f'<submission-item created="{instance.date_created.isoformat()}" formVersion="{instance.version}" lastModified="{instance.date_modified.isoformat()}" objectID="{instance.id}">'  # noqa
             '<tutorial id="tutorial"><name>Larry\n        Again</name><age>23</age><picture>1333604907194.jpg</picture>'  # noqa
             '<has_children>0</has_children><gps>-1.2836198 36.8795437 0.0 1044.0</gps><web_browsers>firefox chrome safari'  # noqa
             '</web_browsers><meta><instanceID>uuid:729f173c688e482486a48661700455ff</instanceID></meta></tutorial>'  # noqa
