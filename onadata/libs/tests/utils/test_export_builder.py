@@ -427,7 +427,7 @@ class TestExportBuilder(TestBase):
             # open comparison file
             with open(_logger_fixture_path(
                     'csvs', 'children_cartoons_characters.csv'),
-                      encoding='utf-8') as fixture_csv:
+                    encoding='utf-8') as fixture_csv:
                 fixture_reader = csv.reader(fixture_csv)
                 expected_rows = [r for r in fixture_reader]
                 self.assertEqual(rows, expected_rows)
@@ -960,9 +960,9 @@ class TestExportBuilder(TestBase):
         """
         survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
         data = [{"q1": "1",
-                '_submission_time': '2016-11-21T03:43:43.000-08:00'},
+                 '_submission_time': '2016-11-21T03:43:43.000-08:00'},
                 {"q1": "6",
-                '_submission_time': '2016-11-21T03:43:43.000-08:00'}
+                 '_submission_time': '2016-11-21T03:43:43.000-08:00'}
                 ]
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
@@ -1020,7 +1020,7 @@ class TestExportBuilder(TestBase):
         """
         survey = self.md_to_pyxform_survey(md, {'name': 'sports'})
         data = [{"Sport": "Basketball", "sport": "Soccer",
-                '_submission_time': '2016-11-21T03:43:43.000-08:00'}]
+                 '_submission_time': '2016-11-21T03:43:43.000-08:00'}]
 
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
@@ -2264,6 +2264,20 @@ class TestExportBuilder(TestBase):
         CSVDataFrameBuilder._build_ordered_columns(survey, ordered_columns)
         ordered_columns['children/fav_colors/red'] = None
         labels = get_labels_from_columns(ordered_columns, dd, '/')
+        self.assertIn('1. Jina lako ni?', labels)
+        self.assertIn('2. Umri wako ni?', labels)
+        self.assertIn('fav_colors/Nyekundu', labels)
+
+        # use language provided in keyword argument
+        labels = get_labels_from_columns(ordered_columns, dd, '/',
+                                         language='english')
+        self.assertIn('1. What is your name?', labels)
+        self.assertIn('2. How old are you?', labels)
+        self.assertIn('fav_colors/Red', labels)
+
+        # use default language when language supplied does not exist
+        labels = get_labels_from_columns(ordered_columns, dd, '/',
+                                         language="Chinese")
         self.assertIn('1. Jina lako ni?', labels)
         self.assertIn('2. Umri wako ni?', labels)
         self.assertIn('fav_colors/Nyekundu', labels)

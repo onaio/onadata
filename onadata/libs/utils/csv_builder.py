@@ -63,11 +63,12 @@ def get_prefix_from_xpath(xpath):
             '%s cannot be prefixed, it returns %s' % (xpath, str(parts)))
 
 
-def get_labels_from_columns(columns, dd, group_delimiter):
+def get_labels_from_columns(columns, dd, group_delimiter, language=None):
     labels = []
     for col in columns:
         elem = dd.get_survey_element(col)
-        label = dd.get_label(col, elem=elem) if elem else col
+        label = dd.get_label(col, elem=elem,
+                             language=language) if elem else col
         if elem is not None and elem.type == '':
             label = group_delimiter.join([elem.parent.name, label])
         if label == '':
@@ -101,7 +102,7 @@ def write_to_csv(path, rows, columns, columns_with_hxl=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER, include_labels=False,
                  include_labels_only=False, include_hxl=False,
                  win_excel_utf8=False, total_records=None,
-                 index_tags=DEFAULT_INDEX_TAGS):
+                 index_tags=DEFAULT_INDEX_TAGS, language=None):
     na_rep = getattr(settings, 'NA_REP', NA_REP)
     encoding = 'utf-8-sig' if win_excel_utf8 else 'utf-8'
     with open(path, 'wb') as csvfile:
@@ -124,7 +125,8 @@ def write_to_csv(path, rows, columns, columns_with_hxl=None,
             writer.writerow(new_cols)
 
         if include_labels or include_labels_only:
-            labels = get_labels_from_columns(columns, dd, group_delimiter)
+            labels = get_labels_from_columns(columns, dd, group_delimiter,
+                                             language=language)
             writer.writerow(labels)
 
         if include_hxl and columns_with_hxl:
@@ -665,4 +667,5 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                      include_hxl=self.include_hxl,
                      win_excel_utf8=self.win_excel_utf8,
                      total_records=self.total_records,
-                     index_tags=self.index_tags)
+                     index_tags=self.index_tags,
+                     language=self.language)
