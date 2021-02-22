@@ -536,15 +536,18 @@ class XFormMixin(object):
 
         return language
 
-    def get_label(self, abbreviated_xpath, elem=None, language_index=None):
+    def get_label(self, abbreviated_xpath, elem=None, language=None):
         elem = self.get_element(abbreviated_xpath) if elem is None else elem
 
         if elem:
             label = elem.label
 
             if isinstance(label, dict):
-                language = self.get_language(list(label))
-                label = label[language] if language else ''
+                if language and language in label:
+                    label = label[language]
+                else:
+                    language = self.get_language(list(label))
+                    label = label[language] if language else ''
 
             return label
 

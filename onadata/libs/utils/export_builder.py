@@ -376,7 +376,7 @@ class ExportBuilder(object):
     def get_choice_label_from_dict(self, label):
         if isinstance(label, dict):
             language = self.get_default_language(list(label))
-            label = label.get(language)
+            label = label.get(self.language or language)
 
         return label
 
@@ -423,7 +423,7 @@ class ExportBuilder(object):
         def build_sections(
                 current_section, survey_element, sections, select_multiples,
                 gps_fields, osm_fields, encoded_fields, select_ones,
-                field_delimiter='/', remove_group_name=False):
+                field_delimiter='/', remove_group_name=False, language=None):
 
             for child in survey_element.children:
                 current_section_name = current_section['name']
@@ -439,13 +439,15 @@ class ExportBuilder(object):
                         build_sections(
                             section, child, sections, select_multiples,
                             gps_fields, osm_fields, encoded_fields,
-                            select_ones, field_delimiter, remove_group_name)
+                            select_ones, field_delimiter, remove_group_name,
+                            language=language)
                     else:
                         # its a group, recurs using the same section
                         build_sections(
                             current_section, child, sections, select_multiples,
                             gps_fields, osm_fields, encoded_fields,
-                            select_ones, field_delimiter, remove_group_name)
+                            select_ones, field_delimiter, remove_group_name,
+                            language=language)
                 elif isinstance(child, Question) and \
                         (child.bind.get('type')
                          not in QUESTION_TYPES_TO_EXCLUDE and
@@ -458,7 +460,10 @@ class ExportBuilder(object):
                             field_delimiter, dd, remove_group_name
                         )
                         _label = \
-                            dd.get_label(child_xpath, elem=child) or _title
+                            dd.get_label(
+                                child_xpath,
+                                elem=child,
+                                language=language) or _title
                         current_section['elements'].append({
                             'label': _label,
                             'title': _title,
@@ -547,8 +552,8 @@ class ExportBuilder(object):
             osm_columns = []
             if osm_field and xform:
                 osm_columns = OsmData.get_tag_keys(
-                                xform, osm_field.get_abbreviated_xpath(),
-                                include_prefix=True)
+                    xform, osm_field.get_abbreviated_xpath(),
+                    include_prefix=True)
             return osm_columns
 
         self.dd = dd
@@ -564,7 +569,7 @@ class ExportBuilder(object):
             main_section, self.survey, self.sections,
             self.select_multiples, self.gps_fields, self.osm_fields,
             self.encoded_fields, self.select_ones, self.GROUP_DELIMITER,
-            self.TRUNCATE_GROUP_TITLE)
+            self.TRUNCATE_GROUP_TITLE, language=self.language)
 
     def section_by_name(self, name):
         matches = [s for s in self.sections if s['name'] == name]
@@ -1269,7 +1274,7 @@ class ExportBuilder(object):
                     if self.SHOW_CHOICE_LABELS else element[key]
                     for element in section['elements']
                     if element['title'] in dataview.columns] + \
-                    self.extra_columns
+                self.extra_columns
 
         return [element.get('_label_xpath') or element[key]
                 if self.SHOW_CHOICE_LABELS else element[key]

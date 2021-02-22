@@ -245,6 +245,57 @@ class TestExportBuilder(TestBase):
         self.dd._survey = survey
         return survey
 
+    def test_build_sections_for_multilanguage_form(self):
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'multi_lingual_form.xls'),
+            default_name='multi_lingual_form')
+
+        # check the default langauge
+        self.assertEqual(
+            survey.to_json_dict().get('default_language'), 'English'
+        )
+        export_builder = ExportBuilder()
+        export_builder.INCLUDE_LABELS_ONLY = True
+        export_builder.set_survey(survey)
+        expected_sections = [
+            survey.name]
+        self.assertEqual(
+            expected_sections, [s['name'] for s in export_builder.sections])
+        expected_element_names = \
+            ['Name of respondent', 'Age', 'Sex of respondent', 'Fruits',
+             'Fruits/Apple', 'Fruits/Banana', 'Fruits/Pear', 'Fruits/Mango',
+             'Fruits/Other', 'Fruits/None of the above', 'Cities',
+             'meta/instanceID']
+        section = export_builder.section_by_name(survey.name)
+        element_names = [element['label'] for element in section['elements']]
+        self.assertEqual(
+            sorted(expected_element_names), sorted(element_names))
+
+        export_builder.language = 'French'
+        export_builder.set_survey(survey)
+        section = export_builder.section_by_name(survey.name)
+        element_names = [element['label'] for element in section['elements']]
+        expected_element_names = \
+            ['Des fruits', 'Fruits/Aucune de ces réponses', 'Fruits/Autre',
+             'Fruits/Banane', 'Fruits/Mangue', 'Fruits/Poire', 'Fruits/Pomme',
+             "L'age", 'Le genre', 'Nom de personne interrogée', 'Villes',
+             'meta/instanceID']
+        self.assertEqual(
+            sorted(expected_element_names), sorted(element_names))
+
+        # use default language when the language passed does not exist
+        export_builder.language = 'Kiswahili'
+        export_builder.set_survey(survey)
+        expected_element_names = \
+            ['Name of respondent', 'Age', 'Sex of respondent', 'Fruits',
+             'Fruits/Apple', 'Fruits/Banana', 'Fruits/Pear', 'Fruits/Mango',
+             'Fruits/Other', 'Fruits/None of the above', 'Cities',
+             'meta/instanceID']
+        section = export_builder.section_by_name(survey.name)
+        element_names = [element['label'] for element in section['elements']]
+        self.assertEqual(
+            sorted(expected_element_names), sorted(element_names))
+
     def test_build_sections_from_survey(self):
         survey = self._create_childrens_survey()
         export_builder = ExportBuilder()
@@ -376,7 +427,7 @@ class TestExportBuilder(TestBase):
             # open comparison file
             with open(_logger_fixture_path(
                     'csvs', 'children_cartoons_characters.csv'),
-                      encoding='utf-8') as fixture_csv:
+                    encoding='utf-8') as fixture_csv:
                 fixture_reader = csv.reader(fixture_csv)
                 expected_rows = [r for r in fixture_reader]
                 self.assertEqual(rows, expected_rows)
@@ -909,9 +960,9 @@ class TestExportBuilder(TestBase):
         """
         survey = self.md_to_pyxform_survey(md, {'name': 'exp'})
         data = [{"q1": "1",
-                '_submission_time': '2016-11-21T03:43:43.000-08:00'},
+                 '_submission_time': '2016-11-21T03:43:43.000-08:00'},
                 {"q1": "6",
-                '_submission_time': '2016-11-21T03:43:43.000-08:00'}
+                 '_submission_time': '2016-11-21T03:43:43.000-08:00'}
                 ]
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
@@ -969,7 +1020,7 @@ class TestExportBuilder(TestBase):
         """
         survey = self.md_to_pyxform_survey(md, {'name': 'sports'})
         data = [{"Sport": "Basketball", "sport": "Soccer",
-                '_submission_time': '2016-11-21T03:43:43.000-08:00'}]
+                 '_submission_time': '2016-11-21T03:43:43.000-08:00'}]
 
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
@@ -2213,6 +2264,20 @@ class TestExportBuilder(TestBase):
         CSVDataFrameBuilder._build_ordered_columns(survey, ordered_columns)
         ordered_columns['children/fav_colors/red'] = None
         labels = get_labels_from_columns(ordered_columns, dd, '/')
+        self.assertIn('1. Jina lako ni?', labels)
+        self.assertIn('2. Umri wako ni?', labels)
+        self.assertIn('fav_colors/Nyekundu', labels)
+
+        # use language provided in keyword argument
+        labels = get_labels_from_columns(ordered_columns, dd, '/',
+                                         language='english')
+        self.assertIn('1. What is your name?', labels)
+        self.assertIn('2. How old are you?', labels)
+        self.assertIn('fav_colors/Red', labels)
+
+        # use default language when language supplied does not exist
+        labels = get_labels_from_columns(ordered_columns, dd, '/',
+                                         language="Chinese")
         self.assertIn('1. Jina lako ni?', labels)
         self.assertIn('2. Umri wako ni?', labels)
         self.assertIn('fav_colors/Nyekundu', labels)
