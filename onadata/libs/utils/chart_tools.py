@@ -12,7 +12,6 @@ from django.http import Http404
 from rest_framework.exceptions import ParseError
 
 from onadata.apps.logger.models.data_view import DataView
-from onadata.apps.logger.models.merged_xform import MergedXForm
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.data.query import \
     get_form_submissions_aggregated_by_select_one
@@ -436,16 +435,6 @@ def get_field_label(field, language_index=0):
     return field_label
 
 
-def _get_form_field_from_name_or_xpath(xform, name=None, xpath=None):
-    """
-    Given a name or xpath, get xform field
-    """
-    if name:
-        return get_field_from_field_name(name, xform)
-    elif xpath:
-        return get_field_from_field_xpath(xpath, xform)
-
-
 def get_chart_data_for_field(field_name,
                              xform,
                              accepted_format,
@@ -457,6 +446,9 @@ def get_chart_data_for_field(field_name,
     """
     data = {}
 
+    if field_name:
+        field = get_field_from_field_name(field_name, xform)
+
     if group_by:
         if len(group_by.split(',')) > 1:
             group_by = [
@@ -466,22 +458,10 @@ def get_chart_data_for_field(field_name,
         else:
             group_by = get_field_from_field_xpath(group_by, xform)
 
-    field = _get_form_field_from_name_or_xpath(xform,
-                                               name=field_name,
-                                               xpath=field_xpath)
+    if field_xpath:
+        field = get_field_from_field_xpath(field_xpath, xform)
 
     choices = get_field_choices(field, xform)
-    # check if xform is a MergedXForm and if it is, merge the field's choices
-    if xform.is_merged_dataset:
-        merged_xform = MergedXForm.objects.get(pk=xform.pk)
-        children = []
-        for xform in merged_xform.xforms.all():
-            form_field = _get_form_field_from_name_or_xpath(xform,
-                                                            name=field_name,
-                                                            xpath=field_xpath)
-            children += form_field.children
-        field.children = children
-        xform = merged_xform
 
     try:
         data = build_chart_data_for_field(

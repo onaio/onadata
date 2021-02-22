@@ -71,12 +71,27 @@ def get_merged_xform_survey(xforms):
         del merged_xform_dict['_xpath']
 
     is_empty = True
+    xform_dicts = [json.loads(xform.json) for xform in xforms]
     for child in merged_xform_dict['children']:
         if child['name'] != 'meta' and is_empty:
             is_empty = False
         # Remove bind attributes from child elements
         if 'bind' in child:
             del child['bind']
+
+        # merge select one and select multiple options
+        if 'children' in child and child['type'] in SELECTS:
+            children = []
+            for xform_dict in xform_dicts:
+                element_name = child['name']
+                element_list = list(
+                    filter(lambda x: x['name'] == element_name,
+                           xform_dict['children']))
+                if element_list and element_list[0]:
+                    children += element_list[0]['children']
+            # remove duplicates
+            set_of_jsons = {json.dumps(d, sort_keys=True) for d in children}
+            child['children'] = [json.loads(t) for t in set_of_jsons]
 
     if is_empty:
         raise serializers.ValidationError(_("No matching fields in xforms."))
