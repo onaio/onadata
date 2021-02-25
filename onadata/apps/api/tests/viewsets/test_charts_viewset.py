@@ -125,6 +125,8 @@ class TestChartsViewSet(TestBase):
                          {'fruits': ['Orange', 'Mango'], 'count': 1}]
         self.assertEqual(response.data['data'],
                          expected_data)
+        # Ensure response is renderable
+        response.render()
         cache.clear()
 
     def test_duration_field_on_metadata(self):
