@@ -474,3 +474,25 @@ class TestExportViewSet(TestBase):
             response = view(request)
             self.assertEqual(len(exports), len(response.data))
             self.assertEqual(len(exports), 1)
+
+    def test_export_retrieval_authentication(self):
+        """
+        Test that users are able to authenticate with API token
+        """
+        self._create_user_and_login()
+        self._publish_transportation_form()
+        temp_dir = settings.MEDIA_ROOT
+        dummy_export_file = NamedTemporaryFile(suffix='.xlsx', dir=temp_dir)
+        filename = os.path.basename(dummy_export_file.name)
+        filedir = os.path.dirname(dummy_export_file.name)
+        export = Export.objects.create(xform=self.xform,
+                                       filename=filename,
+                                       filedir=filedir)
+        export.save()
+        extra = {
+            'HTTP_AUTHORIZATION': f'Token {self.user.auth_token.key}'
+        }
+
+        request = self.factory.get('/export', **extra)
+        response = self.view(request, pk=export.pk)
+        self.assertEqual(response.status_code, 200)
