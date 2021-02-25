@@ -9,7 +9,10 @@ def regenerate_instance_json(apps, schema_editor):
     """
     Regenerate Instance JSON
     """
-    for inst in Instance.objects.filter(deleted_at__isnull=True):
+    for inst in Instance.objects.filter(
+            deleted_at__isnull=True,
+            xform__downloadable=True,
+            xform__deleted_at__isnull=True):
         inst.json = inst.get_full_dict(load_existing=False)
         inst.save()
 

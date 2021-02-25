@@ -473,7 +473,7 @@ def get_chart_data_for_field(field_name,
     except DataError as e:
         raise ParseError(text(e))
     else:
-        if accepted_format == 'json':
+        if accepted_format == 'json' or not accepted_format:
             xform = xform.pk
         elif accepted_format == 'html' and 'data' in data:
             for item in data['data']:
