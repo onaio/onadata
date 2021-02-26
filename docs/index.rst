@@ -81,6 +81,14 @@ Onadata-Tableau Intergration
 
   onadata-tableau
 
+Event tracking and messaging (Beta)
+-----------------------------------
+
+.. toctree::
+    :maxdepth: 2
+
+  messaging
+
 Ona Tagging API
 ~~~~~~~~~~~~~~~
 
