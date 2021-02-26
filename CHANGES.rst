@@ -3,6 +3,43 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.5.1(2021-02-23)
+------------------
+
+- Use master database when updating an XForms Submission Count
+  `PR #2002 <https://github.com/onaio/onadata/pull/2002>`_
+  [@DavisRayM]
+- Lockout users based on specific IPs instead of username
+  `PR #1978 <https://github.com/onaio/onadata/pull/1978`_
+  [@DavisRayM]
+- Add pagination & xml support to the data list endpoint
+  `PR #2005 <https://github.com/onaio/onadata/pull/2005`_
+  [@DavisRayM]
+- Paginate data list responses after a configurable threshold
+  `PR #2010 <https://github.com/onaio/onadata/pull/2010`_
+  [@DavisRayM]
+- Trigger error on url in xform title
+  `PR #2007 <https://github.com/onaio/onadata/pull/2007`_
+  [@ivermac]
+- Check if XForm is a MergedXForm and merge field choices if it is(a MergedXForm)
+  `PR #2011 <https://github.com/onaio/onadata/pull/2011`_
+  [@FrankApiyo]
+- Support query by date_modified field *
+  `PR #2009 <https://github.com/onaio/onadata/pull/2009`_
+  [@DavisRayM]
+- Capture attachment file names whose name exceeds 100 chars
+  `PR #2003 <https://github.com/onaio/onadata/pull/2003`_
+  [@WinnyTroy]
+- Merge select one and select multiple options at MergedXform creation
+  `PR #2015 <https://github.com/onaio/onadata/pull/2015`_
+  [@FrankApiyo]
+- Use language parameter to create exports
+  `PR #2014 <https://github.com/onaio/onadata/pull/2014`_
+  [@FrankApiyo]
+- Fix Charts endpoint JSON response not rendering
+  `PR #2022 <https://github.com/onaio/onadata/pull/2022`_
+  [@DavisRayM]
+
 v2.5.0(2021-01-21)
 ------------------
 
@@ -15,7 +52,7 @@ v2.5.0(2021-01-21)
 - Introduce Tableau v2
   `PR #1910 <https://github.com/onaio/onadata/pull/1910>`_
   [@WinnyTroy]
-- Handle TypeError raised when `current_count` value is None 
+- Handle TypeError raised when `current_count` value is None
   `PR #1980 <https://github.com/onaio/onadata/pull/1980>`_
   [@DavisRayM]
 - Add pagination headers to the paginated DataViewSet response
@@ -33,7 +70,7 @@ v2.5.0(2021-01-21)
 - Update Tableau Documentation
   `PR #1989 <https://github.com/onaio/onadata/pull/1989>`_
   [@WinnyTroy]
-- sanitize input recieved by media endpoint 
+- sanitize input recieved by media endpoint
   `PR #1997 <https://github.com/onaio/onadata/pull/1997>`_
   [@ivermac]
 
