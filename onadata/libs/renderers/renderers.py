@@ -365,6 +365,9 @@ class InstanceXMLRenderer(XMLRenderer):
         if data is None:
             return ""
 
+        if not isinstance(data, list):
+            return data
+
         stream = StringIO()
 
         xml = SimplerXMLGenerator(stream, self.charset)
