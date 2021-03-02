@@ -3,6 +3,13 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.5.1-hotfix.1(2021-03-02)
+---------------------------
+
+- Fix "Different root node name" issue
+  `PR #2029 <https://github.com/onaio/onadata/pull/2029>`_
+  [@DavisRayM]
+
 v2.5.1(2021-02-23)
 ------------------
 
