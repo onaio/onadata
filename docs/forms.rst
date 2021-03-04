@@ -1390,6 +1390,150 @@ Response
 
 You can use the `job_uuid value to check on the upload progress` (see below)
 
+List out all retrievable XLS form versions
+------------------------------------------
+
+.. raw:: html
+
+    <pre class="prettyprint"><b>GET</b> /api/v1/forms/{form_id}/versions</pre>
+
+Example
+^^^^^^^
+
+        curl -X GET https://api.ona.io/api/v1/forms/1/versions
+
+Response
+^^^^^^^^
+
+::
+
+    [
+        "202103011453",
+        "202103011520"
+    ]
+
+Retrieve JSON definition of an XLS Form version
+-----------------------------------------------
+
+.. raw:: html
+
+    <pre class="prettyprint"><b>GET</b> /api/v1/forms/{form_id}/versions/{version_id}</pre>
+
+Example
+^^^^^^^
+
+        curl -X GET https://api.ona.io/api/v1/forms/1/versions/202102161351
+
+Response
+^^^^^^^^
+
+::
+
+    {
+        "name": "data",
+        "type": "survey",
+        "title": "aWqGvTknt7hucR9VdoR6AM_1",
+        "id_string": "aWqGvTknt7hucR9VdoR6AM_1",
+        "sms_keyword": "aWqGvTknt7hucR9VdoR6AM_1",
+        "default_language": "default",
+        "version": "202102161351",
+        "children": [
+            {
+                "name": "start",
+                "type": "start"
+            },
+            {
+                "name": "end",
+                "type": "end"
+            },
+            {
+                "name": "What_s_your_name",
+                "label": "What's your name",
+                "type": "text",
+                "bind": {
+                    "required": "false"
+                }
+            },
+            {
+                "name": "age",
+                "label": "How old ?",
+                "type": "text"
+            },
+            {
+                "name": "meta",
+                "type": "group",
+                "control": {
+                    "bodyless": true
+                },
+                "children": [
+                    {
+                        "name": "instanceID",
+                        "type": "calculate",
+                        "bind": {
+                            "readonly": "true()",
+                            "jr:preload": "uid"
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+
+Retrieve XML definition of an XLS Form version
+-----------------------------------------------
+
+.. raw:: html
+
+    <pre class="prettyprint"><b>GET</b> /api/v1/forms/{form_id}/versions/{version_id}.xml</pre>
+
+Example
+^^^^^^^
+
+        curl -X GET https://api.ona.io/api/v1/forms/1/versions/202102161351.xml
+
+Response
+^^^^^^^^
+
+::
+
+    <?xml version="1.0" encoding="utf-8"?>
+    <h:html xmlns="http://www.w3.org/2002/xforms" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:h="http://www.w3.org/1999/xhtml" xmlns:jr="http://openrosa.org/javarosa" xmlns:odk="http://www.opendatakit.org/xforms" xmlns:orx="http://openrosa.org/xforms" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <h:head>
+        <h:title>aWqGvTknt7hucR9VdoR6AM_1</h:title>
+        <model odk:xforms-version="1.0.0">
+        <instance>
+            <data id="aWqGvTknt7hucR9VdoR6AM_1" version="202102161351">
+            <formhub>
+                <uuid/>
+            </formhub>
+            <start/>
+            <end/>
+            <What_s_your_name/>
+            <age/>
+            <meta>
+                <instanceID/>
+            </meta>
+            </data>
+        </instance>
+        <bind jr:preload="timestamp" jr:preloadParams="start" nodeset="/data/start" type="dateTime"/>
+        <bind jr:preload="timestamp" jr:preloadParams="end" nodeset="/data/end" type="dateTime"/>
+        <bind nodeset="/data/What_s_your_name" required="false()" type="string"/>
+        <bind nodeset="/data/age" type="string"/>
+        <bind jr:preload="uid" nodeset="/data/meta/instanceID" readonly="true()" type="string"/>
+        <bind nodeset="/data/formhub/uuid" type="string" calculate="'dff2d5d11b19472dbcd36a937d71113f'"/>
+        </model>
+    </h:head>
+    <h:body>
+        <input ref="/data/What_s_your_name">
+        <label>What's your name</label>
+        </input>
+        <input ref="/data/age">
+        <label>How old ?</label>
+        </input>
+    </h:body>
+    </h:html>
+
+
 Check on XLS form upload progress
 ---------------------------------
 
