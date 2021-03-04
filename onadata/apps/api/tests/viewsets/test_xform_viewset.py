@@ -50,6 +50,7 @@ from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.models import MetaData
 from onadata.apps.messaging.constants import XFORM, FORM_UPDATED
@@ -1159,6 +1160,11 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertIsNotNone(
                     MetaData.objects.get(
                         object_id=xform.id, data_type="enketo_preview_url"))
+
+                # Ensure XFormVersion object is created on XForm publish
+                versions_count = XFormVersion.objects.filter(
+                    xform=xform).count()
+                self.assertEqual(versions_count, 1)
 
     def test_publish_xlsforms_with_same_id_string(self):
         with HTTMock(enketo_urls_mock):
@@ -3345,11 +3351,22 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_version.xls")
+            version_count = XFormVersion.objects.filter(
+                xform=self.xform).count()
             with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=self.xform.pk)
                 self.assertEqual(response.status_code, 200)
+                self.xform.refresh_from_db()
+
+                # ensure that an XForm version object is created
+                versions = XFormVersion.objects.filter(xform=self.xform)
+                self.assertEqual(versions.count(), version_count + 1)
+                latest_version = versions.order_by('-date_created').first()
+                self.assertEqual(latest_version.version, self.xform.version)
+                self.assertEqual(latest_version.xls, self.xform.xls)
+                self.assertEqual(latest_version.xml, self.xform.xml)
 
             self._make_submissions()
             # make more submission after form update
@@ -3374,6 +3391,66 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             for v in expected:
                 self.assertIn(v, response.data.get('form_versions'))
+
+    def test_versions_endpoint(self):
+        """
+        Tests the versions endpoint
+        """
+        xls_file_path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "logger", "fixtures",
+            "external_choice_form_v1.xlsx")
+        self._publish_xls_form_to_project(xlsform_path=xls_file_path)
+
+        view = XFormViewSet.as_view({
+            'patch': 'partial_update',
+            'get': 'versions'
+        })
+
+        request = self.factory.get(
+            f'/api/v1/forms/{self.xform.id}/versions', **self.extra)
+        response = view(
+            request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data, [self.xform.version])
+        version_count = XFormVersion.objects.filter(xform=self.xform).count()
+        old_version = self.xform.version
+        expected_json = self.xform.json
+        expected_xml = self.xform.xml
+
+        # Replace form
+        xls_file_path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "logger", "fixtures",
+            "external_choice_form_v2.xlsx")
+        with open(xls_file_path, 'rb') as xls_file:
+            post_data = {'xls_file': xls_file}
+            request = self.factory.patch('/', data=post_data, **self.extra)
+            response = view(request, pk=self.xform.id)
+            self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            XFormVersion.objects.filter(xform=self.xform).count(),
+            version_count + 1)
+
+        # Able to retrieve old version
+        request = self.factory.get(
+            f'/api/v1/forms/{self.xform.id}/versions/{old_version}',
+            **self.extra
+        )
+        response = view(
+            request, pk=self.xform.pk, version_id=old_version)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, json.loads(expected_json))
+
+        response = view(
+            request, pk=self.xform.pk, version_id=old_version, format='xml'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, expected_xml)
+
+        # Returns a 404 for an invalid version
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.xform.pk, version_id='invalid')
+        self.assertEqual(response.status_code, 404)
 
     def test_csv_export_with_win_excel_utf8(self):
         with HTTMock(enketo_mock):

@@ -28,7 +28,7 @@ from onadata.apps.api.viewsets.organization_profile_viewset import \
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import Project, XForm
+from onadata.apps.logger.models import Project, XForm, XFormVersion
 from onadata.apps.main.models import MetaData
 from onadata.libs import permissions as role
 from onadata.libs.models.share_project import ShareProject
@@ -103,6 +103,9 @@ class TestProjectViewSet(TestAbstractViewSet):
             xls_file.close()
             self.assertEqual(response.status_code, 201)
             self.assertEqual(XForm.objects.count(), pre_count + 1)
+            self.assertEqual(
+                XFormVersion.objects.filter(
+                    xform__pk=response.data.get('formid')).count(), 1)
 
     def test_projects_list(self):
         self._project_create()
