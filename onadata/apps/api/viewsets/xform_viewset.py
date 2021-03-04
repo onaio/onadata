@@ -17,6 +17,7 @@ from django.utils import six, timezone
 from django.utils.http import urlencode
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from future.moves.urllib.parse import urlparse
 
@@ -41,6 +42,7 @@ from onadata.apps.api import tasks
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.xform import XForm, XFormUserObjectPermission
+from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.viewer.models.export import Export
 from onadata.libs import authentication, filters
@@ -76,7 +78,8 @@ from onadata.libs.utils.viewer_tools import (get_enketo_urls,
                                              get_form_url)
 from onadata.libs.exceptions import EnketoError
 from onadata.settings.common import XLS_EXTENSIONS, CSV_EXTENSION
-from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_delete
+from onadata.libs.utils.cache_tools import (
+    PROJ_OWNER_CACHE, safe_delete)
 
 ENKETO_AUTH_COOKIE = getattr(settings, 'ENKETO_AUTH_COOKIE',
                              '__enketo')
@@ -748,6 +751,23 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         xform.soft_delete(user=user)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(methods=['GET'], detail=True)
+    def versions(self, request, format='json', *args, **kwargs):
+        xform = self.get_object()
+        version_id = kwargs.get('version_id')
+
+        stored_versions = XFormVersion.objects.filter(
+            xform=xform).values_list('version')
+        stored_versions = [version[0] for version in stored_versions]
+
+        if not version_id:
+            return Response(data=stored_versions, status=status.HTTP_200_OK)
+
+        if version_id:
+            version = get_object_or_404(
+                XFormVersion, version=version_id, xform=xform)
+            return response_for_format(version, format=format)
 
     @action(methods=['GET'], detail=True)
     def export_async(self, request, *args, **kwargs):
