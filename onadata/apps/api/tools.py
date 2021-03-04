@@ -357,10 +357,16 @@ def add_team_to_project(team, project):
 
 def publish_xlsform(request, owner, id_string=None, project=None):
     """
-    Publishes XLSForm given a request.
+    Publishes XLSForm & creates an XFormVersion object given a request.
     """
-    return do_publish_xlsform(request.user, request.data, request.FILES, owner,
-                              id_string, project)
+    survey = do_publish_xlsform(
+        request.user, request.data, request.FILES, owner, id_string, project)
+
+    # Create an XFormVersion object if the returned object is an
+    # XForm object
+    if isinstance(survey, XForm):
+        create_xform_version(survey, request.user)
+    return survey
 
 
 # pylint: disable=too-many-arguments
@@ -476,6 +482,9 @@ def publish_project_xform(request, project):
         xform = publish_form(set_form)
 
     if isinstance(xform, XForm):
+        # Create XFormVersion Object
+        create_xform_version(xform, request.user)
+
         with use_master:
             # Ensure the cached project is the updated version.
             # Django lazy loads related objects as such we need to
