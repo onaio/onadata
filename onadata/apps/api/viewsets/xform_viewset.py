@@ -753,9 +753,10 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['GET'], detail=True)
-    def versions(self, request, format='json', *args, **kwargs):
+    def versions(self, request, *args, **kwargs):
         xform = self.get_object()
         version_id = kwargs.get('version_id')
+        requested_format = kwargs.get('format') or 'json'
 
         stored_versions = XFormVersion.objects.filter(
             xform=xform).values_list('version')
@@ -767,7 +768,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         if version_id:
             version = get_object_or_404(
                 XFormVersion, version=version_id, xform=xform)
-            return response_for_format(version, format=format)
+            return response_for_format(version, format=requested_format)
 
     @action(methods=['GET'], detail=True)
     def export_async(self, request, *args, **kwargs):
