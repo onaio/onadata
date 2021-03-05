@@ -19,6 +19,7 @@ from rest_framework.reverse import reverse
 
 from onadata.apps.logger.models import DataView, Instance, XForm
 from onadata.apps.main.models.meta_data import MetaData
+from onadata.apps.logger.models import XFormVersion
 from onadata.libs.exceptions import EnketoError
 from onadata.libs.permissions import get_role, is_organization
 from onadata.libs.serializers.dataview_serializer import \
@@ -516,3 +517,21 @@ class XFormManifestSerializer(serializers.Serializer):
                 filename = os.path.basename(urlparts.path) or urlparts.netloc
 
         return filename
+
+
+class XFormVersionListSerializer(serializers.ModelSerializer):
+    xform = serializers.HyperlinkedRelatedField(
+        view_name='xform-detail', lookup_field='pk',
+        queryset=XForm.objects.filter(deleted_at__isnull=True)
+    )
+    created_by = serializers.HyperlinkedRelatedField(
+        view_name='user-detail',
+        lookup_field='username',
+        queryset=User.objects.exclude(
+            username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME)
+    )
+
+    class Meta:
+        model = XFormVersion
+        fields = [
+            'xform', 'version', 'date_created', 'date_modified', 'created_by']
