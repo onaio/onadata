@@ -37,9 +37,9 @@ class TestSimpleSubmission(TestCase):
         xform.save()
 
     def _submit_at_hour(self, hour):
-        st_xml = '<?xml version=\'1.0\' ?><start_time id="start_time"><st'\
-                 'art_time>2012-01-11T%d:00:00.000+00</start_time></start'\
-                 '_time>' % hour
+        st_xml = '<?xml version=\'1.0\' ?><start_time_form id="start_time_for'\
+                 'm"><start_time>2012-01-11T%d:00:00.000+00</start_time>'\
+                 '</start_time_form>' % hour
         try:
             create_instance(self.user.username, TempFileProxy(st_xml), [])
         except DuplicateInstance:
@@ -47,8 +47,8 @@ class TestSimpleSubmission(TestCase):
 
     def _submit_simple_yes(self):
         create_instance(self.user.username, TempFileProxy(
-            '<?xml version=\'1.0\' ?><yes_or_no id="yes_or_no"><yesno>Yes<'
-            '/yesno></yes_or_no>'), [])
+            '<?xml version=\'1.0\' ?><yes_or_no_form id="yes_or_no_form">'
+            '<yesno>Yes</yesno></yes_or_no_form>'), [])
 
     def setUp(self):
         self.user = User.objects.create(
@@ -59,16 +59,19 @@ class TestSimpleSubmission(TestCase):
         self.xform1 = DataDictionary()
         self.xform1.user = self.user
         self.xform1.project = self.project
-        self.xform1.json = '{"id_string": "yes_or_no", "children": [{"name": '\
+        self.xform1.json = '{"id_string": "yes_or_no_form", "children": '\
+                           '[{"name": '\
                            '"yesno", "label": "Yes or no?", "type": "text"}],'\
                            ' "name": "yes_or_no", "title": "yes_or_no", "type'\
                            '": "survey"}'.strip()
         self.xform2 = DataDictionary()
         self.xform2.user = self.user
         self.xform2.project = self.project
-        self.xform2.json = '{"id_string": "start_time", "children": [{"name":'\
+        self.xform2.json = '{"id_string": "start_time_form", "children": '\
+                           '[{"name":'\
                            '"start_time", "type": "start"}], "name": "start_t'\
-                           'ime", "title": "start_time", "type": "survey"}'\
+                           'ime_form", "title": "start_time_form",'\
+                           '"type": "survey"}'\
                            .strip()
 
         self._get_xml_for_form(self.xform1)
