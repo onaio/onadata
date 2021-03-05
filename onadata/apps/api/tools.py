@@ -81,7 +81,7 @@ def create_xform_version(xform: XForm, user: User) -> XFormVersion:
     """
     Creates an XFormVersion object for the passed in XForm
     """
-    if not XFormVersion.objects.filter(
+    if xform.version and not XFormVersion.objects.filter(
             xform=xform, version=xform.version).first():
         return XFormVersion.objects.create(
             xform=xform,
