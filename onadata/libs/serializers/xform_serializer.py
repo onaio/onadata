@@ -103,6 +103,30 @@ def clean_public_key(value):
                                          '').replace(' ', '').rstrip()
 
 
+class MultiLookupIdentityField(serializers.HyperlinkedIdentityField):
+    """
+    Custom HyperlinkedIdentityField that supports multiple lookup fields.
+
+    Credits:  https://stackoverflow.com/a/31161585
+    """
+    lookup_fields = (('pk', 'pk'),)
+
+    def __init__(self, *args, **kwargs):
+        self.lookup_fields = kwargs.pop('lookup_fields', self.lookup_fields)
+        super(MultiLookupIdentityField, self).__init__(*args, **kwargs)
+
+    def get_url(self, obj, view_name, request, format):
+        kwargs = {}
+        for model_field, url_param in self.lookup_fields:
+            attr = obj
+            for field in model_field.split('__'):
+                attr = getattr(attr, field)
+            kwargs[url_param] = attr
+
+        return reverse(
+            view_name, kwargs=kwargs, request=request, format=format)
+
+
 class XFormMixin(object):
     def _get_metadata(self, obj, key):
         if key:
@@ -524,6 +548,10 @@ class XFormVersionListSerializer(serializers.ModelSerializer):
         view_name='xform-detail', lookup_field='pk',
         queryset=XForm.objects.filter(deleted_at__isnull=True)
     )
+    url = MultiLookupIdentityField(
+        view_name='form-version-detail',
+        lookup_fields=(('xform__pk', 'pk'), ('version', 'version_id'))
+    )
     created_by = serializers.HyperlinkedRelatedField(
         view_name='user-detail',
         lookup_field='username',
@@ -533,5 +561,4 @@ class XFormVersionListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = XFormVersion
-        fields = [
-            'xform', 'version', 'date_created', 'date_modified', 'created_by']
+        exclude = ('json', 'xml', 'xls', 'id')
