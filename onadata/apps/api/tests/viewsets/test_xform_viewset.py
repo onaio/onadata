@@ -3420,7 +3420,8 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             'version': f'{self.xform.version}',
             'date_created': f'{version.date_created.isoformat()}',
             'date_modified': f'{version.date_modified.isoformat()}',
-            'created_by': f'http://testserver/api/v1/users/{self.user.username}'
+            'created_by': (
+                f'http://testserver/api/v1/users/{self.user.username}')
         }
         self.assertEqual(dict(response.data[0]), expected_data)
         old_version = self.xform.version
