@@ -3412,8 +3412,17 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             request, pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data, [self.xform.version])
-        version_count = XFormVersion.objects.filter(xform=self.xform).count()
+        version_queryset = XFormVersion.objects.filter(xform=self.xform)
+        version = version_queryset.first()
+        version_count = version_queryset.count()
+        expected_data = {
+            'xform': f'http://testserver/api/v1/forms/{self.xform.pk}',
+            'version': f'{self.xform.version}',
+            'date_created': f'{version.date_created.isoformat()}',
+            'date_modified': f'{version.date_modified.isoformat()}',
+            'created_by': f'http://testserver/api/v1/users/{self.user.username}'
+        }
+        self.assertEqual(dict(response.data[0]), expected_data)
         old_version = self.xform.version
         expected_json = self.xform.json
         expected_xml = self.xform.xml

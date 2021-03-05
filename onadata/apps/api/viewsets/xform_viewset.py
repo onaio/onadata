@@ -58,9 +58,9 @@ from onadata.libs.serializers.clone_xform_serializer import \
     CloneXFormSerializer
 from onadata.libs.serializers.share_xform_serializer import \
     ShareXFormSerializer
-from onadata.libs.serializers.xform_serializer import (XFormBaseSerializer,
-                                                       XFormCreateSerializer,
-                                                       XFormSerializer)
+from onadata.libs.serializers.xform_serializer import (
+    XFormBaseSerializer, XFormCreateSerializer, XFormSerializer,
+    XFormVersionListSerializer)
 from onadata.libs.utils.api_export_tools import (custom_response_handler,
                                                  get_async_response,
                                                  process_async_export,
@@ -758,12 +758,12 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         version_id = kwargs.get('version_id')
         requested_format = kwargs.get('format') or 'json'
 
-        stored_versions = XFormVersion.objects.filter(
-            xform=xform).values_list('version')
-        stored_versions = [version[0] for version in stored_versions]
-
         if not version_id:
-            return Response(data=stored_versions, status=status.HTTP_200_OK)
+            queryset = XFormVersion.objects.filter(xform=xform)
+            serializer = XFormVersionListSerializer(
+                queryset, many=True, context={'request': request})
+            return Response(
+                data=serializer.data, status=status.HTTP_200_OK)
 
         if version_id:
             version = get_object_or_404(
