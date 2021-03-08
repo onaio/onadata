@@ -123,8 +123,13 @@ class MultiLookupIdentityField(serializers.HyperlinkedIdentityField):
                 attr = getattr(attr, field)
             kwargs[url_param] = attr
 
+        if not format and hasattr(self, 'format'):
+            fmt = self.format
+        else:
+            fmt = format
+
         return reverse(
-            view_name, kwargs=kwargs, request=request, format=format)
+            view_name, kwargs=kwargs, request=request, format=fmt)
 
 
 class XFormMixin(object):
