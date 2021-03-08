@@ -557,6 +557,11 @@ class XFormVersionListSerializer(serializers.ModelSerializer):
         view_name='form-version-detail',
         lookup_fields=(('xform__pk', 'pk'), ('version', 'version_id'))
     )
+    xml = MultiLookupIdentityField(
+        view_name='form-version-detail',
+        format='xml',
+        lookup_fields=(('xform__pk', 'pk'), ('version', 'version_id'))
+    )
     created_by = serializers.HyperlinkedRelatedField(
         view_name='user-detail',
         lookup_field='username',
@@ -566,4 +571,4 @@ class XFormVersionListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = XFormVersion
-        exclude = ('json', 'xml', 'xls', 'id')
+        exclude = ('json', 'xls', 'id')

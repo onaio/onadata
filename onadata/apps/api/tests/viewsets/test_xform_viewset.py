@@ -3416,7 +3416,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             xform=self.xform).count()
 
         expected_keys = [
-            'xform', 'url', 'created_by', 'version',
+            'xform', 'url', 'xml', 'created_by', 'version',
             'date_created', 'date_modified']
         self.assertEqual(list(response.data[0].keys()), expected_keys)
         expected_data = {
@@ -3425,6 +3425,9 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             'url': (
                 'http://testserver/api/v1/forms/'
                 f'{self.xform.pk}/versions/{self.xform.version}'),
+            'xml': (
+                'http://testserver/api/v1/forms/'
+                f'{self.xform.pk}/versions/{self.xform.version}.xml'),
             'created_by': (
                 f'http://testserver/api/v1/users/{self.user.username}')
         }
