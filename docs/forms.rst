@@ -1408,8 +1408,24 @@ Response
 ::
 
     [
-        "202103011453",
-        "202103011520"
+        {
+            "xform": "https://api.ona.io/api/v1/forms/1",
+            "url": "https://api.ona.io/api/v1/forms/1/versions/202103011453",
+            "xml": "https://api.ona.io/api/v1/forms/1/versions/202103011453.xml",
+            "created_by": "https://api.ona.io/api/v1/users/bob",
+            "version": "202103011453",
+            "date_created": "2021-03-04T03:23:26.133852-05:00",
+            "date_modified": "2021-03-04T03:23:26.133918-05:00"
+        },
+        {
+            "xform": "https://api.ona.io/api/v1/forms/1",
+            "url": "https://api.ona.io/api/v1/forms/1/versions/202103011520",
+            "xml": "https://api.ona.io/api/v1/forms/1/versions/202103011520.xml",
+            "created_by": "https://api.ona.io/api/v1/users/dave",
+            "version": "202103011520",
+            "date_created": "2021-07-04T03:23:26.133852-05:00",
+            "date_modified": "2021-07-04T03:23:26.133918-05:00"
+        }
     ]
 
 Retrieve JSON definition of an XLS Form version
