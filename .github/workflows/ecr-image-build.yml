@@ -1,0 +1,68 @@
+name: AWS ECR Build Image
+
+on:
+  release:
+      types:
+          - "released"
+  workflow_dispatch:
+      inputs:
+          versionTag:
+              description: "Version Tag"
+              required: true
+              default: ''
+
+jobs:
+  main:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Get the version
+        id: get-version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Build and push
+        id: docker-build
+        uses: docker/build-push-action@v2
+        with:
+          context: ./docker/onadata-uwsgi
+          file: ./docker/onadata-uwsgi/Dockerfile
+          platforms: linux/amd64
+          build-args: |
+            release_version=${{ steps.get-version.outputs.VERSION }}
+            optional_packages=PyYAML django-redis ${{ secrets.ECR_OPTIONAL_PACKAGES }}
+          push: true
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:latest
+            ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ github.event.inputs.versionTag || steps.get-version.outputs.VERSION }}
+
+      - name: Image digest
+        run: echo ${{ steps.docker-build.outputs.digest }}
