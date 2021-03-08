@@ -3,7 +3,7 @@
 from django.db import migrations
 
 from onadata.apps.logger.models import XFormVersion, XForm
-from onadata.apps.api.tools import create_xform_version
+from onadata.libs.utils.logger_tools import create_xform_version
 
 
 def create_initial_xform_version(apps, schema_editor):

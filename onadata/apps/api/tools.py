@@ -38,7 +38,6 @@ from onadata.apps.main.forms import QuickConverter
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import datetime_from_str
-from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.libs.baseviewset import DefaultBaseViewset
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.permissions import (
@@ -75,22 +74,6 @@ def _get_id_for_type(record, mongo_field):
 
     return {"$substr": [mongo_str, 0, 10]} if isinstance(date_field, datetime)\
         else mongo_str
-
-
-def create_xform_version(xform: XForm, user: User) -> XFormVersion:
-    """
-    Creates an XFormVersion object for the passed in XForm
-    """
-    if xform.version and not XFormVersion.objects.filter(
-            xform=xform, version=xform.version).first():
-        return XFormVersion.objects.create(
-            xform=xform,
-            xls=xform.xls,
-            json=xform.json,
-            version=xform.version,
-            created_by=user,
-            xml=xform.xml
-        )
 
 
 def get_accessible_forms(owner=None, shared_form=False, shared_data=False):
@@ -361,11 +344,6 @@ def publish_xlsform(request, owner, id_string=None, project=None):
     """
     survey = do_publish_xlsform(
         request.user, request.data, request.FILES, owner, id_string, project)
-
-    # Create an XFormVersion object if the returned object is an
-    # XForm object
-    if isinstance(survey, XForm):
-        create_xform_version(survey, request.user)
     return survey
 
 
@@ -482,9 +460,6 @@ def publish_project_xform(request, project):
         xform = publish_form(set_form)
 
     if isinstance(xform, XForm):
-        # Create XFormVersion Object
-        create_xform_version(xform, request.user)
-
         with use_master:
             # Ensure the cached project is the updated version.
             # Django lazy loads related objects as such we need to
