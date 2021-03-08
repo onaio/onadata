@@ -22,8 +22,6 @@ amqp==2.6.1
     # via kombu
 analytics-python==1.2.9
     # via onadata
-appnope==0.1.0
-    # via ipython
 appoptics-metrics==5.1.0
     # via onadata
 argparse==1.4.0
@@ -151,7 +149,7 @@ flake8==3.8.4
     # via onadata
 fleming==0.5.0
     # via django-query-builder
-formencode==2.0.0
+formencode==1.3.1
     # via pyxform
 future==0.18.2
     # via python-json2xlsclient
@@ -312,7 +310,7 @@ pytz==2020.1
     #   django-query-builder
     #   fleming
     #   onadata
-pyxform==1.1.0
+pyxform==1.4.0
     # via
     #   onadata
     #   pyfloip
@@ -354,7 +352,6 @@ six==1.15.0
     #   django-query-builder
     #   django-templated-email
     #   djangorestframework-csv
-    #   formencode
     #   isodate
     #   jsonlines
     #   jsonschema

@@ -22,9 +22,13 @@ class TestInputs(TestBase):
         """
         pre_count = XForm.objects.count()
         self._create_user_and_login()
+        expected_message = (
+            'The name "data" is the same as the form name. Use a '
+            'different section name (or change the form name in '
+            'the "name" column of the settings sheet).')
         self.assertRaisesMessage(
             PyXFormError,
-            "There are two sections with the name data.",
+            expected_message,
             self._publish_xls_file,
             'fixtures/group_names_must_be_unique.xlsx')
         self.assertEqual(XForm.objects.count(), pre_count)
