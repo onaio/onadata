@@ -2,7 +2,7 @@
 
 from django.db import migrations
 
-from onadata.apps.logger.models import XFormVersion, XForm
+from onadata.apps.logger.models import XForm
 from onadata.libs.utils.logger_tools import create_xform_version
 
 
@@ -16,8 +16,7 @@ def create_initial_xform_version(apps, schema_editor):
         deleted_at__isnull=True
     )
     for xform in queryset.iterator():
-        if xform.version and not XFormVersion.objects.filter(
-                xform=xform, version=xform.version).first():
+        if xform.version:
             create_xform_version(xform, xform.user)
 
 
