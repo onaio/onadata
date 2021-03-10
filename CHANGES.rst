@@ -3,6 +3,16 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.5.2(2021-03-10)
+------------------
+
+- Fix "Different root node name" issue
+  `PR #2029 <https://github.com/onaio/onadata/pull/2029>`_
+  [@DavisRayM]
+- Update PyXForm dependency to v1.4.0
+  `PR #2031 <https://github.com/onaio/onadata/pull/2031`_
+  [@DavisRayM]
+
 v2.5.1(2021-02-23)
 ------------------
 
