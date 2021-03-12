@@ -28,6 +28,7 @@ from onadata.apps.viewer import views as viewer_views
 from onadata.apps.api.viewsets.openid_connect_viewset import (
     OpenIDConnectViewSet
 )
+from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 
 from onadata.libs.utils.analytics import init_analytics
 # enable the admin:
@@ -219,6 +220,14 @@ urlpatterns = [
             OpenIDConnectViewSet.as_view({
                 'get': 'callback', 'head': 'callback', 'post': 'callback'
             }), name='open-id-connect-callback'),
+
+    # xform versions urls
+    re_path(r'^api/v1/forms/(?P<pk>[^/.]+)/versions/(?P<version_id>[^/.]+)$',  # noqa
+            XFormViewSet.as_view({'get': 'versions'}),
+            name='form-version-detail'),
+    re_path(r'^api/v1/forms/(?P<pk>[^/.]+)/versions/(?P<version_id>[^/.]+)\.(?P<format>[a-z0-9]+)/?$',  # noqa
+            XFormViewSet.as_view({'get': 'versions'}),
+            name='form-version-detail'),
 
     # odk data urls
     re_path(r'^submission$',

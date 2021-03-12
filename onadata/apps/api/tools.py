@@ -340,10 +340,11 @@ def add_team_to_project(team, project):
 
 def publish_xlsform(request, owner, id_string=None, project=None):
     """
-    Publishes XLSForm given a request.
+    Publishes XLSForm & creates an XFormVersion object given a request.
     """
-    return do_publish_xlsform(request.user, request.data, request.FILES, owner,
-                              id_string, project)
+    survey = do_publish_xlsform(
+        request.user, request.data, request.FILES, owner, id_string, project)
+    return survey
 
 
 # pylint: disable=too-many-arguments

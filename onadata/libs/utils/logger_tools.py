@@ -32,7 +32,8 @@ from multidb.pinning import use_master
 from pyxform.errors import PyXFormError
 from pyxform.xform2json import create_survey_element_from_xml
 
-from onadata.apps.logger.models import Attachment, Instance, XForm
+from onadata.apps.logger.models import (
+    Attachment, Instance, XForm, XFormVersion)
 from onadata.apps.logger.models.instance import (
     FormInactiveError, InstanceHistory, FormIsMergedDatasetError,
     get_id_string_from_xml_str)
@@ -65,6 +66,24 @@ REQUIRED_ENCRYPTED_FILE_ELEMENTS = [
 
 uuid_regex = re.compile(r'<formhub>\s*<uuid>\s*([^<]+)\s*</uuid>\s*</formhub>',
                         re.DOTALL)
+
+
+def create_xform_version(xform: XForm, user: User) -> XFormVersion:
+    """
+    Creates an XFormVersion object for the passed in XForm
+    """
+    try:
+        with transaction.atomic():
+            return XFormVersion.objects.create(
+                xform=xform,
+                xls=xform.xls,
+                json=xform.json,
+                version=xform.version,
+                created_by=user,
+                xml=xform.xml
+            )
+    except IntegrityError:
+        pass
 
 
 def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum,
@@ -662,14 +681,16 @@ def publish_xls_form(xls_file, user, project, id_string=None, created_by=None):
             user=user, id_string=id_string, project=project)
         dd.xls = xls_file
         dd.save()
-
-        return dd
     else:
-        return DataDictionary.objects.create(
+        dd = DataDictionary.objects.create(
             created_by=created_by or user,
             user=user,
             xls=xls_file,
             project=project)
+
+    # Create an XFormVersion object for the published XLSForm
+    create_xform_version(dd, user)
+    return dd
 
 
 @track_object_event(
@@ -696,8 +717,6 @@ def publish_xml_form(xml_file, user, project, id_string=None, created_by=None):
         dd._set_uuid_in_xml()
         dd._set_hash()
         dd.save()
-
-        return dd
     else:
         created_by = created_by or user
         dd = DataDictionary(
@@ -712,7 +731,9 @@ def publish_xml_form(xml_file, user, project, id_string=None, created_by=None):
         dd._set_hash()
         dd.save()
 
-        return dd
+    # Create an XFormVersion object for the published XLSForm
+    create_xform_version(dd, user)
+    return dd
 
 
 def remove_metadata_fields(data):

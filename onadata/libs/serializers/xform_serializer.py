@@ -19,6 +19,7 @@ from rest_framework.reverse import reverse
 
 from onadata.apps.logger.models import DataView, Instance, XForm
 from onadata.apps.main.models.meta_data import MetaData
+from onadata.apps.logger.models import XFormVersion
 from onadata.libs.exceptions import EnketoError
 from onadata.libs.permissions import get_role, is_organization
 from onadata.libs.serializers.dataview_serializer import \
@@ -100,6 +101,35 @@ def clean_public_key(value):
         return value.replace('-----BEGIN PUBLIC KEY-----',
                              '').replace('-----END PUBLIC KEY-----',
                                          '').replace(' ', '').rstrip()
+
+
+class MultiLookupIdentityField(serializers.HyperlinkedIdentityField):
+    """
+    Custom HyperlinkedIdentityField that supports multiple lookup fields.
+
+    Credits:  https://stackoverflow.com/a/31161585
+    """
+    lookup_fields = (('pk', 'pk'),)
+
+    def __init__(self, *args, **kwargs):
+        self.lookup_fields = kwargs.pop('lookup_fields', self.lookup_fields)
+        super(MultiLookupIdentityField, self).__init__(*args, **kwargs)
+
+    def get_url(self, obj, view_name, request, format):
+        kwargs = {}
+        for model_field, url_param in self.lookup_fields:
+            attr = obj
+            for field in model_field.split('__'):
+                attr = getattr(attr, field)
+            kwargs[url_param] = attr
+
+        if not format and hasattr(self, 'format'):
+            fmt = self.format
+        else:
+            fmt = format
+
+        return reverse(
+            view_name, kwargs=kwargs, request=request, format=fmt)
 
 
 class XFormMixin(object):
@@ -516,3 +546,29 @@ class XFormManifestSerializer(serializers.Serializer):
                 filename = os.path.basename(urlparts.path) or urlparts.netloc
 
         return filename
+
+
+class XFormVersionListSerializer(serializers.ModelSerializer):
+    xform = serializers.HyperlinkedRelatedField(
+        view_name='xform-detail', lookup_field='pk',
+        queryset=XForm.objects.filter(deleted_at__isnull=True)
+    )
+    url = MultiLookupIdentityField(
+        view_name='form-version-detail',
+        lookup_fields=(('xform__pk', 'pk'), ('version', 'version_id'))
+    )
+    xml = MultiLookupIdentityField(
+        view_name='form-version-detail',
+        format='xml',
+        lookup_fields=(('xform__pk', 'pk'), ('version', 'version_id'))
+    )
+    created_by = serializers.HyperlinkedRelatedField(
+        view_name='user-detail',
+        lookup_field='username',
+        queryset=User.objects.exclude(
+            username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME)
+    )
+
+    class Meta:
+        model = XFormVersion
+        exclude = ('json', 'xls', 'id')
