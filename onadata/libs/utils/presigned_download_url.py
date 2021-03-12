@@ -30,10 +30,9 @@ def generate_media_download_url(obj, expiration: int = 3600):
     else:
         try:
             bucket_name = s3.bucket.name
-            s3_client = boto3.client('s3')
 
             # Generate a presigned URL for the S3 object
-            response = s3_client.generate_presigned_url(
+            response =  boto3.client('s3').generate_presigned_url(
                 'get_object',
                 Params={
                     'Bucket': bucket_name,
