@@ -2599,6 +2599,25 @@ class TestDataViewSet(TestBase):
 
         self.assertEqual(expected_xml, returned_xml)
 
+    def test_data_list_xml_format_sort(self):
+        """
+        Test that "sort" query param works as expected on XML formatted
+        responses
+        """
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+
+        formid = self.xform.pk
+        expected_order = [4, 3, 2, 1]
+        request = self.factory.get(
+            '/?sort=-date_modified', **self.extra)
+        response = view(request, pk=formid, format='xml')
+        self.assertEqual(response.status_code, 200)
+        items_in_order = [
+            int(data.get('@objectID')) for data in response.data]
+        self.assertEqual(expected_order, items_in_order)
+
     @override_settings(SUBMISSION_RETRIEVAL_THRESHOLD=1)
     def test_data_paginated_past_threshold(self):
         """
