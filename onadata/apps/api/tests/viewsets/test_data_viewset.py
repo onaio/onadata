@@ -2565,6 +2565,40 @@ class TestDataViewSet(TestBase):
             '</submission-item></submission-batch>')
         self.assertEqual(expected_xml, returned_xml)
 
+    @override_settings(STREAM_DATA=True)
+    def test_data_list_xml_format_no_data(self):
+        """Test DataViewSet Query list XML"""
+        # create form
+        xls_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/forms/tutorial/tutorial.xls"
+        )
+        self._publish_xls_file_and_set_xform(xls_file_path)
+
+        view = DataViewSet.as_view({'get': 'list'})
+
+        formid = self.xform.pk
+        query_str = '{"_date_modified":{"$gt":"2020-01-22T11:42:20"}}'
+        request = self.factory.get('/?query=%s' % query_str, **self.extra)
+        response = view(request, pk=formid, format='xml')
+
+        self.assertEqual(response.status_code, 200)
+
+        returned_xml = (
+            ''.join([i.decode('utf-8') for i in response.streaming_content])
+
+        )
+
+        server_time = ET.fromstring(returned_xml).attrib.get('serverTime')
+
+        expected_xml = (
+            '<?xml version="1.0" encoding="utf-8"?>\n'
+            f'<submission-batch serverTime="{server_time}">'
+            '</submission-batch>'
+        )
+
+        self.assertEqual(expected_xml, returned_xml)
+
     @override_settings(SUBMISSION_RETRIEVAL_THRESHOLD=1)
     def test_data_paginated_past_threshold(self):
         """

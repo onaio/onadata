@@ -335,7 +335,11 @@ class InstanceXMLRenderer(XMLRenderer):
         yield self._get_current_buffer_data()
 
         data = data.__iter__()
-        out = next(data)
+
+        try:
+            out = next(data)
+        except StopIteration:
+            out = None
 
         while out:
             try:
