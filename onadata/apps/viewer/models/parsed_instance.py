@@ -170,7 +170,8 @@ def _get_sort_fields(sort):
 
 
 def get_sql_with_params(xform, query=None, fields=None, sort=None, start=None,
-                        end=None, start_index=None, limit=None, count=None):
+                        end=None, start_index=None, limit=None, count=None,
+                        json_only: bool = True):
     records = _get_instances(xform, start, end)
     params = []
     sort = _get_sort_fields(sort)
@@ -196,8 +197,9 @@ def get_sql_with_params(xform, query=None, fields=None, sort=None, start=None,
             + u" AND deleted_at IS NULL"
         params = [xform.pk] + where_params
     else:
+        if json_only:
+            records = records.values_list('json', flat=True)
 
-        records = records.values_list('json', flat=True)
         if query and isinstance(query, list):
             for qry in query:
                 w, wp = get_where_clause(qry, known_integers)
@@ -230,10 +232,12 @@ def get_sql_with_params(xform, query=None, fields=None, sort=None, start=None,
 
 
 def query_data(xform, query=None, fields=None, sort=None, start=None,
-               end=None, start_index=None, limit=None, count=None):
+               end=None, start_index=None, limit=None, count=None,
+               json_only: bool = True):
 
     sql, params, records = get_sql_with_params(
-        xform, query, fields, sort, start, end, start_index, limit, count
+        xform, query, fields, sort, start, end, start_index, limit, count,
+        json_only=json_only
     )
     if fields and isinstance(fields, six.string_types):
         fields = json.loads(fields)

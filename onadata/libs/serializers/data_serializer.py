@@ -111,9 +111,6 @@ class DataInstanceXMLSerializer(serializers.ModelSerializer):
         fields = ('xml', )
 
     def to_representation(self, instance):
-        if isinstance(instance, dict):
-            instance = Instance.objects.get(id=instance.get('_id'))
-
         ret = super(
             DataInstanceXMLSerializer, self).to_representation(instance)
         if 'xml' in ret:
