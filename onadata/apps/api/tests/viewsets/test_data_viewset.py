@@ -2609,7 +2609,9 @@ class TestDataViewSet(TestBase):
         request = self.factory.get('/', **self.extra)
 
         formid = self.xform.pk
-        expected_order = [4, 3, 2, 1]
+        expected_order = list(Instance.objects.filter(
+            xform=self.xform).order_by(
+                '-date_modified').values_list('id', flat=True))
         request = self.factory.get(
             '/?sort=-date_modified', **self.extra)
         response = view(request, pk=formid, format='xml')
