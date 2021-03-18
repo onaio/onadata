@@ -213,8 +213,12 @@ def get_sql_with_params(xform, query=None, fields=None, sort=None, start=None,
             if not fields:
                 # we have to do a sql query for json field order
                 sql, params = records.query.sql_with_params()
-            params = list(params) + json_order_by_params(sort)
-            sql = u"%s %s" % (sql, json_order_by(sort))
+            params = list(params) + json_order_by_params(
+                sort, none_json_fields=NONE_JSON_FIELDS)
+            sql = u"%s %s" % (sql, json_order_by(
+                sort,
+                none_json_fields=NONE_JSON_FIELDS,
+                model_name="logger_instance"))
         elif not fields:
             records = records.order_by(*sort)
 
