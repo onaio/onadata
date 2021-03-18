@@ -431,7 +431,7 @@ class TestConnectViewSet(TestAbstractViewSet):
                          u"wait 30 minutes before trying again.")
         request_ip = request.META.get('REMOTE_ADDR')
         self.assertEqual(
-            cache.get(safe_key(f'login_attempts-{request_ip}')), 1)
+            cache.get(safe_key(f'login_attempts-{request_ip}-bob')), 1)
 
         # cache value increments with subsequent attempts
         response = view(request)
@@ -441,16 +441,16 @@ class TestConnectViewSet(TestAbstractViewSet):
                          u"after 8 more failed login attempts you'll have to "
                          u"wait 30 minutes before trying again.")
         self.assertEqual(
-            cache.get(safe_key(f'login_attempts-{request_ip}')), 2)
+            cache.get(safe_key(f'login_attempts-{request_ip}-bob')), 2)
 
         # login attempts are tracked separately for other IPs
         request.META.update({'HTTP_X_REAL_IP': '5.6.7.8'})
         response = view(request)
         self.assertEqual(response.status_code, 401)
         self.assertEqual(
-            cache.get(safe_key(f'login_attempts-{request_ip}')), 2)
+            cache.get(safe_key(f'login_attempts-{request_ip}-bob')), 2)
         self.assertEqual(
-            cache.get(safe_key('login_attempts-5.6.7.8')), 1
+            cache.get(safe_key('login_attempts-5.6.7.8-bob')), 1
         )
 
         # login_attempts doesn't increase with correct login
@@ -459,25 +459,25 @@ class TestConnectViewSet(TestAbstractViewSet):
         response = view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            cache.get(safe_key(f'login_attempts-{request_ip}')), 2)
+            cache.get(safe_key(f'login_attempts-{request_ip}-bob')), 2)
 
         # lockout_user cache created upon fifth attempt
         auth = DigestAuth('bob', 'bob')
         request = self._get_request_session_with_auth(view, auth)
         self.assertFalse(send_account_lockout_email.called)
-        cache.set(safe_key(f'login_attempts-{request_ip}'), 9)
-        self.assertIsNone(cache.get(safe_key(f'lockout_user-{request_ip}')))
+        cache.set(safe_key(f'login_attempts-{request_ip}-bob'), 9)
+        self.assertIsNone(cache.get(safe_key(f'lockout_ip-{request_ip}-bob')))
         response = view(request)
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.data['detail'],
                          u"Locked out. Too many wrong username/password "
                          u"attempts. Try again in 30 minutes.")
         self.assertEqual(
-            cache.get(safe_key(f'login_attempts-{request_ip}')), 10)
+            cache.get(safe_key(f'login_attempts-{request_ip}-bob')), 10)
         self.assertIsNotNone(
-            cache.get(safe_key(f'lockout_ip-{request_ip}')))
+            cache.get(safe_key(f'lockout_ip-{request_ip}-bob')))
         lockout = datetime.strptime(
-            cache.get(safe_key(f'lockout_ip-{request_ip}')),
+            cache.get(safe_key(f'lockout_ip-{request_ip}-bob')),
             '%Y-%m-%dT%H:%M:%S')
         self.assertIsInstance(lockout, datetime)
 
@@ -498,6 +498,17 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.assertEqual(response.data['detail'],
                          u"Locked out. Too many wrong username/password "
                          u"attempts. Try again in 30 minutes.")
+
+        # Other users on same IP not locked out
+        alice = User.objects.create(username='alice')
+        alice.set_password('alice')
+        update_partial_digests(alice, "alice")
+        auth = DigestAuth('alice', 'alice')
+
+        request = self._get_request_session_with_auth(view, auth)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(request.META.get('REMOTE_ADDR'), request_ip)
         # clear cache
         cache.clear()
 

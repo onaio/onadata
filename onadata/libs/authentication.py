@@ -304,8 +304,8 @@ def check_lockout(request) -> Tuple[Optional[str], Optional[str]]:
         ip, username = retrieve_user_identification(request)
 
         if ip and username:
-            lockout = cache.get(safe_key("{}{}".format(
-                LOCKOUT_IP, ip)))
+            lockout = cache.get(safe_key("{}{}-{}".format(
+                LOCKOUT_IP, ip, username)))
             if lockout:
                 time_locked_out = datetime.now() - datetime.strptime(
                     lockout, "%Y-%m-%dT%H:%M:%S"
@@ -334,14 +334,14 @@ def login_attempts(request):
     a specified amount of time
     """
     ip, username = check_lockout(request)
-    attempts_key = safe_key("{}{}".format(LOGIN_ATTEMPTS, ip))
+    attempts_key = safe_key("{}{}-{}".format(LOGIN_ATTEMPTS, ip, username))
     attempts = cache.get(attempts_key)
 
     if attempts:
         cache.incr(attempts_key)
         attempts = cache.get(attempts_key)
         if attempts >= getattr(settings, "MAX_LOGIN_ATTEMPTS", 10):
-            lockout_key = safe_key("{}{}".format(LOCKOUT_IP, ip))
+            lockout_key = safe_key("{}{}-{}".format(LOCKOUT_IP, ip, username))
             lockout = cache.get(lockout_key)
             if not lockout:
                 send_lockout_email(username, ip)
