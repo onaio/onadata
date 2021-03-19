@@ -26,6 +26,7 @@ jobs:
 
       - name: Get the version
         id: get-version
+        if: github.event.inputs.versionTag == ''
         run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
 
       - name: Configure AWS credentials
@@ -45,11 +46,11 @@ jobs:
         with:
           context: ./docker/onadata-uwsgi
           file: ./docker/onadata-uwsgi/Dockerfile
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           build-args: |
             release_version=${{ github.event.inputs.versionTag || steps.get-version.outputs.VERSION }}
             optional_packages=PyYAML django-redis ${{ secrets.ECR_OPTIONAL_PACKAGES }}
-            ssh_private_key=${{ secrets.SSH_PRIVATE_KEY }}
+            ssh_private_key="${{ secrets.SSH_PRIVATE_KEY }}"
           push: true
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
