@@ -42,7 +42,7 @@ jobs:
         with:
           context: ./docker/onadata-uwsgi
           file: ./docker/onadata-uwsgi/Dockerfile
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           build-args: |
             release_version=${{ steps.get_version.outputs.VERSION }}
             optional_packages=PyYAML django-redis
