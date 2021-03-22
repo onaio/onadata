@@ -239,13 +239,15 @@ class TestInstance(TestBase):
         serializer_instance.is_valid()
         serializer_instance.save()
         instance.refresh_from_db()
-        status, comment = instance.get_review_status_and_comment()
+        status, comment, _date = instance.get_review_details()
 
         self.assertNotIn(u'_review_comment', instance.json.keys())
         self.assertIn(u'_review_status', instance.json.keys())
+        self.assertIn(u'_review_date', instance.json.keys())
         self.assertEqual(SubmissionReview.APPROVED,
                          instance.json[u'_review_status'])
         self.assertEqual(SubmissionReview.APPROVED, status)
+        self.assertEqual(instance.date_created, _date)
         self.assertEqual(None, comment)
         self.assertTrue(instance.has_a_review)
 
@@ -260,13 +262,15 @@ class TestInstance(TestBase):
         serializer_instance.is_valid()
         serializer_instance.save()
         instance.refresh_from_db()
-        status, comment = instance.get_review_status_and_comment()
+        status, comment, _date = instance.get_review_details()
 
         self.assertIn(u'_review_comment', instance.json.keys())
         self.assertIn(u'_review_status', instance.json.keys())
+        self.assertIn(u'_review_date', instance.json.keys())
         self.assertEqual(SubmissionReview.APPROVED,
                          instance.json[u'_review_status'])
         self.assertEqual(SubmissionReview.APPROVED, status)
+        self.assertEqual(instance.date_created, _date)
         self.assertEqual("Hey There", comment)
         self.assertTrue(instance.has_a_review)
 

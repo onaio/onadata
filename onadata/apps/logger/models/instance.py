@@ -40,7 +40,7 @@ from onadata.libs.utils.common_tags import (
     MEDIA_ALL_RECEIVED, MEDIA_COUNT, MONGO_STRFTIME, NOTES,
     REVIEW_STATUS, START, STATUS, SUBMISSION_TIME, SUBMITTED_BY,
     TAGS, TOTAL_MEDIA, UUID, VERSION, XFORM_ID, XFORM_ID_STRING,
-    REVIEW_COMMENT)
+    REVIEW_COMMENT, REVIEW_DATE)
 from onadata.libs.utils.dict_tools import get_values_matching_key
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.timing import calculate_duration
@@ -376,10 +376,11 @@ class InstanceBaseClass(object):
 
             # pylint: disable=no-member
             if self.has_a_review:
-                status, comment = self.get_review_status_and_comment()
+                status, comment, review_date = self.get_review_details()
                 doc[REVIEW_STATUS] = status
                 if comment:
                     doc[REVIEW_COMMENT] = comment
+                doc[REVIEW_DATE] = review_date
 
             # pylint: disable=attribute-defined-outside-init
             if not self.date_created:
@@ -441,15 +442,17 @@ class InstanceBaseClass(object):
         # pylint: disable=no-member
         return [note.get_data() for note in self.notes.all()]
 
-    def get_review_status_and_comment(self):
+    def get_review_details(self):
         """
-        Return a tuple of review status and comment
+        Return a tuple of review status, comment and review date
         """
         try:
             # pylint: disable=no-member
-            status = self.reviews.latest('date_modified').status
-            comment = self.reviews.latest('date_modified').get_note_text()
-            return status, comment
+            review = self.reviews.latest('date_modified')
+            status = review.status
+            comment = review.get_note_text()
+            review_date = review.date_created
+            return status, comment, review_date
         except SubmissionReview.DoesNotExist:
             return None
 

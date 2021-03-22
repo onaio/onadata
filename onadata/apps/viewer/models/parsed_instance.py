@@ -303,7 +303,7 @@ class ParsedInstance(models.Model):
             data[DELETEDAT] = self.instance.deleted_at.strftime(MONGO_STRFTIME)
 
         if self.instance.has_a_review:
-            status, comment = self.instance.get_review_status_and_comment()
+            status, comment, _ = self.instance.get_review_details()
             data[REVIEW_STATUS] = status
             if comment:
                 data[REVIEW_COMMENT] = comment
