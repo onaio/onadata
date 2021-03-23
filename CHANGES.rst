@@ -3,6 +3,19 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.5.3(2021-03-23)
+------------------
+
+- Add github workflow to build an AWS ECR image
+  `PR #2034 <https://github.com/onaio/onadata/pull/2034>`_
+  [@DavisRayM]
+- Publish arm64 Docker Image
+  `PR #2042 <https://github.com/onaio/onadata/pull/2042>`_
+  [@morrismukiri]
+- Lockout IP Changes
+  `PR #2040 <https://github.com/onaio/onadata/pull/2040>`_
+  [@DavisRayM]
+
 v2.5.2(2021-03-10)
 ------------------
 
@@ -10,7 +23,7 @@ v2.5.2(2021-03-10)
   `PR #2029 <https://github.com/onaio/onadata/pull/2029>`_
   [@DavisRayM]
 - Update PyXForm dependency to v1.4.0
-  `PR #2031 <https://github.com/onaio/onadata/pull/2031`_
+  `PR #2031 <https://github.com/onaio/onadata/pull/2031>`_
   [@DavisRayM]
 
 v2.5.1(2021-02-23)
@@ -20,34 +33,34 @@ v2.5.1(2021-02-23)
   `PR #2002 <https://github.com/onaio/onadata/pull/2002>`_
   [@DavisRayM]
 - Lockout users based on specific IPs instead of username
-  `PR #1978 <https://github.com/onaio/onadata/pull/1978`_
+  `PR #1978 <https://github.com/onaio/onadata/pull/1978>`_
   [@DavisRayM]
 - Add pagination & xml support to the data list endpoint
-  `PR #2005 <https://github.com/onaio/onadata/pull/2005`_
+  `PR #2005 <https://github.com/onaio/onadata/pull/2005>`_
   [@DavisRayM]
 - Paginate data list responses after a configurable threshold
-  `PR #2010 <https://github.com/onaio/onadata/pull/2010`_
+  `PR #2010 <https://github.com/onaio/onadata/pull/2010>`_
   [@DavisRayM]
 - Trigger error on url in xform title
-  `PR #2007 <https://github.com/onaio/onadata/pull/2007`_
+  `PR #2007 <https://github.com/onaio/onadata/pull/2007>`_
   [@ivermac]
 - Check if XForm is a MergedXForm and merge field choices if it is(a MergedXForm)
-  `PR #2011 <https://github.com/onaio/onadata/pull/2011`_
+  `PR #2011 <https://github.com/onaio/onadata/pull/2011>`_
   [@FrankApiyo]
 - Support query by date_modified field *
-  `PR #2009 <https://github.com/onaio/onadata/pull/2009`_
+  `PR #2009 <https://github.com/onaio/onadata/pull/2009>`_
   [@DavisRayM]
 - Capture attachment file names whose name exceeds 100 chars
-  `PR #2003 <https://github.com/onaio/onadata/pull/2003`_
+  `PR #2003 <https://github.com/onaio/onadata/pull/2003>`_
   [@WinnyTroy]
 - Merge select one and select multiple options at MergedXform creation
-  `PR #2015 <https://github.com/onaio/onadata/pull/2015`_
+  `PR #2015 <https://github.com/onaio/onadata/pull/2015>`_
   [@FrankApiyo]
 - Use language parameter to create exports
-  `PR #2014 <https://github.com/onaio/onadata/pull/2014`_
+  `PR #2014 <https://github.com/onaio/onadata/pull/2014>`_
   [@FrankApiyo]
 - Fix Charts endpoint JSON response not rendering
-  `PR #2022 <https://github.com/onaio/onadata/pull/2022`_
+  `PR #2022 <https://github.com/onaio/onadata/pull/2022>`_
   [@DavisRayM]
 
 v2.5.0(2021-01-21)
@@ -88,10 +101,10 @@ v2.4.9(2020-12-17)
 ------------------
 
 - Update submission metrics collection
-  `PR #1895 <https://github.com/onaio/onadata/pull/1895`_
+  `PR #1895 <https://github.com/onaio/onadata/pull/1895>`_
   [@WinnyTroy]
 - XForm and Data ViewSet updates
-  `PR #1971 <https://github.com/onaio/onadata/pull/1971`_
+  `PR #1971 <https://github.com/onaio/onadata/pull/1971>`_
   [@DavisRayM]
 
 v2.4.8(2020-12-14)
