@@ -3,6 +3,19 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.5.3(2021-03-23)
+------------------
+
+- Add github workflow to build an AWS ECR image
+  `PR #2034 <https://github.com/onaio/onadata/pull/2034>`_
+  [@DavisRayM]
+- Publish arm64 Docker Image
+  `PR #2042 <https://github.com/onaio/onadata/pull/2042`_
+  [@morrismukiri]
+- Lockout IP Changes
+  `PR #2040 <https://github.com/onaio/onadata/pull/2040`_
+  [@DavisRayM]
+
 v2.5.2(2021-03-10)
 ------------------
 
