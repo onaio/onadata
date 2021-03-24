@@ -215,12 +215,13 @@ class TestInstance(TestBase):
         self.assertNotIn(atime, data)
 
     def test_instance_json_updated_on_review(self):
-        """Test:
+        """
+        Test:
             -no review comment or status on instance json
-            before submission review
+                before submission review
             -instance json review fields update on review save
             -instance review methods
-            """
+        """
         self._publish_transportation_form_and_submit_instance()
         instance = Instance.objects.first()
         self.assertNotIn(u'_review_status', instance.json.keys())
@@ -239,15 +240,17 @@ class TestInstance(TestBase):
         serializer_instance.is_valid()
         serializer_instance.save()
         instance.refresh_from_db()
-        status, comment, _date = instance.get_review_details()
+        instance_review = instance.get_latest_review()
 
         self.assertNotIn(u'_review_comment', instance.json.keys())
         self.assertIn(u'_review_status', instance.json.keys())
         self.assertIn(u'_review_date', instance.json.keys())
         self.assertEqual(SubmissionReview.APPROVED,
                          instance.json[u'_review_status'])
-        self.assertEqual(SubmissionReview.APPROVED, status)
-        self.assertEqual(instance.date_created, _date)
+        self.assertEqual(SubmissionReview.APPROVED, instance_review.status)
+        self.assertEqual(instance.date_created.strftime(MONGO_STRFTIME),
+                         instance_review.date_created.strftime(MONGO_STRFTIME))
+        comment = instance_review.get_note_text()
         self.assertEqual(None, comment)
         self.assertTrue(instance.has_a_review)
 
@@ -262,17 +265,45 @@ class TestInstance(TestBase):
         serializer_instance.is_valid()
         serializer_instance.save()
         instance.refresh_from_db()
-        status, comment, _date = instance.get_review_details()
+        instance_review = instance.get_latest_review()
 
         self.assertIn(u'_review_comment', instance.json.keys())
         self.assertIn(u'_review_status', instance.json.keys())
         self.assertIn(u'_review_date', instance.json.keys())
         self.assertEqual(SubmissionReview.APPROVED,
                          instance.json[u'_review_status'])
-        self.assertEqual(SubmissionReview.APPROVED, status)
-        self.assertEqual(instance.date_created, _date)
+        self.assertEqual(SubmissionReview.APPROVED, instance_review.status)
+        self.assertEqual(instance.date_created.strftime(MONGO_STRFTIME),
+                         instance_review.date_created.strftime(MONGO_STRFTIME))
+        comment = instance_review.get_note_text()
         self.assertEqual("Hey There", comment)
         self.assertTrue(instance.has_a_review)
+
+    def test_retrieve_non_existent_submission_review(self):
+        """
+        Test fetch submission review for instance when
+        a submission review was never created for the submission
+        """
+
+        self._publish_transportation_form_and_submit_instance()
+        instance = Instance.objects.first()
+        self.assertNotIn(u'_review_status', instance.json.keys())
+        self.assertNotIn(u'_review_comment', instance.json.keys())
+        self.assertFalse(instance.has_a_review)
+
+        # Update instance has_a_review field
+        instance.has_a_review = True
+        instance.save()
+        instance.refresh_from_db()
+
+        # Test that we return None for
+        # instances when SubmissionReview.DoesNotExist
+        self.assertIsNone(instance.get_latest_review())
+
+        # Test instance json is not updated
+        self.assertNotIn(u'_review_comment', instance.json.keys())
+        self.assertNotIn(u'_review_status', instance.json.keys())
+        self.assertNotIn(u'_review_date', instance.json.keys())
 
     def test_numeric_checker_with_negative_integer_values(self):
         # Evaluate negative integer values

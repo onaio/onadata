@@ -376,11 +376,13 @@ class InstanceBaseClass(object):
 
             # pylint: disable=no-member
             if self.has_a_review:
-                status, comment, review_date = self.get_review_details()
-                doc[REVIEW_STATUS] = status
-                if comment:
-                    doc[REVIEW_COMMENT] = comment
-                doc[REVIEW_DATE] = review_date.strftime(MONGO_STRFTIME)
+                review = self.get_latest_review()
+                if review:
+                    doc[REVIEW_STATUS] = review.status
+                    doc[REVIEW_DATE] = review.date_created.strftime(
+                        MONGO_STRFTIME)
+                    if review.get_note_text():
+                        doc[REVIEW_COMMENT] = review.get_note_text()
 
             # pylint: disable=attribute-defined-outside-init
             if not self.date_created:
@@ -442,17 +444,17 @@ class InstanceBaseClass(object):
         # pylint: disable=no-member
         return [note.get_data() for note in self.notes.all()]
 
-    def get_review_details(self):
+    def get_review_status_and_comment(self):
         """
-        Return a tuple of review status, comment and review date
+        Return a tuple of review status and comment.
+        Deprecated in favour of `get_latest_review`
+        TODO: Clean code of this unused function.
         """
         try:
             # pylint: disable=no-member
-            review = self.reviews.latest('date_modified')
-            status = review.status
-            comment = review.get_note_text()
-            review_date = review.date_created
-            return status, comment, review_date
+            status = self.reviews.latest('date_modified').status
+            comment = self.reviews.latest('date_modified').get_note_text()
+            return status, comment
         except SubmissionReview.DoesNotExist:
             return None
 
@@ -472,6 +474,16 @@ class InstanceBaseClass(object):
         start_time, end_time = data.get(start_name), data.get(end_name)
 
         return calculate_duration(start_time, end_time)
+
+    def get_latest_review(self):
+        """
+        Returns the latest review.
+        Used in favour of `get_review_status_and_comment`.
+        """
+        try:
+            return self.reviews.latest('date_modified')
+        except SubmissionReview.DoesNotExist:
+            return None
 
 
 class Instance(models.Model, InstanceBaseClass):
