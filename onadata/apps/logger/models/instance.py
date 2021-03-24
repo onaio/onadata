@@ -380,7 +380,7 @@ class InstanceBaseClass(object):
                 doc[REVIEW_STATUS] = status
                 if comment:
                     doc[REVIEW_COMMENT] = comment
-                doc[REVIEW_DATE] = review_date
+                doc[REVIEW_DATE] = review_date.strftime(MONGO_STRFTIME)
 
             # pylint: disable=attribute-defined-outside-init
             if not self.date_created:
