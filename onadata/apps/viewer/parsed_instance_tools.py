@@ -12,7 +12,8 @@ NONE_JSON_FIELDS = {
     '_submission_time': 'date_created',
     '_date_modified': 'date_modified',
     '_id': 'id',
-    '_version': 'version'
+    '_version': 'version',
+    '_last_edited': 'last_edited'
 }
 
 
