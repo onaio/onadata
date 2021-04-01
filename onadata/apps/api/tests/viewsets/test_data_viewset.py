@@ -879,7 +879,7 @@ class TestDataViewSet(TestBase):
         self.assertEqual(len(response.data), 4)
 
         instance = self.xform.instances.all().order_by('-date_created')[0]
-        date_modified = instance.date_modified.strftime(MONGO_STRFTIME)
+        date_modified = instance.date_modified.isoformat()
 
         query_str = ('{"_date_modified": {"$gte": "%s"},'
                      ' "_submitted_by": "%s"}' % (date_modified, 'bob'))
@@ -890,7 +890,7 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         expected_count = self.xform.instances.filter(
-            json___date_modified__gte=date_modified).count()
+            date_modified__gte=date_modified).count()
         self.assertEqual(len(response.data), expected_count)
 
     def test_filter_by_submission_time_and_submitted_by_with_data_arg(self):
