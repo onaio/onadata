@@ -62,6 +62,8 @@ datapackage==1.15.1
     # via pyfloip
 defusedxml==0.6.0
     # via djangorestframework-xml
+deprecated==1.2.12
+    # via -r requirements/base.in
 dict2xml==1.7.0
     # via onadata
 django-activity-stream==0.9.0
@@ -160,7 +162,12 @@ ijson==3.1.2
 imagesize==1.2.0
     # via sphinx
 importlib-metadata==2.0.0
-    # via jsonpickle
+    # via
+    #   flake8
+    #   jsonpickle
+    #   jsonschema
+    #   kombu
+    #   markdown
 inflection==0.5.1
     # via djangorestframework-jsonapi
 isodate==0.6.0
@@ -368,6 +375,8 @@ vine==1.3.0
     # via
     #   amqp
     #   celery
+wrapt==1.12.1
+    # via deprecated
 xlrd==1.2.0
     # via
     #   onadata
@@ -379,3 +388,6 @@ xmltodict==0.12.0
     # via onadata
 zipp==3.3.1
     # via importlib-metadata
+
+# The following packages are considered to be unsafe in a requirements file:
+# setuptools

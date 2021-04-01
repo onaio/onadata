@@ -5,6 +5,7 @@ Instance model class
 import math
 import pytz
 from datetime import datetime
+from deprecated import deprecated
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -444,11 +445,11 @@ class InstanceBaseClass(object):
         # pylint: disable=no-member
         return [note.get_data() for note in self.notes.all()]
 
+    @deprecated(version='2.5.3',
+                reason="Deprecated in favour of `get_latest_review`")
     def get_review_status_and_comment(self):
         """
         Return a tuple of review status and comment.
-        Deprecated in favour of `get_latest_review`
-        TODO: Clean code of this unused function.
         """
         try:
             # pylint: disable=no-member
