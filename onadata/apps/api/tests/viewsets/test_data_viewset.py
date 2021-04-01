@@ -2606,14 +2606,25 @@ class TestDataViewSet(TestBase):
         """
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
-        request = self.factory.get('/', **self.extra)
-
         formid = self.xform.pk
+
         expected_order = list(Instance.objects.filter(
             xform=self.xform).order_by(
                 '-date_modified').values_list('id', flat=True))
         request = self.factory.get(
-            '/?sort=-date_modified', **self.extra)
+            '/?sort=-_date_modified', **self.extra)
+        response = view(request, pk=formid, format='xml')
+        self.assertEqual(response.status_code, 200)
+        items_in_order = [
+            int(data.get('@objectID')) for data in response.data]
+        self.assertEqual(expected_order, items_in_order)
+
+        # Test `last_edited` field is sorted correctly
+        expected_order = list(Instance.objects.filter(
+            xform=self.xform).order_by(
+                'last_edited').values_list('id', flat=True))
+        request = self.factory.get(
+            '/?sort=_last_edited', **self.extra)
         response = view(request, pk=formid, format='xml')
         self.assertEqual(response.status_code, 200)
         items_in_order = [
