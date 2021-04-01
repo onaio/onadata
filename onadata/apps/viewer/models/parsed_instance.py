@@ -23,7 +23,7 @@ from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, \
     GEOLOCATION, SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, \
     DELETEDAT, TAGS, NOTES, SUBMITTED_BY, VERSION, DURATION, EDITED, \
     MEDIA_COUNT, TOTAL_MEDIA, MEDIA_ALL_RECEIVED, XFORM_ID, REVIEW_STATUS, \
-    REVIEW_COMMENT, DATE_MODIFIED
+    REVIEW_COMMENT, DATE_MODIFIED, REVIEW_DATE
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.mongo import _is_invalid_for_mongo
 
@@ -303,10 +303,13 @@ class ParsedInstance(models.Model):
             data[DELETEDAT] = self.instance.deleted_at.strftime(MONGO_STRFTIME)
 
         if self.instance.has_a_review:
-            status, comment = self.instance.get_review_status_and_comment()
-            data[REVIEW_STATUS] = status
-            if comment:
-                data[REVIEW_COMMENT] = comment
+            review = self.get_latest_review()
+            if review:
+                data[REVIEW_STATUS] = review.status
+                data[REVIEW_DATE] = review.date_created.strftime(
+                    MONGO_STRFTIME)
+                if review.get_note_text():
+                    data[REVIEW_COMMENT] = review.get_note_text()
 
         data[EDITED] = (True if self.instance.submission_history.count() > 0
                         else False)

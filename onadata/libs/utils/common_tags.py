@@ -78,6 +78,7 @@ TAGS = "_tags"
 NOTES = "_notes"
 REVIEW_STATUS = "_review_status"
 REVIEW_COMMENT = "_review_comment"
+REVIEW_DATE = "_review_date"
 
 # statistics
 MEAN = "mean"
