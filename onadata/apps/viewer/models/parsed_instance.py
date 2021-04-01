@@ -71,7 +71,12 @@ def get_name_from_survey_element(element):
 
 def _parse_sort_fields(fields):
     for field in fields:
-        yield NONE_JSON_FIELDS.get(field, field)
+        key = field.lstrip('-')
+        if field.startswith('-') and key in NONE_JSON_FIELDS.keys():
+            field = NONE_JSON_FIELDS.get(key)
+            yield f'-{field}'
+        else:
+            yield NONE_JSON_FIELDS.get(field, field)
 
 
 def _query_iterator(sql, fields=None, params=[], count=False):
