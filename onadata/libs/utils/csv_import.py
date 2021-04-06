@@ -160,6 +160,7 @@ def failed_import(rollback_uuids, xform, exception, status_message):
     :return: The async_status result
     """
     Instance.objects.filter(uuid__in=rollback_uuids, xform=xform).delete()
+    xform.submission_count(True)
     report_exception(
         'CSV Import Failed : %d - %s - %s' % (xform.pk, xform.id_string,
                                               xform.title), exception,
@@ -455,6 +456,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):
         # validation
         Instance.objects.filter(
             uuid__in=rollback_uuids, xform=xform).delete()
+        xform.submission_count(True)
         return async_status(
             FAILED,
             u'Invalid CSV data imported in row(s): {}'.format(
