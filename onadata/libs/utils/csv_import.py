@@ -160,6 +160,7 @@ def failed_import(rollback_uuids, xform, exception, status_message):
     :return: The async_status result
     """
     Instance.objects.filter(uuid__in=rollback_uuids, xform=xform).delete()
+    xform.submission_count(True)
     report_exception(
         'CSV Import Failed : %d - %s - %s' % (xform.pk, xform.id_string,
                                               xform.title), exception,
@@ -443,9 +444,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                             instance.user = users[0]
                             instance.save()
                 except Exception as e:
-                    failed_import(rollback_uuids, xform, e, text(e))
-                finally:
-                    xform.submission_count(True)
+                    return failed_import(rollback_uuids, xform, e, text(e))
     except UnicodeDecodeError as e:
         return failed_import(rollback_uuids, xform, e,
                              'CSV file must be utf-8 encoded')
@@ -455,6 +454,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):
         # validation
         Instance.objects.filter(
             uuid__in=rollback_uuids, xform=xform).delete()
+        xform.submission_count(True)
         return async_status(
             FAILED,
             u'Invalid CSV data imported in row(s): {}'.format(

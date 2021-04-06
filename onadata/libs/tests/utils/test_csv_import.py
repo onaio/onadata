@@ -122,6 +122,19 @@ class CSVImportTestCase(TestBase):
         self.xform.refresh_from_db()
         self.assertEqual(self.xform.num_of_submissions, count + 9)
 
+        # Test rollback on error and user feedback
+        with patch(
+            'onadata.libs.utils.csv_import.safe_create_instance'
+                ) as safe_create_mock:
+            safe_create_mock.side_effect = [AttributeError]
+            initial_count = self.xform.num_of_submissions
+            resp = csv_import.submit_csv(
+                self.user.username, self.xform, self.good_csv)
+            self.assertEqual(resp, {'job_status': 'FAILURE'})
+            self.xform.refresh_from_db()
+            self.assertEqual(
+                initial_count, self.xform.num_of_submissions)
+
     @patch('onadata.libs.utils.logger_tools.send_message')
     def test_submit_csv_edits(self, send_message_mock):
         xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
