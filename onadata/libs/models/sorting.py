@@ -1,5 +1,6 @@
 import json
 import six
+from typing import Dict
 
 
 def sort_from_mongo_sort_str(sort_str):
@@ -21,11 +22,16 @@ def sort_from_mongo_sort_str(sort_str):
     return sort_values
 
 
-def json_order_by(sort_list):
+def json_order_by(
+        sort_list, none_json_fields: Dict = {}, model_name: str = ""):
     _list = []
 
     for field in sort_list:
-        _str = u" json->>%s"
+        field_key = field.lstrip('-')
+        _str = u" json->>%s"\
+            if field_key not in none_json_fields.keys() else\
+            f'"{model_name}"."{none_json_fields.get(field_key)}"'
+
         if field.startswith('-'):
             _str += u" DESC"
         else:
@@ -38,10 +44,12 @@ def json_order_by(sort_list):
     return u""
 
 
-def json_order_by_params(sort_list):
+def json_order_by_params(sort_list, none_json_fields: Dict = {}):
     params = []
 
     for field in sort_list:
-        params.append(field.lstrip('-'))
+        field = field.lstrip('-')
+        if field not in none_json_fields.keys():
+            params.append(field.lstrip('-'))
 
     return params

@@ -71,7 +71,12 @@ def get_name_from_survey_element(element):
 
 def _parse_sort_fields(fields):
     for field in fields:
-        yield NONE_JSON_FIELDS.get(field, field)
+        key = field.lstrip('-')
+        if field.startswith('-') and key in NONE_JSON_FIELDS.keys():
+            field = NONE_JSON_FIELDS.get(key)
+            yield f'-{field}'
+        else:
+            yield NONE_JSON_FIELDS.get(field, field)
 
 
 def _query_iterator(sql, fields=None, params=[], count=False):
@@ -170,7 +175,8 @@ def _get_sort_fields(sort):
 
 
 def get_sql_with_params(xform, query=None, fields=None, sort=None, start=None,
-                        end=None, start_index=None, limit=None, count=None):
+                        end=None, start_index=None, limit=None, count=None,
+                        json_only: bool = True):
     records = _get_instances(xform, start, end)
     params = []
     sort = _get_sort_fields(sort)
@@ -196,8 +202,9 @@ def get_sql_with_params(xform, query=None, fields=None, sort=None, start=None,
             + u" AND deleted_at IS NULL"
         params = [xform.pk] + where_params
     else:
+        if json_only:
+            records = records.values_list('json', flat=True)
 
-        records = records.values_list('json', flat=True)
         if query and isinstance(query, list):
             for qry in query:
                 w, wp = get_where_clause(qry, known_integers)
@@ -213,8 +220,12 @@ def get_sql_with_params(xform, query=None, fields=None, sort=None, start=None,
             if not fields:
                 # we have to do a sql query for json field order
                 sql, params = records.query.sql_with_params()
-            params = list(params) + json_order_by_params(sort)
-            sql = u"%s %s" % (sql, json_order_by(sort))
+            params = list(params) + json_order_by_params(
+                sort, none_json_fields=NONE_JSON_FIELDS)
+            sql = u"%s %s" % (sql, json_order_by(
+                sort,
+                none_json_fields=NONE_JSON_FIELDS,
+                model_name="logger_instance"))
         elif not fields:
             records = records.order_by(*sort)
 
@@ -226,10 +237,12 @@ def get_sql_with_params(xform, query=None, fields=None, sort=None, start=None,
 
 
 def query_data(xform, query=None, fields=None, sort=None, start=None,
-               end=None, start_index=None, limit=None, count=None):
+               end=None, start_index=None, limit=None, count=None,
+               json_only: bool = True):
 
     sql, params, records = get_sql_with_params(
-        xform, query, fields, sort, start, end, start_index, limit, count
+        xform, query, fields, sort, start, end, start_index, limit, count,
+        json_only=json_only
     )
     if fields and isinstance(fields, six.string_types):
         fields = json.loads(fields)

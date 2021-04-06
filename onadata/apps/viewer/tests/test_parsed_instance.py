@@ -4,7 +4,7 @@ from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.parsed_instance import (
-    get_where_clause, get_sql_with_params
+    get_where_clause, get_sql_with_params, _parse_sort_fields
 )
 
 
@@ -130,3 +130,12 @@ class TestParsedInstance(TestBase):
             xform=self.xform, query=[{'_submitted_by': 'bob'}, 'ambulance']
         )
         self.assertEqual(2, records.count())
+
+    def test_parse_sort_fields_function(self):
+        """
+        Test that the _parse_sort_fields function works as intended
+        """
+        fields = ['name', '_submission_time', '-_date_modified']
+        expected_return = ['name', 'date_created', '-date_modified']
+        self.assertEqual(
+            [i for i in _parse_sort_fields(fields)], expected_return)

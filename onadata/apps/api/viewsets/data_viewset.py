@@ -582,9 +582,10 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                         filter_queryset_xform_meta_perms_sql(self.get_object(),
                                                              self.request.user,
                                                              query)
-                    self.object_list = query_data(xform, query=query,
-                                                  sort=sort, start_index=start,
-                                                  limit=limit, fields=fields)
+                    self.object_list = query_data(
+                        xform, query=query, sort=sort, start_index=start,
+                        limit=limit, fields=fields,
+                        json_only=not self.kwargs.get('format') == 'xml')
                 except NoRecordsPermission:
                     self.object_list = []
 
