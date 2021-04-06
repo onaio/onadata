@@ -444,9 +444,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                             instance.user = users[0]
                             instance.save()
                 except Exception as e:
-                    failed_import(rollback_uuids, xform, e, text(e))
-                finally:
-                    xform.submission_count(True)
+                    return failed_import(rollback_uuids, xform, e, text(e))
     except UnicodeDecodeError as e:
         return failed_import(rollback_uuids, xform, e,
                              'CSV file must be utf-8 encoded')
