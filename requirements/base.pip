@@ -63,7 +63,7 @@ datapackage==1.15.1
 defusedxml==0.6.0
     # via djangorestframework-xml
 deprecated==1.2.12
-    # via -r requirements/base.in
+    # via onadata
 dict2xml==1.7.0
     # via onadata
 django-activity-stream==0.9.0
@@ -96,7 +96,7 @@ django-taggit==1.3.0
     # via onadata
 django-templated-email==2.3.0
     # via onadata
-django==2.2.16
+django==2.2.20
     # via
     #   django-cors-headers
     #   django-debug-toolbar
@@ -162,12 +162,7 @@ ijson==3.1.2
 imagesize==1.2.0
     # via sphinx
 importlib-metadata==2.0.0
-    # via
-    #   flake8
-    #   jsonpickle
-    #   jsonschema
-    #   kombu
-    #   markdown
+    # via jsonpickle
 inflection==0.5.1
     # via djangorestframework-jsonapi
 isodate==0.6.0
