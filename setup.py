@@ -31,7 +31,7 @@ setup(
     },
     packages=find_packages(exclude=['docs', 'tests']),
     install_requires=[
-        "Django>=2.2,<3",
+        "Django>=2.2.19,<3",
         "django-guardian",
         "django-registration-redux",
         "django-templated-email",
@@ -113,6 +113,8 @@ setup(
         # Monitoring
         "analytics-python",
         "appoptics-metrics",
+        # Deprecation tagging
+        "deprecated",
     ],
     dependency_links=[
         'https://github.com/onaio/python-digest/tarball/3af1bd0ef6114e24bf23d0e8fd9d7ebf389845d1#egg=python-digest',  # noqa pylint: disable=line-too-long
