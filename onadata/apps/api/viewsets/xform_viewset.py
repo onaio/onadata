@@ -793,8 +793,8 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         if request.query_params.get('format') in ['csvzip', 'savzip']:
             # Overide renderer and mediatype because all response are
             # suppose to be in json
-            # TODO: Avoid overiding the format query param which DRF uses
-            #       to select the renderer
+            # TODO: Avoid overiding the format query param for export type
+            #  DRF uses format to select the renderer
             self.request.accepted_renderer = renderers.JSONRenderer()
             self.request.accepted_mediatype = 'application/json'
 
