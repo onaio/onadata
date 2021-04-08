@@ -790,6 +790,14 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         if query:
             options.update({'query': query})
 
+        if request.query_params.get('format') in ['csvzip', 'savzip']:
+            # Overide renderer and mediatype because all response are
+            # suppose to be in json
+            # TODO: Avoid overiding the format query param which DRF uses
+            #       to select the renderer
+            self.request.accepted_renderer = renderers.JSONRenderer()
+            self.request.accepted_mediatype = 'application/json'
+
         if job_uuid:
             try:
                 resp = get_async_response(job_uuid, request, xform)
