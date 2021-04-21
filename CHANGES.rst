@@ -3,6 +3,22 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.5.4(2021-04-21)
+------------------
+
+- Add review date
+  `PR #2044 <https://github.com/onaio/onadata/pull/2044>`_
+  [@WinnyTroy]
+- Add support for sort and handle streaming of empty datasets on XML Responses
+  `PR #2039 <https://github.com/onaio/onadata/pull/2039>`_
+  [@DavisRayM]
+- Ensure that the CSV Import status is updated on failed import
+  `PR #2046 <https://github.com/onaio/onadata/pull/2046>`_
+  [@DavisRayM]
+- Update Django version to the latest 2.2.* version
+  `PR #2047 <https://github.com/onaio/onadata/pull/2047>`_
+  [@DavisRayM]
+
 v2.5.3(2021-03-23)
 ------------------
 
