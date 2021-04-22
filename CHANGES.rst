@@ -3,7 +3,7 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
-v2.5.4(2021-04-21)
+v2.5.4(2021-04-23)
 ------------------
 
 - Add review date
