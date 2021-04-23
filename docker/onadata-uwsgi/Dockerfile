@@ -4,21 +4,11 @@ ENV DEBIAN_FRONTEND noninteractive
 ENV PYTHONUNBUFFERED 1
 
 ARG optional_packages
-# Optional Argument; Used in cases where the optional
-# packages require some sort of authentication i.e Private repositories on github
-ARG ssh_private_key
-
-# Create SSH Key file
-RUN mkdir /root/.ssh/
-RUN echo "${ssh_private_key}" > /root/.ssh/id_rsa && chmod 600 /root/.ssh/id_rsa
-
-# Add github to accepted domains
-RUN touch /root/.ssh/known_hosts
-RUN ssh-keyscan github.com > /root/.ssh/known_hosts
 
 # Install optional requirements
+# Read more on the ssh argument here: https://docs.docker.com/develop/develop-images/build_enhancements/#using-ssh-to-access-private-data-in-builds
 # hadolint ignore=DL3013
-RUN if [ -n "$optional_packages" ]; then pip install ${optional_packages} ; fi
+RUN --mount=type=ssh if [ -n "$optional_packages" ]; then pip install ${optional_packages} ; fi
 
 FROM ubuntu:20.04
 COPY --from=intermediate /usr/local/lib/python3.8/site-packages/ /usr/local/lib/python3.8/dist-packages/
