@@ -4901,7 +4901,9 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
     def test_export_csvzip_form_data_async(self):
         with HTTMock(enketo_mock):
-            self._publish_xls_form_to_project()
+            xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
+                                    "tests", "fixtures", "tutorial.xls")
+            self._publish_xls_form_to_project(xlsform_path=xls_path)
             view = XFormViewSet.as_view({
                 'get': 'export_async',
             })
