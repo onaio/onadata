@@ -2,7 +2,6 @@ import os
 
 from mock import MagicMock, patch
 
-from django.core.files.storage import get_storage_class
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.media_viewset import MediaViewSet
@@ -40,13 +39,14 @@ class TestMediaViewSet(TestAbstractViewSet):
     @patch('onadata.libs.utils.presigned_download_url.boto3.client')
     def test_retrieve_view_from_s3(
             self, mock_presigned_urls, mock_get_storage_class):
+
         mock_presigned_urls().generate_presigned_url = MagicMock(
-            return_value='https://testing.s3.amazonaws.com/johndoe/attachments/'
+            return_value='https://testing.s3.amazonaws.com/doe/attachments/'
             u'4_Media_file/media.png?'
             u'response-content-disposition=attachment%3Bfilename%3media.png&'
             u'response-content-type=application%2Foctet-stream&'
             u'AWSAccessKeyId=AKIAJ3XYHHBIJDL7GY7A'
-            u'&Signature=aGhiK%2BLFVeWm%2Fmg3ShZD5zc05g8%3D&Expires=1615554960')
+            u'&Signature=aGhiK%2BLFVeWm%2Fmg3S5zc05g8%3D&Expires=1615554960')
         request = self.factory.get('/', {
             'filename': self.attachment.media_file.name}, **self.extra)
         response = self.retrieve_view(request, self.attachment.pk)
