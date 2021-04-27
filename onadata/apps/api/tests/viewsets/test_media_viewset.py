@@ -40,8 +40,6 @@ class TestMediaViewSet(TestAbstractViewSet):
     @patch('onadata.libs.utils.presigned_download_url.boto3.client')
     def test_retrieve_view_from_s3(
             self, mock_presigned_urls, mock_get_storage_class):
-        mock_get_storage_class = get_storage_class(
-            'storages.backends.s3boto3.S3Boto3Storage')()
         mock_presigned_urls().generate_presigned_url = MagicMock(
             return_value='https://testing.s3.amazonaws.com/johndoe/attachments/'
             u'4_Media_file/media.png?'
