@@ -19,7 +19,7 @@ def generate_media_download_url(obj, expiration: int = 3600):
     except ModuleNotFoundError:
         return HttpResponseRedirect(obj.media_file.url)
 
-    if default_storage.__class__ != s3.__class__:
+    if not isinstance(default_storage, type(s3)):
         file_obj = open(settings.MEDIA_ROOT + file_path, 'rb')
         response = HttpResponse(FileWrapper(file_obj),
                                 content_type=obj.mimetype)
