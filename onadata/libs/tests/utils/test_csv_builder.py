@@ -141,6 +141,7 @@ class TestCSVDataFrameBuilder(TestBase):
             expected_columns.remove(u'_deleted_at')
             expected_columns.remove(u'_review_status')
             expected_columns.remove(u'_review_comment')
+            expected_columns.remove(u'_review_date')
         except ValueError:
             pass
         self.maxDiff = None
@@ -579,7 +580,7 @@ class TestCSVDataFrameBuilder(TestBase):
             'instanceID', '_id', '_uuid', '_submission_time', '_date_modified',
             '_tags', '_notes', '_version', '_duration', '_submitted_by',
             '_total_media', '_media_count', '_media_all_received',
-            '_review_status', '_review_comment'
+            '_review_status', '_review_comment', '_review_date'
         ]
         self.assertEqual(expected_header, header)
         rows = []
@@ -625,7 +626,7 @@ class TestCSVDataFrameBuilder(TestBase):
             'instanceID', '_id', '_uuid', '_submission_time', '_date_modified',
             '_tags', '_notes', '_version', '_duration', '_submitted_by',
             '_total_media', '_media_count', '_media_all_received',
-            '_review_status', '_review_comment'
+            '_review_status', '_review_comment', '_review_date'
         ]
         self.assertEqual(expected_header, header)
         labels = next(csv_reader)
@@ -640,7 +641,7 @@ class TestCSVDataFrameBuilder(TestBase):
             '_submission_time', '_date_modified', '_tags', '_notes',
             '_version', '_duration', '_submitted_by', '_total_media',
             '_media_count', '_media_all_received', '_review_status',
-            '_review_comment'
+            '_review_comment', '_review_date'
         ]
         self.assertEqual(expected_labels, labels)
         rows = []
@@ -688,7 +689,7 @@ class TestCSVDataFrameBuilder(TestBase):
             '_submission_time', '_date_modified', '_tags', '_notes',
             '_version', '_duration', '_submitted_by', '_total_media',
             '_media_count', '_media_all_received', '_review_status',
-            '_review_comment'
+            '_review_comment', '_review_date'
         ]
         self.assertEqual(expected_labels, labels)
         rows = []
@@ -786,7 +787,7 @@ class TestCSVDataFrameBuilder(TestBase):
             'instanceID', '_id', '_uuid', '_submission_time', '_date_modified',
             '_tags', '_notes', '_version', '_duration', '_submitted_by',
             '_total_media', '_media_count', '_media_all_received', '_xform_id',
-            '_review_status', '_review_comment'
+            '_review_status', '_review_comment', '_review_date'
         ]
         self.assertEqual(expected_header, header)
         # close and delete file
