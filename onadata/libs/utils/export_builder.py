@@ -33,7 +33,8 @@ from onadata.libs.utils.common_tags import (
     ID, INDEX, MULTIPLE_SELECT_TYPE, SELECT_ONE, NOTES, PARENT_INDEX,
     PARENT_TABLE_NAME, REPEAT_INDEX_TAGS, SAV_255_BYTES_TYPE,
     SAV_NUMERIC_TYPE, STATUS, SUBMISSION_TIME, SUBMITTED_BY, TAGS, UUID,
-    VERSION, XFORM_ID_STRING, REVIEW_STATUS, REVIEW_COMMENT, SELECT_BIND_TYPE)
+    VERSION, XFORM_ID_STRING, REVIEW_STATUS, REVIEW_COMMENT, SELECT_BIND_TYPE,
+    REVIEW_DATE)
 from onadata.libs.utils.mongo import _decode_from_mongo, _is_invalid_for_mongo
 # the bind type of select multiples that we use to compare
 GEOPOINT_BIND_TYPE = 'geopoint'
@@ -416,7 +417,7 @@ class ExportBuilder(object):
     def set_survey(self, survey, xform=None, include_reviews=False):
         if self.INCLUDE_REVIEWS or include_reviews:
             self.EXTRA_FIELDS = self.EXTRA_FIELDS + [
-                REVIEW_STATUS, REVIEW_COMMENT]
+                REVIEW_STATUS, REVIEW_COMMENT, REVIEW_DATE]
             self.__init__()
         dd = get_data_dictionary_from_survey(survey)
 
