@@ -21,7 +21,7 @@ from onadata.libs.utils.common_tags import (
     EDITED, GEOLOCATION, ID, MEDIA_ALL_RECEIVED, MEDIA_COUNT, NA_REP,
     NOTES, STATUS, SUBMISSION_TIME, SUBMITTED_BY, TAGS, TOTAL_MEDIA,
     UUID, VERSION, XFORM_ID_STRING, REVIEW_STATUS, REVIEW_COMMENT,
-    MULTIPLE_SELECT_TYPE, SELECT_BIND_TYPE)
+    MULTIPLE_SELECT_TYPE, SELECT_BIND_TYPE, REVIEW_DATE)
 from onadata.libs.utils.export_builder import (get_choice_label,
                                                get_value_or_attachment_uri,
                                                track_task_progress)
@@ -180,7 +180,7 @@ class AbstractDataFrameBuilder(object):
 
         if include_reviews:
             self.extra_columns = self.extra_columns + [
-                REVIEW_STATUS, REVIEW_COMMENT]
+                REVIEW_STATUS, REVIEW_COMMENT, REVIEW_DATE]
 
         if xform:
             self.xform = xform

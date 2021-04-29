@@ -31,8 +31,9 @@ from onadata.apps.viewer.models.parsed_instance import (_encode_for_mongo,
 from onadata.apps.viewer.tests.export_helpers import viewer_fixture_path
 from onadata.libs.utils.csv_builder import (CSVDataFrameBuilder,
                                             get_labels_from_columns)
-from onadata.libs.utils.common_tags import (SELECT_BIND_TYPE,
-                                            MULTIPLE_SELECT_TYPE)
+from onadata.libs.utils.common_tags import (
+    SELECT_BIND_TYPE, MULTIPLE_SELECT_TYPE, REVIEW_COMMENT, REVIEW_DATE,
+    REVIEW_STATUS)
 from onadata.libs.utils.export_builder import (
     decode_mongo_encoded_section_names,
     dict_to_joined_export,
@@ -55,6 +56,7 @@ class TestExportBuilder(TestBase):
             'tel/telLg==office': '020123456',
             '_review_status': 'Rejected',
             '_review_comment': 'Wrong Location',
+            REVIEW_DATE: '2021-05-25T02:27:19',
             'children':
             [
                 {
@@ -233,7 +235,8 @@ class TestExportBuilder(TestBase):
             'osm_building:ctr:lon': '90.40849938337506',
             'osm_building:name': 'kol',
             '_review_status': 'Rejected',
-            '_review_comment': 'Wrong Location'
+            '_review_comment': 'Wrong Location',
+            REVIEW_DATE: '2021-05-25T02:27:19',
         }
     ]
 
@@ -2438,9 +2441,9 @@ class TestExportBuilder(TestBase):
             default_name=xlsform_path.split('/')[-1].split('.')[0])
         return survey
 
-    def test_zip_csv_export_has_comment_and_status_field(self):
+    def test_zip_csv_export_has_submission_review_fields(self):
         """
-        Test comment and status fields in csv exports
+        Test that review comment, status and date fields are in csv exports
         """
         self._create_user_and_login('dave', '1234')
         survey = self._create_osm_survey()
@@ -2461,17 +2464,19 @@ class TestExportBuilder(TestBase):
             reader = csv.reader(csv_file)
             rows = [row for row in reader]
             actual_headers = rows[0]
-            expected_headers = '_review_comment'
-            self.assertIn(expected_headers, sorted(actual_headers))
+            self.assertIn(REVIEW_COMMENT, sorted(actual_headers))
+            self.assertIn(REVIEW_DATE, sorted(actual_headers))
+            self.assertIn(REVIEW_STATUS, sorted(actual_headers))
             submission = rows[1]
             self.assertEqual(submission[29], 'Rejected')
             self.assertEqual(submission[30], 'Wrong Location')
+            self.assertEqual(submission[31], '2021-05-25T02:27:19')
             # check that red and blue are set to true
         shutil.rmtree(temp_dir)
 
-    def test_xls_export_has_comment_and_status_field(self):
+    def test_xls_export_has_submission_review_fields(self):
         """
-        Test that comment and status field are in xls exports
+        Test that review comment, status and date fields are in xls exports
         """
         self._create_user_and_login('dave', '1234')
         survey = self._create_osm_survey()
@@ -2488,14 +2493,16 @@ class TestExportBuilder(TestBase):
         xls_headers = [a.value for a in rows[0]]
         xls_data = [a.value for a in rows[1]]
         temp_xls_file.close()
-        expected_column_headers = '_review_comment'
-        self.assertIn(expected_column_headers, sorted(xls_headers))
+        self.assertIn(REVIEW_COMMENT, sorted(xls_headers))
+        self.assertIn(REVIEW_DATE, sorted(xls_headers))
+        self.assertIn(REVIEW_STATUS, sorted(xls_headers))
         self.assertEqual(xls_data[29], 'Rejected')
         self.assertEqual(xls_data[30], 'Wrong Location')
+        self.assertEqual(xls_data[31], '2021-05-25T02:27:19')
 
-    def test_zipped_sav_has_comment_and_status_fields(self):
+    def test_zipped_sav_has_submission_review_fields(self):
         """
-        Test that comment and status field are in csv exports
+        Test that review comment, status and date fields are in csv exports
         """
         self._create_user_and_login('dave', '1234')
         survey = self._create_osm_survey()
@@ -2519,9 +2526,9 @@ class TestExportBuilder(TestBase):
                 'photo', 'osm_road', 'osm_building', 'fav_color',
                 'form_completed', 'meta.instanceID', '@_id', '@_uuid',
                 '@_submission_time', '@_index', '@_parent_table_name',
-                '@_review_comment', '@_review_status', '@_parent_index',
-                '@_tags', '@_notes', '@_version', '@_duration',
-                '@_submitted_by', 'osm_road_ctr_lat',
+                '@_review_comment', f'@{REVIEW_DATE}', '@_review_status',
+                '@_parent_index', '@_tags', '@_notes', '@_version',
+                '@_duration', '@_submitted_by', 'osm_road_ctr_lat',
                 'osm_road_ctr_lon', 'osm_road_highway', 'osm_road_lanes',
                 'osm_road_name', 'osm_road_way_id', 'osm_building_building',
                 'osm_building_building_levels', 'osm_building_ctr_lat',
@@ -2530,6 +2537,7 @@ class TestExportBuilder(TestBase):
             self.assertEqual(sorted(rows[0]), sorted(expected_column_headers))
             self.assertEqual(rows[1][29], b'Rejected')
             self.assertEqual(rows[1][30], b'Wrong Location')
+            self.assertEqual(rows[1][31], b'2021-05-25T02:27:19')
 
     def test_zipped_csv_export_with_osm_data(self):
         """
