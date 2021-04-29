@@ -1,5 +1,4 @@
 import os
-from unittest.case import expectedFailure
 
 from mock import MagicMock, patch
 
