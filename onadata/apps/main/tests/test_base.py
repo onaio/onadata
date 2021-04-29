@@ -35,7 +35,7 @@ from onadata.libs.utils.user_auth import get_user_default_project
 
 
 class TestBase(PyxformMarkdown, TransactionTestCase):
-
+    maxDiff = None
     surveys = ['transport_2011-07-25_19-05-49',
                'transport_2011-07-25_19-05-36',
                'transport_2011-07-25_19-06-01',

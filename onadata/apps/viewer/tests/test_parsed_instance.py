@@ -90,7 +90,7 @@ class TestParsedInstance(TestBase):
 
         instances = Instance.objects.filter(
             xform__id_string=self.xform.id_string
-        )
+        ).order_by('id')
         instances_count = instances.count()
         self.assertEqual(instances_count, 4)
 
@@ -129,7 +129,17 @@ class TestParsedInstance(TestBase):
         sql, params, records = get_sql_with_params(
             xform=self.xform, query=[{'_submitted_by': 'bob'}, 'ambulance']
         )
-        self.assertEqual(2, records.count())
+        instances_debug = list(
+            self.xform.instances.filter(user__username='bob').values_list(
+                'json', flat=True))
+        all_instances_debug = list(
+            instances.values_list('json', flat=True)
+        )
+        self.assertEqual(
+            2, records.count(),
+            'Fields do not have ambulance. '
+            f'Fields submitted by bob are {instances_debug}.'
+            f'All instances {all_instances_debug}')
 
     def test_parse_sort_fields_function(self):
         """

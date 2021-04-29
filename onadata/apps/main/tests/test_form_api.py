@@ -34,8 +34,7 @@ class TestFormAPI(TestBase):
         request.user = self.user
         response = api(request, self.user.username, self.xform.id_string)
         self.assertEqual(response.status_code, 200)
-        data = dict_for_mongo_without_userform_id(
-            self.xform.instances.all()[0].parsed_instance)
+        data = self.xform.instances.all()[0].json
         find_d = json.loads(response.content)[0]
 
         # ensure all strings are unicode
