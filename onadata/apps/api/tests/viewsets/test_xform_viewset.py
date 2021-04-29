@@ -4898,3 +4898,22 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         self.assertEqual(
             response.data.get('text'),
             error_msg)
+
+    def test_export_csvzip_form_data_async(self):
+        with HTTMock(enketo_mock):
+            xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
+                                    "tests", "fixtures", "tutorial.xls")
+            self._publish_xls_form_to_project(xlsform_path=xls_path)
+            view = XFormViewSet.as_view({
+                'get': 'export_async',
+            })
+            formid = self.xform.pk
+
+            request = self.factory.get(
+                '/', data={"format": "csvzip"}, **self.extra)
+            response = view(request, pk=formid)
+            self.assertIsNotNone(response.data)
+            self.assertEqual(response.status_code, 202)
+            print(response.data)
+            # Ensure response is renderable
+            response.render()
