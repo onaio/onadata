@@ -344,10 +344,11 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
             if request.user.has_perm(
                     CAN_DELETE_SUBMISSION, self.object.xform):
+                instance_id = self.object.pk
                 delete_instance(self.object, request.user)
                 # send message
                 send_message(
-                    instance_id=self.object, target_id=self.object.xform.id,
+                    instance_id=instance_id, target_id=self.object.xform.id,
                     target_type=XFORM, user=request.user,
                     message_verb=SUBMISSION_DELETED)
             else:
