@@ -248,8 +248,6 @@ class TestInstance(TestBase):
         self.assertEqual(SubmissionReview.APPROVED,
                          instance.json[u'_review_status'])
         self.assertEqual(SubmissionReview.APPROVED, instance_review.status)
-        self.assertEqual(instance.date_created.strftime(MONGO_STRFTIME),
-                         instance_review.date_created.strftime(MONGO_STRFTIME))
         comment = instance_review.get_note_text()
         self.assertEqual(None, comment)
         self.assertTrue(instance.has_a_review)
@@ -273,8 +271,6 @@ class TestInstance(TestBase):
         self.assertEqual(SubmissionReview.APPROVED,
                          instance.json[u'_review_status'])
         self.assertEqual(SubmissionReview.APPROVED, instance_review.status)
-        self.assertEqual(instance.date_created.strftime(MONGO_STRFTIME),
-                         instance_review.date_created.strftime(MONGO_STRFTIME))
         comment = instance_review.get_note_text()
         self.assertEqual("Hey There", comment)
         self.assertTrue(instance.has_a_review)
