@@ -41,7 +41,8 @@ class TestMediaViewSet(TestAbstractViewSet):
             self, mock_presigned_urls, mock_get_storage_class):
 
         expected_url = (
-            'https://testing.s3.amazonaws.com/doe/attachments/4_Media_file/media.png?'
+            'https://testing.s3.amazonaws.com/doe/attachments/'
+            '4_Media_file/media.png?'
             'response-content-disposition=attachment%3Bfilename%3media.png&'
             'response-content-type=application%2Foctet-stream&'
             'AWSAccessKeyId=AKIAJ3XYHHBIJDL7GY7A'
