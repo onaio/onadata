@@ -3,9 +3,27 @@ Messaging
 
 This endpoint provides access to event messages sent for a specific target. Where:
 
-- ``target_type`` - The type of the target object. The supported target types are ``xform``, ``project`` & ``user``.
-- ``target_id`` - The unique identifier of the target object.
-- ``verb`` - A specific action that has occured on the object i.e ``form_updated``
+* ``target_type`` - The type of the target object. The supported target types are:
+    - ``xform``
+
+    - ``project``
+
+    - ``user``
+
+* ``target_id`` - The unique identifier of the target object.
+
+* ``verb`` - A specific action that has occured on the object. The supported verbs are:
+    - ``message``
+
+    - ``submission_created``
+
+    - ``submission_edited``
+
+    - ``submission_deleted``
+
+    - ``submission_reviewed``
+
+    - ``form_updated*``
 
 
 GET All event messages that have been sent for a form
@@ -64,7 +82,7 @@ Response
 GET List of events that have occured on a form for a specific verb
 ------------------------------------------------------------------
 
-Lists out all messages sent for a specific ``verb``. The supported verbs are **message**, **submission_created**, **submission_edited**, **submission_deleted**, **submission_reviewed**, **form_updated**.
+Lists out all messages sent for a specific ``verb``.
 
 .. raw:: html
 
