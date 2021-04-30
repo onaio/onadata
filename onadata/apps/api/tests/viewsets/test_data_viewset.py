@@ -1439,9 +1439,9 @@ class TestDataViewSet(TestBase):
         self.assertEqual(first_xform_instance[0].deleted_by, request.user)
         # message sent upon delete
         self.assertTrue(send_message_mock.called)
-        send_message_mock.called_with(
-            [dataid], formid, XFORM,
-            request.user, SUBMISSION_DELETED)
+        send_message_mock.assert_called_with(
+            instance_id=dataid, target_id=formid, target_type=XFORM,
+            user=request.user, message_verb=SUBMISSION_DELETED)
 
         # second delete of same submission should return 404
         request = self.factory.delete('/', **self.extra)
