@@ -23,7 +23,7 @@ This endpoint provides access to event messages sent for a specific target. Wher
 
     - ``submission_reviewed``
 
-    - ``form_updated*``
+    - ``form_updated``
 
 
 GET All event messages that have been sent for a form
