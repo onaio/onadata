@@ -84,8 +84,7 @@ class TestFormAPI(TestBase):
         start = callback.__len__() + 1
         end = content.__len__() - 1
         content = content[start: end]
-        d = dict_for_mongo_without_userform_id(
-            self.xform.instances.all()[0].parsed_instance)
+        d = self.xform.instances.all()[0].json
         find_d = json.loads(content)[0]
         self.assertEqual(find_d, d)
 
