@@ -33,11 +33,12 @@ def get_target_metadata(target_obj):
     return metadata
 
 
-def get_payload(instance):
+def get_payload(instance, verbose_payload: bool = False):
     """
     Constructs the message payload
     """
-    full_message_payload = getattr(settings, 'FULL_MESSAGE_PAYLOAD', False)
+    full_message_payload = getattr(
+        settings, 'FULL_MESSAGE_PAYLOAD', False) or verbose_payload
     try:
         description = json.loads(instance.description)
     except json.JSONDecodeError:
@@ -62,7 +63,8 @@ def get_payload(instance):
                 },
                 'context': {
                     'type': instance.target._meta.model_name,
-                    'metadata': get_target_metadata(instance.target)
+                    'metadata': get_target_metadata(instance.target),
+                    'verb': instance.verb
                 },
                 'message': description
             }
@@ -115,8 +117,9 @@ class MQTTBackend(BaseBackend):
             'target_id': instance.target_object_id,
             'target_name': instance.target._meta.model_name,
             'topic_base': self.topic_base,
+            'verb': instance.verb
         }
-        if kwargs['target_name'] == XFORM:
+        if kwargs.get('target_name') == XFORM:
             xform = XForm.objects.get(id=instance.target_object_id)
             kwargs[
                 'organization_username'] = xform.project.organization.username
@@ -126,7 +129,7 @@ class MQTTBackend(BaseBackend):
                     'project/{project_id}/{target_name}/{target_id}/{verb}/'
                     'messages/publish').format(**kwargs)
 
-        elif kwargs['verb'] == MESSAGE:
+        elif kwargs.get('verb') == MESSAGE:
             return (
                 '/{topic_base}/{target_name}/{target_id}/'
                 'messages/publish'.format(
