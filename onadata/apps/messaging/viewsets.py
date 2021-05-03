@@ -4,6 +4,7 @@ Messaging /messaging viewsets.
 """
 from __future__ import unicode_literals
 
+from django.conf import settings
 from actstream.models import Action
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, viewsets
@@ -37,9 +38,21 @@ class MessagingViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
+        retrieval_threshold = getattr(
+            settings, "MESSAGE_RETRIEVAL_THRESHOLD", 10000)
+        pagination_keys = [self.paginator.page_query_param,
+                           self.paginator.page_size_query_param]
+        query_param_keys = self.request.query_params
+        should_paginate = any(
+            [k in query_param_keys for k in pagination_keys]) or \
+            queryset.count() > retrieval_threshold
 
-        page = self.paginate_queryset(queryset)
-        if page is not None:
+        if should_paginate and \
+                "page_size" not in self.request.query_params.keys():
+            self.paginator.page_size = retrieval_threshold
+
+        if should_paginate:
+            page = self.paginate_queryset(queryset)
             serializer = self.get_serializer(page, many=True)
         else:
             serializer = self.get_serializer(queryset, many=True)

@@ -277,6 +277,18 @@ class TestMessagingViewSet(TestCase):
         self.assertEqual(response.status_code, 200, response.data)
         self.assertEqual(len(response.data), 2)
 
+        # Test the retrieval threshold is respected
+        with override_settings(MESSAGE_RETRIEVAL_THRESHOLD=2):
+            request = self.factory.get(
+                '/messaging', data={
+                    "target_type": "user", "target_id": user.pk
+                }
+            )
+            force_authenticate(request, user=user)
+            response = view(request=request)
+            self.assertEqual(response.status_code, 200, response.data)
+            self.assertEqual(len(response.data), 2)
+
     @override_settings(USE_TZ=False)
     def test_messaging_timestamp_filter(self):
         """
