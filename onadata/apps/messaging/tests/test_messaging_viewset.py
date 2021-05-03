@@ -5,6 +5,7 @@ Tests Messaging app viewsets.
 from __future__ import unicode_literals
 
 from builtins import str as text
+from collections import OrderedDict
 
 from actstream.models import Action
 from django.test import TestCase
@@ -101,7 +102,10 @@ class TestMessagingViewSet(TestCase):
         force_authenticate(request, user=user)
         response = view(request=request)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, [message_data])
+        message_data.pop('target_id')
+        message_data.pop('target_type')
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(dict(response.data[0]), message_data)
 
         # returns empty list when a target type does not have any records
         request = self.factory.get(
@@ -155,6 +159,8 @@ class TestMessagingViewSet(TestCase):
         force_authenticate(request, user=user)
         response = view(request=request, pk=message_data['id'])
         self.assertEqual(response.status_code, 200)
+        message_data.pop('target_id')
+        message_data.pop('target_type')
         self.assertDictEqual(response.data, message_data)
 
     def test_authentication_required(self):
@@ -280,7 +286,7 @@ class TestMessagingViewSet(TestCase):
         self.assertEqual(
             response['Link'],
             ('<http://testserver/messaging?target_type=user&'
-             'target_id=2page=2&page_size=2>; rel="next"'))
+             f'target_id={user.pk}&page=2&page_size=2>; rel="next"'))
 
         # Test the retrieval threshold is respected
         with override_settings(MESSAGE_RETRIEVAL_THRESHOLD=2):
