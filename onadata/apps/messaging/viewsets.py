@@ -17,7 +17,8 @@ from onadata.apps.messaging.filters import (
     UserFilterBackend)
 from onadata.apps.messaging.permissions import TargetObjectPermissions
 from onadata.apps.messaging.serializers import MessageSerializer
-from onadata.libs.pagination import StandardPageNumberPagination
+from onadata.libs.pagination import (
+    StandardPageNumberPagination, generate_pagination_headers)
 
 
 # pylint: disable=too-many-ancestors
@@ -38,6 +39,7 @@ class MessagingViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
+        no_of_records = queryset.count()
         retrieval_threshold = getattr(
             settings, "MESSAGE_RETRIEVAL_THRESHOLD", 10000)
         pagination_keys = [self.paginator.page_query_param,
@@ -45,7 +47,14 @@ class MessagingViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
         query_param_keys = self.request.query_params
         should_paginate = any(
             [k in query_param_keys for k in pagination_keys]) or \
-            queryset.count() > retrieval_threshold
+            no_of_records > retrieval_threshold
+        current_page_size = self.request.query_params.get(
+            self.paginator.page_size_query_param) or retrieval_threshold
+        current_page = self.request.query_params.get(
+            self.paginator.page_query_param) or 1
+        headers = generate_pagination_headers(
+            self.request, no_of_records, current_page_size, current_page
+        )
 
         if should_paginate and \
                 "page_size" not in self.request.query_params.keys():
@@ -57,4 +66,4 @@ class MessagingViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
         else:
             serializer = self.get_serializer(queryset, many=True)
 
-        return Response(serializer.data)
+        return Response(serializer.data, headers=headers)

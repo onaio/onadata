@@ -276,6 +276,11 @@ class TestMessagingViewSet(TestCase):
         response = view(request=request)
         self.assertEqual(response.status_code, 200, response.data)
         self.assertEqual(len(response.data), 2)
+        self.assertIn('Link', response)
+        self.assertEqual(
+            response['Link'],
+            ('<http://testserver/messaging?target_type=user&'
+             'target_id=2page=2&page_size=2>; rel="next"'))
 
         # Test the retrieval threshold is respected
         with override_settings(MESSAGE_RETRIEVAL_THRESHOLD=2):
