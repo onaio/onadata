@@ -5,7 +5,6 @@ Tests Messaging app viewsets.
 from __future__ import unicode_literals
 
 from builtins import str as text
-from collections import OrderedDict
 
 from actstream.models import Action
 from django.test import TestCase
