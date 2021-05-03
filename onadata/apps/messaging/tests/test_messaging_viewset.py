@@ -251,6 +251,32 @@ class TestMessagingViewSet(TestCase):
         response = view(request=request, pk=message_data['id'])
         self.assertEqual(response.status_code, 200)
 
+    def test_retrieve_pagination(self):
+        user = _create_user()
+        count = 0
+        while count < 4:
+            self._create_message(user)
+            count += 1
+
+        view = MessagingViewSet.as_view({'get': 'list'})
+        request = self.factory.get(
+            '/messaging', data={
+                "target_type": "user", "target_id": user.pk})
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(len(response.data), 4)
+
+        # Test that the pagination query params paginate the responses
+        request = self.factory.get(
+            '/messaging', data={
+                "target_type": "user",
+                "target_id": user.pk, "page_size": 2})
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(len(response.data), 2)
+
     @override_settings(USE_TZ=False)
     def test_messaging_timestamp_filter(self):
         """

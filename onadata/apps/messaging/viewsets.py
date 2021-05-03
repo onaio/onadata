@@ -8,6 +8,7 @@ from actstream.models import Action
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, viewsets
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from onadata.apps.messaging.constants import MESSAGE_VERBS
 from onadata.apps.messaging.filters import (
@@ -15,6 +16,7 @@ from onadata.apps.messaging.filters import (
     UserFilterBackend)
 from onadata.apps.messaging.permissions import TargetObjectPermissions
 from onadata.apps.messaging.serializers import MessageSerializer
+from onadata.libs.pagination import StandardPageNumberPagination
 
 
 # pylint: disable=too-many-ancestors
@@ -31,3 +33,15 @@ class MessagingViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
     filter_backends = (TargetTypeFilterBackend, TargetIDFilterBackend,
                        UserFilterBackend, DjangoFilterBackend)
     filterset_class = ActionFilterSet
+    pagination_class = StandardPageNumberPagination
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
+
+        return Response(serializer.data)
