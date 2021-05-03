@@ -28,7 +28,7 @@ services:
   - postgresql
 
 env:
-  - TESTFOLDER="onadata/libs onadata/apps/main onadata/apps/restservice onadata/apps/sms_support onadata/apps/viewer"
+  - TESTFOLDER="onadata/libs onadata/apps/main onadata/apps/restservice onadata/apps/sms_support onadata/apps/viewer onadata/apps/messaging"
   - TESTFOLDER="onadata/apps/api onadata/apps/logger"
 
 before_install:
