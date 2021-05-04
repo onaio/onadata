@@ -72,7 +72,7 @@ setup(
         "dict2xml",
         "lxml",
         # pyxform
-        "pyxform >= 1.4.0",
+        "pyxform",
         # spss
         "savreaderwriter",
         # tests
