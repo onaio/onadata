@@ -284,8 +284,10 @@ class TestMessagingViewSet(TestCase):
         self.assertIn('Link', response)
         self.assertEqual(
             response['Link'],
-            ('<http://testserver/messaging?target_type=user&'
-             f'target_id={user.pk}&page=2&page_size=2>; rel="next"'))
+            (f'<http://testserver/messaging?page=2&page_size=2&'
+             f'target_id={user.pk}&target_type=user>; rel="next",'
+             ' <http://testserver/messaging?page=2&page_size=2&'
+             f'target_id={user.pk}&target_type=user>; rel="last"'))
 
         # Test the retrieval threshold is respected
         with override_settings(MESSAGE_RETRIEVAL_THRESHOLD=2):
@@ -298,6 +300,13 @@ class TestMessagingViewSet(TestCase):
             response = view(request=request)
             self.assertEqual(response.status_code, 200, response.data)
             self.assertEqual(len(response.data), 2)
+            self.assertIn('Link', response)
+            self.assertEqual(
+                response['Link'],
+                (f'<http://testserver/messaging?page=2&'
+                 f'target_id={user.pk}&target_type=user>; rel="next",'
+                 ' <http://testserver/messaging?page=2&'
+                 f'target_id={user.pk}&target_type=user>; rel="last"'))
 
     @override_settings(USE_TZ=False)
     def test_messaging_timestamp_filter(self):
