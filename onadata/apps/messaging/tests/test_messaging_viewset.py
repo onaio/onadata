@@ -101,7 +101,10 @@ class TestMessagingViewSet(TestCase):
         force_authenticate(request, user=user)
         response = view(request=request)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, [message_data])
+        message_data.pop('target_id')
+        message_data.pop('target_type')
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(dict(response.data[0]), message_data)
 
         # returns empty list when a target type does not have any records
         request = self.factory.get(
@@ -155,6 +158,8 @@ class TestMessagingViewSet(TestCase):
         force_authenticate(request, user=user)
         response = view(request=request, pk=message_data['id'])
         self.assertEqual(response.status_code, 200)
+        message_data.pop('target_id')
+        message_data.pop('target_type')
         self.assertDictEqual(response.data, message_data)
 
     def test_authentication_required(self):
@@ -250,6 +255,58 @@ class TestMessagingViewSet(TestCase):
         force_authenticate(request, user=user)
         response = view(request=request, pk=message_data['id'])
         self.assertEqual(response.status_code, 200)
+
+    def test_retrieve_pagination(self):
+        user = _create_user()
+        count = 0
+        while count < 4:
+            self._create_message(user)
+            count += 1
+
+        view = MessagingViewSet.as_view({'get': 'list'})
+        request = self.factory.get(
+            '/messaging', data={
+                "target_type": "user", "target_id": user.pk})
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(len(response.data), 4)
+
+        # Test that the pagination query params paginate the responses
+        request = self.factory.get(
+            '/messaging', data={
+                "target_type": "user",
+                "target_id": user.pk, "page_size": 2})
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(len(response.data), 2)
+        self.assertIn('Link', response)
+        self.assertEqual(
+            response['Link'],
+            (f'<http://testserver/messaging?page=2&page_size=2&'
+             f'target_id={user.pk}&target_type=user>; rel="next",'
+             ' <http://testserver/messaging?page=2&page_size=2&'
+             f'target_id={user.pk}&target_type=user>; rel="last"'))
+
+        # Test the retrieval threshold is respected
+        with override_settings(MESSAGE_RETRIEVAL_THRESHOLD=2):
+            request = self.factory.get(
+                '/messaging', data={
+                    "target_type": "user", "target_id": user.pk
+                }
+            )
+            force_authenticate(request, user=user)
+            response = view(request=request)
+            self.assertEqual(response.status_code, 200, response.data)
+            self.assertEqual(len(response.data), 2)
+            self.assertIn('Link', response)
+            self.assertEqual(
+                response['Link'],
+                (f'<http://testserver/messaging?page=2&'
+                 f'target_id={user.pk}&target_type=user>; rel="next",'
+                 ' <http://testserver/messaging?page=2&'
+                 f'target_id={user.pk}&target_type=user>; rel="last"'))
 
     @override_settings(USE_TZ=False)
     def test_messaging_timestamp_filter(self):

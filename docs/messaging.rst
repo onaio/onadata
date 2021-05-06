@@ -117,3 +117,42 @@ Response
             "timestamp": "2021-02-26T03:49:57.799647-05:00"
         }
     ]
+
+GET Paginate events messages for a specific verb
+------------------------------------------------
+
+Lists out event messages using page number and the number of items per page. Use the ``page`` parameter to specify page number and ``page_size`` parameter is used to set the custom page size.
+
+- ``page`` - Integer representing the page.
+- ``page_size`` - Integer representing the number of records that should be returned in a single page.
+
+There are a few important facts to note about retrieving paginated data:
+
+#. The maximum number of items that can be requested in a page via the ``page_size`` query param is 10,000
+#. Information regrading transversal of the paginated responses can be found in `the Link header <https://tools.ietf.org/html/rfc5988>`_ returned in the response. *Note: Some relational links may not be present depending on the page accessed i.e the ``first`` relational page link won't be present on the first page response*
+
+Example
+^^^^^^^^
+::
+
+      curl -X GET https://api.ona.io/api/v1/messaging?target_type=xform&target_id=1&verb=message&page=1&page_size=1
+
+Sample response with link header
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Response Header:** ::
+
+      ...
+      Link: <https://api.ona.io/api/v1/messaging?target_type=xform&target_id=1&verb=message&page=2&page_size=1>; rel="next", <https://api.ona.io/api/v1/messaging?target_type=xform&target_id=1&verb=message&page=3&page_size=1>; rel="last"
+
+**Response:** ::
+
+      [
+          {
+              "id": 16485370,
+              "verb": "message",
+              "message": "Hey there",
+              "user": "bob",
+              "timestamp": "2021-02-26T03:32:57.799647-05:00"
+          }
+      ]

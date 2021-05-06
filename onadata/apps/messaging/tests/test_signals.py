@@ -33,7 +33,8 @@ class TestSignals(TestCase):
         messaging_backends_handler(Action, instance=Action(id=9), created=True)
         self.assertTrue(call_backend_async_mock.called)
         call_backend_async_mock.assert_called_with(
-            'onadata.apps.messaging.backends.base.BaseBackend', 9, None)
+            ('onadata.apps.messaging.backends.base.BaseBackend', 9, None),
+            countdown=2)
 
     @override_settings(NOTIFICATION_BACKENDS={
         'mqtt': {

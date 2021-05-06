@@ -22,6 +22,7 @@ class TestMQTTBackend(TestCase):
     """
     Test MQTT Backend
     """
+    maxDiff = None
 
     def test_mqtt_get_topic(self):
         """
@@ -93,12 +94,26 @@ class TestMQTTBackend(TestCase):
                     'metadata': {
                         'id': to_user.pk,
                         'name': to_user.get_full_name()
-                    }
+                    },
+                    'verb': 'message'
                 },
                 'message': "I love oov"
             }
         }
-        self.assertEqual(json.dumps(payload), get_payload(instance))
+        self.assertEqual(
+            json.dumps(payload), get_payload(instance, verbose_payload=True))
+
+        expected_payload = {
+            'id': instance.id,
+            'verb': instance.verb,
+            'message': "I love oov",
+            'user': from_user.username,
+            'timestamp': instance.timestamp.isoformat()
+        }
+
+        self.assertEqual(
+            json.dumps(expected_payload), get_payload(
+                instance, verbose_payload=False))
 
     @patch('onadata.apps.messaging.backends.mqtt.publish.single')
     def test_mqtt_send(self, mocked):

@@ -1,7 +1,9 @@
 from django.core.paginator import Paginator
 from django.conf import settings
+from django.db.models import QuerySet
 from rest_framework.pagination import (
-    PageNumberPagination, InvalidPage, NotFound)
+    PageNumberPagination, InvalidPage, NotFound, replace_query_param)
+from rest_framework.request import Request
 
 
 class StandardPageNumberPagination(PageNumberPagination):
@@ -9,6 +11,45 @@ class StandardPageNumberPagination(PageNumberPagination):
     page_size_query_param = 'page_size'
     max_page_size = getattr(
         settings, "STANDARD_PAGINATION_MAX_PAGE_SIZE", 10000)
+
+    def get_first_page_link(self):
+        if self.page.number == 1:
+            return None
+        url = self.request.build_absolute_uri()
+        return replace_query_param(url, self.page_query_param, 1)
+
+    def get_last_page_link(self):
+        if self.page.number == self.paginator.num_pages:
+            return None
+        url = self.request.build_absolute_uri()
+        return replace_query_param(
+            url, self.page_query_param, self.paginator.num_pages)
+
+    def generate_link_header(
+            self, request: Request, queryset: QuerySet
+    ):
+        links = []
+        page_size = self.get_page_size(request)
+        if not page_size:
+            return {}
+        page_number = request.query_params.get(self.page_query_param, 1)
+        self.paginator = self.django_paginator_class(queryset, page_size)
+        self.request = request
+
+        try:
+            self.page = self.paginator.page(page_number)
+        except InvalidPage:
+            return {}
+
+        for rel, link in (
+                ('prev', self.get_previous_link()),
+                ('next', self.get_next_link()),
+                ('last', self.get_last_page_link()),
+                ('first', self.get_first_page_link())):
+            if link:
+                links.append(f'<{link}>; rel="{rel}"')
+
+        return {'Link': ', '.join(links)}
 
 
 class CountOverridablePaginator(Paginator):
