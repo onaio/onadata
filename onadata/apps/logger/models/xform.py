@@ -1054,7 +1054,9 @@ def clear_project_cache(project_id):
 
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
     # clear cache
-    clear_project_cache(instance.project.pk)
+    project = instance.project
+    project.refresh_from_db()
+    clear_project_cache(project.pk)
     safe_delete('{}{}'.format(IS_ORG, instance.pk))
 
     if created:
@@ -1065,7 +1067,7 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
             OwnerRole.add(instance.created_by, instance)
 
         from onadata.libs.utils.project_utils import set_project_perms_to_xform
-        set_project_perms_to_xform(instance, instance.project)
+        set_project_perms_to_xform(instance, project)
 
 
 post_save.connect(
