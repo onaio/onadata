@@ -164,6 +164,29 @@ class TestProjectViewSet(TestAbstractViewSet):
                 break
         self.assertTrue(shared_project_in_response)
 
+    def test_project_list_returns_users_own_project_is_shared_to(self):
+        """
+        Ensure that the project list responses for project owners
+        contains all the users the project has been shared too
+        """
+        self._project_create()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+
+        share_project = ShareProject(
+            self.project, 'alice', 'manager'
+        )
+        share_project.save()
+
+        # Ensure alice is in the list of users
+        req = self.factory.get('/', **self.extra)
+        resp = self.view(req)
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data[0]['users']), 2)
+        shared_users = [user['user'] for user in resp.data[0]['users']]
+        self.assertIn(alice_profile.user.username, shared_users)
+
     def test_projects_get(self):
         self._project_create()
         view = ProjectViewSet.as_view({
