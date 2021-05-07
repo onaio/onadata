@@ -139,7 +139,7 @@ def get_users(project, context, all_perms=True):
 
             if all_perms or user in [
                     context['request'].user, project.organization
-            ]:
+            ] or context['request'].user == project.organization:
                 data[perm.user_id] = {
                     'permissions': [],
                     'is_org': is_organization(user.profile),
