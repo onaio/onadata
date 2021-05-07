@@ -179,6 +179,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         share_project.save()
 
         # Ensure alice is in the list of users
+        # When an owner requests for the project data
         req = self.factory.get('/', **self.extra)
         resp = self.view(req)
 
@@ -186,6 +187,26 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(len(resp.data[0]['users']), 2)
         shared_users = [user['user'] for user in resp.data[0]['users']]
         self.assertIn(alice_profile.user.username, shared_users)
+
+        # Ensure project managers can view all users the project was shared to
+        davis_data = {'username': 'davis', 'email': 'davis@localhost.com'}
+        davis_profile = self._create_user_profile(davis_data)
+        dave_extras = {
+            'HTTP_AUTHORIZATION': f'Token {davis_profile.user.auth_token}'
+        }
+        share_project = ShareProject(
+            self.project, davis_profile.user.username, 'manager'
+        )
+        share_project.save()
+
+        req = self.factory.get('/', **dave_extras)
+        resp = self.view(req)
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data[0]['users']), 3)
+        shared_users = [user['user'] for user in resp.data[0]['users']]
+        self.assertIn(alice_profile.user.username, shared_users)
+        self.assertIn(self.user.username, shared_users)
 
     def test_projects_get(self):
         self._project_create()
