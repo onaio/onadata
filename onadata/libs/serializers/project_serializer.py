@@ -16,8 +16,8 @@ from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.api.tools import (get_organization_members_team,
                                     get_or_create_organization_owners_team)
 from onadata.apps.logger.models import Project, XForm
-from onadata.libs.permissions import (OwnerRole, ReadOnlyRole, get_role,
-                                      is_organization)
+from onadata.libs.permissions import (
+    OwnerRole, ReadOnlyRole,  ManagerRole, get_role, is_organization)
 from onadata.libs.serializers.dataview_serializer import \
     DataViewMinimalSerializer
 from onadata.libs.serializers.fields.json_field import JsonField
@@ -133,13 +133,20 @@ def get_users(project, context, all_perms=True):
             return users
 
     data = {}
+    request_user_perms = [
+        perm.permission.codename
+        for perm in project.projectuserobjectpermission_set.filter(
+            user=context["request"].user)]
+    request_user_role = get_role(request_user_perms, project)
+    request_user_is_admin = request_user_role in [
+        OwnerRole.name, ManagerRole.name]
     for perm in project.projectuserobjectpermission_set.all():
         if perm.user_id not in data:
             user = perm.user
 
             if all_perms or user in [
                     context['request'].user, project.organization
-            ]:
+            ] or request_user_is_admin:
                 data[perm.user_id] = {
                     'permissions': [],
                     'is_org': is_organization(user.profile),
