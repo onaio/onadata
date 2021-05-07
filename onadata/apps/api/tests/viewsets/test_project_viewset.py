@@ -2452,16 +2452,6 @@ class TestProjectViewSet(TestAbstractViewSet):
                        'is_org': False, 'role': 'readonly', 'user': u'alice',
                        'metadata': {}}, users)
 
-        request = self.factory.get('/', **self.extra)
-        response = view(request, pk=projectid)
-
-        # Should not list collaborators
-        users = response.data[0]['users']
-        self.assertEqual(response.status_code, 200)
-        self.assertNotIn({'first_name': u'Bob', 'last_name': u'erama',
-                          'is_org': False, 'role': 'readonly',
-                          'user': u'alice', 'metadata': {}}, users)
-
     def test_projects_soft_delete(self):
         self._project_create()
 
