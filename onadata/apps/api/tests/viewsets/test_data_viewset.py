@@ -10,6 +10,7 @@ from tempfile import NamedTemporaryFile
 
 import geojson
 import requests
+from django.conf import settings
 from django.core.cache import cache
 from django.db.utils import OperationalError
 from django.test import RequestFactory
@@ -1590,6 +1591,74 @@ class TestDataViewSet(TestBase):
 
         self.assertEqual(response.status_code, 400)
         self.assertTrue(send_message_mock.called)
+
+    @patch('onadata.apps.api.viewsets.data_viewset.send_message')
+    def test_delete_submissions(self, send_message_mock):
+        xls_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/tutorial.xls"
+        )
+        self._publish_xls_file_and_set_xform(xls_file_path)
+        # Add multiple submissions
+        for x in range(1, 11):
+            path = os.path.join(
+                settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
+                'tutorial', 'instances', 'uuid{}'.format(x), 'submission.xml')
+            self._make_submission(path)
+            x += 1
+        self.xform.refresh_from_db()
+        formid = self.xform.pk
+        initial_count = self.xform.instances.filter(deleted_at=None).count()
+        self.assertEqual(initial_count, 9)
+        self.assertEqual(self.xform.num_of_submissions, 9)
+
+        view = DataViewSet.as_view({'delete': 'destroy'})
+        deleted_instances_subset = self.xform.instances.all()[:6]
+        instance_ids = ','.join([str(i.pk) for i in deleted_instances_subset])
+        data = {"instance_ids": instance_ids, 'delete_all': False}
+
+        request = self.factory.delete('/', data=data, **self.extra)
+        response = view(request, pk=formid)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data.get('message'),
+            "%d records were deleted" % len(deleted_instances_subset)
+        )
+        self.assertTrue(send_message_mock.called)
+        send_message_mock.called_with(
+            [str(i.pk) for i in deleted_instances_subset], formid, XFORM,
+            request.user, SUBMISSION_DELETED)
+
+        # Test that num of submissions for the form is successfully updated
+        self.xform.refresh_from_db()
+        current_count = self.xform.instances.filter(deleted_at=None).count()
+        self.assertNotEqual(current_count, initial_count)
+        self.assertEqual(current_count, 3)
+        self.assertEqual(self.xform.num_of_submissions, 3)
+
+        # Test delete_all submissions for the form
+        data = {'delete_all': True}
+        request = self.factory.delete('/', data=data, **self.extra)
+        response = view(request, pk=formid)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data.get('message'),
+            "3 records were deleted")
+
+        # Test project details updated successfully
+        self.assertEqual(
+            self.xform.project.date_modified.strftime("%Y-%m-%d %H:%M:%S"),
+            timezone.now().strftime("%Y-%m-%d %H:%M:%S"))
+
+        # Test XForm now contains no submissions
+        self.xform.refresh_from_db()
+        delete_all_current_count = self.xform.instances.filter(
+            deleted_at=None).count()
+        self.assertNotEqual(current_count, delete_all_current_count)
+        self.assertEqual(delete_all_current_count, 0)
+        self.assertEqual(self.xform.num_of_submissions, 0)
 
     @patch('onadata.apps.api.viewsets.data_viewset.send_message')
     def test_delete_submission_by_editor(self, send_message_mock):
