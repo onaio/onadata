@@ -11,6 +11,7 @@ from onadata.libs.data import parse_int
 from onadata.libs.renderers.renderers import pairing
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.api.tools import replace_attachment_name_with_url
 from onadata.apps.api.viewsets.open_data_viewset import (
     OpenDataViewSet)
 from onadata.libs.serializers.data_serializer import TableauDataSerializer
