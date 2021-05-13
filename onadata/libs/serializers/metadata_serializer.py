@@ -27,7 +27,8 @@ from onadata.libs.serializers.fields.project_related_field import \
     ProjectRelatedField
 from onadata.libs.serializers.fields.xform_related_field import \
     XFormRelatedField
-from onadata.libs.utils.common_tags import XFORM_META_PERMS, SUBMISSION_REVIEW
+from onadata.libs.utils.common_tags import (
+    XFORM_META_PERMS, SUBMISSION_REVIEW, IMPORTED_VIA_CSV_BY)
 
 UNIQUE_TOGETHER_ERROR = u"Object already exists"
 
@@ -48,7 +49,8 @@ METADATA_TYPES = (
     ('textit', _(u"TextIt")),
     ('google_sheets', _(u"Google Sheet")),
     ('xform_meta_perms', _("Xform meta permissions")),
-    ('submission_review', _("Submission Review")))  # yapf:disable
+    ('submission_review', _("Submission Review")),
+    (IMPORTED_VIA_CSV_BY, _("Imported via CSV by")))  # yapf:disable
 
 DATAVIEW_TAG = 'dataview'
 XFORM_TAG = 'xform'
@@ -250,7 +252,9 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                 else:
                     metadata = MetaData.submission_review(
                         content_object, data_value=data_value)
-
+            elif data_type == IMPORTED_VIA_CSV_BY:
+                metadata = MetaData.instance_csv_imported_by(
+                    content_object, data_value=data_value)
             else:
                 metadata = MetaData.objects.create(
                     content_type=content_type,
