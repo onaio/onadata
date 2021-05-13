@@ -407,7 +407,9 @@ def submit_csv(username, xform, csv_file, overwrite=False):
 
                     try:
                         error, instance = safe_create_instance(
-                            username, xml_file, [], xform.uuid, None)
+                            username, xml_file, [], xform.uuid, None,
+                            instance_status='imported_via_csv'
+                        )
                     except ValueError as e:
                         error = e
 
