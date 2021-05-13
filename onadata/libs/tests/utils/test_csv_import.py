@@ -218,6 +218,23 @@ class CSVImportTestCase(TestBase):
         self.assertEqual(Instance.objects.count(), 1,
                          'submit_csv edits #1 test Failed!')
 
+    def test_csv_imports_are_tracked(self):
+        """
+        Test that submissions created via CSV Import are tracked
+        """
+        self.xls_file_path = os.path.join(self.fixtures_dir,
+                                          'form_with_multiple_select.xlsx')
+        self._publish_xls_file(self.xls_file_path)
+        self.xform = XForm.objects.get()
+
+        good_csv = open(
+            os.path.join(self.fixtures_dir,
+                         'csv_import_with_multiple_select.csv'),
+            'rb')
+        csv_import.submit_csv(self.user.username, self.xform, good_csv)
+        self.assertEqual(Instance.objects.count(), 1)
+        self.assertEqual(Instance.objects.first().status, 'imported_via_csv')
+
     def test_csv_with_repeats_import(self):
         self.xls_file_path = os.path.join(self.this_directory, 'fixtures',
                                           'csv_export',
