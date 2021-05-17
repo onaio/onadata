@@ -518,7 +518,7 @@ class Instance(models.Model, InstanceBaseClass):
 
     # ODK keeps track of three statuses for an instance:
     # incomplete, submitted, complete
-    # we add a more statuses:
+    # we add the following additional statuses:
     # - submitted_via_web
     # - imported_via_csv
     status = models.CharField(max_length=20,
