@@ -510,7 +510,9 @@ def create_instance(username,
 
 
 @use_master
-def safe_create_instance(username, xml_file, media_files, uuid, request):
+def safe_create_instance(
+        username, xml_file, media_files, uuid, request,
+        instance_status: str = 'submitted_via_web'):
     """Create an instance and catch exceptions.
 
     :returns: A list [error, instance] where error is None if there was no
@@ -520,7 +522,8 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
 
     try:
         instance = create_instance(
-            username, xml_file, media_files, uuid=uuid, request=request)
+            username, xml_file, media_files, uuid=uuid, request=request,
+            status=instance_status)
     except InstanceInvalidUserError:
         error = OpenRosaResponseBadRequest(_(u"Username or ID required."))
     except InstanceEmptyError:
