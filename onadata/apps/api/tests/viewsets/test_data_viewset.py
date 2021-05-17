@@ -2565,6 +2565,33 @@ class TestDataViewSet(TestBase):
             '</submission-item></submission-batch>')
         self.assertEqual(expected_xml, returned_xml)
 
+    def test_invalid_xml_elements_not_present(self):
+        """
+        Test invalid XML elements such as #text are not present in XML Response
+        """
+        self._make_submission(os.path.join(
+            self.this_directory, 'fixtures',
+            'transportation', 'instances', 'transport_2011-07-25_19-05-49_2',
+            'transport_2011-07-25_19-05-49_2.xml'))
+        media_file = "1335783522563.jpg"
+        self._make_submission_w_attachment(os.path.join(
+            self.this_directory, 'fixtures',
+            'transportation', 'instances', 'transport_2011-07-25_19-05-49_2',
+            'transport_2011-07-25_19-05-49_2.xml'),
+            os.path.join(self.this_directory, 'fixtures',
+                         'transportation', 'instances',
+                         'transport_2011-07-25_19-05-49_2', media_file))
+
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.xform.pk, format='xml')
+        self.assertEqual(response.status_code, 200)
+
+        # Ensure XML is well formed
+        response.render()
+        returned_xml = response.content.decode('utf-8')
+        ET.fromstring(returned_xml)
+
     @override_settings(STREAM_DATA=True)
     def test_data_list_xml_format_no_data(self):
         """Test DataViewSet Query list XML"""
