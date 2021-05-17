@@ -14,9 +14,11 @@ from mock import patch
 
 from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.main.models import MetaData
 from onadata.apps.messaging.constants import \
     XFORM, SUBMISSION_EDITED, SUBMISSION_CREATED
 from onadata.libs.utils import csv_import
+from onadata.libs.utils.common_tags import IMPORTED_VIA_CSV_BY
 from onadata.libs.utils.csv_import import get_submission_meta_dict
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -234,6 +236,23 @@ class CSVImportTestCase(TestBase):
         csv_import.submit_csv(self.user.username, self.xform, good_csv)
         self.assertEqual(Instance.objects.count(), 1)
         self.assertEqual(Instance.objects.first().status, 'imported_via_csv')
+
+    def test_csv_imports_initiator_stored(self):
+        """
+        Test that the user who imported data via CSV is tracked
+        """
+        xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
+                                     "tests", "fixtures", "tutorial.xls")
+        self._publish_xls_file(xls_file_path)
+        self.xform = XForm.objects.get()
+
+        csv_import.submit_csv(self.user.username, self.xform, self.good_csv)
+        self.assertEqual(Instance.objects.count(), 9,
+                         'submit_csv edits #1 test Failed!')
+        # Ensure bob user is tagged as the person who initiated the CSV Import
+        metadata_qs = MetaData.objects.filter(data_type=IMPORTED_VIA_CSV_BY)
+        self.assertEqual(metadata_qs.count(), 9)
+        self.assertEqual(metadata_qs.first().data_value, self.user.username)
 
     def test_csv_with_repeats_import(self):
         self.xls_file_path = os.path.join(self.this_directory, 'fixtures',

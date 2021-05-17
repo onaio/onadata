@@ -39,11 +39,13 @@ from onadata.libs.utils.common_tags import (MULTIPLE_SELECT_TYPE, EXCEL_TRUE,
                                             XLS_DATE_FIELDS,
                                             XLS_DATETIME_FIELDS, UUID, NA_REP,
                                             INSTANCE_CREATE_EVENT,
-                                            INSTANCE_UPDATE_EVENT)
+                                            INSTANCE_UPDATE_EVENT,
+                                            IMPORTED_VIA_CSV_BY)
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
 from onadata.libs.utils.logger_tools import (OpenRosaResponse, dict2xml,
                                              safe_create_instance)
+from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 
 DEFAULT_UPDATE_BATCH = 100
 PROGRESS_BATCH_UPDATE = getattr(settings, 'EXPORT_TASK_PROGRESS_UPDATE_BATCH',
@@ -442,6 +444,17 @@ def submit_csv(username, xform, csv_file, overwrite=False):
 
                         users = User.objects.filter(
                             username=submitted_by) if submitted_by else []
+
+                        # Store user who imported data in metadata
+                        serializer = MetaDataSerializer(data={
+                            "instance": instance.id,
+                            "data_type": IMPORTED_VIA_CSV_BY,
+                            "data_value": username
+                        })
+
+                        if serializer.is_valid():
+                            serializer.save()
+
                         if users:
                             instance.user = users[0]
                             instance.save()

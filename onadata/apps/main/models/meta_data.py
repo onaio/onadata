@@ -434,6 +434,11 @@ class MetaData(models.Model):
         data_type = 'submission_review'
         return unique_type_for_form(content_object, data_type, data_value)
 
+    @staticmethod
+    def instance_csv_imported_by(content_object, data_value=None):
+        data_type = 'imported_via_csv_by'
+        return unique_type_for_form(content_object, data_type, data_value)
+
 
 def clear_cached_metadata_instance_object(
         sender, instance=None, created=False, **kwargs):
