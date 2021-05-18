@@ -4,15 +4,15 @@
 #
 #    pip-compile --output-file=requirements/s3.pip requirements/s3.in
 #
-boto3==1.17.64
+boto3==1.17.74
     # via -r requirements/s3.in
-botocore==1.20.64
+botocore==1.20.74
     # via
     #   boto3
     #   s3transfer
 django-storages==1.11.1
     # via -r requirements/s3.in
-django==2.2.21
+django==2.2.23
     # via
     #   -r requirements/s3.in
     #   django-storages
@@ -26,7 +26,7 @@ pytz==2021.1
     # via django
 s3transfer==0.4.2
     # via boto3
-six==1.15.0
+six==1.16.0
     # via python-dateutil
 sqlparse==0.4.1
     # via django
