@@ -3,6 +3,31 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.5.5(2021-05-17)
+------------------
+
+- Add documentation for the messaging endpoint 
+  `PR #2026 <https://github.com/onaio/onadata/pull/2026>`_
+  [@DavisRayM]
+- Fix submission deletion endpoint error
+  `PR #2060 <https://github.com/onaio/onadata/pull/2060>`_
+  [@DavisRayM]
+- Add review date column on data exports
+  `PR #2057 <https://github.com/onaio/onadata/pull/2057>`_
+  [@DavisRayM]
+- Ignore accepted renderer & media type for the export async endpoint
+  `PR #2027 <https://github.com/onaio/onadata/pull/2027>`_
+  [@denniswambua]
+- Project - XForm shared status sync changes
+  `PR #2049 <https://github.com/onaio/onadata/pull/2049>`_
+  [@DavisRayM]
+- Ensure project owners are able to view all their collaborators from the project list
+  `PR #2073 <https://github.com/onaio/onadata/pull/2073>`_
+  [@DavisRayM]
+- Add pagination for the messaging endpoint
+  `PR #2068 <https://github.com/onaio/onadata/pull/2068>`_
+  [@DavisRayM]
+
 v2.5.4(2021-04-23)
 ------------------
 
