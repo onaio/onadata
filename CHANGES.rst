@@ -27,6 +27,15 @@ v2.5.5(2021-05-17)
 - Add pagination for the messaging endpoint
   `PR #2068 <https://github.com/onaio/onadata/pull/2068>`_
   [@DavisRayM]
+- Remove #text element from XML responses
+  `PR #2079 <https://github.com/onaio/onadata/pull/2079>`_
+  [@DavisRayM]
+- Track users who initiate CSV imports
+  `PR #2078 <https://github.com/onaio/onadata/pull/2078>`_
+  [@DavisRayM]
+- Set status to imported_via_csv for CSV Imported submissions
+  `PR #2077 <https://github.com/onaio/onadata/pull/2077>`_
+  [@DavisRayM]
 
 v2.5.4(2021-04-23)
 ------------------
