@@ -29,15 +29,16 @@ class FlowResultsJSONRenderer(JSONRenderer):
 
     # pylint: disable=too-many-arguments
     @classmethod
-    def build_json_resource_obj(cls, fields, resource, resource_instance,
-                                resource_name, force_type_resolution=False):
+    def build_json_resource_obj(
+            cls, fields, resource, resource_instance,
+            resource_name, serializer, force_type_resolution=False):
         """
         Build a JSON resource object using the id as it appears in the
         resource.
         """
         obj = super(FlowResultsJSONRenderer, cls).build_json_resource_obj(
             fields, resource, resource_instance, resource_name,
-            force_type_resolution)
+            serializer, force_type_resolution)
         obj['id'] = resource['id']
 
         return obj
