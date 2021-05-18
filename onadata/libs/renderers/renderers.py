@@ -408,7 +408,9 @@ class InstanceXMLRenderer(XMLRenderer):
 
         elif isinstance(data, dict):
             for key, value in data.items():
-                if isinstance(value, (list, tuple)):
+                if not key:
+                    self._to_xml(xml, value)
+                elif isinstance(value, (list, tuple)):
                     for v in value:
                         xml.startElement(key, {})
                         self._to_xml(xml, v)
@@ -419,7 +421,6 @@ class InstanceXMLRenderer(XMLRenderer):
                     xml.startElement(key, attributes)
                     self._to_xml(xml, value)
                     xml.endElement(key)
-
                 else:
                     xml.startElement(key, {})
                     self._to_xml(xml, value)

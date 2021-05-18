@@ -114,7 +114,7 @@ class DataInstanceXMLSerializer(serializers.ModelSerializer):
         ret = super(
             DataInstanceXMLSerializer, self).to_representation(instance)
         if 'xml' in ret:
-            ret = xmltodict.parse(ret['xml'])
+            ret = xmltodict.parse(ret['xml'], cdata_key="")
 
         # Add Instance attributes to representation
         instance_attributes = {
