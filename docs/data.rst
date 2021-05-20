@@ -846,6 +846,66 @@ Response
 
     HTTP 204 No Content
 
+Delete a subset of submissions
+-------------------------------
+
+**Delete multiple submissions in a form**
+
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>DELETE</b> /api/v1/data/<code>{pk}</code>
+  </pre>
+
+A POST payload of parameter `instance_ids` with a comma separated list of submission ids.
+
+**Payload**
+::
+
+    instance_ids = '101425,108428,1974624'
+
+Example
+^^^^^^^^^
+::
+
+    'curl -X DELETE https://api.ona.io/api/v1/data/28058' -d 'instance_ids=101425,108428,1974624'
+
+Response
+^^^^^^^^^
+::
+
+    {"status_code": 200, "message": "3 records were deleted"}
+
+Delete all submissions in a form
+---------------------------------
+
+**Delete all submissions in a form**
+
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>DELETE</b> /api/v1/data/<code>{pk}</code>
+  </pre>
+
+A POST payload of parameter `delete_all` with the value 'True'. The value is 'False' by default.
+
+**Payload**
+::
+
+    delete_all = 'True'
+
+Example
+^^^^^^^^^
+::
+
+    'curl -X DELETE https://api.ona.io/api/v1/data/28058' -d 'delete_all="True"'
+
+Response
+^^^^^^^^^
+::
+
+    {"status_code": 200, "message": "3 records were deleted"}
+
 
 GEOJSON
 -------

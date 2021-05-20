@@ -12,6 +12,7 @@ from django.http import Http404
 from django.http import StreamingHttpResponse
 from django.utils import six
 from django.utils import timezone
+from distutils.util import strtobool
 from django.utils.translation import ugettext as _
 from rest_framework import status
 from rest_framework.decorators import action
@@ -27,8 +28,9 @@ from onadata.apps.api.tools import add_tags_to_instance
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import OsmData, MergedXForm
 from onadata.apps.logger.models.attachment import Attachment
-from onadata.apps.logger.models.instance import FormInactiveError
-from onadata.apps.logger.models.instance import Instance
+from onadata.apps.logger.models.instance import (
+    Instance,
+    FormInactiveError)
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.messaging.constants import XFORM, SUBMISSION_DELETED
 from onadata.apps.messaging.serializers import send_message
@@ -59,7 +61,6 @@ from onadata.libs.serializers.data_serializer import OSMSerializer
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.utils.common_tools import json_stream
-from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.viewer_tools import get_form_url, get_enketo_urls
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
@@ -297,34 +298,44 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
     def destroy(self, request, *args, **kwargs):
         instance_ids = request.data.get('instance_ids')
+        delete_all_submissions = strtobool(
+            request.data.get('delete_all', 'False'))
         self.object = self.get_object()
 
         if isinstance(self.object, XForm):
-            if not instance_ids:
+            if not instance_ids and not delete_all_submissions:
                 raise ParseError(_(u"Data id(s) not provided."))
             else:
-                instance_ids = [
-                    x for x in instance_ids.split(',') if x.isdigit()]
-
-                if not instance_ids:
-                    raise ParseError(_(u"Invalid data ids were provided."))
-
                 initial_count = self.object.submission_count()
-                queryset = Instance.objects.filter(
-                    id__in=instance_ids,
-                    xform=self.object,
-                    # do not update this timestamp when the record have
-                    # already been deleted.
-                    deleted_at__isnull=True
-                )
-                # loop through queryset
-                # then call delete_instance that calls .save()
-                # to allow emitting post_save signal
-                for instance in queryset_iterator(queryset):
-                    delete_instance(instance, request.user)
+                if delete_all_submissions:
+                    # Update timestamp only for active records
+                    self.object.instances.filter(
+                        deleted_at__isnull=True).update(
+                            deleted_at=timezone.now(),
+                            deleted_by=request.user)
+                else:
+                    instance_ids = [
+                        x for x in instance_ids.split(',') if x.isdigit()]
+                    if not instance_ids:
+                        raise ParseError(_(u"Invalid data ids were provided."))
+
+                    self.object.instances.filter(
+                        id__in=instance_ids,
+                        xform=self.object,
+                        # do not update this timestamp when the record have
+                        # already been deleted.
+                        deleted_at__isnull=True
+                    ).update(
+                        deleted_at=timezone.now(),
+                        deleted_by=request.user)
+
                 # updates the num_of_submissions for the form.
                 after_count = self.object.submission_count(force_update=True)
                 number_of_records_deleted = initial_count - after_count
+
+                # update the date modified field of the project
+                self.object.project.date_modified = timezone.now()
+                self.object.project.save(update_fields=['date_modified'])
 
                 # send message
                 send_message(
@@ -335,7 +346,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 return Response(
                     data={
                         "message":
-                        "%d records were deleted" % number_of_records_deleted
+                        "%d records were deleted" %
+                        number_of_records_deleted
                     },
                     status=status.HTTP_200_OK
                 )
