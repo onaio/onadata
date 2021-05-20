@@ -1,6 +1,5 @@
 import os
 
-from rest_framework.authentication import BasicAuthentication
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.mixins import DestroyModelMixin
@@ -9,19 +8,14 @@ from onadata.apps.viewer.models.export import Export
 from onadata.apps.api.permissions import ExportDjangoObjectPermission
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.export_serializer import ExportSerializer
-from onadata.libs.authentication import (
-    DigestAuthentication,
-    TempTokenAuthentication,
-    TempTokenURLParameterAuthentication)
+from onadata.libs.authentication import TempTokenURLParameterAuthentication
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs import filters
 
 
 class ExportViewSet(DestroyModelMixin, ReadOnlyModelViewSet):
-    authentication_classes = (DigestAuthentication,
-                              TempTokenAuthentication,
-                              TempTokenURLParameterAuthentication,
-                              BasicAuthentication)
+    authentication_classes = api_settings.DEFAULT_AUTHENTICATION_CLASSES + [
+        TempTokenURLParameterAuthentication]
     queryset = Export.objects.all()
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
         renderers.CSVRenderer,
