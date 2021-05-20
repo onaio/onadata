@@ -11,6 +11,7 @@ from onadata.libs.data import parse_int
 from onadata.libs.renderers.renderers import pairing
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.api.tools import replace_attachment_name_with_url
 from onadata.apps.api.viewsets.open_data_viewset import (
     OpenDataViewSet)
 from onadata.libs.serializers.data_serializer import TableauDataSerializer
@@ -181,9 +182,11 @@ class TableauViewSet(OpenDataViewSet):
 
             if should_paginate:
                 instances = self.paginate_queryset(instances)
+            # Switch out media file names for url links in queryset
+            data = replace_attachment_name_with_url(instances)
 
             data = process_tableau_data(
-                TableauDataSerializer(instances, many=True).data, xform)
+                TableauDataSerializer(data, many=True).data, xform)
 
             return self.get_streaming_response(data)
 

@@ -6,6 +6,7 @@ import os
 import json
 from re import search
 from django.test import RequestFactory
+from tempfile import NamedTemporaryFile
 from django.utils.dateparse import parse_datetime
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.open_data import get_or_create_opendata
@@ -316,3 +317,40 @@ class TestTableauViewSet(TestBase):
         cleaned_data = clean_xform_headers(group_columns)
         self.assertEqual(cleaned_data,
                          ['childs_name', 'childs_age'])
+
+    def test_replace_media_links(self):
+        """
+        Test that attachment details exported to Tableau contains
+        media file download links instead of the file name.
+        """
+        images_md = """
+        | survey |
+        |        | type  | name   | label |
+        |        | photo | image1 | Pic 1 |
+        """
+        xform_w_attachments = self._publish_markdown(images_md, self.user)
+        submission_file = NamedTemporaryFile(delete=False)
+        with open(submission_file.name, 'w') as xml_file:
+            xml_file.write(
+                "<?xml version='1.0'?><data id=\"%s\">"
+                "<image1>1335783522563.jpg</image1>"
+                "<image2>1442323232322.jpg</image2>"
+                "<meta><instanceID>uuid:729f173c688e482486a48661700455ff"
+                "</instanceID></meta></data>" %
+                (xform_w_attachments.id_string))
+        media_file = "1335783522563.jpg"
+        self._make_submission_w_attachment(
+            submission_file.name,
+            os.path.join(self.this_directory, 'fixtures', 'transportation',
+                         'instances', self.surveys[0], media_file))
+        submission_data = xform_w_attachments.instances.first().json
+        _open_data = get_or_create_opendata(xform_w_attachments)
+        uuid = _open_data[0].uuid
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request, uuid=uuid)
+        self.assertEqual(response.status_code, 200)
+        # cast generator response to list for easy manipulation
+        row_data = streaming_data(response)
+        self.assertEqual(
+            row_data[0]['image1'],
+            f"example.com{submission_data['_attachments'][0]['download_url']}")

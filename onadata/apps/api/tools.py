@@ -771,3 +771,26 @@ def update_role_by_meta_xform_perms(xform):
             if role in dataentry_role:
                 role = ROLES.get(meta_perms[1])
                 role.add(user, xform)
+
+
+def replace_attachment_name_with_url(data):
+    site_url = Site.objects.get_current().domain
+
+    for record in data:
+        attachments: dict = record.json.get('_attachments')
+        if attachments:
+            attachment_details = [
+                (attachment['name'], attachment['download_url'])
+                for attachment in attachments
+                if 'download_url' in attachment]
+            question_keys = list(record.json.keys())
+            question_values = list(record.json.values())
+
+            for attachment_name, attachment_path in attachment_details:
+                try:
+                    index: int = question_values.index(attachment_name)
+                    question_key: str = question_keys[index]
+                    record.json[question_key] = site_url + attachment_path
+                except ValueError:
+                    pass
+    return data
