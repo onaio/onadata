@@ -1773,6 +1773,25 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 404)
 
+    def test_anon_project_list_endpoint(self):
+        self._project_create()
+        self._publish_xls_form_to_project()
+
+        view = ProjectViewSet.as_view({
+            'get': 'list'
+        })
+        self.project.shared = True
+        self.project.save()
+
+        public_projects = Project.objects.filter(
+            shared=True).count()
+
+        request = self.factory.get('/')
+        response = view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), public_projects)
+
     def test_project_manager_can_delete_xform(self):
         # create project and publish form to project
         self._publish_xls_form_to_project()
