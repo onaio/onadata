@@ -242,7 +242,7 @@ Response
 
 
 Paginate data of a specific form
--------------------------------------------
+---------------------------------
 Returns a list of json submitted data for a specific form using page number and the number of items per page. Use the ``page`` parameter to specify page number and ``page_size`` parameter is used to set the custom page size.
 
 - ``page`` - Integer representing the page.
@@ -375,6 +375,58 @@ Response
         "deviceid": "351746052013466",
         "subscriberid": "639027...60317"
     }
+
+Fetch data on select columns for a given form
+---------------------------------------------------
+
+Returns a list of the selected columns from the submitted data. Use the ``fields`` parameter to specify the column data that should be returned.
+
+- ``fields`` - a comma separated list of columns on the given form.
+
+
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/<code>{form_pk}</code>.json?fields=<code>["field1", "field2"]</code>
+  </pre>
+
+Example
+^^^^^^^^^
+::
+
+       curl -X GET https://api.ona.io/api/v1/data/513322.json?fields=["_id", "_last_edited"]
+
+Response
+^^^^^^^^^
+::
+
+    [
+        {
+            "_id": 64999942,
+            "_last_edited": null
+        },
+        {
+            "_id": 64999819,
+            "_last_edited": null
+        },
+        {
+            "_id": 64999278,
+            "_last_edited": null
+        },
+        {
+            "_id": 64999082,
+            "_last_edited": null
+        },
+        {
+            "_id": 60549177,
+            "_last_edited": null
+        },
+        {
+            "_id": 60549136,
+            "_last_edited": null
+        }
+    ]
+
 
 Get the history of edits made to a submission
 ----------------------------------------------
@@ -917,18 +969,12 @@ Get a valid geojson value from the submissions
 - ``geo_field`` - valid field that can be converted to a geojson (Point, LineString, Polygon).
 - ``fields`` - additional comma separated values that are to be added to the properties section
 
-.. raw:: html
-
-  <pre class="prettyprint">
-  <b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>.geojson
-  </pre>
-
-**With options**
+**List all the geojson values for a submission**
 
 .. raw:: html
 
   <pre class="prettyprint">
-  <b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>.geojson?geo_field=<code>{field_name}</code>&fields=<code>{list,of,fields}</code>
+  <b>GET</b> /api/v1/data/<code>{form_pk}</code>/<code>{dataid}</code>.geojson
   </pre>
 
 Example
@@ -963,12 +1009,12 @@ Response
     }
 
 
-**List the geojson values**
+**List all the geojson values for a given form**
 
 .. raw:: html
 
   <pre class="prettyprint">
-  <b>GET</b> /api/v1/data/<code>{pk}</code>.geojson
+  <b>GET</b> /api/v1/data/<code>{form_pk}</code>.geojson
   </pre>
 
 Example
@@ -1018,6 +1064,149 @@ Response
                 }
             }]
     }
+
+**List the geojson data, for a polygon field, for a given submission**
+
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>.geojson?geo_field=<code>{name_of_field_on_form}</code>
+  </pre>
+
+Example
+^^^^^^^^^
+::
+
+      curl -X GET https://api.ona.io/api/v1/data/513322/60549136.geojson?geo_field=my_geoshape
+
+Response
+^^^^^^^^^
+
+    **HTTP 200 OK**
+
+Response
+^^^^^^^^^
+::
+
+    {
+        "type": "Feature",
+        "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+                [
+                    [
+                        36.747679,
+                        -1.300717
+                    ],
+                    [
+                        36.752386,
+                        -1.305222
+                    ],
+                    [
+                        36.751879,
+                        -1.300642
+                    ],
+                    [
+                        36.747679,
+                        -1.300717
+                    ]
+                ]
+            ]
+        },
+        "properties": {
+            "id": 60549136,
+            "xform": 513322
+        }
+    }
+
+**List the geojson data, for a geotrace field, for a given submission. Add fields to the properties attribute**
+
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>.geojson?geo_field=<code>{name_of_field_on_form}</code>
+  </pre>
+
+Example
+^^^^^^^^^
+::
+
+      curl -X GET https://api.ona.io/api/v1/data/513322/60549136.geojson?geo_field=my_geotrace
+
+Response
+^^^^^^^^^
+
+    **HTTP 200 OK**
+
+Response
+^^^^^^^^^
+::
+
+    {
+        "type": "Feature",
+        "geometry": {
+            "type": "LineString",
+            "coordinates": [
+                [
+                    36.745623,
+                    -1.302819
+                ],
+                [
+                    36.750326,
+                    -1.299129
+                ]
+            ]
+        },
+        "properties": {
+            "id": 60549136,
+            "xform": 513322
+        }
+    }
+
+**Fetch geojson values for a submission with populated properties attribute**
+
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>.geojson?fields=<code>{_id,_last_edited}</code>
+  </pre>
+
+Example
+^^^^^^^^^
+::
+
+      curl -X GET https://api.ona.io/api/v1/data/513322/60549136.geojson?fields=_id,_last_edited
+
+Response
+^^^^^^^^^
+
+    **HTTP 200 OK**
+
+Response
+^^^^^^^^^
+::
+
+{
+    "type": "Feature",
+    "geometry": {
+        "type": "GeometryCollection",
+        "geometries": [
+            {
+                "type": "Point",
+                "coordinates": [
+                    36.744421,
+                    -1.29943
+                ]
+            }
+        ]
+    },
+    "properties": {
+        "id": 60549136,
+        "xform": 513322,
+        "_id": 60549136,
+        "_last_edited": null
+    }
+}
 
 OSM
 ----
