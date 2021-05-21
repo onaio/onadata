@@ -133,19 +133,26 @@ def get_users(project, context, all_perms=True):
             return users
 
     data = {}
-    request_user_perms = [
-        perm.permission.codename
-        for perm in project.projectuserobjectpermission_set.filter(
-            user=context["request"].user)]
-    request_user_role = get_role(request_user_perms, project)
-    request_user_is_admin = request_user_role in [
-        OwnerRole.name, ManagerRole.name]
+
+    request_user = context['request'].user
+
+    if not request_user.is_anonymous:
+        request_user_perms = [
+            perm.permission.codename
+            for perm in project.projectuserobjectpermission_set.filter(
+                user=request_user)]
+        request_user_role = get_role(request_user_perms, project)
+        request_user_is_admin = request_user_role in [
+            OwnerRole.name, ManagerRole.name]
+    else:
+        request_user_is_admin = False
+
     for perm in project.projectuserobjectpermission_set.all():
         if perm.user_id not in data:
             user = perm.user
 
             if all_perms or user in [
-                    context['request'].user, project.organization
+                    request_user, project.organization
             ] or request_user_is_admin:
                 data[perm.user_id] = {
                     'permissions': [],
