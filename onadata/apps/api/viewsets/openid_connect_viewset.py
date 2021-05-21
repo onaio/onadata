@@ -204,7 +204,7 @@ def get_redirect_sso_response(
                        algorithm=settings.JWT_ALGORITHM)
     redirect_response = HttpResponseRedirect(redirect_uri)
     redirect_response.set_cookie('SSO',
-                                 value=value.decode('utf-8'),
+                                 value=value,
                                  max_age=None,
                                  domain=domain)
 
