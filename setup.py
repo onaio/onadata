@@ -41,7 +41,7 @@ setup(
         "django-ordered-model",
         # generic relation
         "django-query-builder",
-        "celery<5",
+        "celery",
         # cors
         "django-cors-headers",
         "django-debug-toolbar",
@@ -72,7 +72,7 @@ setup(
         "dict2xml",
         "lxml",
         # pyxform
-        "pyxform >= 1.4.0",
+        "pyxform",
         # spss
         "savreaderwriter",
         # tests

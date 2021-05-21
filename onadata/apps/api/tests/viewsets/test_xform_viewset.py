@@ -1059,7 +1059,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             encoded_payload = jwt.encode(
                 payload, JWT_SECRET_KEY,
-                algorithm=JWT_ALGORITHM).decode('utf-8')
+                algorithm=JWT_ALGORITHM)
 
             return_url = "https://enketo.ona.io/_/#YY8M"
             url = "https://enketo.ona.io/_/?jwt=%s#YY8M" % encoded_payload
@@ -1098,7 +1098,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             encoded_payload = jwt.encode(
                 payload, JWT_SECRET_KEY,
-                algorithm=JWT_ALGORITHM).decode('utf-8')
+                algorithm=JWT_ALGORITHM)
 
             return_url = "https://enketo.ona.io/::YY8M"
             url = "%s?jwt=%s" % (return_url, encoded_payload)

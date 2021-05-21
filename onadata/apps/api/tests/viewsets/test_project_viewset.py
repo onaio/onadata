@@ -430,7 +430,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(
             response.data, {
                 u'non_field_errors':
-                [u'The fields name, organization must make a unique set.']
+                [u'The fields name, owner must make a unique set.']
             }
         )
         final_count = Project.objects.count()
