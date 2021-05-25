@@ -23,7 +23,7 @@ class TextItService(object):
     # pylint: disable=R0913
     def __init__(self, xform, service_url=None, name=None, auth_token=None,
                  flow_uuid=None, contacts=None,
-                 pk=None):
+                 pk=None, flow_title: str = ""):
         self.pk = pk  # pylint: disable=C0103
         self.xform = xform
         self.auth_token = auth_token
@@ -35,6 +35,7 @@ class TextItService(object):
         self.date_modified = None
         self.active = True
         self.inactive_reason = ""
+        self.flow_title = flow_title
 
     def save(self):
         """
@@ -68,6 +69,8 @@ class TextItService(object):
                                        self.contacts)
 
         MetaData.textit(self.xform, data_value=data_value)
+        MetaData.textit_flow_details(
+            self.xform, data_value=self.flow_title)
 
         if self.xform.is_merged_dataset:
             for xform in self.xform.mergedxform.xforms.all():

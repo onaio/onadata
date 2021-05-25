@@ -20,7 +20,7 @@ from past.builtins import basestring
 
 from onadata.libs.utils.cache_tools import XFORM_METADATA_CACHE, safe_delete
 from onadata.libs.utils.common_tags import (GOOGLE_SHEET_DATA_TYPE, TEXTIT,
-                                            XFORM_META_PERMS)
+                                            XFORM_META_PERMS, TEXTIT_DETAILS)
 
 CHUNK_SIZE = 1024
 INSTANCE_MODEL_NAME = "instance"
@@ -413,6 +413,11 @@ class MetaData(models.Model):
         obj = unique_type_for_form(content_object, data_type, data_value)
 
         return obj and obj.data_value
+
+    @staticmethod
+    def textit_flow_details(content_object, data_value: str = ""):
+        data_type = TEXTIT_DETAILS
+        return unique_type_for_form(content_object, data_type, data_value)
 
     @property
     def is_linked_dataset(self):
