@@ -89,6 +89,7 @@ MEDIAN = "median"
 MODE = "mode"
 
 TEXTIT = 'textit'
+TEXTIT_DETAILS = 'textit_details'
 OSM = 'osm'
 SELECT_BIND_TYPE = 'string'
 MULTIPLE_SELECT_TYPE = 'select all that apply'
