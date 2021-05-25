@@ -46,7 +46,7 @@ class TextItSerializer(serializers.Serializer):
 
         instance = TextItService(xform, service_url, name, auth_token,
                                  flow_uuid, contacts, instance.pk,
-                                 flow_title=instance.flow_title)
+                                 flow_title=validated_data.get('flow_title'))
         instance.save()
 
         return instance

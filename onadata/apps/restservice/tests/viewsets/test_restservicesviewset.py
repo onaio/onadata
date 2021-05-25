@@ -141,7 +141,8 @@ class TestRestServicesViewSet(TestAbstractViewSet):
             "xform": self.xform.pk,
             "auth_token": "sadsdfhsdf",
             "flow_uuid": "sdfskhfskdjhfs",
-            "contacts": "ksadaskjdajsda"
+            "contacts": "ksadaskjdajsda",
+            "flow_title": "test-flow"
         }
 
         request = self.factory.put('/', data=post_data, **self.extra)
@@ -149,6 +150,25 @@ class TestRestServicesViewSet(TestAbstractViewSet):
 
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.data['name'], "textit")
+        self.assertEqual(response.data['flow_title'], 'test-flow')
+        metadata_count = MetaData.objects.count()
+
+        # Flow title can be updated
+        put_data = {
+            'flow_title': 'new-name',
+            'xform': self.xform.pk,
+            'name': 'textit',
+            'service_url': 'https://textit.io',
+            'auth_token': 'sadsdfhsdf',
+            'flow_uuid': 'sdfskhfskdjhfs',
+            'contacts': 'ksadaskjdajsda',
+        }
+        request = self.factory.put('/', data=put_data, **self.extra)
+        response = self.view(request, pk=rest.pk)
+
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['flow_title'], 'new-name')
+        self.assertEqual(MetaData.objects.count(), metadata_count)
 
     def test_update_with_errors(self):
         rest = self._create_textit_service()
