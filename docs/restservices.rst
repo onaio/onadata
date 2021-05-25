@@ -166,6 +166,7 @@ Adding TextIt
 Where:
 
 - ``auth_token`` - The authentication token for the rest service.
+- ``flow_title`` - The flow title in textit.
 - ``flow_uuid`` - The flow uuid in textit.
 - ``contacts`` - The contact used in the flow.
 - ``service_url`` - The external url.
@@ -183,6 +184,7 @@ Where:
         {
             xform: 9929,
             auth_token: "abffbbb8f16f7a1bc75f141b5asdsadafc6d2d7d2b",
+            flow_title: "test_flow",
             flow_uuid: "cf7d7891-a01b-4ca9-9adssd-7baf5f77c741",
             contacts: "52d4ff71-4d4e-464c-asda-f0c04cc9e66d"
             id: 236,
