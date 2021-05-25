@@ -4,6 +4,7 @@ from rest_framework import serializers
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.models.textit_service import TextItService
 from onadata.libs.serializers.fields.xform_field import XFormField
+from onadata.libs.utils.common_tags import TEXTIT_DETAILS
 
 
 class TextItSerializer(serializers.Serializer):
@@ -21,10 +22,15 @@ class TextItSerializer(serializers.Serializer):
     inactive_reason = serializers.CharField(read_only=True)
 
     def to_representation(self, instance):
+        meta_data = MetaData.objects.filter(
+            data_type=TEXTIT_DETAILS, object_id=instance.xform.pk).first()
+        flow_title = ""
+        if meta_data:
+            flow_title = meta_data.data_value
         text_it = TextItService(pk=instance.pk, xform=instance.xform,
                                 service_url=instance.service_url,
                                 name=instance.name,
-                                flow_title=instance.flow_title)
+                                flow_title=flow_title)
         text_it.date_modified = instance.date_modified
         text_it.date_created = instance.date_created
         text_it.active = instance.active

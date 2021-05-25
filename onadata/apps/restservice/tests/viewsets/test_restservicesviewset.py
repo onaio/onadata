@@ -107,7 +107,8 @@ class TestRestServicesViewSet(TestAbstractViewSet):
             'id': _id,
             'xform': self.xform.pk,
             'active': True,
-            'inactive_reason': ''
+            'inactive_reason': '',
+            'flow_title': ''
         }
         response.data.pop('date_modified')
         response.data.pop('date_created')
