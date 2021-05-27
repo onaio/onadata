@@ -5,6 +5,9 @@ ENV PYTHONUNBUFFERED 1
 
 ARG optional_packages
 
+# Download public key for github.com
+RUN mkdir -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
+
 # Install optional requirements
 # Read more on the ssh argument here: https://docs.docker.com/develop/develop-images/build_enhancements/#using-ssh-to-access-private-data-in-builds
 # hadolint ignore=DL3013
