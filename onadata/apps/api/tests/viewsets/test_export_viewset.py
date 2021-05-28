@@ -496,3 +496,29 @@ class TestExportViewSet(TestBase):
         request = self.factory.get('/export', **extra)
         response = self.view(request, pk=export.pk)
         self.assertEqual(response.status_code, 200)
+
+    def test_export_failure_reason_returned(self):
+        """
+        Test that the reason an export failed is returned on the API
+        """
+        self._create_user_and_login()
+        self._publish_transportation_form()
+        Export.objects.create(
+            xform=self.xform,
+            internal_status=Export.FAILED,
+            error_message="Something unexpected happened")
+
+        extra = {
+            'HTTP_AUTHORIZATION': f'Token {self.user.auth_token.key}',
+        }
+
+        view = ExportViewSet.as_view({'get': 'list'})
+        request = self.factory.get(
+            '/export', {'xform': self.xform.pk}, **extra)
+        force_authenticate(request)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('error_message', response.data[0].keys())
+        self.assertEqual(
+            response.data[0]['error_message'],
+            'Something unexpected happened')
