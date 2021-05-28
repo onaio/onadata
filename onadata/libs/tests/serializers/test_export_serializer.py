@@ -12,7 +12,7 @@ from onadata.apps.viewer.tasks import create_async_export
 
 
 class TestExportSerializer(TestAbstractViewSet):
-    def test_project_serializer(self):
+    def test_export_serializer(self):
         request = APIRequestFactory().get('/')
         self._publish_xls_form_to_project()
         temp_dir = settings.MEDIA_ROOT
@@ -34,7 +34,8 @@ class TestExportSerializer(TestAbstractViewSet):
         self.assertEqual(list(serializer.data), ['id', 'job_status', 'type',
                                                  'task_id', 'xform',
                                                  'date_created', 'filename',
-                                                 'options', 'export_url'])
+                                                 'options', 'export_url',
+                                                 'error_message'])
         self.assertEqual(
             serializer.data.get('export_url'),
             'http://testserver/api/v1/export/%s.csv' % export[0].id

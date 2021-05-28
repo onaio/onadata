@@ -503,7 +503,7 @@ class TestExportViewSet(TestBase):
         """
         self._create_user_and_login()
         self._publish_transportation_form()
-        export = Export.objects.create(
+        Export.objects.create(
             xform=self.xform,
             internal_status=Export.FAILED,
             error_message="Something unexpected happened")
