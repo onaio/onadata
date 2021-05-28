@@ -15,7 +15,8 @@ class ExportSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Export
         fields = ('id', 'job_status', 'type', 'task_id', 'xform',
-                  'date_created', 'filename', 'options', 'export_url')
+                  'date_created', 'filename', 'options', 'export_url',
+                  'error_message')
 
     def get_job_status(self, obj):
         return status_msg.get(obj.internal_status)
