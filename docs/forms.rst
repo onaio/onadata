@@ -308,14 +308,24 @@ Response
         "job_status": "SUCCESS",
         "task_id": "54b7159b-3b53-4e3c-b2a7-a5ed51adcfe9",
         "type": "xls",
-        "xform": "http://api.ona.io/api/v1/forms/1"
+        "xform": "http://api.ona.io/api/v1/forms/1",
+        "error_message": ""
     },
     {
         "id": 2,
         "job_status": "PENDING",
         "task_id": "54b7159b-3b53-4e3c-b2a7-a5ed51adcde9",
         "type": "xls",
-        "xform": "http://api.ona.io/api/v1/forms/17"
+        "xform": "http://api.ona.io/api/v1/forms/17",
+        "error_message": ""
+    },
+    {
+        "id": 3,
+        "job_status": "FAILED",
+        "task_id": "54b7159b-3b53-4e3c-b2a7-a5ed51adcfe9",
+        "type": "xls",
+        "xform": "http://api.ona.io/api/v1/forms/20",
+        "error_message": "Something unexpected happened"
     }]
 
 Get a list of exports on a form
@@ -341,7 +351,8 @@ Response
         "job_status": "SUCCESS",
         "task_id": "54b7159b-3b53-4e3c-b2a7-a5ed51adcfe9",
         "type": "xls",
-        "xform": "http://api.ona.io/api/v1/forms/1"
+        "xform": "http://api.ona.io/api/v1/forms/1",
+        "error_message": ""
     }]
 
 Export form data asynchronously
