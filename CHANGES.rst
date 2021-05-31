@@ -6,7 +6,7 @@ Changelog for Onadata
 v2.5.6(2021-05-31)
 ------------------
 
-- Expore ability to delete a subset or all submissions from the data endpoint
+- Expose ability to delete a subset or all submissions from the data endpoint
   `PR #2076 <https://github.com/onaio/onadata/pull/2076>`_
   [@WinnyTroy]
 - Tableau WDC media file urls enhancement
@@ -1126,5 +1126,4 @@ Bug fixes and changes
 - Improve setup.py and dependency management
   `Issue 1330 <https://github.com/onaio/onadata/issues/1330>`_
   [moshthepitt]
-
 
