@@ -25,9 +25,6 @@ from onadata.apps.main.registration_urls import (
 from onadata.apps.restservice import views as restservice_views
 from onadata.apps.sms_support import views as sms_support_views
 from onadata.apps.viewer import views as viewer_views
-from onadata.apps.api.viewsets.openid_connect_viewset import (
-    OpenIDConnectViewSet
-)
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 
 from onadata.libs.utils.analytics import init_analytics
@@ -43,6 +40,8 @@ urlpatterns = [
     re_path(r'^i18n/', include(i18n)),
     url('^api/v1/', include(api_v1_router.urls)),
     url('^api/v2/', include(api_v2_router.urls)),
+    # open id connect urls
+    url(r"^", include("oidc.urls")),
     re_path(r'^api-docs/',
             RedirectView.as_view(url=settings.STATIC_DOC, permanent=True)),
     re_path(r'^api/$',
@@ -204,22 +203,6 @@ urlpatterns = [
     re_path(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)' # noqa
             '/(?P<filename>[^/]+)$',
             viewer_views.export_download, name='export-download'),
-
-    # open id connect urls
-    re_path(r'^oidc/(?P<openid_connect_provider>\w+)/login$',
-            OpenIDConnectViewSet.as_view({
-                'get': 'initiate_oidc_flow',
-                'head': 'callback',
-                'post': 'callback'
-            }), name='open-id-connect-login'),
-    re_path(r'^oidc/(?P<openid_connect_provider>\w+)/expire$',
-            OpenIDConnectViewSet.as_view({
-                'get': 'expire'
-            }), name='open-id-connect-logout'),
-    re_path(r'^oidc/(?P<openid_connect_provider>\w+)/callback$',
-            OpenIDConnectViewSet.as_view({
-                'get': 'callback', 'head': 'callback', 'post': 'callback'
-            }), name='open-id-connect-callback'),
 
     # xform versions urls
     re_path(r'^api/v1/forms/(?P<pk>[^/.]+)/versions/(?P<version_id>[^/.]+)$',  # noqa
