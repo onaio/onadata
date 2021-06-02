@@ -50,12 +50,38 @@ if len(sys.argv) >= 2 and (sys.argv[1] == "test" or sys.argv[1] == "test_all"):
 else:
     TESTING_MODE = False
 
-CELERY_BROKER_URL = 'amqp://guest:@queue:5672//'
-CELERY_TASK_ALWAYS_EAGER = False
+CELERY_BROKER_URL = 'redis://queue:6379'
+CELERY_RESULT_BACKEND = 'redis://queue:6379'
+CELERY_TASK_ALWAYS_EAGER = True
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_CACHE_BACKEND = 'memory'
 CELERY_BROKER_CONNECTION_MAX_RETRIES = 2
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://queue:6379',
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient"
+        },
+    }
+}
+
+NOTIFICATION_BACKENDS = {
+    'mqtt': {
+        'BACKEND': 'onadata.apps.messaging.backends.mqtt.MQTTBackend',
+        'OPTIONS': {
+            'HOST': 'notifications',
+            'PORT': 1883,
+            'QOS': 1,
+            'RETAIN': False,
+            'SECURE': False,
+            'TOPIC_BASE': 'onadata'
+        }
+    }
+}
+FULL_MESSAGE_PAYLOAD = True
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
@@ -76,3 +102,7 @@ if TESTING_MODE:
     ENKETO_API_INSTANCE_IFRAME_URL = ENKETO_URL + "api_v1/instance/iframe"
 else:
     MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'media/')  # noqa
+
+ENKETO_API_ALL_SURVEY_LINKS_PATH = '/api_v2/survey/all'
+SUBMISSION_RETRIEVAL_THRESHOLD = 1000
+CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD = 100000

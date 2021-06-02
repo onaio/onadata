@@ -12,7 +12,7 @@ services:
       # it everytime we rebuild.
       - ../.onadata_db:/var/lib/postgresql/data
   queue:
-    image: rabbitmq
+    image: redis:6-alpine
   web:
     build:
       context: .
@@ -31,4 +31,12 @@ services:
     environment:
       - SELECTED_PYTHON=python3.6
       - INITDB=false
-
+  notifications:
+    image: emqx/emqx:4.3.2
+    ports:
+      - "1883:1883"
+      - "8080:8080"
+    volumes:
+      - ../.onadata_mqtt/data:/opt/emqx/data
+      - ../.onadata_mqtt/etc:/opt/emqx/etc
+      - ../.onadata_mqtt/log:/opt/emqx/log
