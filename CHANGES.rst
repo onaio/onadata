@@ -3,7 +3,7 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
-v2.5.6(2021-05-31)
+v2.5.6(2021-06-02)
 ------------------
 
 - Expose ability to delete a subset or all submissions from the data endpoint
@@ -1126,4 +1126,3 @@ Bug fixes and changes
 - Improve setup.py and dependency management
   `Issue 1330 <https://github.com/onaio/onadata/issues/1330>`_
   [moshthepitt]
-
