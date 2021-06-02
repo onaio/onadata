@@ -12,6 +12,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.core.files.storage import default_storage, get_storage_class
 from django.db import IntegrityError, OperationalError
 from django.http import (HttpResponse, HttpResponseBadRequest,
@@ -1421,6 +1422,41 @@ def enketo_preview(request, username, id_string):
         return HttpResponse(e)
 
     return HttpResponseRedirect(enketo_preview_url)
+
+
+def service_health(request):
+    """
+    This endpoint checks whether the various services(Database, Cache, e.t.c )
+    of the application are running as expected. Returns a 200 Status code if
+    all is well and a 500 if a service is down
+    """
+    service_degraded = False
+    service_statuses = {}
+
+    # Check if Database connections are present & data is retrievable
+    for database in getattr(settings, 'DATABASES').keys():
+        try:
+            XForm.objects.using(database).first()
+        except Exception as e:
+            service_statuses[f'{database}-Database'] = f'Degraded state; {e}'
+            service_degraded = True
+        else:
+            service_statuses[f'{database}-Database'] = 'OK'
+
+    # Check if cache is accessible
+    try:
+        cache.set('ping', 'pong')
+        service_degraded = not (cache.get('ping') == 'pong')
+    except Exception as e:
+        service_statuses['Cache-Service'] = f'Degraded state; {e}'
+        service_degraded = True
+    else:
+        service_statuses['Cache-Service'] = 'OK'
+
+    return HttpResponse(
+        json.dumps(service_statuses),
+        status=500 if service_degraded else 200,
+        content_type='application/json')
 
 
 @require_GET

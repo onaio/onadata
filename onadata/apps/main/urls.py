@@ -335,7 +335,10 @@ urlpatterns = [
     re_path(r'^favicon\.ico',
             RedirectView.as_view(url='/static/images/favicon.ico',
                                  permanent=True)),
-    re_path(r'^static/(?P<path>.*)$', staticfiles_views.serve)
+    re_path(r'^static/(?P<path>.*)$', staticfiles_views.serve),
+
+    # Health check
+    re_path(r'^service_health$', main_views.service_health)
 ]
 
 CUSTOM_URLS = getattr(settings, 'CUSTOM_MAIN_URLS', None)
