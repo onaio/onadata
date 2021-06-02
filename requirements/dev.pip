@@ -110,6 +110,8 @@ django-ordered-model==3.4.3
     # via onadata
 django-query-builder==2.0.1
     # via onadata
+django-redis==5.0.0
+    # via onadata
 django-registration-redux==2.9
     # via onadata
 django-render-block==0.8.1
@@ -129,6 +131,7 @@ django==2.2.23
     #   django-guardian
     #   django-oauth-toolkit
     #   django-query-builder
+    #   django-redis
     #   django-render-block
     #   django-reversion
     #   django-taggit
@@ -353,6 +356,8 @@ raven==6.10.0
     # via onadata
 recaptcha-client==1.0.6
     # via onadata
+redis==3.5.3
+    # via django-redis
 requests-mock==1.9.2
     # via onadata
 requests==2.25.1
