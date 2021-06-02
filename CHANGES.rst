@@ -3,6 +3,37 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.5.6(2021-06-02)
+------------------
+
+- Expose ability to delete a subset or all submissions from the data endpoint
+  `PR #2076 <https://github.com/onaio/onadata/pull/2076>`_
+  [@WinnyTroy]
+- Tableau WDC media file urls enhancement
+  `PR #2074 <https://github.com/onaio/onadata/pull/2074>`_
+  [@WinnyTroy]
+- Add the default authentication classes to the export viewset
+  `PR #2023 <https://github.com/onaio/onadata/pull/2023>`_
+  [@DavisRayM]
+- Update requirements
+  `PR #2070 <https://github.com/onaio/onadata/pull/2070>`_
+  [@DavisRayM]
+- Check if user is an AnonymousUser before trying to retrieve their project role
+  `PR #2084 <https://github.com/onaio/onadata/pull/2084>`_
+  [@DavisRayM]
+- Add optional `flow_title` field to the TextItService
+  `PR #2086 <https://github.com/onaio/onadata/pull/2086>`_
+  [@DavisRayM]
+- Update onadata-uwsgi docker file
+  `PR #2087 <https://github.com/onaio/onadata/pull/2087>`_
+  [@DavisRayM]
+- Expound on field query param for the data json format and geojson format
+  `PR #2085 <https://github.com/onaio/onadata/pull/2085>`_
+  [@WinnyTroy]
+- Add `error_message` field to the Export serializer
+  `PR #2094 <https://github.com/onaio/onadata/pull/2094>`_
+  [@DavisRayM]
+
 v2.5.5(2021-05-17)
 ------------------
 
@@ -1095,5 +1126,3 @@ Bug fixes and changes
 - Improve setup.py and dependency management
   `Issue 1330 <https://github.com/onaio/onadata/issues/1330>`_
   [moshthepitt]
-
-
