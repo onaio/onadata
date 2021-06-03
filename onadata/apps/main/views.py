@@ -1446,10 +1446,9 @@ def service_health(request):
     # Check if cache is accessible
     try:
         cache.set('ping', 'pong')
-        service_degraded = not (cache.get('ping') == 'pong')
+        cache.delete('ping')
     except Exception as e:
         service_statuses['Cache-Service'] = f'Degraded state; {e}'
-        service_degraded = True
     else:
         service_statuses['Cache-Service'] = 'OK'
 
