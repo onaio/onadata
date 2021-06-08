@@ -337,8 +337,8 @@ urlpatterns = [
                                  permanent=True)),
     re_path(r'^static/(?P<path>.*)$', staticfiles_views.serve),
 
-    # Health check
-    re_path(r'^health$', main_views.service_health)
+    # Health status
+    re_path(r'^status$', main_views.service_health)
 ]
 
 CUSTOM_URLS = getattr(settings, 'CUSTOM_MAIN_URLS', None)
