@@ -108,6 +108,7 @@ editor
 ei
 email
 end
+enketo
 f
 fag
 faq
