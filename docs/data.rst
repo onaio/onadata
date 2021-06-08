@@ -80,17 +80,38 @@ of records and the limit parameter to limit the number of records returned.
 
 	 curl -X GET 'https://api.ona.io/api/v1/data/2?start=3&limit=4'
 
-Download data in `csv` format
------------------------------
-.. raw:: html
+Fetch XForm ODK data for all forms per account in `csv` format
+--------------------------------------------------------------
+Pull all form data for forms located within your account
 
-
-  <pre class="prettyprint">
-  <b>GET</b> /api/v1/data.csv</pre>
-
+Example
+^^^^^^^^^
 ::
 
-	curl -O https://api.ona.io/api/v1/data.csv
+       curl -X GET https://api.ona.io/api/v1/data.csv
+
+Response
+^^^^^^^^^
+::
+    description,id,id_string,title,url
+     ,549,form1,First Form,https://stage-odk.ona.io/api/v1/data/549.csv
+     ,569,form2,Second Form,https://stage-odk.ona.io/api/v1/data/569.csv
+     ,570,Smallform,Smallform,https://stage-odk.ona.io/api/v1/data/570.csv
+
+Stream XForm submission data in `csv` format
+--------------------------------------------
+
+Example
+^^^^^^^^^
+::
+
+       curl -X GET https://api.ona.io/api/v1/data/1343.csv
+
+Response
+^^^^^^^^^
+::
+    hello,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,2,n/a,uuid:6a477d27-343c-44c2-9204-bd42ec3e0796,77466,6a477d27-343c-44c2-9204-bd42ec3e0796,2021-02-23T14:14:47,2021-02-23T14:14:47,,,202001170844,,winny,0,0,True,1343
+    Test que,14,14,40.446947 27.283625 0 0,40.446947,27.283625,0,0,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,n/a,2,n/a,uuid:a09a9b71-b98a-4904-ab04-1ed162ab2b02,186964,a09a9b71-b98a-4904-ab04-1ed162ab2b02,2021-05-27T12:38:14,2021-05-27T12:38:14,,,202001170844,,winny,0,0,True,1343
 
 GET JSON List of data end points filter by owner
 ------------------------------------------------
@@ -212,7 +233,7 @@ Response
       ]
 
 Get FLOIP flow results for a specific submission
-------------------------------------------
+------------------------------------------------
 Provides a list of rows of submitted data for a specific submission in a form in FLOIP resource data format as specified |FLOIPResourceData|.
 
 .. |FLOIPResourceData| raw:: html
@@ -490,7 +511,7 @@ Query submitted data of a specific form
 Use the `query` or `data` parameter to pass in a JSON key/value query.
 
 Example I
-^^^^^^^
+^^^^^^^^^
 Query submissions where name is `tom`
 
 ::
@@ -498,7 +519,7 @@ Query submissions where name is `tom`
     curl -X GET https://api.ona.io/api/v1/data/22845?query={"name":"tom"}
 
 Example II
-^^^^^^^
+^^^^^^^^^^
 Query submissions where age is greater than 21
 
 ::
@@ -506,7 +527,7 @@ Query submissions where age is greater than 21
     curl -X GET https://api.ona.io/api/v1/data/22845?query={"age":{"$gt":"21"}}
 
 Example III
-^^^^^^^
+^^^^^^^^^^^
 Query submissions where age is less than or equal to 21
 
 ::
@@ -514,7 +535,7 @@ Query submissions where age is less than or equal to 21
     curl -X GET https://api.ona.io/api/v1/data/22845?query={"age":{"$lte":"21"}}
 
 Example IV
-^^^^^^^
+^^^^^^^^^^
 Query submissions with case insensitive and partial search
 
 ::
@@ -522,7 +543,23 @@ Query submissions with case insensitive and partial search
     curl -X GET https://api.ona.io/api/v1/data/22845?query={"name":{"$i":"hosee"}}
 
 Example V
-^^^^^^^
+^^^^^^^^^^
+Query submissions collected before specific date
+
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845.json?query={"_submission_time":{"$lte": "2020-08-31"}}
+
+Example VI
+^^^^^^^^^^
+Query submissions collected within specific dates
+
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845.json?query={"_submission_time":{"$gte": "2020-01-01", "$lte": "2020-08-31"}}
+
+Example VII
+^^^^^^^^^^^
 Query submissions where age is 21 or name is hosee
 
 ::
@@ -531,16 +568,16 @@ Query submissions where age is 21 or name is hosee
 
 All Filters Options
 
-=======  ===================================
+==================================================
 Filter   Description
-=======  ===================================
+==================================================
 **$gt**  Greater than
 **$gte** Greater than or Equal to
 **$lt**  Less than
 **$lte** Less or Equal to
 **$i**   Case insensitive or partial search
 **$or**  Or
-=======  ===================================
+==================================================
 
 Query submitted data of a specific form using date_created
 ----------------------------------------------------------
