@@ -1,6 +1,6 @@
 import json
 from django.http import HttpRequest
-from django.core.cache.backends.base import InvalidCacheBackendError
+from django.db.utils import DatabaseError
 from mock import patch
 
 from onadata.apps.main.tests.test_base import TestBase
@@ -26,17 +26,15 @@ class TestServiceHealthView(TestBase):
                 'Cache-Service': 'OK'
             })
 
-        with patch('onadata.apps.main.views.cache') as cache_mock:
-            cache_mock.set.side_effect = InvalidCacheBackendError(
-                'Invalid cache configuration')
+        with patch('onadata.apps.main.views.XForm') as xform_mock:
+            xform_mock.objects.using().first.side_effect = DatabaseError(
+                'Some database error')
             resp = service_health(req)
 
             self.assertEqual(resp.status_code, 500)
             self.assertEqual(
                 json.loads(resp.content.decode('utf-8')),
                 {
-                    'default-Database': 'OK',
-                    'Cache-Service': (
-                        'Degraded state; '
-                        'Invalid cache configuration')
+                    'default-Database': 'Degraded state; Some database error',
+                    'Cache-Service': 'OK'
                 })
