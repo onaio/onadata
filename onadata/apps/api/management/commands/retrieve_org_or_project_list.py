@@ -5,44 +5,8 @@ from django.utils.translation import gettext as _
 
 from onadata.apps.logger.models import Project
 from onadata.apps.api.models import OrganizationProfile
-from onadata.libs.permissions import is_organization, get_role
-from onadata.libs.serializers.organization_serializer import \
-    OrganizationSerializer
-
-
-def get_project_users(project):
-    ret = {}
-
-    for perm in project.projectuserobjectpermission_set.all():
-        if perm.user.username not in ret:
-            user = perm.user
-
-            ret[user.username] = {
-                'permissions': [],
-                'is_org': is_organization(user.profile),
-                'first_name': user.first_name,
-                'last_name': user.last_name,
-            }
-
-        ret[perm.user.username]['permissions'].append(perm.permission.codename)
-
-    for user in ret.keys():
-        ret[user]['role'] = get_role(ret[user]['permissions'], project)
-        del ret[user]['permissions']
-
-    return ret
-
-
-def get_organization_members(organization):
-    ret = {}
-    data = OrganizationSerializer().get_users(organization)
-
-    for user_data in data:
-        username = user_data.pop('user')
-        user_data.pop('gravatar')
-        ret[username] = user_data
-
-    return ret
+from onadata.libs.utils.project_utils import get_project_users
+from onadata.libs.utils.organization_utils import get_organization_members
 
 
 class Command(BaseCommand):
