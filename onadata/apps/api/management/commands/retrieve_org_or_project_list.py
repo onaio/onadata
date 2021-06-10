@@ -27,7 +27,6 @@ def get_project_users(project):
         ret[perm.user.username]['permissions'].append(perm.permission.codename)
 
     for user in ret.keys():
-        ret[user]['permissions'].sort()
         ret[user]['role'] = get_role(ret[user]['permissions'], project)
         del ret[user]['permissions']
 
