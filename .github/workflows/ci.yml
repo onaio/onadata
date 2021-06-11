@@ -71,5 +71,4 @@ jobs:
 
       - name: Run tests
         run: |
-          python manage.py migrate --settings=onadata.settings.github_actions_test
           python manage.py test ${{ matrix.testfolder }} --noinput --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4
