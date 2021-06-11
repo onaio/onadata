@@ -1,0 +1,72 @@
+name: CI
+on:
+  - push
+  - pull_request
+
+jobs:
+  test:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - testfolder: "onadata/libs onadata/apps/main onadata/apps/restservice onadata/apps/sms_support onadata/apps/viewer onadata/apps/messaging"
+          - testfolder: "onadata/apps/api onadata/apps/logger"
+    services:
+      postgres:
+        image: postgis/postgis:9.6-3.1
+        env:
+          POSTGRES_PASSWORD: onadata
+          POSTGRES_DB: onadata
+          POSTGRES_USER: onadata
+        ports:
+          - 5432:5432
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '8'
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+          architecture: 'x64'
+
+      - name: Get pip cache dir
+        id: pip-cache
+        run: |
+          echo "::set-output name=dir::$(pip cache dir)"
+
+      - name: Cache pip
+        uses: actions/cache@v2
+        id: cache-pip
+        with:
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/base.pip') }}
+
+      - name: Install Pip requirements
+        if: steps.cache-pip.outputs.cache-hit != 'true'
+        run: |
+          pip install -U pip
+          pip install -r requirements/base.pip
+          pip install flake8
+
+      - name: Install APT requirements
+          sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev
+          sudo rm -rf /var/lib/apt/lists/*
+
+      - name: Run tests
+        run: |
+          python manage.py migrate --settings=onadata.settings.github_actions_test
+          python manage.py test ${{ matrix.testfolder }} --noinput --settings=onadata.settings.github_actions_test --verbosity=2
