@@ -17,9 +17,9 @@ DATABASES = {
 
 SLAVE_DATABASES = []
 
-SECRET_KEY = 'mlfs33^s1l4xf6a36$0#j%dd*sisfoi&)&4s-v=91#^l01v)*j'
+SECRET_KEY = 'mlfs33^s1l4xf6a36$0#j%dd*sisfoi&)&4s-v=91#^l01v)*j'  # nosec
 
-JWT_SECRET_KEY = 'thesecretkey'
+JWT_SECRET_KEY = 'thesecretkey'  # nosec
 JWT_ALGORITHM = 'HS256'
 
 if len(sys.argv) >= 2 and (sys.argv[1] == "test" or sys.argv[1] == "test_all"):
@@ -30,14 +30,14 @@ else:
 
 if TESTING_MODE:
     MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'test_media/')
-    subprocess.call(["rm", "-r", MEDIA_ROOT])
+    subprocess.call(["rm", "-r", MEDIA_ROOT])  # nosec
     # need to have CELERY_TASK_ALWAYS_EAGER True and BROKER_BACKEND as memory
     # to run tasks immediately while testing
     CELERY_BROKER_URL = "memory://"
     CELERY_TASK_ALWAYS_EAGER = True
     CELERY_RESULT_BACKEND = 'cache'
     CELERY_CACHE_BACKEND = 'memory'
-    ENKETO_API_TOKEN = 'abc'
+    ENKETO_API_TOKEN = 'abc'  # nosec
     ENKETO_PROTOCOL = 'https'
     ENKETO_URL = 'https://enketo.ona.io/'
     ENKETO_API_ALL_SURVEY_LINKS_PATH = '/api_v2/survey/all'
@@ -65,5 +65,5 @@ MIDDLEWARE_CLASSES = (
 
 VERIFIED_KEY_TEXT = 'ALREADY_ACTIVATED'
 
-ODK_TOKEN_FERNET_KEY = 'ROsB4T8s1rCJskAdgpTQEKfH2x2K_EX_YBi3UFyoYng='
+ODK_TOKEN_FERNET_KEY = 'ROsB4T8s1rCJskAdgpTQEKfH2x2K_EX_YBi3UFyoYng='  # nosec
 OPENID_CONNECT_PROVIDERS = {}
