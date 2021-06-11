@@ -2,6 +2,9 @@ name: CI
 on:
   - push
   - pull_request
+concurrency:
+  group: ${{ github.head_ref }}-${{ github.event }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -63,6 +66,7 @@ jobs:
           pip install flake8
 
       - name: Install APT requirements
+        run: |
           sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev
           sudo rm -rf /var/lib/apt/lists/*
 
