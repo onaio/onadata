@@ -7,7 +7,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  github-action-ci:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
