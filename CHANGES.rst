@@ -3,6 +3,19 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.5.7(2021-06-14)
+------------------
+
+- Update data endpoint documentation
+  `PR #2100 <https://github.com/onaio/onadata/pull/2100>`_
+  [@WinnyTroy]
+- Add service_health view function
+  `PR #2097 <https://github.com/onaio/onadata/pull/2097>`_
+  [@DavisRayM]
+- Add CI Test Github Actions workflow
+  `PR #2102 <https://github.com/onaio/onadata/pull/2102>`_
+  [@DavisRayM]
+
 v2.5.6(2021-06-02)
 ------------------
 
