@@ -9,10 +9,34 @@ from django.db import IntegrityError
 
 from onadata.apps.logger.models import Project, XForm
 from onadata.celery import app
-from onadata.libs.permissions import (ROLES, OwnerRole,
-                                      get_object_users_with_permissions)
+from onadata.libs.permissions import (
+    ROLES, OwnerRole, get_object_users_with_permissions,
+    is_organization, get_role)
 from onadata.libs.utils.common_tags import OWNER_TEAM_NAME
 from onadata.libs.utils.common_tools import report_exception
+
+
+def get_project_users(project):
+    ret = {}
+
+    for perm in project.projectuserobjectpermission_set.all():
+        if perm.user.username not in ret:
+            user = perm.user
+
+            ret[user.username] = {
+                'permissions': [],
+                'is_org': is_organization(user.profile),
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+            }
+
+        ret[perm.user.username]['permissions'].append(perm.permission.codename)
+
+    for user in ret.keys():
+        ret[user]['role'] = get_role(ret[user]['permissions'], project)
+        del ret[user]['permissions']
+
+    return ret
 
 
 def set_project_perms_to_xform(xform, project):
