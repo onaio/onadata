@@ -79,6 +79,8 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
         provider_config, openid_provider = retrieve_provider_config(
             **kwargs)
         id_token = request.POST.get('id_token')
+        code = request.POST.get('code') or request.query_params.get(
+            'code')
         data = {
             'logo_data_uri':
             getattr(settings, 'OIDC_LOGO_DATA_URI',
@@ -92,9 +94,9 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
 
         if not id_token:
             # Use Authorization code if present to retrieve ID Token
-            if request.query_params.get('code'):
+            if code:
                 id_token = oidc_handler.obtain_id_token_from_code(
-                    request.query_params.get('code'),
+                    code,
                     openid_provider=openid_provider)
             else:
                 return HttpResponseBadRequest()
