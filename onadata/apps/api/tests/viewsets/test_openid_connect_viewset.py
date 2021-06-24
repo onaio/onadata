@@ -138,11 +138,10 @@ class TestOpenIDConnectViewSet(TestAbstractViewSet):
             'email': 'john@doe.com'
         }
         data = {'id_token': 124, 'username': 'john'}
-        user_count = User.objects.filter(username='john').count()
         request = self.factory.post('/', data=data)
         response = self.view(request, openid_connect_provider='msft')
         self.assertEqual(
-            user_count + 1, User.objects.filter(username='john').count())
+            1, User.objects.filter(username='john').count())
         self.assertEqual(response.status_code, 302)
 
         # Uses last_name as first_name if missing
@@ -151,16 +150,30 @@ class TestOpenIDConnectViewSet(TestAbstractViewSet):
             'email': 'davis@justdavis.com'
         }
         data = {'id_token': 124, 'username': 'davis'}
-        user_count = User.objects.filter(username='davis').count()
         request = self.factory.post('/', data=data)
         response = self.view(request, openid_connect_provider='msft')
         self.assertEqual(
-            user_count + 1, User.objects.filter(username='john').count())
+            1, User.objects.filter(username='davis').count())
         self.assertEqual(response.status_code, 302)
         user = User.objects.get(username='davis')
         self.assertEqual(user.first_name, 'davis')
 
-        # Returns a 400 response if both family_name and given_name
+        # Uses name to get `first_name` & `last_name` if missing
+        mock_get_decoded_id_token.return_value = {
+            'name': 'Davis Just Davis',
+            'email': 'davis@jstdavis.com'
+        }
+        data = {'id_token': 124, 'username': 'dray'}
+        request = self.factory.post('/', data=data)
+        response = self.view(request, openid_connect_provider='msft')
+        self.assertEqual(
+            1, User.objects.filter(username='dray').count())
+        self.assertEqual(response.status_code, 302)
+        user = User.objects.get(username='dray')
+        self.assertEqual(user.first_name, 'Davis')
+        self.assertEqual(user.last_name, 'Just Davis')
+
+        # Returns a 400 response if name, family_name and given_name
         # are missing
         mock_get_decoded_id_token.return_value = {
             'email': 'jake@doe.com'
