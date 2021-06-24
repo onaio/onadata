@@ -17,7 +17,7 @@ from rest_framework.response import Response
 
 from onadata.apps.main.models import UserProfile
 from onadata.libs.utils.openid_connect_tools import (
-    EMAIL, FIRST_NAME, LAST_NAME, NONCE, OpenIDHandler)
+    EMAIL, FIRST_NAME, LAST_NAME, NAME, NONCE, OpenIDHandler)
 
 
 class OpenIDConnectViewSet(viewsets.ViewSet):
@@ -79,6 +79,8 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
         provider_config, openid_provider = retrieve_provider_config(
             **kwargs)
         id_token = request.POST.get('id_token')
+        code = request.POST.get('code') or request.query_params.get(
+            'code')
         data = {
             'logo_data_uri':
             getattr(settings, 'OIDC_LOGO_DATA_URI',
@@ -92,9 +94,9 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
 
         if not id_token:
             # Use Authorization code if present to retrieve ID Token
-            if request.query_params.get('code'):
+            if code:
                 id_token = oidc_handler.obtain_id_token_from_code(
-                    request.query_params.get('code'),
+                    code,
                     openid_provider=openid_provider)
             else:
                 return HttpResponseBadRequest()
@@ -104,7 +106,7 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
         decoded_token = oidc_handler.verify_and_decode_id_token(
             id_token, cached_nonce=True, openid_provider=openid_provider)
         claim_values = oidc_handler.get_claim_values(
-                [EMAIL, FIRST_NAME, LAST_NAME],
+                [EMAIL, FIRST_NAME, LAST_NAME, NAME],
                 decoded_token)
 
         if username:
@@ -129,11 +131,17 @@ class OpenIDConnectViewSet(viewsets.ViewSet):
 
                 last_name = claim_values.get(LAST_NAME)
                 first_name = claim_values.get(FIRST_NAME)
+                name = claim_values.get(NAME)
                 if not first_name and not last_name:
-                    return HttpResponseBadRequest(
-                        json.dumps(
-                            _('Missing required claims/fields:'
-                              f' {FIRST_NAME}, {LAST_NAME}')))
+                    if name:
+                        split_name = name.split(' ')
+                        first_name = ' '.join(split_name[:1])
+                        last_name = ' '.join(split_name[1:])
+                    else:
+                        return HttpResponseBadRequest(
+                            json.dumps(
+                                _('Missing required claims/fields:'
+                                  f' {FIRST_NAME}, {LAST_NAME}')))
                 else:
                     first_name = first_name or last_name
 

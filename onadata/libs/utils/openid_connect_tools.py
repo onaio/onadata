@@ -12,6 +12,7 @@ import requests
 from jwt.algorithms import RSAAlgorithm
 
 EMAIL = 'email'
+NAME = 'name'
 FIRST_NAME = 'given_name'
 LAST_NAME = 'family_name'
 NONCE = 'nonce'
