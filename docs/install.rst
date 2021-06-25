@@ -68,7 +68,7 @@ You may at this point start core with
 
 .. code-block:: sh
 
-    python manage.py runserver --nothreading
+    python manage.py runserver --nothreading --settings onadata.settings.local_settings
 
 or go on and set up the rest.
 
