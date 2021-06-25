@@ -249,12 +249,12 @@ stop_beat () {
 
 _chuid () {
     ${CELERYBEAT_SU} ${CELERYBEAT_SU_ARGS} \
-        "$CELERYBEAT_USER" -c "$CELERYBEAT $*"
+        "$CELERYBEAT_USER" -c "$CELERYBEAT $CELERY_APP_ARG $*"
 }
 
 start_beat () {
     echo "Starting ${SCRIPT_NAME}..."
-    _chuid $CELERY_APP_ARG $CELERYBEAT_OPTS $DAEMON_OPTS --detach \
+    _chuid $CELERYBEAT_OPTS $DAEMON_OPTS --detach \
                 --pidfile="$CELERYBEAT_PID_FILE"
 }
 
