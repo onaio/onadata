@@ -650,6 +650,56 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
 
+    @override_settings(STREAM_DATA=True)
+    def test_paginate_and_sort_streaming_data(self):
+        """
+        Test that "sort" query param works as expected for paginated
+        responses
+        """
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+
+        # will result in a queryset due to the page and page_size params
+        # hence paging and thus len(self.object_list) for length
+        query_data = {
+            "page_size": 3,
+            "page": 1,
+            "sort": '{"date_created":-1}'
+        }
+        request = self.factory.get('/', data=query_data,
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+
+        streaming_data = json.loads(''.join(
+            [c.decode('utf-8') for c in response.streaming_content]))
+        self.assertEqual(len(streaming_data), 3)
+
+        # Test `date_created` field is sorted correctly
+        expected_order = list(Instance.objects.filter(
+            xform=self.xform).order_by(
+                '-date_created').values_list('id', flat=True))
+        items_in_order = [sub.get('_id') for sub in streaming_data]
+
+        self.assertEqual(expected_order[:3], items_in_order)
+        self.assertTrue(response.has_header('ETag'))
+
+        data = {
+            "page_size": 2,
+            "page": 2,
+            "sort": '{"date_created":-1}'
+        }
+        request2 = self.factory.get('/', data=data,
+                                    **self.extra)
+        response2 = view(request2, pk=formid)
+        self.assertEqual(response2.status_code, 200)
+        streaming_data = json.loads(''.join(
+            [c.decode('utf-8') for c in response2.streaming_content]))
+        self.assertEqual(len(streaming_data), 2)
+        pg_2_items_in_order = [sub.get('_id') for sub in streaming_data]
+        self.assertEqual(expected_order[2:], pg_2_items_in_order)
+
     def test_data_start_limit_sort(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
