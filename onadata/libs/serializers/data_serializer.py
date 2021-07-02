@@ -150,6 +150,15 @@ class DataInstanceXMLSerializer(serializers.ModelSerializer):
             ret.update({
                 f"@{attrib}": meta_value
             })
+
+        # Include linked resources
+        linked_resources = {
+            'linked-resources': {
+                'attachments': instance.json.get(ATTACHMENTS),
+                'notes': instance.json.get(NOTES)
+            }
+        }
+        ret.update(linked_resources)
         return ret
 
 

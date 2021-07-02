@@ -2598,20 +2598,16 @@ class TestDataViewSet(TestBase):
 
     def test_data_list_xml_format(self):
         """Test DataViewSet list XML"""
-        # create form
-        xls_file_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/tutorial/tutorial.xls"
-        )
-        self._publish_xls_file_and_set_xform(xls_file_path)
-
         # create submission
-        xml_submission_file_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "..", "fixtures", "tutorial", "instances",
-            "tutorial_2012-06-27_11-27-53_w_uuid.xml"
-        )
-        self._make_submission(xml_submission_file_path)
+        media_file = "1335783522563.jpg"
+        self._make_submission_w_attachment(os.path.join(
+            self.this_directory, 'fixtures',
+            'transportation', 'instances', 'transport_2011-07-25_19-05-49_2',
+            'transport_2011-07-25_19-05-49_2.xml'),
+            os.path.join(self.this_directory, 'fixtures',
+                         'transportation', 'instances',
+                         'transport_2011-07-25_19-05-49_2', media_file))
+
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         formid = self.xform.pk
@@ -2627,23 +2623,25 @@ class TestDataViewSet(TestBase):
         server_time = ET.fromstring(returned_xml).attrib.get('serverTime')
         edited = instance.last_edited is not None
         submission_time = instance.date_created.strftime(MONGO_STRFTIME)
+        attachment_name = instance.attachments.first().media_file.name
         expected_xml = (
             '<?xml version="1.0" encoding="utf-8"?>\n'
-            f'<submission-batch serverTime="{server_time}">'
+            f'<submission-batch serverTime="{server_time}">'  # noqa
             f'<submission-item bambooDatasetId="" dateCreated="{instance.date_created.isoformat()}" duration="" edited="{edited}" formVersion="{instance.version}"'  # noqa
             f' lastModified="{instance.date_modified.isoformat()}" mediaAllReceived="{instance.media_all_received}" mediaCount="{ instance.media_count }" objectID="{instance.id}" reviewComment="" reviewStatus=""'  # noqa
-            f' status="{instance.status}" submissionTime="{submission_time}" submittedBy="{instance.user.username}" totalMedia="1">'  # noqa
-            '<tutorial id="tutorial">'
-            '<name>Larry\n        Again</name>'
-            '<age>23</age>'
-            '<picture>1333604907194.jpg</picture>'
-            '<has_children>0</has_children>'
-            '<gps>-1.2836198 36.8795437 0.0 1044.0</gps>'
-            '<web_browsers>firefox chrome safari</web_browsers>'
-            '<meta>'
-            '<instanceID>uuid:729f173c688e482486a48661700455ff</instanceID>'
-            '</meta>'
-            '</tutorial>'
+            f' status="{instance.status}" submissionTime="{submission_time}" submittedBy="{instance.user.username}" totalMedia="{ instance.total_media }">'  # noqa
+            f'<transportation id="{instance.xform.id_string}" version="{instance.version}">'  # noqa
+            '<transport>'
+            '<available_transportation_types_to_referral_facility>none</available_transportation_types_to_referral_facility>'  # noqa
+            '<loop_over_transport_types_frequency><ambulance></ambulance><bicycle></bicycle><boat_canoe></boat_canoe><bus></bus><donkey_mule_cart></donkey_mule_cart><keke_pepe></keke_pepe><lorry></lorry><motorbike></motorbike><taxi></taxi><other></other></loop_over_transport_types_frequency>'  # noqa
+            '</transport>'
+            '<image1 type="file">1335783522563.jpg</image1>'
+            '<meta><instanceID>uuid:5b2cc313-fc09-437e-8149-fcd32f695d41</instanceID></meta>'  # noqa
+            '</transportation>'
+            '<linked-resources>'
+            '<attachments>'
+            f'<id>1</id><name>1335783522563.jpg</name><xform>1</xform><filename>{ attachment_name }</filename><instance>1</instance><mimetype>image/jpeg</mimetype><download_url>/api/v1/files/1?filename={ attachment_name }</download_url><small_download_url>/api/v1/files/1?filename={ attachment_name }&amp;suffix=small</small_download_url><medium_download_url>/api/v1/files/1?filename={ attachment_name }&amp;suffix=medium</medium_download_url></attachments>'  # noqa
+            '</linked-resources>'
             '</submission-item>'
             '</submission-batch>'
         )
