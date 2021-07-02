@@ -2623,7 +2623,7 @@ class TestDataViewSet(TestBase):
         server_time = ET.fromstring(returned_xml).attrib.get('serverTime')
         edited = instance.last_edited is not None
         submission_time = instance.date_created.strftime(MONGO_STRFTIME)
-        attachment_name = instance.attachments.first().media_file.name
+        attachment = instance.attachments.first()
         expected_xml = (
             '<?xml version="1.0" encoding="utf-8"?>\n'
             f'<submission-batch serverTime="{server_time}">'  # noqa
@@ -2640,7 +2640,7 @@ class TestDataViewSet(TestBase):
             '</transportation>'
             '<linked-resources>'
             '<attachments>'
-            f'<id>1</id><name>1335783522563.jpg</name><xform>1</xform><filename>{ attachment_name }</filename><instance>1</instance><mimetype>image/jpeg</mimetype><download_url>/api/v1/files/1?filename={ attachment_name }</download_url><small_download_url>/api/v1/files/1?filename={ attachment_name }&amp;suffix=small</small_download_url><medium_download_url>/api/v1/files/1?filename={ attachment_name }&amp;suffix=medium</medium_download_url></attachments>'  # noqa
+            f'<id>{attachment.id}</id><name>1335783522563.jpg</name><xform>{instance.xform.id}</xform><filename>{ attachment.media_file.name }</filename><instance>{ instance.id }</instance><mimetype>image/jpeg</mimetype><download_url>/api/v1/files/{attachment.id}?filename={ attachment.media_file.name }</download_url><small_download_url>/api/v1/files/{attachment.id}?filename={ attachment.media_file.name }&amp;suffix=small</small_download_url><medium_download_url>/api/v1/files/{attachment.id}?filename={ attachment.media_file.name }&amp;suffix=medium</medium_download_url></attachments>'  # noqa
             '</linked-resources>'
             '</submission-item>'
             '</submission-batch>'
