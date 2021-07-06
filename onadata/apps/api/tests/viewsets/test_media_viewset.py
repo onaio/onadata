@@ -1,5 +1,5 @@
 import os
-
+import urllib
 from mock import MagicMock, patch
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
@@ -50,12 +50,24 @@ class TestMediaViewSet(TestAbstractViewSet):
         mock_presigned_urls().generate_presigned_url = MagicMock(
             return_value=expected_url
         )
+        mock_get_storage_class()().bucket.name = 'onadata'
         request = self.factory.get('/', {
             'filename': self.attachment.media_file.name}, **self.extra)
         response = self.retrieve_view(request, self.attachment.pk)
+
         self.assertEqual(response.status_code, 302, response.url)
         self.assertEqual(response.url, expected_url)
         self.assertTrue(mock_presigned_urls.called)
+        filename = self.attachment.media_file.name.split("/")[-1]
+        mock_presigned_urls().generate_presigned_url.assert_called_with(
+            'get_object',
+            Params={
+                'Bucket': 'onadata',
+                'Key': self.attachment.media_file.name,
+                'ResponseContentDisposition': urllib.parse.quote(
+                    f'attachment; filename={filename}'),
+                'ResponseContentType': 'application/octet-stream'},
+            ExpiresIn=3600)
 
     def test_retrieve_view_with_suffix(self):
         request = self.factory.get('/', {
