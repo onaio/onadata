@@ -1,6 +1,7 @@
 import boto3
-from botocore.exceptions import ClientError
+import urllib
 import logging
+from botocore.exceptions import ClientError
 
 from django.conf import settings
 from django.core.files.storage import get_storage_class
@@ -19,11 +20,14 @@ def generate_media_download_url(obj, expiration: int = 3600):
     except ModuleNotFoundError:
         return HttpResponseRedirect(obj.media_file.url)
 
+    content_disposition = urllib.parse.quote(
+        f'attachment; filename={filename}'
+    )
     if not isinstance(default_storage, type(s3)):
         file_obj = open(settings.MEDIA_ROOT + file_path, 'rb')
         response = HttpResponse(FileWrapper(file_obj),
                                 content_type=obj.mimetype)
-        response['Content-Disposition'] = 'attachment; filename=' + filename
+        response['Content-Disposition'] = content_disposition
 
         return response
 
@@ -38,8 +42,7 @@ def generate_media_download_url(obj, expiration: int = 3600):
                 Params={
                     'Bucket': bucket_name,
                     'Key': file_path,
-                    'ResponseContentDisposition':
-                    'attachment;filename={}'.format(filename),
+                    'ResponseContentDisposition': content_disposition,
                     'ResponseContentType': 'application/octet-stream', },
                 ExpiresIn=expiration)
         except ClientError as e:
