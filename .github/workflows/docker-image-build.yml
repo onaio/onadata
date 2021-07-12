@@ -4,6 +4,9 @@ on:
   release:
       types:
           - "released"
+  push:
+    branches:
+      - "master"
   workflow_dispatch:
       inputs:
           versionTag:
@@ -26,7 +29,7 @@ jobs:
 
       - name: Get the version
         id: get-version
-        if: github.event.inputs.versionTag == ''
+        if: github.event.inputs.versionTag == '' && github.event_name != 'push'
         run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
 
       - name: Login to DockerHub
@@ -57,8 +60,7 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
           tags: |
-            onaio/onadata:latest
-            onaio/onadata:${{ github.event.inputs.versionTag || steps.get-version.outputs.VERSION }}
+            onaio/onadata:${{ github.event.inputs.versionTag || steps.get-version.outputs.VERSION || "master" }}
 
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
