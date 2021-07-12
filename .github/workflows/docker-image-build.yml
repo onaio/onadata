@@ -32,6 +32,11 @@ jobs:
         if: github.event.inputs.versionTag == '' && github.event_name != 'push'
         run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
 
+      - name: Get the branch name
+        id: get-branch-name
+        if: github.event_name == 'push'
+        run: echo ::set-output name=BRANCH::${GITHUB/refs/\heads\//}
+
       - name: Login to DockerHub
         uses: docker/login-action@v1
         with:
@@ -60,7 +65,7 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
           tags: |
-            onaio/onadata:${{ github.event.inputs.versionTag || steps.get-version.outputs.VERSION || "master" }}
+            onaio/onadata:${{ github.event.inputs.versionTag || steps.get-version.outputs.VERSION || steps.get-branch-name.outputs.BRANCH }}
 
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
