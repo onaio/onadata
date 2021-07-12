@@ -1,3 +1,25 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+categories:
+  - title: 'New Features 🚀'
+    labels:
+      - 'feature'
+      - 'Enhancement'
+  - title: 'Bug Fixes & Improvements 🐛'
+    labels:
+      - 'Error'
+      - 'bugfix'
+change-template: '- $TITLE PR #$NUMBER [@$AUTHOR]'
+version-resolver:
+  major:
+    labels:
+      - 'major'
+  minor:
+    labels:
+      - 'minor'
+  patch:
+    labels:
+      - 'patch'
+  default: patch
 template: |
-  $ CHANGES
-change-template: - $TITLE PR #$NUMBER [@$AUTHOR]
+  $CHANGES
