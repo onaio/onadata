@@ -59,7 +59,7 @@ jobs:
           file: ./docker/onadata-uwsgi/Dockerfile
           platforms: linux/amd64,linux/arm64
           build-args: |
-            release_version=${{ github.event.inputs.versionTag || steps.get-version.outputs.VERSION }}
+            release_version=${{ github.event.inputs.versionTag || steps.get-version.outputs.VERSION || steps.get-branch-name.outputs.BRANCH }}
             optional_packages=PyYAML django-redis
           push: true
           cache-from: type=local,src=/tmp/.buildx-cache
