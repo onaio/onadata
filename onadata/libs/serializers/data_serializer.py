@@ -13,6 +13,9 @@ from rest_framework.reverse import reverse
 from onadata.apps.logger.models.instance import Instance, InstanceHistory
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.serializers.fields.json_field import JsonField
+from onadata.libs.utils.common_tags import (
+    METADATA_FIELDS, NOTES, TAGS, DATE_MODIFIED, VERSION, GEOLOCATION,
+    XFORM_ID, ATTACHMENTS, XFORM_ID_STRING, UUID)
 from onadata.libs.utils.logger_tools import remove_metadata_fields
 from onadata.libs.utils.dict_tools import (dict_lists2strings, dict_paths2dict,
                                            query_list_to_dict,
@@ -110,6 +113,15 @@ class DataInstanceXMLSerializer(serializers.ModelSerializer):
         model = Instance
         fields = ('xml', )
 
+    def _convert_metadata_field_to_attribute(self, field: str) -> str:
+        """
+        Converts a metadata field such as `_review_status` into
+        a camel cased attribute `reviewStatus`
+        """
+        split_field = field.split('_')[1:]
+        return split_field[0] + ''.join(
+            word.title() for word in split_field[1:])
+
     def to_representation(self, instance):
         ret = super(
             DataInstanceXMLSerializer, self).to_representation(instance)
@@ -124,6 +136,29 @@ class DataInstanceXMLSerializer(serializers.ModelSerializer):
             '@objectID': str(instance.id)
         }
         ret.update(instance_attributes)
+        excluded_metadata = [
+            NOTES, TAGS, GEOLOCATION, XFORM_ID, DATE_MODIFIED, VERSION,
+            ATTACHMENTS, XFORM_ID_STRING, UUID]
+        additional_attributes = [
+            (self._convert_metadata_field_to_attribute(metadata), metadata)
+            for metadata in METADATA_FIELDS
+            if metadata not in excluded_metadata]
+        for attrib, meta_field in additional_attributes:
+            meta_value = instance.json.get(meta_field, "")
+            if not isinstance(meta_value, str):
+                meta_value = str(meta_value)
+            ret.update({
+                f"@{attrib}": meta_value
+            })
+
+        # Include linked resources
+        linked_resources = {
+            'linked-resources': {
+                'attachments': instance.json.get(ATTACHMENTS),
+                'notes': instance.json.get(NOTES)
+            }
+        }
+        ret.update(linked_resources)
         return ret
 
 

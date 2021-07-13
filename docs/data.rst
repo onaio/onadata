@@ -132,9 +132,9 @@ Example
 
        curl -X GET https://api.ona.io/api/v1/data?owner=ona
 
-Get Submitted data for a specific form
+GET JSON list of submitted data for a specific form
 ------------------------------------------
-Provides a list of json submitted data for a specific form.
+Provides a JSON list of submitted data for a specific form.
 
 Note: Responses are automatically paginated when requesting a list of data that surpasses 10,000 records.
 
@@ -194,6 +194,68 @@ Response
             },
             ....
         ]
+
+GET XML list of submitted data for a specific form
+--------------------------------------------------
+
+Provides an XML list of submitted data for a specific form.
+
+..  raw:: html
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/data/<code>{pk}</code>.xml
+    </pre>
+
+Example
+^^^^^^^^
+::
+
+        curl -X GET https://api.ona.io/api/v1/data/574.xml
+
+Response
+^^^^^^^^^
+::
+
+        <submission-batch serverTime="2021-07-02T08:16:24.304534+00:00">
+            <submission-item bambooDatasetId="" dateCreated="2021-07-02T08:16:24.091445+00:00" duration="" edited="False" formVersion="2014111" lastModified="2021-07-02T08:16:24.206278+00:00" mediaAllReceived="True" mediaCount="1" objectID="1957" reviewComment="" reviewStatus="" status="submitted_via_web" submissionTime="2021-07-02T08:16:24" submittedBy="bob" totalMedia="1">
+                <data id="transportation_2011_07_25" version="2014111">
+                    <transport>
+                        <available_transportation_types_to_referral_facility>none</available_transportation_types_to_referral_facility>
+                        <loop_over_transport_types_frequency>
+                            <ambulance></ambulance>
+                            <bicycle></bicycle>
+                            <boat_canoe></boat_canoe>
+                            <bus></bus>
+                            <donkey_mule_cart></donkey_mule_cart>
+                            <keke_pepe></keke_pepe>
+                            <lorry></lorry>
+                            <motorbike></motorbike>
+                            <taxi></taxi>
+                            <other></other>
+                        </loop_over_transport_types_frequency>
+                    </transport>
+                    <image1 type="file">1335783522563.jpg</image1>
+                    <meta>
+                        <instanceID>uuid:5b2cc313-fc09-437e-8149-fcd32f695d41</instanceID>
+                    </meta>
+                </data>
+                <linked-resources>
+                    <attachments>
+                        <id>50</id>
+                        <name>1335783522563.jpg</name>
+                        <xform>574</xform>
+                        <filename>bob/attachments/574_transportation_2011_07_25/1335783522563.jpg</filename>
+                        <instance>1957</instance>
+                        <mimetype>image/jpeg</mimetype>
+                        <download_url>/api/v1/files/50?filename=bob/attachments/574_transportation_2011_07_25/1335783522563.jpg</download_url>
+                        <small_download_url>/api/v1/files/50?filename=bob/attachments/574_transportation_2011_07_25/1335783522563.jpg&amp;suffix=small</small_download_url>
+                        <medium_download_url>/api/v1/files/50?filename=bob/attachments/574_transportation_2011_07_25/1335783522563.jpg&amp;suffix=medium</medium_download_url>
+                    </attachments>
+                </linked-resources>
+            </submission-item>
+            <submission-item>
+                ...
+            </submission-item>
+        </submission-batch>
 
 Get FLOIP flow results for a specific form
 ------------------------------------------
@@ -264,7 +326,7 @@ Response
 
 Paginate data of a specific form
 ---------------------------------
-Returns a list of json submitted data for a specific form using page number and the number of items per page. Use the ``page`` parameter to specify page number and ``page_size`` parameter is used to set the custom page size.
+Returns a list of JSON or XML submitted data for a specific form using page number and the number of items per page. Use the ``page`` parameter to specify page number and ``page_size`` parameter is used to set the custom page size.
 
 - ``page`` - Integer representing the page.
 - ``page_size`` - Integer representing the number of records that should be returned in a single page.
@@ -274,8 +336,8 @@ There are a few important facts to note about retrieving paginated data:
 1. The maximum number of items that can be requested in a page via the ``page_size`` query param is 10,000
 2. Information regrading transversal of the paginated responses can be found in `the Link header <https://tools.ietf.org/html/rfc5988>`_ returned in the response. *Note: Some relational links may not be present depending on the page accessed i.e the ``first`` relational page link won't be present on the first page response*
 
-Example
-^^^^^^^^
+JSON Example
+^^^^^^^^^^^^^
 ::
 
       curl -X GET https://api.ona.io/api/v1/data/328.json?page=1&page_size=4
@@ -292,7 +354,7 @@ Sample response with link header
       ...
       Link: <http://localhost:8000/api/v1/data/2?page=2&page_size=1>; rel="next", <http://localhost:8000/api/v1/data/2?page=3&page_size=1>; rel="last"
 
-**Response:** ::
+**JSON Response:** ::
 
       [
         {
