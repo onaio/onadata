@@ -4,6 +4,9 @@ on:
   release:
       types:
           - "released"
+  push:
+    branches:
+      - "master"
   workflow_dispatch:
       inputs:
           versionTag:
@@ -26,8 +29,13 @@ jobs:
 
       - name: Get the version
         id: get-version
-        if: github.event.inputs.versionTag == ''
+        if: github.event.inputs.versionTag == '' && github.event_name != 'push'
         run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+
+      - name: Get the branch name
+        id: get-branch-name
+        if: github.event_name == 'push'
+        run: echo "##[set-output name=BRANCH;]$(echo ${GITHUB_REF#refs/heads/})"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -59,14 +67,13 @@ jobs:
           ssh: |
             default=/tmp/ssh-agent.sock
           build-args: |
-            release_version=${{ github.event.inputs.versionTag || steps.get-version.outputs.VERSION }}
+            release_version=${{ github.event.inputs.versionTag || steps.get-version.outputs.VERSION || steps.get-branch-name.outputs.BRANCH }}
             optional_packages=PyYAML django-redis ${{ secrets.ECR_OPTIONAL_PACKAGES }}
           push: true
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
           tags: |
-            ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:latest
-            ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ github.event.inputs.versionTag || steps.get-version.outputs.VERSION }}
+            ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ github.event.inputs.versionTag || steps.get-version.outputs.VERSION || steps.get-branch-name.outputs.BRANCH }}
 
       - name: Image digest
         run: echo ${{ steps.docker-build.outputs.digest }}

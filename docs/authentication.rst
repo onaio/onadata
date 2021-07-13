@@ -218,3 +218,11 @@ The following is a jquery code snippet on how to make a CORS request.
            'Authorization': 'Token TOKEN_KEY'
        },
    });
+
+OpenID Connect Authentication
+------------------------------
+   
+.. toctree::
+    :maxdepth: 2
+
+open-id-connect
