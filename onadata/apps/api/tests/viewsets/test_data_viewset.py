@@ -2515,6 +2515,47 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), count)
 
+    def test_data_query_null(self):
+        """
+        Test that a user is able to query for null
+        """
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        formid = self.xform.pk
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        query_str = '{"_review_status": null}'
+        request = self.factory.get(
+            f'/?query={query_str}', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        instances = self.xform.instances.all().order_by('pk')
+        instance = instances[0]
+        self.assertFalse(instance.has_a_review)
+
+        data = {
+            "instance": instance.id,
+            "status": SubmissionReview.APPROVED
+        }
+
+        serializer_instance = SubmissionReviewSerializer(data=data, context={
+            "request": request})
+        serializer_instance.is_valid()
+        serializer_instance.save()
+        instance.refresh_from_db()
+
+        query_str = '{"_review_status": null}'
+        request = self.factory.get(
+            f'/?query={query_str}', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
     def test_data_query_ornull(self):
         """
         Test that a user is able to query for null with the
