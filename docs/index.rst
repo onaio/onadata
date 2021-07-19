@@ -53,6 +53,14 @@ Submission Stats
 
    submission_stats
 
+Submission Review
+-----------------
+
+.. toctree::
+   :maxdepth: 2
+
+   submission_review
+
 Users and Organizations
 -----------------------
 
