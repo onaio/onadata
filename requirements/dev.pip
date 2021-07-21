@@ -10,6 +10,8 @@
     # via -r requirements/base.in
 -e git+https://github.com/onaio/oauth2client.git@75dfdee77fb640ae30469145c66440571dfeae5c#egg=oauth2client
     # via -r requirements/base.in
+-e git+https://github.com/onaio/ona-oidc.git@v0.0.6#egg=ona-oidc
+    # via -r requirements/base.in
 -e git+https://github.com/onaio/floip-py.git@3c980eb184069ae7c3c9136b18441978237cd41d#egg=pyfloip
     # via -r requirements/base.in
 -e git+https://github.com/onaio/python-digest.git@3af1bd0ef6114e24bf23d0e8fd9d7ebf389845d1#egg=python-digest
@@ -76,6 +78,7 @@ cryptography==3.4.7
     # via
     #   jwcrypto
     #   onadata
+    #   pyjwt
 datapackage==1.15.2
     # via pyfloip
 decorator==5.0.9
@@ -139,6 +142,7 @@ django==2.2.23
     #   djangorestframework-guardian
     #   djangorestframework-jsonapi
     #   jsonfield
+    #   ona-oidc
     #   onadata
 djangorestframework-csv==2.1.1
     # via onadata
@@ -158,6 +162,7 @@ djangorestframework==3.12.4
     #   djangorestframework-gis
     #   djangorestframework-guardian
     #   djangorestframework-jsonapi
+    #   ona-oidc
     #   onadata
 docutils==0.17.1
     # via sphinx
@@ -310,8 +315,10 @@ pygments==2.9.0
     # via
     #   ipython
     #   sphinx
-pyjwt==2.1.0
-    # via onadata
+pyjwt[crypto]==2.1.0
+    # via
+    #   ona-oidc
+    #   onadata
 pylibmc==1.6.1
     # via onadata
 pylint-django==0.11.1
@@ -366,6 +373,7 @@ requests==2.25.1
     #   datapackage
     #   django-oauth-toolkit
     #   httmock
+    #   ona-oidc
     #   onadata
     #   python-json2xlsclient
     #   requests-mock
