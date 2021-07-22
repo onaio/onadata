@@ -7,7 +7,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
 from django.db import models
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.utils.translation import ugettext_lazy
 from django.utils.encoding import python_2_unicode_compatible
 from guardian.shortcuts import get_perms_for_model, assign_perm
@@ -16,7 +16,8 @@ from guardian.models import GroupObjectPermissionBase
 from rest_framework.authtoken.models import Token
 from onadata.libs.utils.country_field import COUNTRIES
 from onadata.libs.utils.gravatar import get_gravatar_img_link, gravatar_exists
-from onadata.apps.main.signals import set_api_permissions
+from onadata.apps.main.signals import (
+    set_api_permissions, send_inactive_user_email, send_activation_email)
 
 REQUIRE_AUTHENTICATION = 'REQUIRE_ODK_AUTHENTICATION'
 
@@ -118,6 +119,13 @@ def set_kpi_formbuilder_permissions(
 
 
 post_save.connect(create_auth_token, sender=User, dispatch_uid='auth_token')
+post_save.connect(
+    send_inactive_user_email, sender=User,
+    dispatch_uid='send_inactive_user_email')
+pre_save.connect(
+    send_activation_email, sender=User,
+    dispatch_uid='send_activation_email'
+)
 
 post_save.connect(set_api_permissions, sender=User,
                   dispatch_uid='set_api_permissions')
