@@ -28,6 +28,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import AuthenticationFailed
 from oauth2_provider.oauth2_validators import OAuth2Validator
 from oauth2_provider.settings import oauth2_settings
+from oidc.utils import authenticate_sso
 
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.tasks import send_account_lockout_email
@@ -243,25 +244,13 @@ class TempTokenURLParameterAuthentication(TempTokenAuthentication):
 
 
 class SSOHeaderAuthentication(BaseAuthentication):
-    """TempToken URL via temp_token request parameter.
+    """
+    SSO Cookie authentication. Authenticates a user using the SSO
+    cookie or HTTP_SSO header.
     """
 
     def authenticate(self, request):  # pylint: disable=no-self-use
-        sso = request.META.get('HTTP_SSO') or request.COOKIES.get('SSO')
-
-        if not sso:
-            return None
-
-        jwt_payload = jwt.decode(
-            sso, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM]
-        )
-        email = jwt_payload.get('email')
-
-        user = User.objects.filter(email=email).first()
-        if user:
-            return (user, True)
-
-        return None
+        return authenticate_sso(request)
 
 
 def retrieve_user_identification(
