@@ -27,10 +27,10 @@ class TestAnalytics(TestAbstractViewSet):
         user1 = User(username='abc')
         self.assertEqual(get_user_id(user1), user1.username)
 
-        # user2 has email set
+        # test returns user2 username even when has email set
         user2 = User(username='abc', email='abc@example.com')
         self.assertTrue(len(user2.email) > 0)
-        self.assertEqual(get_user_id(user2), user2.email)
+        self.assertEqual(get_user_id(user2), user2.username)
 
     @override_settings(SEGMENT_WRITE_KEY='123')
     def test_track(self):
@@ -66,7 +66,7 @@ class TestAnalytics(TestAbstractViewSet):
         })
         self._publish_xls_form_to_project()
         segment_mock.track.assert_called_with(
-            'bob@columbia.edu',
+            self.xform.user.username,
             'XForm created',
             {
                 'created_by': self.xform.user,
@@ -116,7 +116,7 @@ class TestAnalytics(TestAbstractViewSet):
         form_id = self.xform.pk
         username = self.user.username
         segment_mock.track.assert_called_with(
-            'bob@columbia.edu',
+            username,
             'Submission created',
             {
                 'xform_id': self.xform.pk,

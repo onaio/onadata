@@ -30,9 +30,9 @@ def init_analytics():
 
 
 def get_user_id(user):
-    """Return a user email or username or the string 'anonymous'"""
+    """Return a user username or the string 'anonymous'"""
     if user:
-        return user.email or user.username
+        return user.username
 
     return 'anonymous'
 
