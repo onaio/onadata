@@ -22,10 +22,11 @@ def send_inactive_user_email(
 
         from onadata.apps.api.tasks import send_generic_email
 
-        send_generic_email(
-            instance.email,
-            email,
-            f'{deployment_name} account created - Pending activation')
+        if instance.email:
+            send_generic_email(
+                instance.email,
+                email,
+                f'{deployment_name} account created - Pending activation')
 
 
 def send_activation_email(
@@ -50,8 +51,9 @@ def send_activation_email(
                 )
 
                 from onadata.apps.api.tasks import send_generic_email
-                send_generic_email(
-                    instance.email,
-                    email,
-                    f'{deployment_name} account activated'
-                )
+                if instance.email:
+                    send_generic_email(
+                        instance.email,
+                        email,
+                        f'{deployment_name} account activated'
+                    )
