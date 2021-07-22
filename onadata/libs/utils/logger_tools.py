@@ -62,7 +62,9 @@ DEFAULT_CONTENT_TYPE = 'text/xml; charset=utf-8'
 DEFAULT_CONTENT_LENGTH = settings.DEFAULT_CONTENT_LENGTH
 REQUIRED_ENCRYPTED_FILE_ELEMENTS = [
     "{http://www.opendatakit.org/xforms/encrypted}base64EncryptedKey",
-    "{http://www.opendatakit.org/xforms/encrypted}encryptedXmlFile"]
+    "{http://www.opendatakit.org/xforms/encrypted}encryptedXmlFile",
+    "{http://opendatakit.org/submissions}base64EncryptedKey",
+    "{http://opendatakit.org/submissions}encryptedXmlFile"]
 
 uuid_regex = re.compile(r'<formhub>\s*<uuid>\s*([^<]+)\s*</uuid>\s*</formhub>',
                         re.DOTALL)
