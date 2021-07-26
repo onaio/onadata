@@ -2,6 +2,8 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.template.loader import render_to_string
 
+from onadata.libs.utils.email import send_generic_email
+
 
 def set_api_permissions(sender, instance=None, created=False, **kwargs):
     from onadata.libs.utils.user_auth import set_api_permissions_for_user
@@ -11,7 +13,8 @@ def set_api_permissions(sender, instance=None, created=False, **kwargs):
 
 def send_inactive_user_email(
         sender, instance=None, created=False, **kwargs):
-    if created and not instance.is_active:
+    if (created and not instance.is_active) and getattr(
+            settings, "ENABLE_ACCOUNT_ACTIVATION_EMAILS", False):
         deployment_name = getattr(settings, 'DEPLOYMENT_NAME', 'Ona')
         context = {
             'username': instance.username,
@@ -19,8 +22,6 @@ def send_inactive_user_email(
         }
         email = render_to_string(
             'registration/inactive_account_email.txt', context)
-
-        from onadata.apps.api.tasks import send_generic_email
 
         if instance.email:
             send_generic_email(
@@ -33,7 +34,8 @@ def send_activation_email(
     sender, instance=None, **kwargs
 ):
     instance_id = instance.id
-    if instance_id:
+    if instance_id and getattr(
+            settings, "ENABLE_ACCOUNT_ACTIVATION_EMAILS", False):
         try:
             user = User.objects.using('default').get(
                 id=instance_id)
@@ -50,7 +52,6 @@ def send_activation_email(
                     'registration/activated_account_email.txt', context
                 )
 
-                from onadata.apps.api.tasks import send_generic_email
                 if instance.email:
                     send_generic_email(
                         instance.email,
