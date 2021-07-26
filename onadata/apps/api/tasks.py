@@ -3,15 +3,14 @@ import sys
 from builtins import str
 
 from celery.result import AsyncResult
-from django.conf import settings
 from django.core.files.uploadedfile import TemporaryUploadedFile
 from django.core.files.storage import default_storage
-from django.core.mail import EmailMultiAlternatives
 from django.contrib.auth.models import User
 from django.utils.datastructures import MultiValueDict
 from past.builtins import basestring
 
 from onadata.apps.api import tools
+from onadata.libs.utils.email import send_generic_email
 from onadata.apps.logger.models.xform import XForm
 from onadata.celery import app
 
@@ -86,23 +85,6 @@ def get_async_status(job_uuid):
         return {'JOB_STATUS': result}
 
     return result
-
-
-def send_generic_email(email, message_txt, subject):
-    if any(a in [None, ''] for a in [email, message_txt, subject]):
-        raise ValueError(
-            "email, message_txt amd subject arguments are ALL required."
-        )
-
-    from_email = settings.DEFAULT_FROM_EMAIL
-    email_message = EmailMultiAlternatives(
-        subject,
-        message_txt,
-        from_email,
-        [email]
-    )
-
-    email_message.send()
 
 
 @app.task()
