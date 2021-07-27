@@ -1,0 +1,10 @@
+{% load i18n %}
+Hi {{ username }},
+
+Your account has been successfully created! Kindly wait till an administrator activates your account.
+
+Thank you for choosing {{ deployment_name }}!
+Please contact us with any questions, we're always happy to help.
+
+Thanks,
+The Team at {{ deployment_name }}

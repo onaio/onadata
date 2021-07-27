@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from future.moves.urllib.parse import urlencode
 from rest_framework.reverse import reverse
@@ -64,3 +65,20 @@ def get_account_lockout_email_data(username, ip, end=False):
     }
 
     return email_data
+
+
+def send_generic_email(email, message_txt, subject):
+    if any(a in [None, ''] for a in [email, message_txt, subject]):
+        raise ValueError(
+            "email, message_txt amd subject arguments are ALL required."
+        )
+
+    from_email = settings.DEFAULT_FROM_EMAIL
+    email_message = EmailMultiAlternatives(
+        subject,
+        message_txt,
+        from_email,
+        [email]
+    )
+
+    email_message.send()

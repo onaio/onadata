@@ -1,0 +1,9 @@
+{% load i18n %}
+Hi {{ username }},
+
+Your account has been activated.
+
+Thank you for choosing {{ deployment_name }}!
+
+Thanks,
+The Team at {{ deployment_name }}

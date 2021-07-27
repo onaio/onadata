@@ -14,7 +14,7 @@ from django.utils import timezone
 import requests
 from django_digest.test import DigestAuth
 from httmock import HTTMock, all_requests
-from mock import patch
+from mock import patch, call
 from registration.models import RegistrationProfile
 from rest_framework.authtoken.models import Token
 
@@ -1270,3 +1270,44 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         # clear cache
         cache.delete('change_password_attempts-bob')
         cache.delete('lockout_change_password_user-bob')
+
+    @patch('onadata.apps.main.signals.send_generic_email')
+    @override_settings(ENABLE_ACCOUNT_ACTIVATION_EMAILS=True)
+    def test_account_activation_emails(self, mock_send_mail):
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        data = _profile_data()
+        del data['name']
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+
+        # Account notification email sent
+        self.assertTrue(mock_send_mail.called)
+        self.assertEqual(mock_send_mail.call_count, 2)
+
+        mock_send_mail.assert_has_calls(
+            [
+                call(
+                    data['email'],
+                    "\nHi deno,\n\nYour account has been "
+                    "successfully created! Kindly wait till an "
+                    "administrator activates your account."
+                    "\n\nThank you for choosing Ona!\n"
+                    "Please contact us with any questions, "
+                    "we're always happy to help."
+                    "\n\nThanks,\nThe Team at Ona",
+                    "Ona account created - Pending activation"
+                ),
+                call(
+                    data['email'],
+                    "\nHi deno,\n\nYour account has been activated."
+                    "\n\nThank you for choosing Ona!"
+                    "\n\nThanks,\nThe Team at Ona",
+                    "Ona account activated"
+                )
+            ]
+        )
