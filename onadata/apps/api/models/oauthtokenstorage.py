@@ -17,6 +17,7 @@ class OauthStorageModel(models.Model):
         settings.AUTH_USER_MODEL, primary_key=True,
         on_delete=models.CASCADE)
     credential = JSONField(null=True)
+    provider = models.CharField(max_length=255, null=False, default='google')
 
     class Meta:
         app_label = 'api'
