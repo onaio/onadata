@@ -2,7 +2,9 @@
 """
 Oauth2 token storage model class
 """
+
 from django.db import models
+from jsonfield import JSONField
 from django.conf import settings
 
 
@@ -14,7 +16,7 @@ class OauthStorageModel(models.Model):
     id = models.OneToOneField(
         settings.AUTH_USER_MODEL, primary_key=True,
         on_delete=models.CASCADE)
-    credential = models.JSONField(null=True)
+    credential = JSONField(null=True)
 
     class Meta:
         app_label = 'api'
