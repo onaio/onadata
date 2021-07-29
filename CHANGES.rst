@@ -3,6 +3,38 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+
+v2.5.8(2021-07-29)
+------------------
+
+- Add retrieve_org_or_project_list management command
+  `PR #2098 <https://github.com/onaio/onadata/pull/2098>`_
+  [@DavisRayM]
+- Open ID - Add name claim splitting functionality
+  `PR #2109 <https://github.com/onaio/onadata/pull/2109>`_
+  [@DavisRayM]
+- Add metadata fields present in the JSON response to the XML response
+  `PR #2114 <https://github.com/onaio/onadata/pull/2114>`_
+  [@DavisRayM]
+- Replace internal OpenID Connect tools for `ona-oidc <https://github.com/onaio/ona-oidc>`_
+  `PR #2096 <https://github.com/onaio/onadata/pull/2096>`_
+  [@WinnyTroy]
+- Ensure content-disposition header is correctly encoded
+  `PR #2116 <https://github.com/onaio/onadata/pull/2116>`_
+  [@DavisRayM]
+- Add enketo encryption namespaces
+  `PR #2122 <https://github.com/onaio/onadata/pull/2122>`_
+  [@denniswambua]
+- Add sumission review docs to main index file
+  `PR #2123 <https://github.com/onaio/onadata/pull/2123>`_
+  [@WinnyTroy]
+- Withdraw user email from user activity metric data
+  `PR #2124 <https://github.com/onaio/onadata/pull/2124>`_
+  [@WinnyTroy]
+- Add signals that send out emails for accounts that are in-active
+  `PR #2127 <https://github.com/onaio/onadata/pull/2127>`_
+  [@DavisRayM]
+
 v2.5.7(2021-06-14)
 ------------------
 
