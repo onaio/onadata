@@ -4,7 +4,7 @@ Changelog for Onadata
 ``* represents releases that introduce new migrations``
 
 
-v2.5.8(2021-07-19)
+v2.5.8(2021-07-29)
 ------------------
 
 - Add retrieve_org_or_project_list management command
