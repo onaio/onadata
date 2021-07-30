@@ -649,7 +649,6 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             if should_paginate:
                 self.paginator.page_size = retrieval_threshold
 
-        # import ipdb; ipdb.set_trace()
         if isinstance(self.object_list, types.GeneratorType) and \
                 should_paginate:
             # Unpack generator object to list

@@ -728,9 +728,7 @@ class TestDataViewSet(TestBase):
             [c.decode('utf-8') for c in response.streaming_content]))
         self.assertEqual(len(streaming_data), 3)
         # Test `date_created` field is sorted correctly
-        expected_order = list(Instance.objects.filter(
-            xform=self.xform).order_by(
-                '-date_created').values_list('id', flat=True))
+        expected_order = [1, 3, 4]
         items_in_order = [sub.get('_id') for sub in streaming_data]
 
         self.assertEqual(expected_order[:3], items_in_order)
@@ -855,8 +853,6 @@ class TestDataViewSet(TestBase):
 
         self.xform.shared_data = True
         self.xform.save()
-        formid = self.xform.pk
-        data = _data_list(formid)
         response = view(request, pk='public')
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.get('Cache-Control'), None)
@@ -872,8 +868,6 @@ class TestDataViewSet(TestBase):
         self.assertEqual(str(response.data['detail']), error_message)
         self.xform.shared_data = True
         self.xform.save()
-        formid = self.xform.pk
-        data = _data_list(formid)
         response = view(request, pk='public')
         self.assertEqual(response.status_code, 404)
         self.assertEqual(str(response.data['detail']), error_message)
@@ -889,8 +883,6 @@ class TestDataViewSet(TestBase):
         self.assertEqual(str(response.data['detail']), error_message)
         self.xform.shared_data = True
         self.xform.save()
-        formid = self.xform.pk
-        data = _data_list(formid)
         response = view(request, pk='public')
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.get('Cache-Control'), None)
