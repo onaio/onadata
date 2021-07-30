@@ -848,45 +848,53 @@ class TestDataViewSet(TestBase):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         response = view(request, pk='public')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, [])
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get('Cache-Control'), None)
+        error_message = "Invalid form ID. It must be a positive integer"
+        self.assertEqual(str(response.data['detail']), error_message)
+
         self.xform.shared_data = True
         self.xform.save()
         formid = self.xform.pk
         data = _data_list(formid)
         response = view(request, pk='public')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, data)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get('Cache-Control'), None)
+        self.assertEqual(str(response.data['detail']), error_message)
 
     def test_data_public_anon_user(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/')
         response = view(request, pk='public')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, [])
+        self.assertEqual(response.status_code, 404)
+        error_message = "Not found."
+        self.assertEqual(str(response.data['detail']), error_message)
         self.xform.shared_data = True
         self.xform.save()
         formid = self.xform.pk
         data = _data_list(formid)
         response = view(request, pk='public')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, data)
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(str(response.data['detail']), error_message)
 
     def test_data_user_public(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         response = view(request, pk='public')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, [])
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get('Cache-Control'), None)
+        error_message = "Invalid form ID. It must be a positive integer"
+        self.assertEqual(str(response.data['detail']), error_message)
         self.xform.shared_data = True
         self.xform.save()
         formid = self.xform.pk
         data = _data_list(formid)
         response = view(request, pk='public')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, data)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get('Cache-Control'), None)
+        self.assertEqual(str(response.data['detail']), error_message)
 
     def test_data_bad_formid(self):
         self._make_submissions()

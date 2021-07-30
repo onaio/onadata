@@ -649,6 +649,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             if should_paginate:
                 self.paginator.page_size = retrieval_threshold
 
+        # import ipdb; ipdb.set_trace()
         if isinstance(self.object_list, types.GeneratorType) and \
                 should_paginate:
             # Unpack generator object to list
@@ -666,10 +667,11 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 current_page_size=current_page_size
             )
 
-        try:
-            self.object_list = self.paginate_queryset(self.object_list)
-        except OperationalError:
-            self.object_list = self.paginate_queryset(self.object_list)
+        if should_paginate:
+            try:
+                self.object_list = self.paginate_queryset(self.object_list)
+            except OperationalError:
+                self.object_list = self.paginate_queryset(self.object_list)
 
         STREAM_DATA = getattr(settings, 'STREAM_DATA', False)
         if STREAM_DATA:
