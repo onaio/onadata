@@ -701,39 +701,6 @@ class TestDataViewSet(TestBase):
         pg_2_items_in_order = [sub.get('_id') for sub in streaming_data]
         self.assertEqual(expected_order[3:], pg_2_items_in_order)
 
-    @override_settings(STREAM_DATA=True)
-    def test_get_sorted_paginated_fields_in_streaming_data(self):
-        """
-        Test that "sort" query param works as expected for paginated
-        responses
-        """
-        self._make_submissions()
-        view = DataViewSet.as_view({'get': 'list'})
-        formid = self.xform.pk
-
-        # will result in a queryset due to the page and page_size params
-        # hence paging and thus len(self.object_list) for length
-        query_data = {
-            "page_size": 3,
-            "page": 1,
-            "sort": '{"date_created":-1}',
-            "fields": '["_submission_time", "_id"]'
-        }
-        request = self.factory.get('/', data=query_data,
-                                   **self.extra)
-        response = view(request, pk=formid)
-        self.assertEqual(response.status_code, 200)
-
-        streaming_data = json.loads(''.join(
-            [c.decode('utf-8') for c in response.streaming_content]))
-        self.assertEqual(len(streaming_data), 3)
-        # Test `date_created` field is sorted correctly
-        expected_order = [1, 3, 4]
-        items_in_order = [sub.get('_id') for sub in streaming_data]
-
-        self.assertEqual(expected_order[:3], items_in_order)
-        self.assertTrue(response.has_header('ETag'))
-
     def test_data_start_limit_sort(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
@@ -846,47 +813,45 @@ class TestDataViewSet(TestBase):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         response = view(request, pk='public')
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.get('Cache-Control'), None)
-        error_message = "Invalid form ID. It must be a positive integer"
-        self.assertEqual(str(response.data['detail']), error_message)
-
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
         self.xform.shared_data = True
         self.xform.save()
+        formid = self.xform.pk
+        data = _data_list(formid)
         response = view(request, pk='public')
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.get('Cache-Control'), None)
-        self.assertEqual(str(response.data['detail']), error_message)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, data)
 
     def test_data_public_anon_user(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/')
         response = view(request, pk='public')
-        self.assertEqual(response.status_code, 404)
-        error_message = "Not found."
-        self.assertEqual(str(response.data['detail']), error_message)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
         self.xform.shared_data = True
         self.xform.save()
+        formid = self.xform.pk
+        data = _data_list(formid)
         response = view(request, pk='public')
-        self.assertEqual(response.status_code, 404)
-        self.assertEqual(str(response.data['detail']), error_message)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, data)
 
     def test_data_user_public(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         response = view(request, pk='public')
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.get('Cache-Control'), None)
-        error_message = "Invalid form ID. It must be a positive integer"
-        self.assertEqual(str(response.data['detail']), error_message)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
         self.xform.shared_data = True
         self.xform.save()
+        formid = self.xform.pk
+        data = _data_list(formid)
         response = view(request, pk='public')
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.get('Cache-Control'), None)
-        self.assertEqual(str(response.data['detail']), error_message)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, data)
 
     def test_data_bad_formid(self):
         self._make_submissions()
