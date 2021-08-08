@@ -611,10 +611,22 @@ def get_columns_by_type(type_list, form_json):
     within the type_list
     :rtype: list
     """
-    return [
-        dt.get('name') for dt in form_json.get('children')
-        if dt.get('type') in type_list
-    ]
+
+    def _column_by_type(item_list, prefix=""):
+        found = []
+        for item in item_list:
+            if item["type"] in ["group", "repeat"]:
+                prefix = "/".join([prefix, item["name"]]) if prefix else item["name"]
+                found.extend(_column_by_type(item["children"], prefix))
+                prefix = ""  # Reset prefix to blank
+            else:
+                if item["type"] in type_list:
+                    name = "%s/%s" % (prefix, item["name"]) if prefix else item["name"]
+                    found.append(name)
+
+        return found
+
+    return _column_by_type(form_json["children"])
 
 
 def validate_row(row, columns):
