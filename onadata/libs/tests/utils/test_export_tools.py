@@ -17,6 +17,7 @@ from django.test.utils import override_settings
 from django.utils import timezone
 from pyxform.builder import create_survey_from_xls
 from rest_framework import exceptions
+from rest_framework.authtoken.models import Token
 from savReaderWriter import SavWriter
 
 from onadata.apps.api import tests as api_tests
@@ -24,6 +25,7 @@ from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import query_data
+from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.libs.serializers.merged_xform_serializer import \
     MergedXFormSerializer
 from onadata.libs.utils.export_builder import (encode_if_str,
@@ -180,6 +182,64 @@ class TestExportTools(TestBase):
         export_type = "csv"
         options = {"group_delimiter": "."}
         self._publish_transportation_form_and_submit_instance()
+
+        will_create_new_export = should_create_new_export(
+            self.xform, export_type, options)
+
+        self.assertTrue(will_create_new_export)
+
+        # Should generate a new export if an instance has been
+        # deleted
+        self.xform.instances.first().delete()
+        will_create_new_export = should_create_new_export(
+            self.xform, export_type, options)
+        self.assertTrue(will_create_new_export)
+
+    def test_should_create_export_when_submission_deleted(self):
+        """
+        A new export should be generated when a submission is deleted
+        """
+        export_type = "csv"
+        self._publish_transportation_form()
+        self._make_submissions()
+        options = {
+            "group_delimiter": "/",
+            "remove_group_name": False,
+            "split_select_multiples": True
+        }
+        submission_count = self.xform.instances.filter(
+            deleted_at__isnull=True).count()
+        self._create_old_export(self.xform, export_type, options)
+
+        # Delete submission
+        instance = self.xform.instances.first()
+        instance.set_deleted(datetime.now(), self.user)
+        self.assertEqual(
+            submission_count - 1, self.xform.instances.filter(
+                deleted_at__isnull=True).count())
+        will_create_new_export = should_create_new_export(
+            self.xform, export_type, options)
+
+        self.assertTrue(will_create_new_export)
+
+        self._create_old_export(self.xform, export_type, options)
+        # Deleting submission via the API still triggers a new export
+        # when requested
+        instance_id = self.xform.instances.filter(
+            deleted_at__isnull=True).first().id
+        view = DataViewSet.as_view(
+            {'delete': 'destroy'}
+        )
+
+        token = Token.objects.get(user=self.user)
+        data = {'instance_ids': [instance_id]}
+        request = self.factory.delete(
+            '/', data=data, HTTP_AUTHORIZATION=f'Token {token}')
+        response = view(request, pk=self.xform.id)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            submission_count - 2, self.xform.instances.filter(
+                deleted_at__isnull=True).count())
 
         will_create_new_export = should_create_new_export(
             self.xform, export_type, options)
