@@ -312,6 +312,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                     self.object.instances.filter(
                         deleted_at__isnull=True).update(
                             deleted_at=timezone.now(),
+                            date_modified=timezone.now(),
                             deleted_by=request.user)
                 else:
                     instance_ids = [
@@ -327,6 +328,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                         deleted_at__isnull=True
                     ).update(
                         deleted_at=timezone.now(),
+                        date_modified=timezone.now(),
                         deleted_by=request.user)
 
                 # updates the num_of_submissions for the form.
