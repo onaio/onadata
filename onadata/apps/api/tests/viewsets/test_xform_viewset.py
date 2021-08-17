@@ -2740,6 +2740,30 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 str(err.exception)
             )
 
+            put_data['title'] = 'mercycorps.org'
+
+            with self.assertRaises(XLSFormError) as err:
+                request = self.factory.put('/', data=put_data, **self.extra)
+                response = view(request, pk=form_id)
+
+            self.assertEqual(
+                "Invalid title value; value shouldn't match a URL",
+                str(err.exception)
+            )
+
+            put_data['title'] = 'Question_types/1'
+
+            with self.assertRaises(XLSFormError) as err:
+                request = self.factory.put('/', data=put_data, **self.extra)
+                response = view(request, pk=form_id)
+
+            self.assertEqual(
+                "Invalid title value; value shouldn't\
+                    contain the following invalid characters\
+                        ';' ':' '/' '.' ',' '@' '(' ')' ",
+                str(err.exception)
+            )
+
             put_data['title'] = 'Transport Form'
 
             # trigger error is form version is invalid

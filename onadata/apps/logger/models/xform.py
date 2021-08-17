@@ -823,9 +823,17 @@ class XForm(XFormMixin, BaseModel):
                 _("Title shouldn't have any invalid xml "
                   "characters ('>' '&' '<')"))
 
-        if re.search(r"([://.]+)", self.title):
+        # Capture urls within form title
+        if re.search(r"^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$", self.title):  # noqa
             raise XLSFormError(
                 _("Invalid title value; value shouldn't match a URL"))
+
+        # Capture invalid characters within form title
+        if re.search(r"([://.]+)", self.title):
+            raise XLSFormError(
+                _("Invalid title value; value shouldn't\
+                    contain the following invalid characters\
+                        ';' ':' '/' '.' ',' '@' '(' ')' "))
 
         self.title = title_xml
 
