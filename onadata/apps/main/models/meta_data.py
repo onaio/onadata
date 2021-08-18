@@ -8,6 +8,7 @@ from hashlib import md5
 
 import requests
 from django.conf import settings
+from django.utils import timezone
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
@@ -208,6 +209,16 @@ class MetaData(models.Model):
                 return self.file_hash
 
         return ''
+
+    def soft_delete(self):
+        """
+        Return the soft deletion timestamp
+        Mark the MetaData as soft deleted,
+        by updating the deleted_at field.
+        """
+        soft_deletion_time = timezone.now()
+        self.deleted_at = soft_deletion_time
+        self.save()
 
     @staticmethod
     def public_link(content_object, data_value=None):
