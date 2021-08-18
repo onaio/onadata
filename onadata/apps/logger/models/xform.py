@@ -828,13 +828,6 @@ class XForm(XFormMixin, BaseModel):
             raise XLSFormError(
                 _("Invalid title value; value shouldn't match a URL"))
 
-        # Capture invalid characters within form title
-        if re.search(r"([://.]+)", self.title):
-            raise XLSFormError(
-                _("Invalid title value; value shouldn't\
-                    contain the following invalid characters\
-                        ';' ':' '/' '.' ',' '@' '(' ')' "))
-
         self.title = title_xml
 
     def _set_hash(self):

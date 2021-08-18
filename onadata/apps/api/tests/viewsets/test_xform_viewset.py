@@ -2751,16 +2751,25 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 str(err.exception)
             )
 
-            put_data['title'] = 'Question_types/1'
+            put_data['title'] = 'https://example.qwerty.com:8989/id'
 
             with self.assertRaises(XLSFormError) as err:
                 request = self.factory.put('/', data=put_data, **self.extra)
                 response = view(request, pk=form_id)
 
             self.assertEqual(
-                "Invalid title value; value shouldn't\
-                    contain the following invalid characters\
-                        ';' ':' '/' '.' ',' '@' '(' ')' ",
+                "Invalid title value; value shouldn't match a URL",
+                str(err.exception)
+            )
+
+            put_data['title'] = 'http://10.1.1.1:9090/id'
+
+            with self.assertRaises(XLSFormError) as err:
+                request = self.factory.put('/', data=put_data, **self.extra)
+                response = view(request, pk=form_id)
+
+            self.assertEqual(
+                "Invalid title value; value shouldn't match a URL",
                 str(err.exception)
             )
 
@@ -2777,6 +2786,12 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             )
 
             put_data['version'] = self.xform.version
+
+            request = self.factory.put('/', data=put_data, **self.extra)
+            response = view(request, pk=form_id)
+            self.assertEqual(response.status_code, 200, response.data)
+
+            put_data['title'] = "Domain 1: Laws, Policies and Plans"
 
             request = self.factory.put('/', data=put_data, **self.extra)
             response = view(request, pk=form_id)
