@@ -184,6 +184,10 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                             _(u"User has no permission to "
                               "the dataview.")
                         })
+                    # ensure received xform contains submissions
+                    elif not xform.num_of_submissions > 0:
+                        raise serializers.ValidationError(
+                            f"Form {xform.title} contains no submissions.")
                 else:
                     raise serializers.ValidationError({
                         'data_value':
@@ -255,6 +259,11 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             elif data_type == IMPORTED_VIA_CSV_BY:
                 metadata = MetaData.instance_csv_imported_by(
                     content_object, data_value=data_value)
+            # ensure current xform contains submissions
+            elif not validated_data['xform'].num_of_submissions > 0:
+                raise serializers.ValidationError(
+                    f"XForm {validated_data['xform'].title}\
+                         contains no submissions")
             else:
                 metadata = MetaData.objects.create(
                     content_type=content_type,

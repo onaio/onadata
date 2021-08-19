@@ -100,7 +100,8 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
         # start async export
         if export_type in export_types:
             try:
-                result = export_types[export_type].apply_async((), kwargs=options)
+                result = export_types[export_type].apply_async(
+                                        (), kwargs=options)
             except OperationalError as e:
                 export.internal_status = Export.FAILED
                 export.error_message = "Error connecting to broker."
