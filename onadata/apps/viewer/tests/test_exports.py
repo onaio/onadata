@@ -348,6 +348,7 @@ class TestExports(TestBase):
     def test_dont_auto_export_if_exports_exist(self):
         self._publish_transportation_form()
         self._submit_transport_instance()
+        self.xform.refresh_from_db()
         # create export
         create_export_url = reverse(create_export, kwargs={
             'username': self.user.username,
@@ -434,6 +435,7 @@ class TestExports(TestBase):
     def test_invalid_export_type(self):
         self._publish_transportation_form()
         self._submit_transport_instance()
+        self.xform.refresh_from_db()
         export_list_url = reverse(export_list, kwargs={
             'username': self.user.username,
             'id_string': self.xform.id_string,
@@ -838,6 +840,7 @@ class TestExports(TestBase):
         # survey 1 has ambulance and bicycle as values for
         # transport/available_transportation_types_to_referral_facility
         self._submit_transport_instance(survey_at=1)
+        self.xform.refresh_from_db()
         create_csv_export_url = reverse(create_export, kwargs={
             'username': self.user.username,
             'id_string': self.xform.id_string,
@@ -901,6 +904,7 @@ class TestExports(TestBase):
     def test_split_select_multiple_export_option(self):
         self._publish_transportation_form()
         self._submit_transport_instance(survey_at=1)
+        self.xform.refresh_from_db()
         create_csv_export_url = reverse(create_export, kwargs={
             'username': self.user.username,
             'id_string': self.xform.id_string,
@@ -1291,6 +1295,7 @@ class TestExports(TestBase):
         mock_404.side_effect = Http404('No Export matches the given query.')
         self._publish_transportation_form()
         self._submit_transport_instance()
+        self.xform.refresh_from_db()
 
         server = 'http://localhost:8080/xls/23fa4c38c0054748a984ffd89021a295'
         data_value = 'template 1 |{0}'.format(server)

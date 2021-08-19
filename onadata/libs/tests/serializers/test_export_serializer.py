@@ -15,6 +15,8 @@ class TestExportSerializer(TestAbstractViewSet):
     def test_export_serializer(self):
         request = APIRequestFactory().get('/')
         self._publish_xls_form_to_project()
+        self._make_submissions()
+        self.xform.refresh_from_db()
         temp_dir = settings.MEDIA_ROOT
         dummy_export_file = NamedTemporaryFile(suffix='.xlsx', dir=temp_dir)
         filename = os.path.basename(dummy_export_file.name)
