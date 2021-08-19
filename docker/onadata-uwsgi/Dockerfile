@@ -55,7 +55,8 @@ RUN apt-get update -q &&\
         automake \
         libtool \
         openjdk-11-jre-headless \
-        uwsgi \
+        libpcre3 \
+        libpcre3-dev \
         locales && \
     rm -rf /var/lib/apt/lists/*
 
