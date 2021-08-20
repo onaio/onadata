@@ -242,6 +242,16 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
 
         content_type = ContentType.objects.get_for_model(content_object)
 
+        # ensure current xform contains submissions
+        try:
+            if validated_data['xform'] and\
+                    not validated_data['xform'].num_of_submissions > 0:
+                raise serializers.ValidationError(
+                    f"XForm {validated_data['xform'].title}\
+                            contains no submissions")
+        except KeyError:
+            pass
+
         try:
             if data_type == XFORM_META_PERMS:
                 metadata = \
@@ -259,11 +269,6 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             elif data_type == IMPORTED_VIA_CSV_BY:
                 metadata = MetaData.instance_csv_imported_by(
                     content_object, data_value=data_value)
-            # ensure current xform contains submissions
-            elif not validated_data['xform'].num_of_submissions > 0:
-                raise serializers.ValidationError(
-                    f"XForm {validated_data['xform'].title}\
-                         contains no submissions")
             else:
                 metadata = MetaData.objects.create(
                     content_type=content_type,

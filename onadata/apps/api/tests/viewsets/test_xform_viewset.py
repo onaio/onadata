@@ -2003,6 +2003,9 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     def test_external_export_error(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
+            # Add submissions before creating form exports
+            self._make_submissions()
+            self.xform.refresh_from_db()
 
             data_value = 'template 1|http://xls_server'
             self._add_form_metadata(self.xform, 'external_export',
@@ -3103,6 +3106,9 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     def test_export_form_data_async(self, async_result):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
+            # Add submissions before creating form exports
+            self._make_submissions()
+            self.xform.refresh_from_db()
             view = XFormViewSet.as_view({
                 'get': 'export_async',
             })
@@ -3187,6 +3193,10 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             async_result.side_effect = ConnectionError(
                 'Error opening socket: a socket error occurred')
             self._publish_xls_form_to_project()
+            # Add submissions before creating form exports
+            self._make_submissions()
+            self.xform.refresh_from_db()
+
             view = XFormViewSet.as_view({
                 'get': 'export_async',
             })
@@ -3527,6 +3537,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                     "hxl_test", "hxl_example.xml"),
                 forced_submission_time=_submission_time)
             self.assertTrue(self.xform.has_hxl_support)
+            self.xform.refresh_from_db()
 
             view = XFormViewSet.as_view({
                 'get': 'retrieve'
@@ -3888,6 +3899,9 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     def test_export_csv_data_async_with_remove_group_name(self, async_result):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
+            # Add submissions before creating form exports
+            self._make_submissions()
+            self.xform.refresh_from_db()
 
             view = XFormViewSet.as_view({
                 'get': 'export_async',
@@ -4541,6 +4555,10 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     @patch('onadata.libs.utils.api_export_tools.AsyncResult')
     def test_sav_zip_export_long_variable_length_async(self, async_result):
         self._publish_xls_form_to_project()
+        # Add submissions before creating form exports
+        self._make_submissions()
+        self.xform.refresh_from_db()
+
         view = XFormViewSet.as_view({
             'get': 'export_async',
         })
@@ -4794,6 +4812,9 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     def test_pending_export_async(self, async_result):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
+            # Add submissions before creating form exports
+            self._make_submissions()
+            self.xform.refresh_from_db()
             view = XFormViewSet.as_view({
                 'get': 'export_async',
             })
@@ -4943,6 +4964,14 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
                                     "tests", "fixtures", "tutorial.xls")
             self._publish_xls_form_to_project(xlsform_path=xls_path)
+            # Add submissions before creating form exports
+            xml_submission_file_path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "logger", "fixtures",
+                "tutorial", "instances", "tutorial_2012-06-27_11-27-53.xml")
+
+            self._make_submission(xml_submission_file_path)
+            self.xform.refresh_from_db()
+
             view = XFormViewSet.as_view({
                 'get': 'export_async',
             })

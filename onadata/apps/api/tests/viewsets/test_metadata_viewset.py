@@ -89,14 +89,20 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             self._post_metadata(data)
 
     def test_add_metadata_with_file_attachment(self):
+        # Add submissions before creating form metadata
+        self._make_submissions()
+        self.xform.refresh_from_db()
         for data_type in ['supporting_doc', 'media', 'source']:
             self._add_form_metadata(self.xform, data_type,
                                     self.data_value, self.path)
 
     def test_parse_error_is_raised(self):
         """Parse error is raised when duplicate media is uploaded"""
-        data_type = "supporting_doc"
+        # Add submissions before creating form metadata
+        self._make_submissions()
+        self.xform.refresh_from_db()
 
+        data_type = "supporting_doc"
         self._add_form_metadata(self.xform, data_type,
                                 self.data_value, self.path)
         # Duplicate upload
@@ -106,7 +112,10 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertIn(UNIQUE_TOGETHER_ERROR, response.data)
 
     def test_forms_endpoint_with_metadata(self):
+        # Add submissions before creating form metadata
+        self._make_submissions()
         date_modified = self.xform.date_modified
+        self.xform.refresh_from_db()
         for data_type in ['supporting_doc', 'media', 'source']:
             self._add_form_metadata(self.xform, data_type,
                                     self.data_value, self.path)
@@ -134,6 +143,9 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertEqual(response.data, [data])
 
     def test_get_metadata_with_file_attachment(self):
+        # Add submissions before creating form metadata
+        self._make_submissions()
+        self.xform.refresh_from_db()
         for data_type in ['supporting_doc', 'media', 'source']:
             self._add_form_metadata(self.xform, data_type,
                                     self.data_value, self.path)
@@ -155,6 +167,9 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         )
         self.data_value = '1335783522563.jpg'
         self.path = os.path.join(self.fixture_dir, self.data_value)
+        # Add submissions before creating form metadata
+        self._make_submissions()
+        self.xform.refresh_from_db()
 
         self._add_form_metadata(
             self.xform, "media", self.data_value, self.path)
@@ -178,11 +193,17 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertDictEqual(dict(response.data), data)
 
     def test_add_mapbox_layer(self):
+        # Add submissions before creating form metadata
+        self._make_submissions()
+        self.xform.refresh_from_db()
         data_type = 'mapbox_layer'
         data_value = 'test_mapbox_layer||http://0.0.0.0:8080||attribution'
         self._add_form_metadata(self.xform, data_type, data_value)
 
     def test_delete_metadata(self):
+        # Add submissions before creating form metadata
+        self._make_submissions()
+        self.xform.refresh_from_db()
         for data_type in ['supporting_doc', 'media', 'source']:
             count = MetaData.objects.count()
             self._add_form_metadata(self.xform, data_type,
@@ -222,6 +243,10 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertEquals(response2.data, [])
 
     def test_windows_csv_file_upload_to_metadata(self):
+        # Add submissions before creating form metadata
+        self._make_submissions()
+        self.xform.refresh_from_db()
+
         data_value = 'transportation.csv'
         path = os.path.join(self.fixture_dir, data_value)
         with open(path) as f:
@@ -237,6 +262,9 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             self.assertEqual(self.metadata.data_file_type, 'text/csv')
 
     def test_add_media_url(self):
+        # Add submissions before creating form metadata
+        self._make_submissions()
+        self.xform.refresh_from_db()
         data_type = 'media'
 
         # test invalid URL
@@ -258,6 +286,9 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertEqual(response['Location'], data_value)
 
     def test_add_media_xform_link(self):
+        # Add submissions before creating form metadata
+        self._make_submissions()
+        self.xform.refresh_from_db()
         data_type = 'media'
 
         # test missing parameters
@@ -286,6 +317,10 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self._create_dataview()
         data_type = 'media'
         data_value = 'dataview {} transportation'.format(self.data_view.pk)
+        # Add submissions before creating form metadata
+        self._make_submissions()
+        self.xform.refresh_from_db()
+
         self._add_form_metadata(self.xform, data_type, data_value)
         self.assertIsNotNone(self.metadata_data['media_url'])
 
@@ -319,6 +354,10 @@ class TestMetaDataViewSet(TestAbstractViewSet):
                                     self.data_value, self.path)
 
     def test_list_metadata(self):
+        # Add submissions before creating form metadata
+        self._make_submissions()
+        self.xform.refresh_from_db()
+
         self._add_test_metadata()
         self.view = MetaDataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/')
@@ -331,6 +370,10 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
 
     def test_list_metadata_for_specific_form(self):
+        # Add submissions before creating form metadata
+        self._make_submissions()
+        self.xform.refresh_from_db()
+
         self._add_test_metadata()
         self.view = MetaDataViewSet.as_view({'get': 'list'})
         data = {'xform': self.xform.pk}
@@ -384,6 +427,9 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertEqual(data['instance'], self.metadata.object_id)
 
     def test_should_return_both_xform_and_project_metadata(self):
+        # Add submissions before creating form metadata
+        self._make_submissions()
+        self.xform.refresh_from_db()
         # delete all existing metadata
         MetaData.objects.all().delete()
         expected_metadata_count = 2
@@ -411,6 +457,9 @@ class TestMetaDataViewSet(TestAbstractViewSet):
                 self.assertIsNone(record.get('xform'))
 
     def test_should_only_return_xform_metadata(self):
+        # Add submissions before creating form metadata
+        self._make_submissions()
+        self.xform.refresh_from_db()
         # delete all existing metadata
         MetaData.objects.all().delete()
 
@@ -471,6 +520,10 @@ class TestMetaDataViewSet(TestAbstractViewSet):
                              {'xform': ['XForm does not exist']})
 
     def test_xform_meta_permission(self):
+        # Add submissions before creating form metadata
+        self._make_submissions()
+        self.xform.refresh_from_db()
+
         view = MetaDataViewSet.as_view({'post': 'create'})
 
         data = {
@@ -501,6 +554,10 @@ class TestMetaDataViewSet(TestAbstractViewSet):
     def test_role_update_xform_meta_perms(self):
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
         alice_profile = self._create_user_profile(alice_data)
+
+        # Add submissions before creating form metadata
+        self._make_submissions()
+        self.xform.refresh_from_db()
 
         EditorRole.add(alice_profile.user, self.xform)
 
@@ -546,6 +603,10 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             DataEntryOnlyRole.user_has_role(alice_profile.user, self.xform))
 
     def test_xform_meta_perms_duplicates(self):
+        # Add submissions before creating form metadata
+        self._make_submissions()
+        self.xform.refresh_from_db()
+
         view = MetaDataViewSet.as_view({
             'post': 'create',
             'put': 'update'
@@ -590,6 +651,10 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
     def test_unique_submission_review_metadata(self):
         """Don't create duplicate submission_review for a form"""
+        # Add submissions before creating form metadata
+        self._make_submissions()
+        self.xform.refresh_from_db()
+
         data_type = "submission_review"
         data_value = True
 
