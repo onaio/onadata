@@ -1,3 +1,5 @@
+from xml.dom import NotFoundErr
+from django.conf import settings
 from django.core.files import File
 from django.core.validators import ValidationError
 from django.contrib.auth.models import User
@@ -211,6 +213,14 @@ class BriefcaseViewset(mixins.CreateModelMixin,
         submission_xml_root_node.setAttribute(
             'submissionDate', self.object.date_created.isoformat()
         )
+
+        if getattr(settings, "SUPPORT_BRIEFCASE_SUBMISSION_DATE", True):
+            # Remove namespace attribute if any
+            try:
+                submission_xml_root_node.removeAttribute('xmlns')
+            except NotFoundErr:
+                pass
+
         data = {
             'submission_data': submission_xml_root_node.toxml(),
             'media_files': Attachment.objects.filter(instance=self.object),
