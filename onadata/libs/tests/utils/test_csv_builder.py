@@ -3,6 +3,7 @@
 Test CSVDataFrameBuilder
 """
 import csv
+from onadata.libs.exceptions import NoRecordsFoundError
 import os
 from tempfile import NamedTemporaryFile
 
@@ -1208,6 +1209,71 @@ class TestCSVDataFrameBuilder(TestBase):
             'fruit/Apple': 0
         }]
         self.assertEqual(expected_result, result)
+
+    def test_export_data_for_xforms_without_submissions(self):
+        """
+        Test xform schema for form with no submission
+        is successfully exported
+        """
+        fixture = "new_repeats"
+        # publish form so we have a dd
+        self._publish_xls_fixture_set_xform(fixture)
+
+        # Confirm form has not submissions so far
+        self.assertEquals(self.xform.instances.count(), 0)
+        # Generate csv export for form
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username, self.xform.id_string, include_images=False)
+        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
+        csv_df_builder.export_to(temp_file.name)
+        csv_file = open(temp_file.name, 'r')
+        csv_reader = csv.reader(csv_file)
+        header = next(csv_reader)
+
+        expected_header = [
+            'info/name',
+            'info/age',
+            'kids/has_kids',
+            'gps',
+            'web_browsers',
+            'meta/instanceID',
+            '_id',
+            '_uuid',
+            '_submission_time',
+            '_date_modified',
+            '_tags',
+            '_notes',
+            '_version',
+            '_duration',
+            '_submitted_by',
+            '_total_media',
+            '_media_count',
+            '_media_all_received']
+        # Test form headers are present on exported csv file.
+        self.assertEqual(header, expected_header)
+
+        csv_file.close()
+
+    def test_export_raises_NoRecordsFound_for_form_without_instances(self):
+        """
+        Test xform schema for form with no submission
+        is successfully exported
+        """
+        fixture = "new_repeats"
+        # publish form so we have a dd
+        self._publish_xls_fixture_set_xform(fixture)
+
+        # Confirm form has not submissions so far
+        self.assertEquals(self.xform.instances.count(), 0)
+        # Generate csv export for form
+        csv_df_builder_1 = CSVDataFrameBuilder(
+            self.user.username,
+            self.xform.id_string,
+            split_select_multiples=True, binary_select_multiples=False,
+            include_images=False, show_choice_labels=True)
+        # Fetch form data throws NoRecordsFound exeption
+        with self.assertRaises(NoRecordsFoundError):
+            csv_df_builder_1._query_data()
 
     @patch.object(CSVDataFrameBuilder, '_query_data')
     def test_show_choice_labels_select_multiple_3(self, mock_query_data):

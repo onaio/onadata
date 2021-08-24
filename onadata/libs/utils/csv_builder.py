@@ -534,6 +534,10 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 ordered_columns[child.get_abbreviated_xpath()] = None
 
     def _update_columns_from_data(self, cursor):
+        """
+        Adds ordered columns for select multiples column headers.
+        Expounds gps/geopoint column headers.
+        """
         # add ordered columns for select multiples
         if self.split_select_multiples:
             for key, choices in self.select_multiples.items():
@@ -573,8 +577,11 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                     show_choice_labels=self.show_choice_labels,
                     language=self.language)
 
-    def _format_for_dataframe(self, cursor):
-        # TODO: check for and handle empty results
+    def _format_for_dataframe(self, cursor, is_data=False):
+        """
+        Adds ordered columns for select multiples data.
+        Expounds gps/geopoint data.
+        """
         # add ordered columns for select multiples
         if self.split_select_multiples:
             for (key, choices) in iteritems(self.select_multiples):
@@ -593,9 +600,11 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             if self.split_select_multiples:
                 record = self._split_select_multiples(
                     record, self.select_multiples,
-                    self.BINARY_SELECT_MULTIPLES, self.VALUE_SELECT_MULTIPLES,
+                    self.BINARY_SELECT_MULTIPLES,
+                    self.VALUE_SELECT_MULTIPLES,
                     show_choice_labels=self.show_choice_labels)
-            # check for gps and split into components i.e. latitude, longitude,
+            # check for gps and split into
+            # components i.e. latitude, longitude,
             # altitude, precision
             self._split_gps_fields(record, self.gps_fields)
             self._tag_edit_string(record)
@@ -635,25 +644,29 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 cursor = cursor.iterator()
             data = self._format_for_dataframe(cursor)
         else:
-            cursor = self._query_data(self.filter_query)
-            if isinstance(cursor, QuerySet):
-                cursor = cursor.iterator()
+            try:
+                cursor = self._query_data(self.filter_query)
+            except NoRecordsFoundError:
+                # Set cursor (XForm data) to xform schema
+                cursor = self.xform.get_headers()
             self._update_columns_from_data(cursor)
+            # Confirm form contains submissions
+            if len(cursor) > 0:
+                if isinstance(cursor, QuerySet):
+                    cursor = cursor.iterator()
+                # Unpack xform data
+                data = self._format_for_dataframe(cursor)
 
             columns = list(chain.from_iterable(
                 [[xpath] if cols is None else cols
-                 for (xpath, cols) in iteritems(self.ordered_columns)]))
+                    for (xpath, cols) in iteritems(self.ordered_columns)]))
 
-            # add extra columns
-            columns += [col for col in self.extra_columns]
             for field in self.dd.get_survey_elements_of_type('osm'):
                 columns += OsmData.get_tag_keys(self.xform,
                                                 field.get_abbreviated_xpath(),
                                                 include_prefix=True)
-            cursor = self._query_data(self.filter_query)
-            if isinstance(cursor, QuerySet):
-                cursor = cursor.iterator()
-            data = self._format_for_dataframe(cursor)
+            # add extra columns
+            columns += [col for col in self.extra_columns]
 
         columns_with_hxl = self.include_hxl and get_columns_with_hxl(
             self.dd.survey_elements)
