@@ -4,6 +4,7 @@ import shutil
 
 import mock
 from django.core.files.storage import get_storage_class
+from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 from django.test import override_settings
@@ -65,6 +66,41 @@ class TestBriefcaseViewSet(test_abstract_viewset.TestAbstractViewSet):
             self.assertContains(
                 response, "successfully published.", status_code=201)
         self.xform = XForm.objects.order_by('pk').reverse()[0]
+
+    def test_retrieve_encrypted_form_submissions(self):
+        view = BriefcaseViewset.as_view({'get': 'list'})
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "api", "tests", "fixtures",
+            "encrypted-form.xls")
+        submission_path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "api", "tests", "fixtures",
+            "encrypted-submission.xml")
+        self._publish_xls_form_to_project(xlsform_path=path)
+        form = XForm.objects.filter(id_string='hh_survey2').first()
+        self._make_submission(submission_path)
+
+        # Ensure media_all_received is false on the submission
+        # since the encrypted data wasn't sent alongside the submission
+        self.assertEqual(form.instances.count(), 1)
+        instance = form.instances.first()
+        self.assertEqual(instance.total_media, 2)
+        self.assertEqual(
+            set(instance.get_expected_media()),
+            set(['submission.xml.enc', '6-seater-7-15_15_11-15_45_15.jpg.enc'])
+        )
+        self.assertFalse(instance.media_all_received)
+
+        # Ensure submission is not returned on the Briefcase viewset
+        request = self.factory.get(
+            self._submission_list_url,
+            data={'formId': form.id_string})
+        response = view(request, username=self.user.username)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth(self.login_username, self.login_password)
+        request.META.update(auth(request.META, response))
+        response = view(request, username=self.user.username)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['instances'].count(), 0)
 
     def test_view_submission_list(self):
         view = BriefcaseViewset.as_view({'get': 'list'})
