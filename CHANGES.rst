@@ -3,6 +3,27 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.5.9(2021-08-24)
+------------------
+
+- Ensure exports are re-generated on submission delete
+  `PR #2132 <https://github.com/onaio/onadata/pull/2132>`_
+  [@DavisRayM]
+- Update validation checks that are run on XForm titles
+  `PR #2135 <https://github.com/onaio/onadata/pull/2135>`_
+  [@WinnyTroy]
+- Ensure Pagination and sorting are implemented on the data endpoint
+  `PR #2113 <https://github.com/onaio/onadata/pull/2113>`_
+  [@WinnyTroy]
+- Ensure internal routing is supported on the onadata-uwsgi docker image
+  `PR #2134 <https://github.com/onaio/onadata/pull/2134>`_
+  [@DavisRayM]
+- Remove namespace attribute from returned XML if present
+  `PR #2139 <https://github.com/onaio/onadata/pull/2139>`_
+  [@DavisRayM]
+- Ensure incomplete submissions are not returned on the Briefcase API
+  `PR #2140 <https://github.com/onaio/onadata/pull/2140>`_
+  [@DavisRayM]
 
 v2.5.8(2021-07-29)
 ------------------
