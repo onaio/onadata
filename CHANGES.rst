@@ -3,7 +3,7 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
-v2.5.9(2021-08-24)
+v2.5.9(2021-08-27)
 ------------------
 
 - Ensure exports are re-generated on submission delete
