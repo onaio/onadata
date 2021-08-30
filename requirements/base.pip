@@ -101,6 +101,8 @@ django-oauth-toolkit==1.5.0
     # via onadata
 django-ordered-model==3.4.3
     # via onadata
+django-prometheus==2.1.0
+    # via onadata
 django-query-builder==2.0.1
     # via onadata
 django-redis==5.0.0
@@ -257,6 +259,8 @@ pillow==8.2.0
     # via
     #   elaphe3
     #   onadata
+prometheus-client==0.11.0
+    # via django-prometheus
 prompt-toolkit==3.0.18
     # via click-repl
 psycopg2==2.8.6
