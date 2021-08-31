@@ -97,6 +97,10 @@ class TestExports(TestBase):
         settings.NA_REP = na_rep_restore
 
     def test_responses_for_empty_exports(self):
+        """
+        csv exports for forms without submissions
+        should return xform column headers in export.
+        """
         self._publish_transportation_form()
         # test csv though xls uses the same view
         url = reverse(
@@ -109,6 +113,16 @@ class TestExports(TestBase):
         self.response = self.client.get(url)
         self.assertEqual(self.response.status_code, 200)
         self.assertIn('application/csv', self.response['content-type'])
+        # Unpack response streaming data
+        export_data = [i.decode(
+                        'utf-8').replace('\n', '').split(
+                            ',') for i in self.response.streaming_content]
+        xform_headers = self.xform.get_headers()
+        # Remove review headers from xform headers
+        for x in ['_review_status', '_review_comment']:
+            xform_headers.remove(x)
+        # Test export data returned is xform headers list
+        self.assertEqual(xform_headers, export_data[0])
 
     def test_create_export(self):
         self._publish_transportation_form_and_submit_instance()
@@ -348,7 +362,6 @@ class TestExports(TestBase):
     def test_dont_auto_export_if_exports_exist(self):
         self._publish_transportation_form()
         self._submit_transport_instance()
-        self.xform.refresh_from_db()
         # create export
         create_export_url = reverse(create_export, kwargs={
             'username': self.user.username,
@@ -435,7 +448,6 @@ class TestExports(TestBase):
     def test_invalid_export_type(self):
         self._publish_transportation_form()
         self._submit_transport_instance()
-        self.xform.refresh_from_db()
         export_list_url = reverse(export_list, kwargs={
             'username': self.user.username,
             'id_string': self.xform.id_string,
@@ -840,7 +852,6 @@ class TestExports(TestBase):
         # survey 1 has ambulance and bicycle as values for
         # transport/available_transportation_types_to_referral_facility
         self._submit_transport_instance(survey_at=1)
-        self.xform.refresh_from_db()
         create_csv_export_url = reverse(create_export, kwargs={
             'username': self.user.username,
             'id_string': self.xform.id_string,
@@ -904,7 +915,6 @@ class TestExports(TestBase):
     def test_split_select_multiple_export_option(self):
         self._publish_transportation_form()
         self._submit_transport_instance(survey_at=1)
-        self.xform.refresh_from_db()
         create_csv_export_url = reverse(create_export, kwargs={
             'username': self.user.username,
             'id_string': self.xform.id_string,
@@ -1295,7 +1305,6 @@ class TestExports(TestBase):
         mock_404.side_effect = Http404('No Export matches the given query.')
         self._publish_transportation_form()
         self._submit_transport_instance()
-        self.xform.refresh_from_db()
 
         server = 'http://localhost:8080/xls/23fa4c38c0054748a984ffd89021a295'
         data_value = 'template 1 |{0}'.format(server)

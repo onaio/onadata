@@ -176,13 +176,23 @@ class TestDataExportURL(TestBase):
 
     def test_csv_export_url_without_records(self):
         # this has been refactored so that if NoRecordsFound Exception is
-        # thrown, it will return an empty csv
+        # thrown, it will return an empty csv containing only the xform schema
         url = reverse('csv_export', kwargs={
             'username': self.user.username,
             'id_string': self.xform.id_string,
         })
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
+        # Unpack response streaming data
+        export_data = [i.decode(
+                        'utf-8').replace('\n', '').split(
+                            ',') for i in response.streaming_content]
+        xform_headers = self.xform.get_headers()
+        # Remove review headers from xform headers
+        for x in ['_review_status', '_review_comment']:
+            xform_headers.remove(x)
+        # Test export data returned is xform headers list
+        self.assertEqual(xform_headers, export_data[0])
 
     def test_xls_export_url(self):
         self._submit_transport_instance()

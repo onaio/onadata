@@ -555,27 +555,30 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             self.ordered_columns[key] = [key] + gps_xpaths
         image_xpaths = [] if not self.include_images \
             else self.dd.get_media_survey_xpaths()
-
-        for record in cursor:
-            # split select multiples
-            if self.split_select_multiples:
-                record = self._split_select_multiples(
-                    record, self.select_multiples,
-                    self.BINARY_SELECT_MULTIPLES, self.VALUE_SELECT_MULTIPLES,
-                    show_choice_labels=self.show_choice_labels)
-            # check for gps and split into components i.e. latitude, longitude,
-            # altitude, precision
-            self._split_gps_fields(record, self.gps_fields)
-            self._tag_edit_string(record)
-            # re index repeats
-            for (key, value) in iteritems(record):
-                self._reindex(
-                    key, value, self.ordered_columns, record, self.dd,
-                    include_images=image_xpaths,
-                    split_select_multiples=self.split_select_multiples,
-                    index_tags=self.index_tags,
-                    show_choice_labels=self.show_choice_labels,
-                    language=self.language)
+        # cursor object for xform without instances
+        # is a list of xform headers.
+        if isinstance(cursor, QuerySet):
+            for record in cursor:
+                # split select multiples
+                if self.split_select_multiples:
+                    record = self._split_select_multiples(
+                        record, self.select_multiples,
+                        self.BINARY_SELECT_MULTIPLES,
+                        self.VALUE_SELECT_MULTIPLES,
+                        show_choice_labels=self.show_choice_labels)
+                # check for gps and split into components
+                # i.e. latitude, longitude, altitude, precision
+                self._split_gps_fields(record, self.gps_fields)
+                self._tag_edit_string(record)
+                # re index repeats
+                for (key, value) in iteritems(record):
+                    self._reindex(
+                        key, value, self.ordered_columns, record, self.dd,
+                        include_images=image_xpaths,
+                        split_select_multiples=self.split_select_multiples,
+                        index_tags=self.index_tags,
+                        show_choice_labels=self.show_choice_labels,
+                        language=self.language)
 
     def _format_for_dataframe(self, cursor, is_data=False):
         """
@@ -595,67 +598,77 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         image_xpaths = [] if not self.include_images \
             else self.dd.get_media_survey_xpaths()
 
-        for record in cursor:
-            # split select multiples
-            if self.split_select_multiples:
-                record = self._split_select_multiples(
-                    record, self.select_multiples,
-                    self.BINARY_SELECT_MULTIPLES,
-                    self.VALUE_SELECT_MULTIPLES,
-                    show_choice_labels=self.show_choice_labels)
-            # check for gps and split into
-            # components i.e. latitude, longitude,
-            # altitude, precision
-            self._split_gps_fields(record, self.gps_fields)
-            self._tag_edit_string(record)
-            flat_dict = {}
-            # re index repeats
-            for (key, value) in iteritems(record):
-                reindexed = self._reindex(
-                    key, value, self.ordered_columns, record, self.dd,
-                    include_images=image_xpaths,
-                    split_select_multiples=self.split_select_multiples,
-                    index_tags=self.index_tags,
-                    show_choice_labels=self.show_choice_labels,
-                    language=self.language)
-                flat_dict.update(reindexed)
+        flat_dict = {}
+        # Return empty dict for xforms without instances
+        if is_data:
+            for record in cursor:
+                # split select multiples
+                if self.split_select_multiples:
+                    record = self._split_select_multiples(
+                        record, self.select_multiples,
+                        self.BINARY_SELECT_MULTIPLES,
+                        self.VALUE_SELECT_MULTIPLES,
+                        show_choice_labels=self.show_choice_labels)
+                # check for gps and split into
+                # components i.e. latitude, longitude,
+                # altitude, precision
+                self._split_gps_fields(record, self.gps_fields)
+                self._tag_edit_string(record)
+                # re index repeats
+                for (key, value) in iteritems(record):
+                    reindexed = self._reindex(
+                        key, value, self.ordered_columns, record, self.dd,
+                        include_images=image_xpaths,
+                        split_select_multiples=self.split_select_multiples,
+                        index_tags=self.index_tags,
+                        show_choice_labels=self.show_choice_labels,
+                        language=self.language)
+                    flat_dict.update(reindexed)
 
-            yield flat_dict
+                yield flat_dict
+        else:
+            return flat_dict
 
     def export_to(self, path, dataview=None):
         self.ordered_columns = OrderedDict()
         self._build_ordered_columns(self.dd.survey, self.ordered_columns)
+        is_form_data = False
 
         if dataview:
+            # Export Dataview object data by default
+            is_form_data = True
+
             cursor = dataview.query_data(dataview, all_data=True,
                                          filter_query=self.filter_query)
             if isinstance(cursor, QuerySet):
                 cursor = cursor.iterator()
             self._update_columns_from_data(cursor)
+
+            data = self._format_for_dataframe(
+                    cursor, is_data=is_form_data)
 
             columns = list(chain.from_iterable(
                 [[xpath] if cols is None else cols
                  for (xpath, cols) in iteritems(self.ordered_columns)
                  if [c for c in dataview.columns if xpath.startswith(c)]]
             ))
-            cursor = dataview.query_data(dataview, all_data=True,
-                                         filter_query=self.filter_query)
-            if isinstance(cursor, QuerySet):
-                cursor = cursor.iterator()
-            data = self._format_for_dataframe(cursor)
         else:
             try:
                 cursor = self._query_data(self.filter_query)
             except NoRecordsFoundError:
                 # Set cursor (XForm data) to xform schema
                 cursor = self.xform.get_headers()
+
+            # Unpack xform headers
             self._update_columns_from_data(cursor)
-            # Confirm form contains submissions
-            if len(cursor) > 0:
-                if isinstance(cursor, QuerySet):
-                    cursor = cursor.iterator()
-                # Unpack xform data
-                data = self._format_for_dataframe(cursor)
+
+            if isinstance(cursor, QuerySet):
+                cursor = cursor.iterator()
+                is_form_data = True
+
+            # Unpack xform data
+            data = self._format_for_dataframe(
+                        cursor, is_data=is_form_data)
 
             columns = list(chain.from_iterable(
                 [[xpath] if cols is None else cols

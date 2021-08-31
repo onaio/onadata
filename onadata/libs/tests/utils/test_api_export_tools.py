@@ -43,7 +43,6 @@ class TestApiExportTools(TestBase):
         Test process_async_export creates a new export.
         """
         self._publish_transportation_form_and_submit_instance()
-        self.xform.refresh_from_db()
         request = self.factory.post('/')
         request.user = self.user
         export_type = "csv"

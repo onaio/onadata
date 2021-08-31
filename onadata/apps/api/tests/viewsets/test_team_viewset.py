@@ -444,10 +444,6 @@ class TestTeamViewSet(TestAbstractViewSet, TestBase):
     def test_team_members_meta_perms_restrictions(self):
         self._team_create()
         self._publish_xls_form_to_project()
-        # Add submissions before fetching form metadata
-        self._make_submissions()
-        self.xform.refresh_from_db()
-
         user_alice = self._create_user('alice', 'alice')
 
         members_team = Team.objects.get(

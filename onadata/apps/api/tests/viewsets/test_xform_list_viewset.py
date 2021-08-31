@@ -699,10 +699,6 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self._add_form_metadata(xform, data_type, data_value, path)
 
     def test_retrieve_xform_manifest(self):
-        # Add submissions before fetching form metadata
-        self._make_submissions()
-        self.xform.refresh_from_db()
-
         self._load_metadata(self.xform)
         self.view = XFormListViewSet.as_view(
             {
@@ -735,10 +731,6 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(response['Content-Type'], 'text/xml; charset=utf-8')
 
     def test_retrieve_xform_manifest_anonymous_user(self):
-        # Add submissions before fetching form metadata
-        self._make_submissions()
-        self.xform.refresh_from_db()
-
         self._load_metadata(self.xform)
         self.view = XFormListViewSet.as_view({"get": "manifest"})
         request = self.factory.get('/')
@@ -766,11 +758,6 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
     def test_retrieve_xform_manifest_anonymous_user_require_auth(self):
         self.user.profile.require_auth = True
         self.user.profile.save()
-
-        # Add submissions before fetching form metadata
-        self._make_submissions()
-        self.xform.refresh_from_db()
-
         self._load_metadata(self.xform)
         self.view = XFormListViewSet.as_view({"get": "manifest"})
         request = self.factory.get('/')
@@ -781,10 +768,6 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(response.status_code, 401)
 
     def test_retrieve_xform_media(self):
-        # Add submissions before fetching form metadata
-        self._make_submissions()
-        self.xform.refresh_from_db()
-
         self._load_metadata(self.xform)
         self.view = XFormListViewSet.as_view(
             {
@@ -803,10 +786,6 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_retrieve_xform_media_anonymous_user(self):
-        # Add submissions before fetching form metadata
-        self._make_submissions()
-        self.xform.refresh_from_db()
-
         self._load_metadata(self.xform)
         self.view = XFormListViewSet.as_view({"get": "media"})
         request = self.factory.get('/')
@@ -823,10 +802,6 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_retrieve_xform_media_anonymous_user_require_auth(self):
-        # Add submissions before fetching form metadata
-        self._make_submissions()
-        self.xform.refresh_from_db()
-
         self.user.profile.require_auth = True
         self.user.profile.save()
         self._load_metadata(self.xform)
@@ -837,11 +812,11 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(response.status_code, 401)
 
     def test_retrieve_xform_media_linked_xform(self):
-        self._make_submissions()
-        self.xform.refresh_from_db()
         data_type = 'media'
         data_value = 'xform {} transportation'.format(self.xform.pk)
         self._add_form_metadata(self.xform, data_type, data_value)
+        self._make_submissions()
+        self.xform.refresh_from_db()
 
         self.view = XFormListViewSet.as_view(
             {
@@ -886,10 +861,6 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
                          'attachment; filename=transportation.csv')
 
     def test_retrieve_xform_manifest_linked_form(self):
-        # Add submissions before fetching form metadata
-        self._make_submissions()
-        self.xform.refresh_from_db()
-
         # for linked forms check if manifest media download url for csv
         # has a group_delimiter param
         data_type = 'media'
@@ -996,10 +967,6 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         content = response.render().content.decode('utf-8')
         manifest_url = ('<manifestUrl></manifestUrl>')
         self.assertNotIn(manifest_url, content)
-
-        # Add submissions before creating form metadata
-        self._make_submissions()
-        self.xform.refresh_from_db()
 
         # Add media and test that manifest url exists
         data_type = 'media'
