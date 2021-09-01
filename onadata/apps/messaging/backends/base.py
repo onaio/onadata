@@ -6,21 +6,22 @@ from __future__ import unicode_literals
 
 from actstream.models import Action
 from django.utils.module_loading import import_string
-from multidb.pinning import use_master
 
 
-@use_master
 def call_backend(backend, instance_id, backend_options=None):
     """
     Call notification backends like MQTT to send messages
     """
-    try:
-        instance = Action.objects.get(pk=instance_id)
-    except Action.DoesNotExist:
-        pass
-    else:
-        backend_class = import_string(backend)
-        backend_class(options=backend_options).send(instance)
+    from multidb.pinning import use_master
+
+    with use_master:
+        try:
+            instance = Action.objects.get(pk=instance_id)
+        except Action.DoesNotExist:
+            pass
+        else:
+            backend_class = import_string(backend)
+            backend_class(options=backend_options).send(instance)
 
 
 class BaseBackend(object):  # pylint: disable=too-few-public-methods
