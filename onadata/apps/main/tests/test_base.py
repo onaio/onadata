@@ -374,11 +374,4 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             for index, row in enumerate(expected_csv_reader):
                 if None in row:
                     row.pop(None)
-                # Refactoring to add these fields to the data
-                # read from the csv_file_path
-                current_exported_data = dict(data[index])
-                stored_exported_data = dict(row)
-                stored_exported_data['_id'] = current_exported_data ['_id']
-                stored_exported_data['_date_modified'] = current_exported_data['_date_modified']
-
-                self.assertEquals(sorted(stored_exported_data), sorted(current_exported_data))
+                self.assertDictContainsSubset(row, data[index])

@@ -104,7 +104,6 @@ class TestCSVDataFrameBuilder(TestBase):
             "nested_repeats", "01", submission_time=self._submission_time)
         self._submit_fixture_instance(
             "nested_repeats", "02", submission_time=self._submission_time)
-        self.xform.refresh_from_db()
 
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username, self.xform.id_string, include_images=False)

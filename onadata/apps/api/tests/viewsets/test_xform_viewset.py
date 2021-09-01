@@ -3527,7 +3527,6 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                     "hxl_test", "hxl_example.xml"),
                 forced_submission_time=_submission_time)
             self.assertTrue(self.xform.has_hxl_support)
-            self.xform.refresh_from_db()
 
             view = XFormViewSet.as_view({
                 'get': 'retrieve'
@@ -4869,11 +4868,13 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 "integer_name_test.xlsx")
             with open(path, 'rb') as xls_file:
                 # pylint: disable=no-member
+                meta_count = MetaData.objects.count()
                 post_data = {'xls_file': xls_file}
                 request = self.factory.post('/', data=post_data, **self.extra)
                 response = view(request)
                 xform = self.user.xforms.all()[0]
                 self.assertEqual(response.status_code, 201)
+                self.assertEqual(meta_count + 4, MetaData.objects.count())
                 metadata = MetaData.objects.get(
                     object_id=xform.id, data_value='itemsets.csv')
                 self.assertIsNotNone(metadata)
