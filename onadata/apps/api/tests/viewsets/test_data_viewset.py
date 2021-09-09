@@ -28,6 +28,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
+
 from onadata.apps.logger.models import \
     Instance, SurveyType, XForm, Attachment, SubmissionReview
 from onadata.apps.logger.models.instance import InstanceHistory
@@ -39,7 +40,8 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.messaging.constants import XFORM, SUBMISSION_DELETED
 from onadata.libs import permissions as role
 from onadata.libs.permissions import ReadOnlyRole, EditorRole, \
-    EditorMinorRole, DataEntryOnlyRole, DataEntryMinorRole
+    EditorMinorRole, DataEntryOnlyRole, DataEntryMinorRole, \
+    ManagerRole
 from onadata.libs.serializers.submission_review_serializer import \
     SubmissionReviewSerializer
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
@@ -717,6 +719,69 @@ class TestDataViewSet(TestBase):
         self.assertEqual([i['_uuid'] for i in data],
                          ['f3d8dc65-91a6-4d0f-9e97-802128083390',
                           '9c6f3468-cfda-46e8-84c1-75458e72805d'])
+
+    def test_filter_pending_submission_reviews(self):
+        """
+        Test that a user is able to query for null
+        """
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        formid = self.xform.pk
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        # Create approved  submission review for one instance
+        instances = self.xform.instances.all().order_by('pk')
+        instance = instances[0]
+        self.assertFalse(instance.has_a_review)
+
+        self._create_user_and_login('bob', '1234')
+        ManagerRole.add(
+            self.user,
+            self.xform.instances.all().order_by('pk')[0].xform)
+
+        data = {
+            'note': "Approved!",
+            "instance": instance.id,
+            "status": SubmissionReview.APPROVED
+            }
+
+        serializer_instance = SubmissionReviewSerializer(data=data, context={
+            "request": request})
+        serializer_instance.is_valid()
+        serializer_instance.save()
+        instance.refresh_from_db()
+
+        # Confirm xform submission review enabled
+        self.assertTrue(self.xform.instances.all()[0].has_a_review)
+        # Confirm instance json now has _review_status field
+        self.assertIn('_review_status', dict(
+                        self.xform.instances.all()[0].json))
+        # Confirm instance submission review status
+        self.assertEquals('1', self.xform.instances.all(
+                            )[0].json['_review_status'])
+
+        # Query xform data by submission review status 3
+        query_str = '{"_review_status": 3}'
+        request = self.factory.get(
+            f'/?query={query_str}',
+            **self.extra)
+        response = view(request, pk=formid)
+
+        self.assertEqual(response.status_code, 200)
+        # Should not return any submissions
+        self.assertEqual(len(response.data), 0)
+
+        # Query xform data by NULL submission review
+        query_str = '{"_review_status": null}'
+        request = self.factory.get(
+            f'/?query={query_str}',
+            **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 3)
 
     @override_settings(STREAM_DATA=True)
     def test_data_start_limit_sort_json_field(self):
