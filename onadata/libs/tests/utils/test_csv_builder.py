@@ -92,8 +92,7 @@ class TestCSVDataFrameBuilder(TestBase):
             self.user.username, self.xform.id_string, include_images=False)
         # pylint: disable=protected-access
         cursor = csv_df_builder._query_data()
-        return [d for d in csv_df_builder._format_for_dataframe(
-                cursor, is_data=True)]
+        return [d for d in csv_df_builder._format_for_dataframe(cursor)]
 
     def test_csv_dataframe_export_to(self):
         """
@@ -454,7 +453,7 @@ class TestCSVDataFrameBuilder(TestBase):
         csv_file = open(temp_file.name, 'r')
         csv_reader = csv.reader(csv_file)
         header = next(csv_reader)
-        self.assertEqual(len(header), 6 + len(csv_df_builder.extra_columns))
+        self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
         rows = []
         for row in csv_reader:
             rows.append(row)
@@ -488,7 +487,7 @@ class TestCSVDataFrameBuilder(TestBase):
         csv_file = open(temp_file.name, 'r')
         csv_reader = csv.reader(csv_file)
         header = next(csv_reader)
-        self.assertEqual(len(header), 6 + len(csv_df_builder.extra_columns))
+        self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
         self.assertEqual(b'\xef\xbb\xbfname', header[0].encode('utf-8'))
         # close and delete file
         csv_file.close()
@@ -573,15 +572,17 @@ class TestCSVDataFrameBuilder(TestBase):
         csv_file = open(temp_file.name, 'r')
         csv_reader = csv.reader(csv_file)
         header = next(csv_reader)
-        self.assertEqual(len(header), 6 + len(csv_df_builder.extra_columns))
+        self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
         expected_header = [
-            'name', 'age', 'has_kids', 'gps',
-            'web_browsers', 'instanceID', '_id',
-            '_uuid', '_submission_time', '_date_modified', '_tags',
-            '_notes', '_version', '_duration', '_submitted_by',
+            'name', 'age', 'has_kids', 'kids_name', 'kids_age', 'kids_name',
+            'kids_age', 'gps', '_gps_latitude', '_gps_longitude',
+            '_gps_altitude', '_gps_precision', 'web_browsers/firefox',
+            'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
+            'instanceID', '_id', '_uuid', '_submission_time', '_date_modified',
+            '_tags', '_notes', '_version', '_duration', '_submitted_by',
             '_total_media', '_media_count', '_media_all_received',
-            '_review_status', '_review_comment', '_review_date']
-
+            '_review_status', '_review_comment', '_review_date'
+        ]
         self.assertEqual(expected_header, header)
         rows = []
         for row in csv_reader:
@@ -617,35 +618,37 @@ class TestCSVDataFrameBuilder(TestBase):
         csv_file = open(temp_file.name, 'r')
         csv_reader = csv.reader(csv_file)
         header = next(csv_reader)
-        self.assertEqual(len(header), 6 + len(csv_df_builder.extra_columns))
+        self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
         expected_header = [
-            'name',
-            'age',
-            'has_kids',
-            'gps',
-            'web_browsers',
-            'instanceID',
-            '_id',
-            '_uuid',
-            '_submission_time',
-            '_date_modified',
-            '_tags',
-            '_notes',
-            '_version',
-            '_duration',
-            '_submitted_by',
-            '_total_media',
-            '_media_count',
-            '_media_all_received',
-            '_review_status',
-            '_review_comment',
-            '_review_date'
-            ]
+            'name', 'age', 'has_kids', 'kids_name', 'kids_age', 'kids_name',
+            'kids_age', 'gps', '_gps_latitude', '_gps_longitude',
+            '_gps_altitude', '_gps_precision', 'web_browsers/firefox',
+            'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
+            'instanceID', '_id', '_uuid', '_submission_time', '_date_modified',
+            '_tags', '_notes', '_version', '_duration', '_submitted_by',
+            '_total_media', '_media_count', '_media_all_received',
+            '_review_status', '_review_comment', '_review_date'
+        ]
         self.assertEqual(expected_header, header)
+        labels = next(csv_reader)
+        self.assertEqual(len(labels), 17 + len(csv_df_builder.extra_columns))
+        expected_labels = [
+            'Name', 'age', 'Do you have kids?', 'Kids Name', 'Kids Age',
+            'Kids Name', 'Kids Age', '5. Record your GPS coordinates.',
+            '_gps_latitude', '_gps_longitude', '_gps_altitude',
+            '_gps_precision', 'web_browsers/Mozilla Firefox',
+            'web_browsers/Google Chrome', 'web_browsers/Internet Explorer',
+            'web_browsers/Safari', 'instanceID', '_id', '_uuid',
+            '_submission_time', '_date_modified', '_tags', '_notes',
+            '_version', '_duration', '_submitted_by', '_total_media',
+            '_media_count', '_media_all_received', '_review_status',
+            '_review_comment', '_review_date'
+        ]
+        self.assertEqual(expected_labels, labels)
         rows = []
         for row in csv_reader:
             rows.append(row)
-        self.assertEqual(len(rows), 8)
+        self.assertEqual(len(rows), 7)
         self.assertEqual(rows[4][5], NA_REP)
         # close and delete file
         csv_file.close()
@@ -676,17 +679,19 @@ class TestCSVDataFrameBuilder(TestBase):
         csv_file = open(temp_file.name, 'r')
         csv_reader = csv.reader(csv_file)
         labels = next(csv_reader)
-        self.assertEqual(len(labels), 6 + len(csv_df_builder.extra_columns))
+        self.assertEqual(len(labels), 17 + len(csv_df_builder.extra_columns))
         expected_labels = [
-            'Name', 'age', 'Do you have kids?',
-            '5. Record your GPS coordinates.',
-            '6. What web browsers do you use?',
-            'instanceID', '_id', '_uuid', '_submission_time',
-            '_date_modified', '_tags', '_notes', '_version',
-            '_duration', '_submitted_by', '_total_media',
+            'Name', 'age', 'Do you have kids?', 'Kids Name', 'Kids Age',
+            'Kids Name', 'Kids Age', '5. Record your GPS coordinates.',
+            '_gps_latitude', '_gps_longitude', '_gps_altitude',
+            '_gps_precision', 'web_browsers/Mozilla Firefox',
+            'web_browsers/Google Chrome', 'web_browsers/Internet Explorer',
+            'web_browsers/Safari', 'instanceID', '_id', '_uuid',
+            '_submission_time', '_date_modified', '_tags', '_notes',
+            '_version', '_duration', '_submitted_by', '_total_media',
             '_media_count', '_media_all_received', '_review_status',
-            '_review_comment', '_review_date']
-
+            '_review_comment', '_review_date'
+        ]
         self.assertEqual(expected_labels, labels)
         rows = []
         for row in csv_reader:
@@ -739,8 +744,7 @@ class TestCSVDataFrameBuilder(TestBase):
             include_images=False)
         # pylint: disable=protected-access
         cursor = [row for row in csv_df_builder._query_data()]
-        result = [k for k in csv_df_builder._format_for_dataframe(
-                    cursor, is_data=True)]
+        result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
         expected_result = [{
             'name': 'Tom',
             'age': 23,
@@ -775,15 +779,17 @@ class TestCSVDataFrameBuilder(TestBase):
         csv_file = open(temp_file.name, 'r')
         csv_reader = csv.reader(csv_file)
         header = next(csv_reader)
-        self.assertEqual(len(header), 6 + len(csv_df_builder.extra_columns))
+        self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
         expected_header = [
-            'name', 'age', 'has_kids', 'gps', 'web_browsers',
-            'instanceID', '_id', '_uuid', '_submission_time',
-            '_date_modified', '_tags', '_notes', '_version',
-            '_duration', '_submitted_by', '_total_media', '_media_count',
-            '_media_all_received', '_xform_id', '_review_status',
-            '_review_comment', '_review_date']
-
+            'name', 'age', 'has_kids', 'kids_name', 'kids_age', 'kids_name',
+            'kids_age', 'gps', '_gps_latitude', '_gps_longitude',
+            '_gps_altitude', '_gps_precision', 'web_browsers/firefox',
+            'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
+            'instanceID', '_id', '_uuid', '_submission_time', '_date_modified',
+            '_tags', '_notes', '_version', '_duration', '_submitted_by',
+            '_total_media', '_media_count', '_media_all_received', '_xform_id',
+            '_review_status', '_review_comment', '_review_date'
+        ]
         self.assertEqual(expected_header, header)
         # close and delete file
         csv_file.close()
@@ -800,7 +806,7 @@ class TestCSVDataFrameBuilder(TestBase):
         csv_file = open(temp_file.name, 'r')
         csv_reader = csv.reader(csv_file)
         header = next(csv_reader)
-        self.assertEqual(len(header), 6 + len(csv_df_builder.extra_columns))
+        self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
         self.assertEqual(expected_header, header)
         csv_file.close()
         os.unlink(temp_file.name)
@@ -818,8 +824,7 @@ class TestCSVDataFrameBuilder(TestBase):
             self.user.username, self.xform.id_string, include_images=False,
             index_tags=('_', '_'))
         cursor = csv_df_builder._query_data()
-        result = [d for d in csv_df_builder._format_for_dataframe(
-                    cursor, is_data=True)][0]
+        result = [d for d in csv_df_builder._format_for_dataframe(cursor)][0]
         # remove dynamic fields
         ignore_list = [
             '_uuid', 'meta/instanceID', 'formhub/uuid', '_submission_time',
@@ -899,8 +904,7 @@ class TestCSVDataFrameBuilder(TestBase):
             include_images=False, show_choice_labels=True, language='French')
         # pylint: disable=protected-access
         cursor = [row for row in csv_df_builder._query_data()]
-        result = [k for k in csv_df_builder._format_for_dataframe(
-                    cursor, is_data=True)]
+        result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
         expected_result = [{
             'name': 'Maria',
             'age': 25,
@@ -941,8 +945,7 @@ class TestCSVDataFrameBuilder(TestBase):
             include_images=False, show_choice_labels=True, language='English')
         # pylint: disable=protected-access
         cursor = [row for row in csv_df_builder._query_data()]
-        result = [k for k in csv_df_builder._format_for_dataframe(
-                    cursor, is_data=True)]
+        result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
         expected_result = [{
             'name': 'Maria',
             'age': 25,
@@ -982,8 +985,7 @@ class TestCSVDataFrameBuilder(TestBase):
             include_images=False, show_choice_labels=True)
         # pylint: disable=protected-access
         cursor = [row for row in csv_df_builder._query_data()]
-        result = [k for k in csv_df_builder._format_for_dataframe(
-                    cursor, is_data=True)]
+        result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
         expected_result = [{
             'name': 'Maria',
             'age': 25,
@@ -1023,8 +1025,7 @@ class TestCSVDataFrameBuilder(TestBase):
             include_images=False, show_choice_labels=True)
         # pylint: disable=protected-access
         cursor = [row for row in csv_df_builder._query_data()]
-        result = [k for k in csv_df_builder._format_for_dataframe(
-                    cursor, is_data=True)]
+        result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
         expected_result = [{
             'name': 'Maria',
             'age': 25,
@@ -1066,8 +1067,7 @@ class TestCSVDataFrameBuilder(TestBase):
             include_images=False, show_choice_labels=True, language='Fr')
         # pylint: disable=protected-access
         cursor = [row for row in csv_df_builder._query_data()]
-        result = [k for k in csv_df_builder._format_for_dataframe(
-                    cursor, is_data=True)]
+        result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
         expected_result = [{
             'name': 'Maria',
             'age': 25,
@@ -1110,8 +1110,7 @@ class TestCSVDataFrameBuilder(TestBase):
             include_images=False, show_choice_labels=True)
         # pylint: disable=protected-access
         cursor = [row for row in csv_df_builder._query_data()]
-        result = [k for k in csv_df_builder._format_for_dataframe(
-                    cursor, is_data=True)]
+        result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
         expected_result = [{
             'name': 'Maria',
             'age': 25,
@@ -1157,8 +1156,7 @@ class TestCSVDataFrameBuilder(TestBase):
             include_images=False, show_choice_labels=True, language='Fr')
         # pylint: disable=protected-access
         cursor = [row for row in csv_df_builder._query_data()]
-        result = [k for k in csv_df_builder._format_for_dataframe(
-                    cursor, is_data=True)]
+        result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
         expected_result = [{
             'name': 'Maria',
             'age': 25,
@@ -1202,8 +1200,7 @@ class TestCSVDataFrameBuilder(TestBase):
             include_images=False, show_choice_labels=True)
         # pylint: disable=protected-access
         cursor = [row for row in csv_df_builder_1._query_data()]
-        result = [k for k in csv_df_builder_1._format_for_dataframe(
-                    cursor, is_data=True)]
+        result = [k for k in csv_df_builder_1._format_for_dataframe(cursor)]
         expected_result = [{
             'name': 'Maria',
             'age': 25,
@@ -1234,25 +1231,13 @@ class TestCSVDataFrameBuilder(TestBase):
         header = next(csv_reader)
 
         expected_header = [
-            'info/name',
-            'info/age',
-            'kids/has_kids',
-            'gps',
-            'web_browsers',
-            'meta/instanceID',
-            '_id',
-            '_uuid',
-            '_submission_time',
-            '_date_modified',
-            '_tags',
-            '_notes',
-            '_version',
-            '_duration',
-            '_submitted_by',
-            '_total_media',
-            '_media_count',
-            '_media_all_received'
-            ]
+            'info/name', 'info/age', 'kids/has_kids', 'gps', '_gps_latitude',
+            '_gps_longitude', '_gps_altitude', '_gps_precision',
+            'web_browsers/firefox', 'web_browsers/chrome', 'web_browsers/ie',
+            'web_browsers/safari', 'meta/instanceID', '_id', '_uuid',
+            '_submission_time', '_date_modified', '_tags', '_notes',
+            '_version', '_duration', '_submitted_by', '_total_media',
+            '_media_count', '_media_all_received']
         # Test form headers are present on exported csv file.
         self.assertEqual(header, expected_header)
 
@@ -1260,8 +1245,8 @@ class TestCSVDataFrameBuilder(TestBase):
 
     def test_export_raises_NoRecordsFound_for_form_without_instances(self):
         """
-        Test xform schema for form with no submission
-        is successfully exported
+        Test exporting records for forms without submissions raises
+        NorecordsFound exception.
         """
         fixture = "new_repeats"
         # publish form so we have a dd
@@ -1313,8 +1298,7 @@ class TestCSVDataFrameBuilder(TestBase):
             include_images=False, show_choice_labels=True)
         # pylint: disable=protected-access
         cursor = [row for row in csv_df_builder_1._query_data()]
-        result = [k for k in csv_df_builder_1._format_for_dataframe(
-                    cursor, is_data=True)]
+        result = [k for k in csv_df_builder_1._format_for_dataframe(cursor)]
         expected_result = [{
             'name': 'Maria',
             'age': 25,
@@ -1375,26 +1359,50 @@ class TestCSVDataFrameBuilder(TestBase):
         mock_query_data.return_value = data
 
         expected_header = [
-            'food',
-            'no_food',
-            'food_repeat_count',
-            'no_food_2',
-            'food_repeat_2_count',
-            'gps',
-            'meta/instanceID',
-            '_id',
-            '_uuid',
-            '_submission_time',
-            '_date_modified',
-            '_tags',
-            '_notes',
-            '_version',
-            '_duration',
-            '_submitted_by',
-            '_total_media',
-            '_media_count',
-            '_media_all_received'
-            ]
+            'food/Apple', 'food/Orange', 'food/Banana', 'food/Pizza',
+            'food/Lasgna', 'food/Cake', 'food/Chocolate', 'food/Salad',
+            'food/Sandwich', 'no_food', 'food_repeat_count',
+            'food_repeat[1]/food_group/Apple',
+            'food_repeat[1]/food_group/Orange',
+            'food_repeat[1]/food_group/Banana',
+            'food_repeat[1]/food_group/Pizza',
+            'food_repeat[1]/food_group/Lasgna',
+            'food_repeat[1]/food_group/Cake',
+            'food_repeat[1]/food_group/Chocolate',
+            'food_repeat[1]/food_group/Salad',
+            'food_repeat[1]/food_group/Sandwich',
+            'food_repeat[2]/food_group/Apple',
+            'food_repeat[2]/food_group/Orange',
+            'food_repeat[2]/food_group/Banana',
+            'food_repeat[2]/food_group/Pizza',
+            'food_repeat[2]/food_group/Lasgna',
+            'food_repeat[2]/food_group/Cake',
+            'food_repeat[2]/food_group/Chocolate',
+            'food_repeat[2]/food_group/Salad',
+            'food_repeat[2]/food_group/Sandwich', 'no_food_2',
+            'food_repeat_2_count', 'food_repeat_2[1]/food_group_2/Apple',
+            'food_repeat_2[1]/food_group_2/Orange',
+            'food_repeat_2[1]/food_group_2/Banana',
+            'food_repeat_2[1]/food_group_2/Pizza',
+            'food_repeat_2[1]/food_group_2/Lasgna',
+            'food_repeat_2[1]/food_group_2/Cake',
+            'food_repeat_2[1]/food_group_2/Chocolate',
+            'food_repeat_2[1]/food_group_2/Salad',
+            'food_repeat_2[1]/food_group_2/Sandwich',
+            'food_repeat_2[2]/food_group_2/Apple',
+            'food_repeat_2[2]/food_group_2/Orange',
+            'food_repeat_2[2]/food_group_2/Banana',
+            'food_repeat_2[2]/food_group_2/Pizza',
+            'food_repeat_2[2]/food_group_2/Lasgna',
+            'food_repeat_2[2]/food_group_2/Cake',
+            'food_repeat_2[2]/food_group_2/Chocolate',
+            'food_repeat_2[2]/food_group_2/Salad',
+            'food_repeat_2[2]/food_group_2/Sandwich', 'gps',
+            '_gps_latitude', '_gps_longitude', '_gps_altitude',
+            '_gps_precision', 'meta/instanceID', '_id', '_uuid',
+            '_submission_time', '_date_modified', '_tags',
+            '_notes', '_version', '_duration', '_submitted_by',
+            '_total_media', '_media_count', '_media_all_received']
 
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username, self.xform.id_string, include_images=False)

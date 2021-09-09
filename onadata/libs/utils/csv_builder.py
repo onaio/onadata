@@ -1,5 +1,5 @@
-from collections import OrderedDict
 from itertools import chain
+from collections import OrderedDict
 
 import unicodecsv as csv
 from django.conf import settings
@@ -533,20 +533,22 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 # generated when we reindex
                 ordered_columns[child.get_abbreviated_xpath()] = None
 
-    def _format_for_dataframe(self, cursor, is_data=False):
+    def _update_ordered_columns_from_data(self, cursor):
         """
-        Adds ordered columns for select multiples data.
-        Expounds gps/geopoint data.
+        Populates `self.ordered_columns` object that is
+        used to generate export column headers for
+        forms that split select multiple and gps data.
         """
         # add ordered columns for select multiples
         if self.split_select_multiples:
             for (key, choices) in iteritems(self.select_multiples):
                 # HACK to ensure choices are NOT duplicated
-                self.ordered_columns[key] = \
-                    remove_dups_from_list_maintain_order(
-                        [choice.replace('/' + name, '/' + label)
-                         if self.show_choice_labels else choice
-                         for choice, name, label in choices])
+                if key in self.ordered_columns.keys():
+                    self.ordered_columns[key] = \
+                        remove_dups_from_list_maintain_order(
+                            [choice.replace('/' + name, '/' + label)
+                                if self.show_choice_labels else choice
+                                for choice, name, label in choices])
 
         # add ordered columns for gps fields
         for key in self.gps_fields:
@@ -555,50 +557,63 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         image_xpaths = [] if not self.include_images \
             else self.dd.get_media_survey_xpaths()
 
-        flat_dict = {}
-        if is_data:
-            for record in cursor:
-                # split select multiples
-                if self.split_select_multiples:
-                    record = self._split_select_multiples(
-                        record, self.select_multiples,
-                        self.BINARY_SELECT_MULTIPLES,
-                        self.VALUE_SELECT_MULTIPLES,
-                        show_choice_labels=self.show_choice_labels)
-                # check for gps and split into
-                # components i.e. latitude, longitude,
-                # altitude, precision
-                self._split_gps_fields(record, self.gps_fields)
-                self._tag_edit_string(record)
-                # re index repeats
-                for (key, value) in iteritems(record):
-                    self._reindex(
-                        key, value, self.ordered_columns, record, self.dd,
-                        include_images=image_xpaths,
-                        split_select_multiples=self.split_select_multiples,
-                        index_tags=self.index_tags,
-                        show_choice_labels=self.show_choice_labels,
-                        language=self.language)
-                    flat_dict.update(record)
+        # add ordered columns for nested repeat data
+        for record in cursor:
+            # re index column repeats
+            for (key, value) in iteritems(record):
+                self._reindex(
+                    key, value, self.ordered_columns, record, self.dd,
+                    include_images=image_xpaths,
+                    split_select_multiples=self.split_select_multiples,
+                    index_tags=self.index_tags,
+                    show_choice_labels=self.show_choice_labels,
+                    language=self.language)
 
-                yield flat_dict
+    def _format_for_dataframe(self, cursor):
+        """
+        Unpacks nested repeat data for export.
+        """
+        image_xpaths = [] if not self.include_images \
+            else self.dd.get_media_survey_xpaths()
+        for record in cursor:
+            # split select multiples
+            if self.split_select_multiples:
+                record = self._split_select_multiples(
+                    record, self.select_multiples,
+                    self.BINARY_SELECT_MULTIPLES,
+                    self.VALUE_SELECT_MULTIPLES,
+                    show_choice_labels=self.show_choice_labels)
+            # check for gps and split into
+            # components i.e. latitude, longitude,
+            # altitude, precision
+            self._split_gps_fields(record, self.gps_fields)
+            self._tag_edit_string(record)
+            flat_dict = {}
+            # re index repeats
+            for (key, value) in iteritems(record):
+                reindexed = self._reindex(
+                    key, value, self.ordered_columns, record, self.dd,
+                    include_images=image_xpaths,
+                    split_select_multiples=self.split_select_multiples,
+                    index_tags=self.index_tags,
+                    show_choice_labels=self.show_choice_labels,
+                    language=self.language)
+                flat_dict.update(reindexed)
+            yield flat_dict
 
     def export_to(self, path, dataview=None):
         self.ordered_columns = OrderedDict()
         self._build_ordered_columns(self.dd.survey, self.ordered_columns)
-        is_form_data = False
 
         if dataview:
-            # Export Dataview object data by default
-            is_form_data = True
-
             cursor = dataview.query_data(dataview, all_data=True,
                                          filter_query=self.filter_query)
             if isinstance(cursor, QuerySet):
                 cursor = cursor.iterator()
 
-            data = self._format_for_dataframe(
-                    cursor, is_data=is_form_data)
+            self._update_ordered_columns_from_data(cursor)
+
+            data = self._format_for_dataframe(cursor)
 
             columns = list(chain.from_iterable(
                 [[xpath] if cols is None else cols
@@ -609,27 +624,30 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             try:
                 cursor = self._query_data(self.filter_query)
             except NoRecordsFoundError:
-                # Set cursor (XForm data) to xform schema
-                cursor = self.xform.get_headers()
+                # Set cursor object to an an empty queryset
+                cursor = self.xform.instances.none()
+                # Define export columns using xform schema
+                columns = self.xform.get_headers()
+
+            self._update_ordered_columns_from_data(cursor)
+
+            if isinstance(cursor, QuerySet):
+                cursor = cursor.iterator()
+
+            # Unpack xform columns and data
+            data = self._format_for_dataframe(cursor)
 
             columns = list(chain.from_iterable(
                 [[xpath] if cols is None else cols
                     for (xpath, cols) in iteritems(self.ordered_columns)]))
 
+            # add extra columns
+            columns += [col for col in self.extra_columns]
+
             for field in self.dd.get_survey_elements_of_type('osm'):
                 columns += OsmData.get_tag_keys(self.xform,
                                                 field.get_abbreviated_xpath(),
                                                 include_prefix=True)
-            # add extra columns
-            columns += [col for col in self.extra_columns]
-
-            if isinstance(cursor, QuerySet):
-                cursor = cursor.iterator()
-                is_form_data = True
-
-            # Unpack xform columns and data
-            data = self._format_for_dataframe(
-                        cursor, is_data=is_form_data)
 
         columns_with_hxl = self.include_hxl and get_columns_with_hxl(
             self.dd.survey_elements)
