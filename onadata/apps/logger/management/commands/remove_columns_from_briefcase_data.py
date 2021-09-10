@@ -49,11 +49,20 @@ class Command(BaseCommand):
             dest='columns',
             help='Comma separated list of columns to remove from the XMLs'
         )
+        parser.add_argument(
+            '--overwrite',
+            '-f',
+            default=False,
+            dest='overwrite',
+            action='store_true',
+            help='Whether to overwrite the original submission'
+        )
 
     def handle(self, *args, **options):
         columns: List[str] = options.get('columns').split(',')
         in_dir: str = options.get('in_dir')
         out_dir: str = options.get('out_dir')
+        overwrite: bool = options.get('overwrite')
 
         submission_folders = [
             xml_file for xml_file in os.listdir(in_dir)
@@ -80,13 +89,22 @@ class Command(BaseCommand):
 
             remove_columns_from_xml(data, columns)
 
-            os.makedirs(f'{out_dir}/{submission_folder}')
+            if not overwrite:
+                os.makedirs(f'{out_dir}/{submission_folder}')
 
-            with open(
-                    f'{out_dir}/{submission_folder}/submission.xml',
-                    'w') as out_file:
-                out_file.write(data)
-                out_file.close()
+                with open(
+                        f'{out_dir}/{submission_folder}/submission.xml',
+                        'w') as out_file:
+                    out_file.write(data)
+                    out_file.close()
+            else:
+                with open(
+                        f'{in_dir}/{submission_folder}/submission.xml',
+                        'r+')as out_file:
+                    out_file.truncate(0)
+                    out_file.write(data)
+                    out_file.close()
+
             modified_files += 1
 
         self.stdout.write(
