@@ -142,11 +142,14 @@ class BriefcaseViewset(mixins.CreateModelMixin,
         num_entries = _parse_int(num_entries)
         if num_entries:
             instances = instances[:num_entries]
+            instance_count = instances.count()
+        else:
+            instance_count = xform.num_of_submissions
 
-        if instances.count():
-            last_instance = instances[instances.count() - 1]
+        if instance_count:
+            last_instance = instances[instance_count - 1]
             self.resumptionCursor = last_instance.pk
-        elif instances.count() == 0 and cursor:
+        elif instance_count == 0 and cursor:
             self.resumptionCursor = cursor
         else:
             self.resumptionCursor = 0
