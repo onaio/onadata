@@ -475,3 +475,53 @@ class TestChartsViewSet(TestBase):
             "xform": self.xform.pk
         }
         self.assertEqual(expected, res)
+
+    def test_charts_groupby_two_fields(self):
+        data = {
+            'field_name': 'age',
+            'group_by': 'gender,pizza_fan'
+        }
+        request = self.factory.get('/charts', data)
+        force_authenticate(request, user=self.user)
+        response = self.view(
+            request,
+            pk=self.xform.id,
+            format='json')
+
+        expected = {
+            'data': [
+                {
+                    'gender': ['Female'],
+                    'pizza_fan': ['No'],
+                    'count': 1,
+                    'sum': 23.0,
+                    'mean': 23.0
+                },
+                {
+                    'gender': ['Female'],
+                    'pizza_fan': ['Yes'],
+                    'count': 1,
+                    'sum': 23.0,
+                    'mean': 23.0
+                },
+                {
+                    'gender': ['Male'],
+                    'pizza_fan': ['No'],
+                    'count': 1,
+                    'sum': 35.0,
+                    'mean': 35.0
+                }
+            ],
+            'data_type': 'numeric',
+            'field_label': 'How old are you?',
+            'field_xpath': 'age',
+            'field_name': 'age',
+            'field_type': 'integer',
+            'grouped_by': ['gender', 'pizza_fan'],
+            'xform': self.xform.pk
+            }
+
+        renderer = DecimalJSONRenderer()
+        res = json.loads(renderer.render(response.data).decode('utf-8'))
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(expected, res)
