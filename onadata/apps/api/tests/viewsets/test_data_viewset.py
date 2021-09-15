@@ -28,7 +28,6 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-
 from onadata.apps.logger.models import \
     Instance, SurveyType, XForm, Attachment, SubmissionReview
 from onadata.apps.logger.models.instance import InstanceHistory
@@ -755,10 +754,9 @@ class TestDataViewSet(TestBase):
         instance.refresh_from_db()
 
         # Confirm xform submission review enabled
-        self.assertTrue(self.xform.instances.all()[0].has_a_review)
+        self.assertTrue(instance.has_a_review)
         # Confirm instance json now has _review_status field
-        self.assertIn('_review_status', dict(
-                        self.xform.instances.all()[0].json))
+        self.assertIn('_review_status', dict(instance.json))
         # Confirm instance submission review status
         self.assertEquals('1', self.xform.instances.all(
                             )[0].json['_review_status'])

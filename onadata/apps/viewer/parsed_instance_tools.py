@@ -78,7 +78,9 @@ def _parse_where(query, known_integers, known_decimals, or_where, or_params):
             if field_key in NONE_JSON_FIELDS:
                 where.append("{} = %s".format(NONE_JSON_FIELDS[field_key]))
                 where_params.extend([text(field_value)])
-            elif field_value:
+            elif field_value is None:
+                where.append(f"json->>'{field_key}' IS NULL")
+            else:
                 where.append(u"json->>%s = %s")
                 where_params.extend((field_key, text(field_value)))
 
@@ -120,17 +122,14 @@ def get_where_clause(query, form_integer_fields=None,
             if isinstance(query, list):
                 query = query[0]
 
-            if isinstance(query, dict):
-                for k, v in query.items():
-                    if v is None:
-                        or_where.extend([u"json->>'{}' IS NULL".format(k)])
-            elif isinstance(query, dict) and '$or' in list(query):
+            if isinstance(query, dict) and '$or' in list(query):
                 or_dict = query.pop('$or')
 
                 for or_query in or_dict:
                     for k, v in or_query.items():
                         if v is None:
-                            or_where.extend([u"json->>'{}' IS NULL".format(k)])
+                            or_where.extend(
+                                [u"json->>'{}' IS NULL".format(k)])
                         elif isinstance(v, list):
                             for value in v:
                                 or_where.extend(["json->>%s = %s"])
@@ -141,6 +140,7 @@ def get_where_clause(query, form_integer_fields=None,
                             or_params.extend([k, v])
 
                 or_where = [u"".join([u"(", u" OR ".join(or_where), u")"])]
+
             where, where_params = _parse_where(query, known_integers,
                                                known_decimals, or_where,
                                                or_params)
