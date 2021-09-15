@@ -758,8 +758,7 @@ class TestDataViewSet(TestBase):
         # Confirm instance json now has _review_status field
         self.assertIn('_review_status', dict(instance.json))
         # Confirm instance submission review status
-        self.assertEquals('1', self.xform.instances.all(
-                            )[0].json['_review_status'])
+        self.assertEquals('1', instance.json['_review_status'])
 
         # Query xform data by submission review status 3
         query_str = '{"_review_status": 3}'

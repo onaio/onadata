@@ -628,6 +628,47 @@ Query submissions where age is 21 or name is hosee
 
     curl -X GET https://api.ona.io/api/v1/data/22845?query={"$or": [{"age": "21", "name": "hosee"}]}
 
+Example VIII
+^^^^^^^^^^^^
+Query submissions with APPROVED submission review status
+
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845?query={"_review_status" : "1"}
+
+Example IX
+^^^^^^^^^^^^
+Query submissions with REJECTED submission review status
+
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845?query={"_review_status" : "2"}
+
+Example X
+^^^^^^^^^^
+Query submissions with PENDING submission review status
+
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845?query={"_review_status" : "3"}
+
+Example XI
+^^^^^^^^^^
+Query submissions with pending submission review status or NULL
+
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845?query={"$or": [{"_review_status": "3"}, {"_review_status": null}]}
+
+Example XII
+^^^^^^^^^^^
+Query submissions with `NULL` submission review status 
+
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845?query={"_review_status": null}
+
+
 All Filters Options
 
 ==================================================
