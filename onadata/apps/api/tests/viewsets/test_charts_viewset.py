@@ -1,9 +1,6 @@
 import json
-from onadata.apps.logger.models import xform
 import os
-from django.http import request, response
 import mock
-
 from django.utils import timezone
 from django.core.cache import cache
 from rest_framework.test import APIClient
