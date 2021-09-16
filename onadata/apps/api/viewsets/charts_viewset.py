@@ -86,7 +86,7 @@ class ChartsViewSet(AnonymousUserPublicFormsMixin, AuthenticateHeaderMixin,
         fields = request.query_params.get('fields')
         content_type = request.content_type
         group_by = request.query_params.get('group_by')
-        fmt = kwargs.get('json')
+        fmt = kwargs.get('format')
 
         xform = self.get_object()
         serializer = self.get_serializer(xform)
