@@ -663,18 +663,6 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
 
         # DataViewSet /data/[pk] endpoint, form_a deleted
         form_a.soft_delete()
-        response = data_view(request, pk=merged_dataset['id'])
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 1)
-
-        fruit = [d['fruit'] for d in response.data]
-        expected_fruit = ['mango']
-        self.assertEqual(fruit, expected_fruit)
-
-        # DataViewSet /data/[pk]/[dataid] endpoint, form_a deleted
-        data_view = DataViewSet.as_view({
-            'get': 'retrieve',
-        })
         response = data_view(request, pk=merged_dataset['id'], dataid=dataid)
         self.assertEqual(response.status_code, 404)
 
