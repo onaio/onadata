@@ -953,8 +953,17 @@ class XForm(XFormMixin, BaseModel):
             update_fields.append('deleted_by')
 
         self.save(update_fields=update_fields)
+        # Delete associated filtered datasets
         for dataview in self.dataview_set.all():
             dataview.soft_delete(user)
+        # Delete associated Merged-Datasets
+        for merged_dataset in self.mergedxform_ptr.filter(
+                deleted_at__isnull=True):
+            merged_dataset.soft_delete(user)
+        # Delete associated Form Media Files
+        for metadata in self.metadata_set.filter(
+                deleted_at__isnull=True):
+            metadata.soft_delete()
 
     def submission_count(self, force_update=False):
         if self.num_of_submissions == 0 or force_update:

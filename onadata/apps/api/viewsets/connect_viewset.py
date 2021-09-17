@@ -14,6 +14,8 @@ from multidb.pinning import use_master
 from onadata.apps.api.models.odk_token import ODKToken
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.permissions import ConnectViewsetPermissions
+from onadata.apps.api.viewsets.user_profile_viewset import \
+    serializer_from_settings
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
@@ -51,9 +53,12 @@ def user_profile_w_token_response(request, status):
             with use_master:
                 user_profile, _ = UserProfile.objects.get_or_create(
                     user=request.user)
+                serializer = serializer_from_settings()(
+                    user_profile,
+                    context={'request': request})
                 cache.set(
                     f'{USER_PROFILE_PREFIX}{request.user.username}',
-                    user_profile)
+                    serializer.data)
 
     serializer = UserProfileWithTokenSerializer(
         instance=user_profile, context={"request": request})
