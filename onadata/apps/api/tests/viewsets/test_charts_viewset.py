@@ -521,8 +521,8 @@ class TestChartsViewSet(TestBase):
             'xform': self.xform.pk
             }
 
-        renderer = DecimalJSONRenderer()
-        res = json.loads(renderer.render(response.data).decode('utf-8'))
+        response.render()
+        res = json.loads(response.content.decode('utf-8'))
         self.assertEqual(200, response.status_code)
         self.assertEqual(expected, res)
 
