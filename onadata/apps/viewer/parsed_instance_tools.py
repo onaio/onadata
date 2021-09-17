@@ -78,6 +78,8 @@ def _parse_where(query, known_integers, known_decimals, or_where, or_params):
             if field_key in NONE_JSON_FIELDS:
                 where.append("{} = %s".format(NONE_JSON_FIELDS[field_key]))
                 where_params.extend([text(field_value)])
+            elif field_value is None:
+                where.append(f"json->>'{field_key}' IS NULL")
             else:
                 where.append(u"json->>%s = %s")
                 where_params.extend((field_key, text(field_value)))
@@ -126,7 +128,8 @@ def get_where_clause(query, form_integer_fields=None,
                 for or_query in or_dict:
                     for k, v in or_query.items():
                         if v is None:
-                            or_where.extend([u"json->>'{}' IS NULL".format(k)])
+                            or_where.extend(
+                                [u"json->>'{}' IS NULL".format(k)])
                         elif isinstance(v, list):
                             for value in v:
                                 or_where.extend(["json->>%s = %s"])
