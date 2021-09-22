@@ -1243,6 +1243,73 @@ class TestCSVDataFrameBuilder(TestBase):
 
         csv_file.close()
 
+    def test_export_data_for_xforms_with_newer_submissions(self):
+        """
+        Test xform schema for form with no submission
+        is successfully exported
+        """
+        fixture = "new_repeats"
+        # publish form so we have a dd
+        self._publish_xls_fixture_set_xform(fixture)
+
+        # Confirm form has not submissions so far
+        self.assertEquals(self.xform.instances.count(), 0)
+        # Generate csv export for form
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username, self.xform.id_string, include_images=False)
+        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
+        csv_df_builder.export_to(temp_file.name)
+        csv_file = open(temp_file.name, 'r')
+        csv_reader = csv.reader(csv_file)
+        header = next(csv_reader)
+
+        expected_header = [
+            'info/name', 'info/age', 'kids/has_kids', 'gps', '_gps_latitude',
+            '_gps_longitude', '_gps_altitude', '_gps_precision',
+            'web_browsers/firefox', 'web_browsers/chrome', 'web_browsers/ie',
+            'web_browsers/safari', 'meta/instanceID', '_id', '_uuid',
+            '_submission_time', '_date_modified', '_tags', '_notes',
+            '_version', '_duration', '_submitted_by', '_total_media',
+            '_media_count', '_media_all_received']
+        # Test form headers are present on exported csv file.
+        self.assertEqual(header, expected_header)
+
+        # make sibmissions to xform after export was generated
+        for _ in range(4):
+            self._submit_fixture_instance("new_repeats", "01")
+        self._submit_fixture_instance("new_repeats", "02")
+        # pylint: disable=protected-access
+        record_count = csv_df_builder._query_data(count=True)
+        self.assertEqual(record_count, 5)
+        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
+        csv_df_builder.export_to(temp_file.name)
+        csv_file = open(temp_file.name, 'r')
+        csv_reader = csv.reader(csv_file)
+        newer_header = next(csv_reader)
+        expected_headers = [
+            'info/name', 'info/age', 'kids/has_kids',
+            'kids/kids_details[1]/kids_name', 'kids/kids_details[1]/kids_age',
+            'kids/kids_details[2]/kids_name', 'kids/kids_details[2]/kids_age',
+            'gps', '_gps_latitude', '_gps_longitude', '_gps_altitude',
+            '_gps_precision', 'web_browsers/firefox', 'web_browsers/chrome',
+            'web_browsers/ie', 'web_browsers/safari', 'meta/instanceID', '_id',
+            '_uuid', '_submission_time', '_date_modified', '_tags', '_notes',
+            '_version', '_duration', '_submitted_by', '_total_media',
+            '_media_count', '_media_all_received']
+
+        # Test export headers are recreated with repeat data.
+        self.assertEqual(newer_header, expected_headers)
+
+        self.assertEqual(len(header), 13 + len(csv_df_builder.extra_columns))
+        rows = []
+        for row in csv_reader:
+            rows.append(row)
+        self.assertEqual(len(rows), 5)
+        self.assertEqual(rows[4][5], NA_REP)
+
+        # close and delete file
+        csv_file.close()
+
     def test_export_raises_NoRecordsFound_for_form_without_instances(self):
         """
         Test exporting records for forms without submissions raises

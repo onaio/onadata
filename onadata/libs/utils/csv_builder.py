@@ -397,6 +397,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             show_choice_labels, include_reviews, language)
 
         self.ordered_columns = OrderedDict()
+        self.image_xpaths = [] if not self.include_images \
+            else self.dd.get_media_survey_xpaths()
 
     def _setup(self):
         super(CSVDataFrameBuilder, self)._setup()
@@ -554,8 +556,6 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         for key in self.gps_fields:
             gps_xpaths = self.dd.get_additional_geopoint_xpaths(key)
             self.ordered_columns[key] = [key] + gps_xpaths
-        image_xpaths = [] if not self.include_images \
-            else self.dd.get_media_survey_xpaths()
 
         # add ordered columns for nested repeat data
         for record in cursor:
@@ -563,7 +563,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             for (key, value) in iteritems(record):
                 self._reindex(
                     key, value, self.ordered_columns, record, self.dd,
-                    include_images=image_xpaths,
+                    include_images=self.image_xpaths,
                     split_select_multiples=self.split_select_multiples,
                     index_tags=self.index_tags,
                     show_choice_labels=self.show_choice_labels,
@@ -573,8 +573,6 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         """
         Unpacks nested repeat data for export.
         """
-        image_xpaths = [] if not self.include_images \
-            else self.dd.get_media_survey_xpaths()
         for record in cursor:
             # split select multiples
             if self.split_select_multiples:
@@ -593,7 +591,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             for (key, value) in iteritems(record):
                 reindexed = self._reindex(
                     key, value, self.ordered_columns, record, self.dd,
-                    include_images=image_xpaths,
+                    include_images=self.image_xpaths,
                     split_select_multiples=self.split_select_multiples,
                     index_tags=self.index_tags,
                     show_choice_labels=self.show_choice_labels,
@@ -626,8 +624,6 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             except NoRecordsFoundError:
                 # Set cursor object to an an empty queryset
                 cursor = self.xform.instances.none()
-                # Define export columns using xform schema
-                columns = self.xform.get_headers()
 
             self._update_ordered_columns_from_data(cursor)
 
