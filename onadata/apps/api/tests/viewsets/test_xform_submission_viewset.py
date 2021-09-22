@@ -808,6 +808,49 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                     Instance.objects.filter(xform=self.xform).count(),
                     count+1)
 
+    def test_head_submission_request_w_no_auth(self):
+        """
+        Test enketo submission request with request method `HEAD`
+        returns all headers when request is made with no auth provided.
+        """
+        # Enable requre_auth
+        self.user.profile.require_auth = True
+        self.user.profile.save()
+
+        s = self.surveys[0]
+        media_file = "1335783522563.jpg"
+        path = os.path.join(self.main_directory, 'fixtures',
+                            'transportation', 'instances', s, media_file)
+        with open(path, 'rb') as f:
+            f = InMemoryUploadedFile(f, 'media_file', media_file, 'image/jpg',
+                                     os.path.getsize(path), None)
+            submission_path = os.path.join(
+                self.main_directory, 'fixtures',
+                'transportation', 'instances', s, s + '.xml')
+            with open(submission_path, 'rb'):
+                # When require_auth is enabled and
+                # no auth is passed to the request should fail
+                request = self.factory.head(
+                    f'/enketo/{self.xform.pk}/submission')
+                response = self.view(request)
+                self.assertEqual(response.status_code, 401)
+
+                # When require_auth is enabled & no auth passed is ok
+                request = self.factory.head(
+                    f'/enketo/{self.xform.pk}/submission')
+                request.user = self.xform.user
+                response = self.view(request, xform_pk=self.xform.pk)
+
+                self.assertEqual(response.status_code, 204)
+                self.assertTrue(response.has_header('X-OpenRosa-Version'))
+
+                # Test Content-Length header is available
+                self.assertTrue(
+                    response.has_header('X-OpenRosa-Accept-Content-Length'))
+                self.assertTrue(response.has_header('Date'))
+                self.assertEqual(response['Location'],
+                                 f'http://testserver/enketo/{self.xform.pk}/submission')  # noqa
+
     def test_post_submission_using_pk_while_authenticated(self):
         """
         Test that one is able to submit data using the enketo

@@ -522,7 +522,10 @@ class IsAuthenticatedSubmission(BasePermission):
                 return False
             profile, _ = UserProfile.objects.get_or_create(user=user)
 
-            if profile.require_auth:
+            # For the two request methods being handled at this point
+            # Only raise permission denied exception for POST requests where
+            # request user is anonymous && profile.require_auth is enabled
+            if profile.require_auth and request.method != 'HEAD':
                 # raises a permission denied exception,
                 # forces authentication
                 return False
