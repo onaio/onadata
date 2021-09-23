@@ -97,6 +97,10 @@ class TestExports(TestBase):
         settings.NA_REP = na_rep_restore
 
     def test_responses_for_empty_exports(self):
+        """
+        csv exports for forms without submissions
+        should return xform column headers in export.
+        """
         self._publish_transportation_form()
         # test csv though xls uses the same view
         url = reverse(
@@ -109,6 +113,16 @@ class TestExports(TestBase):
         self.response = self.client.get(url)
         self.assertEqual(self.response.status_code, 200)
         self.assertIn('application/csv', self.response['content-type'])
+        # Unpack response streaming data
+        export_data = [i.decode(
+                        'utf-8').replace('\n', '').split(
+                            ',') for i in self.response.streaming_content]
+        xform_headers = self.xform.get_headers()
+        # Remove review headers from xform headers
+        for x in ['_review_status', '_review_comment']:
+            xform_headers.remove(x)
+        # Test export data returned is xform headers list
+        self.assertEqual(xform_headers, export_data[0])
 
     def test_create_export(self):
         self._publish_transportation_form_and_submit_instance()
