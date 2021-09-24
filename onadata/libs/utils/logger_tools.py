@@ -31,6 +31,7 @@ from modilabs.utils.subprocess_timeout import ProcessTimedOut
 from multidb.pinning import use_master
 from pyxform.errors import PyXFormError
 from pyxform.xform2json import create_survey_element_from_xml
+from rest_framework.response import Response
 
 from onadata.apps.logger.models import (
     Attachment, Instance, XForm, XFormVersion)
@@ -754,7 +755,7 @@ def remove_metadata_fields(data):
     return data
 
 
-class BaseOpenRosaResponse(HttpResponse):
+class BaseOpenRosaResponse(Response):
     status_code = 201
 
     def __init__(self, *args, **kwargs):
@@ -795,6 +796,14 @@ class OpenRosaResponseNotAllowed(OpenRosaResponse):
 
 class OpenRosaResponseForbidden(OpenRosaResponse):
     status_code = 403
+
+
+class OpenRosaNotAuthenticated(OpenRosaResponse):
+    status_code = 401
+
+    def __init__(self, *args, **kwargs):
+        super(OpenRosaResponse, self).__init__(*args, **kwargs)
+        self['Content-Type'] = 'text/html; charset=utf-8'
 
 
 def inject_instanceid(xml_str, uuid):

@@ -841,7 +841,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                 request.user = self.xform.user
                 response = self.view(request, xform_pk=self.xform.pk)
 
-                self.assertEqual(response.status_code, 204)
+                self.assertEqual(response.status_code, 401)
                 self.assertTrue(response.has_header('X-OpenRosa-Version'))
 
                 # Test Content-Length header is available
