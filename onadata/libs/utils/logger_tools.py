@@ -755,7 +755,7 @@ def remove_metadata_fields(data):
     return data
 
 
-class BaseOpenRosaResponse(Response):
+class BaseOpenRosaResponse(HttpResponse):
     status_code = 201
 
     def __init__(self, *args, **kwargs):
@@ -798,12 +798,17 @@ class OpenRosaResponseForbidden(OpenRosaResponse):
     status_code = 403
 
 
-class OpenRosaNotAuthenticated(OpenRosaResponse):
+class OpenRosaNotAuthenticated(Response):
     status_code = 401
 
     def __init__(self, *args, **kwargs):
-        super(OpenRosaResponse, self).__init__(*args, **kwargs)
+        super(OpenRosaNotAuthenticated, self).__init__(*args, **kwargs)
+
         self['Content-Type'] = 'text/html; charset=utf-8'
+        self['X-OpenRosa-Accept-Content-Length'] = DEFAULT_CONTENT_LENGTH
+        tz = pytz.timezone(settings.TIME_ZONE)
+        dt = datetime.now(tz).strftime('%a, %d %b %Y %H:%M:%S %Z')
+        self['Date'] = dt
 
 
 def inject_instanceid(xml_str, uuid):

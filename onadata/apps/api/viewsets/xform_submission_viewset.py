@@ -124,7 +124,17 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
             return OpenRosaResponseBadRequest(
                 _(u"Unable to read submitted file, please try re-submitting."))
 
-        if exc.status_code == 401:
-            return OpenRosaNotAuthenticated(f'{exc.detail[0]}')
+        try:
+            if exc.status_code == 401:
+                auth_header = self.get_authenticate_header(self.request)
+                response = OpenRosaNotAuthenticated(
+                    data=exc.detail,
+                    headers={'WWW-Authenticate': auth_header},
+                )
+                response.exception = True
+                return response
+        except AttributeError:
+            # 'Http404' object has no attribute 'status_code'
+            pass
 
         return super(XFormSubmissionViewSet, self).handle_exception(exc)
