@@ -143,13 +143,12 @@ class BriefcaseViewset(mixins.CreateModelMixin,
         num_entries = _parse_int(num_entries)
         if num_entries:
             instances = instances[:num_entries]
-            # Using len() instead of .count() to prevent an extra
-            # database call; len() will load the instances in memory allowing
-            # as to use them when generating the response and remove the need
-            # to perform a count on the database.
-            instance_count = len(instances)
-        else:
-            instance_count = xform.num_of_submissions
+
+        # Using len() instead of .count() to prevent an extra
+        # database call; len() will load the instances in memory allowing
+        # as to use them when generating the response and remove the need
+        # to perform a count on the database.
+        instance_count = len(instances)
 
         if instance_count:
             last_instance = instances[instance_count - 1]
