@@ -150,7 +150,7 @@ class BriefcaseViewset(mixins.CreateModelMixin,
         # and removes the need to perform a count on the database.
         instance_count = len(instances)
 
-        if instance_count:
+        if instance_count > 0:
             last_instance = instances[instance_count - 1]
             self.resumptionCursor = last_instance.get('pk')
         elif instance_count == 0 and cursor:
