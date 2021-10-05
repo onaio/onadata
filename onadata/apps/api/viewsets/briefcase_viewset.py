@@ -146,7 +146,7 @@ class BriefcaseViewset(mixins.CreateModelMixin,
 
         # Using len() instead of .count() to prevent an extra
         # database call; len() will load the instances in memory allowing
-        # us to pre-load the queryset before generating the response 
+        # us to pre-load the queryset before generating the response
         # and removes the need to perform a count on the database.
         instance_count = len(instances)
 
