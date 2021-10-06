@@ -127,8 +127,9 @@ class BriefcaseViewset(mixins.CreateModelMixin,
             xform_kwargs['user__username__iexact'] = username
         xform = get_form(xform_kwargs)
         self.check_object_permissions(self.request, xform)
-        instances = Instance.objects.filter(xform=xform,
-                                            deleted_at__isnull=True)
+        instances = Instance.objects.filter(
+            xform=xform, deleted_at__isnull=True).values(
+                'pk', 'uuid')
         if xform.encrypted:
             instances = instances.filter(media_all_received=True)
         instances = instances.order_by('pk')
@@ -143,10 +144,16 @@ class BriefcaseViewset(mixins.CreateModelMixin,
         if num_entries:
             instances = instances[:num_entries]
 
-        if instances.count():
-            last_instance = instances[instances.count() - 1]
-            self.resumptionCursor = last_instance.pk
-        elif instances.count() == 0 and cursor:
+        # Using len() instead of .count() to prevent an extra
+        # database call; len() will load the instances in memory allowing
+        # us to pre-load the queryset before generating the response
+        # and removes the need to perform a count on the database.
+        instance_count = len(instances)
+
+        if instance_count > 0:
+            last_instance = instances[instance_count - 1]
+            self.resumptionCursor = last_instance.get('pk')
+        elif instance_count == 0 and cursor:
             self.resumptionCursor = cursor
         else:
             self.resumptionCursor = 0
