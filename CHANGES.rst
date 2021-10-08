@@ -3,6 +3,31 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.5.10(2021-10-7)
+------------------
+
+- Ensure that `user_profile` is serialized before caching
+  `PR #2147 <https://github.com/onaio/onadata/pull/2147>`_
+  [@FrankApiyo]
+- Clean out related object upon XForm deletion
+  `PR 2136 <https://github.com/onaio/onadata/pull/2136>`_
+  [@WinnyTroy]
+- Allow users to filter by NULL on the data endpoint
+  `PR #2144 <https://github.com/onaio/onadata/pull/2144>`_
+  [@WinnyTroy]
+- Add management command to remove columns from submission XML
+  `PR #2143 <https://github.com/onaio/onadata/pull/2143>`_
+  [@DavisRayM]
+- Bump ona-oidc version from v0.0.6 to v0.0.7
+  `PR #2154 <https://github.com/onaio/onadata/pull/2154>`_
+  [@DavisRayM]
+- Generate XForm headers in CSV exports for XForms without submissions
+  `PR #2137 <https://github.com/onaio/onadata/pull/2137>`_
+  [@WinnyTroy]
+- Query optimizations for the Briefcase viewset
+  `PR #2142 <https://github.com/onaio/onadata/pull/2142>`_
+  [@DavisRayM]
+
 v2.5.9(2021-08-27)
 ------------------
 
