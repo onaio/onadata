@@ -198,28 +198,17 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         data = {'xform': self.xform.pk}
         request = self.factory.get('/', data, **self.extra)
         response = self.view(request)
-        meta_obj = self.xform.metadata_set.all()[0]
-        expected_metadata = {
-            'id': meta_obj.id,
-            'xform': self.xform.id,
-            'data_value': 'screenshot.png',
-            'data_type': meta_obj.data_type,
-            'data_file': f'http://localhost:8000/media/{meta_obj.data_file.name}',  # noqa
-            'data_file_type': 'image/png',
-            'media_url': None,
-            'file_hash': 'md5:09b9e5e3278ac2a43fce25681ffada85',
-            'url': f'http://testserver/api/v1/metadata/{meta_obj.id}',
-            'date_created': meta_obj.date_created
-            }
+        meta_count = self.xform.metadata_set.all().count()
         self.assertEqual(response.status_code, 200)
-        self.assertEquals(dict(response.data[0]), expected_metadata)
+        self.assertEqual(len(response.data), meta_count)
 
         # Soft delete xform
         self.xform.soft_delete()
         # Confirm that all metadata was deleted
         response2 = self.view(request)
         self.assertEqual(response2.status_code, 200)
-        self.assertEquals(response2.data, [])
+        self.assertEqual(len(response2.data), 0)
+        self.assertEqual(response2.data, [])
 
     def test_windows_csv_file_upload_to_metadata(self):
         data_value = 'transportation.csv'
