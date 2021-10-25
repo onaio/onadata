@@ -501,7 +501,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertIn('detail', response.data)
 
         self.assertTrue(str(response.data.get('detail'))
-                        .startswith("invalid input syntax for integer"))
+                        .startswith("invalid input syntax for type integer"))
 
     def test_dataview_invalid_columns(self):
         data = {

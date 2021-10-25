@@ -21,6 +21,7 @@ class TestExportTasks(TestBase):
     def test_create_async(self):
 
         self._publish_transportation_form_and_submit_instance()
+        self.xform.refresh_from_db()
         options = {"group_delimiter": "/",
                    "remove_group_name": False,
                    "split_select_multiples": True}
