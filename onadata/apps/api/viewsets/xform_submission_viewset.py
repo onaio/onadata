@@ -27,7 +27,8 @@ from onadata.libs.serializers.data_serializer import (
     FLOIPSubmissionSerializer, JSONSubmissionSerializer,
     RapidProSubmissionSerializer, SubmissionSerializer,
     RapidProJSONSubmissionSerializer)
-from onadata.libs.utils.logger_tools import OpenRosaResponseBadRequest
+from onadata.libs.utils.logger_tools import (OpenRosaResponseBadRequest,
+                                             OpenRosaNotAuthenticated)
 
 BaseViewset = get_baseviewset_class()  # pylint: disable=C0103
 
@@ -122,5 +123,18 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
         if isinstance(exc, UnreadablePostError):
             return OpenRosaResponseBadRequest(
                 _(u"Unable to read submitted file, please try re-submitting."))
+
+        try:
+            if exc.status_code == 401:
+                auth_header = self.get_authenticate_header(self.request)
+                response = OpenRosaNotAuthenticated(
+                    data=exc.detail,
+                    headers={'WWW-Authenticate': auth_header},
+                )
+                response.exception = True
+                return response
+        except AttributeError:
+            # 'Http404' object has no attribute 'status_code'
+            pass
 
         return super(XFormSubmissionViewSet, self).handle_exception(exc)
