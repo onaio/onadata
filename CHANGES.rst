@@ -3,6 +3,16 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.5.10(2021-10-27)
+-------------------
+
+- Bump the `ona-oidc` requirement to v0.0.8.
+  `PR #2162 <https://github.com/onaio/onadata/pull/2162>`_
+  [@DavisRayM]
+- Return X-OpenRosa-Accept-Content-Length header for requests failing with 401 status code.
+  `PR #2152 <https://github.com/onaio/onadata/pull/2152>`_
+  [@WinnyTroy]
+
 v2.5.10(2021-10-7)
 ------------------
 
