@@ -3,7 +3,7 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
-v2.5.10(2021-10-27)
+v2.5.10(2021-11-01)
 -------------------
 
 - Bump the `ona-oidc` requirement to v0.0.8.
