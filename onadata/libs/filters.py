@@ -13,6 +13,7 @@ from rest_framework_guardian.filters import ObjectPermissionsFilter
 
 from onadata.apps.api.models import OrganizationProfile, Team
 from onadata.apps.logger.models import Instance, Project, XForm
+from onadata.apps.viewer.models import Export
 from onadata.libs.utils.numeric import int_or_parse_error
 from onadata.libs.utils.common_tags import MEDIA_FILE_TYPES
 
@@ -551,10 +552,20 @@ class ExportFilter(XFormPermissionFilterMixin,
     queryesets. Also filters submitted_by a specific user.
     """
 
+    def _is_public_xform(self, export_id: int):
+        export = Export.objects.filter(pk=export_id).first()
+
+        if export:
+            return export.xform.shared_data or export.xform.shared
+
+        return False
+
     def filter_queryset(self, request, queryset, view):
         has_submitted_by_key = (Q(options__has_key='query') &
                                 Q(options__query__has_key='_submitted_by'),)
-        if request.user.is_anonymous:
+
+        if request.user.is_anonymous or self._is_public_xform(
+                view.kwargs.get('pk')):
             return self._xform_filter_queryset(
                 request, queryset, view, 'xform_id')\
                 .exclude(*has_submitted_by_key)
