@@ -275,6 +275,11 @@ class XFormPermissionFilterMixin(object):
         kwarg = self._xform_filter(request, view, keyword)
         return queryset.filter(**kwarg)
 
+    def _xform_public_filter_queryset(self, request, queryset, keyword):
+        """Generates queryset for public forms"""
+        xforms = XForm.objects.filter(deleted_at=None, shared_data=True)
+        return queryset.filter(**{"%s__in" % keyword: xforms})
+
 
 class ProjectPermissionFilterMixin(object):
 
@@ -548,7 +553,7 @@ class ExportFilter(XFormPermissionFilterMixin,
                    ObjectPermissionsFilter):
     """
     ExportFilter class uses permissions on the related xform to filter Export
-    queryesets. Also filters submitted_by a specific user.
+    queryesets. Also filters submitted_by a specific user and public forms.
     """
 
     def filter_queryset(self, request, queryset, view):
@@ -559,6 +564,8 @@ class ExportFilter(XFormPermissionFilterMixin,
                 request, queryset, view, 'xform_id')\
                 .exclude(*has_submitted_by_key)
 
+        public_qs = self._xform_public_filter_queryset(request, queryset,
+                                                       'xform_id')
         old_perm_format = self.perm_format
 
         # only if request.user has access to all data
@@ -574,7 +581,7 @@ class ExportFilter(XFormPermissionFilterMixin,
             .filter(*has_submitted_by_key)\
             .filter(options__query___submitted_by=request.user.username)
 
-        return all_qs | submitter_qs
+        return  all_qs | submitter_qs | public_qs
 
 
 class PublicDatasetsFilter(object):

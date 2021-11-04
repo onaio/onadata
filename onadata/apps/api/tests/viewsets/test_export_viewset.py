@@ -15,10 +15,11 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 from onadata.apps.api.tests.mocked_data import enketo_mock
 from onadata.apps.api.viewsets.export_viewset import ExportViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.main.models import MetaData
+from onadata.apps.main.models import MetaData, UserProfile
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
-from onadata.libs.permissions import DataEntryMinorRole, ReadOnlyRole
+from onadata.libs.permissions import (
+    DataEntryMinorRole, ReadOnlyRole, EditorMinorRole)
 from onadata.libs.utils.export_tools import generate_export
 
 
@@ -522,3 +523,41 @@ class TestExportViewSet(TestBase):
         self.assertEqual(
             response.data[0]['error_message'],
             'Something unexpected happened')
+
+    def test_export_are_downloadable_to_all_users_when_public_form(self):
+        self._create_user_and_login()
+        self._publish_transportation_form()
+        temp_dir = settings.MEDIA_ROOT
+        dummy_export_file = NamedTemporaryFile(suffix='.xlsx', dir=temp_dir)
+        filename = os.path.basename(dummy_export_file.name)
+        filedir = os.path.dirname(dummy_export_file.name)
+        export = Export.objects.create(xform=self.xform,
+                                       filename=filename,
+                                       filedir=filedir)
+        export.save()
+
+        user_alice = self._create_user('alice', 'alice')
+        # create user profile and set require_auth to false for tests
+        profile, created = UserProfile.objects.get_or_create(user=user_alice)
+        alices_extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % user_alice.auth_token.key
+        }
+        EditorMinorRole.add(user_alice, self.xform)
+
+        # Form permissions are ignored when downloading Export;
+        # When public editors & anonymous users should be able to download all exports
+        data_value = "editor-minor|dataentry-minor"
+        MetaData.xform_meta_permission(self.xform, data_value=data_value)
+        self.xform.shared = True
+        self.xform.shared_data = True
+        self.xform.save()
+
+        # # Anonymous user
+        request = self.factory.get('/export')
+        response = self.view(request, pk=export.pk)
+        self.assertEqual(response.status_code, 200)
+
+        # Alice user; With editor role
+        request = self.factory.get('/export', **alices_extra)
+        response = self.view(request, pk=export.pk)
+        self.assertEqual(response.status_code, 200)

@@ -34,7 +34,7 @@ class ExportViewSet(DestroyModelMixin, ReadOnlyModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         export = self.get_object()
         filename, extension = os.path.splitext(export.filename)
-        extension = extension[1:]
+        extension = extension[1:]        
 
         return response_with_mimetype_and_name(
             Export.EXPORT_MIMES[extension],

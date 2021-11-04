@@ -18,6 +18,7 @@ virtualenv -p `which $SELECTED_PYTHON` /srv/onadata/.virtualenv/${SELECTED_PYTHO
 
 cd /srv/onadata
 pip install --upgrade pip
+pip install 'setuptools==57.5.0'
 yes w | pip install -r requirements/base.pip
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput
