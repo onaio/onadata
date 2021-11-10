@@ -495,3 +495,29 @@ class CSVImportTestCase(TestBase):
             expected_error)
         # Assert all created instances were rolled back
         self.assertEqual(count, Instance.objects.count())
+
+    def test_csv_import_with_overite(self):
+        self._publish_xls_file(self.xls_file_path)
+
+        surveys = ['uuid1']
+
+        paths = [os.path.join(
+            self.fixtures_dir, 'tutorial', 'instances', s, 'submission.xml') for s in surveys]
+
+        for path in paths:
+            self._make_submission(path)
+
+        self.xform = XForm.objects.last()
+        count = self.xform.instances.all().count()
+
+        self.assertEqual(count, 1)
+
+        single_csv = open(os.path.join(self.fixtures_dir, 'same_uuid.csv'), 'rb')
+
+        results = csv_import.submit_csv(self.user.username, self.xform, single_csv, overwrite=True)
+        self.xform.refresh_from_db()
+        
+        count = self.xform.instances.filter(deleted_at=None).count()
+
+        self.assertEqual(count, 1)
+        self.assertEqual(self.xform.num_of_submissions, 1)

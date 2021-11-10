@@ -476,6 +476,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                 errors) if errors else ''
         )
     else:
+        xform.submission_count(force_update=True)
         added_submissions = additions - inserts
         event_by = User.objects.get(username=username)
         event_name = None
