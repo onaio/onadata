@@ -496,7 +496,7 @@ class CSVImportTestCase(TestBase):
         # Assert all created instances were rolled back
         self.assertEqual(count, Instance.objects.count())
 
-    def test_csv_import_with_overite(self):
+    def test_csv_import_with_overwrite(self):
         self._publish_xls_file(self.xls_file_path)
 
         surveys = ['uuid1']
