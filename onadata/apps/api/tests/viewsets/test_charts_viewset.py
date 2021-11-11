@@ -475,3 +475,19 @@ class TestChartsViewSet(TestBase):
             "xform": self.xform.pk
         }
         self.assertEqual(expected, res)
+
+    def test_on_charts_with_content_type(self):
+        request = self.factory.get('/charts', content_type="application/json")
+        force_authenticate(request, user=self.user)
+        response = self.view(
+            request,
+            pk=self.xform.pk,
+            id_string=self.xform.id_string
+            )
+        expected = {
+            'id': self.xform.pk,
+            'id_string': self.xform.id_string,
+            'url': 'http://testserver/api/v1/charts/{}'.format(self.xform.pk)
+        }
+        self.assertEqual(200, response.status_code)
+        self.assertDictContainsSubset(expected, response.data)

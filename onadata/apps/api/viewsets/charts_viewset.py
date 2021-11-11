@@ -84,11 +84,16 @@ class ChartsViewSet(AnonymousUserPublicFormsMixin, AuthenticateHeaderMixin,
         field_name = request.query_params.get('field_name')
         field_xpath = request.query_params.get('field_xpath')
         fields = request.query_params.get('fields')
+        content_type = request.content_type
         group_by = request.query_params.get('group_by')
         fmt = kwargs.get('format')
 
         xform = self.get_object()
         serializer = self.get_serializer(xform)
+        # This is to update the format to be json
+        # when the content_type has been provided.
+        if fmt is None and content_type == 'application/json':
+            fmt = 'json'
 
         if fields:
             if fmt is not None and fmt != 'json':
