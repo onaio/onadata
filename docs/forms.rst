@@ -1210,7 +1210,9 @@ Response
 Import CSV data to existing form
 ---------------------------------
 
-- `csv_file` a valid csv file with exported data (instance/submission per row)
+- `csv_file` a valid csv file with exported data (instance/submission per row).
+  _Note:_ uuid column is ignored and is always regenerated.
+
 
 .. raw:: html
 
