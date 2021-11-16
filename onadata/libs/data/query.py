@@ -2,7 +2,8 @@ import logging
 from django.conf import settings
 from django.db import connection
 
-from onadata.libs.utils.common_tags import SUBMISSION_TIME
+from onadata.libs.utils.common_tags import (
+    SUBMISSION_TIME, SUBMITTED_BY)
 from onadata.apps.logger.models.data_view import DataView
 
 
@@ -93,7 +94,7 @@ def _postgres_count_group(field, name, xform, data_view=None):
         additional_filters = _additional_data_view_filters(data_view)
 
     # Use left join to the auth user model for better performance.
-    if field == "_submitted_by":
+    if field == SUBMITTED_BY:
         string_args["json"] = "au.username"
         string_args["join"] = "i LEFT JOIN auth_user au ON au.id = i.user_id"
 
