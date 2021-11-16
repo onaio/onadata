@@ -92,9 +92,14 @@ def _postgres_count_group(field, name, xform, data_view=None):
     if data_view:
         additional_filters = _additional_data_view_filters(data_view)
 
+    # Use inner join to the auth user model for better performance.
+    if field == "_submitted_by":
+        string_args["json"] = "au.username"
+        string_args["inner_join"] = "i INNER JOIN auth_user au ON au.id = i.user_id"
+
     restricted_string = _restricted_query(xform)
     sql_query = "SELECT %(json)s AS \"%(name)s\", COUNT(*) AS count FROM " \
-        "%(table)s WHERE " + restricted_string + \
+        "%(table)s %(inner_join)s WHERE " + restricted_string + \
         " AND deleted_at IS NULL " + additional_filters + " GROUP BY %(json)s"\
         " ORDER BY %(json)s"
     sql_query = sql_query % string_args
@@ -164,7 +169,9 @@ def _query_args(field, name, xform, group_by=None):
         'json': _json_query(field),
         'name': name,
         'restrict_field': 'xform_id',
-        'restrict_value': xform.pk}
+        'restrict_value': xform.pk,
+        'inner_join': '',
+    }
 
     if xform.is_merged_dataset:
         xforms = tuple(

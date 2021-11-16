@@ -57,6 +57,16 @@ class TestStatsViewSet(TestBase):
         }
         self.assertDictContainsSubset(data, response.data[0])
 
+        request = self.factory.get('/?group=_submitted_by', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+        data = {
+            u'count': 4
+        }
+
+        self.assertDictContainsSubset(data, response.data[0])
+
     @patch('onadata.apps.logger.models.instance.submission_time')
     def test_submissions_stats_with_xform_in_delete_async_queue(
             self, mock_time):
