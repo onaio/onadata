@@ -44,6 +44,7 @@ CHANGE_PASSWORD_ATTEMPTS = 'change_password_attempts-'
 # Cache names used in XForm Model
 XFORM_SUBMISSION_COUNT_FOR_DAY = "xfm-get_submission_count-"
 XFORM_SUBMISSION_COUNT_FOR_DAY_DATE = "xfm-get_submission_count_date-"
+XFORM_SUBMISSION_STAT = "xfm-get_form_submissions_grouped_by_field"
 
 
 def safe_delete(key):

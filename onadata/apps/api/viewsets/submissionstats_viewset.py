@@ -1,4 +1,7 @@
 from rest_framework import viewsets
+from django.conf import settings
+from rest_framework import status
+from rest_framework.response import Response
 
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models.xform import XForm
@@ -10,8 +13,10 @@ from onadata.libs.mixins.authenticate_header_mixin import \
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.stats_serializer import (
-    SubmissionStatsSerializer, SubmissionStatsInstanceSerializer)
+    SubmissionStatsSerializer, SubmissionStatsInstanceSerializer,
+    SubmissionStatsInstanceSerializerAsync)
 from onadata.apps.api.tools import get_baseviewset_class
+from onadata.libs.utils.string import str2bool
 
 BaseViewset = get_baseviewset_class()
 
@@ -78,3 +83,12 @@ Response::
                 super(SubmissionStatsViewSet, self).get_serializer_class()
 
         return serializer_class
+
+    def list(self, request, *args, **kwargs):
+        xform = self.get_object()
+        in_async = request.query_params.get("async")
+        if xform.num_of_submissions > settings.XFORM_SUBMISSION_STAT_ASYNC_TRESHOLD or str2bool(in_async):
+            serializer = SubmissionStatsInstanceSerializerAsync(xform, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            return super(SubmissionStatsViewSet, self).list(request, *args, **kwargs)

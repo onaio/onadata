@@ -4,6 +4,7 @@ from builtins import str
 
 from celery.result import AsyncResult
 from django.core.files.uploadedfile import TemporaryUploadedFile
+from django.core.cache import cache
 from django.core.files.storage import default_storage
 from django.contrib.auth.models import User
 from django.utils.datastructures import MultiValueDict
@@ -13,6 +14,8 @@ from onadata.apps.api import tools
 from onadata.libs.utils.email import send_generic_email
 from onadata.apps.logger.models.xform import XForm
 from onadata.celery import app
+from onadata.libs.utils.cache_tools import XFORM_SUBMISSION_STAT
+from onadata.libs.data.query import get_form_submissions_grouped_by_field
 
 
 def recreate_tmp_file(name, path, mime_type):
@@ -98,3 +101,35 @@ def send_verification_email(email, message_txt, subject):
 @app.task()
 def send_account_lockout_email(email, message_txt, subject):
     send_generic_email(email, message_txt, subject)
+
+
+@app.task()
+def get_form_submissions_stats_async(xform_id, field, name=None,
+                                     data_view=None):
+    xform = XForm.objects.get(pk=xform_id)
+    data = {
+        "STATE": "INITIALIZED",
+        "DATA": []
+    }
+    cache.set('{}{}{}{}'.format(XFORM_SUBMISSION_STAT, xform.pk, field, name), data)
+
+    try:
+        data = get_form_submissions_grouped_by_field(xform, field, name, data_view)
+    except ValueError as e:
+            raise exceptions.ParseError(detail=e)
+    else:
+        if data:
+            element = xform.get_survey_element(field)
+
+            if element and element.type in SELECT_FIELDS:
+                for record in data:
+                    label = xform.get_choice_label(element, record[name])
+                    record[name] = label
+
+    data_to_cache = {
+            "STATE": "PROCESSED",
+            "DATA": data
+    }
+
+    # update the cache
+    cache.set('{}{}{}{}'.format(XFORM_SUBMISSION_STAT, xform.pk, field, name), data_to_cache)
