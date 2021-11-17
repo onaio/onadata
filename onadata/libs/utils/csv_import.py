@@ -325,6 +325,8 @@ def submit_csv(username, xform, csv_file, overwrite=False):
         xform.instances.filter(deleted_at__isnull=True)\
             .update(deleted_at=timezone.now(),
                     deleted_by=User.objects.get(username=username))
+        # updates the form count
+        xform.submission_count(True)
         # send message
         send_message(
             instance_id=instance_ids, target_id=xform.id,
@@ -381,7 +383,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):
 
                 submission_time = datetime.utcnow().isoformat()
                 row_uuid = row.get('meta/instanceID') or 'uuid:{}'.format(
-                    row.get(UUID)) if row.get(UUID) else None
+                    row.get(UUID)) if row.get(UUID) and not overwrite else None
                 submitted_by = row.get('_submitted_by')
                 submission_date = row.get('_submission_time', submission_time)
 
@@ -476,6 +478,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                 errors) if errors else ''
         )
     else:
+        xform.submission_count(True)
         added_submissions = additions - inserts
         event_by = User.objects.get(username=username)
         event_name = None
