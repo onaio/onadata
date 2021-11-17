@@ -1211,8 +1211,9 @@ Import CSV data to existing form
 ---------------------------------
 
 - `csv_file` a valid csv file with exported data (instance/submission per row).
-  _Note:_ uuid column is ignored and is always regenerated.
 
+   Use the `overwrite` query parameter to clear all previous submissions while importing submissions.
+   Note: Overwrites are not reversible & the `uuid` column is ignored during the process and is always regenerated.
 
 .. raw:: html
 
