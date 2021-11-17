@@ -3,6 +3,22 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.5.11(2021-11-17)
+-------------------
+
+- Ignore form permissions when an Export is from a public form
+  `PR #2164 <https://github.com/onaio/onadata/pull/2164>`_
+  [@DavisRayM]
+- Fix charts group by multiple fields and check content type
+  `PR #2151 <https://github.com/onaio/onadata/pull/2151>`_
+  [@LeonRomo]
+- Fix csv import overwrite which only updated the soft deleted submissions.
+  `PR #2166 <https://github.com/onaio/onadata/pull/2166>`_
+  [@denniswambua]
+- Use auth user model for _submitted_by field stats query
+  `PR #2167 <https://github.com/onaio/onadata/pull/2167>`_
+  [@denniswambua]
+
 v2.5.10(2021-11-01)
 -------------------
 
