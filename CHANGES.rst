@@ -3,7 +3,7 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
-v2.5.11(2021-11-17)
+v2.5.12(2021-11-19)
 -------------------
 
 - Ignore form permissions when an Export is from a public form
@@ -19,7 +19,7 @@ v2.5.11(2021-11-17)
   `PR #2167 <https://github.com/onaio/onadata/pull/2167>`_
   [@denniswambua]
 
-v2.5.10(2021-11-01)
+v2.5.11(2021-11-01)
 -------------------
 
 - Bump the `ona-oidc` requirement to v0.0.8.
