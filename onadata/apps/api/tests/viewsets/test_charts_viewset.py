@@ -160,16 +160,6 @@ class TestChartsViewSet(TestBase):
         self.assertEqual(response.data['data'][0]['gender'], 'Male')
         self.assertEqual(response.data['data'][1]['gender'], 'Female')
 
-    def test_return_bad_request_on_non_json_request_with_field_name(self):
-        request = self.factory.get('/charts/%s.html' % self.xform.id)
-        force_authenticate(request, user=self.user)
-        response = self.view(
-            request,
-            pk=self.xform.id
-        )
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.status_text.upper(), u'BAD REQUEST')
-
     def test_get_on_date_field(self):
         data = {'field_name': 'date'}
         request = self.factory.get('/charts', data)
