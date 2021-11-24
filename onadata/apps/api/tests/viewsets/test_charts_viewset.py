@@ -491,3 +491,11 @@ class TestChartsViewSet(TestBase):
         }
         self.assertEqual(200, response.status_code)
         self.assertDictContainsSubset(expected, response.data)
+
+        # If content-type is not returned; Assume that the desired
+        # response is JSON
+        request = self.factory.get('/')
+        force_authenticate(request, user=self.user)
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(200, response.status_code)
+        self.assertDictContainsSubset(expected, response.data)
