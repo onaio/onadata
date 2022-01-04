@@ -23,6 +23,7 @@ from onadata.libs.renderers.renderers import DecimalJSONRenderer
 from onadata.libs.serializers.chart_serializer import (ChartSerializer,
                                                        FieldsChartSerializer)
 from onadata.libs.utils.chart_tools import get_chart_data_for_field
+from onadata.libs.utils.cache_tools import XFORM_CHARTS
 
 
 def get_form_field_chart_url(url, field):
@@ -104,8 +105,15 @@ class ChartsViewSet(AnonymousUserPublicFormsMixin, AuthenticateHeaderMixin,
             return Response(serializer.data)
 
         if field_name or field_xpath:
-            data = get_chart_data_for_field(field_name, xform, fmt, group_by,
-                                            field_xpath)
+            cache_key = '{}{}{}{}{}{}'.format(XFORM_CHARTS, obj.pk, field_xpath,
+                                              field_name, group_by,fmt)
+
+            data = cache.get(cache_key)
+            if not data:
+                data = get_chart_data_for_field(field_name, xform, fmt, group_by,
+                                                field_xpath)
+
+                cache.set(cache_key, data, settings.XFORM_CHARTS_CACHE_TIME)
 
             return Response(data, template_name='chart_detail.html')
 

@@ -49,8 +49,10 @@ class SubmissionStatsInstanceSerializer(serializers.Serializer):
             raise exceptions.ParseError(_(u"Expecting `group` and `name`"
                                           u" query parameters."))
 
-        data = cache.get(
-                '{}{}{}{}'.format(XFORM_SUBMISSION_STAT, obj.pk, field, name))
+        cache_key = '{}{}{}{}'.format(XFORM_SUBMISSION_STAT, obj.pk,
+                                      field, name)
+
+        data = cache.get(cache_key)
         if data:
             return data
 
@@ -68,7 +70,7 @@ class SubmissionStatsInstanceSerializer(serializers.Serializer):
                         label = obj.get_choice_label(element, record[name])
                         record[name] = label
 
-        cache.set('{}{}{}{}'.format(XFORM_SUBMISSION_STAT, obj.pk, field, name), data,
+        cache.set(cache_key, data,
                   settings.XFORM_SUBMISSION_STAT_CACHE_TIME)
 
         return data
