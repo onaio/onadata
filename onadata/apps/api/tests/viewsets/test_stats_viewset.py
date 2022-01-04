@@ -261,4 +261,3 @@ class TestStatsViewSet(TestBase):
 
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEquals(response.status_code, 200)
-

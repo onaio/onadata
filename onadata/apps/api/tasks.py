@@ -4,7 +4,6 @@ from builtins import str
 
 from celery.result import AsyncResult
 from django.core.files.uploadedfile import TemporaryUploadedFile
-from django.core.cache import cache
 from django.core.files.storage import default_storage
 from django.contrib.auth.models import User
 from django.utils.datastructures import MultiValueDict
@@ -14,8 +13,6 @@ from onadata.apps.api import tools
 from onadata.libs.utils.email import send_generic_email
 from onadata.apps.logger.models.xform import XForm
 from onadata.celery import app
-from onadata.libs.utils.cache_tools import XFORM_SUBMISSION_STAT
-from onadata.libs.data.query import get_form_submissions_grouped_by_field
 
 
 def recreate_tmp_file(name, path, mime_type):

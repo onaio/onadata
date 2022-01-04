@@ -4,6 +4,9 @@
 """
 
 from django.core.exceptions import ImproperlyConfigured
+from django.core.cache import cache
+from django.conf import settings
+
 from rest_framework import viewsets
 from rest_framework.exceptions import ParseError
 from rest_framework.renderers import (BrowsableAPIRenderer, JSONRenderer,
@@ -105,13 +108,14 @@ class ChartsViewSet(AnonymousUserPublicFormsMixin, AuthenticateHeaderMixin,
             return Response(serializer.data)
 
         if field_name or field_xpath:
-            cache_key = '{}{}{}{}{}{}'.format(XFORM_CHARTS, obj.pk, field_xpath,
-                                              field_name, group_by,fmt)
+            cache_key = '{}{}{}{}{}{}'.format(XFORM_CHARTS, xform.pk,
+                                              field_xpath, field_name,
+                                              group_by, fmt)
 
             data = cache.get(cache_key)
             if not data:
-                data = get_chart_data_for_field(field_name, xform, fmt, group_by,
-                                                field_xpath)
+                data = get_chart_data_for_field(field_name, xform, fmt,
+                                                group_by, field_xpath)
 
                 cache.set(cache_key, data, settings.XFORM_CHARTS_CACHE_TIME)
 
