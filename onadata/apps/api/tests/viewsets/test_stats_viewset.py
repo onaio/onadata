@@ -5,7 +5,6 @@ from django.core.files.base import ContentFile
 from django.test import RequestFactory
 from builtins import open
 from mock import patch
-from django.test.utils import override_settings
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.api.viewsets.stats_viewset import StatsViewSet
@@ -67,23 +66,6 @@ class TestStatsViewSet(TestBase):
         }
 
         self.assertDictContainsSubset(data, response.data[0])
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-    @patch('onadata.apps.logger.models.instance.submission_time')
-    def test_submissions_stats_async(self, mock_time):
-        self._set_mock_time(mock_time)
-        self._publish_transportation_form()
-        self._make_submissions()
-        view = SubmissionStatsViewSet.as_view({'get': 'list'})
-        request = self.factory.get('/?group=_xform_id_string&async=true', **self.extra)
-        formid = self.xform.pk
-        response = view(request, pk=formid)
-        self.assertEqual(response.status_code, 200)
-        self.assertIsInstance(response.data, dict)
-
-        data = {
-            u'count': 4
-        }
-        self.assertDictContainsSubset(data, response.data["DATA"][0])
 
     @patch('onadata.apps.logger.models.instance.submission_time')
     def test_submissions_stats_with_xform_in_delete_async_queue(

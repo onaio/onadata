@@ -4,7 +4,7 @@ from django.conf import settings
 
 from rest_framework import exceptions
 from rest_framework import serializers
-from rest_framework.utils.serializer_helpers import ReturnList, ReturnDict
+from rest_framework.utils.serializer_helpers import ReturnList
 
 from onadata.libs.data.statistics import\
     get_median_for_numeric_fields_in_form,\
@@ -14,7 +14,6 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.libs.data.query import get_form_submissions_grouped_by_field
 
 from onadata.libs.utils.cache_tools import XFORM_SUBMISSION_STAT
-from onadata.apps.api import tasks
 
 
 SELECT_FIELDS = ['select one', 'select multiple']
@@ -69,7 +68,8 @@ class SubmissionStatsInstanceSerializer(serializers.Serializer):
                         label = obj.get_choice_label(element, record[name])
                         record[name] = label
 
-        cache.set('{}{}{}{}'.format(XFORM_SUBMISSION_STAT, obj.pk, field, name), data)
+        cache.set('{}{}{}{}'.format(XFORM_SUBMISSION_STAT, obj.pk, field, name), data,
+                  settings.XFORM_SUBMISSION_STAT_CACHE_TIME)
 
         return data
 
@@ -78,37 +78,6 @@ class SubmissionStatsInstanceSerializer(serializers.Serializer):
         ret = super(serializers.Serializer, self).data
 
         return ReturnList(ret, serializer=self)
-
-class SubmissionStatsInstanceSerializerAsync(serializers.Serializer):
-    def to_representation(self, obj):
-        if obj is None:
-            return super(SubmissionStatsInstanceSerializerAsync, self)\
-                .to_representation(obj)
-
-        request = self.context.get('request')
-        field = request.query_params.get('group')
-        name = request.query_params.get('name', field)
-
-
-        data = cache.get(
-                '{}{}{}{}'.format(XFORM_SUBMISSION_STAT, obj.pk, field, name))
-        if data:
-            return data
-
-        tasks.get_form_submissions_stats_async(obj.id, field, name)
-
-        data = cache.get(
-                '{}{}{}{}'.format(XFORM_SUBMISSION_STAT, obj.pk, field, name))
-        if data:
-            return data        
-
-        
-
-    @property
-    def data(self):
-        ret = super(serializers.Serializer, self).data
-
-        return ReturnDict(ret, serializer=self)
 
 
 class StatsSerializer(serializers.HyperlinkedModelSerializer):

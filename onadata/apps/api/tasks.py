@@ -101,35 +101,3 @@ def send_verification_email(email, message_txt, subject):
 @app.task()
 def send_account_lockout_email(email, message_txt, subject):
     send_generic_email(email, message_txt, subject)
-
-
-@app.task()
-def get_form_submissions_stats_async(xform_id, field, name=None,
-                                     data_view=None):
-    xform = XForm.objects.get(pk=xform_id)
-    data = {
-        "STATE": "INITIALIZED",
-        "DATA": []
-    }
-    cache.set('{}{}{}{}'.format(XFORM_SUBMISSION_STAT, xform.pk, field, name), data)
-
-    try:
-        data = get_form_submissions_grouped_by_field(xform, field, name, data_view)
-    except ValueError as e:
-            raise exceptions.ParseError(detail=e)
-    else:
-        if data:
-            element = xform.get_survey_element(field)
-
-            if element and element.type in SELECT_FIELDS:
-                for record in data:
-                    label = xform.get_choice_label(element, record[name])
-                    record[name] = label
-
-    data_to_cache = {
-            "STATE": "PROCESSED",
-            "DATA": data
-    }
-
-    # update the cache
-    cache.set('{}{}{}{}'.format(XFORM_SUBMISSION_STAT, xform.pk, field, name), data_to_cache)
