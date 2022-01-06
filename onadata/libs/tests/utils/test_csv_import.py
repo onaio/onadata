@@ -22,6 +22,7 @@ from onadata.libs.utils import csv_import
 from onadata.libs.utils.common_tags import IMPORTED_VIA_CSV_BY
 from onadata.libs.utils.csv_import import get_submission_meta_dict
 from onadata.libs.utils.user_auth import get_user_default_project
+from onadata.libs.utils.csv_import import get_columns_by_type
 
 
 def strip_xml_uuid(s):
@@ -539,13 +540,16 @@ class CSVImportTestCase(TestBase):
             columns, ["section_A/date_of_survey", "section_B/year_established"]
         )
         good_csv = open(
-            os.path.join(self.fixtures_dir, "csv_import_with_multiple_select.csv"), "rb"
+            os.path.join(
+                self.fixtures_dir, "csv_import_with_multiple_select.csv"
+            ), "rb"
         )
         csv_import.submit_csv(self.user.username, xform, good_csv)
         self.assertEqual(Instance.objects.count(), 1)
         submission = Instance.objects.first()
         self.assertEqual(submission.status, "imported_via_csv")
-        self.assertEqual(submission.json["section_A/date_of_survey"], "2015-09-10")
+        self.assertEqual(submission.json["section_A/date_of_survey"],
+                         "2015-09-10")
         self.assertTrue(
             submission.json["section_B/year_established"].startswith("1890")
         )

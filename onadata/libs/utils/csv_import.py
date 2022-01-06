@@ -616,12 +616,16 @@ def get_columns_by_type(type_list, form_json):
         found = []
         for item in item_list:
             if item["type"] in ["group", "repeat"]:
-                prefix = "/".join([prefix, item["name"]]) if prefix else item["name"]
+                prefix = "/".join(
+                    [prefix, item["name"]]
+                ) if prefix else item["name"]
                 found.extend(_column_by_type(item["children"], prefix))
                 prefix = ""  # Reset prefix to blank
             else:
                 if item["type"] in type_list:
-                    name = "%s/%s" % (prefix, item["name"]) if prefix else item["name"]
+                    name = "%s/%s" % (
+                        prefix, item["name"]
+                    ) if prefix else item["name"]
                     found.append(name)
 
         return found
