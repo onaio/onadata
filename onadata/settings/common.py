@@ -604,7 +604,7 @@ FULL_MESSAGE_PAYLOAD = False
 # Project & XForm Visibility Settings
 ALLOW_PUBLIC_DATASETS = True
 
-# Cache xform submission stat by one hour 60 * 60
-XFORM_SUBMISSION_STAT_CACHE_TIME = 3600
+# Cache xform submission stat by 10 min 10 * 60
+XFORM_SUBMISSION_STAT_CACHE_TIME = 600
 
-XFORM_CHARTS_CACHE_TIME = 3600
+XFORM_CHARTS_CACHE_TIME = 600
