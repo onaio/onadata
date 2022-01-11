@@ -7,11 +7,13 @@ from collections import defaultdict
 
 import six
 from django.db.models.base import ModelBase
+from django.db.models import Q
 from guardian.shortcuts import (assign_perm, get_perms, get_users_with_perms,
                                 remove_perm)
 
 from onadata.apps.api.models import OrganizationProfile
-from onadata.apps.logger.models import MergedXForm, Project, XForm
+from onadata.apps.logger.models import MergedXForm, Project, XForm,\
+        Attachment
 from onadata.apps.logger.models.project import (ProjectGroupObjectPermission,
                                                 ProjectUserObjectPermission)
 from onadata.apps.logger.models.xform import (XFormGroupObjectPermission,
@@ -494,6 +496,23 @@ def _check_meta_perms_enabled(xform):
         :return: bool
     """
     return xform.metadata_set.filter(data_type=XFORM_META_PERMS).count() > 0
+
+
+def exclude_items_from_queryset_using_xform_meta_perms(
+        xform, user, queryset):
+    """
+    Exclude instances from the queryset if meta-perms have been enabled
+    """
+    if user.has_perm(CAN_VIEW_XFORM_ALL, xform) or xform.shared_data \
+            or not _check_meta_perms_enabled(xform):
+        return queryset
+    elif user.has_perm(CAN_VIEW_XFORM_DATA, xform):
+        if queryset.model is Attachment:
+            return queryset.exclude(
+                ~Q(instance__user=user), instance__xform=xform)
+        else:
+            return queryset.exclude(
+                ~Q(user=user), xform=xform)
 
 
 def filter_queryset_xform_meta_perms(xform, user, instance_queryset):

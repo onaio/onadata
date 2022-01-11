@@ -10,6 +10,9 @@ from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
 from onadata.apps.logger.import_tools import django_file
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import get_attachment_url
+from onadata.apps.main.models.meta_data import MetaData
+from onadata.libs.permissions import EditorRole
+from onadata.libs.models.share_xform import ShareXForm
 
 
 def attachment_url(attachment, suffix=None):
@@ -382,3 +385,34 @@ class TestAttachmentViewSet(TestAbstractViewSet):
             '/count', data={"xform": xform_id}, **self.extra)
         response = self.count_view(request)
         self.assertEqual(response.data['count'], 1)
+
+    def test_returned_attachments_is_based_on_form_permissions(self):
+        # Create a form and make submissions with attachments
+        self._submit_transport_instance_w_attachment()
+
+        formid = self.xform.pk
+        request = self.factory.get(
+            '/', data={"xform": formid}, **self.extra)
+        response = self.list_view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+        user_dave = self._create_user_profile({"username": "dave"}).user
+        # Enable meta perms
+        data_value = "editor-minor|dataentry-minor"
+        MetaData.xform_meta_permission(self.xform, data_value=data_value)
+
+        ShareXForm(self.xform, user_dave.username, EditorRole.name)
+        auth_extra = {
+            'HTTP_AUTHORIZATION': f'Token {user_dave.auth_token.key}'
+        }
+
+        # Dave user should not be able to view attachments for
+        # submissions which they did not submit
+        request = self.factory.get('/', data={"xform": formid}, **auth_extra)
+        response = self.list_view(request)
+        self.assertEqual(response.status_code, 200)
+        # Ensure no submissions are returned for the User
+        # daves' request as they have not submitted any data
+        # and meta permissions have been applied to the form
+        self.assertEqual(len(response.data), 0)
