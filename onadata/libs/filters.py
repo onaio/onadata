@@ -16,6 +16,8 @@ from onadata.apps.logger.models import Instance, Project, XForm
 from onadata.apps.viewer.models import Export
 from onadata.libs.utils.numeric import int_or_parse_error
 from onadata.libs.utils.common_tags import MEDIA_FILE_TYPES
+from onadata.libs.permissions import \
+        exclude_items_from_queryset_using_xform_meta_perms
 
 
 class AnonDjangoObjectPermissionFilter(ObjectPermissionsFilter):
@@ -412,6 +414,15 @@ class AttachmentFilter(XFormPermissionFilterMixin,
 
         queryset = self._xform_filter_queryset(request, queryset, view,
                                                'instance__xform')
+        # Ensure queryset is filtered by XForm meta permissions
+        xform_ids = set(
+                queryset.values_list("instance__xform", flat=True))
+        for xform_id in xform_ids:
+            xform = XForm.objects.get(id=xform_id)
+            user = request.user
+            queryset = exclude_items_from_queryset_using_xform_meta_perms(
+                    xform, user, queryset)
+
         instance_id = request.query_params.get('instance')
         if instance_id:
             int_or_parse_error(instance_id,
