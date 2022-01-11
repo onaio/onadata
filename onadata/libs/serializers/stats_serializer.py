@@ -1,4 +1,7 @@
 from django.utils.translation import ugettext as _
+from django.core.cache import cache
+from django.conf import settings
+
 from rest_framework import exceptions
 from rest_framework import serializers
 from rest_framework.utils.serializer_helpers import ReturnList
@@ -9,6 +12,9 @@ from onadata.libs.data.statistics import\
     get_mode_for_numeric_fields_in_form, get_min_max_range, get_all_stats
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.data.query import get_form_submissions_grouped_by_field
+
+from onadata.libs.utils.cache_tools import XFORM_SUBMISSION_STAT
+
 
 SELECT_FIELDS = ['select one', 'select multiple']
 
@@ -43,6 +49,13 @@ class SubmissionStatsInstanceSerializer(serializers.Serializer):
             raise exceptions.ParseError(_(u"Expecting `group` and `name`"
                                           u" query parameters."))
 
+        cache_key = '{}{}{}{}'.format(XFORM_SUBMISSION_STAT, obj.pk,
+                                      field, name)
+
+        data = cache.get(cache_key)
+        if data:
+            return data
+
         try:
             data = get_form_submissions_grouped_by_field(
                 obj, field, name)
@@ -56,6 +69,9 @@ class SubmissionStatsInstanceSerializer(serializers.Serializer):
                     for record in data:
                         label = obj.get_choice_label(element, record[name])
                         record[name] = label
+
+        cache.set(cache_key, data,
+                  settings.XFORM_SUBMISSION_STAT_CACHE_TIME)
 
         return data
 

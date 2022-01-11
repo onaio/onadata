@@ -4,6 +4,7 @@ import mock
 
 from django.utils import timezone
 from django.core.cache import cache
+from django.test.utils import override_settings
 from rest_framework.test import APIClient
 from rest_framework.test import APIRequestFactory
 from rest_framework.test import force_authenticate
@@ -397,6 +398,7 @@ class TestChartsViewSet(TestBase):
         ]
         self.assertEqual(expected, response.data['data'])
 
+    @override_settings(XFORM_CHARTS_CACHE_TIME=0)
     def test_deleted_submission_not_in_chart_endpoint(self):
         data = {'field_name': 'gender'}
         request = self.factory.get('/charts', data)
