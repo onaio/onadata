@@ -133,6 +133,15 @@ class MultiLookupIdentityField(serializers.HyperlinkedIdentityField):
 
 
 class XFormMixin(object):
+    def get_xls_available(self, obj):
+        available = False
+        if obj and obj.xls:
+            try:
+                available = obj.xls.url is not None
+            except ValueError:
+                available = False
+        return available
+
     def _get_metadata(self, obj, key):
         if key:
             for m in obj.metadata_set.all():
@@ -313,12 +322,14 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     num_of_submissions = serializers.SerializerMethodField()
     last_submission_time = serializers.SerializerMethodField()
     data_views = serializers.SerializerMethodField()
+    xls_available = serializers.SerializerMethodField()
 
     class Meta:
         model = XForm
         read_only_fields = ('json', 'xml', 'date_created', 'date_modified',
                             'encrypted', 'bamboo_dataset',
-                            'last_submission_time', 'is_merged_dataset')
+                            'last_submission_time', 'is_merged_dataset',
+                            'xls_available')
         exclude = ('json', 'xml', 'xls', 'user', 'has_start_time', 'shared',
                    'shared_data', 'deleted_at', 'deleted_by')
 
@@ -354,12 +365,14 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     last_submission_time = serializers.SerializerMethodField()
     form_versions = serializers.SerializerMethodField()
     data_views = serializers.SerializerMethodField()
+    xls_available = serializers.SerializerMethodField()
 
     class Meta:
         model = XForm
         read_only_fields = ('json', 'xml', 'date_created', 'date_modified',
                             'encrypted', 'bamboo_dataset',
-                            'last_submission_time', 'is_merged_dataset')
+                            'last_submission_time', 'is_merged_dataset',
+                            'xls_available')
         exclude = ('json', 'xml', 'xls', 'user', 'has_start_time', 'shared',
                    'shared_data', 'deleted_at', 'deleted_by')
 
