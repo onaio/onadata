@@ -3,6 +3,26 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.5.13(2022-01-11)
+-------------------
+
+- Disable ARM Docker builds
+  `PR #2171 <https://github.com/onaio/onadata/pull/2171>`_
+  [@DavisRayM]
+- Bump ona-oidc version
+  `PR #2172 <https://github.com/onaio/onadata/pull/2172>`_
+  `PR #2175 <https://github.com/onaio/onadata/pull/2175>`_
+  [@DavisRayM]
+- Handle columns in groups and repeats in get_column_by_type
+  `PR #2131 <https://github.com/onaio/onadata/pull/2131>`_
+  [@ukanga]
+- Enforce XForm meta permissions on the attachment viewset
+  `PR #2178 <https://github.com/onaio/onadata/pull/2178>`_
+  [@DavisRayM]
+- Use cache to store submission stats
+  `PR #2176 <https://github.com/onaio/onadata/pull/2176>`_
+  [@denniswambua]
+
 v2.5.12(2021-11-26)
 -------------------
 
