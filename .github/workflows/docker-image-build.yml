@@ -62,8 +62,6 @@ jobs:
             release_version=${{ github.event.inputs.versionTag || steps.get-version.outputs.VERSION || steps.get-branch-name.outputs.BRANCH }}
             optional_packages=PyYAML django-redis
           push: true
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache
           tags: |
             onaio/onadata:${{ github.event.inputs.versionTag || steps.get-version.outputs.VERSION || steps.get-branch-name.outputs.BRANCH }}
 
