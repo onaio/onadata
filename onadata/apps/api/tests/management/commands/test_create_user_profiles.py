@@ -8,7 +8,7 @@ from onadata.apps.main.tests.test_base import TestBase
 
 
 class CreateUserProfilesTest(TestBase):
-    """Test create user profile management command."""
+
     def test_create_user_profiles(self):
         """
         Test that create_user_profiles management command
@@ -25,10 +25,9 @@ class CreateUserProfilesTest(TestBase):
             stdout=out
         )
         user.refresh_from_db()
-        try:
-            _ = user.profile
-        except UserProfile.DoesNotExist:
-            assert False
+        # Assert profile is retrievable;
+        profile = user.profile
+        self.assertEqual(profile.user, user)
         self.assertEqual(
             'User Profiles successfully created.\n',
             out.getvalue())
