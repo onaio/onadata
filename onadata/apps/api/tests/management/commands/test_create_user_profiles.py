@@ -8,6 +8,7 @@ from onadata.apps.main.tests.test_base import TestBase
 
 
 class CreateUserProfilesTest(TestBase):
+    """Test create user profile management command."""
 
     def test_create_user_profiles(self):
         """
