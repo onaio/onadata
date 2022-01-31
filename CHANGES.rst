@@ -3,6 +3,16 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.5.14(2022-02-01)
+-------------------
+
+- Add `xls_available` field to the XFormSerializer
+  `PR #2174 <https://github.com/onaio/onadata/pull/2174>`_
+  [@DavisRayM]
+- Add management command to create user profiles for accounts that don't have them
+  `PR #2184 <https://github.com/onaio/onadata/pull/2184>`_
+  [@KipSigei]
+
 v2.5.13(2022-01-11)
 -------------------
 
