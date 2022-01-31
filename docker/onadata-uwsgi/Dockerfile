@@ -34,6 +34,7 @@ RUN apt-get update -q &&\
         memcached \
         libmemcached-dev \
         build-essential \
+        supervisor \
         python3.8 \
         python3.8-dev \
         python3-pip \
@@ -66,7 +67,8 @@ ENV LC_ALL en_US.UTF-8
 ENV LC_CTYPE en_US.UTF-8
 RUN dpkg-reconfigure locales
 
-RUN useradd -m onadata
+# Create OnaData user and add to tty group
+RUN useradd -G tty -m onadata
 
 # Clone Repository and Change owner
 RUN mkdir -p /srv/onadata && \
