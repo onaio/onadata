@@ -139,7 +139,7 @@ def json_stream(data, json_string):
             except StopIteration:
                 yield json_string(item)
                 break
-    except AttributeError:
+    except (AttributeError, StopIteration):
         pass
     finally:
         yield ']'
