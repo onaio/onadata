@@ -1,3 +1,7 @@
+"""
+Management command for sending out emails to recipients
+with an attachment
+"""
 from typing import List
 
 from django.core.management.base import BaseCommand
@@ -7,6 +11,9 @@ from django.core.mail import EmailMessage
 def send_email_w_attachment(
         attachment_path: str, recipients: List[str],
         subject: str, body: str, from_email: str):
+    """
+    Send email with an attachment
+    """
     email = EmailMessage(
         subject,
         body,
