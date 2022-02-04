@@ -22,6 +22,7 @@ from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.viewer.models import DataDictionary
 from onadata.libs.exceptions import NoRecordsPermission
 from onadata.libs.utils.common_tags import XFORM_META_PERMS
+from onadata.libs.utils.model_tools import queryset_iterator
 
 # Userprofile Permissions
 CAN_ADD_USERPROFILE = 'add_userprofile'
@@ -381,7 +382,8 @@ def get_user_perms(obj):
     model = XFormUserObjectPermission if isinstance(obj, XForm) else None
     model = ProjectUserObjectPermission if isinstance(obj, Project) else model
 
-    return model.objects.filter(content_object_id=obj.pk) if model else None
+    return queryset_iterator(
+            model.objects.filter(content_object_id=obj.pk)) if model else None
 
 
 def get_group_perms(obj):
@@ -391,7 +393,8 @@ def get_group_perms(obj):
     model = XFormGroupObjectPermission if isinstance(obj, XForm) else None
     model = ProjectGroupObjectPermission if isinstance(obj, Project) else model
 
-    return model.objects.filter(content_object_id=obj.pk) if model else None
+    return queryset_iterator(
+            model.objects.filter(content_object_id=obj.pk)) if model else None
 
 
 def _get_group_users_with_perms(obj, attach_perms=False, user_perms=None):
