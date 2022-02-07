@@ -3,6 +3,19 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.5.15(2022-02-09)
+-------------------
+
+- Handle uncaught `StopIteration` exception
+  `PR #2192 <https://github.com/onaio/onadata/pull/2174>`_
+  [@DavisRayM]
+- Add management command that can send out an email with an attachment
+  `PR #2193 <https://github.com/onaio/onadata/pull/2193>`_
+  [@DavisRayM]
+- Utilize queryset iterators for permission retrieval
+  `PR #2189 <https://github.com/onaio/onadata/pull/2189>`_
+  [@DavisRayM]
+
 v2.5.14(2022-02-01)
 -------------------
 
