@@ -60,7 +60,7 @@
       <bind nodeset="/data/transport/loop_over_transport_types_frequency/taxi/frequency_to_referral_facility" relevant="selected( /data/transport/available_transportation_types_to_referral_facility , 'taxi')" type="string"/>
       <bind nodeset="/data/image1" type="binary"/>
       <bind jr:preload="uid" nodeset="/data/meta/instanceID" readonly="true()" type="string"/>
-      <bind calculate="'%(form_uuid)s'" nodeset="/data/formhub/uuid" type="string"/>
+      <bind nodeset="/data/formhub/uuid" type="string" calculate="'%(form_uuid)s'"/>
     </model>
   </h:head>
   <h:body>
