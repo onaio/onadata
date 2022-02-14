@@ -485,10 +485,10 @@ class TestBriefcaseViewSet(test_abstract_viewset.TestAbstractViewSet):
             response = view(request, username=self.user.username)
             response.render()
             self.assertIn(
-                'transportation id="transportation_2011_07_25"'
+                'transportation xlmns="http://opendatakit.org/submission"'
+                ' id="transportation_2011_07_25"'
                 ' instanceID="uuid:5b2cc313-fc09-437e-8149-fcd32f695d41"'
-                f' submissionDate="{ instance.date_created.isoformat() }" '
-                'xlmns="http://opendatakit.org/submission"',
+                f' submissionDate="{ instance.date_created.isoformat() }"',
                 response.content.decode('utf-8'))
 
     @mock.patch.object(BriefcaseViewset, 'get_object')

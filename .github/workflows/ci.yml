@@ -43,7 +43,7 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v2
         with:
-          python-version: 3.6
+          python-version: 3.8
           architecture: 'x64'
 
       - name: Get pip cache dir
@@ -58,17 +58,17 @@ jobs:
           path: ${{ steps.pip-cache.outputs.dir }}
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements/base.pip') }}
 
-      - name: Install Pip requirements
-        run: |
-          pip install -U pip
-          pip install -r requirements/base.pip
-          pip install flake8
-
       - name: Install APT requirements
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev
           sudo rm -rf /var/lib/apt/lists/*
+
+      - name: Install Pip requirements
+        run: |
+          pip install -U pip
+          pip install -r requirements/base.pip
+          pip install flake8
 
       - name: Run tests
         run: |
