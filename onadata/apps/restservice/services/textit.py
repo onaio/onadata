@@ -42,7 +42,7 @@ class ServiceDefinition(RestServiceInterface):
         :param record: list containing a couple of dictionaries
         :return: record with keys without slashes
         """
-        for key in record:
+        for key in list(record):
             value = record[key]
             # Ensure both key and value are string
             if not isinstance(value, string_types):
