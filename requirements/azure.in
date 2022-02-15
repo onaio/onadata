@@ -1,0 +1,2 @@
+django-storages[azure]
+django>2.2.20,<3
