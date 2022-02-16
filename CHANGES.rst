@@ -3,6 +3,16 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.5.16(2022-02-16)
+-------------------
+
+- Avoid RuntimeError caused by using keys modified in loop
+  `PR #2197 <https://github.com/onaio/onadata/pull/2197>`_
+  [@DavisRayM]
+- Add support for AzureStorage
+  `PR #2199 <https://github.com/onaio/onadata/pull/2199>`_
+  [@DavisRayM]
+
 v2.5.15(2022-02-09)
 -------------------
 
