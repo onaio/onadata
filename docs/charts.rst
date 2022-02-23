@@ -79,6 +79,19 @@ Response
  - ``html`` format response is a html, javascript and css to the chart
  - ``json`` format response is the ``JSON`` data that can be passed to a charting library
 
+Note: When retrieving a chart for a specific field is that the resulting response is cached for ten minutes. The cache can be invalidated by passing in an optional ``refresh`` query parameter.
+
+.. raw:: html
+
+   <pre class="prettyprint">
+   <b>GET</b> /api/v1/charts/<code>{formid}</code>.<code>{format}</code>?field_name=<code>field_name</code>&refresh=true</pre>
+
+Example
+^^^^^^^
+::
+
+   curl -X GET https://api.ona.io/api/v1/charts/4240.html?field_name=age&refresh=true
+
 Get a chart for field grouped by another field in the form
 ----------------------------------------------------------
 
