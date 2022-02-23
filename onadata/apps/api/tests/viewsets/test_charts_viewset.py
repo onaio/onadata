@@ -15,6 +15,7 @@ from onadata.apps.logger.models.instance import Instance
 from django.db.utils import DataError
 from onadata.libs.utils.timing import calculate_duration
 from onadata.libs.utils.user_auth import get_user_default_project
+from onadata.libs.utils.cache_tools import XFORM_CHARTS
 from onadata.libs.renderers.renderers import DecimalJSONRenderer
 
 
@@ -491,3 +492,35 @@ class TestChartsViewSet(TestBase):
         response = self.view(request, pk=self.xform.pk)
         self.assertEqual(200, response.status_code)
         self.assertDictContainsSubset(expected, response.data)
+
+    def test_charts_caching(self):
+        """
+        Test that the chart endpoints caching works as expected
+        """
+        data = {'field_name': 'gender'}
+        request = self.factory.get('/charts', data)
+        force_authenticate(request, user=self.user)
+        cache_key = f"{XFORM_CHARTS}{self.xform.id}NonegenderNonehtml"
+        initial_data = {"some_data": "some_value"}
+        cache.set(cache_key, initial_data)
+
+        response = self.view(
+            request,
+            pk=self.xform.id,
+            format='html'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, initial_data)
+
+        # Ensure that the initially cached data is refreshed
+        # when `refresh` query param is true
+        data['refresh'] = 'true'
+        request = self.factory.get('/charts', data)
+        force_authenticate(request, user=self.user)
+        response = self.view(
+            request,
+            pk=self.xform.id,
+            format='html'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.data, initial_data)

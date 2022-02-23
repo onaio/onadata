@@ -16,6 +16,7 @@ from rest_framework.response import Response
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs import filters
+from onadata.libs.utils.common_tools import str_to_bool
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import \
     AnonymousUserPublicFormsMixin
 from onadata.libs.mixins.authenticate_header_mixin import \
@@ -90,6 +91,7 @@ class ChartsViewSet(AnonymousUserPublicFormsMixin, AuthenticateHeaderMixin,
         fields = request.query_params.get('fields')
         group_by = request.query_params.get('group_by')
         fmt = kwargs.get('format')
+        refresh_cache = str_to_bool(request.query_params.get('refresh'))
 
         xform = self.get_object()
         serializer = self.get_serializer(xform)
@@ -113,7 +115,8 @@ class ChartsViewSet(AnonymousUserPublicFormsMixin, AuthenticateHeaderMixin,
                                               group_by, fmt)
 
             data = cache.get(cache_key)
-            if not data:
+
+            if not data or refresh_cache:
                 data = get_chart_data_for_field(field_name, xform, fmt,
                                                 group_by, field_xpath)
 
