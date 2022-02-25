@@ -417,8 +417,12 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         import math
 
         url = self.request.build_absolute_uri()
+        query = self.request.query_params.get('query')
         base_url = url.split('?')[0]
-        num_of_records = xform.num_of_submissions
+        if query:
+            num_of_records = self.object_list.count()
+        else:
+            num_of_records = xform.num_of_submissions
         next_page_url = None
         prev_page_url = None
         first_page_url = None
@@ -660,7 +664,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             self._set_pagination_headers(
                 self.get_object(),
                 current_page=current_page,
-                current_page_size=current_page_size
+                current_page_size=current_page_size,
             )
 
             try:

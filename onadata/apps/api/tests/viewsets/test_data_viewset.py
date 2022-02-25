@@ -518,10 +518,16 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
 
+        # Query param returns correct pagination headers
         request = self.factory.get(
-            '/', data={"page": "invalid", "page-size": "invalid"},
+            '/', data={"page_size": "1", "query": "ambulance"},
             **self.extra)
         response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Link', response)
+        self.assertEqual(
+            response['Link'],
+            ('<http://testserver/?page=2&page_size=1>; rel="next"'))
 
     def test_sort_query_param_with_invalid_values(self):
         self._make_submissions()
