@@ -16,6 +16,7 @@ from zipfile import ZipFile, ZIP_DEFLATED
 from celery import current_task
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
+from onadata.libs.utils.export_tools import str_to_bool
 from django.utils.translation import ugettext as _
 from future.utils import iteritems
 from openpyxl.utils.datetime import to_excel
@@ -399,8 +400,10 @@ class ExportBuilder(object):
             }
 
         choices = []
-
-        if not child.children and child.choice_filter and child.itemset:
+        is_choice_randomized = str_to_bool(
+            child.parameters and child.parameters.get('randomize'))
+        if not child.children and (child.choice_filter and child.itemset) \
+                or is_choice_randomized:
             itemset = dd.survey.to_json_dict()['choices'].get(child.itemset)
             choices = [get_choice_dict(
                 '/'.join([child.get_abbreviated_xpath(), i['name']]),
@@ -425,7 +428,6 @@ class ExportBuilder(object):
                 current_section, survey_element, sections, select_multiples,
                 gps_fields, osm_fields, encoded_fields, select_ones,
                 field_delimiter='/', remove_group_name=False, language=None):
-
             for child in survey_element.children:
                 current_section_name = current_section['name']
                 # if a section, recurs
@@ -682,13 +684,11 @@ class ExportBuilder(object):
         Split select multiples, gps and decode . and $
         """
         section_name = section['name']
-
         # first decode fields so that subsequent lookups
         # have decoded field names
         if section_name in self.encoded_fields:
             row = ExportBuilder.decode_mongo_encoded_fields(
                 row, self.encoded_fields[section_name])
-
         if section_name in self.select_multiples:
             select_multiples = self.select_multiples[section_name]
             if self.SPLIT_SELECT_MULTIPLES:

@@ -16,6 +16,7 @@ from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import (ParsedInstance,
                                                         query_data)
 from onadata.libs.exceptions import NoRecordsFoundError
+from onadata.libs.utils.export_tools import str_to_bool
 from onadata.libs.utils.common_tags import (
     ATTACHMENTS, BAMBOO_DATASET_ID, DATE_MODIFIED, DELETEDAT, DURATION,
     EDITED, GEOLOCATION, ID, MEDIA_ALL_RECEIVED, MEDIA_COUNT, NA_REP,
@@ -229,7 +230,10 @@ class AbstractDataFrameBuilder(object):
             choices = [(c.get_abbreviated_xpath(), c.name,
                         get_choice_label(c.label, dd, language))
                        for c in e.children]
-            if not choices and e.choice_filter and e.itemset:
+            is_choice_randomized = str_to_bool(
+                e.parameters and e.parameters.get('randomize'))
+            if not choices and e.choice_filter and e.itemset \
+                    or is_choice_randomized:
                 itemset = dd.survey.to_json_dict()['choices'].get(e.itemset)
                 choices = [(u'/'.join([xpath, i.get('name')]), i.get('name'),
                             get_choice_label(i.get('label'), dd, language))
