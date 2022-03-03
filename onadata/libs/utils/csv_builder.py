@@ -232,8 +232,8 @@ class AbstractDataFrameBuilder(object):
                        for c in e.children]
             is_choice_randomized = str_to_bool(
                 e.parameters and e.parameters.get('randomize'))
-            if not choices and e.choice_filter and e.itemset \
-                    or is_choice_randomized:
+            if ((not choices and e.choice_filter) or is_choice_randomized) \
+                    and e.itemset:
                 itemset = dd.survey.to_json_dict()['choices'].get(e.itemset)
                 choices = [(u'/'.join([xpath, i.get('name')]), i.get('name'),
                             get_choice_label(i.get('label'), dd, language))

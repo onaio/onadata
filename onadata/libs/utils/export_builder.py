@@ -402,8 +402,8 @@ class ExportBuilder(object):
         choices = []
         is_choice_randomized = str_to_bool(
             child.parameters and child.parameters.get('randomize'))
-        if not child.children and (child.choice_filter and child.itemset) \
-                or is_choice_randomized:
+        if ((not child.children and child.choice_filter)
+                or is_choice_randomized) and child.itemset:
             itemset = dd.survey.to_json_dict()['choices'].get(child.itemset)
             choices = [get_choice_dict(
                 '/'.join([child.get_abbreviated_xpath(), i['name']]),
