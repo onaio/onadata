@@ -2404,6 +2404,70 @@ class TestExportBuilder(TestBase):
         self.assertEqual(CSVDataFrameBuilder._collect_select_multiples(dd),
                          select_multiples)
 
+    def test_split_select_multiples_choices_with_randomize_param(self):
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'randomize.xlsx'
+        ), default_name='randomize')
+        dd = DataDictionary()
+        dd._survey = survey
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.INCLUDE_LABELS = True
+        export_builder.set_survey(survey)
+        child = [e for e in dd.get_survey_elements_with_choices()
+                 if e.bind.get('type') == SELECT_BIND_TYPE
+                 and e.type == MULTIPLE_SELECT_TYPE][0]
+        choices = export_builder._get_select_mulitples_choices(
+            child, dd, ExportBuilder.GROUP_DELIMITER,
+            ExportBuilder.TRUNCATE_GROUP_TITLE
+        )
+
+        expected_choices = [
+            {
+                '_label': 'King',
+                '_label_xpath': 'county/King',
+                'label': 'county/King',
+                'title': 'county/king',
+                'type': 'string',
+                'xpath': 'county/king'
+            },
+            {
+                '_label': 'Pierce',
+                '_label_xpath': 'county/Pierce',
+                'label': 'county/Pierce',
+                'title': 'county/pierce',
+                'type': 'string',
+                'xpath': 'county/pierce'
+            },
+            {
+                '_label': 'King',
+                '_label_xpath': 'county/King',
+                'label': 'county/King',
+                'title': 'county/king',
+                'type': 'string',
+                'xpath': 'county/king'
+            },
+            {
+                '_label': 'Cameron',
+                '_label_xpath': 'county/Cameron',
+                'label': 'county/Cameron',
+                'title': 'county/cameron',
+                'type': 'string',
+                'xpath': 'county/cameron'
+            }
+        ]
+        self.assertEqual(choices, expected_choices)
+        select_multiples = {
+            'county': [
+                ('county/king', 'king', 'King'),
+                ('county/pierce', 'pierce', 'Pierce'),
+                ('county/king', 'king', 'King'),
+                ('county/cameron', 'cameron', 'Cameron')
+            ]
+        }
+        self.assertEqual(CSVDataFrameBuilder._collect_select_multiples(dd),
+                         select_multiples)
+
     def test_string_to_date_with_xls_validation(self):
         # test "2016-11-02"
         val = string_to_date_with_xls_validation("2016-11-02")
