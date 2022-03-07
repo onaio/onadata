@@ -780,6 +780,90 @@ class TestExportBuilder(TestBase):
         except ArgumentError as e:
             self.fail(e)
 
+    def test_split_select_multiples_choices_with_randomize_param(self):
+        """
+        Test that `_get_select_mulitples_choices` function generates
+        choices correctly when random param set to true
+        """
+        md_xform = """
+        | survey  |
+        |         | type                     | name   | label  | parameters     |
+        |         | select_one states        | state  | state  |                |
+        |         | select_multiple counties | county | county | randomize=true |
+        |         | select_one cities        | city   | city   |                |
+
+        | choices |
+        |         | list name | name        | label       |
+        |         | states    | texas       | Texas       |
+        |         | states    | washington  | Washington  |
+        |         | counties  | king        | King        |
+        |         | counties  | pierce      | Pierce      |
+        |         | counties  | king        | King        |
+        |         | counties  | cameron     | Cameron     |
+        |         | cities    | dumont      | Dumont      |
+        |         | cities    | finney      | Finney      |
+        |         | cities    | brownsville | brownsville |
+        |         | cities    | harlingen   | harlingen   |
+        |         | cities    | seattle     | Seattle     |
+        |         | cities    | redmond     | Redmond     |
+        |         | cities    | tacoma      | Tacoma      |
+        |         | cities    | puyallup    | Puyallup    |
+
+        | settings |                         |
+        |          | allow_choice_duplicates |
+        |          | Yes                     |
+        """  # noqa: E501
+        survey = self.md_to_pyxform_survey(md_xform, {'name': 'data'})
+        dd = DataDictionary()
+        dd._survey = survey
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.INCLUDE_LABELS = True
+        export_builder.set_survey(survey)
+        child = [e for e in dd.get_survey_elements_with_choices()
+                 if e.bind.get('type') == SELECT_BIND_TYPE
+                 and e.type == MULTIPLE_SELECT_TYPE][0]
+        choices = export_builder._get_select_mulitples_choices(
+            child, dd, ExportBuilder.GROUP_DELIMITER,
+            ExportBuilder.TRUNCATE_GROUP_TITLE
+        )
+
+        expected_choices = [
+            {
+                '_label': 'King',
+                '_label_xpath': 'county/King',
+                'label': 'county/King',
+                'title': 'county/king',
+                'type': 'string',
+                'xpath': 'county/king'
+            },
+            {
+                '_label': 'Pierce',
+                '_label_xpath': 'county/Pierce',
+                'label': 'county/Pierce',
+                'title': 'county/pierce',
+                'type': 'string',
+                'xpath': 'county/pierce'
+            },
+            {
+                '_label': 'King',
+                '_label_xpath': 'county/King',
+                'label': 'county/King',
+                'title': 'county/king',
+                'type': 'string',
+                'xpath': 'county/king'
+            },
+            {
+                '_label': 'Cameron',
+                '_label_xpath': 'county/Cameron',
+                'label': 'county/Cameron',
+                'title': 'county/cameron',
+                'type': 'string',
+                'xpath': 'county/cameron'
+            }
+        ]
+        self.assertEqual(choices, expected_choices)
+
     def test_zipped_sav_export_with_numeric_select_multiple_field(self):
         md = """
         | survey |                     |          |           |               |
