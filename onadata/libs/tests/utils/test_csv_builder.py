@@ -1482,3 +1482,82 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertEqual(header, expected_header)
 
         csv_file.close()
+
+    @patch.object(CSVDataFrameBuilder, "_query_data")
+    def test_split_select_multiples_with_randomize(self, mock_query_data):
+        """
+        Test select multiples choices are split with the randomize option true.
+        """
+        md_xform = """
+        | survey |
+        |        | type                     | name         | label        | parameters     |
+        |        | text                     | name         | Name         |                |
+        |        | integer                  | age          | Age          |                |
+        |        | begin repeat             | browser_use  | Browser Use  |                |
+        |        | integer                  | year         | Year         |                |
+        |        | select_multiple browsers | browsers     | Browsers     | randomize=true |
+        |        | end repeat               |              |              |                |
+
+        | choices |
+        |         | list name | name    | label             |
+        |         | browsers  | firefox | Firefox           |
+        |         | browsers  | chrome  | Chrome            |
+        |         | browsers  | ie      | Internet Explorer |
+        |         | browsers  | safari  | Safari            |
+        """  # noqa: E501
+        xform = self._publish_markdown(md_xform, self.user, id_string="b")
+        data = [
+            {
+                "name": "Tom",
+                "age": 23,
+                "browser_use": [
+                    {
+                        "browser_use/year": "2010",
+                        "browser_use/browsers": "firefox safari",
+                    },
+                    {
+                        "browser_use/year": "2011",
+                        "browser_use/browsers": "firefox chrome",
+                    },
+                ],
+            }
+        ]  # yapf: disable
+        mock_query_data.return_value = data
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username,
+            xform.id_string,
+            split_select_multiples=True,
+            include_images=False,
+        )
+        # pylint: disable=protected-access
+        cursor = [k for k in csv_df_builder._query_data()]
+        record = cursor[0]
+        select_multiples = CSVDataFrameBuilder._collect_select_multiples(xform)
+        result = CSVDataFrameBuilder._split_select_multiples(
+            record, select_multiples)
+        # build a new dictionary only composed of the keys we want to use in
+        # the comparison
+        result = dict(
+            [
+                (key, result[key])
+                for key in list(result)
+                if key in list(data[0])
+            ]
+        )
+        self.assertEqual(data[0], result)
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username, xform.id_string, binary_select_multiples=True
+        )
+        # pylint: disable=protected-access
+        result = csv_df_builder._split_select_multiples(
+            record, select_multiples)
+        # build a new dictionary only composed of the keys we want to use in
+        # the comparison
+        result = dict(
+            [
+                (key, result[key])
+                for key in list(result)
+                if key in list(data[0])
+            ]
+        )
+        self.assertEqual(data[0], result)
