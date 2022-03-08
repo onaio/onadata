@@ -16,7 +16,7 @@ from zipfile import ZipFile, ZIP_DEFLATED
 from celery import current_task
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
-from onadata.libs.utils.export_tools import str_to_bool
+from onadata.libs.utils.common_tools import str_to_bool
 from django.utils.translation import ugettext as _
 from future.utils import iteritems
 from openpyxl.utils.datetime import to_excel
