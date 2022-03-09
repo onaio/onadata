@@ -12,6 +12,7 @@ v2.5.18(2022-03-08)
 
 v2.5.17(2022-03-08)
 -------------------
+``Release v2.5.17 has known issues; See `PR #2208 <https://github.com/onaio/onadata/pull/2208>`_``
 
 - Support split select multiple for CSV & XLS exports when random param is set to true
   `PR #2205 <https://github.com/onaio/onadata/pull/2205>`_
