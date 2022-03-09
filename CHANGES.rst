@@ -6,7 +6,7 @@ Changelog for Onadata
 v2.5.18(2022-03-08)
 -------------------
 
-- Fix circular imports on export builder module (Known Issue)
+- Fix circular imports on export builder module
   `PR #2208 <https://github.com/onaio/onadata/pull/2208>`_
   [@KipSigei]
 
