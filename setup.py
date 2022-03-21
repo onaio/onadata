@@ -66,7 +66,9 @@ setup(
         # tagging
         "django-taggit",
         # database
-        "psycopg2>2.7.1",
+        # Limit psycopg2 version to <2.9 until we upgrade to Django > 3
+        # Read more: https://github.com/psycopg/psycopg2/issues/1293
+        "psycopg2<2.9",
         "pymongo",
         # sms support
         "dict2xml",
