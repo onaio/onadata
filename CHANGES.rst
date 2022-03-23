@@ -3,6 +3,13 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.5.19(2022-03-23)
+-------------------
+
+- Add management command to generate platform statistics
+  `PR #2206 <https://github.com/onaio/onadata/pull/2206>`_
+  [@DavisRayM]
+
 v2.5.18(2022-03-08)
 -------------------
 
