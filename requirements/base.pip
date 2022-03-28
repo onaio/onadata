@@ -165,7 +165,7 @@ flake8==3.9.2
     # via onadata
 fleming==0.6.0
     # via django-query-builder
-formencode==1.3.1
+formencode==2.0.1
     # via pyxform
 future==0.18.2
     # via python-json2xlsclient
@@ -245,7 +245,7 @@ numpy==1.19.5
     # via onadata
 oauthlib==3.1.0
     # via django-oauth-toolkit
-openpyxl==3.0.7
+openpyxl==3.0.9
     # via
     #   onadata
     #   tabulator
@@ -307,7 +307,7 @@ pytz==2021.1
     #   django-query-builder
     #   fleming
     #   onadata
-pyxform==1.5.0
+pyxform==1.9.0
     # via
     #   onadata
     #   pyfloip
@@ -418,7 +418,7 @@ wcwidth==0.2.5
     # via prompt-toolkit
 wrapt==1.12.1
     # via deprecated
-xlrd==1.2.0
+xlrd==2.0.1
     # via
     #   onadata
     #   pyxform

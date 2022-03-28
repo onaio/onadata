@@ -21,7 +21,7 @@ from django.utils import timezone
 
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
-from pyxform.tests_v1.pyxform_test_case import PyxformMarkdown
+from onadata.libs.test_utils.pyxform_test_case import PyxformMarkdown
 from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet

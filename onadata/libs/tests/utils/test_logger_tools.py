@@ -6,7 +6,7 @@ from django.conf import settings
 from django.http.request import HttpRequest
 from mock import patch
 
-from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
+from onadata.libs.test_utils.pyxform_test_case import PyxformTestCase
 
 from onadata.apps.logger.import_tools import django_file
 from onadata.apps.logger.models import Instance
