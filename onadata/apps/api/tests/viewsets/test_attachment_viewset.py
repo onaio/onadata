@@ -260,6 +260,15 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         path = os.path.join(self.main_directory, 'fixtures', 'transportation',
                             'instances', self.surveys[0], filename)
         media_file = django_file(path, 'video2', 'image/jpeg')
+
+        # test geojson  attachments
+        geojson_filename = 'sample.geojson'
+        geojson_path = os.path.join(self.main_directory, 'fixtures',
+                                    'transportation', 'instances',
+                                    self.surveys[0], geojson_filename)
+        geojson_media_file = django_file(
+            geojson_path, 'store_gps', 'image/jpeg')
+
         Attachment.objects.create(
             instance=self.xform.instances.first(),
             mimetype='video/mp4',
@@ -285,13 +294,19 @@ class TestAttachmentViewSet(TestAbstractViewSet):
             extension='MP3',
             name=filename,
             media_file=media_file)
+        Attachment.objects.create(
+            instance=self.xform.instances.first(),
+            mimetype='application/geo+json',
+            extension='GEOJSON',
+            name=geojson_filename,
+            media_file=geojson_media_file)
         data = {}
         request = self.factory.get('/', data, **self.extra)
         response = self.list_view(request)
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, list))
-        self.assertEqual(len(response.data), 5)
+        self.assertEqual(len(response.data), 6)
 
         # Apply image Filter
         data['type'] = 'image'
@@ -330,9 +345,10 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, list))
-        self.assertEqual(len(response.data), 2)
+        self.assertEqual(len(response.data), 3)
         self.assertEqual(response.data[0]["mimetype"], 'application/pdf')
         self.assertEqual(response.data[1]["mimetype"], 'text/plain')
+        self.assertEqual(response.data[2]["mimetype"], 'application/geo+json')
 
     def test_direct_image_link(self):
         self._submit_transport_instance_w_attachment()
