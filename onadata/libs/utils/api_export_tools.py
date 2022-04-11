@@ -385,6 +385,7 @@ def process_async_export(request, xform, export_type, options=None):
     token = options.get("token")
     meta = options.get("meta")
     query = options.get("query")
+    force_xlsx = options.get("force_xlsx")
 
     try:
         query = filter_queryset_xform_meta_perms_sql(xform, request.user,
@@ -415,7 +416,7 @@ def process_async_export(request, xform, export_type, options=None):
         resp = {
             u'job_uuid':
             _create_export_async(
-                xform, export_type, query, False, options=options)
+                xform, export_type, query, force_xlsx, options=options)
         }
     else:
         print('Do not create a new export.')
@@ -426,7 +427,7 @@ def process_async_export(request, xform, export_type, options=None):
             resp = {
                 u'job_uuid':
                 _create_export_async(
-                    xform, export_type, query, False, options=options)
+                    xform, export_type, query, force_xlsx, options=options)
             }
         else:
             resp = export_async_export_response(request, export)

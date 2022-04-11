@@ -108,6 +108,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
         include_hxl = params.get('include_hxl', False)
         include_labels = params.get('include_labels', False)
         include_labels_only = params.get('include_labels_only', False)
+        force_xlsx = params.get('force_xlsx', False)
         query = params.get("query")
         dataview = self.get_object()
         xform = dataview.xform
@@ -120,6 +121,9 @@ class DataViewViewSet(AuthenticateHeaderMixin,
 
         if include_hxl is not None:
             include_hxl = str_to_bool(include_hxl)
+
+        if force_xlsx is not None:
+            force_xlsx = str_to_bool(force_xlsx)
 
         remove_group_name = params.get('remove_group_name', False)
         columns_with_hxl = get_columns_with_hxl(xform.survey.get('children'))
@@ -134,7 +138,8 @@ class DataViewViewSet(AuthenticateHeaderMixin,
             'dataview_pk': dataview.pk,
             'include_hxl': include_hxl,
             'include_labels': include_labels,
-            'include_labels_only': include_labels_only
+            'include_labels_only': include_labels_only,
+            'force_xlsx': force_xlsx,
         }
         if query:
             options.update({'query': query})
@@ -237,7 +242,6 @@ class DataViewViewSet(AuthenticateHeaderMixin,
         export_type = "xls"
         query = request.query_params.get("query", {})
         meta = request.GET.get('meta')
-
         return custom_response_handler(request,
                                        xform,
                                        query,
