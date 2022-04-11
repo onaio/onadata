@@ -1,3 +1,4 @@
+import jwt
 from datetime import timedelta
 
 from django.conf import settings
@@ -11,13 +12,35 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.models.temp_token import TempToken
+from onadata.libs.utils.common_tags import API_TOKEN
 from onadata.libs.authentication import (
     DigestAuthentication,
     TempTokenAuthentication,
     TempTokenURLParameterAuthentication,
     check_lockout,
-    MasterReplicaOAuth2Validator
+    get_api_token,
+    MasterReplicaOAuth2Validator,
+    JWT_ALGORITHM,
+    JWT_SECRET_KEY
 )
+
+
+class TestGetAPIToken(TestCase):
+    def test_non_existent_token(self):
+        with self.assertRaisesRegexp(
+                AuthenticationFailed, "Invalid token"):
+            data = {API_TOKEN: "nonexistenttoken"}
+            jwt_data = jwt.encode(
+                data, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+            get_api_token(jwt_data)
+
+    def test_bad_signature(self):
+        with self.assertRaisesRegexp(
+                AuthenticationFailed,
+                "JWT DecodeError: Signature verification failed"):
+            data = {API_TOKEN: "somekey"}
+            jwt_data = jwt.encode(data, "wrong", algorithm=JWT_ALGORITHM)
+            get_api_token(jwt_data)
 
 
 class TestPermissions(TestCase):

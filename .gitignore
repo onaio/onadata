@@ -76,5 +76,8 @@ bob
 .vscode/
 tags
 
+# vim
+.vim
+
 .bash_history
 .inputrc

@@ -10,7 +10,6 @@ from django.conf import settings
 from django.contrib.auth.models import User, update_last_login
 from django.core.signing import BadSignature
 from django.db import DataError
-from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 
@@ -86,13 +85,14 @@ def get_api_token(cookie_jwt):
         jwt_payload = jwt.decode(
             cookie_jwt, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM]
         )
-        api_token = get_object_or_404(Token, key=jwt_payload.get(API_TOKEN))
-
+        api_token = Token.objects.get(key=jwt_payload.get(API_TOKEN))
         return api_token
     except BadSignature as e:
         raise exceptions.AuthenticationFailed(_("Bad Signature: %s" % e))
     except jwt.DecodeError as e:
         raise exceptions.AuthenticationFailed(_("JWT DecodeError: %s" % e))
+    except Token.DoesNotExist:
+        raise exceptions.AuthenticationFailed(_("Invalid token"))
 
 
 class DigestAuthentication(BaseAuthentication):
