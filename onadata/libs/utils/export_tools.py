@@ -27,6 +27,7 @@ from future.utils import iteritems
 from json2xlsclient.client import Client
 from rest_framework import exceptions
 from savReaderWriter import SPSSIOError
+from multidb.pinning import use_master
 
 from onadata.apps.logger.models import Attachment, Instance, OsmData, XForm
 from onadata.apps.logger.models.data_view import DataView
@@ -796,7 +797,11 @@ def generate_external_export(export_type, username, id_string, export_id=None,
 
     # get or create export object
     if export_id:
-        export = Export.objects.get(id=export_id)
+        try:
+            export = Export.objects.get(id=export_id)
+        except Export.DoesNotExist:
+            with use_master:
+                export = Export.objects.get(id=export_id)
     else:
         export_options = get_export_options(options)
         export = Export.objects.create(xform=xform,
