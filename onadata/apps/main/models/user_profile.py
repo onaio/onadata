@@ -17,7 +17,10 @@ from rest_framework.authtoken.models import Token
 from onadata.libs.utils.country_field import COUNTRIES
 from onadata.libs.utils.gravatar import get_gravatar_img_link, gravatar_exists
 from onadata.apps.main.signals import (
-    set_api_permissions, send_inactive_user_email, send_activation_email)
+    set_api_permissions,
+    send_inactive_user_email,
+    send_activation_email,
+    set_user_default_project)
 
 REQUIRE_AUTHENTICATION = 'REQUIRE_ODK_AUTHENTICATION'
 
@@ -135,6 +138,9 @@ post_save.connect(set_object_permissions, sender=UserProfile,
 
 post_save.connect(set_kpi_formbuilder_permissions, sender=UserProfile,
                   dispatch_uid='set_kpi_formbuilder_permission')
+
+post_save.connect(set_user_default_project, sender=UserProfile,
+                  dispatch_uid='set_user_default_project')
 
 
 class UserProfileUserObjectPermission(UserObjectPermissionBase):
