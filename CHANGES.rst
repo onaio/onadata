@@ -3,6 +3,22 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v2.5.20(2022-04-11)
+-------------------
+
+- Install uwsgitop on the docker builds
+  `PR #2216 <https://github.com/onaio/onadata/pull/2216>`_
+  [@DavisRayM]
+- Handle cases where an export object is not retrievable when creating an external export
+  `PR #2220 <https://github.com/onaio/onadata/pull/2220>`_
+  [@DavisRayM]
+- Bump ona-oidc version to v0.0.10
+  `PR #2221 <https://github.com/onaio/onadata/pull/2221>`_
+  [@DavisRayM]
+- Return an AuthenticationFailed exception instead of a 404 when Enketo token is not retrievable
+  `PR #2219 <https://github.com/onaio/onadata/pull/2219>`_
+  [@DavisRayM]
+
 v2.5.19(2022-03-23)
 -------------------
 
