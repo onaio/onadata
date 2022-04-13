@@ -12,11 +12,11 @@ def set_api_permissions(sender, instance=None, created=False, **kwargs):
 
 
 def set_user_default_project(
-        _, instance=None, created=False, **_kwargs):
+        sender=None, instance=None, created=False, **_):
     """ Create a default project for the user if one doesn't exist. """
     from onadata.libs.utils.user_auth import get_user_default_project
     if created:
-        get_user_default_project(instance)
+        get_user_default_project(instance.user)
 
 
 def send_inactive_user_email(

@@ -7,6 +7,7 @@ from django.test import TestCase
 from django.test.client import Client
 from django.urls import reverse
 from mock import patch
+from onadata.apps.logger.models.project import Project
 
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.views import profile, api_token
@@ -45,6 +46,15 @@ class TestUserProfile(TestCase):
         self._login_user_and_profile()
         self.assertEqual(self.response.status_code, 302)
         self.assertEqual(self.user.username, 'bob')
+
+    def test_default_project_is_created(self):
+        """Default project is created upon user creation."""
+        self._login_user_and_profile()
+        self.assertEqual(self.response.status_code, 302)
+        project_name = u"{}'s Project".format(self.user.username)
+        project = Project.objects.get(name=project_name)
+        # check from metadata if project is the default one
+        self.assertEqual(project.metadata, {'description': 'Default Project'})
 
     @patch('onadata.apps.main.views.render')
     def test_xlsform_error_returns_400(self, mock_render):
