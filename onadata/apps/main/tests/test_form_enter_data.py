@@ -10,7 +10,6 @@ from django.urls import reverse
 from future.moves.urllib.parse import urlparse
 from httmock import HTTMock, urlmatch
 from nose import SkipTest
-from past.builtins import basestring
 
 from onadata.apps.logger.views import enter_data
 from onadata.apps.main.models import MetaData
@@ -39,9 +38,7 @@ def enketo_mock_http(url, request):
 def enketo_error_mock(url, request):
     response = requests.Response()
     response.status_code = 400
-    response._content = (
-        '{"message": "no account exists for this OpenRosa server"}'
-    )
+    response._content = '{"message": "no account exists for this OpenRosa server"}'
     return response
 
 
@@ -80,8 +77,8 @@ class TestFormEnterData(TestBase):
             server_url = "https://testserver.com/bob"
             form_id = "test_%s" % re.sub(re.compile("\."), "_", str(time()))  # noqa
             url = get_enketo_urls(server_url, form_id)
-            self.assertIsInstance(url['url'], basestring)
-            self.assertIsNone(URLValidator()(url['url']))
+            self.assertIsInstance(url["url"], str)
+            self.assertIsNone(URLValidator()(url["url"]))
 
     def test_enketo_url_with_http_protocol_on_formlist(self):
         if not self._running_enketo():
@@ -90,9 +87,9 @@ class TestFormEnterData(TestBase):
             server_url = "http://testserver.com/bob"
             form_id = "test_%s" % re.sub(re.compile("\."), "_", str(time()))  # noqa
             url = get_enketo_urls(server_url, form_id)
-            self.assertIn("http:", url['url'])
-            self.assertIsInstance(url['url'], basestring)
-            self.assertIsNone(URLValidator()(url['url']))
+            self.assertIn("http:", url["url"])
+            self.assertIsInstance(url["url"], str)
+            self.assertIsNone(URLValidator()(url["url"]))
 
     def _get_grcode_view_response(self):
         factory = RequestFactory()
@@ -105,9 +102,7 @@ class TestFormEnterData(TestBase):
     def test_qrcode_view(self):
         with HTTMock(enketo_mock):
             response = self._get_grcode_view_response()
-            self.assertContains(
-                response, "data:image/png;base64,", status_code=200
-            )
+            self.assertContains(response, "data:image/png;base64,", status_code=200)
 
     def test_qrcode_view_with_enketo_error(self):
         with HTTMock(enketo_error_mock):
@@ -121,9 +116,7 @@ class TestFormEnterData(TestBase):
             factory = RequestFactory()
             request = factory.get("/")
             request.user = self.user
-            response = enter_data(
-                request, self.user.username, self.xform.id_string
-            )
+            response = enter_data(request, self.user.username, self.xform.id_string)
             # make sure response redirect to an enketo site
             enketo_base_url = urlparse(settings.ENKETO_URL).netloc
             redirected_base_url = urlparse(response["Location"]).netloc
@@ -157,9 +150,7 @@ class TestFormEnterData(TestBase):
             factory = RequestFactory()
             request = factory.get("/")
             request.user = AnonymousUser()
-            response = enter_data(
-                request, self.user.username, self.xform.id_string
-            )
+            response = enter_data(request, self.user.username, self.xform.id_string)
             self.assertEqual(response.status_code, 302)
 
     def test_enter_data_non_existent_user(self):

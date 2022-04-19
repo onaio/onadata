@@ -5,11 +5,9 @@ test_xform module
 import os
 
 from builtins import str as text
-from past.builtins import basestring  # pylint: disable=redefined-builtin
 
 from onadata.apps.logger.models import Instance, XForm
-from onadata.apps.logger.models.xform import (DuplicateUUIDError,
-                                              check_xform_uuid)
+from onadata.apps.logger.models.xform import DuplicateUUIDError, check_xform_uuid
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 
@@ -18,6 +16,7 @@ class TestXForm(TestBase):
     """
     Test XForm model.
     """
+
     def test_submission_count(self):
         """
         Test submission count does not include deleted submissions.
@@ -43,14 +42,17 @@ class TestXForm(TestBase):
         """
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../..", "fixtures", "tutorial", "tutorial_arabic_labels.xls"
+            "../..",
+            "fixtures",
+            "tutorial",
+            "tutorial_arabic_labels.xls",
         )
         self._publish_xls_file_and_set_xform(xls_file_path)
 
-        self.assertTrue(isinstance(self.xform.xml, basestring))
+        self.assertTrue(isinstance(self.xform.xml, str))
 
         # change title
-        self.xform.title = u'Random Title'
+        self.xform.title = "Random Title"
 
         self.assertNotIn(self.xform.title, self.xform.xml)
 
@@ -65,7 +67,7 @@ class TestXForm(TestBase):
         """Test Xform.version can store more than 12 chars"""
         self._publish_transportation_form_and_submit_instance()
         xform = XForm.objects.get(pk=self.xform.id)
-        xform.version = u'12345678901234567890'
+        xform.version = "12345678901234567890"
         xform.save()
 
         self.assertTrue(len(xform.version) > 12)
@@ -89,7 +91,7 @@ class TestXForm(TestBase):
 
         # '&' should raise an XLSFormError exception when being changed, for
         # deletions this should not raise any exception however
-        xform.title = 'Trial & Error'
+        xform.title = "Trial & Error"
 
         xform.soft_delete(self.user)
         xform.refresh_from_db()
@@ -103,7 +105,7 @@ class TestXForm(TestBase):
         # deleted-at suffix is present
         self.assertIn("-deleted-at-", xform.id_string)
         self.assertIn("-deleted-at-", xform.sms_id_string)
-        self.assertEqual(xform.deleted_by.username, 'bob')
+        self.assertEqual(xform.deleted_by.username, "bob")
 
     def test_get_survey_element(self):
         """
@@ -127,7 +129,7 @@ class TestXForm(TestBase):
         |         | fruity    | orange | Orange |
         |         | fruity    | mango  | Mango  |
         """
-        kwargs = {'name': 'favs', 'title': 'Fruits', 'id_string': 'favs'}
+        kwargs = {"name": "favs", "title": "Fruits", "id_string": "favs"}
         survey = self.md_to_pyxform_survey(markdown_xlsform, kwargs)
         xform = XForm()
         xform._survey = survey  # pylint: disable=W0212
@@ -136,7 +138,7 @@ class TestXForm(TestBase):
         self.assertIsNone(xform.get_survey_element("non_existent"))
 
         # get fruita element by name
-        fruita = xform.get_survey_element('fruita')
+        fruita = xform.get_survey_element("fruita")
         self.assertEqual(fruita.get_abbreviated_xpath(), "a/fruita")
 
         # get exact choices element from choice abbreviated xpath
@@ -149,7 +151,7 @@ class TestXForm(TestBase):
         fruitb_o = xform.get_survey_element("b/fruitb/orange")
         self.assertEqual(fruitb_o.get_abbreviated_xpath(), "b/fruitb/orange")
 
-        self.assertEqual(xform.get_child_elements('NoneExistent'), [])
+        self.assertEqual(xform.get_child_elements("NoneExistent"), [])
 
     def test_check_xform_uuid(self):
         """
@@ -173,8 +175,10 @@ class TestXForm(TestBase):
         """
         self._publish_transportation_form_and_submit_instance()
         xform = XForm.objects.get(pk=self.xform.id)
-        new_string = "transportation_twenty_fifth_july_two_thousand_and_" \
-                     "eleven_test_for_long_sms_id_string_and_id_string"
+        new_string = (
+            "transportation_twenty_fifth_july_two_thousand_and_"
+            "eleven_test_for_long_sms_id_string_and_id_string"
+        )
         xform.id_string = new_string
         xform.sms_id_string = new_string
 
@@ -187,15 +191,13 @@ class TestXForm(TestBase):
 
         # '&' should raise an XLSFormError exception when being changed, for
         # deletions this should not raise any exception however
-        xform.title = 'Trial & Error'
+        xform.title = "Trial & Error"
 
         xform.soft_delete(self.user)
         xform.refresh_from_db()
 
-        d_id_string = new_string + xform.deleted_at.strftime(
-            '-deleted-at-%s')
-        d_sms_id_string = new_string + xform.deleted_at.strftime(
-            '-deleted-at-%s')
+        d_id_string = new_string + xform.deleted_at.strftime("-deleted-at-%s")
+        d_sms_id_string = new_string + xform.deleted_at.strftime("-deleted-at-%s")
 
         # deleted_at is not None
         self.assertIsNotNone(xform.deleted_at)
@@ -209,15 +211,17 @@ class TestXForm(TestBase):
         self.assertIn(xform.sms_id_string, d_sms_id_string)
         self.assertEqual(xform.id_string, d_id_string[:100])
         self.assertEqual(xform.sms_id_string, d_sms_id_string[:100])
-        self.assertEqual(xform.deleted_by.username, 'bob')
+        self.assertEqual(xform.deleted_by.username, "bob")
 
     def test_id_string_length(self):
         """Test Xform.id_string cannot store more than 100 chars"""
         self._publish_transportation_form_and_submit_instance()
         xform = XForm.objects.get(pk=self.xform.id)
-        new_string = "transportation_twenty_fifth_july_two_thousand_and_" \
-                     "eleven_test_for_long_sms_id_string_and_id_string_" \
-                     "before_save"
+        new_string = (
+            "transportation_twenty_fifth_july_two_thousand_and_"
+            "eleven_test_for_long_sms_id_string_and_id_string_"
+            "before_save"
+        )
         xform.id_string = new_string
         xform.sms_id_string = new_string
 
