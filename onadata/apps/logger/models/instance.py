@@ -20,44 +20,74 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 from future.utils import python_2_unicode_compatible
-from past.builtins import basestring  # pylint: disable=W0622
 from taggit.managers import TaggableManager
 
 from onadata.apps.logger.models.submission_review import SubmissionReview
 from onadata.apps.logger.models.survey_type import SurveyType
 from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH, XForm
-from onadata.apps.logger.xform_instance_parser import (XFormInstanceParser,
-                                                       clean_and_parse_xml,
-                                                       get_uuid_from_xml)
+from onadata.apps.logger.xform_instance_parser import (
+    XFormInstanceParser,
+    clean_and_parse_xml,
+    get_uuid_from_xml,
+)
 from onadata.celery import app
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import (
-    DATAVIEW_COUNT, IS_ORG, PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE,
-    XFORM_COUNT, XFORM_DATA_VERSIONS, XFORM_SUBMISSION_COUNT_FOR_DAY,
-    XFORM_SUBMISSION_COUNT_FOR_DAY_DATE, safe_delete)
+    DATAVIEW_COUNT,
+    IS_ORG,
+    PROJ_NUM_DATASET_CACHE,
+    PROJ_SUB_DATE_CACHE,
+    XFORM_COUNT,
+    XFORM_DATA_VERSIONS,
+    XFORM_SUBMISSION_COUNT_FOR_DAY,
+    XFORM_SUBMISSION_COUNT_FOR_DAY_DATE,
+    safe_delete,
+)
 from onadata.libs.utils.common_tags import (
-    ATTACHMENTS, BAMBOO_DATASET_ID, DATE_MODIFIED,
-    DELETEDAT, DURATION, EDITED, END, GEOLOCATION, ID, LAST_EDITED,
-    MEDIA_ALL_RECEIVED, MEDIA_COUNT, MONGO_STRFTIME, NOTES,
-    REVIEW_STATUS, START, STATUS, SUBMISSION_TIME, SUBMITTED_BY,
-    TAGS, TOTAL_MEDIA, UUID, VERSION, XFORM_ID, XFORM_ID_STRING,
-    REVIEW_COMMENT, REVIEW_DATE)
+    ATTACHMENTS,
+    BAMBOO_DATASET_ID,
+    DATE_MODIFIED,
+    DELETEDAT,
+    DURATION,
+    EDITED,
+    END,
+    GEOLOCATION,
+    ID,
+    LAST_EDITED,
+    MEDIA_ALL_RECEIVED,
+    MEDIA_COUNT,
+    MONGO_STRFTIME,
+    NOTES,
+    REVIEW_STATUS,
+    START,
+    STATUS,
+    SUBMISSION_TIME,
+    SUBMITTED_BY,
+    TAGS,
+    TOTAL_MEDIA,
+    UUID,
+    VERSION,
+    XFORM_ID,
+    XFORM_ID_STRING,
+    REVIEW_COMMENT,
+    REVIEW_DATE,
+)
 from onadata.libs.utils.dict_tools import get_values_matching_key
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.timing import calculate_duration
 
-ASYNC_POST_SUBMISSION_PROCESSING_ENABLED = \
-    getattr(settings, 'ASYNC_POST_SUBMISSION_PROCESSING_ENABLED', False)
+ASYNC_POST_SUBMISSION_PROCESSING_ENABLED = getattr(
+    settings, "ASYNC_POST_SUBMISSION_PROCESSING_ENABLED", False
+)
 
 
 def get_attachment_url(attachment, suffix=None):
-    kwargs = {'pk': attachment.pk}
-    url = u'{}?filename={}'.format(
-        reverse('files-detail', kwargs=kwargs),
-        attachment.media_file.name
+    kwargs = {"pk": attachment.pk}
+    url = "{}?filename={}".format(
+        reverse("files-detail", kwargs=kwargs), attachment.media_file.name
     )
     if suffix:
-        url += u'&suffix={}'.format(suffix)
+        url += "&suffix={}".format(suffix)
 
     return url
 
@@ -66,15 +96,15 @@ def _get_attachments_from_instance(instance):
     attachments = []
     for a in instance.attachments.filter(deleted_at__isnull=True):
         attachment = dict()
-        attachment['download_url'] = get_attachment_url(a)
-        attachment['small_download_url'] = get_attachment_url(a, 'small')
-        attachment['medium_download_url'] = get_attachment_url(a, 'medium')
-        attachment['mimetype'] = a.mimetype
-        attachment['filename'] = a.media_file.name
-        attachment['name'] = a.name
-        attachment['instance'] = a.instance.pk
-        attachment['xform'] = instance.xform.id
-        attachment['id'] = a.id
+        attachment["download_url"] = get_attachment_url(a)
+        attachment["small_download_url"] = get_attachment_url(a, "small")
+        attachment["medium_download_url"] = get_attachment_url(a, "medium")
+        attachment["mimetype"] = a.mimetype
+        attachment["filename"] = a.media_file.name
+        attachment["name"] = a.name
+        attachment["instance"] = a.instance.pk
+        attachment["xform"] = instance.xform.id
+        attachment["id"] = a.id
         attachments.append(attachment)
 
     return attachments
@@ -89,15 +119,17 @@ def _get_tag_or_element_type_xpath(xform, tag):
 @python_2_unicode_compatible
 class FormInactiveError(Exception):
     """Exception class for inactive forms"""
+
     def __str__(self):
-        return _(u'Form is inactive')
+        return _("Form is inactive")
 
 
 @python_2_unicode_compatible
 class FormIsMergedDatasetError(Exception):
     """Exception class for merged datasets"""
+
     def __str__(self):
-        return _(u'Submissions are not allowed on merged datasets.')
+        return _("Submissions are not allowed on merged datasets.")
 
 
 def numeric_checker(string_value):
@@ -113,6 +145,7 @@ def numeric_checker(string_value):
 
     return string_value
 
+
 # need to establish id_string of the xform before we run get_dict since
 # we now rely on data dictionary to parse the xml
 
@@ -120,15 +153,15 @@ def numeric_checker(string_value):
 def get_id_string_from_xml_str(xml_str):
     xml_obj = clean_and_parse_xml(xml_str)
     root_node = xml_obj.documentElement
-    id_string = root_node.getAttribute(u"id")
+    id_string = root_node.getAttribute("id")
 
     if len(id_string) == 0:
         # may be hidden in submission/data/id_string
-        elems = root_node.getElementsByTagName('data')
+        elems = root_node.getElementsByTagName("data")
 
         for data in elems:
             for child in data.childNodes:
-                id_string = data.childNodes[0].getAttribute('id')
+                id_string = data.childNodes[0].getAttribute("id")
 
                 if len(id_string) > 0:
                     break
@@ -144,15 +177,17 @@ def submission_time():
 
 
 def _update_submission_count_for_today(
-        form_id: int, incr: bool = True, date_created=None):
+    form_id: int, incr: bool = True, date_created=None
+):
     # Track submissions made today
     current_timzone_name = timezone.get_current_timezone_name()
     current_timezone = pytz.timezone(current_timzone_name)
     today = datetime.today()
     current_date = current_timezone.localize(
-        datetime(today.year, today.month, today.day)).isoformat()
-    date_cache_key = (f"{XFORM_SUBMISSION_COUNT_FOR_DAY_DATE}" f"{form_id}")
-    count_cache_key = (f"{XFORM_SUBMISSION_COUNT_FOR_DAY}{form_id}")
+        datetime(today.year, today.month, today.day)
+    ).isoformat()
+    date_cache_key = f"{XFORM_SUBMISSION_COUNT_FOR_DAY_DATE}" f"{form_id}"
+    count_cache_key = f"{XFORM_SUBMISSION_COUNT_FOR_DAY}{form_id}"
 
     if not cache.get(date_cache_key) == current_date:
         cache.set(date_cache_key, current_date, 86400)
@@ -176,42 +211,45 @@ def _update_submission_count_for_today(
 def update_xform_submission_count(instance_id, created):
     if created:
         from multidb.pinning import use_master
+
         with use_master:
             try:
-                instance = Instance.objects.select_related('xform').only(
-                    'xform__user_id', 'date_created').get(pk=instance_id)
+                instance = (
+                    Instance.objects.select_related("xform")
+                    .only("xform__user_id", "date_created")
+                    .get(pk=instance_id)
+                )
             except Instance.DoesNotExist:
                 pass
             else:
                 # update xform.num_of_submissions
                 cursor = connection.cursor()
                 sql = (
-                    'UPDATE logger_xform SET '
-                    'num_of_submissions = num_of_submissions + 1, '
-                    'last_submission_time = %s '
-                    'WHERE id = %s'
+                    "UPDATE logger_xform SET "
+                    "num_of_submissions = num_of_submissions + 1, "
+                    "last_submission_time = %s "
+                    "WHERE id = %s"
                 )
                 params = [instance.date_created, instance.xform_id]
 
                 # update user profile.num_of_submissions
                 cursor.execute(sql, params)
                 sql = (
-                    'UPDATE main_userprofile SET '
-                    'num_of_submissions = num_of_submissions + 1 '
-                    'WHERE user_id = %s'
+                    "UPDATE main_userprofile SET "
+                    "num_of_submissions = num_of_submissions + 1 "
+                    "WHERE user_id = %s"
                 )
                 cursor.execute(sql, [instance.xform.user_id])
 
                 # Track submissions made today
                 _update_submission_count_for_today(instance.xform_id)
 
-                safe_delete('{}{}'.format(
-                    XFORM_DATA_VERSIONS, instance.xform_id))
-                safe_delete('{}{}'.format(DATAVIEW_COUNT, instance.xform_id))
-                safe_delete('{}{}'.format(XFORM_COUNT, instance.xform_id))
+                safe_delete("{}{}".format(XFORM_DATA_VERSIONS, instance.xform_id))
+                safe_delete("{}{}".format(DATAVIEW_COUNT, instance.xform_id))
+                safe_delete("{}{}".format(XFORM_COUNT, instance.xform_id))
                 # Clear project cache
-                from onadata.apps.logger.models.xform import \
-                    clear_project_cache
+                from onadata.apps.logger.models.xform import clear_project_cache
+
                 clear_project_cache(instance.xform.project_id)
 
 
@@ -224,11 +262,10 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
         xform.num_of_submissions -= 1
         if xform.num_of_submissions < 0:
             xform.num_of_submissions = 0
-        xform.save(update_fields=['num_of_submissions'])
+        xform.save(update_fields=["num_of_submissions"])
         profile_qs = User.profile.get_queryset()
         try:
-            profile = profile_qs.select_for_update()\
-                .get(pk=xform.user.profile.pk)
+            profile = profile_qs.select_for_update().get(pk=xform.user.profile.pk)
         except profile_qs.model.DoesNotExist:
             pass
         else:
@@ -239,15 +276,16 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
 
         # Track submissions made today
         _update_submission_count_for_today(
-            xform.id, incr=False, date_created=instance.date_created)
+            xform.id, incr=False, date_created=instance.date_created
+        )
 
         for a in [PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE]:
-            safe_delete('{}{}'.format(a, xform.project.pk))
+            safe_delete("{}{}".format(a, xform.project.pk))
 
-        safe_delete('{}{}'.format(IS_ORG, xform.pk))
-        safe_delete('{}{}'.format(XFORM_DATA_VERSIONS, xform.pk))
-        safe_delete('{}{}'.format(DATAVIEW_COUNT, xform.pk))
-        safe_delete('{}{}'.format(XFORM_COUNT, xform.pk))
+        safe_delete("{}{}".format(IS_ORG, xform.pk))
+        safe_delete("{}{}".format(XFORM_DATA_VERSIONS, xform.pk))
+        safe_delete("{}{}".format(DATAVIEW_COUNT, xform.pk))
+        safe_delete("{}{}".format(XFORM_COUNT, xform.pk))
 
         if xform.instances.exclude(geom=None).count() < 1:
             xform.instances_with_geopoints = False
@@ -264,7 +302,7 @@ def save_full_json(instance_id, created):
             pass
         else:
             instance.json = instance.get_full_dict()
-            instance.save(update_fields=['json'])
+            instance.save(update_fields=["json"])
 
 
 @app.task
@@ -272,16 +310,19 @@ def update_project_date_modified(instance_id, created):
     # update the date modified field of the project which will change
     # the etag value of the projects endpoint
     try:
-        instance = Instance.objects.select_related('xform__project').only(
-            'xform__project__date_modified').get(pk=instance_id)
+        instance = (
+            Instance.objects.select_related("xform__project")
+            .only("xform__project__date_modified")
+            .get(pk=instance_id)
+        )
     except Instance.DoesNotExist:
         pass
     else:
-        instance.xform.project.save(update_fields=['date_modified'])
+        instance.xform.project.save(update_fields=["date_modified"])
 
 
 def convert_to_serializable_date(date):
-    if hasattr(date, 'isoformat'):
+    if hasattr(date, "isoformat"):
         return date.isoformat()
 
     return date
@@ -302,22 +343,20 @@ class InstanceBaseClass(object):
             # pylint: disable=no-member
             numeric_fields = get_numeric_fields(self.xform)
         for key, value in json_dict.items():
-            if isinstance(value, basestring) and key in numeric_fields:
+            if isinstance(value, str) and key in numeric_fields:
                 converted_value = numeric_checker(value)
                 if converted_value:
                     json_dict[key] = converted_value
             elif isinstance(value, dict):
-                json_dict[key] = self.numeric_converter(
-                    value, numeric_fields)
+                json_dict[key] = self.numeric_converter(value, numeric_fields)
             elif isinstance(value, list):
                 for k, v in enumerate(value):
-                    if isinstance(v, basestring) and key in numeric_fields:
+                    if isinstance(v, str) and key in numeric_fields:
                         converted_value = numeric_checker(v)
                         if converted_value:
                             json_dict[key] = converted_value
                     elif isinstance(v, dict):
-                        value[k] = self.numeric_converter(
-                            v, numeric_fields)
+                        value[k] = self.numeric_converter(v, numeric_fields)
         return json_dict
 
     def _set_geom(self):
@@ -352,22 +391,25 @@ class InstanceBaseClass(object):
         doc = self.get_dict()
         # pylint: disable=no-member
         if self.id:
-            doc.update({
-                UUID: self.uuid,
-                ID: self.id,
-                BAMBOO_DATASET_ID: self.xform.bamboo_dataset,
-                ATTACHMENTS: _get_attachments_from_instance(self),
-                STATUS: self.status,
-                TAGS: list(self.tags.names()),
-                NOTES: self.get_notes(),
-                VERSION: self.version,
-                DURATION: self.get_duration(),
-                XFORM_ID_STRING: self._parser.get_xform_id_string(),
-                XFORM_ID: self.xform.pk,
-                GEOLOCATION: [self.point.y, self.point.x] if self.point
-                else [None, None],
-                SUBMITTED_BY: self.user.username if self.user else None
-            })
+            doc.update(
+                {
+                    UUID: self.uuid,
+                    ID: self.id,
+                    BAMBOO_DATASET_ID: self.xform.bamboo_dataset,
+                    ATTACHMENTS: _get_attachments_from_instance(self),
+                    STATUS: self.status,
+                    TAGS: list(self.tags.names()),
+                    NOTES: self.get_notes(),
+                    VERSION: self.version,
+                    DURATION: self.get_duration(),
+                    XFORM_ID_STRING: self._parser.get_xform_id_string(),
+                    XFORM_ID: self.xform.pk,
+                    GEOLOCATION: [self.point.y, self.point.x]
+                    if self.point
+                    else [None, None],
+                    SUBMITTED_BY: self.user.username if self.user else None,
+                }
+            )
 
             for osm in self.osm_data.all():
                 doc.update(osm.get_tags_with_prefix())
@@ -380,8 +422,7 @@ class InstanceBaseClass(object):
                 review = self.get_latest_review()
                 if review:
                     doc[REVIEW_STATUS] = review.status
-                    doc[REVIEW_DATE] = review.date_created.strftime(
-                        MONGO_STRFTIME)
+                    doc[REVIEW_DATE] = review.date_created.strftime(MONGO_STRFTIME)
                     if review.get_note_text():
                         doc[REVIEW_COMMENT] = review.get_note_text()
 
@@ -392,8 +433,7 @@ class InstanceBaseClass(object):
             if not self.date_modified:
                 self.date_modified = self.date_created
 
-            doc[DATE_MODIFIED] = self.date_modified.strftime(
-                    MONGO_STRFTIME)
+            doc[DATE_MODIFIED] = self.date_modified.strftime(MONGO_STRFTIME)
 
             doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
 
@@ -402,13 +442,13 @@ class InstanceBaseClass(object):
             doc[MEDIA_ALL_RECEIVED] = self.media_all_received
 
             edited = False
-            if hasattr(self, 'last_edited'):
+            if hasattr(self, "last_edited"):
                 edited = self.last_edited is not None
 
             doc[EDITED] = edited
-            edited and doc.update({
-                LAST_EDITED: convert_to_serializable_date(self.last_edited)
-            })
+            edited and doc.update(
+                {LAST_EDITED: convert_to_serializable_date(self.last_edited)}
+            )
         return doc
 
     def _set_parser(self):
@@ -417,8 +457,9 @@ class InstanceBaseClass(object):
             self._parser = XFormInstanceParser(self.xml, self.xform)
 
     def _set_survey_type(self):
-        self.survey_type, created = \
-            SurveyType.objects.get_or_create(slug=self.get_root_node_name())
+        self.survey_type, created = SurveyType.objects.get_or_create(
+            slug=self.get_root_node_name()
+        )
 
     def _set_uuid(self):
         # pylint: disable=no-member, attribute-defined-outside-init
@@ -437,24 +478,26 @@ class InstanceBaseClass(object):
         """Return a python object representation of this instance's XML."""
         self._set_parser()
 
-        instance_dict = self._parser.get_flat_dict_with_attributes() if flat \
+        instance_dict = (
+            self._parser.get_flat_dict_with_attributes()
+            if flat
             else self._parser.to_dict()
+        )
         return self.numeric_converter(instance_dict)
 
     def get_notes(self):
         # pylint: disable=no-member
         return [note.get_data() for note in self.notes.all()]
 
-    @deprecated(version='2.5.3',
-                reason="Deprecated in favour of `get_latest_review`")
+    @deprecated(version="2.5.3", reason="Deprecated in favour of `get_latest_review`")
     def get_review_status_and_comment(self):
         """
         Return a tuple of review status and comment.
         """
         try:
             # pylint: disable=no-member
-            status = self.reviews.latest('date_modified').status
-            comment = self.reviews.latest('date_modified').get_note_text()
+            status = self.reviews.latest("date_modified").status
+            comment = self.reviews.latest("date_modified").get_note_text()
             return status, comment
         except SubmissionReview.DoesNotExist:
             return None
@@ -482,7 +525,7 @@ class InstanceBaseClass(object):
         Used in favour of `get_review_status_and_comment`.
         """
         try:
-            return self.reviews.latest('date_modified')
+            return self.reviews.latest("date_modified")
         except SubmissionReview.DoesNotExist:
             return None
 
@@ -495,12 +538,12 @@ class Instance(models.Model, InstanceBaseClass):
     json = JSONField(default=dict, null=False)
     xml = models.TextField()
     user = models.ForeignKey(
-        User, related_name='instances', null=True, on_delete=models.SET_NULL)
+        User, related_name="instances", null=True, on_delete=models.SET_NULL
+    )
     xform = models.ForeignKey(
-        'logger.XForm', null=False, related_name='instances',
-        on_delete=models.CASCADE)
-    survey_type = models.ForeignKey(
-        'logger.SurveyType', on_delete=models.PROTECT)
+        "logger.XForm", null=False, related_name="instances", on_delete=models.CASCADE
+    )
+    survey_type = models.ForeignKey("logger.SurveyType", on_delete=models.PROTECT)
 
     # shows when we first received this instance
     date_created = models.DateTimeField(auto_now_add=True)
@@ -510,8 +553,9 @@ class Instance(models.Model, InstanceBaseClass):
 
     # this will end up representing "date instance was deleted"
     deleted_at = models.DateTimeField(null=True, default=None)
-    deleted_by = models.ForeignKey(User, related_name='deleted_instances',
-                                   null=True, on_delete=models.SET_NULL)
+    deleted_by = models.ForeignKey(
+        User, related_name="deleted_instances", null=True, on_delete=models.SET_NULL
+    )
 
     # this will be edited when we need to create a new InstanceHistory object
     last_edited = models.DateTimeField(null=True, default=None)
@@ -521,9 +565,8 @@ class Instance(models.Model, InstanceBaseClass):
     # we add the following additional statuses:
     # - submitted_via_web
     # - imported_via_csv
-    status = models.CharField(max_length=20,
-                              default=u'submitted_via_web')
-    uuid = models.CharField(max_length=249, default=u'', db_index=True)
+    status = models.CharField(max_length=20, default="submitted_via_web")
+    uuid = models.CharField(max_length=249, default="", db_index=True)
     version = models.CharField(max_length=XFORM_TITLE_LENGTH, null=True)
 
     # store a geographic objects associated with this instance
@@ -531,25 +574,23 @@ class Instance(models.Model, InstanceBaseClass):
 
     # Keep track of whether all media attachments have been received
     media_all_received = models.NullBooleanField(
-        _("Received All Media Attachemts"),
-        null=True,
-        default=True)
-    total_media = models.PositiveIntegerField(_("Total Media Attachments"),
-                                              null=True,
-                                              default=0)
-    media_count = models.PositiveIntegerField(_("Received Media Attachments"),
-                                              null=True,
-                                              default=0)
-    checksum = models.CharField(max_length=64, null=True, blank=True,
-                                db_index=True)
+        _("Received All Media Attachemts"), null=True, default=True
+    )
+    total_media = models.PositiveIntegerField(
+        _("Total Media Attachments"), null=True, default=0
+    )
+    media_count = models.PositiveIntegerField(
+        _("Received Media Attachments"), null=True, default=0
+    )
+    checksum = models.CharField(max_length=64, null=True, blank=True, db_index=True)
     # Keep track of submission reviews, only query reviews if true
     has_a_review = models.BooleanField(_("has_a_review"), default=False)
 
     tags = TaggableManager()
 
     class Meta:
-        app_label = 'logger'
-        unique_together = ('xform', 'uuid')
+        app_label = "logger"
+        unique_together = ("xform", "uuid")
 
     @classmethod
     def set_deleted_at(cls, instance_id, deleted_at=timezone.now(), user=None):
@@ -582,21 +623,22 @@ class Instance(models.Model, InstanceBaseClass):
         """
         Returns a list of expected media files from the submission data.
         """
-        if not hasattr(self, '_expected_media'):
+        if not hasattr(self, "_expected_media"):
             # pylint: disable=no-member
             data = self.get_dict()
             media_list = []
-            if 'encryptedXmlFile' in data and self.xform.encrypted:
-                media_list.append(data['encryptedXmlFile'])
-                if 'media' in data:
+            if "encryptedXmlFile" in data and self.xform.encrypted:
+                media_list.append(data["encryptedXmlFile"])
+                if "media" in data:
                     # pylint: disable=no-member
-                    media_list.extend([i['media/file'] for i in data['media']])
+                    media_list.extend([i["media/file"] for i in data["media"]])
             else:
-                media_xpaths = (self.xform.get_media_survey_xpaths() +
-                                self.xform.get_osm_survey_xpaths())
+                media_xpaths = (
+                    self.xform.get_media_survey_xpaths()
+                    + self.xform.get_osm_survey_xpaths()
+                )
                 for media_xpath in media_xpaths:
-                    media_list.extend(
-                        get_values_matching_key(data, media_xpath))
+                    media_list.extend(get_values_matching_key(data, media_xpath))
             # pylint: disable=attribute-defined-outside-init
             self._expected_media = list(set(media_list))
 
@@ -607,7 +649,7 @@ class Instance(models.Model, InstanceBaseClass):
         """
         Returns number of media attachments expected in the submission.
         """
-        if not hasattr(self, '_num_of_media'):
+        if not hasattr(self, "_num_of_media"):
             # pylint: disable=attribute-defined-outside-init
             self._num_of_media = len(self.get_expected_media())
 
@@ -615,15 +657,18 @@ class Instance(models.Model, InstanceBaseClass):
 
     @property
     def attachments_count(self):
-        return self.attachments.filter(
-            name__in=self.get_expected_media()
-        ).distinct('name').order_by('name').count()
+        return (
+            self.attachments.filter(name__in=self.get_expected_media())
+            .distinct("name")
+            .order_by("name")
+            .count()
+        )
 
     def save(self, *args, **kwargs):
-        force = kwargs.get('force')
+        force = kwargs.get("force")
 
         if force:
-            del kwargs['force']
+            del kwargs["force"]
 
         self._check_is_merged_dataset()
         self._check_active(force)
@@ -650,19 +695,18 @@ class Instance(models.Model, InstanceBaseClass):
         """
         Soft deletes an attachment by adding a deleted_at timestamp.
         """
-        queryset = self.attachments.filter(
-            ~Q(name__in=self.get_expected_media()))
-        kwargs = {'deleted_at': timezone.now()}
+        queryset = self.attachments.filter(~Q(name__in=self.get_expected_media()))
+        kwargs = {"deleted_at": timezone.now()}
         if user:
-            kwargs.update({'deleted_by': user})
+            kwargs.update({"deleted_by": user})
         queryset.update(**kwargs)
 
 
 def post_save_submission(sender, instance=None, created=False, **kwargs):
     if instance.deleted_at is not None:
-        _update_submission_count_for_today(instance.xform_id,
-                                           incr=False,
-                                           date_created=instance.date_created)
+        _update_submission_count_for_today(
+            instance.xform_id, incr=False, date_created=instance.date_created
+        )
 
     if ASYNC_POST_SUBMISSION_PROCESSING_ENABLED:
         update_xform_submission_count.apply_async(args=[instance.pk, created])
@@ -675,25 +719,29 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
         update_project_date_modified(instance.pk, created)
 
 
-post_save.connect(post_save_submission, sender=Instance,
-                  dispatch_uid='post_save_submission')
+post_save.connect(
+    post_save_submission, sender=Instance, dispatch_uid="post_save_submission"
+)
 
-post_delete.connect(update_xform_submission_count_delete, sender=Instance,
-                    dispatch_uid='update_xform_submission_count_delete')
+post_delete.connect(
+    update_xform_submission_count_delete,
+    sender=Instance,
+    dispatch_uid="update_xform_submission_count_delete",
+)
 
 
 class InstanceHistory(models.Model, InstanceBaseClass):
-
     class Meta:
-        app_label = 'logger'
+        app_label = "logger"
 
     xform_instance = models.ForeignKey(
-        Instance, related_name='submission_history', on_delete=models.CASCADE)
+        Instance, related_name="submission_history", on_delete=models.CASCADE
+    )
     user = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
 
     xml = models.TextField()
     # old instance id
-    uuid = models.CharField(max_length=249, default=u'')
+    uuid = models.CharField(max_length=249, default="")
 
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
@@ -759,9 +807,7 @@ class InstanceHistory(models.Model, InstanceBaseClass):
 
     def _set_parser(self):
         if not hasattr(self, "_parser"):
-            self._parser = XFormInstanceParser(
-                self.xml, self.xform_instance.xform
-            )
+            self._parser = XFormInstanceParser(self.xml, self.xform_instance.xform)
 
     @classmethod
     def set_deleted_at(cls, instance_id, deleted_at=timezone.now()):

@@ -1,17 +1,15 @@
-from past.builtins import basestring
-
 import django.dispatch
 
 from onadata.apps.logger.models import XForm
 
-xform_tags_add = django.dispatch.Signal(providing_args=['xform', 'tags'])
-xform_tags_delete = django.dispatch.Signal(providing_args=['xform', 'tag'])
+xform_tags_add = django.dispatch.Signal(providing_args=["xform", "tags"])
+xform_tags_delete = django.dispatch.Signal(providing_args=["xform", "tag"])
 
 
 @django.dispatch.receiver(xform_tags_add, sender=XForm)
 def add_tags_to_xform_instances(sender, **kwargs):
-    xform = kwargs.get('xform', None)
-    tags = kwargs.get('tags', None)
+    xform = kwargs.get("xform", None)
+    tags = kwargs.get("tags", None)
     if isinstance(xform, XForm) and isinstance(tags, list):
         # update existing instances with the new tag
         for instance in xform.instances.all():
@@ -24,9 +22,9 @@ def add_tags_to_xform_instances(sender, **kwargs):
 
 @django.dispatch.receiver(xform_tags_delete, sender=XForm)
 def delete_tag_from_xform_instances(sender, **kwargs):
-    xform = kwargs.get('xform', None)
-    tag = kwargs.get('tag', None)
-    if isinstance(xform, XForm) and isinstance(tag, basestring):
+    xform = kwargs.get("xform", None)
+    tag = kwargs.get("tag", None)
+    if isinstance(xform, XForm) and isinstance(tag, str):
         # update existing instances with the new tag
         for instance in xform.instances.all():
             if tag in instance.tags.names():
