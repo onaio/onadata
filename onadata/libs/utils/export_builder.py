@@ -23,7 +23,11 @@ from openpyxl.utils.datetime import to_excel
 from openpyxl.workbook import Workbook
 from pyxform.question import Question
 from pyxform.section import RepeatingSection, Section
-from savReaderWriter import SavWriter
+
+try:
+    from savReaderWriter import SavWriter
+except ImportError:
+    SavWriter = None
 
 from onadata.apps.logger.models.osmdata import OsmData
 from onadata.apps.logger.models.xform import (
@@ -1411,6 +1415,10 @@ class ExportBuilder(object):
         return column
 
     def to_zipped_sav(self, path, data, *args, **kwargs):
+        if SavWriter is None:
+            # Fail silently
+            return
+
         total_records = kwargs.get("total_records")
 
         def write_row(row, csv_writer, fields):
