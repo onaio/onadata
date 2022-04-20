@@ -27,7 +27,11 @@ from requests import ConnectionError
 from rest_framework import exceptions, status
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
-from savReaderWriter import SPSSIOError
+
+try:
+    from savReaderWriter import SPSSIOError
+except ImportError:
+    SPSSIOError = Exception
 
 from onadata.apps.main.models import TokenStorageModel
 from onadata.apps.viewer import tasks as viewer_task

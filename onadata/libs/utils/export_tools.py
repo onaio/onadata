@@ -26,7 +26,12 @@ from six.moves.urllib.parse import urlparse
 from six import iteritems
 from json2xlsclient.client import Client
 from rest_framework import exceptions
-from savReaderWriter import SPSSIOError
+
+try:
+    from savReaderWriter import SPSSIOError
+except ImportError:
+    SPSSIOError = Exception
+
 from multidb.pinning import use_master
 
 from onadata.apps.logger.models import Attachment, Instance, OsmData, XForm
