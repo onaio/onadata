@@ -9,7 +9,9 @@ from io import BytesIO, StringIO
 from typing import Tuple
 
 import pytz
-from django.utils import six, timezone
+import six
+
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.utils.encoding import smart_text, force_str
 from django.utils.xmlutils import SimplerXMLGenerator

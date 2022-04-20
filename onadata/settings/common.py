@@ -191,7 +191,7 @@ INSTALLED_APPS = (
     "django.contrib.admindocs",
     "django.contrib.gis",
     "registration",
-    "django_nose",
+    # "django_nose",
     "django_digest",
     "corsheaders",
     "oauth2_provider",
@@ -462,8 +462,8 @@ EXPORT_TASK_LIFESPAN = 6  # six hours
 # default content length for submission requests
 DEFAULT_CONTENT_LENGTH = 10000000
 
-TEST_RUNNER = "django_nose.NoseTestSuiteRunner"
-NOSE_ARGS = ["--with-fixture-bundling", "--nologcapture", "--nocapture"]
+# TEST_RUNNER = "django_nose.NoseTestSuiteRunner"
+# NOSE_ARGS = ["--with-fixture-bundling", "--nologcapture", "--nocapture"]
 
 # fake endpoints for testing
 TEST_HTTP_HOST = "testserver.com"

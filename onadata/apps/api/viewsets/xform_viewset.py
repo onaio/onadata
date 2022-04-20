@@ -3,6 +3,8 @@ import os
 import random
 from datetime import datetime
 
+import six
+
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -17,7 +19,7 @@ from django.http import (
     HttpResponseRedirect,
     StreamingHttpResponse,
 )
-from django.utils import six, timezone
+from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache
