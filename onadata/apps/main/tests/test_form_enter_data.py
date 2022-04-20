@@ -7,7 +7,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.core.validators import URLValidator
 from django.test import RequestFactory
 from django.urls import reverse
-from future.moves.urllib.parse import urlparse
+from six.moves.urllib.parse import urlparse
 from httmock import HTTMock, urlmatch
 from nose import SkipTest
 

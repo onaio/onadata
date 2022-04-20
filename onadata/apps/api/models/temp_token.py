@@ -7,9 +7,9 @@ import os
 
 from django.conf import settings
 from django.db import models
-from django.utils.encoding import python_2_unicode_compatible
+from six import python_2_unicode_compatible
 
-AUTH_USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
+AUTH_USER_MODEL = getattr(settings, "AUTH_USER_MODEL", "auth.User")
 
 
 @python_2_unicode_compatible
@@ -18,13 +18,15 @@ class TempToken(models.Model):
     """
     The temporary authorization token model.
     """
+
     key = models.CharField(max_length=40, primary_key=True)
     user = models.OneToOneField(
-        AUTH_USER_MODEL, related_name='_user', on_delete=models.CASCADE)
+        AUTH_USER_MODEL, related_name="_user", on_delete=models.CASCADE
+    )
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        app_label = 'api'
+        app_label = "api"
 
     def save(self, *args, **kwargs):
         if not self.key:

@@ -7,7 +7,7 @@ authentication using the unique uuid.
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models
-from django.utils.encoding import python_2_unicode_compatible
+from six import python_2_unicode_compatible
 
 from onadata.libs.utils.common_tools import get_uuid
 
@@ -18,11 +18,12 @@ class OpenData(models.Model):
     OpenData model represents a way to access private datasets without
     authentication using the unique uuid.
     """
+
     name = models.CharField(max_length=255)
     uuid = models.CharField(max_length=32, default=get_uuid, unique=True)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField(null=True, blank=True)
-    content_object = GenericForeignKey('content_type', 'object_id')
+    content_object = GenericForeignKey("content_type", "object_id")
 
     active = models.BooleanField(default=True)
     date_created = models.DateTimeField(auto_now_add=True)
@@ -32,7 +33,7 @@ class OpenData(models.Model):
         return getattr(self, "name", "")
 
     class Meta:
-        app_label = 'logger'
+        app_label = "logger"
 
 
 def get_or_create_opendata(xform):
@@ -47,8 +48,8 @@ def get_or_create_opendata(xform):
     return OpenData.objects.get_or_create(
         object_id=xform.id,
         defaults={
-            'name': xform.id_string,
-            'content_type': content_type,
-            'content_object': xform,
-        }
+            "name": xform.id_string,
+            "content_type": content_type,
+            "content_object": xform,
+        },
     )

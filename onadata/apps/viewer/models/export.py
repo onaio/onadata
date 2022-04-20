@@ -3,7 +3,8 @@
 Export model.
 """
 import os
-from future.utils import python_2_unicode_compatible
+
+from six import python_2_unicode_compatible
 from tempfile import NamedTemporaryFile
 
 from django.core.files.storage import get_storage_class
@@ -15,7 +16,7 @@ from django.utils.translation import ugettext as _
 from onadata.libs.utils.common_tags import OSM
 from onadata.libs.utils import async_status
 
-EXPORT_QUERY_KEY = 'query'
+EXPORT_QUERY_KEY = "query"
 
 
 # pylint: disable=unused-argument
@@ -23,7 +24,7 @@ def export_delete_callback(sender, **kwargs):
     """
     Delete export file when an export object is deleted.
     """
-    export = kwargs['instance']
+    export = kwargs["instance"]
     storage = get_storage_class()()
     if export.filepath and storage.exists(export.filepath):
         storage.delete(export.filepath)
@@ -38,7 +39,7 @@ def get_export_options_query_kwargs(options):
         if field in options:
             field_value = options.get(field)
 
-            key = 'options__{}'.format(field)
+            key = "options__{}".format(field)
             options_kwargs[key] = field_value
 
     return options_kwargs
@@ -49,8 +50,9 @@ class ExportTypeError(Exception):
     """
     ExportTypeError exception class.
     """
+
     def __str__(self):
-        return _(u'Invalid export type specified')
+        return _("Invalid export type specified")
 
 
 @python_2_unicode_compatible
@@ -58,8 +60,9 @@ class ExportConnectionError(Exception):
     """
     ExportConnectionError exception class.
     """
+
     def __str__(self):
-        return _(u'Export server is down.')
+        return _("Export server is down.")
 
 
 @python_2_unicode_compatible
@@ -67,40 +70,41 @@ class Export(models.Model):
     """
     Class representing a data export from an XForm
     """
-    XLS_EXPORT = 'xls'
-    CSV_EXPORT = 'csv'
-    KML_EXPORT = 'kml'
-    ZIP_EXPORT = 'zip'
-    CSV_ZIP_EXPORT = 'csv_zip'
-    SAV_ZIP_EXPORT = 'sav_zip'
-    SAV_EXPORT = 'sav'
-    EXTERNAL_EXPORT = 'external'
+
+    XLS_EXPORT = "xls"
+    CSV_EXPORT = "csv"
+    KML_EXPORT = "kml"
+    ZIP_EXPORT = "zip"
+    CSV_ZIP_EXPORT = "csv_zip"
+    SAV_ZIP_EXPORT = "sav_zip"
+    SAV_EXPORT = "sav"
+    EXTERNAL_EXPORT = "external"
     OSM_EXPORT = OSM
-    GOOGLE_SHEETS_EXPORT = 'gsheets'
+    GOOGLE_SHEETS_EXPORT = "gsheets"
 
     EXPORT_MIMES = {
-        'xls': 'vnd.ms-excel',
-        'xlsx': 'vnd.openxmlformats',
-        'csv': 'csv',
-        'zip': 'zip',
-        'csv_zip': 'zip',
-        'sav_zip': 'zip',
-        'sav': 'sav',
-        'kml': 'vnd.google-earth.kml+xml',
-        OSM: OSM
+        "xls": "vnd.ms-excel",
+        "xlsx": "vnd.openxmlformats",
+        "csv": "csv",
+        "zip": "zip",
+        "csv_zip": "zip",
+        "sav_zip": "zip",
+        "sav": "sav",
+        "kml": "vnd.google-earth.kml+xml",
+        OSM: OSM,
     }
 
     EXPORT_TYPES = [
-        (XLS_EXPORT, 'Excel'),
-        (CSV_EXPORT, 'CSV'),
-        (ZIP_EXPORT, 'ZIP'),
-        (KML_EXPORT, 'kml'),
-        (CSV_ZIP_EXPORT, 'CSV ZIP'),
-        (SAV_ZIP_EXPORT, 'SAV ZIP'),
-        (SAV_EXPORT, 'SAV'),
-        (EXTERNAL_EXPORT, 'Excel'),
+        (XLS_EXPORT, "Excel"),
+        (CSV_EXPORT, "CSV"),
+        (ZIP_EXPORT, "ZIP"),
+        (KML_EXPORT, "kml"),
+        (CSV_ZIP_EXPORT, "CSV ZIP"),
+        (SAV_ZIP_EXPORT, "SAV ZIP"),
+        (SAV_EXPORT, "SAV"),
+        (EXTERNAL_EXPORT, "Excel"),
         (OSM, OSM),
-        (GOOGLE_SHEETS_EXPORT, 'Google Sheets'),
+        (GOOGLE_SHEETS_EXPORT, "Google Sheets"),
     ]
 
     EXPORT_OPTION_FIELDS = [
@@ -131,7 +135,7 @@ class Export(models.Model):
     MAX_EXPORTS = 10
 
     # Required fields
-    xform = models.ForeignKey('logger.XForm', on_delete=models.CASCADE)
+    xform = models.ForeignKey("logger.XForm", on_delete=models.CASCADE)
     export_type = models.CharField(
         max_length=10, choices=EXPORT_TYPES, default=XLS_EXPORT
     )
@@ -159,14 +163,15 @@ class Export(models.Model):
         unique_together = (("xform", "filename"),)
 
     def __str__(self):
-        return u'%s - %s (%s)' % (self.export_type, self.xform, self.filename)
+        return "%s - %s (%s)" % (self.export_type, self.xform, self.filename)
 
     def save(self, *args, **kwargs):  # pylint: disable=arguments-differ
         if not self.pk and self.xform:
             # if new, check if we've hit our limit for exports for this form,
             # if so, delete oldest
             num_existing_exports = Export.objects.filter(
-                xform=self.xform, export_type=self.export_type).count()
+                xform=self.xform, export_type=self.export_type
+            ).count()
 
             if num_existing_exports >= self.MAX_EXPORTS:
                 Export._delete_oldest_export(self.xform, self.export_type)
@@ -174,8 +179,7 @@ class Export(models.Model):
             # update time_of_last_submission with
             # xform.time_of_last_submission_update
             # pylint: disable=E1101
-            self.time_of_last_submission = self.xform.\
-                time_of_last_submission_update()
+            self.time_of_last_submission = self.xform.time_of_last_submission_update()
         if self.filename:
             self.internal_status = Export.SUCCESSFUL
         super(Export, self).save(*args, **kwargs)
@@ -183,7 +187,8 @@ class Export(models.Model):
     @classmethod
     def _delete_oldest_export(cls, xform, export_type):
         oldest_export = Export.objects.filter(
-            xform=xform, export_type=export_type).order_by('created_on')[0]
+            xform=xform, export_type=export_type
+        ).order_by("created_on")[0]
         oldest_export.delete()
 
     @property
@@ -227,9 +232,9 @@ class Export(models.Model):
         if not self.filename:
             raise AssertionError()
         # pylint: disable=E1101
-        self.filedir = os.path.join(self.xform.user.username,
-                                    'exports', self.xform.id_string,
-                                    self.export_type)
+        self.filedir = os.path.join(
+            self.xform.user.username, "exports", self.xform.id_string, self.export_type
+        )
 
     @property
     def filepath(self):
@@ -273,16 +278,22 @@ class Export(models.Model):
         try:
             export_options = get_export_options_query_kwargs(options)
             latest_export = Export.objects.filter(
-                xform=xform, export_type=export_type,
+                xform=xform,
+                export_type=export_type,
                 internal_status__in=[Export.SUCCESSFUL, Export.PENDING],
-                **export_options).latest('created_on')
+                **export_options
+            ).latest("created_on")
         except cls.DoesNotExist:
             return True
         else:
-            if latest_export.time_of_last_submission is not None \
-                    and xform.time_of_last_submission_update() is not None:
-                return latest_export.time_of_last_submission <\
-                    xform.time_of_last_submission_update()
+            if (
+                latest_export.time_of_last_submission is not None
+                and xform.time_of_last_submission_update() is not None
+            ):
+                return (
+                    latest_export.time_of_last_submission
+                    < xform.time_of_last_submission_update()
+                )
 
             # return true if we can't determine the status, to force
             # auto-generation
@@ -293,8 +304,7 @@ class Export(models.Model):
         """
         Return True if the filename is unique.
         """
-        return Export.objects.filter(
-            xform=xform, filename=filename).count() == 0
+        return Export.objects.filter(xform=xform, filename=filename).count() == 0
 
 
 post_delete.connect(export_delete_callback, sender=Export)

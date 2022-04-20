@@ -19,7 +19,7 @@ from django.db.models.signals import post_delete, post_save
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext as _
-from future.utils import python_2_unicode_compatible
+from six import python_2_unicode_compatible
 from taggit.managers import TaggableManager
 
 from onadata.apps.logger.models.submission_review import SubmissionReview

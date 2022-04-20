@@ -1,5 +1,5 @@
 import json
-from future.utils import listvalues
+from six import itervalues
 
 from rest_framework import serializers
 
@@ -13,7 +13,7 @@ def dict_key_for_value(_dict, value):
     """
     This function is used to get key by value in a dictionary
     """
-    return list(_dict)[listvalues(_dict).index(value)]
+    return list(_dict)[list(itervalues(_dict)).index(value)]
 
 
 def get_path(data, question_name, path_list):
@@ -25,12 +25,12 @@ def get_path(data, question_name, path_list):
     :return: an xpath which is a string or None if name cannot be found
     :rtype: string or None
     """
-    name = data.get('name')
+    name = data.get("name")
     if name == question_name:
-        return '/'.join(path_list)
-    elif data.get('children') is not None:
-        for node in data.get('children'):
-            path_list.append(node.get('name'))
+        return "/".join(path_list)
+    elif data.get("children") is not None:
+        for node in data.get("children"):
+            path_list.append(node.get("name"))
             path = get_path(node, question_name, path_list)
             if path is not None:
                 return path
@@ -40,26 +40,35 @@ def get_path(data, question_name, path_list):
 
 
 class AttachmentSerializer(serializers.HyperlinkedModelSerializer):
-    url = serializers.HyperlinkedIdentityField(view_name='attachment-detail',
-                                               lookup_field='pk')
+    url = serializers.HyperlinkedIdentityField(
+        view_name="attachment-detail", lookup_field="pk"
+    )
     field_xpath = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField()
     small_download_url = serializers.SerializerMethodField()
     medium_download_url = serializers.SerializerMethodField()
-    xform = serializers.ReadOnlyField(source='instance.xform.pk')
-    instance = serializers.PrimaryKeyRelatedField(
-        queryset=Instance.objects.all())
-    filename = serializers.ReadOnlyField(source='media_file.name')
+    xform = serializers.ReadOnlyField(source="instance.xform.pk")
+    instance = serializers.PrimaryKeyRelatedField(queryset=Instance.objects.all())
+    filename = serializers.ReadOnlyField(source="media_file.name")
 
     class Meta:
-        fields = ('url', 'filename', 'mimetype', 'field_xpath', 'id', 'xform',
-                  'instance', 'download_url', 'small_download_url',
-                  'medium_download_url')
+        fields = (
+            "url",
+            "filename",
+            "mimetype",
+            "field_xpath",
+            "id",
+            "xform",
+            "instance",
+            "download_url",
+            "small_download_url",
+            "medium_download_url",
+        )
         model = Attachment
 
     @check_obj
     def get_download_url(self, obj):
-        request = self.context.get('request')
+        request = self.context.get("request")
 
         if obj:
             path = get_attachment_url(obj)
@@ -67,18 +76,18 @@ class AttachmentSerializer(serializers.HyperlinkedModelSerializer):
             return request.build_absolute_uri(path) if request else path
 
     def get_small_download_url(self, obj):
-        request = self.context.get('request')
+        request = self.context.get("request")
 
-        if obj.mimetype.startswith('image'):
-            path = get_attachment_url(obj, 'small')
+        if obj.mimetype.startswith("image"):
+            path = get_attachment_url(obj, "small")
 
             return request.build_absolute_uri(path) if request else path
 
     def get_medium_download_url(self, obj):
-        request = self.context.get('request')
+        request = self.context.get("request")
 
-        if obj.mimetype.startswith('image'):
-            path = get_attachment_url(obj, 'medium')
+        if obj.mimetype.startswith("image"):
+            path = get_attachment_url(obj, "medium")
 
             return request.build_absolute_uri(path) if request else path
 
