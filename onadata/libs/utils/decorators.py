@@ -2,7 +2,6 @@ from functools import wraps
 from six.moves.urllib.parse import urlparse
 
 from django.contrib.auth import REDIRECT_FIELD_NAME
-from django.utils.decorators import available_attrs
 from django.conf import settings
 from django.http import HttpResponseRedirect
 
@@ -17,7 +16,7 @@ def check_obj(f):
 
 
 def is_owner(view_func):
-    @wraps(view_func, assigned=available_attrs(view_func))
+    @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
         # assume username is first arg
         if request.user.is_authenticated:

@@ -15,7 +15,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.utils.encoding import smart_text, force_str
 from django.utils.xmlutils import SimplerXMLGenerator
-from fsix import iteritems
+from six import iteritems
 from rest_framework import negotiation
 from rest_framework.renderers import (
     BaseRenderer,
