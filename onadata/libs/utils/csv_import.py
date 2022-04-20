@@ -25,7 +25,7 @@ from django.contrib.auth.models import User
 from django.core.files.storage import default_storage
 from django.utils import timezone
 from django.utils.translation import ugettext as _
-from future.utils import iteritems
+from six import iteritems
 from multidb.pinning import use_master
 
 from onadata.apps.logger.models import Instance, XForm

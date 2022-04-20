@@ -2,7 +2,7 @@ import logging
 import re
 import dateutil.parser
 from builtins import str as text
-from future.utils import python_2_unicode_compatible
+from six import python_2_unicode_compatible
 from xml.dom import minidom, Node
 
 from django.utils.encoding import smart_text, smart_str
@@ -18,25 +18,25 @@ class XLSFormError(Exception):
 @python_2_unicode_compatible
 class DuplicateInstance(Exception):
     def __str__(self):
-        return _(u'Duplicate Instance')
+        return _("Duplicate Instance")
 
 
 @python_2_unicode_compatible
 class InstanceInvalidUserError(Exception):
     def __str__(self):
-        return _(u'Could not determine the user.')
+        return _("Could not determine the user.")
 
 
 @python_2_unicode_compatible
 class InstanceParseError(Exception):
     def __str__(self):
-        return _(u'The instance could not be parsed.')
+        return _("The instance could not be parsed.")
 
 
 @python_2_unicode_compatible
 class InstanceEmptyError(InstanceParseError):
     def __str__(self):
-        return _(u'Empty instance')
+        return _("Empty instance")
 
 
 class InstanceFormatError(Exception):
@@ -67,25 +67,31 @@ def get_meta_from_xml(xml_str, meta_name):
     if children.length == 0:
         raise ValueError(_("XML string must have a survey element."))
     survey_node = children[0]
-    meta_tags = [n for n in survey_node.childNodes if
-                 n.nodeType == Node.ELEMENT_NODE and
-                 (n.tagName.lower() == "meta" or
-                     n.tagName.lower() == "orx:meta")]
+    meta_tags = [
+        n
+        for n in survey_node.childNodes
+        if n.nodeType == Node.ELEMENT_NODE
+        and (n.tagName.lower() == "meta" or n.tagName.lower() == "orx:meta")
+    ]
     if len(meta_tags) == 0:
         return None
 
     # get the requested tag
     meta_tag = meta_tags[0]
-    uuid_tags = [n for n in meta_tag.childNodes if
-                 n.nodeType == Node.ELEMENT_NODE and
-                 (n.tagName.lower() == meta_name.lower() or
-                  n.tagName.lower() == u'orx:%s' % meta_name.lower())]
+    uuid_tags = [
+        n
+        for n in meta_tag.childNodes
+        if n.nodeType == Node.ELEMENT_NODE
+        and (
+            n.tagName.lower() == meta_name.lower()
+            or n.tagName.lower() == "orx:%s" % meta_name.lower()
+        )
+    ]
     if len(uuid_tags) == 0:
         return None
 
     uuid_tag = uuid_tags[0]
-    return uuid_tag.firstChild.nodeValue.strip() if uuid_tag.firstChild\
-        else None
+    return uuid_tag.firstChild.nodeValue.strip() if uuid_tag.firstChild else None
 
 
 def get_uuid_from_xml(xml):
@@ -94,6 +100,7 @@ def get_uuid_from_xml(xml):
         if matches and len(matches.groups()) > 0:
             return matches.groups()[0]
         return None
+
     uuid = get_meta_from_xml(xml, "instanceID")
     regex = re.compile(r"uuid:(.*)")
     if uuid:
@@ -106,8 +113,8 @@ def get_uuid_from_xml(xml):
     if children.length == 0:
         raise ValueError(_("XML string must have a survey element."))
     survey_node = children[0]
-    uuid = survey_node.getAttribute('instanceID')
-    if uuid != '':
+    uuid = survey_node.getAttribute("instanceID")
+    if uuid != "":
         return _uuid_only(uuid, regex)
     return None
 
@@ -121,8 +128,8 @@ def get_submission_date_from_xml(xml):
     if children.length == 0:
         raise ValueError(_("XML string must have a survey element."))
     survey_node = children[0]
-    submissionDate = survey_node.getAttribute('submissionDate')
-    if submissionDate != '':
+    submissionDate = survey_node.getAttribute("submissionDate")
+    if submissionDate != "":
         return dateutil.parser.parse(submissionDate)
     return None
 
@@ -139,7 +146,7 @@ def get_deprecated_uuid_from_xml(xml):
 
 def clean_and_parse_xml(xml_string):
     clean_xml_str = xml_string.strip()
-    clean_xml_str = re.sub(r">\s+<", u"><", smart_text(clean_xml_str))
+    clean_xml_str = re.sub(r">\s+<", "><", smart_text(clean_xml_str))
     xml_obj = minidom.parseString(smart_str(clean_xml_str))
     return xml_obj
 
@@ -148,8 +155,7 @@ def _xml_node_to_dict(node, repeats=[], encrypted=False):
     if len(node.childNodes) == 0:
         # there's no data for this leaf node
         return None
-    elif len(node.childNodes) == 1 and \
-            node.childNodes[0].nodeType == node.TEXT_NODE:
+    elif len(node.childNodes) == 1 and node.childNodes[0].nodeType == node.TEXT_NODE:
         # there is data for this leaf node
         return {node.nodeName: node.childNodes[0].nodeValue}
     else:
@@ -173,7 +179,7 @@ def _xml_node_to_dict(node, repeats=[], encrypted=False):
             node_type = dict
             # check if name is in list of repeats and make it a list if so
             # All the photo attachments in an encrypted form use name media
-            if child_xpath in repeats or (encrypted and child_name == 'media'):
+            if child_xpath in repeats or (encrypted and child_name == "media"):
                 node_type = list
 
             if node_type == dict:
@@ -225,7 +231,7 @@ def _flatten_dict(d, prefix):
                     # hack: removing [1] index to be consistent across
                     # surveys that have a single repitition of the
                     # loop versus mutliple.
-                    item_prefix[-1] += u"[%s]" % text(i + 1)
+                    item_prefix[-1] += "[%s]" % text(i + 1)
 
                 if isinstance(item, dict):
                     for pair in _flatten_dict(item, item_prefix):
@@ -256,13 +262,12 @@ def _flatten_dict_nest_repeats(d, prefix):
                 if isinstance(item, dict):
                     repeat = {}
 
-                    for path, value in _flatten_dict_nest_repeats(
-                            item, item_prefix):
+                    for path, value in _flatten_dict_nest_repeats(item, item_prefix):
                         # TODO: this only considers the first level of repeats
-                        repeat.update({u"/".join(path[1:]): value})
+                        repeat.update({"/".join(path[1:]): value})
                     repeats.append(repeat)
                 else:
-                    repeats.append({u"/".join(item_prefix[1:]): item})
+                    repeats.append({"/".join(item_prefix[1:]): item})
             yield (new_prefix, repeats)
         else:
             yield (new_prefix, value)
@@ -300,7 +305,6 @@ def _get_all_attributes(node):
 
 
 class XFormInstanceParser(object):
-
     def __init__(self, xml_str, data_dictionary):
         self.dd = data_dictionary
         self.parse(xml_str)
@@ -308,18 +312,19 @@ class XFormInstanceParser(object):
     def parse(self, xml_str):
         self._xml_obj = clean_and_parse_xml(xml_str)
         self._root_node = self._xml_obj.documentElement
-        repeats = [e.get_abbreviated_xpath()
-                   for e in self.dd.get_survey_elements_of_type(u"repeat")]
+        repeats = [
+            e.get_abbreviated_xpath()
+            for e in self.dd.get_survey_elements_of_type("repeat")
+        ]
 
-        self._dict = _xml_node_to_dict(self._root_node, repeats,
-                                       self.dd.encrypted)
+        self._dict = _xml_node_to_dict(self._root_node, repeats, self.dd.encrypted)
         self._flat_dict = {}
 
         if self._dict is None:
             raise InstanceEmptyError
 
         for path, value in _flatten_dict_nest_repeats(self._dict, []):
-            self._flat_dict[u"/".join(path[1:])] = value
+            self._flat_dict["/".join(path[1:])] = value
         self._set_attributes()
 
     def get_root_node(self):
@@ -348,17 +353,18 @@ class XFormInstanceParser(object):
             # multiple xml tags, overriding and log when this occurs
             if key in self._attributes:
                 logger = logging.getLogger("console_logger")
-                logger.debug("Skipping duplicate attribute: %s"
-                             " with value %s" % (key, value))
+                logger.debug(
+                    "Skipping duplicate attribute: %s" " with value %s" % (key, value)
+                )
                 logger.debug(text(all_attributes))
             else:
                 self._attributes[key] = value
 
     def get_xform_id_string(self):
-        return self._attributes[u"id"]
+        return self._attributes["id"]
 
     def get_version(self):
-        return self._attributes.get(u"version")
+        return self._attributes.get("version")
 
     def get_flat_dict_with_attributes(self):
         result = self.to_flat_dict().copy()

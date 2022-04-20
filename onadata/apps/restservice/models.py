@@ -3,7 +3,8 @@
 RestService model
 """
 import importlib
-from future.utils import python_2_unicode_compatible
+
+from six import python_2_unicode_compatible
 
 from django.conf import settings
 from django.db import models
@@ -23,30 +24,32 @@ class RestService(models.Model):
     """
 
     class Meta:
-        app_label = 'restservice'
-        unique_together = ('service_url', 'xform', 'name')
+        app_label = "restservice"
+        unique_together = ("service_url", "xform", "name")
 
     service_url = models.URLField(ugettext_lazy("Service URL"))
     xform = models.ForeignKey(XForm, on_delete=models.CASCADE)
     name = models.CharField(max_length=50, choices=SERVICE_CHOICES)
-    date_created = models.DateTimeField(
-        auto_now_add=True, null=True, blank=True)
+    date_created = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     date_modified = models.DateTimeField(auto_now=True, null=True, blank=True)
-    active = models.BooleanField(ugettext_lazy("Active"), default=True,
-                                 blank=False, null=False)
-    inactive_reason = models.TextField(ugettext_lazy("Inactive reason"),
-                                       blank=True, default="")
+    active = models.BooleanField(
+        ugettext_lazy("Active"), default=True, blank=False, null=False
+    )
+    inactive_reason = models.TextField(
+        ugettext_lazy("Inactive reason"), blank=True, default=""
+    )
 
     def __str__(self):
-        return u"%s:%s - %s" % (self.xform, self.long_name, self.service_url)
+        return "%s:%s - %s" % (self.xform, self.long_name, self.service_url)
 
     def get_service_definition(self):
         """
         Returns ServiceDefinition class
         """
-        services_to_modules = getattr(settings, 'REST_SERVICES_TO_MODULES', {})
+        services_to_modules = getattr(settings, "REST_SERVICES_TO_MODULES", {})
         module_name = services_to_modules.get(
-            self.name, 'onadata.apps.restservice.services.%s' % self.name)
+            self.name, "onadata.apps.restservice.services.%s" % self.name
+        )
         module = importlib.import_module(module_name)
 
         return module.ServiceDefinition
@@ -67,12 +70,11 @@ def delete_metadata(sender, instance, **kwargs):  # pylint: disable=W0613
     """
     if instance.name in [TEXTIT, GOOGLE_SHEET]:
         MetaData.objects.filter(  # pylint: disable=no-member
-            object_id=instance.xform.id,
-            data_type=instance.name).delete()
+            object_id=instance.xform.id, data_type=instance.name
+        ).delete()
 
 
-post_delete.connect(
-    delete_metadata, sender=RestService, dispatch_uid='delete_metadata')
+post_delete.connect(delete_metadata, sender=RestService, dispatch_uid="delete_metadata")
 
 
 # pylint: disable=W0613
@@ -80,19 +82,19 @@ def propagate_merged_datasets(sender, instance, **kwargs):
     """
     Propagate the service to the individual forms of a merged dataset.
     """
-    created = kwargs.get('created')
+    created = kwargs.get("created")
     if created and instance.xform.is_merged_dataset:
         for xform in instance.xform.mergedxform.xforms.all():
             RestService.objects.create(
-                service_url=instance.service_url,
-                xform=xform,
-                name=instance.name)
+                service_url=instance.service_url, xform=xform, name=instance.name
+            )
 
 
 post_save.connect(
     propagate_merged_datasets,
     sender=RestService,
-    dispatch_uid='propagate_merged_datasets')
+    dispatch_uid="propagate_merged_datasets",
+)
 
 
 # pylint: disable=W0613
@@ -104,9 +106,8 @@ def delete_merged_datasets_service(sender, instance, **kwargs):
         for xform in instance.xform.mergedxform.xforms.all():
             try:
                 service = RestService.objects.get(
-                    service_url=instance.service_url,
-                    xform=xform,
-                    name=instance.name)
+                    service_url=instance.service_url, xform=xform, name=instance.name
+                )
             except RestService.DoesNotExist:
                 pass
             else:
@@ -116,4 +117,5 @@ def delete_merged_datasets_service(sender, instance, **kwargs):
 post_delete.connect(
     delete_merged_datasets_service,
     sender=RestService,
-    dispatch_uid='propagate_merged_datasets')
+    dispatch_uid="propagate_merged_datasets",
+)

@@ -23,7 +23,7 @@ from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from future.moves.urllib.parse import urlparse
+from six.moves.urllib.parse import urlparse
 
 try:
     from multidb.pinning import use_master

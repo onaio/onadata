@@ -5,7 +5,7 @@ UserProfileViewSet module.
 
 import datetime
 import json
-from future.moves.urllib.parse import urlencode
+from six.moves.urllib.parse import urlencode
 
 
 from django.conf import settings
