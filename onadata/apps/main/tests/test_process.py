@@ -468,7 +468,7 @@ class TestProcess(TestBase):
         response = self.client.get(xls_export_url)
         expected_xls = open_workbook(os.path.join(
             self.this_directory, "fixtures", "transportation",
-            "transportation_export.xls"))
+            "transportation_export.xlsx"))
         content = get_response_content(response, decode=False)
         actual_xls = load_workbook(filename=BytesIO(content))
         actual_sheet = actual_xls.get_sheet_by_name('data')

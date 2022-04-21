@@ -71,7 +71,7 @@ class TestBriefcaseViewSet(test_abstract_viewset.TestAbstractViewSet):
         view = BriefcaseViewset.as_view({'get': 'list'})
         path = os.path.join(
             settings.PROJECT_ROOT, "apps", "api", "tests", "fixtures",
-            "encrypted-form.xls")
+            "encrypted-form.xlsx")
         submission_path = os.path.join(
             settings.PROJECT_ROOT, "apps", "api", "tests", "fixtures",
             "encrypted-submission.xml")

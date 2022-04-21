@@ -110,7 +110,7 @@ class TestFormErrors(TestBase):
         count = XForm.objects.count()
         xls_path = os.path.join(
             self.this_directory, 'fixtures', 'cascading_selects',
-            'duplicate_choice_form.xls')
+            'duplicate_choice_form.xlsx')
         msg = (
             "The name column for the 'counties' choice list"
             " contains these duplicates: 'king'. Duplicate "

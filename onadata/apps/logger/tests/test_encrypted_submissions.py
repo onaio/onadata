@@ -33,7 +33,7 @@ class TestEncryptedForms(TestBase):
         """
         self._publish_xls_file(os.path.join(
             self.this_directory, 'fixtures', 'transportation',
-            'transportation_encrypted.xls'
+            'transportation_encrypted.xlsx'
         ))
         xform = XForm.objects.get(id_string='transportation_encrypted')
         self.assertTrue(xform.encrypted)
@@ -75,7 +75,7 @@ class TestEncryptedForms(TestBase):
         # publish our form which contains some some repeats
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/tutorial_encrypted/tutorial_encrypted.xls"
+            "../fixtures/tutorial_encrypted/tutorial_encrypted.xlsx"
         )
         count = XForm.objects.count()
         self._publish_xls_file_and_set_xform(xls_file_path)

@@ -36,12 +36,12 @@ class TestInputs(TestBase):
     def test_mch(self):
         msg = u"Unknown question type 'Select one from source'"
         with self.assertRaisesMessage(PyXFormError, msg):
-            self._publish_xls_file('fixtures/bug_fixes/MCH_v1.xls')
+            self._publish_xls_file('fixtures/bug_fixes/MCH_v1.xlsx')
 
     def test_erics_files(self):
-        for name in ['battery_life.xls',
-                     'enumerator_weekly.xls',
-                     'Enumerator_Training_Practice_Survey.xls']:
+        for name in ['battery_life.xlsx',
+                     'enumerator_weekly.xlsx',
+                     'Enumerator_Training_Practice_Survey.xlsx']:
             try:
                 self._publish_xls_file(os.path.join(
                     'fixtures', 'bug_fixes', name))

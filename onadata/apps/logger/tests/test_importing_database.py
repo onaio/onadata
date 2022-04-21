@@ -27,7 +27,7 @@ class TestImportingDatabase(TestBase):
         self._publish_xls_file(
             os.path.join(
                 settings.PROJECT_ROOT, "apps", "logger", "fixtures",
-                "test_forms", "tutorial.xls"))
+                "test_forms", "tutorial.xlsx"))
 
     def tearDown(self):
         # delete everything we imported

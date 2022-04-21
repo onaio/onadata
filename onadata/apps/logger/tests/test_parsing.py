@@ -27,7 +27,7 @@ class TestXFormInstanceParser(TestBase):
         # publish our form which contains some some repeats
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/new_repeats/new_repeats.xls"
+            "../fixtures/new_repeats/new_repeats.xlsx"
         )
         count = XForm.objects.count()
         self._publish_xls_file_and_set_xform(xls_file_path)
@@ -160,7 +160,7 @@ class TestXFormInstanceParser(TestBase):
         # publish our form which contains some some repeats
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/new_repeats/new_repeats.xls"
+            "../fixtures/new_repeats/new_repeats.xlsx"
         )
         count = XForm.objects.count()
         self._publish_xls_file_and_set_xform(xls_file_path)
@@ -180,7 +180,7 @@ class TestXFormInstanceParser(TestBase):
         # publish our form which contains some some repeats
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/tutorial_encrypted/tutorial_encrypted.xls"
+            "../fixtures/tutorial_encrypted/tutorial_encrypted.xlsx"
         )
         count = XForm.objects.count()
         self._publish_xls_file_and_set_xform(xls_file_path)

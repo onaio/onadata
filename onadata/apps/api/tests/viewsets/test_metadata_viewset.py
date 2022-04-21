@@ -60,7 +60,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
                                path=None):
         xls_file_path = os.path.join(
             settings.PROJECT_ROOT, "apps", "logger", "fixtures",
-            "tutorial", "tutorial.xls")
+            "tutorial", "tutorial.xlsx")
 
         self._publish_xls_form_to_project(xlsform_path=xls_file_path)
 

@@ -23,7 +23,7 @@ class TestChartsView(TestBase):
     def test_chart_view_with_lang_param(self):
         path = os.path.join(os.path.dirname(__file__), "..", "..", "..",
                             "apps", "main", "tests", "fixtures",
-                            "good_eats_multilang", "good_eats_multilang.xls")
+                            "good_eats_multilang", "good_eats_multilang.xlsx")
         self._publish_xls_file_and_set_xform(path)
         path = os.path.join(os.path.dirname(__file__), "..", "..", "..",
                             "apps", "main", "tests", "fixtures",
@@ -39,7 +39,7 @@ class TestChartsView(TestBase):
     def test_chart_view_with_bad_lang_param(self):
         path = os.path.join(os.path.dirname(__file__), "..", "..", "..",
                             "apps", "main", "tests", "fixtures",
-                            "good_eats_multilang", "good_eats_multilang.xls")
+                            "good_eats_multilang", "good_eats_multilang.xlsx")
         self._publish_xls_file_and_set_xform(path)
         path = os.path.join(os.path.dirname(__file__), "..", "..", "..",
                             "apps", "main", "tests", "fixtures",

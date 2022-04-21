@@ -40,7 +40,7 @@ class TestFormSubmission(TestBase):
         TestBase.setUp(self)
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/tutorial/tutorial.xls"
+            "../fixtures/tutorial/tutorial.xlsx"
         )
         self._publish_xls_file_and_set_xform(xls_file_path)
 
@@ -201,7 +201,7 @@ class TestFormSubmission(TestBase):
         """
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/test_forms/survey_names/survey_names.xls"
+            "../fixtures/test_forms/survey_names/survey_names.xlsx"
         )
         self._publish_xls_file(xls_file_path)
         xml_submission_file_path = os.path.join(
@@ -608,7 +608,7 @@ class TestFormSubmission(TestBase):
         result in  500 response codes.
         """
         xls_file_path = os.path.join(os.path.dirname(
-            os.path.abspath(__file__)), "../tests/fixtures/infinity.xls"
+            os.path.abspath(__file__)), "../tests/fixtures/infinity.xlsx"
         )
         self._publish_xls_file_and_set_xform(xls_file_path)
         xml_submission_file_path = os.path.join(os.path.dirname(

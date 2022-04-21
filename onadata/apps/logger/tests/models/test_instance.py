@@ -104,7 +104,7 @@ class TestInstance(TestBase):
         self.assertTrue(xform.instances_with_geopoints)
 
     def test_set_instances_with_geopoints_on_submission_true(self):
-        xls_path = self._fixture_path("gps", "gps.xls")
+        xls_path = self._fixture_path("gps", "gps.xlsx")
         self._publish_xls_file_and_set_xform(xls_path)
 
         self.assertFalse(self.xform.instances_with_geopoints)
@@ -118,7 +118,7 @@ class TestInstance(TestBase):
     def test_instances_with_malformed_geopoints_dont_trigger_value_error(
             self, mock_get_values_matching_key):
         mock_get_values_matching_key.return_value = '40.81101715564728'
-        xls_path = self._fixture_path("gps", "gps.xls")
+        xls_path = self._fixture_path("gps", "gps.xlsx")
         self._publish_xls_file_and_set_xform(xls_path)
 
         self.assertFalse(self.xform.instances_with_geopoints)

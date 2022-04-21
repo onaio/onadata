@@ -103,7 +103,7 @@ def clone_xlsform(request, username):
         path = xform.xls.name
         if default_storage.exists(path):
             project = get_user_default_project(request.user)
-            xls_file = upload_to(None, '%s%s.xls' % (
+            xls_file = upload_to(None, '%s%s.xlsx' % (
                 id_string, XForm.CLONED_SUFFIX), to_username)
             xls_data = default_storage.open(path)
             xls_file = default_storage.save(xls_file, xls_data)

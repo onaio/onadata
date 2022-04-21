@@ -58,7 +58,7 @@ VALID_XLSFORM_CONTENT_TYPES = [
     'application/vnd.ms-excel'
 ]
 
-VALID_FILE_EXTENSIONS = ['.xls', '.xlsx', '.csv']
+VALID_FILE_EXTENSIONS = ['.xlsx', '.csv']
 
 
 def get_filename(response):

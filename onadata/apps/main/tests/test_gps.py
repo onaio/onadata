@@ -16,7 +16,7 @@ class TestGPS(TestBase):
     def _publish_survey(self):
         self.this_directory = os.path.dirname(__file__)
         xls_path = os.path.join(
-            self.this_directory, "fixtures", "gps", "gps.xls")
+            self.this_directory, "fixtures", "gps", "gps.xlsx")
         TestBase._publish_xls_file(self, xls_path)
 
     def _make_submissions(self):

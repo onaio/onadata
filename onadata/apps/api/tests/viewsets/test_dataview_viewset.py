@@ -37,7 +37,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         super(TestDataViewViewSet, self).setUp()
         xlsform_path = os.path.join(
             settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
-            "tutorial.xls")
+            "tutorial.xlsx")
 
         self._publish_xls_form_to_project(xlsform_path=xlsform_path)
         for x in range(1, 9):

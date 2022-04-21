@@ -258,7 +258,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
             "tests",
             "fixtures",
             "transportation",
-            "transportation.xls",
+            "transportation.xlsx",
         )
 
         with HTTMock(enketo_urls_mock):

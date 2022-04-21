@@ -96,7 +96,7 @@ class TestStatsViewSet(TestBase):
     def test_form_list_select_one_choices_multi_language(self):
         paths = [os.path.join(
             self.this_directory, 'fixtures', 'good_eats_multilang', x)
-            for x in ['good_eats_multilang.xls', '1.xml']]
+            for x in ['good_eats_multilang.xlsx', '1.xml']]
         self._publish_xls_file_and_set_xform(paths[0])
         self._make_submission(paths[1])
         view = SubmissionStatsViewSet.as_view({'get': 'retrieve'})
@@ -138,7 +138,7 @@ class TestStatsViewSet(TestBase):
             os.path.dirname(__file__),
             '..', 'fixtures', 'forms', 'tutorial')
         self._publish_xls_file_and_set_xform(os.path.join(tutorial_folder,
-                                                          'tutorial.xls'))
+                                                          'tutorial.xlsx'))
         instance_paths = [os.path.join(tutorial_folder, 'instances', i)
                           for i in ['1.xml', '2.xml', '3.xml']]
         for path in instance_paths:

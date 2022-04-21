@@ -211,7 +211,7 @@ class TestDataViewSet(TestBase):
             os.path.dirname(__file__),
             '..', 'fixtures', 'forms', 'tutorial')
         self._publish_xls_file_and_set_xform(os.path.join(tutorial_folder,
-                                                          'tutorial.xls'))
+                                                          'tutorial.xlsx'))
 
         instance_path = os.path.join(tutorial_folder, 'instances', '1.xml')
         create_instance(self.user.username, open(instance_path, 'rb'), [])

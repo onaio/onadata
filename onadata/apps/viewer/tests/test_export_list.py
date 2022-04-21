@@ -225,7 +225,7 @@ class TestDataExportURL(TestBase):
 
     def test_sav_zip_export_url(self):
         filename = os.path.join(settings.PROJECT_ROOT, 'apps', 'logger',
-                                'tests', 'fixtures', 'childrens_survey.xls')
+                                'tests', 'fixtures', 'childrens_survey.xlsx')
         self._publish_xls_file_and_set_xform(filename)
         url = reverse('sav_zip_export', kwargs={
             'username': self.user.username,

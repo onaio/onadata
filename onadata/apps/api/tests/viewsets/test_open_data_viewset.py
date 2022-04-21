@@ -330,7 +330,7 @@ class TestOpenData(TestBase):
         self._submission_time = parse_datetime('2020-02-18 15:54:01Z')
         self.fixture_dir = os.path.join(
             self.this_directory, 'fixtures', 'csv_export')
-        path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xls')
+        path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xlsx')
         self._publish_xls_file_and_set_xform(path)
         path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xml')
         self.factory = RequestFactory()

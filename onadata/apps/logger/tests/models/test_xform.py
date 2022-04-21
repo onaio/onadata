@@ -43,7 +43,7 @@ class TestXForm(TestBase):
         """
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../..", "fixtures", "tutorial", "tutorial_arabic_labels.xls"
+            "../..", "fixtures", "tutorial", "tutorial_arabic_labels.xlsx"
         )
         self._publish_xls_file_and_set_xform(xls_file_path)
 

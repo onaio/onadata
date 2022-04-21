@@ -239,7 +239,7 @@ class TestExportBuilder(TestBase):
         }
     ]
 
-    def _create_childrens_survey(self, filename="childrens_survey.xls"):
+    def _create_childrens_survey(self, filename="childrens_survey.xlsx"):
         survey = create_survey_from_xls(_logger_fixture_path(
             filename
         ), default_name=filename.split('.')[0])
@@ -249,7 +249,7 @@ class TestExportBuilder(TestBase):
 
     def test_build_sections_for_multilanguage_form(self):
         survey = create_survey_from_xls(_logger_fixture_path(
-            'multi_lingual_form.xls'),
+            'multi_lingual_form.xlsx'),
             default_name='multi_lingual_form')
 
         # check the default langauge
@@ -493,7 +493,7 @@ class TestExportBuilder(TestBase):
         cvs writer doesnt handle unicode we we have to encode to ascii
         """
         survey = create_survey_from_xls(_logger_fixture_path(
-            'childrens_survey_unicode.xls'),
+            'childrens_survey_unicode.xlsx'),
             default_name='childrens_survey_unicode')
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
@@ -1136,7 +1136,7 @@ class TestExportBuilder(TestBase):
 
     def test_xls_export_works_with_unicode(self):
         survey = create_survey_from_xls(_logger_fixture_path(
-            'childrens_survey_unicode.xls'),
+            'childrens_survey_unicode.xlsx'),
             default_name='childrenss_survey_unicode')
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
@@ -1689,7 +1689,7 @@ class TestExportBuilder(TestBase):
 
     def test_to_xls_export_generates_valid_sheet_names(self):
         survey = create_survey_from_xls(_logger_fixture_path(
-            'childrens_survey_with_a_very_long_name.xls'),
+            'childrens_survey_with_a_very_long_name.xlsx'),
             default_name='childrens_survey_with_a_very_long_name')
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
@@ -1709,7 +1709,7 @@ class TestExportBuilder(TestBase):
 
     def test_child_record_parent_table_is_updated_when_sheet_is_renamed(self):
         survey = create_survey_from_xls(_logger_fixture_path(
-            'childrens_survey_with_a_very_long_name.xls'),
+            'childrens_survey_with_a_very_long_name.xlsx'),
             default_name='childrens_survey_with_a_very_long_name')
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
@@ -1772,7 +1772,7 @@ class TestExportBuilder(TestBase):
         }
 
         survey = create_survey_from_xls(viewer_fixture_path(
-            'test_data_types/test_data_types.xls'),
+            'test_data_types/test_data_types.xlsx'),
             default_name='test_data_types')
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
@@ -1798,7 +1798,7 @@ class TestExportBuilder(TestBase):
 
     def test_xls_convert_dates_before_1900(self):
         survey = create_survey_from_xls(viewer_fixture_path(
-            'test_data_types/test_data_types.xls'),
+            'test_data_types/test_data_types.xlsx'),
             default_name='test_data_types')
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
@@ -1891,7 +1891,7 @@ class TestExportBuilder(TestBase):
             _test_sav_file(section_name)
 
     def test_to_sav_export_language(self):
-        survey = self._create_childrens_survey('childrens_survey_sw.xls')
+        survey = self._create_childrens_survey('childrens_survey_sw.xlsx')
         export_builder = ExportBuilder()
         export_builder.TRUNCATE_GROUP_TITLE = True
         export_builder.set_survey(survey)
@@ -1969,7 +1969,7 @@ class TestExportBuilder(TestBase):
 
     def test_xls_export_remove_group_name(self):
         survey = create_survey_from_xls(_logger_fixture_path(
-            'childrens_survey_unicode.xls'),
+            'childrens_survey_unicode.xlsx'),
             default_name='childrens_survey_unicode')
         export_builder = ExportBuilder()
         export_builder.TRUNCATE_GROUP_TITLE = True
@@ -1991,7 +1991,7 @@ class TestExportBuilder(TestBase):
         cvs writer doesnt handle unicode we we have to encode to ascii
         """
         survey = create_survey_from_xls(_logger_fixture_path(
-            'childrens_survey_unicode.xls'),
+            'childrens_survey_unicode.xlsx'),
             default_name='childrens_survey_unicode')
         export_builder = ExportBuilder()
         export_builder.TRUNCATE_GROUP_TITLE = True
@@ -2037,7 +2037,7 @@ class TestExportBuilder(TestBase):
 
     def test_xls_export_with_labels(self):
         survey = create_survey_from_xls(_logger_fixture_path(
-            'childrens_survey_unicode.xls'),
+            'childrens_survey_unicode.xlsx'),
             default_name='childrens_survey_unicode')
         export_builder = ExportBuilder()
         export_builder.TRUNCATE_GROUP_TITLE = True
@@ -2067,7 +2067,7 @@ class TestExportBuilder(TestBase):
 
     def test_xls_export_with_labels_only(self):
         survey = create_survey_from_xls(_logger_fixture_path(
-            'childrens_survey_unicode.xls'),
+            'childrens_survey_unicode.xlsx'),
             default_name='childrens_survey_unicode')
         export_builder = ExportBuilder()
         export_builder.TRUNCATE_GROUP_TITLE = True
@@ -2092,7 +2092,7 @@ class TestExportBuilder(TestBase):
         cvs writer doesnt handle unicode we we have to encode to ascii
         """
         survey = create_survey_from_xls(_logger_fixture_path(
-            'childrens_survey_unicode.xls'),
+            'childrens_survey_unicode.xlsx'),
             default_name='childrens_survey_unicode')
         export_builder = ExportBuilder()
         export_builder.TRUNCATE_GROUP_TITLE = True
@@ -2159,7 +2159,7 @@ class TestExportBuilder(TestBase):
         cvs writer doesnt handle unicode we we have to encode to ascii
         """
         survey = create_survey_from_xls(_logger_fixture_path(
-            'childrens_survey_unicode.xls'),
+            'childrens_survey_unicode.xlsx'),
             default_name='childrens_survey_unicode')
         export_builder = ExportBuilder()
         export_builder.TRUNCATE_GROUP_TITLE = True
@@ -2280,7 +2280,7 @@ class TestExportBuilder(TestBase):
 
     def test_xls_export_with_english_labels(self):
         survey = create_survey_from_xls(_logger_fixture_path(
-            'childrens_survey_en.xls'),
+            'childrens_survey_en.xlsx'),
             default_name='childrens_survey_en')
         # no default_language is not set
         self.assertEqual(
@@ -2309,7 +2309,7 @@ class TestExportBuilder(TestBase):
 
     def test_xls_export_with_swahili_labels(self):
         survey = create_survey_from_xls(_logger_fixture_path(
-            'childrens_survey_sw.xls'),
+            'childrens_survey_sw.xlsx'),
             default_name='childrens_survey_sw')
         # default_language is set to swahili
         self.assertEqual(
@@ -2338,7 +2338,7 @@ class TestExportBuilder(TestBase):
 
     def test_csv_export_with_swahili_labels(self):
         survey = create_survey_from_xls(_logger_fixture_path(
-            'childrens_survey_sw.xls'),
+            'childrens_survey_sw.xlsx'),
             default_name='childrens_survey_sw')
         # default_language is set to swahili
         self.assertEqual(
@@ -2370,7 +2370,7 @@ class TestExportBuilder(TestBase):
 
     def test_select_multiples_choices(self):
         survey = create_survey_from_xls(_logger_fixture_path(
-            'childrens_survey_sw.xls'),
+            'childrens_survey_sw.xlsx'),
             default_name='childrens_survey_sw')
         dd = DataDictionary()
         dd._survey = survey

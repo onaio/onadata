@@ -136,7 +136,7 @@ class TestExports(TestBase):
             self.options)
         self.assertTrue(storage.exists(export.filepath))
         path, ext = os.path.splitext(export.filename)
-        self.assertEqual(ext, '.xls')
+        self.assertEqual(ext, '.xlsx')
 
         # test csv
         self.options["extension"] = "csv"

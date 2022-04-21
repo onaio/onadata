@@ -36,8 +36,8 @@ class CSVImportTestCase(TestBase):
                                          'tests', 'utils', 'fixtures')
         self.good_csv = open(os.path.join(self.fixtures_dir, 'good.csv'), 'rb')
         self.bad_csv = open(os.path.join(self.fixtures_dir, 'bad.csv'), 'rb')
-        self.xls_file_path = os.path.join(self.fixtures_dir, 'tutorial.xls')
-        self.good_xls = open(os.path.join(self.fixtures_dir, 'good.xls'), 'rb')
+        self.xls_file_path = os.path.join(self.fixtures_dir, 'tutorial.xlsx')
+        self.good_xls = open(os.path.join(self.fixtures_dir, 'good.xlsx'), 'rb')
 
     def test_get_submission_meta_dict(self):
         self._publish_xls_file(self.xls_file_path)
@@ -110,7 +110,7 @@ class CSVImportTestCase(TestBase):
 
     def test_submit_csv_and_rollback(self):
         xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
-                                     "tests", "fixtures", "tutorial.xls")
+                                     "tests", "fixtures", "tutorial.xlsx")
         self._publish_xls_file(xls_file_path)
         self.xform = XForm.objects.get()
 
@@ -142,7 +142,7 @@ class CSVImportTestCase(TestBase):
     @patch('onadata.libs.utils.logger_tools.send_message')
     def test_submit_csv_edits(self, send_message_mock):
         xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
-                                     "tests", "fixtures", "tutorial.xls")
+                                     "tests", "fixtures", "tutorial.xlsx")
         self._publish_xls_file(xls_file_path)
         self.xform = XForm.objects.get()
 
@@ -244,7 +244,7 @@ class CSVImportTestCase(TestBase):
         Test that the user who imported data via CSV is tracked
         """
         xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
-                                     "tests", "fixtures", "tutorial.xls")
+                                     "tests", "fixtures", "tutorial.xlsx")
         self._publish_xls_file(xls_file_path)
         self.xform = XForm.objects.get()
 
@@ -473,7 +473,7 @@ class CSVImportTestCase(TestBase):
         """
         # Test integer constraint is enforced
         xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
-                                     "tests", "fixtures", "tutorial.xls")
+                                     "tests", "fixtures", "tutorial.xlsx")
         self._publish_xls_file(xls_file_path)
         self.xform = XForm.objects.last()
 

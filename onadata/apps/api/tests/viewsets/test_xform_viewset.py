@@ -221,7 +221,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         with HTTMock(enketo_mock):
             xls_file_path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "logger", "fixtures",
-                "tutorial", "tutorial.xls")
+                "tutorial", "tutorial.xlsx")
 
             self._publish_xls_form_to_project(xlsform_path=xls_file_path)
 
@@ -886,7 +886,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
                 path = os.path.join(
                     settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-                    "transportation", "transportation_version.xls")
+                    "transportation", "transportation_version.xlsx")
                 with open(path, 'rb') as xls_file:
                     post_data = {'xls_file': xls_file}
                     request = self.factory.patch(
@@ -927,7 +927,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-                "transportation", "transportation_version.xls")
+                "transportation", "transportation_version.xlsx")
             with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
@@ -958,7 +958,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-                "transportation", "transportation_version.xls")
+                "transportation", "transportation_version.xlsx")
             with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
@@ -981,7 +981,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-                "transportation", "transportation_version.xls")
+                "transportation", "transportation_version.xlsx")
             with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
@@ -1135,7 +1135,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             }
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-                "transportation", "transportation.xls")
+                "transportation", "transportation.xlsx")
 
             with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
@@ -1187,7 +1187,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             }
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-                "transportation", "transportation.xls")
+                "transportation", "transportation.xlsx")
             with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.post('/', data=post_data, **self.extra)
@@ -1214,7 +1214,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(counter + 1, XForm.objects.count())
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-                "transportation", "transportation_copy.xls")
+                "transportation", "transportation_copy.xlsx")
 
             with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
@@ -1418,7 +1418,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         })
         path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-            "transportation", "transportation.xls")
+            "transportation", "transportation.xlsx")
         username = 'Anon'
         error_msg = 'User with username %s does not exist.' % username
         with open(path, 'rb') as xls_file:
@@ -1435,7 +1435,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         })
         path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-            "transportation", "transportation.bad_id.xls")
+            "transportation", "transportation.bad_id.xlsx")
         with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.post('/', data=post_data, **self.extra)
@@ -1452,7 +1452,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
         path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-            "transportation", "transportation_ampersand_in_title.xls")
+            "transportation", "transportation_ampersand_in_title.xlsx")
         with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.post('/', data=post_data, **self.extra)
@@ -1480,7 +1480,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         })
         path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-            "transportation", "transportation.no_choices.xls")
+            "transportation", "transportation.no_choices.xlsx")
         with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.post('/', data=post_data, **self.extra)
@@ -2041,7 +2041,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     def test_csv_import(self):
         with HTTMock(enketo_mock):
             xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
-                                    "tests", "fixtures", "tutorial.xls")
+                                    "tests", "fixtures", "tutorial.xlsx")
             self._publish_xls_form_to_project(xlsform_path=xls_path)
             view = XFormViewSet.as_view({'post': 'csv_import'})
             csv_import = fixtures_path('good.csv')
@@ -2105,7 +2105,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     def test_large_csv_import(self):
         with HTTMock(enketo_mock):
             xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
-                                    "tests", "fixtures", "tutorial.xls")
+                                    "tests", "fixtures", "tutorial.xlsx")
             self._publish_xls_form_to_project(xlsform_path=xls_path)
             view = XFormViewSet.as_view(
                 {'post': 'csv_import', 'get': 'csv_import'})
@@ -2124,7 +2124,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     def test_csv_import_async(self):
         with HTTMock(enketo_mock):
             xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
-                                    "tests", "fixtures", "tutorial.xls")
+                                    "tests", "fixtures", "tutorial.xlsx")
             self._publish_xls_form_to_project(xlsform_path=xls_path)
             count_before = self.xform.instances.count()
             view = XFormViewSet.as_view({'post': 'csv_import'})
@@ -2138,7 +2138,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     def test_csv_import_diff_column(self):
         with HTTMock(enketo_mock):
             xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
-                                    "tests", "fixtures", "tutorial.xls")
+                                    "tests", "fixtures", "tutorial.xlsx")
             self._publish_xls_form_to_project(xlsform_path=xls_path)
             view = XFormViewSet.as_view({'post': 'csv_import'})
             csv_import = fixtures_path('wrong_col.csv')
@@ -2154,7 +2154,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     def test_csv_import_additional_columns(self):
         with HTTMock(enketo_mock):
             xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
-                                    "tests", "fixtures", "tutorial.xls")
+                                    "tests", "fixtures", "tutorial.xlsx")
             self._publish_xls_form_to_project(xlsform_path=xls_path)
             view = XFormViewSet.as_view({'post': 'csv_import'})
             csv_import = fixtures_path('additional.csv')
@@ -2275,7 +2275,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-                "transportation", "transportation_version.xls")
+                "transportation", "transportation_version.xlsx")
             with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
@@ -2317,7 +2317,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
         path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-            "transportation", "transportation_version.xls")
+            "transportation", "transportation_version.xlsx")
         with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.patch('/', data=post_data, **self.extra)
@@ -2378,7 +2378,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             # try to replace a file whose id_string hasn't been set
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-                "transportation", "tutorial_.xls")
+                "transportation", "tutorial_.xlsx")
             with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
@@ -2421,7 +2421,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             # try to replace a file whose id_string hasn't been set
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-                "transportation", "tutorial_.xls")
+                "transportation", "tutorial_.xlsx")
             with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
@@ -2447,7 +2447,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-                "transportation", "transportation_updated.xls")
+                "transportation", "transportation_updated.xlsx")
             with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
@@ -2546,7 +2546,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-                "transportation", "transportation.bad_id.xls")
+                "transportation", "transportation.bad_id.xlsx")
             with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
@@ -2579,7 +2579,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-                "transportation", "transportation_updated.xls")
+                "transportation", "transportation_updated.xlsx")
             with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
@@ -2612,7 +2612,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-                "transportation", "transportation_version.xls")
+                "transportation", "transportation_version.xlsx")
             with open(path, 'rb') as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
@@ -2642,7 +2642,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             xls_url = 'https://ona.io/examples/forms/tutorial/form.xlsx'
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-                "transportation", "transportation_version.xls")
+                "transportation", "transportation_version.xlsx")
 
             xls_file = open(path, 'rb')
             mock_urlopen.return_value = xls_file
@@ -2676,7 +2676,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             xls_url = 'https://ona.io/examples/forms/tutorial/form.xlsx'
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-                "transportation", "transportation_version.xls")
+                "transportation", "transportation_version.xlsx")
 
             xls_file = open(path, 'rb')
             mock_urlopen.return_value = xls_file
@@ -2897,7 +2897,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
         path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-            "transportation", "transportation.xls")
+            "transportation", "transportation.xlsx")
 
         with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
@@ -2934,7 +2934,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
         path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-            "transportation", "transportation.xls")
+            "transportation", "transportation.xlsx")
 
         with open(path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
@@ -2967,7 +2967,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
         path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-            "transportation", "transportation.xls")
+            "transportation", "transportation.xlsx")
 
         get_data = None
         with open(path, 'rb') as xls_file:
@@ -3389,7 +3389,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-                "transportation", "transportation_version.xls")
+                "transportation", "transportation_version.xlsx")
             version_count = XFormVersion.objects.filter(
                 xform=self.xform).count()
             with open(path, 'rb') as xls_file:
@@ -3927,7 +3927,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     def test_xform_linked_dataviews(self):
         xlsform_path = os.path.join(
             settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
-            "tutorial.xls")
+            "tutorial.xlsx")
 
         self._publish_xls_form_to_project(xlsform_path=xlsform_path)
         for x in range(1, 9):
@@ -3970,7 +3970,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         # publish form and make submissions
         xlsform_path = os.path.join(
             settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
-            "tutorial.xls")
+            "tutorial.xlsx")
         self._publish_xls_form_to_project(xlsform_path=xlsform_path)
         for x in range(1, 9):
             path = os.path.join(
@@ -4374,7 +4374,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     def test_csv_exports_w_images_link(self):
         with HTTMock(enketo_mock):
             xlsform_path = os.path.join(settings.PROJECT_ROOT, 'libs', 'tests',
-                                        "utils", "fixtures", "tutorial.xls")
+                                        "utils", "fixtures", "tutorial.xlsx")
 
             self._publish_xls_form_to_project(xlsform_path=xlsform_path)
             media_file = "1442323232322.jpg"
@@ -4467,7 +4467,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     def test_xform_gsheet_exports_disabled_sync_mode(self):
         xlsform_path = os.path.join(
             settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
-            "tutorial.xls")
+            "tutorial.xlsx")
 
         self._publish_xls_form_to_project(xlsform_path=xlsform_path)
         for x in range(1, 9):
@@ -4844,10 +4844,10 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     def test_xls_import(self):
         with HTTMock(enketo_mock):
             xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
-                                    "tests", "fixtures", "tutorial.xls")
+                                    "tests", "fixtures", "tutorial.xlsx")
             self._publish_xls_form_to_project(xlsform_path=xls_path)
             view = XFormViewSet.as_view({'post': 'data_import'})
-            xls_import = fixtures_path('good.xls')
+            xls_import = fixtures_path('good.xlsx')
 
             post_data = {'xls_file': xls_import}
             request = self.factory.post('/', data=post_data, **self.extra)
@@ -4893,12 +4893,12 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     def test_csv_xls_import_errors(self):
         with HTTMock(enketo_mock):
             xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
-                                    "tests", "fixtures", "tutorial.xls")
+                                    "tests", "fixtures", "tutorial.xlsx")
             self._publish_xls_form_to_project(xlsform_path=xls_path)
             view = XFormViewSet.as_view({'post': 'data_import'})
 
             csv_import = fixtures_path('good.csv')
-            xls_import = fixtures_path('good.xls')
+            xls_import = fixtures_path('good.xlsx')
 
             post_data = {'xls_file': csv_import}
             request = self.factory.post('/', data=post_data, **self.extra)
@@ -4941,7 +4941,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     def test_export_csvzip_form_data_async(self):
         with HTTMock(enketo_mock):
             xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
-                                    "tests", "fixtures", "tutorial.xls")
+                                    "tests", "fixtures", "tutorial.xlsx")
             self._publish_xls_form_to_project(xlsform_path=xls_path)
             view = XFormViewSet.as_view({
                 'get': 'export_async',

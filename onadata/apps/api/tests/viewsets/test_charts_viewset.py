@@ -55,7 +55,7 @@ class TestChartsViewSet(TestBase):
         self._publish_xls_file_and_set_xform(
             os.path.join(
                 os.path.dirname(__file__),
-                '..', 'fixtures', 'forms', 'tutorial', 'tutorial.xls'))
+                '..', 'fixtures', 'forms', 'tutorial', 'tutorial.xlsx'))
         self.api_client = APIClient()
         self.api_client.login(
             username=self.login_username, password=self.login_password)
