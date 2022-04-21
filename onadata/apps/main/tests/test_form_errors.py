@@ -16,7 +16,7 @@ class TestFormErrors(TestBase):
     def _create_xform(self):
         self.xls_path = os.path.join(
             self.this_directory, "fixtures",
-            "transportation", "transportation.xls")
+            "transportation", "transportation.xlsx")
         count = XForm.objects.count()
         self._publish_xls_file(self.xls_path)
         self.assertEqual(XForm.objects.count(), count + 1)
@@ -26,7 +26,7 @@ class TestFormErrors(TestBase):
         self._create_user_and_login()
         count = XForm.objects.count()
         xls_path = os.path.join(self.this_directory, "fixtures",
-                                "transportation", "transportation.bad_id.xls")
+                                "transportation", "transportation.bad_id.xlsx")
         self.assertRaises(XLSFormError, self._publish_xls_file, xls_path)
         self.assertEquals(XForm.objects.count(), count)
 
@@ -69,7 +69,7 @@ class TestFormErrors(TestBase):
     def test_empty_submission(self):
         xls_path = os.path.join(
             self.this_directory, "fixtures",
-            "transportation", "transportation.xls")
+            "transportation", "transportation.xlsx")
         xml_path = os.path.join(
             self.this_directory, "fixtures",
             "transportation", "transportation_empty_submission.xml")
@@ -92,7 +92,7 @@ class TestFormErrors(TestBase):
         count = XForm.objects.count()
         self.xform.save()
         xls_path = os.path.join(self.this_directory, "fixtures",
-                                "transportation", "tutorial .xls")
+                                "transportation", "tutorial .xlsx")
         msg = ("In strict mode, the XForm ID must be a valid slug"
                " and contain no spaces. Please ensure that you "
                "have set an id_string in the settings sheet or"

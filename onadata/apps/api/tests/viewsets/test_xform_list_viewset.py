@@ -106,7 +106,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         """
         # Bob submit forms
         xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main", "tests",
-                                "fixtures", "tutorial.xls")
+                                "fixtures", "tutorial.xlsx")
         self._publish_xls_form_to_project(xlsform_path=xls_path)
 
         xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "logger",
@@ -167,7 +167,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         """
         # Bob submit forms
         xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main", "tests",
-                                "fixtures", "tutorial.xls")
+                                "fixtures", "tutorial.xlsx")
         self._publish_xls_form_to_project(xlsform_path=xls_path)
 
         xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "logger",
@@ -272,7 +272,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
 
         path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-            "good_eats_multilang", "good_eats_multilang.xls")
+            "good_eats_multilang", "good_eats_multilang.xlsx")
         self._publish_xls_form_to_project(xlsform_path=path)
         self.assertTrue(OwnerRole.user_has_role(alice_profile.user,
                                                 self.xform))
@@ -348,7 +348,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
     def test_get_xform_list_of_logged_in_user_with_username_param(self):
         # publish 2 forms as bob
         xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main", "tests",
-                                "fixtures", "tutorial.xls")
+                                "fixtures", "tutorial.xlsx")
         self._publish_xls_form_to_project(xlsform_path=xls_path)
 
         xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "logger",
@@ -1011,7 +1011,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         """
         # Bob submit forms
         xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main", "tests",
-                                "fixtures", "tutorial.xls")
+                                "fixtures", "tutorial.xlsx")
         self._publish_xls_form_to_project(xlsform_path=xls_path)
 
         xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "logger",

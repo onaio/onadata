@@ -100,7 +100,7 @@ class TestProcess(TestBase):
 
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-                "transportation", "transportation.xls")
+                "transportation", "transportation.xlsx")
 
             xls_file = open(path, 'rb')
             mock_response = requests.Response()
@@ -133,7 +133,7 @@ class TestProcess(TestBase):
 
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-                "transportation", "transportation.xls")
+                "transportation", "transportation.xlsx")
 
             xls_file = open(path, 'rb')
             mock_urlopen.return_value = xls_file
@@ -191,7 +191,7 @@ class TestProcess(TestBase):
 
     def test_not_logged_in_cannot_upload(self):
         path = os.path.join(self.this_directory, "fixtures", "transportation",
-                            "transportation.xls")
+                            "transportation.xlsx")
         if not path.startswith('/%s/' % self.user.username):
             path = os.path.join(self.this_directory, path)
         with open(path, 'rb') as xls_file:
@@ -216,7 +216,7 @@ class TestProcess(TestBase):
 
     def _publish_xls_file(self):
         xls_path = os.path.join(self.this_directory, "fixtures",
-                                "transportation", "transportation.xls")
+                                "transportation", "transportation.xlsx")
         self._publish_file(xls_path)
         self.assertEqual(self.xform.id_string, "transportation_2011_07_25")
 

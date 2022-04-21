@@ -1598,7 +1598,7 @@ class TestDataViewSet(TestBase):
         # create form
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/tutorial/tutorial.xls"
+            "../fixtures/tutorial/tutorial.xlsx"
         )
         self._publish_xls_file_and_set_xform(xls_file_path)
 
@@ -1715,7 +1715,7 @@ class TestDataViewSet(TestBase):
     def test_delete_submissions(self, send_message_mock):
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/tutorial/tutorial.xls"
+            "../fixtures/tutorial/tutorial.xlsx"
         )
         self._publish_xls_file_and_set_xform(xls_file_path)
         # Add multiple submissions
@@ -2216,7 +2216,7 @@ class TestDataViewSet(TestBase):
         # create form
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/tutorial/tutorial.xls"
+            "../fixtures/tutorial/tutorial.xlsx"
         )
         self._publish_xls_file_and_set_xform(xls_file_path)
 
@@ -2283,7 +2283,7 @@ class TestDataViewSet(TestBase):
         # create form
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/tutorial/tutorial.xls"
+            "../fixtures/tutorial/tutorial.xlsx"
         )
         self._publish_xls_file_and_set_xform(xls_file_path)
 
@@ -2330,7 +2330,7 @@ class TestDataViewSet(TestBase):
         # create form
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/tutorial/tutorial.xls"
+            "../fixtures/tutorial/tutorial.xlsx"
         )
         self._publish_xls_file_and_set_xform(xls_file_path)
 
@@ -2799,7 +2799,7 @@ class TestDataViewSet(TestBase):
         # create form
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/forms/tutorial/tutorial.xls"
+            "../fixtures/forms/tutorial/tutorial.xlsx"
         )
         self._publish_xls_file_and_set_xform(xls_file_path)
 
