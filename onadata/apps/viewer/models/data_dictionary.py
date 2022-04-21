@@ -45,17 +45,11 @@ def process_xlsform(xls, default_name):
     if xls.name.endswith('json'):
         return FloipSurvey(xls).survey.to_json_dict()
 
-    file_object = None
+    file_object = xls
     if xls.name.endswith('csv'):
-        # a csv file gets closed in pyxform, make a copy
-        xls.seek(0)
-        file_object = BytesIO()
-        file_object.write(xls.read())
-        file_object.seek(0)
-        xls.seek(0)
-
+        file_object = None
     try:
-        return parse_file_to_json(xls.name, file_object=file_object or xls)
+        return parse_file_to_json(xls.name, file_object=file_object)
     except csv.Error as e:
         if is_newline_error(e):
             xls.seek(0)

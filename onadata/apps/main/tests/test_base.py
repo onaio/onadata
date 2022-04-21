@@ -125,7 +125,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
     def _publish_transportation_form(self):
         xls_path = os.path.join(
             self.this_directory, "fixtures",
-            "transportation", "transportation.xls")
+            "transportation", "transportation.xlsx")
         count = XForm.objects.count()
         TestBase._publish_xls_file(self, xls_path)
         self.assertEqual(XForm.objects.count(), count + 1)
