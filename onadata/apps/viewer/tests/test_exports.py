@@ -47,7 +47,7 @@ class TestExports(TestBase):
     def setUp(self):
         super(TestExports, self).setUp()
         self._submission_time = parse_datetime('2013-02-18 15:54:01Z')
-        self.options = {"extension": "xls"}
+        self.options = {"extension": "xlsx"}
 
     def test_unique_xls_sheet_name(self):
         xls_writer = XlsWriter()

@@ -18,7 +18,6 @@ from django_digest.test import Client as DigestClient
 from future.utils import iteritems
 from mock import patch
 from openpyxl import load_workbook
-from xlrd import open_workbook
 
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
@@ -110,7 +109,7 @@ class TestProcess(TestBase):
                                  "officedocument.spreadsheetml.sheet"),
                 'content-disposition': (
                     'attachment; filename="transportation.'
-                    'xls"; filename*=UTF-8\'\'transportation.xls')
+                    'xls"; filename*=UTF-8\'\'transportation.xlsx')
             }
             mock_requests.get.return_value = mock_response
             mock_urlopen.return_value = xls_file
@@ -128,7 +127,7 @@ class TestProcess(TestBase):
     @patch('onadata.apps.main.forms.urlopen')
     def test_url_upload(self, mock_urlopen):
         if self._internet_on(url="http://google.com"):
-            xls_url = 'https://ona.io/examples/forms/tutorial/form.xls'
+            xls_url = 'https://ona.io/examples/forms/tutorial/form.xlsx'
             pre_count = XForm.objects.count()
 
             path = os.path.join(
@@ -150,7 +149,7 @@ class TestProcess(TestBase):
             self.assertEqual(XForm.objects.count(), pre_count + 1)
 
     def test_bad_url_upload(self):
-        xls_url = 'formhuborg/pld/forms/transportation_2011_07_25/form.xls'
+        xls_url = 'formhuborg/pld/forms/transportation_2011_07_25/form.xlsx'
         pre_count = XForm.objects.count()
         response = self.client.post('/%s/' % self.user.username,
                                     {'xls_url': xls_url})
@@ -167,8 +166,8 @@ class TestProcess(TestBase):
         if os.path.exists(root_dir):
             success = True
             for root, sub_folders, filenames in os.walk(root_dir):
-                # ignore files that don't end in '.xls'
-                for filename in fnmatch.filter(filenames, '*.xls'):
+                # ignore files that don't end in '.xlsx'
+                for filename in fnmatch.filter(filenames, '*.xlsx'):
                     success = self._publish_file(os.path.join(root, filename),
                                                  False)
                     if success:
@@ -181,7 +180,7 @@ class TestProcess(TestBase):
 
     def test_url_upload_non_dot_xls_path(self):
         if self._internet_on():
-            xls_url = 'http://formhub.org/formhub_u/forms/tutorial/form.xls'
+            xls_url = 'http://formhub.org/formhub_u/forms/tutorial/form.xlsx'
             pre_count = XForm.objects.count()
             response = self.client.post('/%s/' % self.user.username,
                                         {'xls_url': xls_url})
@@ -216,7 +215,7 @@ class TestProcess(TestBase):
 
     def _publish_xls_file(self):
         xls_path = os.path.join(self.this_directory, "fixtures",
-                                "transportation", "transportation.xlsx")
+                                "transportation", "transportation_1.xlsx")
         self._publish_file(xls_path)
         self.assertEqual(self.xform.id_string, "transportation_2011_07_25")
 
@@ -466,27 +465,29 @@ class TestProcess(TestBase):
             'xls_export', kwargs={'username': self.user.username,
                                   'id_string': self.xform.id_string})
         response = self.client.get(xls_export_url)
-        expected_xls = open_workbook(os.path.join(
+        expected_xls = load_workbook(os.path.join(
             self.this_directory, "fixtures", "transportation",
             "transportation_export.xlsx"))
         content = get_response_content(response, decode=False)
         actual_xls = load_workbook(filename=BytesIO(content))
         actual_sheet = actual_xls.get_sheet_by_name('data')
-        expected_sheet = expected_xls.sheet_by_index(0)
+        expected_sheet = expected_xls.get_sheet_by_name('transportation')
         # check headers
-        self.assertEqual(list(tuple(actual_sheet.values)[0]),
-                         expected_sheet.row_values(0))
+        self.assertEqual(list(actual_sheet.values)[0],
+                         list(expected_sheet.values)[0])
 
         # check cell data
-        self.assertEqual(len(list(actual_sheet.columns)), expected_sheet.ncols)
-        self.assertEqual(len(list(actual_sheet.rows)), expected_sheet.nrows)
+        self.assertEqual(len(list(actual_sheet.columns)),
+                         len(list(expected_sheet.columns)))
+        self.assertEqual(len(list(actual_sheet.rows)),
+                         len(list(expected_sheet.rows)))
         for i in range(1, len(list(actual_sheet.columns))):
-            actual_row = list(tuple(actual_sheet.values)[i])
-            expected_row = expected_sheet.row_values(i)
+            actual_row = list(actual_sheet.values)[i]
+            expected_row = list(expected_sheet.values)[i]
 
             # remove _id from result set, varies depending on the database
-            del actual_row[23]
-            del expected_row[23]
+            del list(actual_row)[23]
+            del list(expected_row)[23]
             self.assertEqual(actual_row, expected_row)
 
     def _check_delete(self):

@@ -37,7 +37,8 @@ class CSVImportTestCase(TestBase):
         self.good_csv = open(os.path.join(self.fixtures_dir, 'good.csv'), 'rb')
         self.bad_csv = open(os.path.join(self.fixtures_dir, 'bad.csv'), 'rb')
         self.xls_file_path = os.path.join(self.fixtures_dir, 'tutorial.xlsx')
-        self.good_xls = open(os.path.join(self.fixtures_dir, 'good.xlsx'), 'rb')
+        self.good_xls = open(
+            os.path.join(self.fixtures_dir, 'good.xlsx'), 'rb')
 
     def test_get_submission_meta_dict(self):
         self._publish_xls_file(self.xls_file_path)
@@ -198,7 +199,7 @@ class CSVImportTestCase(TestBase):
 
     def test_nested_geo_paths_csv(self):
         self.xls_file_path = os.path.join(self.fixtures_dir,
-                                          'tutorial-nested-geo.xls')
+                                          'tutorial-nested-geo.xlsx')
         self._publish_xls_file(self.xls_file_path)
         self.xform = XForm.objects.get()
 
@@ -259,7 +260,7 @@ class CSVImportTestCase(TestBase):
     def test_csv_with_repeats_import(self):
         self.xls_file_path = os.path.join(self.this_directory, 'fixtures',
                                           'csv_export',
-                                          'tutorial_w_repeats.xls')
+                                          'tutorial_w_repeats.xlsx')
         repeats_csv = open(
             os.path.join(self.this_directory, 'fixtures', 'csv_export',
                          'tutorial_w_repeats.csv'),
@@ -274,7 +275,7 @@ class CSVImportTestCase(TestBase):
     def test_csv_with__more_than_4_repeats_import(self):
         self.xls_file_path = os.path.join(self.this_directory, 'fixtures',
                                           'csv_export',
-                                          'tutorial_w_repeats.xls')
+                                          'tutorial_w_repeats.xlsx')
         repeats_csv = open(
             os.path.join(self.this_directory, 'fixtures', 'csv_export',
                          'tutorial_w_repeats_import.csv'),
