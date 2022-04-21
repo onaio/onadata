@@ -157,29 +157,36 @@ class PyxformTestCase(PyxformMarkdown, TestCase):
 
         one or many of these string "matchers":
           * xml__contains: an array of strings which exist in the
-                resulting xml. [xml|model|instance|itext]_excludes are also supported.
+                resulting xml. [xml|model|instance|itext]_excludes are also
+                supported.
           * error__contains: a list of strings which should exist in the error
-          * error__not_contains: a list of strings which should not exist in the error
-          * odk_validate_error__contains: list of strings; run_odk_validate must be set
-          * warnings__contains: a list of strings which should exist in the warnings
-          * warnings__not_contains: a list of strings which should not exist in the warnings
+          * error__not_contains: a list of strings which should not exist in
+                                 the error
+          * odk_validate_error__contains: list of strings; run_odk_validate
+                                           must be set
+          * warnings__contains: a list of strings which should exist in the
+               warnings
+          * warnings__not_contains: a list of strings which should not
+               exist in the warnings
           * warnings_count: the number of expected warning messages
-          * xml__excludes: an array of strings which should not exist in the resulting
-               xml. [xml|model|instance|itext]_excludes are also supported.
-          * xml__xpath_exact: A list of tuples where the first tuple element is an XPath
-               expression and the second tuple element is a set of exact string match
-               results that are expected.
-          * xml__xpath_count: A list of tuples where the first tuple element is an XPath
-               expression and the second tuple element is the integer number of match
-               results that are expected.
-          * xml__xpath_match: A list of XPath expression strings for which exactly one
-               match result each is expected. Effectively a shortcut for
-               xml__xpath_count with a count of 1.
+          * xml__excludes: an array of strings which should not exist in the
+               resulting xml. [xml|model|instance|itext]_excludes are also
+               supported.
+          * xml__xpath_exact: A list of tuples where the first tuple element
+               is an XPath expression and the second tuple element is a
+               set of exact string match results that are expected.
+          * xml__xpath_count: A list of tuples where the first tuple element
+               is_an XPath expression and the second tuple element is the
+               integer number of match results that are expected.
+          * xml__xpath_match: A list of XPath expression strings for which
+               exactly one match result each is expected. Effectively a
+               shortcut for xml__xpath_count with a count of 1.
 
-        For each of the xpath_* matchers above, if the XPath expression is looking for an
-        element in the 'default' namespace (xforms) then use an 'x' namespace prefix for
-        the element. For example to find input nodes in the body: ".//h:body/x:input".
-        This 'x' prefix is not required for attributes. When writing a xpath_* test, use
+        For each of the xpath_* matchers above, if the XPath expression
+        is looking for an element in the 'default' namespace (xforms) then
+        use an 'x' namespace prefix for the element. For example to find
+        input nodes in the body: ".//h:body/x:input". This 'x' prefix is
+        not required for attributes. When writing a xpath_* test, use
         debug=True to show the XPath match results.
 
         optional other parameters passed to pyxform:
@@ -191,8 +198,9 @@ class PyxformTestCase(PyxformMarkdown, TestCase):
           * run_odk_validate: (bool) when True, runs ODK Validate process
                 Default value = False because it slows down tests
           * warnings: (list) a list to use for storing warnings for inspection.
-          * debug: (bool) when True, log details of the test to stdout. Details include
-                the input survey markdown, the XML document, XPath match strings.
+          * debug: (bool) when True, log details of the test to stdout.
+                Details include the input survey markdown, the XML document,
+                XPath match strings.
         """
         debug = kwargs.get("debug", False)
         expecting_invalid_survey = kwargs.get("errored", False)
@@ -436,7 +444,9 @@ class PyxformTestCase(PyxformMarkdown, TestCase):
         )
 
         self.assertEqual(
-            real_count, 0, msg_prefix + "Response should not contain %s" % text_repr
+            real_count,
+            0,
+            msg_prefix + "Response should not contain %s" % text_repr,
         )
 
     def assert_xpath_exact(
@@ -498,23 +508,27 @@ class PyxformTestCase(PyxformMarkdown, TestCase):
 
 def reorder_attributes(root):
     """
-    Forces alphabetical ordering of all XML attributes to match pre Python 3.8 behavior.
-    In general, we should not rely on ordering, but changing all the tests is not
-    realistic at this moment.
+    Forces alphabetical ordering of all XML attributes to match pre Python 3.8
+    behaviour. In general, we should not rely on ordering, but changing all the
+    tests is not realistic at this moment.
 
-    See bottom of https://docs.python.org/3/library/xml.etree.elementtree.html#element-objects and
-    https://github.com/python/cpython/commit/a3697db0102b9b6747fe36009e42f9b08f0c1ea8 for more information.
+    See bottom of https://bit.ly/38docMg and
+    https://bit.ly/3ODx9iG for more information.
 
-    NOTE: there's a similar ordering change made in utils.node. This one is also needed because in
-    assertPyxformXform, the survey is converted to XML and then read back in using ETree.fromstring. This
-    means that attribute ordering here is based on the attribute representation of xml.etree.ElementTree objects.
-    In utils.node, it is based on xml.dom.minidom.Element objects. See https://github.com/XLSForm/pyxform/issues/414.
+    NOTE: there's a similar ordering change made in utils.node. This one is
+    also needed because in assertPyxformXform, the survey is converted to XML
+    and then read back in using ETree.fromstring. This means that attribute
+    ordering here is based on the attribute representation of
+    xml.etree.ElementTree objects.
+    In utils.node, it is based on xml.dom.minidom.Element objects.
+    See https://github.com/XLSForm/pyxform/issues/414.
     """
     for el in root.iter():
         attrib = el.attrib
         if len(attrib) > 1:
-            # Sort attributes. Attributes are represented as {namespace}name so attributes with explicit
-            # namespaces will always sort after those without explicit namespaces.
+            # Sort attributes. Attributes are represented as {namespace}name
+            # so attributes with explicit namespaces will always sort after
+            # those without explicit namespaces.
             attribs = sorted(attrib.items())
             attrib.clear()
             attrib.update(attribs)
@@ -544,7 +558,10 @@ def xpath_clean_result_strings(
 
 
 def xpath_evaluate(
-    matcher_context: "MatcherContext", content: "_Element", xpath: str, for_exact=False
+    matcher_context: "MatcherContext",
+    content: "_Element",
+    xpath: str,
+    for_exact=False,
 ) -> "Union[Set[_Element], Set[str]]":
     """
     Evaluate an XPath and return the results.
