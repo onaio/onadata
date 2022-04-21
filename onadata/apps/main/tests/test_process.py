@@ -1,5 +1,6 @@
 import csv
 import fnmatch
+from io import BytesIO
 import json
 import os
 import re
@@ -16,6 +17,7 @@ from django.urls import reverse
 from django_digest.test import Client as DigestClient
 from future.utils import iteritems
 from mock import patch
+from openpyxl import load_workbook
 from xlrd import open_workbook
 
 from onadata.apps.logger.models import XForm
@@ -468,19 +470,18 @@ class TestProcess(TestBase):
             self.this_directory, "fixtures", "transportation",
             "transportation_export.xls"))
         content = get_response_content(response, decode=False)
-        actual_xls = open_workbook(file_contents=content)
-        actual_sheet = actual_xls.sheet_by_index(0)
+        actual_xls = load_workbook(filename=BytesIO(content))
+        actual_sheet = actual_xls.get_sheet_by_name('data')
         expected_sheet = expected_xls.sheet_by_index(0)
-
         # check headers
-        self.assertEqual(actual_sheet.row_values(0),
+        self.assertEqual(list(tuple(actual_sheet.values)[0]),
                          expected_sheet.row_values(0))
 
         # check cell data
-        self.assertEqual(actual_sheet.ncols, expected_sheet.ncols)
-        self.assertEqual(actual_sheet.nrows, expected_sheet.nrows)
-        for i in range(1, actual_sheet.nrows):
-            actual_row = actual_sheet.row_values(i)
+        self.assertEqual(len(list(actual_sheet.columns)), expected_sheet.ncols)
+        self.assertEqual(len(list(actual_sheet.rows)), expected_sheet.nrows)
+        for i in range(1, len(list(actual_sheet.columns))):
+            actual_row = list(tuple(actual_sheet.values)[i])
             expected_row = expected_sheet.row_values(i)
 
             # remove _id from result set, varies depending on the database

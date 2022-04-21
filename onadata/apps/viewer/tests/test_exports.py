@@ -12,7 +12,7 @@ from django.http import Http404
 from django.urls import reverse
 from django.utils.dateparse import parse_datetime
 from mock import patch
-from xlrd import open_workbook
+from openpyxl import load_workbook
 
 from onadata.apps.logger.models import Instance
 from onadata.apps.main.models.meta_data import MetaData
@@ -835,13 +835,11 @@ class TestExports(TestBase):
         return data
 
     def _get_xls_data(self, filepath):
-        storage = get_storage_class()()
-        with storage.open(filepath) as f:
-            workbook = open_workbook(file_contents=f.read())
-        transportation_sheet = workbook.sheet_by_name("data")
-        self.assertTrue(transportation_sheet.nrows > 1)
-        headers = transportation_sheet.row_values(0)
-        column1 = transportation_sheet.row_values(1)
+        workbook = load_workbook(filepath)
+        transportation_sheet = workbook.get_sheet_by_name("data")
+        self.assertTrue(len(tuple(transportation_sheet.rows)) > 1)
+        headers = tuple(transportation_sheet.values)[0]
+        column1 = tuple(transportation_sheet.values)[1]
         return dict(zip(headers, column1))
 
     def test_column_header_delimiter_export_option(self):
