@@ -167,7 +167,7 @@ class CSVImportTestCase(TestBase):
         send_message_mock.called_with(self.xform.id, XFORM, SUBMISSION_EDITED)
 
     def test_import_non_utf8_csv(self):
-        xls_file_path = os.path.join(self.fixtures_dir, "mali_health.xls")
+        xls_file_path = os.path.join(self.fixtures_dir, "mali_health.xlsx")
         self._publish_xls_file(xls_file_path)
         self.xform = XForm.objects.get()
 
