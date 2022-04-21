@@ -15,7 +15,7 @@ from io import BytesIO
 from typing import Dict, Any, List
 
 import unicodecsv as ucsv
-import xlrd
+from openpyxl import load_workbook
 from celery import current_task
 from celery.backends.rpc import BacklogLimitExceeded
 from celery.result import AsyncResult
@@ -546,9 +546,9 @@ def submission_xls_to_csv(xls_file):
     :return: csv_file
     """
     xls_file.seek(0)
-    xls_file_content = xls_file.read()
-    xl_workbook = xlrd.open_workbook(file_contents=xls_file_content)
-    first_sheet = xl_workbook.sheet_by_index(0)
+    xl_workbook = load_workbook(filename=xls_file)
+    sheet_name = xl_workbook.get_sheet_names()[0]
+    first_sheet = xl_workbook.get_sheet_by_name(sheet_name)
 
     csv_file = BytesIO()
     csv_writer = ucsv.writer(csv_file)
@@ -557,42 +557,42 @@ def submission_xls_to_csv(xls_file):
     boolean_columns = []
 
     # write the header
-    csv_writer.writerow(first_sheet.row_values(0))
+    csv_writer.writerow(list(first_sheet.values)[0])
 
     # check for any dates or boolean in the first row of data
-    for index in range(first_sheet.ncols):
+    for index in range(1, first_sheet.max_column + 1):
         row = 1
 
         # If the field is not required the first row may have
         # a null and thus XLS Dates (floats) or XLS Booleans
         # will not be properly converted in the next steps,
         # therefore we find the first non-empty row.
-        while first_sheet.cell_type(row, index) == xlrd.XL_CELL_EMPTY \
-                and row < first_sheet.nrows - 1:
+        while first_sheet.cell(row, index).value is not None \
+                and row < first_sheet.max_row - 1:
             row += 1
 
-        if first_sheet.cell_type(row, index) == xlrd.XL_CELL_DATE:
+        if first_sheet.cell(row, index).is_date:
             date_columns.append(index)
-        elif first_sheet.cell_type(row, index) == xlrd.XL_CELL_BOOLEAN:
+        elif first_sheet.cell(row, index).data_type == 'b':
             boolean_columns.append(index)
 
-    for row in range(1, first_sheet.nrows):
-        row_values = first_sheet.row_values(row)
-
+    for row_values in first_sheet.iter_rows(
+            min_row=1, max_row=first_sheet.max_row, values_only=True):
+        if not any(row_values):
+            continue
         # convert excel dates(floats) to datetime
-        for date_column in date_columns:
+        for date_column_index in date_columns:
             try:
-                row_values[date_column] = xlrd.xldate_as_datetime(
-                    row_values[date_column],
-                    xl_workbook.datemode).isoformat()
+                row_values[date_column_index] = \
+                    row_values[date_column_index].strftime(
+                        '%Y-%m-%d').isoformat()
             except (ValueError, TypeError):
-                row_values[date_column] = first_sheet.cell_value(
-                    row, date_column)
+                pass
 
         # convert excel boolean to true/false
-        for boolean_column in boolean_columns:
-            row_values[boolean_column] = bool(
-                row_values[boolean_column] == EXCEL_TRUE)
+        for boolean_column_index in boolean_columns:
+            row_values[boolean_column_index] = bool(
+                row_values[boolean_column_index] == EXCEL_TRUE)
 
         csv_writer.writerow(row_values)
 
