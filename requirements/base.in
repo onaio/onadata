@@ -2,7 +2,7 @@
 -e .
 
 # installed from Git
--e git+https://github.com/lindsay-stevens/pyxform.git@054435be7201e3c9459d83de39b4ae11e71dece1#egg=pyxform
+-e git+https://github.com/XLSForm/pyxform.git@f4ce2ec7f90d3e197b9b5b58fecccabe31d213f8#egg=pyxform
 -e git+https://github.com/onaio/python-digest.git@3af1bd0ef6114e24bf23d0e8fd9d7ebf389845d1#egg=python-digest
 -e git+https://github.com/onaio/django-digest.git@eb85c7ae19d70d4690eeb20983e94b9fde8ab8c2#egg=django-digest
 -e git+https://github.com/onaio/django-multidb-router.git@f711368180d58eef87eda54fadfd5f8355623d52#egg=django-multidb-router
