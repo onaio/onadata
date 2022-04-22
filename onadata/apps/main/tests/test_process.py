@@ -11,13 +11,13 @@ from xml.dom import minidom, Node
 
 import pytz
 import requests
+import openpyxl
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 from django.urls import reverse
 from django_digest.test import Client as DigestClient
 from future.utils import iteritems
 from mock import patch
-from openpyxl import load_workbook
 
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
@@ -94,7 +94,7 @@ class TestProcess(TestBase):
     def test_google_url_upload(self, mock_urlopen, mock_requests):
         if self._internet_on(url="http://google.com"):
             xls_url = "https://docs.google.com/spreadsheet/pub?"\
-                "key=0AvhZpT7ZLAWmdDhISGhqSjBOSl9XdXd5SHZHUUE2RFE&output=xls"
+                "key=0AvhZpT7ZLAWmdDhISGhqSjBOSl9XdXd5SHZHUUE2RFE&output=xlsx"
             pre_count = XForm.objects.count()
 
             path = os.path.join(
@@ -109,7 +109,7 @@ class TestProcess(TestBase):
                                  "officedocument.spreadsheetml.sheet"),
                 'content-disposition': (
                     'attachment; filename="transportation.'
-                    'xls"; filename*=UTF-8\'\'transportation.xlsx')
+                    'xlsx"; filename*=UTF-8\'\'transportation.xlsx')
             }
             mock_requests.get.return_value = mock_response
             mock_urlopen.return_value = xls_file
@@ -215,7 +215,7 @@ class TestProcess(TestBase):
 
     def _publish_xls_file(self):
         xls_path = os.path.join(self.this_directory, "fixtures",
-                                "transportation", "transportation_1.xlsx")
+                                "transportation", "transportation.xlsx")
         self._publish_file(xls_path)
         self.assertEqual(self.xform.id_string, "transportation_2011_07_25")
 
@@ -465,11 +465,11 @@ class TestProcess(TestBase):
             'xls_export', kwargs={'username': self.user.username,
                                   'id_string': self.xform.id_string})
         response = self.client.get(xls_export_url)
-        expected_xls = load_workbook(os.path.join(
+        expected_xls = openpyxl.open(filename=os.path.join(
             self.this_directory, "fixtures", "transportation",
-            "transportation_export.xlsx"))
+            "transportation_export.xlsx"), data_only=True)
         content = get_response_content(response, decode=False)
-        actual_xls = load_workbook(filename=BytesIO(content))
+        actual_xls = openpyxl.load_workbook(filename=BytesIO(content))
         actual_sheet = actual_xls.get_sheet_by_name('data')
         expected_sheet = expected_xls.get_sheet_by_name('transportation')
         # check headers
@@ -482,12 +482,13 @@ class TestProcess(TestBase):
         self.assertEqual(len(list(actual_sheet.rows)),
                          len(list(expected_sheet.rows)))
         for i in range(1, len(list(actual_sheet.columns))):
-            actual_row = list(actual_sheet.values)[i]
-            expected_row = list(expected_sheet.values)[i]
+            i = 1
+            actual_row = list(list(actual_sheet.values)[i])
+            expected_row = list(list(expected_sheet.values)[i])
 
             # remove _id from result set, varies depending on the database
-            del list(actual_row)[23]
-            del list(expected_row)[23]
+            del actual_row[23]
+            del expected_row[23]
             self.assertEqual(actual_row, expected_row)
 
     def _check_delete(self):
