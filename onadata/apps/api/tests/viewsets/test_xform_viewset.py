@@ -1545,7 +1545,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 post_data = {"xls_file": xls_file}
                 request = self.factory.post("/", data=post_data, **self.extra)
                 response = view(request)
-                self.assertEqual(response.status_code, 201)
+                self.assertEqual(response.status_code, 201, response.data)
 
     def test_publish_xlsform_anon(self):
         view = XFormViewSet.as_view({"post": "create"})
@@ -5360,7 +5360,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             post_data = {"xls_file": xls_import}
             request = self.factory.post("/", data=post_data, **self.extra)
             response = view(request, pk=self.xform.id)
-            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.status_code, 200, response.data)
             self.assertEqual(response.get("Cache-Control"), None)
             self.assertEqual(response.data.get("additions"), 9)
             self.assertEqual(response.data.get("updates"), 0)
