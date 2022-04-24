@@ -3296,7 +3296,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
         request = self.factory.post("/", **self.extra)
         response = view(request)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 400, response.data)
         self.assertEqual(response.data.get("detail"), "Missing body")
 
         body = (
@@ -3311,26 +3311,26 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         data = {"body": body}
         request = self.factory.post("/", data=data, **self.extra)
         response = view(request)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 200, response.data)
         unique_string = response.data.get("unique_string")
         username = response.data.get("username")
         self.assertIsNotNone(unique_string)
 
         request = self.factory.get("/")
         response = view(request)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 400, response.data)
         self.assertEqual(response.data.get("detail"), "Username not provided")
 
         data = {"username": username}
         request = self.factory.get("/", data=data)
         response = view(request)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 400, response.data)
         self.assertEqual(response.data.get("detail"), "Filename MUST be provided")
 
         data = {"filename": unique_string, "username": username}
         request = self.factory.get("/", data=data)
         response = view(request)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 200, response.data)
 
         body = (
             '"survey",,,,,,,,,,\n,"name","type","label","hint",'
@@ -3344,7 +3344,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         data = {"body": body}
         request = self.factory.post("/", data=data, **self.extra)
         response = view(request)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 400, response.data)
         error_message = (
             "[row : 2] Invalid question name [sdfasdfaf "
             "sdf] Names must begin with a letter, colon, or underscore."
