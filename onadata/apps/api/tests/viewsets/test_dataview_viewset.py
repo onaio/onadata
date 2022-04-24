@@ -10,7 +10,7 @@ from django.core.cache import cache
 from django.core.files.storage import default_storage
 from django.utils.timezone import utc
 from mock import patch
-import xlrd
+from openpyxl import load_workbook
 
 from onadata.libs.permissions import ReadOnlyRole
 from onadata.apps.logger.models.data_view import DataView
@@ -37,7 +37,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         super(TestDataViewViewSet, self).setUp()
         xlsform_path = os.path.join(
             settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
-            "tutorial.xls")
+            "tutorial.xlsx")
 
         self._publish_xls_form_to_project(xlsform_path=xlsform_path)
         for x in range(1, 9):
@@ -747,6 +747,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         })
 
         request = self.factory.get('/', data={"format": "xls",
+                                              "force_xlsx": 'true',
                                               'include_labels': 'true'},
                                    **self.extra)
         response = view(request, pk=self.data_view.pk)
@@ -773,11 +774,11 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 202)
         export = Export.objects.get(task_id=task_id)
         self.assertTrue(export.is_successful)
-        workbook = xlrd.open_workbook(export.full_filepath)
-        main_sheet = workbook.sheets()[0]
-        labels = main_sheet.row_values(1)
-        self.assertIn('Gender', labels)
-        self.assertEqual(main_sheet.nrows, 5)
+        workbook = load_workbook(export.full_filepath)
+        sheet_name = workbook.get_sheet_names()[0]
+        main_sheet = workbook.get_sheet_by_name(sheet_name)
+        self.assertIn('Gender', tuple(main_sheet.values)[1])
+        self.assertEqual(len(tuple(main_sheet.values)), 5)
 
     def _test_csv_export_with_hxl_support(self, name, columns, expected_output): # noqa
         data = {
@@ -1424,6 +1425,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         })
 
         request = self.factory.get('/', data={"format": "xls",
+                                              "force_xlsx": 'true',
                                               'include_labels': 'true',
                                               'query': query_str},
                                    **self.extra)
@@ -1451,11 +1453,11 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 202)
         export = Export.objects.get(task_id=task_id)
         self.assertTrue(export.is_successful)
-        workbook = xlrd.open_workbook(export.full_filepath)
-        main_sheet = workbook.sheets()[0]
-        labels = main_sheet.row_values(1)
-        self.assertIn('Gender', labels)
-        self.assertEqual(main_sheet.nrows, 3)
+        workbook = load_workbook(export.full_filepath)
+        sheet_name = workbook.get_sheet_names()[0]
+        main_sheet = workbook.get_sheet_by_name(sheet_name)
+        self.assertIn('Gender', tuple(main_sheet.values)[1])
+        self.assertEqual(len(tuple(main_sheet.values)), 3)
 
     def test_csv_export_dataview_date_filter(self):
         """

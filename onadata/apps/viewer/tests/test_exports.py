@@ -5,6 +5,8 @@ import os
 from io import StringIO
 from time import sleep
 
+import openpyxl
+
 from celery import current_app
 from django.conf import settings
 from django.core.files.storage import get_storage_class
@@ -12,7 +14,6 @@ from django.http import Http404
 from django.urls import reverse
 from django.utils.dateparse import parse_datetime
 from mock import patch
-from xlrd import open_workbook
 
 from onadata.apps.logger.models import Instance
 from onadata.apps.main.models.meta_data import MetaData
@@ -47,7 +48,7 @@ class TestExports(TestBase):
     def setUp(self):
         super(TestExports, self).setUp()
         self._submission_time = parse_datetime('2013-02-18 15:54:01Z')
-        self.options = {"extension": "xls"}
+        self.options = {"extension": "xlsx"}
 
     def test_unique_xls_sheet_name(self):
         xls_writer = XlsWriter()
@@ -136,7 +137,7 @@ class TestExports(TestBase):
             self.options)
         self.assertTrue(storage.exists(export.filepath))
         path, ext = os.path.splitext(export.filename)
-        self.assertEqual(ext, '.xls')
+        self.assertEqual(ext, '.xlsx')
 
         # test csv
         self.options["extension"] = "csv"
@@ -835,13 +836,11 @@ class TestExports(TestBase):
         return data
 
     def _get_xls_data(self, filepath):
-        storage = get_storage_class()()
-        with storage.open(filepath) as f:
-            workbook = open_workbook(file_contents=f.read())
-        transportation_sheet = workbook.sheet_by_name("data")
-        self.assertTrue(transportation_sheet.nrows > 1)
-        headers = transportation_sheet.row_values(0)
-        column1 = transportation_sheet.row_values(1)
+        workbook = openpyxl.open(filename=filepath)
+        transportation_sheet = workbook.get_sheet_by_name("data")
+        self.assertTrue(len(tuple(transportation_sheet.rows)) > 1)
+        headers = tuple(transportation_sheet.values)[0]
+        column1 = tuple(transportation_sheet.values)[1]
         return dict(zip(headers, column1))
 
     def test_column_header_delimiter_export_option(self):
@@ -895,7 +894,7 @@ class TestExports(TestBase):
         export = Export.objects.filter(
             xform=self.xform, export_type='xls').latest('created_on')
         self.assertTrue(bool(export.filepath))
-        data = self._get_xls_data(export.filepath)
+        data = self._get_xls_data(export.full_filepath)
         self.assertTrue(AMBULANCE_KEY in data)
         # xlrd reader seems to convert bools into integers i.e. 0 or 1
         self.assertEqual(data[AMBULANCE_KEY], 1)
@@ -907,7 +906,7 @@ class TestExports(TestBase):
         export = Export.objects.filter(
             xform=self.xform, export_type='xls').latest('created_on')
         self.assertTrue(bool(export.filepath))
-        data = self._get_xls_data(export.filepath)
+        data = self._get_xls_data(export.full_filepath)
         self.assertTrue(AMBULANCE_KEY_DOTS in data)
         # xlrd reader seems to convert bools into integers i.e. 0 or 1
         self.assertEqual(data[AMBULANCE_KEY_DOTS], 1)
@@ -984,7 +983,7 @@ class TestExports(TestBase):
         export = Export.objects.filter(
             xform=self.xform, export_type='xls').latest('created_on')
         self.assertTrue(bool(export.filepath))
-        data = self._get_xls_data(export.filepath)
+        data = self._get_xls_data(export.full_filepath)
         # we should have transport/available_transportation_types_to_referral_f
         # acility/ambulance as a separate column
         self.assertTrue(AMBULANCE_KEY in data)
@@ -996,7 +995,7 @@ class TestExports(TestBase):
         export = Export.objects.filter(
             xform=self.xform, export_type='xls').latest('created_on')
         self.assertTrue(bool(export.filepath))
-        data = self._get_xls_data(export.filepath)
+        data = self._get_xls_data(export.full_filepath)
         # transport/available_transportation_types_to_referral_facility/ambulan
         # ce should NOT be in its own column
         self.assertFalse(AMBULANCE_KEY in data)

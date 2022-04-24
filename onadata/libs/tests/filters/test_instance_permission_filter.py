@@ -18,7 +18,7 @@ class TestMetaDataFilter(TestBase):
 
         self.xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/tutorial/tutorial.xls"
+            "../fixtures/tutorial/tutorial.xlsx"
         )
 
         self._publish_transportation_form_and_submit_instance()
@@ -61,7 +61,7 @@ class TestMetaDataFilter(TestBase):
                           {"column": "age", "filter": "<", "value": "50"}]
         xlsform_path = os.path.join(
             settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
-            "tutorial.xls")
+            "tutorial.xlsx")
 
         self._publish_xls_file_and_set_xform(xlsform_path)
 

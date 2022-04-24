@@ -21,7 +21,7 @@ from django.utils import timezone
 
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
-from pyxform.tests_v1.pyxform_test_case import PyxformMarkdown
+from onadata.libs.test_utils.pyxform_test_case import PyxformMarkdown
 from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
@@ -111,6 +111,13 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         # make sure publishing the survey worked
         self.assertEqual(XForm.objects.count(), pre_count + 1)
 
+    def _publish_xlsx_file_with_external_choices(self):
+        path = os.path.join(self.this_directory, 'fixtures', 'external_choice_form_v1.xlsx')
+        pre_count = XForm.objects.count()
+        TestBase._publish_xls_file(self, path)
+        # make sure publishing the survey worked
+        self.assertEqual(XForm.objects.count(), pre_count + 1)
+
     def _publish_xls_file_and_set_xform(self, path):
         count = XForm.objects.count()
         self._publish_xls_file(path)
@@ -125,7 +132,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
     def _publish_transportation_form(self):
         xls_path = os.path.join(
             self.this_directory, "fixtures",
-            "transportation", "transportation.xls")
+            "transportation", "transportation.xlsx")
         count = XForm.objects.count()
         TestBase._publish_xls_file(self, xls_path)
         self.assertEqual(XForm.objects.count(), count + 1)

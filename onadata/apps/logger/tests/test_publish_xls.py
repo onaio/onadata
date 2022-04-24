@@ -15,7 +15,7 @@ class TestPublishXLS(TestBase):
     def test_publish_xls(self):
         xls_file_path = os.path.join(
             self.this_directory, "fixtures",
-            "transportation", "transportation.xls")
+            "transportation", "transportation.xlsx")
         count = XForm.objects.count()
         call_command('publish_xls', xls_file_path, self.user.username)
         self.assertEqual(XForm.objects.count(), count + 1)
@@ -26,13 +26,13 @@ class TestPublishXLS(TestBase):
         count = XForm.objects.count()
         xls_file_path = os.path.join(
             self.this_directory, "fixtures",
-            "transportation", "transportation.xls")
+            "transportation", "transportation.xlsx")
         call_command('publish_xls', xls_file_path, self.user.username)
         self.assertEqual(XForm.objects.count(), count + 1)
         count = XForm.objects.count()
         xls_file_path = os.path.join(
             self.this_directory, "fixtures",
-            "transportation", "transportation_updated.xls")
+            "transportation", "transportation_updated.xlsx")
         # call command without replace param
         with self.assertRaises(CommandError):
             call_command('publish_xls', xls_file_path, self.user.username)
@@ -90,7 +90,7 @@ class TestPublishXLS(TestBase):
     def test_publish_xls_version(self):
         xls_file_path = os.path.join(
             self.this_directory, "fixtures",
-            "transportation", "transportation.xls")
+            "transportation", "transportation.xlsx")
         count = XForm.objects.count()
         call_command('publish_xls', xls_file_path, self.user.username)
         self.assertEqual(XForm.objects.count(), count + 1)

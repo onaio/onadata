@@ -19,7 +19,7 @@ class CloneXForm(object):
     def save(self, **kwargs):
         user = User.objects.get(username=self.username)
         project = self.project or get_user_default_project(user)
-        xls_file_path = upload_to(None, '%s%s.xls' % (
+        xls_file_path = upload_to(None, '%s%s.xlsx' % (
                                   self.xform.id_string,
                                   XForm.CLONED_SUFFIX),
                                   self.username)

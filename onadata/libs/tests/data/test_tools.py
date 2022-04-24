@@ -65,7 +65,7 @@ class TestTools(TestBase):
         self._make_submissions()
         self._publish_xls_file(os.path.join(
             "fixtures",
-            "gps", "gps.xls"))
+            "gps", "gps.xlsx"))
 
         first_xform = self.xform
         self.xform = self.user.xforms.all().order_by('-pk')[0]
@@ -101,7 +101,7 @@ class TestTools(TestBase):
         self._make_submissions()
         self._publish_xls_file(os.path.join(
             "fixtures",
-            "gps", "gps.xls"))
+            "gps", "gps.xlsx"))
 
         self.xform = self.user.xforms.all().order_by('-pk')[0]
 
@@ -169,7 +169,7 @@ class TestTools(TestBase):
 
     def test_get_date_fields_includes_start_end(self):
         path = os.path.join(
-            os.path.dirname(__file__), "fixtures", "tutorial", "tutorial.xls")
+            os.path.dirname(__file__), "fixtures", "tutorial", "tutorial.xlsx")
         self._publish_xls_file_and_set_xform(path)
         fields = get_date_fields(self.xform)
         expected_fields = sorted(
@@ -180,7 +180,7 @@ class TestTools(TestBase):
     def test_get_field_records_when_some_responses_are_empty(self):
         submissions = ['1', '2', '3', 'no_age']
         path = os.path.join(
-            os.path.dirname(__file__), "fixtures", "tutorial", "tutorial.xls")
+            os.path.dirname(__file__), "fixtures", "tutorial", "tutorial.xlsx")
         self._publish_xls_file_and_set_xform(path)
 
         for i in submissions:

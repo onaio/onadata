@@ -33,7 +33,7 @@ class TestCsvExport(TestBase):
         """
         Test CSV export output
         """
-        path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xls')
+        path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xlsx')
         self._publish_xls_file_and_set_xform(path)
         path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xml')
         self._make_submission(
@@ -58,7 +58,7 @@ class TestCsvExport(TestBase):
         """
         Test CSV export with nested repeats
         """
-        path = os.path.join(self.fixture_dir, 'double_repeat.xls')
+        path = os.path.join(self.fixture_dir, 'double_repeat.xlsx')
         self._publish_xls_file(path)
         self.xform = XForm.objects.get(id_string='double_repeat')
         path = os.path.join(self.fixture_dir, 'instance.xml')
@@ -93,7 +93,7 @@ class TestCsvExport(TestBase):
         Test CSV export with dotted field names
         """
         path = os.path.join(os.path.dirname(__file__), 'fixtures', 'userone',
-                            'userone_with_dot_name_fields.xls')
+                            'userone_with_dot_name_fields.xlsx')
         self._publish_xls_file_and_set_xform(path)
         path = os.path.join(os.path.dirname(__file__), 'fixtures', 'userone',
                             'userone_with_dot_name_fields.xml')
@@ -120,7 +120,7 @@ class TestCsvExport(TestBase):
         """
         Test CSV export with removed_group_name = True
         """
-        path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xls')
+        path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xlsx')
         self._publish_xls_file_and_set_xform(path)
         path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xml')
         self._make_submission(

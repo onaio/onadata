@@ -71,6 +71,7 @@ profile
 bob
 *.db
 *.egg-info
+.eggs
 
 # visual studio code
 .vscode/

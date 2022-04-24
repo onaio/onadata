@@ -330,7 +330,7 @@ class TestOpenData(TestBase):
         self._submission_time = parse_datetime('2020-02-18 15:54:01Z')
         self.fixture_dir = os.path.join(
             self.this_directory, 'fixtures', 'csv_export')
-        path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xls')
+        path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xlsx')
         self._publish_xls_file_and_set_xform(path)
         path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xml')
         self.factory = RequestFactory()
@@ -458,7 +458,7 @@ class TestOpenData(TestBase):
         # Create form with nested repeat groups
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../../../main/tests/fixtures/transportation/transportation.xlsx"
+            "../../../main/tests/fixtures/transportation/transportation_1.xlsx"
         )
         self._publish_xls_file_and_set_xform(xls_file_path)
 

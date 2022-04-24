@@ -34,7 +34,7 @@ class TestFormMetadata(TestBase):
         if data_type == 'media':
             name = 'screenshot.png'
         else:
-            name = 'transportation.xls'
+            name = 'transportation.xlsx'
         path = os.path.join(self.this_directory, "fixtures",
                             "transportation", name)
         with open(path, 'rb') as doc_file:
@@ -58,7 +58,7 @@ class TestFormMetadata(TestBase):
     def test_views_with_unavailable_id_string(self):
         path = os.path.join(
             self.this_directory, "fixtures", "transportation",
-            'transportation.xls'
+            'transportation.xlsx'
         )
 
         with open(path, 'rb') as doc_file:
@@ -155,7 +155,7 @@ class TestFormMetadata(TestBase):
         response = self.client.get(self.doc_url)
         self.assertEqual(response.status_code, 200)
         fileName, ext = os.path.splitext(response['Content-Disposition'])
-        self.assertEqual(ext, '.xls')
+        self.assertEqual(ext, '.xlsx')
 
     def test_no_download_supporting_doc_for_anon(self):
         self._add_metadata()

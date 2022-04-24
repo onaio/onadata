@@ -11,8 +11,12 @@ from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import IntegrityError
 from django.db.models import Prefetch
-from django.http import (HttpResponseBadRequest, HttpResponseForbidden,
-                         HttpResponseRedirect, StreamingHttpResponse)
+from django.http import (
+    HttpResponseBadRequest,
+    HttpResponseForbidden,
+    HttpResponseRedirect,
+    StreamingHttpResponse,
+)
 from django.utils import six, timezone
 from django.utils.http import urlencode
 from django.utils.translation import ugettext as _
@@ -46,65 +50,67 @@ from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.viewer.models.export import Export
 from onadata.libs import authentication, filters
-from onadata.libs.mixins.anonymous_user_public_forms_mixin import \
-    AnonymousUserPublicFormsMixin
-from onadata.libs.mixins.authenticate_header_mixin import \
-    AuthenticateHeaderMixin
+from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
+    AnonymousUserPublicFormsMixin,
+)
+from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.renderers import renderers
-from onadata.libs.serializers.clone_xform_serializer import \
-    CloneXFormSerializer
-from onadata.libs.serializers.share_xform_serializer import \
-    ShareXFormSerializer
+from onadata.libs.serializers.clone_xform_serializer import CloneXFormSerializer
+from onadata.libs.serializers.share_xform_serializer import ShareXFormSerializer
 from onadata.libs.serializers.xform_serializer import (
-    XFormBaseSerializer, XFormCreateSerializer, XFormSerializer,
-    XFormVersionListSerializer)
-from onadata.libs.utils.api_export_tools import (custom_response_handler,
-                                                 get_async_response,
-                                                 process_async_export,
-                                                 response_for_format)
+    XFormBaseSerializer,
+    XFormCreateSerializer,
+    XFormSerializer,
+    XFormVersionListSerializer,
+)
+from onadata.libs.utils.api_export_tools import (
+    custom_response_handler,
+    get_async_response,
+    process_async_export,
+    response_for_format,
+)
 from onadata.libs.utils.common_tools import json_stream
-from onadata.libs.utils.csv_import import (get_async_csv_submission_status,
-                                           submit_csv, submit_csv_async,
-                                           submission_xls_to_csv)
+from onadata.libs.utils.csv_import import (
+    get_async_csv_submission_status,
+    submit_csv,
+    submit_csv_async,
+    submission_xls_to_csv,
+)
 from onadata.libs.utils.export_tools import parse_request_export_options
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.string import str2bool
-from onadata.libs.utils.viewer_tools import (get_enketo_urls,
-                                             generate_enketo_form_defaults,
-                                             get_form_url)
+from onadata.libs.utils.viewer_tools import (
+    get_enketo_urls,
+    generate_enketo_form_defaults,
+    get_form_url,
+)
 from onadata.libs.exceptions import EnketoError
 from onadata.settings.common import XLS_EXTENSIONS, CSV_EXTENSION
-from onadata.libs.utils.cache_tools import (
-    PROJ_OWNER_CACHE, safe_delete)
+from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_delete
 
-ENKETO_AUTH_COOKIE = getattr(settings, 'ENKETO_AUTH_COOKIE',
-                             '__enketo')
-ENKETO_META_UID_COOKIE = getattr(settings, 'ENKETO_META_UID_COOKIE',
-                                 '__enketo_meta_uid')
-ENKETO_META_USERNAME_COOKIE = getattr(settings,
-                                      'ENKETO_META_USERNAME_COOKIE',
-                                      '__enketo_meta_username')
+ENKETO_AUTH_COOKIE = getattr(settings, "ENKETO_AUTH_COOKIE", "__enketo")
+ENKETO_META_UID_COOKIE = getattr(
+    settings, "ENKETO_META_UID_COOKIE", "__enketo_meta_uid"
+)
+ENKETO_META_USERNAME_COOKIE = getattr(
+    settings, "ENKETO_META_USERNAME_COOKIE", "__enketo_meta_username"
+)
 
 BaseViewset = get_baseviewset_class()
 
 
 def upload_to_survey_draft(filename, username):
-    return os.path.join(
-        username,
-        'survey-drafts',
-        os.path.split(filename)[1]
-    )
+    return os.path.join(username, "survey-drafts", os.path.split(filename)[1])
 
 
 def get_survey_dict(csv_name):
-    survey_file = default_storage.open(csv_name, 'rb')
+    survey_file = default_storage.open(csv_name, "rb")
 
-    survey_dict = parse_file_to_json(
-        survey_file.name, default_name='data', file_object=survey_file)
+    survey_dict = parse_file_to_json(survey_file.name, default_name="data")
 
     return survey_dict
 
@@ -116,14 +122,13 @@ def _get_user(username):
 
 
 def _get_owner(request):
-    owner = request.data.get('owner') or request.user
+    owner = request.data.get("owner") or request.user
 
     if isinstance(owner, six.string_types):
         owner_obj = _get_user(owner)
 
         if owner_obj is None:
-            raise ValidationError(
-                u"User with username %s does not exist." % owner)
+            raise ValidationError("User with username %s does not exist." % owner)
         else:
             owner = owner_obj
 
@@ -131,25 +136,26 @@ def _get_owner(request):
 
 
 def value_for_type(form, field, value):
-    if form._meta.get_field(field).get_internal_type() == 'BooleanField':
+    if form._meta.get_field(field).get_internal_type() == "BooleanField":
         return str2bool(value)
 
     return value
 
 
 def _try_update_xlsform(request, xform, owner):
-    survey = \
-        utils.publish_xlsform(request, owner, xform.id_string, xform.project)
+    survey = utils.publish_xlsform(request, owner, xform.id_string, xform.project)
 
     if isinstance(survey, XForm):
-        serializer = XFormSerializer(
-            xform, context={'request': request})
+        serializer = XFormSerializer(xform, context={"request": request})
 
         # send form update notification
         send_message(
-            instance_id=xform.id, target_id=xform.id,
-            target_type=XFORM, user=request.user or owner,
-            message_verb=FORM_UPDATED)
+            instance_id=xform.id,
+            target_id=xform.id,
+            target_type=XFORM,
+            user=request.user or owner,
+            message_verb=FORM_UPDATED,
+        )
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -157,7 +163,7 @@ def _try_update_xlsform(request, xform, owner):
 
 
 def result_has_error(result):
-    return isinstance(result, dict) and result.get('type')
+    return isinstance(result, dict) and result.get("type")
 
 
 def get_survey_xml(csv_name):
@@ -167,25 +173,23 @@ def get_survey_xml(csv_name):
 
 
 def set_enketo_signed_cookies(resp, username=None, json_web_token=None):
-    """Set signed cookies for JWT token in the HTTPResponse resp object.
-    """
+    """Set signed cookies for JWT token in the HTTPResponse resp object."""
     if not username and not json_web_token:
         return
 
     max_age = 30 * 24 * 60 * 60 * 1000
-    enketo_meta_uid = {'max_age': max_age, 'salt': settings.ENKETO_API_SALT}
-    enketo = {'secure': False, 'salt': settings.ENKETO_API_SALT}
+    enketo_meta_uid = {"max_age": max_age, "salt": settings.ENKETO_API_SALT}
+    enketo = {"secure": False, "salt": settings.ENKETO_API_SALT}
 
     # add domain attribute if ENKETO_AUTH_COOKIE_DOMAIN is set in settings
     # i.e. don't add in development environment because cookie automatically
     # assigns 'localhost' as domain
-    if getattr(settings, 'ENKETO_AUTH_COOKIE_DOMAIN', None):
-        enketo_meta_uid['domain'] = settings.ENKETO_AUTH_COOKIE_DOMAIN
-        enketo['domain'] = settings.ENKETO_AUTH_COOKIE_DOMAIN
+    if getattr(settings, "ENKETO_AUTH_COOKIE_DOMAIN", None):
+        enketo_meta_uid["domain"] = settings.ENKETO_AUTH_COOKIE_DOMAIN
+        enketo["domain"] = settings.ENKETO_AUTH_COOKIE_DOMAIN
 
     resp.set_signed_cookie(ENKETO_META_UID_COOKIE, username, **enketo_meta_uid)
-    resp.set_signed_cookie(ENKETO_META_USERNAME_COOKIE, username,
-                           **enketo_meta_uid)
+    resp.set_signed_cookie(ENKETO_META_USERNAME_COOKIE, username, **enketo_meta_uid)
     resp.set_signed_cookie(ENKETO_AUTH_COOKIE, json_web_token, **enketo)
 
     return resp
@@ -202,18 +206,17 @@ def parse_webform_return_url(return_url, request):
     url = urlparse(return_url)
     try:
         # get jwt from url - probably zebra via enketo
-        jwt_param = [p for p in url.query.split('&') if p.startswith('jwt')]
-        jwt_param = jwt_param and jwt_param[0].split('=')[1]
+        jwt_param = [p for p in url.query.split("&") if p.startswith("jwt")]
+        jwt_param = jwt_param and jwt_param[0].split("=")[1]
 
         if not jwt_param:
             return
     except IndexError:
         pass
 
-    if '/_/' in return_url:  # offline url
-        redirect_url = "%s://%s%s#%s" % (
-            url.scheme, url.netloc, url.path, url.fragment)
-    elif '/::' in return_url:  # non-offline url
+    if "/_/" in return_url:  # offline url
+        redirect_url = "%s://%s%s#%s" % (url.scheme, url.netloc, url.path, url.fragment)
+    elif "/::" in return_url:  # non-offline url
         redirect_url = "%s://%s%s" % (url.scheme, url.netloc, url.path)
     else:
         # unexpected format
@@ -228,24 +231,27 @@ def parse_webform_return_url(return_url, request):
     if jwt_param:
         if request.user.is_anonymous:
             api_token = authentication.get_api_token(jwt_param)
-            if getattr(api_token, 'user'):
+            if getattr(api_token, "user"):
                 username = api_token.user.username
         else:
             username = request.user.username
 
         response_redirect = set_enketo_signed_cookies(
-            response_redirect, username=username, json_web_token=jwt_param)
+            response_redirect, username=username, json_web_token=jwt_param
+        )
 
         return response_redirect
 
 
-class XFormViewSet(AnonymousUserPublicFormsMixin,
-                   CacheControlMixin,
-                   AuthenticateHeaderMixin,
-                   ETagsMixin,
-                   LabelsMixin,
-                   BaseViewset,
-                   ModelViewSet):
+class XFormViewSet(
+    AnonymousUserPublicFormsMixin,
+    CacheControlMixin,
+    AuthenticateHeaderMixin,
+    ETagsMixin,
+    LabelsMixin,
+    BaseViewset,
+    ModelViewSet,
+):
     """
     Publish XLSForms, List, Retrieve Published Forms.
     """
@@ -259,46 +265,78 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         renderers.SurveyRenderer,
         renderers.OSMExportRenderer,
         renderers.ZipRenderer,
-        renderers.GoogleSheetsRenderer
+        renderers.GoogleSheetsRenderer,
     ]
-    queryset = XForm.objects.select_related('user', 'created_by')\
+    queryset = (
+        XForm.objects.select_related("user", "created_by")
         .prefetch_related(
             Prefetch(
-                'xformuserobjectpermission_set',
+                "xformuserobjectpermission_set",
                 queryset=XFormUserObjectPermission.objects.select_related(
-                    'user__profile__organizationprofile',
-                    'permission'
-                )
+                    "user__profile__organizationprofile", "permission"
+                ),
             ),
-            Prefetch('metadata_set'),
-            Prefetch('tags'),
-            Prefetch('dataview_set')
-        ).only(
-            'id', 'id_string', 'title', 'shared', 'shared_data',
-            'require_auth', 'created_by', 'num_of_submissions',
-            'downloadable', 'encrypted', 'sms_id_string',
-            'date_created', 'date_modified', 'last_submission_time',
-            'uuid', 'bamboo_dataset', 'instances_with_osm',
-            'instances_with_geopoints', 'version', 'has_hxl_support',
-            'project', 'last_updated_at', 'user', 'allows_sms', 'description',
-            'is_merged_dataset'
+            Prefetch("metadata_set"),
+            Prefetch("tags"),
+            Prefetch("dataview_set"),
         )
+        .only(
+            "id",
+            "id_string",
+            "title",
+            "shared",
+            "shared_data",
+            "require_auth",
+            "created_by",
+            "num_of_submissions",
+            "downloadable",
+            "encrypted",
+            "sms_id_string",
+            "date_created",
+            "date_modified",
+            "last_submission_time",
+            "uuid",
+            "bamboo_dataset",
+            "instances_with_osm",
+            "instances_with_geopoints",
+            "version",
+            "has_hxl_support",
+            "project",
+            "last_updated_at",
+            "user",
+            "allows_sms",
+            "description",
+            "is_merged_dataset",
+        )
+    )
     serializer_class = XFormSerializer
-    lookup_field = 'pk'
+    lookup_field = "pk"
     extra_lookup_fields = None
-    permission_classes = [XFormPermissions, ]
-    updatable_fields = set(('description', 'downloadable', 'require_auth',
-                            'shared', 'shared_data', 'title'))
-    filter_backends = (filters.EnketoAnonDjangoObjectPermissionFilter,
-                       filters.TagFilter,
-                       filters.XFormOwnerFilter,
-                       DjangoFilterBackend)
-    filter_fields = ('instances_with_osm',)
+    permission_classes = [
+        XFormPermissions,
+    ]
+    updatable_fields = set(
+        (
+            "description",
+            "downloadable",
+            "require_auth",
+            "shared",
+            "shared_data",
+            "title",
+        )
+    )
+    filter_backends = (
+        filters.EnketoAnonDjangoObjectPermissionFilter,
+        filters.TagFilter,
+        filters.XFormOwnerFilter,
+        DjangoFilterBackend,
+    )
+    filter_fields = ("instances_with_osm",)
 
-    public_forms_endpoint = 'public'
+    public_forms_endpoint = "public"
 
     def get_serializer_class(self):
-        if self.action == 'list':
+        if self.action == "list":
             return XFormBaseSerializer
 
         return super(XFormViewSet, self).get_serializer_class()
@@ -307,37 +345,36 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         try:
             owner = _get_owner(request)
         except ValidationError as e:
-            return Response({'message': e.messages[0]},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"message": e.messages[0]}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         survey = utils.publish_xlsform(request, owner)
         if isinstance(survey, XForm):
             # survey is a DataDictionary we need an XForm to return the correct
             # role for the user after form publishing.
-            serializer = XFormCreateSerializer(
-                survey, context={'request': request})
+            serializer = XFormCreateSerializer(survey, context={"request": request})
             headers = self.get_success_headers(serializer.data)
 
-            return Response(serializer.data, status=status.HTTP_201_CREATED,
-                            headers=headers)
+            return Response(
+                serializer.data, status=status.HTTP_201_CREATED, headers=headers
+            )
 
         return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(methods=['POST', 'GET'], detail=False)
+    @action(methods=["POST", "GET"], detail=False)
     def create_async(self, request, *args, **kwargs):
-        """ Temporary Endpoint for Async form creation """
+        """Temporary Endpoint for Async form creation"""
         resp = headers = {}
         resp_code = status.HTTP_400_BAD_REQUEST
 
-        if request.method == 'GET':
-            self.etag_data = '{}'.format(timezone.now())
-            survey = tasks.get_async_status(
-                request.query_params.get('job_uuid'))
+        if request.method == "GET":
+            self.etag_data = "{}".format(timezone.now())
+            survey = tasks.get_async_status(request.query_params.get("job_uuid"))
 
-            if 'pk' in survey:
-                xform = XForm.objects.get(pk=survey.get('pk'))
-                serializer = XFormSerializer(
-                    xform, context={'request': request})
+            if "pk" in survey:
+                xform = XForm.objects.get(pk=survey.get("pk"))
+                serializer = XFormSerializer(xform, context={"request": request})
                 headers = self.get_success_headers(serializer.data)
                 resp = serializer.data
                 resp_code = status.HTTP_201_CREATED
@@ -348,47 +385,51 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             try:
                 owner = _get_owner(request)
             except ValidationError as e:
-                return Response({'message': e.messages[0]},
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"message": e.messages[0]}, status=status.HTTP_400_BAD_REQUEST
+                )
 
-            fname = request.FILES.get('xls_file').name
-            if isinstance(request.FILES.get('xls_file'), InMemoryUploadedFile):
+            fname = request.FILES.get("xls_file").name
+            if isinstance(request.FILES.get("xls_file"), InMemoryUploadedFile):
                 xls_file_path = default_storage.save(
-                        f'tmp/async-upload-{owner.username}-{fname}',
-                        ContentFile(request.FILES.get('xls_file').read()))
+                    f"tmp/async-upload-{owner.username}-{fname}",
+                    ContentFile(request.FILES.get("xls_file").read()),
+                )
             else:
-                xls_file_path = request.FILES.get(
-                    'xls_file').temporary_file_path()
+                xls_file_path = request.FILES.get("xls_file").temporary_file_path()
 
             resp.update(
-                {u'job_uuid':
-                 tasks.publish_xlsform_async.delay(
-                     request.user.id,
-                     request.POST,
-                     owner.id,
-                     {'name': fname, 'path': xls_file_path}).task_id})
+                {
+                    "job_uuid": tasks.publish_xlsform_async.delay(
+                        request.user.id,
+                        request.POST,
+                        owner.id,
+                        {"name": fname, "path": xls_file_path},
+                    ).task_id
+                }
+            )
             resp_code = status.HTTP_202_ACCEPTED
 
         return Response(data=resp, status=resp_code, headers=headers)
 
-    @action(methods=['GET', 'HEAD'], detail=True)
+    @action(methods=["GET", "HEAD"], detail=True)
     @never_cache
-    def form(self, request, format='json', **kwargs):
+    def form(self, request, format="json", **kwargs):
         form = self.get_object()
-        if format not in ['json', 'xml', 'xls', 'csv']:
-            return HttpResponseBadRequest('400 BAD REQUEST',
-                                          content_type='application/json',
-                                          status=400)
-        self.etag_data = '{}'.format(form.date_modified)
+        if format not in ["json", "xml", "xls", "csv"]:
+            return HttpResponseBadRequest(
+                "400 BAD REQUEST", content_type="application/json", status=400
+            )
+        self.etag_data = "{}".format(form.date_modified)
         filename = form.id_string + "." + format
         response = response_for_format(form, format=format)
-        response['Content-Disposition'] = 'attachment; filename=' + filename
+        response["Content-Disposition"] = "attachment; filename=" + filename
 
         return response
 
-    @action(methods=['GET'], detail=False)
+    @action(methods=["GET"], detail=False)
     def login(self, request, **kwargs):
-        return_url = request.query_params.get('return')
+        return_url = request.query_params.get("return")
 
         if return_url:
             redirect = parse_webform_return_url(return_url, request)
@@ -396,86 +437,90 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             if redirect:
                 return redirect
 
-            login_vars = {"login_url": settings.ENKETO_CLIENT_LOGIN_URL,
-                          "return_url": urlencode({'return_url': return_url})}
-            client_login = '{login_url}?{return_url}'.format(**login_vars)
+            login_vars = {
+                "login_url": settings.ENKETO_CLIENT_LOGIN_URL,
+                "return_url": urlencode({"return_url": return_url}),
+            }
+            client_login = "{login_url}?{return_url}".format(**login_vars)
 
             return HttpResponseRedirect(client_login)
 
-        return HttpResponseForbidden(
-            "Authentication failure, cannot redirect")
+        return HttpResponseForbidden("Authentication failure, cannot redirect")
 
-    @action(methods=['GET'], detail=True)
+    @action(methods=["GET"], detail=True)
     def enketo(self, request, **kwargs):
         """Expose enketo urls."""
-        survey_type = self.kwargs.get('survey_type') or \
-            request.GET.get('survey_type')
+        survey_type = self.kwargs.get("survey_type") or request.GET.get("survey_type")
         self.object = self.get_object()
         form_url = get_form_url(
-            request, self.object.user.username,
+            request,
+            self.object.user.username,
             protocol=settings.ENKETO_PROTOCOL,
-            xform_pk=self.object.pk, generate_consistent_urls=True)
+            xform_pk=self.object.pk,
+            generate_consistent_urls=True,
+        )
 
-        data = {'message': _(u"Enketo not properly configured.")}
+        data = {"message": _("Enketo not properly configured.")}
         http_status = status.HTTP_400_BAD_REQUEST
 
         try:
             # pass default arguments to enketo_url to prepopulate form fields
             request_vars = request.GET
-            defaults = generate_enketo_form_defaults(
-                self.object, **request_vars)
-            enketo_urls = get_enketo_urls(
-                form_url, self.object.id_string, **defaults)
-            offline_url = enketo_urls.get('offline_url')
-            preview_url = enketo_urls.get('preview_url')
-            single_submit_url = enketo_urls.get('single_url')
+            defaults = generate_enketo_form_defaults(self.object, **request_vars)
+            enketo_urls = get_enketo_urls(form_url, self.object.id_string, **defaults)
+            offline_url = enketo_urls.get("offline_url")
+            preview_url = enketo_urls.get("preview_url")
+            single_submit_url = enketo_urls.get("single_url")
         except EnketoError as e:
-            data = {'message': _(u"Enketo error: %s" % e)}
+            data = {"message": _("Enketo error: %s" % e)}
         else:
-            if survey_type == 'single':
+            if survey_type == "single":
                 http_status = status.HTTP_200_OK
                 data = {"single_submit_url": single_submit_url}
             else:
                 http_status = status.HTTP_200_OK
-                data = {"enketo_url": offline_url,
-                        "enketo_preview_url": preview_url,
-                        "single_submit_url": single_submit_url}
+                data = {
+                    "enketo_url": offline_url,
+                    "enketo_preview_url": preview_url,
+                    "single_submit_url": single_submit_url,
+                }
 
         return Response(data, http_status)
 
-    @action(methods=['POST', 'GET'], detail=False)
+    @action(methods=["POST", "GET"], detail=False)
     def survey_preview(self, request, **kwargs):
         username = request.user.username
-        if request.method.upper() == 'POST':
+        if request.method.upper() == "POST":
             if not username:
                 raise ParseError("User has to be authenticated")
 
-            csv_data = request.data.get('body')
+            csv_data = request.data.get("body")
             if csv_data:
-                rand_name = "survey_draft_%s.csv" % ''.join(
-                    random.sample("abcdefghijklmnopqrstuvwxyz0123456789", 6))
+                rand_name = "survey_draft_%s.csv" % "".join(
+                    random.sample("abcdefghijklmnopqrstuvwxyz0123456789", 6)
+                )
                 csv_file = ContentFile(csv_data)
                 csv_name = default_storage.save(
-                    upload_to_survey_draft(rand_name, username),
-                    csv_file)
+                    upload_to_survey_draft(rand_name, username), csv_file
+                )
 
                 result = publish_form(lambda: get_survey_xml(csv_name))
 
                 if result_has_error(result):
-                    raise ParseError(result.get('text'))
+                    raise ParseError(result.get("text"))
 
                 return Response(
-                    {'unique_string': rand_name, 'username': username},
-                    status=200)
+                    {"unique_string": rand_name, "username": username}, status=200
+                )
             else:
-                raise ParseError('Missing body')
+                raise ParseError("Missing body")
 
-        if request.method.upper() == 'GET':
-            filename = request.query_params.get('filename')
-            username = request.query_params.get('username')
+        if request.method.upper() == "GET":
+            filename = request.query_params.get("filename")
+            username = request.query_params.get("username")
 
             if not username:
-                raise ParseError('Username not provided')
+                raise ParseError("Username not provided")
             if not filename:
                 raise ParseError("Filename MUST be provided")
 
@@ -484,7 +529,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             result = publish_form(lambda: get_survey_xml(csv_name))
 
             if result_has_error(result):
-                raise ParseError(result.get('text'))
+                raise ParseError(result.get("text"))
 
             self.etag_data = result
 
@@ -506,87 +551,77 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             return Response(serializer.data)
 
         xform = self.get_object()
-        export_type = kwargs.get('format') or \
-            request.query_params.get('format')
+        export_type = kwargs.get("format") or request.query_params.get("format")
         query = request.query_params.get("query")
-        token = request.GET.get('token')
-        meta = request.GET.get('meta')
+        token = request.GET.get("token")
+        meta = request.GET.get("meta")
 
-        if export_type is None or export_type in ['json', 'debug']:
+        if export_type is None or export_type in ["json", "debug"]:
             # perform default viewset retrieve, no data export
             return super(XFormViewSet, self).retrieve(request, *args, **kwargs)
 
-        return custom_response_handler(request,
-                                       xform,
-                                       query,
-                                       export_type,
-                                       token,
-                                       meta)
+        return custom_response_handler(request, xform, query, export_type, token, meta)
 
-    @action(methods=['POST'], detail=True)
+    @action(methods=["POST"], detail=True)
     def share(self, request, *args, **kwargs):
         self.object = self.get_object()
 
-        usernames_str = request.data.get("usernames",
-                                         request.data.get("username"))
+        usernames_str = request.data.get("usernames", request.data.get("username"))
 
         if not usernames_str:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         role = request.data.get("role")  # the serializer validates the role
         xform_id = self.object.pk
-        data_list = [{"xform":    xform_id,
-                      "username": username,
-                      "role":     role}
-                     for username in usernames_str.split(",")]
+        data_list = [
+            {"xform": xform_id, "username": username, "role": role}
+            for username in usernames_str.split(",")
+        ]
 
         serializer = ShareXFormSerializer(data=data_list, many=True)
 
         if serializer.is_valid():
             serializer.save()
         else:
-            return Response(data=serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(methods=['POST'], detail=True)
+    @action(methods=["POST"], detail=True)
     def clone(self, request, *args, **kwargs):
         self.object = self.get_object()
-        data = {'xform': self.object.pk,
-                'username': request.data.get('username')}
-        project = request.data.get('project_id')
+        data = {"xform": self.object.pk, "username": request.data.get("username")}
+        project = request.data.get("project_id")
         if project:
-            data['project'] = project
+            data["project"] = project
         serializer = CloneXFormSerializer(data=data)
         if serializer.is_valid():
-            clone_to_user = User.objects.get(username=data['username'])
-            if not request.user.has_perm('can_add_xform',
-                                         clone_to_user.profile):
+            clone_to_user = User.objects.get(username=data["username"])
+            if not request.user.has_perm("can_add_xform", clone_to_user.profile):
                 raise exceptions.PermissionDenied(
-                    detail=_(u"User %(user)s has no permission to add "
-                             "xforms to account %(account)s" %
-                             {'user': request.user.username,
-                              'account': data['username']}))
+                    detail=_(
+                        "User %(user)s has no permission to add "
+                        "xforms to account %(account)s"
+                        % {"user": request.user.username, "account": data["username"]}
+                    )
+                )
             try:
                 xform = serializer.save()
             except IntegrityError:
                 raise ParseError(
-                    'A clone with the same id_string has already been created')
+                    "A clone with the same id_string has already been created"
+                )
             serializer = XFormSerializer(
-                xform.cloned_form, context={'request': request})
+                xform.cloned_form, context={"request": request}
+            )
 
-            return Response(data=serializer.data,
-                            status=status.HTTP_201_CREATED)
+            return Response(data=serializer.data, status=status.HTTP_201_CREATED)
 
-        return Response(data=serializer.errors,
-                        status=status.HTTP_400_BAD_REQUEST)
+        return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(
-        methods=['POST', 'GET'], detail=True,
-        url_name='import', url_path='import')
+    @action(methods=["POST", "GET"], detail=True, url_name="import", url_path="import")
     def data_import(self, request, *args, **kwargs):
-        """ Endpoint for CSV and XLS data imports
+        """Endpoint for CSV and XLS data imports
         Calls :py:func:`onadata.libs.utils.csv_import.submit_csv` for POST
         requests passing the `request.FILES.get('csv_file')` upload
         for import and
@@ -599,64 +634,75 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         """
         self.object = self.get_object()
         resp = {}
-        if request.method == 'GET':
+        if request.method == "GET":
             try:
-                resp.update(get_async_csv_submission_status(
-                    request.query_params.get('job_uuid')))
+                resp.update(
+                    get_async_csv_submission_status(
+                        request.query_params.get("job_uuid")
+                    )
+                )
                 self.last_modified_date = timezone.now()
             except ValueError:
-                raise ParseError(('The instance of the result is not a '
-                                  'basestring; the job_uuid variable might '
-                                  'be incorrect'))
+                raise ParseError(
+                    (
+                        "The instance of the result is not a "
+                        "basestring; the job_uuid variable might "
+                        "be incorrect"
+                    )
+                )
         else:
-            csv_file = request.FILES.get('csv_file', None)
-            xls_file = request.FILES.get('xls_file', None)
+            csv_file = request.FILES.get("csv_file", None)
+            xls_file = request.FILES.get("xls_file", None)
 
             if csv_file is None and xls_file is None:
-                resp.update({u'error': u'csv_file and xls_file field empty'})
+                resp.update({"error": "csv_file and xls_file field empty"})
 
-            elif xls_file and \
-                    xls_file.name.split('.')[-1] not in XLS_EXTENSIONS:
-                resp.update({u'error': u'xls_file not an excel file'})
+            elif xls_file and xls_file.name.split(".")[-1] not in XLS_EXTENSIONS:
+                resp.update({"error": "xls_file not an excel file"})
 
-            elif csv_file and csv_file.name.split('.')[-1] != CSV_EXTENSION:
-                resp.update({u'error': u'csv_file not a csv file'})
+            elif csv_file and csv_file.name.split(".")[-1] != CSV_EXTENSION:
+                resp.update({"error": "csv_file not a csv file"})
 
             else:
-                if xls_file and xls_file.name.split('.')[-1] in XLS_EXTENSIONS:
+                if xls_file and xls_file.name.split(".")[-1] in XLS_EXTENSIONS:
                     csv_file = submission_xls_to_csv(xls_file)
-                overwrite = request.query_params.get('overwrite')
-                overwrite = True \
-                    if overwrite and overwrite.lower() == 'true' else False
+                overwrite = request.query_params.get("overwrite")
+                overwrite = True if overwrite and overwrite.lower() == "true" else False
                 size_threshold = settings.CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD
                 try:
                     csv_size = csv_file.size
                 except AttributeError:
                     csv_size = csv_file.__sizeof__()
                 if csv_size < size_threshold:
-                    resp.update(submit_csv(request.user.username,
-                                           self.object, csv_file, overwrite))
+                    resp.update(
+                        submit_csv(
+                            request.user.username, self.object, csv_file, overwrite
+                        )
+                    )
                 else:
                     csv_file.seek(0)
-                    upload_to = os.path.join(request.user.username,
-                                             'csv_imports', csv_file.name)
+                    upload_to = os.path.join(
+                        request.user.username, "csv_imports", csv_file.name
+                    )
                     file_name = default_storage.save(upload_to, csv_file)
-                    task = submit_csv_async.delay(request.user.username,
-                                                  self.object.pk, file_name,
-                                                  overwrite)
+                    task = submit_csv_async.delay(
+                        request.user.username, self.object.pk, file_name, overwrite
+                    )
                     if task is None:
-                        raise ParseError('Task not found')
+                        raise ParseError("Task not found")
                     else:
-                        resp.update({u'task_id': task.task_id})
+                        resp.update({"task_id": task.task_id})
 
         return Response(
             data=resp,
-            status=status.HTTP_200_OK if resp.get('error') is None else
-            status.HTTP_400_BAD_REQUEST)
+            status=status.HTTP_200_OK
+            if resp.get("error") is None
+            else status.HTTP_400_BAD_REQUEST,
+        )
 
-    @action(methods=['POST', 'GET'], detail=True)
+    @action(methods=["POST", "GET"], detail=True)
     def csv_import(self, request, *args, **kwargs):
-        """ Endpoint for CSV data imports
+        """Endpoint for CSV data imports
         Calls :py:func:`onadata.libs.utils.csv_import.submit_csv` for POST
         requests passing the `request.FILES.get('csv_file')` upload
         for import and
@@ -666,82 +712,94 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         """
         self.object = self.get_object()
         resp = {}
-        if request.method == 'GET':
+        if request.method == "GET":
             try:
-                resp.update(get_async_csv_submission_status(
-                    request.query_params.get('job_uuid')))
+                resp.update(
+                    get_async_csv_submission_status(
+                        request.query_params.get("job_uuid")
+                    )
+                )
                 self.last_modified_date = timezone.now()
             except ValueError:
-                raise ParseError(('The instance of the result is not a '
-                                  'basestring; the job_uuid variable might '
-                                  'be incorrect'))
+                raise ParseError(
+                    (
+                        "The instance of the result is not a "
+                        "basestring; the job_uuid variable might "
+                        "be incorrect"
+                    )
+                )
         else:
-            csv_file = request.FILES.get('csv_file', None)
+            csv_file = request.FILES.get("csv_file", None)
             if csv_file is None:
-                resp.update({u'error': u'csv_file field empty'})
-            elif csv_file.name.split('.')[-1] != CSV_EXTENSION:
-                resp.update({u'error': u'csv_file not a csv file'})
+                resp.update({"error": "csv_file field empty"})
+            elif csv_file.name.split(".")[-1] != CSV_EXTENSION:
+                resp.update({"error": "csv_file not a csv file"})
             else:
-                overwrite = request.query_params.get('overwrite')
-                overwrite = True \
-                    if overwrite and overwrite.lower() == 'true' else False
+                overwrite = request.query_params.get("overwrite")
+                overwrite = True if overwrite and overwrite.lower() == "true" else False
                 size_threshold = settings.CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD
                 if csv_file.size < size_threshold:
-                    resp.update(submit_csv(request.user.username,
-                                           self.object, csv_file, overwrite))
+                    resp.update(
+                        submit_csv(
+                            request.user.username, self.object, csv_file, overwrite
+                        )
+                    )
                 else:
                     csv_file.seek(0)
-                    upload_to = os.path.join(request.user.username,
-                                             'csv_imports', csv_file.name)
+                    upload_to = os.path.join(
+                        request.user.username, "csv_imports", csv_file.name
+                    )
                     file_name = default_storage.save(upload_to, csv_file)
-                    task = submit_csv_async.delay(request.user.username,
-                                                  self.object.pk, file_name,
-                                                  overwrite)
+                    task = submit_csv_async.delay(
+                        request.user.username, self.object.pk, file_name, overwrite
+                    )
                     if task is None:
-                        raise ParseError('Task not found')
+                        raise ParseError("Task not found")
                     else:
-                        resp.update({u'task_id': task.task_id})
+                        resp.update({"task_id": task.task_id})
 
         return Response(
             data=resp,
-            status=status.HTTP_200_OK if resp.get('error') is None else
-            status.HTTP_400_BAD_REQUEST)
+            status=status.HTTP_200_OK
+            if resp.get("error") is None
+            else status.HTTP_400_BAD_REQUEST,
+        )
 
     def partial_update(self, request, *args, **kwargs):
         self.object = self.get_object()
         owner = self.object.user
 
         # updating the file
-        if request.FILES or set(['xls_url',
-                                 'dropbox_xls_url',
-                                 'text_xls_form']) & set(request.data):
+        if request.FILES or set(["xls_url", "dropbox_xls_url", "text_xls_form"]) & set(
+            request.data
+        ):
             return _try_update_xlsform(request, self.object, owner)
 
         try:
-            return super(XFormViewSet, self).partial_update(request, *args,
-                                                            **kwargs)
+            return super(XFormViewSet, self).partial_update(request, *args, **kwargs)
         except XLSFormError as e:
             raise ParseError(str(e))
 
-    @action(methods=['DELETE', 'GET'], detail=True)
+    @action(methods=["DELETE", "GET"], detail=True)
     def delete_async(self, request, *args, **kwargs):
-        if request.method == 'DELETE':
+        if request.method == "DELETE":
             xform = self.get_object()
             resp = {
-                u'job_uuid': tasks.delete_xform_async.delay(
-                    xform.pk,
-                    request.user.id).task_id,
-                u'time_async_triggered': datetime.now()}
+                "job_uuid": tasks.delete_xform_async.delay(
+                    xform.pk, request.user.id
+                ).task_id,
+                "time_async_triggered": datetime.now(),
+            }
 
             # clear project from cache
-            safe_delete(f'{PROJ_OWNER_CACHE}{xform.project.pk}')
+            safe_delete(f"{PROJ_OWNER_CACHE}{xform.project.pk}")
             resp_code = status.HTTP_202_ACCEPTED
 
-        elif request.method == 'GET':
-            job_uuid = request.query_params.get('job_uuid')
+        elif request.method == "GET":
+            job_uuid = request.query_params.get("job_uuid")
             resp = tasks.get_async_status(job_uuid)
             resp_code = status.HTTP_202_ACCEPTED
-            self.etag_data = '{}'.format(timezone.now())
+            self.etag_data = "{}".format(timezone.now())
 
         return Response(data=resp, status=resp_code)
 
@@ -752,51 +810,52 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(methods=['GET'], detail=True)
+    @action(methods=["GET"], detail=True)
     def versions(self, request, *args, **kwargs):
         xform = self.get_object()
-        version_id = kwargs.get('version_id')
-        requested_format = kwargs.get('format') or 'json'
+        version_id = kwargs.get("version_id")
+        requested_format = kwargs.get("format") or "json"
 
         if not version_id:
             queryset = XFormVersion.objects.filter(xform=xform)
             serializer = XFormVersionListSerializer(
-                queryset, many=True, context={'request': request})
-            return Response(
-                data=serializer.data, status=status.HTTP_200_OK)
+                queryset, many=True, context={"request": request}
+            )
+            return Response(data=serializer.data, status=status.HTTP_200_OK)
 
         if version_id:
-            version = get_object_or_404(
-                XFormVersion, version=version_id, xform=xform)
+            version = get_object_or_404(XFormVersion, version=version_id, xform=xform)
             return response_for_format(version, format=requested_format)
 
-    @action(methods=['GET'], detail=True)
+    @action(methods=["GET"], detail=True)
     def export_async(self, request, *args, **kwargs):
-        job_uuid = request.query_params.get('job_uuid')
-        export_type = request.query_params.get('format')
+        job_uuid = request.query_params.get("job_uuid")
+        export_type = request.query_params.get("format")
         query = request.query_params.get("query")
         xform = self.get_object()
 
-        token = request.query_params.get('token')
-        meta = request.query_params.get('meta')
-        data_id = request.query_params.get('data_id')
+        token = request.query_params.get("token")
+        meta = request.query_params.get("meta")
+        data_id = request.query_params.get("data_id")
         options = parse_request_export_options(request.query_params)
 
-        options.update({
-            'meta': meta,
-            'token': token,
-            'data_id': data_id,
-        })
+        options.update(
+            {
+                "meta": meta,
+                "token": token,
+                "data_id": data_id,
+            }
+        )
         if query:
-            options.update({'query': query})
+            options.update({"query": query})
 
-        if request.query_params.get('format') in ['csvzip', 'savzip']:
+        if request.query_params.get("format") in ["csvzip", "savzip"]:
             # Overide renderer and mediatype because all response are
             # suppose to be in json
             # TODO: Avoid overiding the format query param for export type
             #  DRF uses format to select the renderer
             self.request.accepted_renderer = renderers.JSONRenderer()
-            self.request.accepted_mediatype = 'application/json'
+            self.request.accepted_mediatype = "application/json"
 
         if job_uuid:
             try:
@@ -812,19 +871,18 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             resp = process_async_export(request, xform, export_type, options)
 
             if isinstance(resp, HttpResponseRedirect):
-                payload = {
-                    "details": _("Google authorization needed"),
-                    "url": resp.url
-                }
-                return Response(data=payload,
-                                status=status.HTTP_403_FORBIDDEN,
-                                content_type="application/json")
+                payload = {"details": _("Google authorization needed"), "url": resp.url}
+                return Response(
+                    data=payload,
+                    status=status.HTTP_403_FORBIDDEN,
+                    content_type="application/json",
+                )
 
-        self.etag_data = '{}'.format(timezone.now())
+        self.etag_data = "{}".format(timezone.now())
 
-        return Response(data=resp,
-                        status=status.HTTP_202_ACCEPTED,
-                        content_type="application/json")
+        return Response(
+            data=resp, status=status.HTTP_202_ACCEPTED, content_type="application/json"
+        )
 
     def _get_streaming_response(self):
         """
@@ -836,18 +894,18 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         queryset = queryset_iterator(self.object_list, chunksize=2000)
 
         def get_json_string(item):
-            return json.dumps(XFormBaseSerializer(
-                instance=item,
-                context={'request': self.request}
-                ).data)
+            return json.dumps(
+                XFormBaseSerializer(
+                    instance=item, context={"request": self.request}
+                ).data
+            )
 
         response = StreamingHttpResponse(
-            json_stream(queryset, get_json_string),
-            content_type="application/json"
+            json_stream(queryset, get_json_string), content_type="application/json"
         )
 
         # calculate etag value and add it to response headers
-        if hasattr(self, 'etag_data'):
+        if hasattr(self, "etag_data"):
             self.set_etag_header(None, self.etag_data)
 
         self.set_cache_control(response)
@@ -859,11 +917,12 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         return response
 
     def list(self, request, *args, **kwargs):
-        STREAM_DATA = getattr(settings, 'STREAM_DATA', False)
+        STREAM_DATA = getattr(settings, "STREAM_DATA", False)
         try:
             queryset = self.filter_queryset(self.get_queryset())
-            last_modified = queryset.values_list('date_modified', flat=True)\
-                .order_by('-date_modified')
+            last_modified = queryset.values_list("date_modified", flat=True).order_by(
+                "-date_modified"
+            )
             if last_modified:
                 self.etag_data = last_modified[0].isoformat()
             if STREAM_DATA:

@@ -63,7 +63,7 @@ class TestWebforms(TestBase):
             '..',
             'fixtures',
             'tutorial',
-            'tutorial.xls')
+            'tutorial.xlsx')
         self._publish_xls_file_and_set_xform(xls_file_path)
         xml_file_path = os.path.join(
             os.path.dirname(__file__),

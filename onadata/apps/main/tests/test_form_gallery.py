@@ -47,7 +47,7 @@ class TestFormGallery(TestBase):
     def _publish_transportation_id_string_starts_with_number_form(self):
         xls_path = os.path.join(self.this_directory, "fixtures",
                                 "transportation",
-                                "transportation.id_starts_with_num.xls")
+                                "transportation.id_starts_with_num.xlsx")
         count = XForm.objects.count()
         TestBase._publish_xls_file(self, xls_path)
 

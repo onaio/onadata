@@ -27,7 +27,7 @@ def xls_filepath_from_fixture_name(fixture_name):
     """
     return os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "fixtures", fixture_name,
-        fixture_name + ".xls")
+        fixture_name + ".xlsx")
 
 
 # pylint: disable=invalid-name

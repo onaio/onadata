@@ -36,8 +36,9 @@ class CSVImportTestCase(TestBase):
                                          'tests', 'utils', 'fixtures')
         self.good_csv = open(os.path.join(self.fixtures_dir, 'good.csv'), 'rb')
         self.bad_csv = open(os.path.join(self.fixtures_dir, 'bad.csv'), 'rb')
-        self.xls_file_path = os.path.join(self.fixtures_dir, 'tutorial.xls')
-        self.good_xls = open(os.path.join(self.fixtures_dir, 'good.xls'), 'rb')
+        self.xls_file_path = os.path.join(self.fixtures_dir, 'tutorial.xlsx')
+        self.good_xls = open(
+            os.path.join(self.fixtures_dir, 'good.xlsx'), 'rb')
 
     def test_get_submission_meta_dict(self):
         self._publish_xls_file(self.xls_file_path)
@@ -110,7 +111,7 @@ class CSVImportTestCase(TestBase):
 
     def test_submit_csv_and_rollback(self):
         xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
-                                     "tests", "fixtures", "tutorial.xls")
+                                     "tests", "fixtures", "tutorial.xlsx")
         self._publish_xls_file(xls_file_path)
         self.xform = XForm.objects.get()
 
@@ -142,7 +143,7 @@ class CSVImportTestCase(TestBase):
     @patch('onadata.libs.utils.logger_tools.send_message')
     def test_submit_csv_edits(self, send_message_mock):
         xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
-                                     "tests", "fixtures", "tutorial.xls")
+                                     "tests", "fixtures", "tutorial.xlsx")
         self._publish_xls_file(xls_file_path)
         self.xform = XForm.objects.get()
 
@@ -167,7 +168,7 @@ class CSVImportTestCase(TestBase):
         send_message_mock.called_with(self.xform.id, XFORM, SUBMISSION_EDITED)
 
     def test_import_non_utf8_csv(self):
-        xls_file_path = os.path.join(self.fixtures_dir, "mali_health.xls")
+        xls_file_path = os.path.join(self.fixtures_dir, "mali_health.xlsx")
         self._publish_xls_file(xls_file_path)
         self.xform = XForm.objects.get()
 
@@ -198,7 +199,7 @@ class CSVImportTestCase(TestBase):
 
     def test_nested_geo_paths_csv(self):
         self.xls_file_path = os.path.join(self.fixtures_dir,
-                                          'tutorial-nested-geo.xls')
+                                          'tutorial-nested-geo.xlsx')
         self._publish_xls_file(self.xls_file_path)
         self.xform = XForm.objects.get()
 
@@ -244,7 +245,7 @@ class CSVImportTestCase(TestBase):
         Test that the user who imported data via CSV is tracked
         """
         xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
-                                     "tests", "fixtures", "tutorial.xls")
+                                     "tests", "fixtures", "tutorial.xlsx")
         self._publish_xls_file(xls_file_path)
         self.xform = XForm.objects.get()
 
@@ -259,7 +260,7 @@ class CSVImportTestCase(TestBase):
     def test_csv_with_repeats_import(self):
         self.xls_file_path = os.path.join(self.this_directory, 'fixtures',
                                           'csv_export',
-                                          'tutorial_w_repeats.xls')
+                                          'tutorial_w_repeats.xlsx')
         repeats_csv = open(
             os.path.join(self.this_directory, 'fixtures', 'csv_export',
                          'tutorial_w_repeats.csv'),
@@ -274,7 +275,7 @@ class CSVImportTestCase(TestBase):
     def test_csv_with__more_than_4_repeats_import(self):
         self.xls_file_path = os.path.join(self.this_directory, 'fixtures',
                                           'csv_export',
-                                          'tutorial_w_repeats.xls')
+                                          'tutorial_w_repeats.xlsx')
         repeats_csv = open(
             os.path.join(self.this_directory, 'fixtures', 'csv_export',
                          'tutorial_w_repeats_import.csv'),
@@ -473,7 +474,7 @@ class CSVImportTestCase(TestBase):
         """
         # Test integer constraint is enforced
         xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
-                                     "tests", "fixtures", "tutorial.xls")
+                                     "tests", "fixtures", "tutorial.xlsx")
         self._publish_xls_file(xls_file_path)
         self.xform = XForm.objects.last()
 

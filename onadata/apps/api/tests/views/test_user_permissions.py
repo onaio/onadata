@@ -40,7 +40,7 @@ class TestUserPermissions(TestAbstractViewSet):
         }
         path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-            "transportation", "transportation.xls")
+            "transportation", "transportation.xlsx")
 
         bob = self.user
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
