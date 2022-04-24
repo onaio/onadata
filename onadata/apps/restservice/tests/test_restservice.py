@@ -21,7 +21,7 @@ class RestServiceTest(TestBase):
         self.service_url = u'http://0.0.0.0:8001/%(id_string)s/post/%(uuid)s'
         self.service_name = u'f2dhis2'
         self._create_user_and_login()
-        filename = u'dhisform.xls'
+        filename = u'dhisform.xlsx'
         self.this_directory = os.path.dirname(__file__)
         path = os.path.join(self.this_directory, u'fixtures', filename)
         self._publish_xls_file(path)

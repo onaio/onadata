@@ -107,7 +107,7 @@ class TestMoveProjectToAnewOwner(TestBase):  # pylint: disable=C0111
         """Test the transfer of ownership of the XForms."""
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/tutorial/tutorial.xls",
+            "../fixtures/tutorial/tutorial.xlsx"
         )
         self._publish_xls_file_and_set_xform(xls_file_path)
         xml_submission_file_path = os.path.join(

@@ -7,7 +7,9 @@ from io import BytesIO, StringIO
 
 import unicodecsv as csv
 import xlrd
+import openpyxl
 from builtins import str as text
+from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
@@ -49,17 +51,13 @@ def process_xlsform(xls, default_name):
     if xls.name.endswith("json"):
         return FloipSurvey(xls).survey.to_json_dict()
 
-    file_object = None
+    file_object = xls
     if xls.name.endswith("csv"):
-        # a csv file gets closed in pyxform, make a copy
-        xls.seek(0)
-        file_object = BytesIO()
-        file_object.write(xls.read())
-        file_object.seek(0)
-        xls.seek(0)
-
+        file_object = None
+        if not get_storage_class()().exists(xls.path):
+            file_object = StringIO(xls.read().decode("utf-8"))
     try:
-        return parse_file_to_json(xls.name, file_object=file_object or xls)
+        return parse_file_to_json(xls.path, file_object=file_object)
     except csv.Error as e:
         if is_newline_error(e):
             xls.seek(0)
@@ -79,11 +77,11 @@ def sheet_to_csv(xls_content, sheet_name):
 
     :returns: a (StrionIO) csv file object
     """
-    workbook = xlrd.open_workbook(file_contents=xls_content)
+    workbook = openpyxl.load_workbook(xls_content.path)
 
-    sheet = workbook.sheet_by_name(sheet_name)
+    sheet = workbook.get_sheet_by_name(sheet_name)
 
-    if not sheet or sheet.nrows < 2:
+    if not sheet or sheet.max_column < 2:
         raise Exception(
             _("Sheet <'%(sheet_name)s'> has no data." % {"sheet_name": sheet_name})
         )
@@ -91,9 +89,9 @@ def sheet_to_csv(xls_content, sheet_name):
     csv_file = BytesIO()
 
     writer = csv.writer(csv_file, encoding="utf-8", quoting=csv.QUOTE_ALL)
-    mask = [v and len(v.strip()) > 0 for v in sheet.row_values(0)]
+    mask = [v and len(v.strip()) > 0 for v in list(sheet.values)[0]]
 
-    header = [v for v, m in zip(sheet.row_values(0), mask) if m]
+    header = [v for v, m in zip(list(sheet.values)[0], mask) if m]
     writer.writerow(header)
 
     name_column = None
@@ -105,29 +103,28 @@ def sheet_to_csv(xls_content, sheet_name):
     integer_fields = False
     date_fields = False
     if name_column:
-        name_column_values = sheet.col_values(name_column)
-        for index in range(len(name_column_values)):
-            if sheet.cell_type(index, name_column) == xlrd.XL_CELL_NUMBER:
+        for index in range(1, sheet.max_column):
+            if sheet.cell(index, name_column).data_type == "n":
                 integer_fields = True
-            elif sheet.cell_type(index, name_column) == xlrd.XL_CELL_DATE:
+            elif sheet.cell(index, name_column).is_date:
                 date_fields = True
 
-    for row in range(1, sheet.nrows):
+    for row in range(1, sheet.max_row):
         if integer_fields or date_fields:
             # convert integers to string/datetime if name has numbers/dates
             row_values = []
-            for index, val in enumerate(sheet.row_values(row)):
-                if sheet.cell_type(row, index) == xlrd.XL_CELL_NUMBER:
+            for index, val in enumerate(list(sheet.values)[row]):
+                if sheet.cell(row, index).data_type == "n":
                     try:
                         val = str(float(val) if (float(val) > int(val)) else int(val))
                     except ValueError:
                         pass
-                elif sheet.cell_type(row, index) == xlrd.XL_CELL_DATE:
+                elif sheet.cell(row, index).is_date:
                     val = xlrd.xldate_as_datetime(val, workbook.datemode).isoformat()
                 row_values.append(val)
             writer.writerow([v for v, m in zip(row_values, mask) if m])
         else:
-            writer.writerow([v for v, m in zip(sheet.row_values(row), mask) if m])
+            writer.writerow([v for v, m in zip(list(sheet.values)[row], mask) if m])
 
     return csv_file
 
@@ -251,7 +248,7 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
 
     if hasattr(instance, "has_external_choices") and instance.has_external_choices:
         instance.xls.seek(0)
-        f = sheet_to_csv(instance.xls.read(), "external_choices")
+        f = sheet_to_csv(instance.xls, "external_choices")
         f.seek(0, os.SEEK_END)
         size = f.tell()
         f.seek(0)

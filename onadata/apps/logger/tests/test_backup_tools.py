@@ -20,7 +20,7 @@ class TestBackupTools(TestBase):
             os.path.join(
                 settings.PROJECT_ROOT,
                 "apps", "logger", "fixtures", "test_forms",
-                "tutorial.xls"))
+                "tutorial.xlsx"))
 
     def test_date_created_override(self):
         """

@@ -32,7 +32,7 @@ class TestChartTools(TestBase):
         # create an xform
         path = os.path.join(
             os.path.dirname(__file__), "..", "..", "..", "apps", "api",
-            "tests", "fixtures", "forms", "tutorial", "tutorial.xls")
+            "tests", "fixtures", "forms", "tutorial", "tutorial.xlsx")
         self._publish_xls_file_and_set_xform(path)
         # make a couple of submissions
         for i in range(1, 3):
@@ -269,7 +269,7 @@ class TestChartTools(TestBase):
         path = os.path.join(
             os.path.dirname(__file__), "..", "..", "..", "apps", "main",
             "tests", "fixtures", "good_eats_multilang",
-            "good_eats_multilang.xls")
+            "good_eats_multilang.xlsx")
         self._publish_xls_file_and_set_xform(path)
         path = os.path.join(
             os.path.dirname(__file__), "..", "..", "..", "apps", "main",
@@ -285,7 +285,7 @@ class TestChartTools(TestBase):
         path = os.path.join(
             os.path.dirname(__file__), "..", "..", "..", "apps", "main",
             "tests", "fixtures", "good_eats_multilang",
-            "good_eats_multilang.xls")
+            "good_eats_multilang.xlsx")
         self._publish_xls_file_and_set_xform(path)
         path = os.path.join(
             os.path.dirname(__file__), "..", "..", "..", "apps", "main",

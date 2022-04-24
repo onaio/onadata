@@ -150,7 +150,7 @@ class TestFormPermissions(TestBase):
         self.assertEqual(MetaData.public_link(self.xform), True)
         # publish a second form to make sure the user cant access other forms
         self._publish_xls_file(os.path.join(
-            self.this_directory, "fixtures", "csv_export", "tutorial.xls"))
+            self.this_directory, "fixtures", "csv_export", "tutorial.xlsx"))
         xform_2 = XForm.objects.order_by('pk').reverse()[0]
         url_2 = reverse(show, kwargs={
             'username': self.user.username,

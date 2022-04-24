@@ -21,7 +21,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
         super(self.__class__, self).setUp()
         xlsform_path = os.path.join(
             settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
-            "tutorial.xls")
+            "tutorial.xlsx")
         self._org_create()
         self._publish_xls_form_to_project(xlsform_path=xlsform_path)
         for x in range(1, 9):
@@ -654,7 +654,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
     def test_widget_data_case_sensitive(self):
         xlsform_path = os.path.join(
             settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
-            "tutorial_2.xls")
+            "tutorial_2.xlsx")
 
         self._publish_xls_form_to_project(xlsform_path=xlsform_path)
         for x in range(1, 9):

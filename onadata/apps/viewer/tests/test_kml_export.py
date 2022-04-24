@@ -11,7 +11,7 @@ from onadata.apps.viewer.views import kml_export
 class TestKMLExport(TestBase):
     def _publish_survey(self):
         self.this_directory = os.path.dirname(__file__)
-        xls_path = self._fixture_path("gps", "gps.xls")
+        xls_path = self._fixture_path("gps", "gps.xlsx")
         TestBase._publish_xls_file(self, xls_path)
 
     def test_kml_export(self):

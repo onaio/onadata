@@ -240,7 +240,7 @@ class TestFormShow(TestBase):
         count = XForm.objects.count()
         self._publish_xls_file(
             os.path.join(
-                os.path.dirname(__file__), "fixtures", "gps", "gps.xls"))
+                os.path.dirname(__file__), "fixtures", "gps", "gps.xlsx"))
         self.assertEqual(XForm.objects.count(), count + 1)
         self.xform = XForm.objects.latest('date_created')
 
@@ -369,7 +369,7 @@ class TestFormShow(TestBase):
         })
         count = XForm.objects.count()
         xls_path = os.path.join(self.this_directory, "fixtures",
-                                "transportation", "transportation_updated.xls")
+                                "transportation", "transportation_updated.xlsx")
         with open(xls_path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
             self.client.post(xform_update_url, post_data)
@@ -387,7 +387,7 @@ class TestFormShow(TestBase):
             self.this_directory,
             "fixtures",
             "transportation",
-            "transportation_with_long_id_string.xls")
+            "transportation_with_long_id_string.xlsx")
         self._publish_xls_file_and_set_xform(xls_path)
 
         # Update the form
@@ -399,7 +399,7 @@ class TestFormShow(TestBase):
             self.this_directory,
             "fixtures",
             "transportation",
-            "transportation_with_long_id_string_updated.xls")
+            "transportation_with_long_id_string_updated.xlsx")
         with open(updated_xls_path, 'rb') as xls_file:
             post_data = {'xls_file': xls_file}
             self.client.post(xform_update_url, post_data)

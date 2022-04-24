@@ -4,7 +4,8 @@
 #
 #    pip-compile --output-file=requirements/base.pip requirements/base.in
 #
--e git+https://github.com/onaio/django-digest.git@6bf61ec08502fd3545d4f2c0838b6cb15e7ffa92#egg=django-digest
+-e git+https://github.com/XLSForm/pyxform.git@f4ce2ec7f90d3e197b9b5b58fecccabe31d213f8#egg=pyxform
+-e git+https://github.com/onaio/django-digest.git@eb85c7ae19d70d4690eeb20983e94b9fde8ab8c2#egg=django-digest
     # via -r requirements/base.in
 -e git+https://github.com/onaio/django-multidb-router.git@f711368180d58eef87eda54fadfd5f8355623d52#egg=django-multidb-router
     # via -r requirements/base.in
@@ -174,6 +175,8 @@ flake8==4.0.1
     # via onadata
 fleming==0.7.0
     # via django-query-builder
+formencode==2.0.1
+    # via pyxform
 future==0.18.2
     # via python-json2xlsclient
 geojson==2.5.0
@@ -304,10 +307,6 @@ pytz==2022.1
     #   djangorestframework
     #   fleming
     #   onadata
-pyxform==1.9.0
-    # via
-    #   onadata
-    #   pyfloip
 raven==6.10.0
     # via onadata
 recaptcha-client==1.0.6

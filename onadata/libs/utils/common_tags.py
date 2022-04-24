@@ -110,6 +110,7 @@ MEDIA_FILE_TYPES = {
             document",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         'application/json',
+        'application/geo+json',
         'application/msword',
         'application/vnd.ms-excel',
         'application/vnd.ms-powerpoint',

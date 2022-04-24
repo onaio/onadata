@@ -420,6 +420,7 @@ def process_async_export(request, xform, export_type, options=None):
     token = options.get("token")
     meta = options.get("meta")
     query = options.get("query")
+    force_xlsx = options.get("force_xlsx")
 
     try:
         query = filter_queryset_xform_meta_perms_sql(xform, request.user, query)
@@ -453,9 +454,9 @@ def process_async_export(request, xform, export_type, options=None):
         or export_type == Export.EXTERNAL_EXPORT
     ):
         resp = {
-            "job_uuid": _create_export_async(
-                xform, export_type, query, False, options=options
-            )
+            u'job_uuid':
+            _create_export_async(
+                xform, export_type, query, force_xlsx, options=options)
         }
     else:
         print("Do not create a new export.")
@@ -464,9 +465,9 @@ def process_async_export(request, xform, export_type, options=None):
         if not export.filename:
             # tends to happen when using newest_export_for.
             resp = {
-                "job_uuid": _create_export_async(
-                    xform, export_type, query, False, options=options
-                )
+                u'job_uuid':
+                _create_export_async(
+                    xform, export_type, query, force_xlsx, options=options)
             }
         else:
             resp = export_async_export_response(request, export)

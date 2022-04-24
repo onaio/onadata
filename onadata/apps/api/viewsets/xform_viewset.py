@@ -25,7 +25,6 @@ from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from six.moves.urllib.parse import urlparse
 
 try:
     from multidb.pinning import use_master
@@ -112,9 +111,7 @@ def upload_to_survey_draft(filename, username):
 def get_survey_dict(csv_name):
     survey_file = default_storage.open(csv_name, "rb")
 
-    survey_dict = parse_file_to_json(
-        survey_file.name, default_name="data", file_object=survey_file
-    )
+    survey_dict = parse_file_to_json(survey_file.name, default_name="data")
 
     return survey_dict
 
@@ -206,6 +203,7 @@ def parse_webform_return_url(return_url, request):
     this data or data in the request. Construct a proper return URL, which has
     stripped the authentication data, to return the user.
     """
+    from six.moves.urllib.parse import urlparse
     jwt_param = None
     url = urlparse(return_url)
     try:

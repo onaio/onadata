@@ -668,7 +668,7 @@ class TestExportTools(TestBase):
 
     def test_sav_special_char_columns(self):
         survey = create_survey_from_xls(
-            _logger_fixture_path('grains/grains.xls'))
+            _logger_fixture_path('grains/grains.xlsx'))
         export_builder = ExportBuilder()
         export_builder.TRUNCATE_GROUP_TITLE = True
         export_builder.set_survey(survey)

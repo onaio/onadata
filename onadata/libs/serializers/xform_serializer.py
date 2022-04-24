@@ -63,6 +63,8 @@ def _create_enketo_urls(request, xform):
     data = {}
     try:
         enketo_urls = get_enketo_urls(form_url, xform.id_string)
+        if not enketo_urls:
+            return data
         offline_url = enketo_urls.get("offline_url")
         MetaData.enketo_url(xform, offline_url)
         data["offline_url"] = offline_url

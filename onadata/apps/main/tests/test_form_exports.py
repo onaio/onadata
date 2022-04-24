@@ -5,7 +5,8 @@ import time
 
 from django.urls import reverse
 from django.utils import timezone
-from xlrd import open_workbook
+from io import BytesIO
+import openpyxl
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
@@ -30,7 +31,9 @@ class TestFormExports(TestBase):
 
     def _num_rows(self, content, export_format):
         def xls_rows(f):
-            return open_workbook(file_contents=f).sheets()[0].nrows
+            wb = openpyxl.load_workbook(filename=BytesIO(f))
+            current_sheet = wb.get_sheet_by_name('data')
+            return len(list(current_sheet.rows))
 
         def csv_rows(f):
             with tempfile.TemporaryFile('w+') as tmp:
@@ -39,6 +42,7 @@ class TestFormExports(TestBase):
                 return len([line for line in csv.reader(tmp)])
         num_rows_fn = {
             'xls': xls_rows,
+            'xlsx': xls_rows,
             'csv': csv_rows,
         }
         return num_rows_fn[export_format](content)
@@ -100,7 +104,7 @@ class TestFormExports(TestBase):
         self._filter_export_test(self.csv_url, 'csv')
 
     def test_filter_by_date_xls(self):
-        self._filter_export_test(self.xls_url, 'xls')
+        self._filter_export_test(self.xls_url, 'xlsx')
 
     def test_restrict_csv_export_if_not_shared(self):
         response = self.anon.get(self.csv_url)

@@ -27,7 +27,7 @@ class TestBaseSMS(TestBase):
         # create a test form and activate SMS Support.
         self._publish_xls_file_and_set_xform(os.path.join(self.this_directory,
                                                           'fixtures',
-                                                          'sms_tutorial.xls'))
+                                                          'sms_tutorial.xlsx'))
 
         if allow_sms:
             xform = XForm.objects.get(id_string=self.id_string)
