@@ -41,8 +41,6 @@ from onadata.libs.utils.common_tags import API_TOKEN
 from onadata.libs.utils.email import get_account_lockout_email_data
 
 ENKETO_AUTH_COOKIE = getattr(settings, "ENKETO_AUTH_COOKIE", "__enketo")
-JWT_SECRET_KEY = getattr(settings, "JWT_SECRET_KEY", "jwt")
-JWT_ALGORITHM = getattr(settings, "JWT_ALGORITHM", "HS256")
 TEMP_TOKEN_EXPIRY_TIME = getattr(
     settings, "DEFAULT_TEMP_TOKEN_EXPIRY_TIME", 60 * 60 * 6
 )
@@ -81,10 +79,10 @@ def get_api_token(cookie_jwt):
     """Get API Token from JSON Web Token"""
     # having this here allows the values to be mocked easily as oppossed to
     # being on the global scope
+    jwt_secret_key = getattr(settings, "JWT_SECRET_KEY", "jwt")
+    jwt_algorithm = getattr(settings, "JWT_ALGORITHM", "HS256")
     try:
-        jwt_payload = jwt.decode(
-            cookie_jwt, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM]
-        )
+        jwt_payload = jwt.decode(cookie_jwt, jwt_secret_key, algorithms=[jwt_algorithm])
         api_token = Token.objects.get(key=jwt_payload.get(API_TOKEN))
         return api_token
     except BadSignature as e:
@@ -96,8 +94,7 @@ def get_api_token(cookie_jwt):
 
 
 class DigestAuthentication(BaseAuthentication):
-    """Digest authentication
-    """
+    """Digest authentication"""
 
     def __init__(self):
         self.authenticator = HttpDigestAuthenticator()
@@ -139,8 +136,7 @@ class DigestAuthentication(BaseAuthentication):
 
 
 class TempTokenAuthentication(TokenAuthentication):
-    """TempToken authentication using "Authorization: TempToken xxxx" header.
-    """
+    """TempToken authentication using "Authorization: TempToken xxxx" header."""
 
     model = TempToken
 
@@ -155,8 +151,7 @@ class TempTokenAuthentication(TokenAuthentication):
             raise exceptions.AuthenticationFailed(error_msg)
         elif len(auth) > 2:
             error_msg = _(
-                "Invalid token header. "
-                "Token string should not contain spaces."
+                "Invalid token header. " "Token string should not contain spaces."
             )
             raise exceptions.AuthenticationFailed(error_msg)
 
@@ -172,8 +167,7 @@ class TempTokenAuthentication(TokenAuthentication):
             if getattr(settings, "SLAVE_DATABASES", []):
                 try:
                     with use_master:
-                        token = self.model.objects\
-                            .select_related("user").get(key=key)
+                        token = self.model.objects.select_related("user").get(key=key)
                 except self.model.DoesNotExist:
                     invalid_token = True
                 else:
@@ -182,9 +176,7 @@ class TempTokenAuthentication(TokenAuthentication):
                 raise exceptions.AuthenticationFailed(_("Invalid token"))
 
         if not token.user.is_active:
-            raise exceptions.AuthenticationFailed(
-                _("User inactive or deleted")
-            )
+            raise exceptions.AuthenticationFailed(_("User inactive or deleted"))
 
         if expired(token.created):
             raise exceptions.AuthenticationFailed(_("Token expired"))
@@ -196,8 +188,7 @@ class TempTokenAuthentication(TokenAuthentication):
 
 
 class EnketoTokenAuthentication(TokenAuthentication):
-    """Enketo Token Authentication via JWT shared domain cookie name.
-    """
+    """Enketo Token Authentication via JWT shared domain cookie name."""
 
     model = Token
 
@@ -230,8 +221,7 @@ class EnketoTokenAuthentication(TokenAuthentication):
 
 
 class TempTokenURLParameterAuthentication(TempTokenAuthentication):
-    """TempToken URL via temp_token request parameter.
-    """
+    """TempToken URL via temp_token request parameter."""
 
     model = TempToken
 
@@ -253,25 +243,21 @@ class SSOHeaderAuthentication(BaseAuthentication):
         return authenticate_sso(request)
 
 
-def retrieve_user_identification(
-        request) -> Tuple[Optional[str], Optional[str]]:
+def retrieve_user_identification(request) -> Tuple[Optional[str], Optional[str]]:
     ip = None
 
-    if request.META.get('HTTP_X_REAL_IP'):
-        ip = request.META['HTTP_X_REAL_IP'].split(',')[0]
+    if request.META.get("HTTP_X_REAL_IP"):
+        ip = request.META["HTTP_X_REAL_IP"].split(",")[0]
     else:
-        ip = request.META.get('REMOTE_ADDR')
+        ip = request.META.get("REMOTE_ADDR")
 
     try:
         if isinstance(request.META["HTTP_AUTHORIZATION"], bytes):
             username = (
-                request.META["HTTP_AUTHORIZATION"]
-                .decode("utf-8")
-                .split('"')[1].strip()
+                request.META["HTTP_AUTHORIZATION"].decode("utf-8").split('"')[1].strip()
             )
         else:
-            username = request.META["HTTP_AUTHORIZATION"].split(
-                '"')[1].strip()
+            username = request.META["HTTP_AUTHORIZATION"].split('"')[1].strip()
     except (TypeError, AttributeError, IndexError):
         pass
     else:
@@ -293,17 +279,13 @@ def check_lockout(request) -> Tuple[Optional[str], Optional[str]]:
         ip, username = retrieve_user_identification(request)
 
         if ip and username:
-            lockout = cache.get(safe_key("{}{}-{}".format(
-                LOCKOUT_IP, ip, username)))
+            lockout = cache.get(safe_key("{}{}-{}".format(LOCKOUT_IP, ip, username)))
             if lockout:
                 time_locked_out = datetime.now() - datetime.strptime(
                     lockout, "%Y-%m-%dT%H:%M:%S"
                 )
                 remaining_time = round(
-                    (
-                        getattr(settings, "LOCKOUT_TIME", 1800)
-                        - time_locked_out.seconds
-                    )
+                    (getattr(settings, "LOCKOUT_TIME", 1800) - time_locked_out.seconds)
                     / 60
                 )
                 raise AuthenticationFailed(
@@ -381,36 +363,39 @@ class MasterReplicaOAuth2Validator(OAuth2Validator):
     between Master & Replica databases
     https://github.com/jazzband/django-oauth-toolkit/blob/3bde632d5722f1f85ffcd8277504955321f00fff/oauth2_provider/oauth2_validators.py#L49
     """
+
     def validate_bearer_token(self, token, scopes, request):
         if not token:
             return False
 
         introspection_url = oauth2_settings.RESOURCE_SERVER_INTROSPECTION_URL
         introspection_token = oauth2_settings.RESOURCE_SERVER_AUTH_TOKEN
-        introspection_credentials = oauth2_settings.\
-            RESOURCE_SERVER_INTROSPECTION_CREDENTIALS
+        introspection_credentials = (
+            oauth2_settings.RESOURCE_SERVER_INTROSPECTION_CREDENTIALS
+        )
 
         try:
             access_token = AccessToken.objects.select_related(
-                "application", "user").get(token=token)
+                "application", "user"
+            ).get(token=token)
         except AccessToken.DoesNotExist:
             # Try retrieving AccessToken from MasterDB if not available
             # in Read replica
             with use_master:
                 try:
                     access_token = AccessToken.objects.select_related(
-                        "application", "user").get(token=token)
+                        "application", "user"
+                    ).get(token=token)
                 except AccessToken.DoesNotExist:
                     access_token = None
 
         if not access_token or not access_token.is_valid(scopes):
-            if introspection_url and (
-                    introspection_token or introspection_credentials):
+            if introspection_url and (introspection_token or introspection_credentials):
                 access_token = self._get_token_from_authentication_server(
                     token,
                     introspection_url,
                     introspection_token,
-                    introspection_credentials
+                    introspection_credentials,
                 )
 
         if access_token and access_token.is_valid(scopes):
