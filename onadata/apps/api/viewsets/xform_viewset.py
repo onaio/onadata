@@ -110,9 +110,7 @@ def upload_to_survey_draft(filename, username):
 def get_survey_dict(csv_name):
     survey_file = default_storage.open(csv_name, "rb")
 
-    survey_dict = parse_file_to_json(
-        survey_file.name, default_name="data", file_object=survey_file
-    )
+    survey_dict = parse_file_to_json(survey_file.name, default_name="data")
 
     return survey_dict
 
