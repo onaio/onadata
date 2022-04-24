@@ -623,7 +623,7 @@ def submission_xls_to_csv(xls_file):
             boolean_columns.append(index)
 
     for row_values in first_sheet.iter_rows(
-        min_row=1, max_row=first_sheet.max_row, values_only=True
+        min_row=2, max_row=first_sheet.max_row, values_only=True
     ):
         if not any(row_values):
             continue
