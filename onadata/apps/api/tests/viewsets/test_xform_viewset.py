@@ -1645,9 +1645,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.get("Cache-Control"), None)
             error_msg = (
                 "There should be a choices sheet in this xlsform. "
-                "Please ensure that the choices sheet name is all in small "
-                "caps and has columns 'list name', 'name', and 'label' "
-                "(or aliased column names)."
+                "Please ensure that the choices sheet has the mandatory columns "
+                "'list_name', 'name', and 'label'."
             )
             self.assertEqual(response.data.get("text"), error_msg)
 
