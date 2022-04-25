@@ -569,7 +569,7 @@ class Instance(models.Model, InstanceBaseClass):
     geom = models.GeometryCollectionField(null=True)
 
     # Keep track of whether all media attachments have been received
-    media_all_received = models.NullBooleanField(
+    media_all_received = models.BooleanField(
         _("Received All Media Attachemts"), null=True, default=True
     )
     total_media = models.PositiveIntegerField(
