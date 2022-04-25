@@ -95,7 +95,7 @@ def _query_iterator(sql, fields=None, params=[], count=False):
 
     if fields is None:
         for row in cursor.fetchall():
-            yield row[0]
+            yield json.loads(row[0])
     else:
         for row in cursor.fetchall():
             yield dict(zip(fields, row))

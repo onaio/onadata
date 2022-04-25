@@ -51,7 +51,7 @@ class AuditLog(object):
 
         if fields is None:
             for row in cursor.fetchall():
-                yield row[0]
+                yield json.loads(row[0])
         else:
             for row in cursor.fetchall():
                 yield dict(zip(fields, row))

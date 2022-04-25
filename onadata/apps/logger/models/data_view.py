@@ -197,7 +197,7 @@ class DataView(models.Model):
         cursor.execute(sql, [text(i) for i in params])
 
         for row in cursor.fetchall():
-            records = row[0]
+            records = json.loads(row[0])
 
         return True if records else False
 
