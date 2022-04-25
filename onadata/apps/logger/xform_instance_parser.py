@@ -2,7 +2,6 @@ import logging
 import re
 import dateutil.parser
 from builtins import str as text
-from six import python_2_unicode_compatible
 from xml.dom import minidom, Node
 
 from django.utils.encoding import smart_text, smart_str
@@ -15,25 +14,21 @@ class XLSFormError(Exception):
     pass
 
 
-@python_2_unicode_compatible
 class DuplicateInstance(Exception):
     def __str__(self):
         return _("Duplicate Instance")
 
 
-@python_2_unicode_compatible
 class InstanceInvalidUserError(Exception):
     def __str__(self):
         return _("Could not determine the user.")
 
 
-@python_2_unicode_compatible
 class InstanceParseError(Exception):
     def __str__(self):
         return _("The instance could not be parsed.")
 
 
-@python_2_unicode_compatible
 class InstanceEmptyError(InstanceParseError):
     def __str__(self):
         return _("Empty instance")

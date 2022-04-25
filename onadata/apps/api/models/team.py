@@ -1,5 +1,3 @@
-from six import python_2_unicode_compatible
-
 from django.db import models
 from django.db.models.signals import post_save
 from django.contrib.auth.models import User, Group
@@ -8,7 +6,6 @@ from guardian.shortcuts import assign_perm, get_perms_for_model
 from onadata.apps.logger.models.project import Project
 
 
-@python_2_unicode_compatible
 class Team(Group):
     """
     TODO: documentation

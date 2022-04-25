@@ -6,7 +6,6 @@ from django.contrib.auth.models import Permission, User
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models.signals import post_delete, post_save
-from six import python_2_unicode_compatible
 
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from guardian.shortcuts import assign_perm, get_perms_for_model
@@ -73,7 +72,6 @@ def _post_save_create_owner_team(sender, instance, created, **kwargs):
         create_owner_team_and_assign_permissions(instance)
 
 
-@python_2_unicode_compatible
 class OrganizationProfile(UserProfile):
 
     """Organization: Extends the user profile for organization specific info

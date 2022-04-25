@@ -4,7 +4,6 @@ Export model.
 """
 import os
 
-from six import python_2_unicode_compatible
 from tempfile import NamedTemporaryFile
 
 from django.core.files.storage import get_storage_class
@@ -45,7 +44,6 @@ def get_export_options_query_kwargs(options):
     return options_kwargs
 
 
-@python_2_unicode_compatible
 class ExportTypeError(Exception):
     """
     ExportTypeError exception class.
@@ -55,7 +53,6 @@ class ExportTypeError(Exception):
         return _("Invalid export type specified")
 
 
-@python_2_unicode_compatible
 class ExportConnectionError(Exception):
     """
     ExportConnectionError exception class.
@@ -65,7 +62,6 @@ class ExportConnectionError(Exception):
         return _("Export server is down.")
 
 
-@python_2_unicode_compatible
 class Export(models.Model):
     """
     Class representing a data export from an XForm

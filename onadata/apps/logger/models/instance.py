@@ -18,7 +18,6 @@ from django.db.models.signals import post_delete, post_save
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext as _
-from six import python_2_unicode_compatible
 from taggit.managers import TaggableManager
 
 from onadata.apps.logger.models.submission_review import SubmissionReview
@@ -115,7 +114,6 @@ def _get_tag_or_element_type_xpath(xform, tag):
     return elems[0].get_abbreviated_xpath() if elems else tag
 
 
-@python_2_unicode_compatible
 class FormInactiveError(Exception):
     """Exception class for inactive forms"""
 
@@ -123,7 +121,6 @@ class FormInactiveError(Exception):
         return _("Form is inactive")
 
 
-@python_2_unicode_compatible
 class FormIsMergedDatasetError(Exception):
     """Exception class for merged datasets"""
 

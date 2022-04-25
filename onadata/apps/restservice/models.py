@@ -4,8 +4,6 @@ RestService model
 """
 import importlib
 
-from six import python_2_unicode_compatible
-
 from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_delete, post_save
@@ -17,7 +15,6 @@ from onadata.apps.restservice import SERVICE_CHOICES
 from onadata.libs.utils.common_tags import GOOGLE_SHEET, TEXTIT
 
 
-@python_2_unicode_compatible
 class RestService(models.Model):
     """
     Properties for an external service.

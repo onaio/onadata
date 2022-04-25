@@ -13,7 +13,6 @@ from guardian.shortcuts import get_perms_for_model, assign_perm
 from guardian.models import UserObjectPermissionBase
 from guardian.models import GroupObjectPermissionBase
 from rest_framework.authtoken.models import Token
-from six import python_2_unicode_compatible
 from onadata.libs.utils.country_field import COUNTRIES
 from onadata.libs.utils.gravatar import get_gravatar_img_link, gravatar_exists
 from onadata.apps.main.signals import (
@@ -25,7 +24,6 @@ from onadata.apps.main.signals import (
 REQUIRE_AUTHENTICATION = "REQUIRE_ODK_AUTHENTICATION"
 
 
-@python_2_unicode_compatible
 class UserProfile(models.Model):
     """
     Userprofile model

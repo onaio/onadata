@@ -18,7 +18,6 @@ from kombu.exceptions import OperationalError
 from pyxform.builder import create_survey_element_from_dict
 from pyxform.utils import has_external_choices
 from pyxform.xls2json import parse_file_to_json
-from six import python_2_unicode_compatible
 
 from onadata.apps.logger.models.xform import XForm, check_version_set, check_xform_uuid
 from onadata.apps.logger.xform_instance_parser import XLSFormError
@@ -137,7 +136,6 @@ def upload_to(instance, filename, username=None):
     return os.path.join(username, "xls", os.path.split(filename)[1])
 
 
-@python_2_unicode_compatible
 class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
     """
     DataDictionary model class.

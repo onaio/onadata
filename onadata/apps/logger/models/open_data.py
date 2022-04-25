@@ -7,12 +7,10 @@ authentication using the unique uuid.
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models
-from six import python_2_unicode_compatible
 
 from onadata.libs.utils.common_tools import get_uuid
 
 
-@python_2_unicode_compatible
 class OpenData(models.Model):
     """
     OpenData model represents a way to access private datasets without

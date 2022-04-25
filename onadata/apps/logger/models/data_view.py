@@ -13,7 +13,6 @@ from django.db.models import JSONField
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from django.utils.translation import ugettext as _
-from six import python_2_unicode_compatible
 
 from onadata.apps.viewer.parsed_instance_tools import get_where_clause
 from onadata.libs.models.sorting import (
@@ -98,7 +97,6 @@ def has_attachments_fields(data_view):
     return False
 
 
-@python_2_unicode_compatible
 class DataView(models.Model):
     """
     Model to provide filtered access to the underlying data of an XForm

@@ -7,12 +7,10 @@ import os
 
 from django.conf import settings
 from django.db import models
-from six import python_2_unicode_compatible
 
 AUTH_USER_MODEL = getattr(settings, "AUTH_USER_MODEL", "auth.User")
 
 
-@python_2_unicode_compatible
 class TempToken(models.Model):
 
     """

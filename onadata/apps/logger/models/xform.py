@@ -19,7 +19,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy
-from six import iteritems, itervalues, python_2_unicode_compatible
+from six import iteritems, itervalues
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from pyxform import SurveyElementBuilder, constants, create_survey_element_from_dict
 from pyxform.question import Question
@@ -733,7 +733,6 @@ class XFormMixin(object):
         ]
 
 
-@python_2_unicode_compatible
 class XForm(XFormMixin, BaseModel):
     CLONED_SUFFIX = "_cloned"
     MAX_ID_LENGTH = 100

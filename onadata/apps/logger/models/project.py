@@ -9,7 +9,6 @@ from django.db import models, transaction
 from django.db.models import Prefetch, JSONField
 from django.db.models.signals import post_save
 from django.utils import timezone
-from six import python_2_unicode_compatible
 
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from guardian.shortcuts import assign_perm, get_perms_for_model
@@ -78,7 +77,6 @@ class PrefetchManager(models.Manager):
         )
 
 
-@python_2_unicode_compatible
 class Project(BaseModel):
     """
     Project model class
