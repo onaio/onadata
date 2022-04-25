@@ -7,7 +7,7 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0001_pre-django-3-upgrade'),
+        ('logger', '0001_initial'),
     ]
 
     operations = [
