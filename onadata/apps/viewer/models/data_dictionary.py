@@ -6,7 +6,6 @@ import os
 from io import BytesIO, StringIO
 
 import unicodecsv as csv
-import xlrd
 import openpyxl
 from builtins import str as text
 from django.core.files.storage import get_storage_class
@@ -120,7 +119,7 @@ def sheet_to_csv(xls_content, sheet_name):
                     except ValueError:
                         pass
                 elif sheet.cell(row, index).is_date:
-                    val = xlrd.xldate_as_datetime(val, workbook.datemode).isoformat()
+                    val = val.strftime("%Y-%m-%d").isoformat()
                 row_values.append(val)
             writer.writerow([v for v, m in zip(row_values, mask) if m])
         else:
