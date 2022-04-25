@@ -18,11 +18,6 @@
     # via -r requirements/base.in
 -e git+https://github.com/onaio/python-json2xlsclient.git@62b4645f7b4f2684421a13ce98da0331a9dd66a0#egg=python-json2xlsclient
     # via -r requirements/base.in
--e git+https://github.com/XLSForm/pyxform.git@f4ce2ec7f90d3e197b9b5b58fecccabe31d213f8#egg=pyxform
-    # via
-    #   -r requirements/base.in
-    #   onadata
-    #   pyfloip
 alabaster==0.7.12
     # via sphinx
 amqp==5.1.1
@@ -88,7 +83,9 @@ cryptography==36.0.2
 datapackage==1.15.2
     # via pyfloip
 defusedxml==0.7.1
-    # via djangorestframework-xml
+    # via
+    #   djangorestframework-xml
+    #   pyxform
 deprecated==1.2.13
     # via
     #   jwcrypto
@@ -307,6 +304,10 @@ pytz==2022.1
     #   djangorestframework
     #   fleming
     #   onadata
+pyxform==1.10.0
+    # via
+    #   onadata
+    #   pyfloip
 raven==6.10.0
     # via onadata
 recaptcha-client==1.0.6
@@ -405,7 +406,9 @@ wcwidth==0.2.5
 wrapt==1.14.0
     # via deprecated
 xlrd==2.0.1
-    # via tabulator
+    # via
+    #   pyxform
+    #   tabulator
 xlwt==1.3.0
     # via onadata
 xmltodict==0.12.0
