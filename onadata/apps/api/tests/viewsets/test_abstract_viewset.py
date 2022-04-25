@@ -465,9 +465,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
                 "query": '[{"column":"age","filter":">","value":"20"},'
                 '{"column":"age","filter":"<","value":"50"}]',
             }
-
         request = self.factory.post("/", data=data, **self.extra)
-
         response = view(request)
 
         self.assertEquals(response.status_code, 201)

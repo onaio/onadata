@@ -70,7 +70,7 @@ XFORM_TITLE_LENGTH = 255
 title_pattern = re.compile(r"<h:title>(.*?)</h:title>")
 
 
-cmp = lambda x, y: (x > y) - (x < y)
+def cmp(x, y): (x > y) - (x < y)
 
 
 def question_types_to_exclude(_type):
@@ -795,7 +795,7 @@ class XForm(XFormMixin, BaseModel):
     )
     metadata_set = GenericRelation(
         "main.MetaData",
-        content_type_field="content_type_id",
+        content_type_field="content_type",
         object_id_field="object_id",
     )
     has_hxl_support = models.BooleanField(default=False)

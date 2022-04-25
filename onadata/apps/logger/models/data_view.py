@@ -3,6 +3,7 @@
 DataView model class
 """
 import datetime
+import json
 from builtins import str as text
 
 from django.conf import settings
@@ -292,7 +293,7 @@ class DataView(models.Model):
                     yield dict(zip(fields, row))
             else:
                 for row in cursor.fetchall():
-                    yield dict(zip(fields, [row[0].get(f) for f in fields]))
+                    yield dict(zip(fields, [json.loads(row[0]).get(f) for f in fields]))
 
     @classmethod
     def generate_query_string(
