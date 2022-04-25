@@ -4,7 +4,6 @@
 #
 #    pip-compile --output-file=requirements/base.pip requirements/base.in
 #
--e git+https://github.com/XLSForm/pyxform.git@f4ce2ec7f90d3e197b9b5b58fecccabe31d213f8#egg=pyxform
 -e git+https://github.com/onaio/django-digest.git@6bf61ec08502fd3545d4f2c0838b6cb15e7ffa92#egg=django-digest
     # via -r requirements/base.in
 -e git+https://github.com/onaio/django-multidb-router.git@f711368180d58eef87eda54fadfd5f8355623d52#egg=django-multidb-router
@@ -19,6 +18,11 @@
     # via -r requirements/base.in
 -e git+https://github.com/onaio/python-json2xlsclient.git@62b4645f7b4f2684421a13ce98da0331a9dd66a0#egg=python-json2xlsclient
     # via -r requirements/base.in
+-e git+https://github.com/XLSForm/pyxform.git@f4ce2ec7f90d3e197b9b5b58fecccabe31d213f8#egg=pyxform
+    # via
+    #   -r requirements/base.in
+    #   onadata
+    #   pyfloip
 alabaster==0.7.12
     # via sphinx
 amqp==5.1.1
@@ -35,15 +39,15 @@ attrs==21.4.0
     # via
     #   jsonlines
     #   jsonschema
-babel==2.9.1
+babel==2.10.1
     # via sphinx
 backoff==1.10.0
     # via analytics-python
 billiard==3.6.4.0
     # via celery
-boto3==1.21.43
+boto3==1.21.46
     # via tabulator
-botocore==1.24.43
+botocore==1.24.46
     # via
     #   boto3
     #   s3transfer
@@ -84,9 +88,7 @@ cryptography==36.0.2
 datapackage==1.15.2
     # via pyfloip
 defusedxml==0.7.1
-    # via
-    #   djangorestframework-xml
-    #   pyxform
+    # via djangorestframework-xml
 deprecated==1.2.13
     # via
     #   jwcrypto
@@ -242,7 +244,6 @@ oauthlib==3.2.0
 openpyxl==3.0.9
     # via
     #   onadata
-    #   pyxform
     #   tabulator
 packaging==21.3
     # via
@@ -271,7 +272,7 @@ pycparser==2.21
     # via cffi
 pyflakes==2.4.0
     # via flake8
-pygments==2.11.2
+pygments==2.12.0
     # via sphinx
 pyjwt[crypto]==2.3.0
     # via
@@ -405,7 +406,6 @@ wrapt==1.14.0
 xlrd==2.0.1
     # via
     #   onadata
-    #   pyxform
     #   tabulator
 xlwt==1.3.0
     # via onadata
