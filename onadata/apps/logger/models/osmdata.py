@@ -2,8 +2,8 @@
 """
 OSM Data model class
 """
+from django.db.models import JSONField
 from django.contrib.gis.db import models
-from django.contrib.postgres.fields import JSONField
 
 
 class OsmData(models.Model):

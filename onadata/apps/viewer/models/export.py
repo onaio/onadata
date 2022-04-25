@@ -8,8 +8,8 @@ from six import python_2_unicode_compatible
 from tempfile import NamedTemporaryFile
 
 from django.core.files.storage import get_storage_class
-from django.contrib.postgres.fields import JSONField
 from django.db import models
+from django.db.models import JSONField
 from django.db.models.signals import post_delete
 from django.utils.translation import ugettext as _
 

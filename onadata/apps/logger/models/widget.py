@@ -1,9 +1,9 @@
 from builtins import str as text
 
+from django.db.models import JSONField
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models
-from django.contrib.postgres.fields import JSONField
 from ordered_model.models import OrderedModel
 from querybuilder.fields import AvgField, CountField, SimpleField, SumField
 from querybuilder.query import Query

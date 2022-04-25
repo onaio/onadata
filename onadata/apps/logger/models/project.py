@@ -4,10 +4,9 @@ Project model class
 """
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.contrib.postgres.fields import JSONField
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
-from django.db.models import Prefetch
+from django.db.models import Prefetch, JSONField
 from django.db.models.signals import post_save
 from django.utils import timezone
 from six import python_2_unicode_compatible
