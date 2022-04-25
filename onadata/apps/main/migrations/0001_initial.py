@@ -11,7 +11,7 @@ from django.conf import settings
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0001_pre-django-3-upgrade'),
+        ('logger', '0001_initial'),
         ('auth', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
@@ -257,3 +257,4 @@ class Migration(migrations.Migration):
             unique_together=set([('xform', 'data_type', 'data_value')]),
         ),
     ]
+
