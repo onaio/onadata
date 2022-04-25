@@ -10,7 +10,7 @@ TEMPLATE_STRING_IF_INVALID = ''
 # postgres
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'formhub_dev',
         'USER': 'formhub_dev',
         'PASSWORD': '12345678',

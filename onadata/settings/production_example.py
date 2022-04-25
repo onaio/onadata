@@ -18,7 +18,7 @@ ADMINS = (
 # your actual production settings go here...,.
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'formhub',
         'USER': 'formhub_prod',
         # the password must be stored in an environment variable
