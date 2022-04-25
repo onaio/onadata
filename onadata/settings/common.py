@@ -152,6 +152,7 @@ TEMPLATES = [
     },
 ]
 
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 MIDDLEWARE = (
     "onadata.libs.profiling.sql.SqlTimingMiddleware",
