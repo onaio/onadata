@@ -180,7 +180,7 @@ class TestInstance(TestBase):
         data = [i.get('_id') for i in query_data(
             self.xform, query='{"_id": %s}' % (oldest), fields='["_id"]')]
         self.assertEqual(len(data), 1)
-        self.assertEqual(data, [oldest])
+        self.assertEqual(data, [str(oldest)])
 
         # mongo $gt
         data = [i.get('_id') for i in query_data(
