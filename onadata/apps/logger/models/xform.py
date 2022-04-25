@@ -738,7 +738,7 @@ class XForm(XFormMixin, BaseModel):
     MAX_ID_LENGTH = 100
 
     xls = models.FileField(upload_to=upload_to, null=True)
-    json = models.TextField(default="")
+    json = models.JSONField(default=dict)
     description = models.TextField(default="", null=True, blank=True)
     xml = models.TextField()
 
