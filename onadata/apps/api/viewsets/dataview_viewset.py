@@ -111,12 +111,12 @@ class DataViewViewSet(
     @action(methods=["GET"], detail=True)
     def export_async(self, request, *args, **kwargs):
         params = request.query_params
-        job_uuid = params.get('job_uuid')
-        export_type = params.get('format')
-        include_hxl = params.get('include_hxl', False)
-        include_labels = params.get('include_labels', False)
-        include_labels_only = params.get('include_labels_only', False)
-        force_xlsx = params.get('force_xlsx', False)
+        job_uuid = params.get("job_uuid")
+        export_type = params.get("format")
+        include_hxl = params.get("include_hxl", False)
+        include_labels = params.get("include_labels", False)
+        include_labels_only = params.get("include_labels_only", False)
+        force_xlsx = params.get("force_xlsx", False)
         query = params.get("query")
         dataview = self.get_object()
         xform = dataview.xform
@@ -133,19 +133,19 @@ class DataViewViewSet(
         if force_xlsx is not None:
             force_xlsx = str_to_bool(force_xlsx)
 
-        remove_group_name = params.get('remove_group_name', False)
-        columns_with_hxl = get_columns_with_hxl(xform.survey.get('children'))
+        remove_group_name = params.get("remove_group_name", False)
+        columns_with_hxl = get_columns_with_hxl(xform.survey.get("children"))
 
         if columns_with_hxl and include_hxl:
             include_hxl = include_hxl_row(dataview.columns, list(columns_with_hxl))
 
         options = {
-            'remove_group_name': remove_group_name,
-            'dataview_pk': dataview.pk,
-            'include_hxl': include_hxl,
-            'include_labels': include_labels,
-            'include_labels_only': include_labels_only,
-            'force_xlsx': force_xlsx,
+            "remove_group_name": remove_group_name,
+            "dataview_pk": dataview.pk,
+            "include_hxl": include_hxl,
+            "include_labels": include_labels,
+            "include_labels_only": include_labels_only,
+            "force_xlsx": force_xlsx,
         }
         if query:
             options.update({"query": query})
@@ -252,14 +252,11 @@ class DataViewViewSet(
         token = None
         export_type = "xls"
         query = request.query_params.get("query", {})
-        meta = request.GET.get('meta')
-        return custom_response_handler(request,
-                                       xform,
-                                       query,
-                                       export_type,
-                                       token,
-                                       meta,
-                                       dataview)
+        meta = request.GET.get("meta")
+
+        return custom_response_handler(
+            request, xform, query, export_type, token, meta, dataview
+        )
 
     def destroy(self, request, *args, **kwargs):
         dataview = self.get_object()

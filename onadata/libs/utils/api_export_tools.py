@@ -454,9 +454,9 @@ def process_async_export(request, xform, export_type, options=None):
         or export_type == Export.EXTERNAL_EXPORT
     ):
         resp = {
-            u'job_uuid':
-            _create_export_async(
-                xform, export_type, query, force_xlsx, options=options)
+            "job_uuid": _create_export_async(
+                xform, export_type, query, force_xlsx, options=options
+            )
         }
     else:
         print("Do not create a new export.")
@@ -465,9 +465,9 @@ def process_async_export(request, xform, export_type, options=None):
         if not export.filename:
             # tends to happen when using newest_export_for.
             resp = {
-                u'job_uuid':
-                _create_export_async(
-                    xform, export_type, query, force_xlsx, options=options)
+                "job_uuid": _create_export_async(
+                    xform, export_type, query, force_xlsx, options=options
+                )
             }
         else:
             resp = export_async_export_response(request, export)

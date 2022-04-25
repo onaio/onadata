@@ -238,14 +238,11 @@ OPENID_CONNECT_VIEWSET_CONFIG = {
 
 OPENID_CONNECT_AUTH_SERVERS = {
     "microsoft": {
-        "AUTHORIZATION_ENDPOINT":
-            "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+        "AUTHORIZATION_ENDPOINT": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
         "CLIENT_ID": "client_id",
-        "JWKS_ENDPOINT":
-            "https://login.microsoftonline.com/common/discovery/v2.0/keys",
+        "JWKS_ENDPOINT": "https://login.microsoftonline.com/common/discovery/v2.0/keys",
         "SCOPE": "openid profile",
-        "TOKEN_ENDPOINT":
-            "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+        "TOKEN_ENDPOINT": "https://login.microsoftonline.com/common/oauth2/v2.0/token",
         "END_SESSION_ENDPOINT": "http://localhost:3000",
         "REDIRECT_URI": "http://localhost:8000/oidc/msft/callback",
         "RESPONSE_TYPE": "id_token",
@@ -496,31 +493,30 @@ if isinstance(TEMPLATE_OVERRIDE_ROOT_DIR, str):
 os.environ["wsgi.url_scheme"] = "https"
 
 SUPPORTED_MEDIA_UPLOAD_TYPES = [
-    'audio/mp3',
-    'audio/mpeg',
-    'audio/wav',
-    'audio/x-m4a',
-    'image/jpeg',
-    'image/png',
-    'image/svg+xml',
-    'text/csv',
-    'text/json',
-    'video/3gpp',
-    'video/mp4',
-    'application/json',
-    'application/geo+json',
-    'application/pdf',
-    'application/msword',
-    'application/vnd.ms-excel',
-    'application/vnd.ms-powerpoint',
-    'application/vnd.oasis.opendocument.text',
-    'application/vnd.oasis.opendocument.spreadsheet',
-    'application/vnd.oasis.opendocument.presentation',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/vnd.openxmlformats-officedocument.presentationml.\
-     presentation',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/zip',
+    "audio/mp3",
+    "audio/mpeg",
+    "audio/wav",
+    "audio/x-m4a",
+    "image/jpeg",
+    "image/png",
+    "image/svg+xml",
+    "text/csv",
+    "text/json",
+    "video/3gpp",
+    "video/mp4",
+    "application/json",
+    "application/pdf",
+    "application/msword",
+    "application/vnd.ms-excel",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.oasis.opendocument.text",
+    "application/vnd.oasis.opendocument.spreadsheet",
+    "application/vnd.oasis.opendocument.presentation",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.openxmlformats-officedocument.presentationml.\
+     presentation",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/zip",
 ]
 
 CSV_ROW_IMPORT_ASYNC_THRESHOLD = 100
