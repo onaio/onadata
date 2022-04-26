@@ -1617,10 +1617,10 @@ class TestExportBuilder(TestBase):
             "children_cartoons",
             "children_cartoons_characters",
         ]
-        self.assertEqual(wb.sheet_names(), expected_sheet_names)
+        self.assertEqual(list(wb.get_sheet_names()), expected_sheet_names)
 
         # check header columns
-        main_sheet = wb.sheet_by_name("childrens_survey")
+        main_sheet = wb.get_sheet_by_name("childrens_survey")
         expected_column_headers = [
             "name",
             "age",
@@ -1644,10 +1644,10 @@ class TestExportBuilder(TestBase):
             "_duration",
             "_submitted_by",
         ]
-        column_headers = main_sheet.row_values(0)
-        self.assertEqual(sorted(column_headers), sorted(expected_column_headers))
+        column_headers = list(main_sheet.values)[0]
+        self.assertEqual(sorted(list(column_headers)), sorted(expected_column_headers))
 
-        childrens_sheet = wb.sheet_by_name("children")
+        childrens_sheet = wb.get_sheet_by_name("children")
         expected_column_headers = [
             "children/name",
             "children/age",
@@ -1671,10 +1671,10 @@ class TestExportBuilder(TestBase):
             "_duration",
             "_submitted_by",
         ]
-        column_headers = childrens_sheet.row_values(0)
-        self.assertEqual(sorted(column_headers), sorted(expected_column_headers))
+        column_headers = list(childrens_sheet.values)[0]
+        self.assertEqual(sorted(list(column_headers)), sorted(expected_column_headers))
 
-        cartoons_sheet = wb.sheet_by_name("children_cartoons")
+        cartoons_sheet = wb.get_sheet_by_name("children_cartoons")
         expected_column_headers = [
             "children/cartoons/name",
             "children/cartoons/why",
@@ -1690,10 +1690,10 @@ class TestExportBuilder(TestBase):
             "_duration",
             "_submitted_by",
         ]
-        column_headers = cartoons_sheet.row_values(0)
-        self.assertEqual(sorted(column_headers), sorted(expected_column_headers))
+        column_headers = list(cartoons_sheet.values)[0]
+        self.assertEqual(sorted(list(column_headers)), sorted(expected_column_headers))
 
-        characters_sheet = wb.sheet_by_name("children_cartoons_characters")
+        characters_sheet = wb.get_sheet_by_name("children_cartoons_characters")
         expected_column_headers = [
             "children/cartoons/characters/name",
             "children/cartoons/characters/good_or_evil",
@@ -1709,8 +1709,8 @@ class TestExportBuilder(TestBase):
             "_duration",
             "_submitted_by",
         ]
-        column_headers = characters_sheet.row_values(0)
-        self.assertEqual(sorted(column_headers), sorted(expected_column_headers))
+        column_headers = list(characters_sheet.values)[0]
+        self.assertEqual(sorted(list(column_headers)), sorted(expected_column_headers))
 
         xls_file.close()
 
@@ -1726,7 +1726,7 @@ class TestExportBuilder(TestBase):
         wb = load_workbook(filename)
 
         # check header columns
-        main_sheet = wb.sheet_by_name("childrens_survey")
+        main_sheet = wb.get_sheet_by_name("childrens_survey")
         expected_column_headers = [
             "name",
             "age",
@@ -1750,8 +1750,8 @@ class TestExportBuilder(TestBase):
             "_duration",
             "_submitted_by",
         ]
-        column_headers = main_sheet.row_values(0)
-        self.assertEqual(sorted(column_headers), sorted(expected_column_headers))
+        column_headers = list(main_sheet.values)[0]
+        self.assertEqual(sorted(list(column_headers)), sorted(expected_column_headers))
         xls_file.close()
 
     def test_get_valid_sheet_name_catches_duplicates(self):
@@ -1800,7 +1800,7 @@ class TestExportBuilder(TestBase):
             "childrens_survey_with_a_very_l2",
             "childrens_survey_with_a_very_l3",
         ]
-        self.assertEqual(wb.sheet_names(), expected_sheet_names)
+        self.assertEqual(list(wb.get_sheet_names()), expected_sheet_names)
         xls_file.close()
 
     def test_child_record_parent_table_is_updated_when_sheet_is_renamed(self):
