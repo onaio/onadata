@@ -197,7 +197,7 @@ class DataView(models.Model):
         cursor.execute(sql, [text(i) for i in params])
 
         for row in cursor.fetchall():
-            records = json.loads(row[0])
+            records = row[0]
 
         return True if records else False
 
@@ -266,6 +266,13 @@ class DataView(models.Model):
 
     @classmethod
     def query_iterator(cls, sql, fields=None, params=[], count=False):
+
+        def parse_json(data):
+            try:
+                return json.loads(data)
+            except ValueError:
+                return data
+
         cursor = connection.cursor()
         sql_params = tuple(i if isinstance(i, tuple) else text(i) for i in params)
 
@@ -284,14 +291,14 @@ class DataView(models.Model):
 
         if fields is None:
             for row in cursor.fetchall():
-                yield row[0]
+                yield parse_json(row[0])
         else:
             if count:
                 for row in cursor.fetchall():
                     yield dict(zip(fields, row))
             else:
                 for row in cursor.fetchall():
-                    yield dict(zip(fields, [json.loads(row[0]).get(f) for f in fields]))
+                    yield dict(zip(fields, [parse_json(row[0]).get(f) for f in fields]))
 
     @classmethod
     def generate_query_string(

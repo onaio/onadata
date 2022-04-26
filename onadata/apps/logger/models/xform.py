@@ -19,7 +19,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy
-from six import iteritems, itervalues
+from six import iteritems
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from pyxform import SurveyElementBuilder, constants, create_survey_element_from_dict
 from pyxform.question import Question
@@ -394,7 +394,7 @@ class XFormMixin(object):
             label = choice.label
 
             if isinstance(label, dict):
-                label = label.get(lang, itervalues(choice.label)[0])
+                label = label.get(lang, list(choice.label.values())[0])
 
             return label
 

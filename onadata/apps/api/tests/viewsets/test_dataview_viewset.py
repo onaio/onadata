@@ -496,12 +496,11 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         request = self.factory.post('/', data=data, **self.extra)
         response = self.view(request)
-
         self.assertEquals(response.status_code, 400)
         self.assertIn('detail', response.data)
 
         self.assertTrue(str(response.data.get('detail'))
-                        .startswith("invalid input syntax for type integer"))
+                        .startswith("invalid input syntax for integer"))
 
     def test_dataview_invalid_columns(self):
         data = {

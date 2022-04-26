@@ -1974,8 +1974,8 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             response = view(request, pk=formid)
             self.assertEqual(response.status_code, 400)
             self.assertEqual(
-                response.data["project"],
-                ["invalid literal for int() with base 10: 'abc123'"],
+                str(response.data["project"]),
+                '[ErrorDetail(string="Field \'id\' expected a number but got \'abc123\'.", code=\'invalid\')]',
             )
 
             # pylint: disable=no-member

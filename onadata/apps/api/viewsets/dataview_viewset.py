@@ -86,7 +86,6 @@ class DataViewViewSet(
         query = request.GET.get("query")
         export_type = self.kwargs.get("format", request.GET.get("format"))
         self.object = self.get_object()
-
         if export_type is None or export_type in ["json", "debug"]:
             data = DataView.query_data(
                 self.object,

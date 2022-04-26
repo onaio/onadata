@@ -80,6 +80,13 @@ def _parse_sort_fields(fields):
 
 
 def _query_iterator(sql, fields=None, params=[], count=False):
+
+    def parse_json(data):
+        try:
+            return json.loads(data)
+        except ValueError:
+            return data
+
     if not sql:
         raise ValueError(_(u"Bad SQL: %s" % sql))
     cursor = connection.cursor()
@@ -92,10 +99,9 @@ def _query_iterator(sql, fields=None, params=[], count=False):
         fields = [u'count']
 
     cursor.execute(sql, [text(i) for i in sql_params])
-
     if fields is None:
         for row in cursor.fetchall():
-            yield json.loads(row[0])
+            yield parse_json(row[0]) if row[0] else None
     else:
         for row in cursor.fetchall():
             yield dict(zip(fields, row))
