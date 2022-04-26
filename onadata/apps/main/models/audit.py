@@ -32,6 +32,14 @@ class AuditLog(object):
 
     @classmethod
     def query_iterator(cls, sql, fields=None, params=[], count=False):
+        # cursor seems to stringify dicts
+        # added workaround to parse stringified dicts to json
+        def parse_json(data):
+            try:
+                return json.loads(data)
+            except ValueError:
+                return data
+
         cursor = connection.cursor()
         sql_params = fields + params if fields is not None else params
 
@@ -51,7 +59,7 @@ class AuditLog(object):
 
         if fields is None:
             for row in cursor.fetchall():
-                yield row[0]
+                yield parse_json(row[0])
         else:
             for row in cursor.fetchall():
                 yield dict(zip(fields, row))

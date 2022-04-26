@@ -70,7 +70,8 @@ XFORM_TITLE_LENGTH = 255
 title_pattern = re.compile(r"<h:title>(.*?)</h:title>")
 
 
-def cmp(x, y): (x > y) - (x < y)
+def cmp(x, y):
+    return (x > y) - (x < y)
 
 
 def question_types_to_exclude(_type):
