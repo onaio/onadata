@@ -37,14 +37,14 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v2
         with:
-          distribution: 'adopt'
-          java-version: '8'
+          distribution: "adopt"
+          java-version: "8"
 
       - name: Setup python
         uses: actions/setup-python@v2
         with:
           python-version: 3.8
-          architecture: 'x64'
+          architecture: "x64"
 
       - name: Get pip cache dir
         id: pip-cache
@@ -71,6 +71,7 @@ jobs:
           pip install flake8
           # Install jsonfield packages necessary for the Django <3 migrations
           pip install jsonfield
+          pip install tblib
 
       - name: Run tests
         run: |
