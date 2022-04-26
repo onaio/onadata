@@ -495,7 +495,14 @@ def get_or_create_export_object(export_id, options, xform, export_type):
     :return: A new or found export object
     """
     if export_id and Export.objects.filter(pk=export_id).exists():
-        export = Export.objects.get(id=export_id)
+        try:
+            export = Export.objects.get(id=export_id)
+        except Export.DoesNotExist:
+            with use_master:
+                try:
+                    return Export.objects.get(pk=export_id)
+                except Export.DoesNotExist:
+                    pass
     else:
         export_options = get_export_options(options)
         export = Export.objects.create(
