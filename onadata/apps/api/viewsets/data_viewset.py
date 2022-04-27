@@ -272,7 +272,7 @@ class DataViewSet(
         if request.method == "GET":
             http_status = status.HTTP_200_OK
 
-        self.etag_data = data
+        setattr(self, "etag_data", data)
 
         return Response(data, status=http_status)
 
@@ -308,7 +308,7 @@ class DataViewSet(
             else:
                 raise PermissionDenied(_("You do not have edit permissions."))
 
-        self.etag_data = data
+        setattr(self, "etag_data", data)
 
         return Response(data=data)
 
@@ -631,7 +631,9 @@ class DataViewSet(
             # the configured SUBMISSION_RETRIEVAL_THRESHOLD setting
             if enable_etag:
                 if isinstance(self.object_list, QuerySet):
-                    self.etag_hash = get_etag_hash_from_query(self.object_list)
+                    setattr(
+                        self, "etag_hash", (get_etag_hash_from_query(self.object_list))
+                    )
                 else:
                     sql, params, records = get_sql_with_params(
                         xform,
@@ -641,7 +643,11 @@ class DataViewSet(
                         limit=limit,
                         fields=fields,
                     )
-                    self.etag_hash = get_etag_hash_from_query(records, sql, params)
+                    setattr(
+                        self,
+                        "etag_hash",
+                        (get_etag_hash_from_query(records, sql, params)),
+                    )
         except ValueError as e:
             raise ParseError(text(e))
         except DataError as e:
