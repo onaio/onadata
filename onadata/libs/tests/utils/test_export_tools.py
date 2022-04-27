@@ -8,6 +8,7 @@ import tempfile
 import zipfile
 from builtins import open
 from datetime import date, datetime, timedelta
+from unittest import skipIf
 
 from django.conf import settings
 from django.contrib.sites.models import Site
@@ -18,7 +19,11 @@ from django.utils import timezone
 from pyxform.builder import create_survey_from_xls
 from rest_framework import exceptions
 from rest_framework.authtoken.models import Token
-from savReaderWriter import SavWriter
+
+try:
+    from savReaderWriter import SavWriter
+except ImportError:
+    SavWriter = None
 
 from onadata.apps.api import tests as api_tests
 from onadata.apps.logger.models import Attachment, Instance, XForm
@@ -26,86 +31,87 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import query_data
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
-from onadata.libs.serializers.merged_xform_serializer import \
-    MergedXFormSerializer
-from onadata.libs.utils.export_builder import (encode_if_str,
-                                               get_value_or_attachment_uri)
+from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
+from onadata.libs.utils.export_builder import encode_if_str, get_value_or_attachment_uri
 from onadata.libs.utils.export_tools import (
-    ExportBuilder, check_pending_export, generate_attachments_zip_export,
-    generate_export, generate_kml_export, generate_osm_export,
-    get_repeat_index_tags, kml_export_data, parse_request_export_options,
-    should_create_new_export, str_to_bool)
+    ExportBuilder,
+    check_pending_export,
+    generate_attachments_zip_export,
+    generate_export,
+    generate_kml_export,
+    generate_osm_export,
+    get_repeat_index_tags,
+    kml_export_data,
+    parse_request_export_options,
+    should_create_new_export,
+    str_to_bool,
+)
 
 
 def _logger_fixture_path(*args):
-    return os.path.join(settings.PROJECT_ROOT, 'libs', 'tests', 'fixtures',
-                        *args)
+    return os.path.join(settings.PROJECT_ROOT, "libs", "tests", "fixtures", *args)
 
 
 class TestExportTools(TestBase):
     """
     Test export_tools functions.
     """
+
     def _create_old_export(self, xform, export_type, options):
         Export(xform=xform, export_type=export_type, options=options).save()
-        self.export = Export.objects.filter(
-            xform=xform, export_type=export_type)
+        self.export = Export.objects.filter(xform=xform, export_type=export_type)
 
     def test_encode_if_str(self):
         row = {"date": date(1899, 9, 9)}
         date_str = encode_if_str(row, "date", True)
-        self.assertEqual(date_str, '1899-09-09')
+        self.assertEqual(date_str, "1899-09-09")
 
         row = {"date": date(2001, 9, 9)}
         date_str = encode_if_str(row, "date", True)
-        self.assertEqual(date_str, '2001-09-09')
+        self.assertEqual(date_str, "2001-09-09")
 
         row = {"datetime": datetime(1899, 9, 9)}
         date_str = encode_if_str(row, "datetime", True)
-        self.assertEqual(date_str, '1899-09-09T00:00:00')
+        self.assertEqual(date_str, "1899-09-09T00:00:00")
 
         row = {"datetime": datetime(2001, 9, 9)}
         date_str = encode_if_str(row, "datetime", True)
-        self.assertEqual(date_str, '2001-09-09T00:00:00')
+        self.assertEqual(date_str, "2001-09-09T00:00:00")
 
         row = {"integer_value": 1}
-        integer_value = encode_if_str(
-            row, "integer_value", sav_writer=True)
-        self.assertEqual(integer_value, '1')
+        integer_value = encode_if_str(row, "integer_value", sav_writer=True)
+        self.assertEqual(integer_value, "1")
 
-        integer_value = encode_if_str(
-            row, "integer_value")
+        integer_value = encode_if_str(row, "integer_value")
         self.assertEqual(integer_value, 1)
 
     def test_generate_osm_export(self):
         filenames = [
-            'OSMWay234134797.osm',
-            'OSMWay34298972.osm',
+            "OSMWay234134797.osm",
+            "OSMWay34298972.osm",
         ]
         osm_fixtures_dir = os.path.realpath(
-            os.path.join(
-                os.path.dirname(api_tests.__file__), 'fixtures', 'osm'))
-        paths = [
-            os.path.join(osm_fixtures_dir, filename) for filename in filenames
-        ]
-        xlsform_path = os.path.join(osm_fixtures_dir, 'osm.xlsx')
-        combined_osm_path = os.path.join(osm_fixtures_dir, 'combined.osm')
+            os.path.join(os.path.dirname(api_tests.__file__), "fixtures", "osm")
+        )
+        paths = [os.path.join(osm_fixtures_dir, filename) for filename in filenames]
+        xlsform_path = os.path.join(osm_fixtures_dir, "osm.xlsx")
+        combined_osm_path = os.path.join(osm_fixtures_dir, "combined.osm")
         self._publish_xls_file_and_set_xform(xlsform_path)
-        submission_path = os.path.join(osm_fixtures_dir, 'instance_a.xml')
-        count = Attachment.objects.filter(extension='osm').count()
+        submission_path = os.path.join(osm_fixtures_dir, "instance_a.xml")
+        count = Attachment.objects.filter(extension="osm").count()
         self._make_submission_w_attachment(submission_path, paths)
-        self.assertTrue(
-            Attachment.objects.filter(extension='osm').count() > count)
+        self.assertTrue(Attachment.objects.filter(extension="osm").count() > count)
 
         options = {"extension": Attachment.OSM}
 
-        export = generate_osm_export(Attachment.OSM, self.user.username,
-                                     self.xform.id_string, None, options)
+        export = generate_osm_export(
+            Attachment.OSM, self.user.username, self.xform.id_string, None, options
+        )
         self.assertTrue(export.is_successful)
-        with open(combined_osm_path, encoding='utf-8') as f:
+        with open(combined_osm_path, encoding="utf-8") as f:
             osm = f.read()
             with default_storage.open(export.filepath) as f2:
-                content = f2.read().decode('utf-8')
+                content = f2.read().decode("utf-8")
                 self.assertMultiLineEqual(content.strip(), osm.strip())
 
         # delete submission and check that content is no longer in export
@@ -113,37 +119,35 @@ class TestExportTools(TestBase):
         submission.deleted_at = timezone.now()
         submission.save()
 
-        export = generate_osm_export(Attachment.OSM, self.user.username,
-                                     self.xform.id_string, None, options)
+        export = generate_osm_export(
+            Attachment.OSM, self.user.username, self.xform.id_string, None, options
+        )
         self.assertTrue(export.is_successful)
         with default_storage.open(export.filepath) as f2:
             content = f2.read()
-            self.assertEqual(content, b'')
+            self.assertEqual(content, b"")
 
     def test_generate_attachments_zip_export(self):
         filenames = [
-            'OSMWay234134797.osm',
-            'OSMWay34298972.osm',
+            "OSMWay234134797.osm",
+            "OSMWay34298972.osm",
         ]
         osm_fixtures_dir = os.path.realpath(
-            os.path.join(
-                os.path.dirname(api_tests.__file__), 'fixtures', 'osm'))
-        paths = [
-            os.path.join(osm_fixtures_dir, filename) for filename in filenames
-        ]
-        xlsform_path = os.path.join(osm_fixtures_dir, 'osm.xlsx')
+            os.path.join(os.path.dirname(api_tests.__file__), "fixtures", "osm")
+        )
+        paths = [os.path.join(osm_fixtures_dir, filename) for filename in filenames]
+        xlsform_path = os.path.join(osm_fixtures_dir, "osm.xlsx")
         self._publish_xls_file_and_set_xform(xlsform_path)
-        submission_path = os.path.join(osm_fixtures_dir, 'instance_a.xml')
-        count = Attachment.objects.filter(extension='osm').count()
+        submission_path = os.path.join(osm_fixtures_dir, "instance_a.xml")
+        count = Attachment.objects.filter(extension="osm").count()
         self._make_submission_w_attachment(submission_path, paths)
-        self.assertTrue(
-            Attachment.objects.filter(extension='osm').count() > count)
+        self.assertTrue(Attachment.objects.filter(extension="osm").count() > count)
 
         options = {"extension": Export.ZIP_EXPORT}
 
         export = generate_attachments_zip_export(
-            Export.ZIP_EXPORT, self.user.username, self.xform.id_string, None,
-            options)
+            Export.ZIP_EXPORT, self.user.username, self.xform.id_string, None, options
+        )
 
         self.assertTrue(export.is_successful)
 
@@ -153,8 +157,7 @@ class TestExportTools(TestBase):
         zip_file.close()
 
         for a in Attachment.objects.all():
-            self.assertTrue(
-                os.path.exists(os.path.join(temp_dir, a.media_file.name)))
+            self.assertTrue(os.path.exists(os.path.join(temp_dir, a.media_file.name)))
         shutil.rmtree(temp_dir)
 
         # deleted submission
@@ -163,8 +166,8 @@ class TestExportTools(TestBase):
         submission.save()
 
         export = generate_attachments_zip_export(
-            Export.ZIP_EXPORT, self.user.username, self.xform.id_string, None,
-            options)
+            Export.ZIP_EXPORT, self.user.username, self.xform.id_string, None, options
+        )
         self.assertTrue(export.is_successful)
         temp_dir = tempfile.mkdtemp()
         zip_file = zipfile.ZipFile(default_storage.path(export.filepath), "r")
@@ -172,8 +175,7 @@ class TestExportTools(TestBase):
         zip_file.close()
 
         for a in Attachment.objects.all():
-            self.assertFalse(
-                os.path.exists(os.path.join(temp_dir, a.media_file.name)))
+            self.assertFalse(os.path.exists(os.path.join(temp_dir, a.media_file.name)))
         shutil.rmtree(temp_dir)
 
     def test_should_create_new_export(self):
@@ -184,7 +186,8 @@ class TestExportTools(TestBase):
         self._publish_transportation_form_and_submit_instance()
 
         will_create_new_export = should_create_new_export(
-            self.xform, export_type, options)
+            self.xform, export_type, options
+        )
 
         self.assertTrue(will_create_new_export)
 
@@ -192,7 +195,8 @@ class TestExportTools(TestBase):
         # deleted
         self.xform.instances.first().delete()
         will_create_new_export = should_create_new_export(
-            self.xform, export_type, options)
+            self.xform, export_type, options
+        )
         self.assertTrue(will_create_new_export)
 
     def test_should_create_export_when_submission_deleted(self):
@@ -205,44 +209,45 @@ class TestExportTools(TestBase):
         options = {
             "group_delimiter": "/",
             "remove_group_name": False,
-            "split_select_multiples": True
+            "split_select_multiples": True,
         }
-        submission_count = self.xform.instances.filter(
-            deleted_at__isnull=True).count()
+        submission_count = self.xform.instances.filter(deleted_at__isnull=True).count()
         self._create_old_export(self.xform, export_type, options)
 
         # Delete submission
         instance = self.xform.instances.first()
         instance.set_deleted(datetime.now(), self.user)
         self.assertEqual(
-            submission_count - 1, self.xform.instances.filter(
-                deleted_at__isnull=True).count())
+            submission_count - 1,
+            self.xform.instances.filter(deleted_at__isnull=True).count(),
+        )
         will_create_new_export = should_create_new_export(
-            self.xform, export_type, options)
+            self.xform, export_type, options
+        )
 
         self.assertTrue(will_create_new_export)
 
         self._create_old_export(self.xform, export_type, options)
         # Deleting submission via the API still triggers a new export
         # when requested
-        instance_id = self.xform.instances.filter(
-            deleted_at__isnull=True).first().id
-        view = DataViewSet.as_view(
-            {'delete': 'destroy'}
-        )
+        instance_id = self.xform.instances.filter(deleted_at__isnull=True).first().id
+        view = DataViewSet.as_view({"delete": "destroy"})
 
         token = Token.objects.get(user=self.user)
-        data = {'instance_ids': [instance_id]}
+        data = {"instance_ids": [instance_id]}
         request = self.factory.delete(
-            '/', data=data, HTTP_AUTHORIZATION=f'Token {token}')
+            "/", data=data, HTTP_AUTHORIZATION=f"Token {token}"
+        )
         response = view(request, pk=self.xform.id)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            submission_count - 2, self.xform.instances.filter(
-                deleted_at__isnull=True).count())
+            submission_count - 2,
+            self.xform.instances.filter(deleted_at__isnull=True).count(),
+        )
 
         will_create_new_export = should_create_new_export(
-            self.xform, export_type, options)
+            self.xform, export_type, options
+        )
 
         self.assertTrue(will_create_new_export)
 
@@ -252,12 +257,13 @@ class TestExportTools(TestBase):
         options = {
             "group_delimiter": "/",
             "remove_group_name": False,
-            "split_select_multiples": True
+            "split_select_multiples": True,
         }
         self._create_old_export(self.xform, export_type, options)
 
         will_create_new_export = should_create_new_export(
-            self.xform, export_type, options)
+            self.xform, export_type, options
+        )
 
         self.assertFalse(will_create_new_export)
 
@@ -266,164 +272,174 @@ class TestExportTools(TestBase):
         options = {
             "group_delimiter": "/",
             "remove_group_name": False,
-            "split_select_multiples": True
+            "split_select_multiples": True,
         }
 
         self._publish_transportation_form_and_submit_instance()
         self._create_old_export(self.xform, export_type, options)
 
         # Call should_create_new_export with updated options
-        options['remove_group_name'] = True
+        options["remove_group_name"] = True
 
         will_create_new_export = should_create_new_export(
-            self.xform, export_type, options)
+            self.xform, export_type, options
+        )
 
         self.assertTrue(will_create_new_export)
 
     def test_get_value_or_attachment_uri(self):
         path = os.path.join(
-            os.path.dirname(__file__), 'fixtures',
-            'photo_type_in_repeat_group.xlsx')
+            os.path.dirname(__file__), "fixtures", "photo_type_in_repeat_group.xlsx"
+        )
         self._publish_xls_file_and_set_xform(path)
 
-        filename = u'bob/attachments/123.jpg'
-        download_url = u'/api/v1/files/1?filename=%s' % filename
+        filename = "bob/attachments/123.jpg"
+        download_url = "/api/v1/files/1?filename=%s" % filename
 
         # used a smaller version of row because we only using _attachmets key
         row = {
-            u'_attachments': [{
-                u'mimetype': u'image/jpeg',
-                u'medium_download_url': u'%s&suffix=medium' % download_url,
-                u'download_url': download_url,
-                u'filename': filename,
-                u'name': '123.jpg',
-                u'instance': 1,
-                u'small_download_url': u'%s&suffix=small' % download_url,
-                u'id': 1,
-                u'xform': 1
-            }]
+            "_attachments": [
+                {
+                    "mimetype": "image/jpeg",
+                    "medium_download_url": "%s&suffix=medium" % download_url,
+                    "download_url": download_url,
+                    "filename": filename,
+                    "name": "123.jpg",
+                    "instance": 1,
+                    "small_download_url": "%s&suffix=small" % download_url,
+                    "id": 1,
+                    "xform": 1,
+                }
+            ]
         }  # yapf: disable
 
         # when include_images is True, you get the attachment url
-        media_xpaths = ['photo']
+        media_xpaths = ["photo"]
         attachment_list = None
-        key = 'photo'
-        value = u'123.jpg'
-        val_or_url = get_value_or_attachment_uri(key, value, row, self.xform,
-                                                 media_xpaths, attachment_list)
+        key = "photo"
+        value = "123.jpg"
+        val_or_url = get_value_or_attachment_uri(
+            key, value, row, self.xform, media_xpaths, attachment_list
+        )
         self.assertTrue(val_or_url)
 
         current_site = Site.objects.get_current()
-        url = 'http://%s%s' % (current_site.domain, download_url)
+        url = "http://%s%s" % (current_site.domain, download_url)
         self.assertEqual(url, val_or_url)
 
         # when include_images is False, you get the value
         media_xpaths = []
-        val_or_url = get_value_or_attachment_uri(key, value, row, self.xform,
-                                                 media_xpaths, attachment_list)
+        val_or_url = get_value_or_attachment_uri(
+            key, value, row, self.xform, media_xpaths, attachment_list
+        )
         self.assertTrue(val_or_url)
         self.assertEqual(value, val_or_url)
 
         # test that when row is an empty dict, the function still returns a
         # value
-        row.pop('_attachments', None)
+        row.pop("_attachments", None)
         self.assertEqual(row, {})
 
-        media_xpaths = ['photo']
-        val_or_url = get_value_or_attachment_uri(key, value, row, self.xform,
-                                                 media_xpaths, attachment_list)
+        media_xpaths = ["photo"]
+        val_or_url = get_value_or_attachment_uri(
+            key, value, row, self.xform, media_xpaths, attachment_list
+        )
         self.assertTrue(val_or_url)
         self.assertEqual(value, val_or_url)
 
     def test_get_attachment_uri_for_filename_with_space(self):
         path = os.path.join(
-            os.path.dirname(__file__), 'fixtures',
-            'photo_type_in_repeat_group.xlsx')
+            os.path.dirname(__file__), "fixtures", "photo_type_in_repeat_group.xlsx"
+        )
         self._publish_xls_file_and_set_xform(path)
 
-        filename = u'bob/attachments/1_2_3.jpg'
-        download_url = u'/api/v1/files/1?filename=%s' % filename
+        filename = "bob/attachments/1_2_3.jpg"
+        download_url = "/api/v1/files/1?filename=%s" % filename
 
         # used a smaller version of row because we only using _attachmets key
         row = {
-            u'_attachments': [{
-                u'mimetype': u'image/jpeg',
-                u'medium_download_url': u'%s&suffix=medium' % download_url,
-                u'download_url': download_url,
-                u'filename': filename,
-                u'name': '1 2 3.jpg',
-                u'instance': 1,
-                u'small_download_url': u'%s&suffix=small' % download_url,
-                u'id': 1,
-                u'xform': 1
-            }]
+            "_attachments": [
+                {
+                    "mimetype": "image/jpeg",
+                    "medium_download_url": "%s&suffix=medium" % download_url,
+                    "download_url": download_url,
+                    "filename": filename,
+                    "name": "1 2 3.jpg",
+                    "instance": 1,
+                    "small_download_url": "%s&suffix=small" % download_url,
+                    "id": 1,
+                    "xform": 1,
+                }
+            ]
         }  # yapf: disable
 
         # when include_images is True, you get the attachment url
-        media_xpaths = ['photo']
+        media_xpaths = ["photo"]
         attachment_list = None
-        key = 'photo'
-        value = u'1 2 3.jpg'
-        val_or_url = get_value_or_attachment_uri(key, value, row, self.xform,
-                                                 media_xpaths, attachment_list)
+        key = "photo"
+        value = "1 2 3.jpg"
+        val_or_url = get_value_or_attachment_uri(
+            key, value, row, self.xform, media_xpaths, attachment_list
+        )
 
         self.assertTrue(val_or_url)
 
         current_site = Site.objects.get_current()
-        url = 'http://%s%s' % (current_site.domain, download_url)
+        url = "http://%s%s" % (current_site.domain, download_url)
         self.assertEqual(url, val_or_url)
 
     def test_parse_request_export_options(self):
         request = self.factory.get(
-            '/export_async',
+            "/export_async",
             data={
                 "binary_select_multiples": "true",
                 "do_not_split_select_multiples": "false",
                 "remove_group_name": "false",
                 "include_labels": "false",
                 "include_labels_only": "false",
-                "include_images": "false"
-            })
+                "include_images": "false",
+            },
+        )
 
         options = parse_request_export_options(request.GET)
 
-        self.assertEqual(options['split_select_multiples'], True)
-        self.assertEqual(options['binary_select_multiples'], True)
-        self.assertEqual(options['include_labels'], False)
-        self.assertEqual(options['include_labels_only'], False)
-        self.assertEqual(options['remove_group_name'], False)
-        self.assertEqual(options['include_images'], False)
+        self.assertEqual(options["split_select_multiples"], True)
+        self.assertEqual(options["binary_select_multiples"], True)
+        self.assertEqual(options["include_labels"], False)
+        self.assertEqual(options["include_labels_only"], False)
+        self.assertEqual(options["remove_group_name"], False)
+        self.assertEqual(options["include_images"], False)
 
         request = self.factory.get(
-            '/export_async',
+            "/export_async",
             data={
                 "do_not_split_select_multiples": "true",
                 "remove_group_name": "true",
                 "include_labels": "true",
                 "include_labels_only": "true",
-                "include_images": "true"
-            })
+                "include_images": "true",
+            },
+        )
 
         options = parse_request_export_options(request.GET)
 
-        self.assertEqual(options['split_select_multiples'], False)
-        self.assertEqual(options['include_labels'], True)
-        self.assertEqual(options['include_labels_only'], True)
-        self.assertEqual(options['remove_group_name'], True)
-        self.assertEqual(options['include_images'], True)
+        self.assertEqual(options["split_select_multiples"], False)
+        self.assertEqual(options["include_labels"], True)
+        self.assertEqual(options["include_labels_only"], True)
+        self.assertEqual(options["remove_group_name"], True)
+        self.assertEqual(options["include_images"], True)
 
     def test_export_not_found(self):
         export_type = "csv"
         options = {
             "group_delimiter": "/",
             "remove_group_name": False,
-            "split_select_multiples": True
+            "split_select_multiples": True,
         }
 
         self._publish_transportation_form_and_submit_instance()
         self._create_old_export(self.xform, export_type, options)
-        export = Export(
-            xform=self.xform, export_type=export_type, options=options)
+        export = Export(xform=self.xform, export_type=export_type, options=options)
         export.save()
         export_id = export.pk
 
@@ -449,47 +465,45 @@ class TestExportTools(TestBase):
         |         | fruits    | orange | Orange |
         |         | fruits    | mango  | Mango  |
         """
-        xform1 = self._publish_markdown(kml_md, self.user, id_string='a')
-        xform2 = self._publish_markdown(kml_md, self.user, id_string='b')
+        xform1 = self._publish_markdown(kml_md, self.user, id_string="a")
+        xform2 = self._publish_markdown(kml_md, self.user, id_string="b")
         xml = '<data id="a"><gps>-1.28 36.83</gps><fruit>orange</fruit></data>'
         Instance(xform=xform1, xml=xml).save()
         xml = '<data id="b"><gps>32.85 13.04</gps><fruit>mango</fruit></data>'
         Instance(xform=xform2, xml=xml).save()
         data = {
-            'xforms': [
+            "xforms": [
                 "http://testserver/api/v1/forms/%s" % xform1.pk,
                 "http://testserver/api/v1/forms/%s" % xform2.pk,
             ],
-            'name': 'Merged Dataset',
-            'project':
-            "http://testserver/api/v1/projects/%s" % xform1.project.pk,
+            "name": "Merged Dataset",
+            "project": "http://testserver/api/v1/projects/%s" % xform1.project.pk,
         }  # yapf: disable
-        request = self.factory.post('/')
+        request = self.factory.post("/")
         request.user = self.user
-        serializer = MergedXFormSerializer(
-            data=data, context={'request': request})
+        serializer = MergedXFormSerializer(data=data, context={"request": request})
         self.assertTrue(serializer.is_valid())
         serializer.save()
-        xform = XForm.objects.filter(
-            pk__gt=xform2.pk, is_merged_dataset=True).first()
-        expected_data = [{
-            'name': u'a',
-            'image_urls': [],
-            'lat': -1.28,
-            'table': u'<table border="1"><a href="#"><img width="210" class="thumbnail" src="" alt=""></a><tr><td>GPS</td><td>-1.28 36.83</td></tr><tr><td>Fruit</td><td>orange</td></tr></table>',  # noqa pylint: disable=C0301
-            'lng': 36.83,
-            'id': xform1.instances.all().first().pk
-        }, {
-            'name': u'b',
-            'image_urls': [],
-            'lat': 32.85,
-            'table':
-            u'<table border="1"><a href="#"><img width="210" class="thumbnail" src="" alt=""></a><tr><td>GPS</td><td>32.85 13.04</td></tr><tr><td>Fruit</td><td>mango</td></tr></table>',  # noqa pylint: disable=C0301
-            'lng': 13.04,
-            'id': xform2.instances.all().first().pk
-        }]  # yapf: disable
-        self.assertEqual(
-            kml_export_data(xform.id_string, xform.user), expected_data)
+        xform = XForm.objects.filter(pk__gt=xform2.pk, is_merged_dataset=True).first()
+        expected_data = [
+            {
+                "name": "a",
+                "image_urls": [],
+                "lat": -1.28,
+                "table": '<table border="1"><a href="#"><img width="210" class="thumbnail" src="" alt=""></a><tr><td>GPS</td><td>-1.28 36.83</td></tr><tr><td>Fruit</td><td>orange</td></tr></table>',  # noqa pylint: disable=C0301
+                "lng": 36.83,
+                "id": xform1.instances.all().first().pk,
+            },
+            {
+                "name": "b",
+                "image_urls": [],
+                "lat": 32.85,
+                "table": '<table border="1"><a href="#"><img width="210" class="thumbnail" src="" alt=""></a><tr><td>GPS</td><td>32.85 13.04</td></tr><tr><td>Fruit</td><td>mango</td></tr></table>',  # noqa pylint: disable=C0301
+                "lng": 13.04,
+                "id": xform2.instances.all().first().pk,
+            },
+        ]  # yapf: disable
+        self.assertEqual(kml_export_data(xform.id_string, xform.user), expected_data)
 
     def test_kml_exports(self):
         """
@@ -500,15 +514,14 @@ class TestExportTools(TestBase):
             "group_delimiter": "/",
             "remove_group_name": False,
             "split_select_multiples": True,
-            "extension": 'kml'
+            "extension": "kml",
         }
 
         self._publish_transportation_form_and_submit_instance()
         username = self.xform.user.username
         id_string = self.xform.id_string
 
-        export = generate_kml_export(
-            export_type, username, id_string, options=options)
+        export = generate_kml_export(export_type, username, id_string, options=options)
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)
 
@@ -517,31 +530,28 @@ class TestExportTools(TestBase):
         export.delete()
 
         export = generate_kml_export(
-            export_type,
-            username,
-            id_string,
-            export_id=export_id,
-            options=options)
+            export_type, username, id_string, export_id=export_id, options=options
+        )
 
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)
 
     def test_str_to_bool(self):
         self.assertTrue(str_to_bool(True))
-        self.assertTrue(str_to_bool('True'))
-        self.assertTrue(str_to_bool('TRUE'))
-        self.assertTrue(str_to_bool('true'))
-        self.assertTrue(str_to_bool('t'))
-        self.assertTrue(str_to_bool('1'))
+        self.assertTrue(str_to_bool("True"))
+        self.assertTrue(str_to_bool("TRUE"))
+        self.assertTrue(str_to_bool("true"))
+        self.assertTrue(str_to_bool("t"))
+        self.assertTrue(str_to_bool("1"))
         self.assertTrue(str_to_bool(1))
 
         self.assertFalse(str_to_bool(False))
-        self.assertFalse(str_to_bool('False'))
-        self.assertFalse(str_to_bool('F'))
-        self.assertFalse(str_to_bool('random'))
+        self.assertFalse(str_to_bool("False"))
+        self.assertFalse(str_to_bool("F"))
+        self.assertFalse(str_to_bool("random"))
         self.assertFalse(str_to_bool(234))
         self.assertFalse(str_to_bool(0))
-        self.assertFalse(str_to_bool('0'))
+        self.assertFalse(str_to_bool("0"))
 
     def test_get_sav_value_labels(self):
         md = """
@@ -560,7 +570,7 @@ class TestExportTools(TestBase):
         export_builder.set_survey(survey)
         export_builder.INCLUDE_LABELS = True
         export_builder.set_survey(survey)
-        expected_data = {'fruit': {'orange': 'Orange', 'mango': 'Mango'}}
+        expected_data = {"fruit": {"orange": "Orange", "mango": "Mango"}}
         self.assertEqual(export_builder._get_sav_value_labels(), expected_data)
 
     def test_sav_choice_list_with_missing_values(self):
@@ -580,7 +590,7 @@ class TestExportTools(TestBase):
         export_builder.set_survey(survey)
         export_builder.INCLUDE_LABELS = True
         export_builder.set_survey(survey)
-        expected_data = {'fruit': {'orange': 'Orange', 'mango': ''}}
+        expected_data = {"fruit": {"orange": "Orange", "mango": ""}}
         self.assertEqual(export_builder._get_sav_value_labels(), expected_data)
 
     def test_get_sav_value_labels_multi_language(self):
@@ -600,11 +610,11 @@ class TestExportTools(TestBase):
         export_builder.set_survey(survey)
         export_builder.INCLUDE_LABELS = True
         export_builder.set_survey(survey)
-        expected_data = {'fruit': {'orange': 'Orange', 'mango': 'Mango'}}
+        expected_data = {"fruit": {"orange": "Orange", "mango": "Mango"}}
         self.assertEqual(export_builder._get_sav_value_labels(), expected_data)
 
-        export_builder.dd._default_language = 'Swahili'
-        expected_data = {'fruit': {'orange': 'Chungwa', 'mango': 'Maembe'}}
+        export_builder.dd._default_language = "Swahili"
+        expected_data = {"fruit": {"orange": "Chungwa", "mango": "Maembe"}}
         self.assertEqual(export_builder._get_sav_value_labels(), expected_data)
 
     def test_get_sav_value_labels_for_choice_filter(self):
@@ -624,12 +634,14 @@ class TestExportTools(TestBase):
         export_builder.set_survey(survey)
         export_builder.INCLUDE_LABELS = True
         export_builder.set_survey(survey)
-        expected_data = {'fruit': {'orange': 'Orange', 'mango': 'Mango'}}
+        expected_data = {"fruit": {"orange": "Orange", "mango": "Mango"}}
         self.assertEqual(export_builder._get_sav_value_labels(), expected_data)
 
+    @skipIf(SavWriter is None, "savReaderWriter not supported now.")
     def test_sav_duplicate_columns(self):
-        more_than_64_char = "akjasdlsakjdkjsadlsakjgdlsagdgdgdsajdgkjdsdgsj" \
-            "adsasdasgdsahdsahdsadgsdf"
+        more_than_64_char = (
+            "akjasdlsakjdkjsadlsakjgdlsagdgdgdsajdgkjdsdgsj" "adsasdasgdsahdsahdsadgsdf"
+        )
         md = """
         | survey |
         |        | type           | name | label | choice_filter |
@@ -651,8 +663,9 @@ class TestExportTools(TestBase):
         |         | fts       | orange | Orange | 1      |
         |         | fts       | mango  | Mango  | 1      |
         """
-        md = md.format(more_than_64_char, more_than_64_char, more_than_64_char,
-                       more_than_64_char)
+        md = md.format(
+            more_than_64_char, more_than_64_char, more_than_64_char, more_than_64_char
+        )
         survey = self.md_to_pyxform_survey(md)
         export_builder = ExportBuilder()
         export_builder.TRUNCATE_GROUP_TITLE = True
@@ -661,14 +674,14 @@ class TestExportTools(TestBase):
         export_builder.set_survey(survey)
 
         for sec in export_builder.sections:
-            sav_options = export_builder._get_sav_options(sec['elements'])
+            sav_options = export_builder._get_sav_options(sec["elements"])
             sav_file = NamedTemporaryFile(suffix=".sav")
             # No exception is raised
             SavWriter(sav_file.name, **sav_options)
 
+    @skipIf(SavWriter is None, "savReaderWriter not supported now.")
     def test_sav_special_char_columns(self):
-        survey = create_survey_from_xls(
-            _logger_fixture_path('grains/grains.xlsx'))
+        survey = create_survey_from_xls(_logger_fixture_path("grains/grains.xlsx"))
         export_builder = ExportBuilder()
         export_builder.TRUNCATE_GROUP_TITLE = True
         export_builder.set_survey(survey)
@@ -676,7 +689,7 @@ class TestExportTools(TestBase):
         export_builder.set_survey(survey)
 
         for sec in export_builder.sections:
-            sav_options = export_builder._get_sav_options(sec['elements'])
+            sav_options = export_builder._get_sav_options(sec["elements"])
             sav_file = NamedTemporaryFile(suffix=".sav")
             # No exception is raised
             SavWriter(sav_file.name, **sav_options)
@@ -690,7 +703,8 @@ class TestExportTools(TestBase):
             xform=self.xform,
             export_type=Export.CSV_EXPORT,
             options={},
-            task_id="abcsde")
+            task_id="abcsde",
+        )
 
         export.save()
 
@@ -715,43 +729,40 @@ class TestExportTools(TestBase):
         """
         self.assertIsNone(get_repeat_index_tags(None))
 
-        self.assertEqual(get_repeat_index_tags('.'), ('.', '.'))
-        self.assertEqual(get_repeat_index_tags('{,}'), ('{', '}'))
+        self.assertEqual(get_repeat_index_tags("."), (".", "."))
+        self.assertEqual(get_repeat_index_tags("{,}"), ("{", "}"))
 
         with self.assertRaises(exceptions.ParseError):
-            get_repeat_index_tags('p')
+            get_repeat_index_tags("p")
 
     def test_generate_filtered_attachments_zip_export(self):
         """Test media zip file export filters attachments"""
         filenames = [
-            'OSMWay234134797.osm',
-            'OSMWay34298972.osm',
+            "OSMWay234134797.osm",
+            "OSMWay34298972.osm",
         ]
         osm_fixtures_dir = os.path.realpath(
-            os.path.join(
-                os.path.dirname(api_tests.__file__), 'fixtures', 'osm'))
-        paths = [
-            os.path.join(osm_fixtures_dir, filename) for filename in filenames
-        ]
-        xlsform_path = os.path.join(osm_fixtures_dir, 'osm.xlsx')
+            os.path.join(os.path.dirname(api_tests.__file__), "fixtures", "osm")
+        )
+        paths = [os.path.join(osm_fixtures_dir, filename) for filename in filenames]
+        xlsform_path = os.path.join(osm_fixtures_dir, "osm.xlsx")
         self._publish_xls_file_and_set_xform(xlsform_path)
-        submission_path = os.path.join(osm_fixtures_dir, 'instance_a.xml')
-        count = Attachment.objects.filter(extension='osm').count()
+        submission_path = os.path.join(osm_fixtures_dir, "instance_a.xml")
+        count = Attachment.objects.filter(extension="osm").count()
         self._make_submission_w_attachment(submission_path, paths)
         self._make_submission_w_attachment(submission_path, paths)
-        self.assertTrue(
-            Attachment.objects.filter(extension='osm').count() > count)
+        self.assertTrue(Attachment.objects.filter(extension="osm").count() > count)
 
         options = {
             "extension": Export.ZIP_EXPORT,
-            "query": u'{"_submission_time": {"$lte": "2019-01-13T00:00:00"}}'}
+            "query": '{"_submission_time": {"$lte": "2019-01-13T00:00:00"}}',
+        }
         filter_query = options.get("query")
-        instance_ids = query_data(
-            self.xform, fields='["_id"]', query=filter_query)
+        instance_ids = query_data(self.xform, fields='["_id"]', query=filter_query)
 
         export = generate_attachments_zip_export(
-            Export.ZIP_EXPORT, self.user.username, self.xform.id_string, None,
-            options)
+            Export.ZIP_EXPORT, self.user.username, self.xform.id_string, None, options
+        )
 
         self.assertTrue(export.is_successful)
 
@@ -761,22 +772,20 @@ class TestExportTools(TestBase):
         zip_file.close()
 
         filtered_attachments = Attachment.objects.filter(
-            instance__xform_id=self.xform.pk).filter(
-            instance_id__in=[i_id['_id'] for i_id in instance_ids])
+            instance__xform_id=self.xform.pk
+        ).filter(instance_id__in=[i_id["_id"] for i_id in instance_ids])
 
-        self.assertNotEqual(
-            Attachment.objects.count(), filtered_attachments.count())
+        self.assertNotEqual(Attachment.objects.count(), filtered_attachments.count())
 
         for a in filtered_attachments:
-            self.assertTrue(
-                os.path.exists(os.path.join(temp_dir, a.media_file.name)))
+            self.assertTrue(os.path.exists(os.path.join(temp_dir, a.media_file.name)))
         shutil.rmtree(temp_dir)
 
         # export with no query
-        options.pop('query')
+        options.pop("query")
         export1 = generate_attachments_zip_export(
-            Export.ZIP_EXPORT, self.user.username, self.xform.id_string, None,
-            options)
+            Export.ZIP_EXPORT, self.user.username, self.xform.id_string, None, options
+        )
 
         self.assertTrue(export1.is_successful)
 
@@ -786,6 +795,5 @@ class TestExportTools(TestBase):
         zip_file.close()
 
         for a in Attachment.objects.all():
-            self.assertTrue(
-                os.path.exists(os.path.join(temp_dir, a.media_file.name)))
+            self.assertTrue(os.path.exists(os.path.join(temp_dir, a.media_file.name)))
         shutil.rmtree(temp_dir)
