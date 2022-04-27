@@ -43,7 +43,7 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v3
         with:
-          python-version: "3.x"
+          python-version: 3.9
           architecture: "x64"
 
       - name: Get pip cache dir
