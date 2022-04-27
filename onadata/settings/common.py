@@ -1,4 +1,7 @@
 # vim: set fileencoding=utf-8
+"""
+Base Django settings module.
+"""
 # this system uses structured settings as defined in
 # http://www.slideshare.net/jacobian/the-best-and-worst-of-django
 #
@@ -12,9 +15,8 @@
 import logging
 import os
 import socket
-import subprocess  # noqa, used by included files
 import sys
-from imp import reload
+from importlib import reload
 
 from celery.signals import after_setup_logger
 from django.core.exceptions import SuspiciousOperation
@@ -153,7 +155,7 @@ TEMPLATES = [
     },
 ]
 
-DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 MIDDLEWARE = (
     "onadata.libs.profiling.sql.SqlTimingMiddleware",
@@ -423,6 +425,9 @@ PROFILE_LOG_BASE = "/tmp/"
 
 
 def configure_logging(logger, **kwargs):
+    """
+    Add AdminEmailHandler to the logger
+    """
     admin_email_handler = AdminEmailHandler()
     admin_email_handler.setLevel(logging.ERROR)
     logger.addHandler(admin_email_handler)
@@ -540,17 +545,14 @@ path = os.path.join(PROJECT_ROOT, "..", "extras", "reserved_accounts.txt")
 
 EXPORT_WITH_IMAGE_DEFAULT = True
 try:
-    with open(path, "r") as f:
+    with open(path, "r", encoding="utf-8") as f:
         RESERVED_USERNAMES = [line.rstrip() for line in f]
 except EnvironmentError:
     RESERVED_USERNAMES = []
 
 STATIC_DOC = "/static/docs/index.html"
 
-try:
-    HOSTNAME = socket.gethostname()
-except Exception:
-    HOSTNAME = "localhost"
+HOSTNAME = socket.gethostname()
 
 CACHE_MIXIN_SECONDS = 60
 
@@ -560,13 +562,6 @@ DEFAULT_CELERY_MAX_RETIRES = 3
 DEFAULT_CELERY_INTERVAL_START = 2
 DEFAULT_CELERY_INTERVAL_MAX = 0.5
 DEFAULT_CELERY_INTERVAL_STEP = 0.5
-
-# legacy setting for old sites who still use a local_settings.py file and have
-# not updated to presets/
-try:
-    from local_settings import *  # noqa
-except ImportError:
-    pass
 
 # email verification
 ENABLE_EMAIL_VERIFICATION = False

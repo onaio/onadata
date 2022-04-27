@@ -15,17 +15,17 @@ import os
 import subprocess
 import sys
 
-from onadata.settings.common import *  # noqa
+from onadata.settings.common import *  # noqa pylint: disable=W0401,W0614
 
 # # # now override the settings which came from staging # # # #
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'onadata',
-        'USER': 'onadata',
-        'PASSWORD': 'onadata',
-        'HOST': 'db',
-        'PORT': 5432
+    "default": {
+        "ENGINE": "django.contrib.gis.db.backends.postgis",
+        "NAME": "onadata",
+        "USER": "onadata",
+        "PASSWORD": "onadata",
+        "HOST": "db",
+        "PORT": 5432,
     }
 }
 
@@ -33,11 +33,11 @@ DATABASE_ROUTERS = []  # turn off second database
 SLAVE_DATABASES = []
 
 # Make a unique unique key just for testing, and don't share it with anybody.
-SECRET_KEY = '~&nN9d`bxmJL2[$HhYE9qAk=+4P:cf3b'
+SECRET_KEY = "~&nN9d`bxmJL2[$HhYE9qAk=+4P:cf3b"
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
-INTERNAL_IPS = ['127.0.0.1']
+INTERNAL_IPS = ["127.0.0.1"]
 
 DEBUG = True
 CORS_ORIGIN_ALLOW_ALL = True
@@ -50,61 +50,58 @@ if len(sys.argv) >= 2 and (sys.argv[1] == "test" or sys.argv[1] == "test_all"):
 else:
     TESTING_MODE = False
 
-CELERY_BROKER_URL = 'redis://queue:6379'
-CELERY_RESULT_BACKEND = 'redis://queue:6379'
+CELERY_BROKER_URL = "redis://queue:6379"
+CELERY_RESULT_BACKEND = "redis://queue:6379"
 CELERY_TASK_ALWAYS_EAGER = True
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_CACHE_BACKEND = 'memory'
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_CACHE_BACKEND = "memory"
 CELERY_BROKER_CONNECTION_MAX_RETRIES = 2
 
 CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://queue:6379',
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient"
-        },
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://queue:6379",
+        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
     }
 }
 
 NOTIFICATION_BACKENDS = {
-    'mqtt': {
-        'BACKEND': 'onadata.apps.messaging.backends.mqtt.MQTTBackend',
-        'OPTIONS': {
-            'HOST': 'notifications',
-            'PORT': 1883,
-            'QOS': 1,
-            'RETAIN': False,
-            'SECURE': False,
-            'TOPIC_BASE': 'onadata'
-        }
+    "mqtt": {
+        "BACKEND": "onadata.apps.messaging.backends.mqtt.MQTTBackend",
+        "OPTIONS": {
+            "HOST": "notifications",
+            "PORT": 1883,
+            "QOS": 1,
+            "RETAIN": False,
+            "SECURE": False,
+            "TOPIC_BASE": "onadata",
+        },
     }
 }
 FULL_MESSAGE_PAYLOAD = True
 
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 if TESTING_MODE:
-    MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'test_media/')  # noqa
+    MEDIA_ROOT = os.path.join(PROJECT_ROOT, "test_media/")  # noqa
     subprocess.call(["rm", "-r", MEDIA_ROOT])
     # need to have TASK_ALWAYS_EAGERY True and BROKER_URL as memory
     # to run tasks immediately while testing
     CELERY_TASK_ALWAYS_EAGER = True
-    CELERY_RESULT_BACKEND = 'cache'
-    CELERY_CACHE_BACKEND = 'memory'
-    ENKETO_API_TOKEN = 'abc'
-    ENKETO_PROTOCOL = 'https'
-    ENKETO_URL = 'https://enketo.ona.io/'
-    ENKETO_API_ALL_SURVEY_LINKS_PATH = '/api_v2/survey'
-    ENKETO_API_INSTANCE_PATH = '/api_v1/instance'
-    ENKETO_SINGLE_SUBMIT_PATH = '/api/v2/survey/single/once'
+    CELERY_RESULT_BACKEND = "cache"
+    CELERY_CACHE_BACKEND = "memory"
+    ENKETO_API_TOKEN = "abc"
+    ENKETO_PROTOCOL = "https"
+    ENKETO_URL = "https://enketo.ona.io/"
+    ENKETO_API_ALL_SURVEY_LINKS_PATH = "/api_v2/survey"
+    ENKETO_API_INSTANCE_PATH = "/api_v1/instance"
+    ENKETO_SINGLE_SUBMIT_PATH = "/api/v2/survey/single/once"
     ENKETO_API_INSTANCE_IFRAME_URL = ENKETO_URL + "api_v1/instance/iframe"
     NOTIFICATION_BACKENDS = {}
 else:
-    MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'media/')  # noqa
+    MEDIA_ROOT = os.path.join(PROJECT_ROOT, "media/")  # noqa
 
-ENKETO_API_ALL_SURVEY_LINKS_PATH = '/api_v2/survey/all'
+ENKETO_API_ALL_SURVEY_LINKS_PATH = "/api_v2/survey/all"
 SUBMISSION_RETRIEVAL_THRESHOLD = 1000
 CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD = 100000
-
