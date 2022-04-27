@@ -1,10 +1,14 @@
+# -*- coding: utf-8 -*-
+"""
+Tests the UserProfileViewSet.
+"""
+# pylint: disable=too-many-lines
 import datetime
 import json
 import os
-from builtins import str
 from six.moves.urllib.parse import urlparse, parse_qs
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db.models import signals
 from django.test.utils import override_settings
@@ -28,6 +32,9 @@ from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.serializers.user_profile_serializer import _get_first_last_names
 
 
+User = get_user_model()
+
+
 def _profile_data():
     return {
         "username": "deno",
@@ -46,9 +53,12 @@ def _profile_data():
     }
 
 
+# pylint: disable=attribute-defined-outside-init,too-many-public-methods
+# pylint: disable=invalid-name,missing-class-docstring,missing-function-docstring,
+# pylint: disable=consider-using-f-string
 class TestUserProfileViewSet(TestAbstractViewSet):
     def setUp(self):
-        super(self.__class__, self).setUp()
+        super().setUp()
         self.view = UserProfileViewSet.as_view(
             {
                 "get": "list",
@@ -62,7 +72,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         """
         Specific to clear cache between tests
         """
-        super(TestUserProfileViewSet, self).tearDown()
+        super().tearDown()
         cache.clear()
 
     def test_profiles_list(self):
@@ -302,14 +312,14 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         _data = {"verification_key": rp.activation_key}
         request = self.factory.get("/", data=_data, **self.extra)
         response = view(request)
-        self.assertEquals(response.status_code, 204)
+        self.assertEqual(response.status_code, 204)
 
         data = {"username": data.get("username")}
         user = User.objects.get(username=data.get("username"))
         extra = {"HTTP_AUTHORIZATION": "Token %s" % user.auth_token}
         request = self.factory.post("/", data=data, **extra)
         response = view(request)
-        self.assertEquals(response.status_code, 204)
+        self.assertEqual(response.status_code, 204)
 
     @override_settings(ENABLE_EMAIL_VERIFICATION=True)
     def test_verification_key_is_valid(self):
@@ -321,11 +331,11 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         _data = {"verification_key": rp.activation_key}
         request = self.factory.get("/", data=_data)
         response = view(request)
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
         self.assertIn("is_email_verified", response.data)
         self.assertIn("username", response.data)
         self.assertTrue(response.data.get("is_email_verified"))
-        self.assertEquals(response.data.get("username"), data.get("username"))
+        self.assertEqual(response.data.get("username"), data.get("username"))
 
         up = UserProfile.objects.get(user__username=data.get("username"))
         self.assertIn("is_email_verified", up.metadata)
@@ -345,14 +355,14 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         request = self.factory.get("/", data=_data)
         response = view(request)
 
-        self.assertEquals(response.status_code, 302)
+        self.assertEqual(response.status_code, 302)
         self.assertIn("is_email_verified", response.url)
         self.assertIn("username", response.url)
 
         string_query_params = urlparse(response.url).query
         dict_query_params = parse_qs(string_query_params)
-        self.assertEquals(dict_query_params.get("is_email_verified"), ["True"])
-        self.assertEquals(dict_query_params.get("username"), [data.get("username")])
+        self.assertEqual(dict_query_params.get("is_email_verified"), ["True"])
+        self.assertEqual(dict_query_params.get("username"), [data.get("username")])
 
         up = UserProfile.objects.get(user__username=data.get("username"))
         self.assertIn("is_email_verified", up.metadata)
@@ -377,8 +387,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         request = self.factory.post("/", data=data, **extra)
         response = view(request)
         self.assertTrue(mock_send_verification_email.called)
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.data, "Verification email has been sent")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, "Verification email has been sent")
 
         user = User.objects.get(username=data.get("username"))
         self.assertFalse(user.profile.metadata.get("is_email_verified"))
@@ -395,7 +405,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         # different from username in post details
         request = self.factory.post("/", data={"username": "None"}, **self.extra)
         response = view(request)
-        self.assertEquals(response.status_code, 403)
+        self.assertEqual(response.status_code, 403)
 
     @override_settings(REQUIRE_ODK_AUTHENTICATION=True)
     def test_profile_require_auth(self):
@@ -578,7 +588,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
     def test_partial_updates_empty_metadata(self):
         profile = UserProfile.objects.get(user=self.user)
-        profile.metadata = dict()
+        profile.metadata = {}
         profile.save()
         metadata = {"zebra": {"key1": "value1", "key2": "value2"}}
         json_metadata = json.dumps(metadata)
@@ -1103,16 +1113,20 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
 
     @all_requests
-    def grant_perms_form_builder(self, url, request):
+    def grant_perms_form_builder(
+        self, url, request
+    ):  # pylint: disable=no-self-use,unused-argument
 
         assert "Authorization" in request.headers
         assert request.headers.get("Authorization").startswith("Token")
 
         response = requests.Response()
         response.status_code = 201
-        response._content = {
-            "detail": "Successfully granted default model level perms to" " user."
-        }
+        setattr(
+            response,
+            "_content",
+            {"detail": "Successfully granted default model level perms to" " user."},
+        )
         return response
 
     def test_create_user_with_given_name(self):
@@ -1135,13 +1149,13 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
         request = self.factory.get("/", **self.extra)
         response = view(request, user=self.user.username)
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
         self.assertFalse(self.xform.shared)
-        self.assertEquals(response.data, {"private": count1})
+        self.assertEqual(response.data, {"private": count1})
 
         # publish another form, make submission and make it public
         self._publish_form_with_hxl_support()
-        self.assertEquals(self.xform.id_string, "hxl_example")
+        self.assertEqual(self.xform.id_string, "hxl_example")
         count2 = (
             Instance.objects.filter(xform=self.xform)
             .filter(date_created__year=datetime.datetime.now().year)
@@ -1154,8 +1168,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.xform.save()
         request = self.factory.get("/", **self.extra)
         response = view(request, user=self.user.username)
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.data, {"private": count1, "public": count2})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"private": count1, "public": count2})
 
     def test_get_monthly_submissions_with_year_and_month_params(self):
         """
@@ -1188,9 +1202,9 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data = {"month": 2, "year": 2013}
         request = self.factory.get("/", data=data, **self.extra)
         response = view(request, user=self.user.username)
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
         self.assertFalse(self.xform.shared)
-        self.assertEquals(response.data, {"private": count})
+        self.assertEqual(response.data, {"private": count})
 
     def test_monthly_submissions_with_month_param(self):
         """
@@ -1214,9 +1228,9 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data = {"month": month}
         request = self.factory.get("/", data=data, **self.extra)
         response = view(request, user=self.user.username)
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
         self.assertFalse(self.xform.shared)
-        self.assertEquals(response.data, {"private": count})
+        self.assertEqual(response.data, {"private": count})
 
     def test_monthly_submissions_with_year_param(self):
         """
@@ -1252,9 +1266,9 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data = {"year": 2013}
         request = self.factory.get("/", data=data, **self.extra)
         response = view(request, user=self.user.username)
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
         self.assertFalse(self.xform.shared)
-        self.assertEquals(response.data, {"private": count})
+        self.assertEqual(response.data, {"private": count})
 
     @override_settings(ENABLE_EMAIL_VERIFICATION=True)
     @patch("onadata.apps.api.viewsets.user_profile_viewset.RegistrationProfile")
@@ -1275,11 +1289,11 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         ).get.side_effect = [RegistrationProfile.DoesNotExist, rp]
         request = self.factory.get("/", data=_data)
         response = view(request)
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
         self.assertIn("is_email_verified", response.data)
         self.assertIn("username", response.data)
         self.assertTrue(response.data.get("is_email_verified"))
-        self.assertEquals(response.data.get("username"), data.get("username"))
+        self.assertEqual(response.data.get("username"), data.get("username"))
         self.assertEqual(
             mock_rp_class.objects.select_related(
                 "user", "user__profile"

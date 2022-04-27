@@ -15,12 +15,12 @@ from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from onadata.apps.viewer.parsed_instance_tools import get_where_clause
-from onadata.libs.models.sorting import (
+from onadata.libs.models.sorting import (  # noqa pylint: disable=unused-import
     json_order_by,
     json_order_by_params,
     sort_from_mongo_sort_str,
 )
-from onadata.libs.utils.cache_tools import (
+from onadata.libs.utils.cache_tools import (  # noqa pylint: disable=unused-import
     DATAVIEW_COUNT,
     DATAVIEW_LAST_SUBMISSION_TIME,
     XFORM_LINKED_DATAVIEWS,
@@ -62,9 +62,9 @@ def get_name_from_survey_element(element):
 
 def append_where_list(comp, t_list, json_str):
     if comp in ["=", ">", "<", ">=", "<="]:
-        t_list.append("{} {} %s".format(json_str, comp))
+        t_list.append(f"{json_str} {comp} %s")
     elif comp in ["<>", "!="]:
-        t_list.append("{} <> %s".format(json_str))
+        t_list.append("{json_str} <> %s")
 
     return t_list
 
@@ -138,7 +138,7 @@ class DataView(models.Model):
 
         # Get the form geo xpaths
         xform = self.xform
-        geo_xpaths = xform.geopoint_xpaths()  # pylint: disable=E1101
+        geo_xpaths = xform.geopoint_xpaths()
 
         set_geom = set(geo_xpaths)
         set_columns = set(self.columns)
@@ -152,10 +152,9 @@ class DataView(models.Model):
 
     def save(self, *args, **kwargs):
         self.instances_with_geopoints = self.has_geo_columnn_n_data()
-        return super(DataView, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     def _get_known_type(self, type_str):
-        # pylint: disable=E1101
         return [
             get_name_from_survey_element(e)
             for e in self.xform.get_survey_elements_of_type(type_str)
@@ -191,15 +190,14 @@ class DataView(models.Model):
         sql += (
             " WHERE xform_id = %s AND id = %s" + sql_where + " AND deleted_at IS NULL"
         )
-        # pylint: disable=E1101
         params = [self.xform.pk, instance.id] + where_params
 
         cursor.execute(sql, [text(i) for i in params])
-
+        records = None
         for row in cursor.fetchall():
             records = row[0]
 
-        return True if records else False
+        return records is not None
 
     def soft_delete(self, user=None):
         """
@@ -218,13 +216,16 @@ class DataView(models.Model):
         self.save(update_fields=update_fields)
 
     @classmethod
-    def _get_where_clause(
+    def _get_where_clause(  # pylint: disable=too-many-locals
         cls,
         data_view,
-        form_integer_fields=[],
-        form_date_fields=[],
-        form_decimal_fields=[],
+        form_integer_fields=None,
+        form_date_fields=None,
+        form_decimal_fields=None,
     ):
+        form_integer_fields = [] if form_integer_fields is None else form_integer_fields
+        form_date_fields = [] if form_date_fields is None else form_date_fields
+        form_decimal_fields = [] if form_decimal_fields is None else form_decimal_fields
         known_integers = ["_id"] + form_integer_fields
         known_dates = ["_submission_time"] + form_date_fields
         known_decimals = form_decimal_fields
@@ -265,13 +266,14 @@ class DataView(models.Model):
         return where, where_params
 
     @classmethod
-    def query_iterator(cls, sql, fields=None, params=[], count=False):
-
+    def query_iterator(cls, sql, fields=None, params=None, count=False):
         def parse_json(data):
             try:
                 return json.loads(data)
             except ValueError:
                 return data
+
+        params = [] if params is None else params
 
         cursor = connection.cursor()
         sql_params = tuple(i if isinstance(i, tuple) else text(i) for i in params)
@@ -300,6 +302,7 @@ class DataView(models.Model):
                 for row in cursor.fetchall():
                     yield dict(zip(fields, [parse_json(row[0]).get(f) for f in fields]))
 
+    # pylint: disable=too-many-arguments,too-many-locals,too-many-branches
     @classmethod
     def generate_query_string(
         cls,
@@ -366,7 +369,7 @@ class DataView(models.Model):
 
         if sort is not None:
             sort = ["id"] if sort is None else sort_from_mongo_sort_str(sort)
-            sql = "{} {}".format(sql, json_order_by(sort))
+            sql = "{sql} {json_order_by(sort)}"
             params = params + json_order_by_params(sort)
 
         elif last_submission_time is False:
@@ -390,7 +393,7 @@ class DataView(models.Model):
         )
 
     @classmethod
-    def query_data(
+    def query_data(  # pylint: disable=too-many-arguments
         cls,
         data_view,
         start_index=None,
@@ -401,6 +404,7 @@ class DataView(models.Model):
         sort=None,
         filter_query=None,
     ):
+        """Returns a list of records for the view based on the parameters passed in."""
 
         (sql, columns, params) = cls.generate_query_string(
             data_view,
@@ -413,27 +417,24 @@ class DataView(models.Model):
         )
 
         try:
-            records = [
-                record
-                for record in DataView.query_iterator(sql, columns, params, count)
-            ]
+            records = list(DataView.query_iterator(sql, columns, params, count))
         except Exception as e:
             return {"error": _(text(e))}
 
         return records
 
 
-def clear_cache(sender, instance, **kwargs):
+def clear_cache(sender, instance, **kwargs):  # pylint: disable=unused-argument
     """Post delete handler for clearing the dataview cache."""
-    safe_delete("{}{}".format(XFORM_LINKED_DATAVIEWS, instance.xform.pk))
+    safe_delete("{XFORM_LINKED_DATAVIEWS}{instance.xform.pk}")
 
 
-def clear_dataview_cache(sender, instance, **kwargs):
+def clear_dataview_cache(sender, instance, **kwargs):  # pylint: disable=unused-argument
     """Post Save handler for clearing dataview cache on serialized fields."""
-    safe_delete("{}{}".format(PROJ_OWNER_CACHE, instance.project.pk))
-    safe_delete("{}{}".format(DATAVIEW_COUNT, instance.xform.pk))
-    safe_delete("{}{}".format(DATAVIEW_LAST_SUBMISSION_TIME, instance.xform.pk))
-    safe_delete("{}{}".format(XFORM_LINKED_DATAVIEWS, instance.xform.pk))
+    safe_delete("{PROJ_OWNER_CACHE}{instance.project.pk}")
+    safe_delete("{DATAVIEW_COUNT}{instance.xform.pk}")
+    safe_delete("{DATAVIEW_LAST_SUBMISSION_TIME}{instance.xform.pk}")
+    safe_delete("{XFORM_LINKED_DATAVIEWS}{instance.xform.pk}")
 
 
 post_save.connect(clear_dataview_cache, sender=DataView, dispatch_uid="clear_cache")

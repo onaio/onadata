@@ -5,10 +5,8 @@ Temporary token authorization model class
 import binascii
 import os
 
-from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.db import models
-
-AUTH_USER_MODEL = getattr(settings, "AUTH_USER_MODEL", "auth.User")
 
 
 class TempToken(models.Model):
@@ -19,7 +17,7 @@ class TempToken(models.Model):
 
     key = models.CharField(max_length=40, primary_key=True)
     user = models.OneToOneField(
-        AUTH_USER_MODEL, related_name="_user", on_delete=models.CASCADE
+        get_user_model(), related_name="_user", on_delete=models.CASCADE
     )
     created = models.DateTimeField(auto_now_add=True)
 
@@ -29,9 +27,10 @@ class TempToken(models.Model):
     def save(self, *args, **kwargs):
         if not self.key:
             self.key = self.generate_key()
-        return super(TempToken, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
-    def generate_key(self):
+    def generate_key(self):  # pylint: disable=no-self-use
+        """Generates a token key."""
         return binascii.hexlify(os.urandom(20)).decode()
 
     def __str__(self):
