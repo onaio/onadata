@@ -69,8 +69,6 @@ jobs:
           pip install -U pip
           pip install -r requirements/base.pip
           pip install flake8
-          # Install jsonfield packages necessary for the Django <3 migrations
-          pip install jsonfield
           pip install tblib
 
       - name: Run tests
