@@ -61,7 +61,7 @@ jobs:
       - name: Install APT requirements
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev
+          sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev libxml2-dev libxslt-dev
           sudo rm -rf /var/lib/apt/lists/*
 
       - name: Install Pip requirements
