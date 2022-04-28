@@ -62,9 +62,9 @@ def get_name_from_survey_element(element):
 
 def append_where_list(comp, t_list, json_str):
     if comp in ["=", ">", "<", ">=", "<="]:
-        t_list.append(f"{json_str} {comp} %s")
+        t_list.append(f"{json_str} {comp}" + " %s")
     elif comp in ["<>", "!="]:
-        t_list.append("{json_str} <> %s")
+        t_list.append(f"{json_str} <>" + " %s")
 
     return t_list
 
@@ -369,7 +369,7 @@ class DataView(models.Model):
 
         if sort is not None:
             sort = ["id"] if sort is None else sort_from_mongo_sort_str(sort)
-            sql = "{sql} {json_order_by(sort)}"
+            sql = f"{sql} {json_order_by(sort)}"
             params = params + json_order_by_params(sort)
 
         elif last_submission_time is False:
@@ -426,15 +426,15 @@ class DataView(models.Model):
 
 def clear_cache(sender, instance, **kwargs):  # pylint: disable=unused-argument
     """Post delete handler for clearing the dataview cache."""
-    safe_delete("{XFORM_LINKED_DATAVIEWS}{instance.xform.pk}")
+    safe_delete(f"{XFORM_LINKED_DATAVIEWS}{instance.xform.pk}")
 
 
 def clear_dataview_cache(sender, instance, **kwargs):  # pylint: disable=unused-argument
     """Post Save handler for clearing dataview cache on serialized fields."""
-    safe_delete("{PROJ_OWNER_CACHE}{instance.project.pk}")
-    safe_delete("{DATAVIEW_COUNT}{instance.xform.pk}")
-    safe_delete("{DATAVIEW_LAST_SUBMISSION_TIME}{instance.xform.pk}")
-    safe_delete("{XFORM_LINKED_DATAVIEWS}{instance.xform.pk}")
+    safe_delete(f"{PROJ_OWNER_CACHE}{instance.project.pk}")
+    safe_delete(f"{DATAVIEW_COUNT}{instance.xform.pk}")
+    safe_delete(f"{DATAVIEW_LAST_SUBMISSION_TIME}{instance.xform.pk}")
+    safe_delete(f"{XFORM_LINKED_DATAVIEWS}{instance.xform.pk}")
 
 
 post_save.connect(clear_dataview_cache, sender=DataView, dispatch_uid="clear_cache")
