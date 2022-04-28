@@ -91,7 +91,7 @@ deprecated==1.2.12
     # via onadata
 dict2xml==1.7.0
     # via onadata
-django==2.2.23
+django==3.2.13
     # via
     #   django-cors-headers
     #   django-debug-toolbar
