@@ -572,7 +572,7 @@ def response_for_format(data, format=None):  # pylint: disable=W0622
     """
     if format == "xml":
         formatted_data = data.xml
-    elif format == "xls":
+    elif format == "xls" or format == "xlsx":
         if not data.xls or not data.xls.storage.exists(data.xls.name):
             raise Http404()
 
