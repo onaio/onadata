@@ -8,7 +8,6 @@ from io import BytesIO, StringIO
 import unicodecsv as csv
 import openpyxl
 from builtins import str as text
-from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
@@ -52,10 +51,10 @@ def process_xlsform(xls, default_name):
     file_object = xls
     if xls.name.endswith("csv"):
         file_object = None
-        if not get_storage_class()().exists(xls.path):
+        if not isinstance(xls.name, InMemoryUploadedFile):
             file_object = StringIO(xls.read().decode("utf-8"))
     try:
-        return parse_file_to_json(xls.path, file_object=file_object)
+        return parse_file_to_json(xls.name, file_object=file_object)
     except csv.Error as e:
         if is_newline_error(e):
             xls.seek(0)
