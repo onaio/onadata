@@ -332,7 +332,7 @@ class XFormMixin(object):
         if not hasattr(self, "_survey"):
             try:
                 builder = SurveyElementBuilder()
-                self._survey = builder.create_survey_element_from_json(self.json)
+                self._survey = builder.create_survey_element_from_json(json.dumps(self.json))
             except ValueError:
                 xml = b(bytearray(self.xml, encoding="utf-8"))
                 self._survey = create_survey_element_from_xml(xml)
