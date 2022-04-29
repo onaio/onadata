@@ -2,7 +2,7 @@ import six
 
 from uuid import UUID
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
@@ -18,6 +18,9 @@ from onadata.apps.viewer.models import Export
 from onadata.libs.utils.numeric import int_or_parse_error
 from onadata.libs.utils.common_tags import MEDIA_FILE_TYPES
 from onadata.libs.permissions import exclude_items_from_queryset_using_xform_meta_perms
+
+
+User = get_user_model()
 
 
 class AnonDjangoObjectPermissionFilter(ObjectPermissionsFilter):
@@ -45,19 +48,16 @@ class AnonDjangoObjectPermissionFilter(ObjectPermissionsFilter):
                 else:
                     xform_kwargs = {lookup_field: form_id}
                     form = queryset.get(**xform_kwargs)
-            except ObjectDoesNotExist:
-                raise Http404
+            except ObjectDoesNotExist as non_existent_object:
+                raise Http404 from non_existent_object
 
             # Check if form is public and return it
             if form.shared:
                 if lookup_field == "uuid":
                     return queryset.filter(Q(uuid=form_id.hex) | Q(uuid=str(form_id)))
-                else:
-                    return queryset.filter(Q(**xform_kwargs))
+                return queryset.filter(Q(**xform_kwargs))
 
-        return super(AnonDjangoObjectPermissionFilter, self).filter_queryset(
-            request, queryset, view
-        )
+        return super().filter_queryset(request, queryset, view)
 
 
 # pylint: disable=too-few-public-methods
@@ -74,16 +74,14 @@ class EnketoAnonDjangoObjectPermissionFilter(AnonDjangoObjectPermissionFilter):
             self.perm_format = (
                 "%(app_label)s.report_%(model_name)s"  # noqa pylint: disable=W0201
             )
-        return super(EnketoAnonDjangoObjectPermissionFilter, self).filter_queryset(
-            request, queryset, view
-        )
+        return super().filter_queryset(request, queryset, view)
 
 
 class XFormListObjectPermissionFilter(AnonDjangoObjectPermissionFilter):
     perm_format = "%(app_label)s.report_%(model_name)s"
 
 
-class XFormListXFormPKFilter(object):
+class XFormListXFormPKFilter:
     def filter_queryset(self, request, queryset, view):
         xform_pk = view.kwargs.get("xform_pk")
         if xform_pk:
@@ -100,7 +98,8 @@ class XFormListXFormPKFilter(object):
 
 
 class FormIDFilter(django_filter_filters.FilterSet):
-    formID = django_filter_filters.CharFilter(field_name="id_string")
+
+    formID = django_filter_filters.CharFilter(field_name="id_string")  # noqa
 
     class Meta:
         model = XForm
@@ -114,9 +113,7 @@ class OrganizationPermissionFilter(ObjectPermissionsFilter):
         if view.action == "retrieve" and request.method == "GET":
             return queryset.model.objects.all()
 
-        filtered_queryset = super(OrganizationPermissionFilter, self).filter_queryset(
-            request, queryset, view
-        )
+        filtered_queryset = super().filter_queryset(request, queryset, view)
         org_users = set(
             [group.team.organization for group in request.user.groups.all()]
             + [o.user for o in filtered_queryset]
@@ -235,21 +232,19 @@ class AnonUserProjectFilter(ObjectPermissionsFilter):
         if project_id:
             int_or_parse_error(
                 project_id,
-                "Invalid value for project_id. It must be a" " positive integer.",
+                "Invalid value for project_id. It must be a positive integer.",
             )
 
             # check if project is public and return it
             try:
                 project = queryset.get(id=project_id)
-            except ObjectDoesNotExist:
-                raise Http404
+            except ObjectDoesNotExist as non_existent_object:
+                raise Http404 from non_existent_object
 
             if project.shared:
                 return queryset.filter(Q(id=project_id))
 
-        return super(AnonUserProjectFilter, self).filter_queryset(
-            request, queryset, view
-        )
+        return super().filter_queryset(request, queryset, view)
 
 
 class TagFilter(filters.BaseFilterBackend):
@@ -264,7 +259,7 @@ class TagFilter(filters.BaseFilterBackend):
         return queryset
 
 
-class XFormPermissionFilterMixin(object):
+class XFormPermissionFilterMixin:
     def _xform_filter(self, request, view, keyword):
         """Use XForm permissions"""
 
@@ -272,7 +267,7 @@ class XFormPermissionFilterMixin(object):
         public_forms = XForm.objects.none()
         if xform:
             int_or_parse_error(
-                xform, "Invalid value for formid. It must be a" " positive integer."
+                xform, "Invalid value for formid. It must be a positive integer."
             )
             self.xform = get_object_or_404(XForm, pk=xform)
             xform_qs = XForm.objects.filter(pk=self.xform.pk)
@@ -284,27 +279,22 @@ class XFormPermissionFilterMixin(object):
         if request.user.is_anonymous:
             xforms = xform_qs.filter(shared_data=True)
         else:
-            xforms = (
-                super(XFormPermissionFilterMixin, self).filter_queryset(
-                    request, xform_qs, view
-                )
-                | public_forms
-            )
-        return {"%s__in" % keyword: xforms}
+            xforms = super().filter_queryset(request, xform_qs, view) | public_forms
+        return {f"{keyword}__in": xforms}
 
     def _xform_filter_queryset(self, request, queryset, view, keyword):
         kwarg = self._xform_filter(request, view, keyword)
         return queryset.filter(**kwarg)
 
 
-class ProjectPermissionFilterMixin(object):
+class ProjectPermissionFilterMixin:
     def _project_filter(self, request, view, keyword):
         project_id = request.query_params.get("project")
 
         if project_id:
             int_or_parse_error(
                 project_id,
-                "Invalid value for projectid. It must be a" " positive integer.",
+                "Invalid value for projectid. It must be a positive integer.",
             )
 
             project = get_object_or_404(Project, pk=project_id)
@@ -312,11 +302,9 @@ class ProjectPermissionFilterMixin(object):
         else:
             project_qs = Project.objects.all()
 
-        projects = super(ProjectPermissionFilterMixin, self).filter_queryset(
-            request, project_qs, view
-        )
+        projects = super().filter_queryset(request, project_qs, view)
 
-        return {"%s__in" % keyword: projects}
+        return {f"{keyword}__in": projects}
 
     def _project_filter_queryset(self, request, queryset, view, keyword):
         """Use Project Permissions"""
@@ -325,7 +313,8 @@ class ProjectPermissionFilterMixin(object):
         return queryset.filter(**kwarg)
 
 
-class InstancePermissionFilterMixin(object):
+class InstancePermissionFilterMixin:
+    # pylint: disable=too-many-locals
     def _instance_filter(self, request, view, keyword):
         instance_kwarg = {}
         instance_content_type = ContentType.objects.get_for_model(Instance)
@@ -356,21 +345,17 @@ class InstancePermissionFilterMixin(object):
             project_qs = Project.objects.filter(pk=project.id)
 
             if parent and parent.project == project:
-                projects = super(InstancePermissionFilterMixin, self).filter_queryset(
-                    request, project_qs, view
-                )
+                projects = super().filter_queryset(request, project_qs, view)
 
                 instances = [instance.id] if projects else []
 
-                instance_kwarg["%s__in" % keyword] = instances
+                instance_kwarg[f"{keyword}__in"] = instances
 
                 return instance_kwarg
 
-            else:
-                return {}
+            return {}
 
-        else:
-            return instance_kwarg
+        return instance_kwarg
 
     def _instance_filter_queryset(self, request, queryset, view, keyword):
         kwarg = self._instance_filter(request, view, keyword)
@@ -414,12 +399,12 @@ class MetaDataFilter(
                 if (xform_id and instance_kwarg)
                 else []
             )
-        elif xform_id:
+        if xform_id:
             # return xform specific metadata
             return queryset.filter(Q(**xform_kwarg))
 
         # return project specific metadata
-        elif project_id:
+        if project_id:
             return queryset.filter(Q(**project_kwarg))
 
         # return all project,instance and xform metadata information
@@ -517,8 +502,8 @@ class OrganizationsSharedWithUserFilter(filters.BaseFilterBackend):
 
                 return filtered_queryset
 
-            except ObjectDoesNotExist:
-                raise Http404
+            except ObjectDoesNotExist as non_existent_object:
+                raise Http404 from non_existent_object
 
         return queryset
 
@@ -530,7 +515,7 @@ class WidgetFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
             # Return widgets from xform user has perms to
             return self._xform_filter_queryset(request, queryset, view, "object_id")
 
-        return super(WidgetFilter, self).filter_queryset(request, queryset, view)
+        return super().filter_queryset(request, queryset, view)
 
 
 class UserProfileFilter(filters.BaseFilterBackend):
@@ -540,7 +525,7 @@ class UserProfileFilter(filters.BaseFilterBackend):
             if users:
                 users = users.split(",")
                 return queryset.filter(user__username__in=users)
-            elif not request.user.is_anonymous:
+            if not request.user.is_anonymous:
                 return queryset.filter(user__username=request.user.username)
 
             return queryset.none()
@@ -607,7 +592,8 @@ class ExportFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
         return all_qs | submitter_qs
 
 
-class PublicDatasetsFilter(object):
+class PublicDatasetsFilter:
+    # pylint: disable=unused-argument
     def filter_queryset(self, request, queryset, view):
         if request and request.user.is_anonymous:
             return queryset.filter(shared=True)
