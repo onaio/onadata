@@ -7,13 +7,14 @@ from elaphe import barcode
 from io import BytesIO
 
 
+# pylint: disable=too-many-arguments
 def generate_qrcode(
     message,
     stream=None,
     eclevel="M",
     margin=10,
     data_mode="8bits",
-    format="PNG",
+    image_format="PNG",
     scale=2.5,
 ):
     """Generate a QRCode, settings options and output."""
@@ -33,9 +34,9 @@ def generate_qrcode(
         scale=scale,
     )
 
-    img.save(stream, format)
+    img.save(stream, image_format)
 
-    datauri = "data:image/png;base64,%s" % b64encode(stream.getvalue()).decode("utf-8")
+    datauri = f"data:image/png;base64,{b64encode(stream.getvalue()).decode('utf-8')}"
     stream.close()
 
     return datauri
