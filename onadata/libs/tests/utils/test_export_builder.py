@@ -2113,7 +2113,7 @@ class TestExportBuilder(TestBase):
         self.assertTrue(os.path.exists(os.path.join(temp_dir, "children.info.csv")))
         # check file's contents
         with open(
-            os.path.join(temp_dir, "children.info.csv", encoding="utf-8")
+            os.path.join(temp_dir, "children.info.csv"), encoding="utf-8"
         ) as csv_file:
             reader = csv.reader(csv_file)
             expected_headers = [

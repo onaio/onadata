@@ -569,7 +569,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                         ("file_hash", None),
                         (
                             "url",
-                            "http://testserver/api/v1/metadata/{preview_url.pk}",
+                            f"http://testserver/api/v1/metadata/{preview_url.pk}",
                         ),
                         ("date_created", preview_url.date_created),
                     ]
@@ -586,7 +586,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                         ("file_hash", None),
                         (
                             "url",
-                            "http://testserver/api/v1/metadata/{single_submit_url.pk}",
+                            f"http://testserver/api/v1/metadata/{single_submit_url.pk}",
                         ),
                         ("date_created", single_submit_url.date_created),
                     ]
@@ -2575,9 +2575,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data["forms"]), 1)
-        self.assertEqual(
-            response.data["forms"][0]["name"], self.xform.title, response.data
-        )
+        self.assertEqual(response.data["forms"][0]["name"], self.xform.title)
         self.assertEqual(
             response.data["forms"][0]["last_submission_time"],
             self.xform.time_of_last_submission(),
