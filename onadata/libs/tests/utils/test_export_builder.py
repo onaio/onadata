@@ -13,12 +13,17 @@ import zipfile
 from collections import OrderedDict
 from ctypes import ArgumentError
 from io import BytesIO
+from unittest import skipIf
 
 from openpyxl import load_workbook
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
 from pyxform.builder import create_survey_from_xls
-from savReaderWriter import SavHeaderReader, SavReader
+
+try:
+    from savReaderWriter import SavHeaderReader, SavReader
+except ImportError:
+    SavHeaderReader = SavReader = None
 
 from onadata.apps.logger.import_tools import django_file
 from onadata.apps.main.tests.test_base import TestBase
@@ -576,6 +581,7 @@ class TestExportBuilder(TestBase):
             # check that red and blue are set to true
 
     # pylint: disable=invalid-name
+    @skipIf(SavReader is None, "savReaderWriter is not supported now.")
     def test_zipped_sav_export_with_date_field(self):
         md = """
         | survey |
@@ -621,6 +627,7 @@ class TestExportBuilder(TestBase):
         shutil.rmtree(temp_dir)
 
     # pylint: disable=invalid-name
+    @skipIf(SavReader is None, "savReaderWriter is not supported now.")
     def test_zipped_sav_export_dynamic_select_multiple(self):
         md = """
         | survey |
@@ -686,6 +693,7 @@ class TestExportBuilder(TestBase):
         shutil.rmtree(temp_dir)
 
     # pylint: disable=invalid-name
+    @skipIf(SavReader is None, "savReaderWriter is not supported now.")
     def test_zipped_sav_export_with_zero_padded_select_one_field(self):
         md = """
         | survey |
@@ -718,6 +726,7 @@ class TestExportBuilder(TestBase):
             self.assertEqual(rows[1][4].decode("utf-8"), "2016-11-21 03:43:43")
 
     # pylint: disable=invalid-name
+    @skipIf(SavReader is None, "savReaderWriter is not supported now.")
     def test_zipped_sav_export_with_numeric_select_one_field(self):
         md = """
         | survey |
@@ -769,6 +778,7 @@ class TestExportBuilder(TestBase):
             self.assertEqual(rows[1][5], b"2016-11-21 03:43:43")
 
     # pylint: disable=invalid-name
+    @skipIf(SavReader is None, "savReaderWriter is not supported now.")
     def test_zipped_sav_export_with_duplicate_field_different_groups(self):
         """
         Test SAV exports duplicate fields, same group - one field in repeat
@@ -908,6 +918,7 @@ class TestExportBuilder(TestBase):
         self.assertEqual(choices, expected_choices)
 
     # pylint: disable=invalid-name
+    @skipIf(SavReader is None, "savReaderWriter is not supported now.")
     def test_zipped_sav_export_with_numeric_select_multiple_field(self):
         md = """
         | survey |                     |          |           |               |
@@ -982,6 +993,7 @@ class TestExportBuilder(TestBase):
         shutil.rmtree(temp_dir)
 
     # pylint: disable=invalid-name
+    @skipIf(SavReader is None, "savReaderWriter is not supported now.")
     def test_zipped_sav_export_with_zero_padded_select_multiple_field(self):
         md = """
         | survey |                        |          |           |
@@ -1020,6 +1032,7 @@ class TestExportBuilder(TestBase):
         shutil.rmtree(temp_dir)
 
     # pylint: disable=invalid-name
+    @skipIf(SavReader is None, "savReaderWriter is not supported now.")
     def test_zipped_sav_export_with_values_split_select_multiple(self):
         md = """
         | survey |                        |          |           |
@@ -1061,6 +1074,7 @@ class TestExportBuilder(TestBase):
         shutil.rmtree(temp_dir)
 
     # pylint: disable=invalid-name
+    @skipIf(SavReader is None, "savReaderWriter is not supported now.")
     def test_zipped_sav_export_with_duplicate_name_in_choice_list(self):
         md = """
         | survey |                         |      |                  |
@@ -1100,6 +1114,7 @@ class TestExportBuilder(TestBase):
         self.assertTrue(os.path.exists(os.path.join(temp_dir, "exp.sav")))
 
     # pylint: disable=invalid-name
+    @skipIf(SavReader is None, "savReaderWriter is not supported now.")
     def test_zipped_sav_export_external_choices(self):  # pylint: disable=invalid-name
         """
         Test that an SPSS export does not fail when it has choices from a file.
@@ -1126,6 +1141,7 @@ class TestExportBuilder(TestBase):
         self.assertTrue(os.path.exists(os.path.join(temp_dir, "exp.sav")))
 
     # pylint: disable=invalid-name
+    @skipIf(SavReader is None, "savReaderWriter is not supported now.")
     def test_zipped_sav_export_with_duplicate_column_name(self):
         """
         Test that SAV  exports with duplicate column names
@@ -1940,6 +1956,7 @@ class TestExportBuilder(TestBase):
         self.assertIsInstance(converted_val, datetime.date)
         self.assertEqual(converted_val, expected_val)
 
+    @skipIf(SavReader is None, "savReaderWriter is not supported now.")
     def test_to_sav_export(self):
         survey = self._create_childrens_survey()
         export_builder = ExportBuilder()
@@ -1993,6 +2010,7 @@ class TestExportBuilder(TestBase):
             section_name = section["name"].replace("/", "_")
             _test_sav_file(section_name)
 
+    @skipIf(SavReader is None, "savReaderWriter is not supported now.")
     def test_to_sav_export_language(self):
         survey = self._create_childrens_survey("childrens_survey_sw.xlsx")
         export_builder = ExportBuilder()
@@ -2345,6 +2363,7 @@ class TestExportBuilder(TestBase):
             # check that red and blue are set to true
         shutil.rmtree(temp_dir)
 
+    @skipIf(SavHeaderReader is None, "savReaderWriter is not supported now.")
     def test_to_sav_export_with_labels(self):
         survey = self._create_childrens_survey()
         export_builder = ExportBuilder()
@@ -2738,6 +2757,7 @@ class TestExportBuilder(TestBase):
         self.assertEqual(xls_data[31], "2021-05-25T02:27:19")
 
     # pylint: disable=invalid-name
+    @skipIf(SavReader is None, "savReaderWriter is not supported now.")
     def test_zipped_sav_has_submission_review_fields(self):
         """
         Test that review comment, status and date fields are in csv exports
@@ -2859,6 +2879,7 @@ class TestExportBuilder(TestBase):
             self.assertEqual(rows[1][13], "kol")
 
     # pylint: disable=invalid-name
+    @skipIf(SavReader is None, "savReaderWriter is not supported now.")
     def test_zipped_sav_export_with_osm_data(self):
         """
         Test that osm data is included in zipped sav export
