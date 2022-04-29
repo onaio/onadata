@@ -1,4 +1,4 @@
-# -*- codingL: utf-8 -*-
+# -*- coding: utf-8 -*-
 """ODK BriefcaseClient utils module"""
 import logging
 import mimetypes
@@ -197,10 +197,11 @@ class BriefcaseClient:
     def download_instances(self, form_id, cursor=0, num_entries=100):
         """Download the XML submissions."""
         self.logger.debug("Starting submissions download for %s", form_id)
-        if not self._get_response(
+        downloaded = self._get_response(
             self.submission_list_url,
             params={"formId": form_id, "numEntries": num_entries, "cursor": cursor},
-        ):
+        )
+        if not downloaded:
             self.logger.error(
                 "Fetching %s formId: %s, cursor: %s",
                 self.submission_list_url,
@@ -233,9 +234,10 @@ class BriefcaseClient:
             )
             instance_path = os.path.join(path, uuid.replace(":", ""), "submission.xml")
             if not default_storage.exists(instance_path):
-                if self._get_response(
+                downloaded = self._get_response(
                     self.download_submission_url, params={"formId": form_str}
-                ):
+                )
+                if downloaded:
                     instance_res = getattr(self, "_current_response")
                     content = instance_res.content.strip()
                     default_storage.save(instance_path, ContentFile(content))
@@ -318,7 +320,9 @@ class BriefcaseClient:
                     self._upload_instance(xml_file, instance_dir_path, files)
                 except ExpatError:
                     continue
+                # pylint: disable=broad-except
                 except Exception as e:
+                    # keep going despite some errors.
                     logging.exception(
                         (
                             "Ignoring exception, processing XML submission "
@@ -340,12 +344,16 @@ class BriefcaseClient:
             form_xml = f"{form_dir}.xml"
             if form_xml in form_files:
                 form_xml_path = os.path.join(dir_path, form_xml)
-                x = self._upload_xform(form_xml_path, form_xml)
-                if isinstance(x, dict):
+                published_xform = self._upload_xform(form_xml_path, form_xml)
+                if isinstance(published_xform, dict):
                     self.logger.error("Failed to publish %s", form_dir)
                 else:
                     self.logger.debug("Successfully published %s", form_dir)
             if "instances" in form_dirs:
                 self.logger.debug("Uploading instances")
-                c = self._upload_instances(os.path.join(dir_path, "instances"))
-                self.logger.debug("Published %d instances for %s", c, form_dir)
+                submission_count = self._upload_instances(
+                    os.path.join(dir_path, "instances")
+                )
+                self.logger.debug(
+                    "Published %d instances for %s", submission_count, form_dir
+                )

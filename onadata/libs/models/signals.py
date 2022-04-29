@@ -1,4 +1,4 @@
-# -*- codingL: utf-8 -*-
+# -*- coding: utf-8 -*-
 """onadata.libs.models.signals module"""
 import django.dispatch
 

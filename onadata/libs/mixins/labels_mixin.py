@@ -1,4 +1,4 @@
-# -*- codingL: utf-8 -*-
+# -*- coding: utf-8 -*-
 """LabelMixin module"""
 from django import forms
 from rest_framework import status

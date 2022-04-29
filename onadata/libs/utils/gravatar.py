@@ -1,8 +1,10 @@
-# -*- codingL: utf-8 -*-
+# -*- coding: utf-8 -*-
 """Gravatar utils module"""
 import hashlib
-import requests
+
 from six.moves.urllib.parse import urlencode
+
+import requests
 
 
 DEFAULT_GRAVATAR = "https://ona.io/static/images/default_avatar.png"

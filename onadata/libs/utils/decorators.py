@@ -10,6 +10,7 @@ from django.http import HttpResponseRedirect
 
 
 def check_obj(f):
+    """Checks if the first argument is truthy and then calls the underlying function."""
     # pylint: disable=inconsistent-return-statements
     @wraps(f)
     def with_check_obj(*args, **kwargs):
@@ -20,6 +21,8 @@ def check_obj(f):
 
 
 def is_owner(view_func):
+    """Redirects to login if not owner."""
+
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
         # assume username is first arg
@@ -34,9 +37,9 @@ def is_owner(view_func):
         # use the path as the "next" url.
         login_scheme, login_netloc = urlparse(login_url)[:2]
         current_scheme, current_netloc = urlparse(path)[:2]
-        if (not login_scheme or login_scheme == current_scheme) and (
-            not login_netloc or login_netloc == current_netloc
-        ):
+        is_scheme = not login_scheme or login_scheme == current_scheme
+        is_netloc = not login_netloc or login_netloc == current_netloc
+        if is_scheme and is_netloc:
             path = request.get_full_path()
 
         return redirect_to_login(path, None, REDIRECT_FIELD_NAME)
