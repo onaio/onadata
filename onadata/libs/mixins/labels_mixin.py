@@ -1,3 +1,5 @@
+# -*- codingL: utf-8 -*-
+"""LabelMixin module"""
 from django import forms
 from rest_framework import status
 from rest_framework.decorators import action
@@ -5,10 +7,12 @@ from rest_framework.response import Response
 from taggit.forms import TagField
 
 from onadata.apps.logger.models import XForm
-from onadata.libs.models.signals import xform_tags_add, xform_tags_delete
+from onadata.libs.models.signals import XFORM_TAGS_ADD, XFORM_TAGS_DELETE
 
 
 class TagForm(forms.Form):
+    """TagForm form"""
+
     tags = TagField()
 
 
@@ -22,16 +26,17 @@ def _labels_post(request, instance):
     form = TagForm(request.data)
 
     if form.is_valid():
-        tags = form.cleaned_data.get('tags', None)
+        tags = form.cleaned_data.get("tags", None)
 
         if tags:
             for tag in tags:
                 instance.tags.add(tag)
 
             if isinstance(instance, XForm):
-                xform_tags_add.send(sender=XForm, xform=instance, tags=tags)
+                XFORM_TAGS_ADD.send(sender=XForm, xform=instance, tags=tags)
 
             return status.HTTP_201_CREATED
+    return None
 
 
 def _labels_delete(label, instance):
@@ -46,11 +51,14 @@ def _labels_delete(label, instance):
     instance.tags.remove(label)
 
     if isinstance(instance, XForm):
-        xform_tags_delete.send(sender=XForm, xform=instance, tag=label)
+        XFORM_TAGS_DELETE.send(sender=XForm, xform=instance, tag=label)
 
     # Accepted, label does not exist hence nothing removed
-    http_status = status.HTTP_202_ACCEPTED \
-        if count == instance.tags.names().count() else status.HTTP_200_OK
+    http_status = (
+        status.HTTP_202_ACCEPTED
+        if count == instance.tags.names().count()
+        else status.HTTP_200_OK
+    )
 
     return [http_status, list(instance.tags.names())]
 
@@ -66,13 +74,12 @@ def process_label_request(request, label, instance):
     """
     http_status = status.HTTP_200_OK
 
-    if request.method == 'POST':
+    if request.method == "POST":
         http_status = _labels_post(request, instance)
 
-    if request.method == 'GET' and label:
-        data = [tag['name']
-                for tag in instance.tags.filter(name=label).values('name')]
-    elif request.method == 'DELETE' and label:
+    if request.method == "GET" and label:
+        data = [tag["name"] for tag in instance.tags.filter(name=label).values("name")]
+    elif request.method == "DELETE" and label:
         http_status, data = _labels_delete(label, instance)
     else:
         data = list(instance.tags.names())
@@ -80,11 +87,26 @@ def process_label_request(request, label, instance):
     return Response(data, status=http_status)
 
 
-class LabelsMixin(object):
-    @action(methods=['GET', 'POST', 'DELETE'], detail=True,
-            extra_lookup_fields=['label', ])
-    def labels(self, request, format='json', **kwargs):
+# pylint: disable=too-few-public-methods
+class LabelsMixin:
+    """LabelsMixin - adds labels method that processes labels."""
+
+    # pylint: disable=redefined-builtin
+    @action(
+        methods=["GET", "POST", "DELETE"],
+        detail=True,
+        extra_lookup_fields=[
+            "label",
+        ],
+    )
+    def labels(self, request, format="json", **kwargs):  # noqa
+        """Process request to labels endpoint.
+
+        :param request: HTTP request object.
+
+        :returns: A response object based on the type of request.
+        """
         xform = self.get_object()
-        label = kwargs.get('label')
+        label = kwargs.get("label")
 
         return process_label_request(request, label, xform)
