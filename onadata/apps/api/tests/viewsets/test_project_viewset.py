@@ -4,10 +4,10 @@ Test ProjectViewSet module.
 """
 import json
 import os
-from builtins import str
+
+from collections import OrderedDict
 from six import iteritems
 from operator import itemgetter
-from collections import OrderedDict
 
 from django.conf import settings
 from django.db.models import Q
@@ -60,30 +60,39 @@ ROLES = [
 ]
 
 
+# pylint: disable=unused-argument
 @urlmatch(netloc=r"(.*\.)?enketo\.ona\.io$")
 def enketo_mock(url, request):
+    """Mock Enketo responses"""
     response = requests.Response()
     response.status_code = 201
-    response._content = (
-        '{\n  "url": "https:\\/\\/dmfrm.enketo.org\\/webform",\n' '  "code": "200"\n}'
+    setattr(
+        response,
+        "_content",
+        ('{\n  "url": "https:\\/\\/dmfrm.enketo.org\\/webform",\n  "code": "200"\n}'),
     )
+
     return response
 
 
 def get_latest_tags(project):
+    """Return given project tags as a list."""
     project.refresh_from_db()
     return [tag.name for tag in project.tags.all()]
 
 
 class TestProjectViewSet(TestAbstractViewSet):
+    """Test ProjectViewSet."""
+
     def setUp(self):
-        super(TestProjectViewSet, self).setUp()
+        super().setUp()
         self.view = ProjectViewSet.as_view({"get": "list", "post": "create"})
 
     def tearDown(self):
         cache.clear()
-        super(TestProjectViewSet, self).tearDown()
+        super().tearDown()
 
+    # pylint: disable=invalid-name
     @patch("onadata.apps.main.forms.urlopen")
     def test_publish_xlsform_using_url_upload(self, mock_urlopen):
         with HTTMock(enketo_mock):
@@ -103,23 +112,23 @@ class TestProjectViewSet(TestAbstractViewSet):
                 "transportation_different_id_string.xlsx",
             )
 
-            xls_file = open(path, "rb")
-            mock_urlopen.return_value = xls_file
+            with open(path, "rb") as xls_file:
+                mock_urlopen.return_value = xls_file
 
-            post_data = {"xls_url": xls_url}
-            request = self.factory.post("/", data=post_data, **self.extra)
-            response = view(request, pk=project_id)
+                post_data = {"xls_url": xls_url}
+                request = self.factory.post("/", data=post_data, **self.extra)
+                response = view(request, pk=project_id)
 
-            mock_urlopen.assert_called_with(xls_url)
-            xls_file.close()
-            self.assertEqual(response.status_code, 201)
-            self.assertEqual(XForm.objects.count(), pre_count + 1)
-            self.assertEqual(
-                XFormVersion.objects.filter(
-                    xform__pk=response.data.get("formid")
-                ).count(),
-                1,
-            )
+                mock_urlopen.assert_called_with(xls_url)
+                xls_file.close()
+                self.assertEqual(response.status_code, 201)
+                self.assertEqual(XForm.objects.count(), pre_count + 1)
+                self.assertEqual(
+                    XFormVersion.objects.filter(
+                        xform__pk=response.data.get("formid")
+                    ).count(),
+                    1,
+                )
 
     def test_projects_list(self):
         self._project_create()
@@ -133,7 +142,9 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.data, [serializer.data])
         self.assertIn("created_by", list(response.data[0]))
 
+    # pylint: disable=invalid-name
     def test_project_list_returns_projects_for_active_users_only(self):
+        """Test project list returns projects of active users only."""
         self._project_create()
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
         alice_profile = self._create_user_profile(alice_data)
@@ -177,6 +188,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                 break
         self.assertTrue(shared_project_in_response)
 
+    # pylint: disable=invalid-name
     def test_project_list_returns_users_own_project_is_shared_to(self):
         """
         Ensure that the project list responses for project owners
@@ -252,6 +264,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(len(response.data.get("forms")), 0)
         self.assertEqual(response.status_code, 200)
 
+    # pylint: disable=invalid-name
     def test_none_empty_forms_and_dataview_properties_in_returned_json(self):
         self._publish_xls_form_to_project()
         self._create_dataview()
@@ -362,7 +375,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             self.assertEqual(self.user, project.created_by)
             self.assertEqual(self.user, project.organization)
 
-    def test_project_create_other_account(self):  # pylint: disable=C0103
+    def test_project_create_other_account(self):  # pylint: disable=invalid-name
         """
         Test that a user cannot create a project in a different user account
         without the right permission.
@@ -384,8 +397,8 @@ class TestProjectViewSet(TestAbstractViewSet):
             response.data,
             {
                 "owner": [
-                    "You do not have permission to create a project in "
-                    "the organization {}.".format(bob)
+                    f"You do not have permission to create a project "
+                    f"in the organization {bob}."
                 ]
             },
         )
@@ -406,6 +419,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             # But under Bob's account
             self.assertEqual(bob, project.organization)
 
+    # pylint: disable=invalid-name
     def test_create_duplicate_project(self):
         """
         Test creating a project with the same name
@@ -413,7 +427,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         # data to create project
         data = {
             "name": "demo",
-            "owner": "http://testserver/api/v1/users/%s" % self.user.username,
+            "owner": f"http://testserver/api/v1/users/{self.user.username}",
             "metadata": {
                 "description": "Some description",
                 "location": "Naivasha, Kenya",
@@ -448,10 +462,11 @@ class TestProjectViewSet(TestAbstractViewSet):
         final_count = Project.objects.count()
         self.assertEqual(after_count, final_count)
 
+    # pylint: disable=invalid-name
     def test_projects_create_no_metadata(self):
         data = {
             "name": "demo",
-            "owner": "http://testserver/api/v1/users/%s" % self.user.username,
+            "owner": f"http://testserver/api/v1/users/{self.user.username}",
             "public": False,
         }
         self._project_create(project_data=data, merge=False)
@@ -465,6 +480,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             self.assertEqual(self.user, project.created_by)
             self.assertEqual(self.user, project.organization)
 
+    # pylint: disable=invalid-name
     def test_projects_create_many_users(self):
         self._project_create()
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
@@ -477,6 +493,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             self.assertEqual(self.user, project.created_by)
             self.assertEqual(self.user, project.organization)
 
+    # pylint: disable=invalid-name
     def test_publish_xls_form_to_project(self):
         self._publish_xls_form_to_project()
         project_name = "another project"
@@ -488,10 +505,10 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.project.refresh_from_db()
         request = self.factory.post("/", data={}, **self.extra)
         request.user = self.user
-        self.project_data = ProjectSerializer(
+        project_data = ProjectSerializer(
             self.project, context={"request": request}
         ).data
-        self.assertEqual(self.project_data["num_datasets"], 1)
+        self.assertEqual(project_data["num_datasets"], 1)
 
     def test_last_submission_date(self):
         self._publish_xls_form_to_project()
@@ -499,15 +516,13 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.post("/", data={}, **self.extra)
         request.user = self.user
         self.project.refresh_from_db()
-        self.project_data = ProjectSerializer(
+        project_data = ProjectSerializer(
             self.project, context={"request": request}
         ).data
         date_created = self.xform.instances.order_by("-date_created").values_list(
             "date_created", flat=True
         )[0]
-        self.assertEqual(
-            str(self.project_data["last_submission_date"]), str(date_created)
-        )
+        self.assertEqual(str(project_data["last_submission_date"]), str(date_created))
 
     def test_view_xls_form(self):
         self._publish_xls_form_to_project()
@@ -538,7 +553,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                         ("data_file_type", None),
                         ("media_url", None),
                         ("file_hash", None),
-                        ("url", "http://testserver/api/v1/metadata/%s" % url.pk),
+                        ("url", f"http://testserver/api/v1/metadata/{url.pk}"),
                         ("date_created", url.date_created),
                     ]
                 ),
@@ -554,7 +569,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                         ("file_hash", None),
                         (
                             "url",
-                            "http://testserver/api/v1/metadata/%s" % preview_url.pk,
+                            "http://testserver/api/v1/metadata/{preview_url.pk}",
                         ),
                         ("date_created", preview_url.date_created),
                     ]
@@ -571,8 +586,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                         ("file_hash", None),
                         (
                             "url",
-                            "http://testserver/api/v1/metadata/%s"
-                            % single_submit_url.pk,
+                            "http://testserver/api/v1/metadata/{single_submit_url.pk}",
                         ),
                         ("date_created", single_submit_url.date_created),
                     ]
@@ -638,6 +652,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(len(response.data["forms"]), old_project_form_count - 1)
         self.assertEqual(response.data["num_datasets"], old_project_num_datasets - 1)
 
+    # pylint: disable=invalid-name
     def test_project_manager_can_assign_form_to_project(self):
         view = ProjectViewSet.as_view({"post": "forms", "get": "retrieve"})
         self._publish_xls_form_to_project()
@@ -670,6 +685,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertIn("forms", list(response.data))
         self.assertEqual(len(response.data["forms"]), 1)
 
+    # pylint: disable=invalid-name
     def test_project_manager_can_assign_form_to_project_no_perm(self):
         # user must have owner/manager permissions
         view = ProjectViewSet.as_view({"post": "forms", "get": "retrieve"})
@@ -693,6 +709,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=project_id)
         self.assertEqual(response.status_code, 403)
 
+    # pylint: disable=invalid-name
     def test_project_users_get_readonly_role_on_add_form(self):
         self._project_create()
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
@@ -703,10 +720,12 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user, self.xform))
         self.assertFalse(OwnerRole.user_has_role(alice_profile.user, self.xform))
 
+    # pylint: disable=invalid-name,too-many-locals
     @patch("onadata.apps.api.viewsets.project_viewset.send_mail")
     def test_reject_form_transfer_if_target_account_has_id_string_already(
         self, mock_send_mail
     ):
+        """Test transfer form fails when a form with same id_string exists."""
         # create bob's project and publish a form to it
         self._publish_xls_form_to_project()
         projectid = self.project.pk
@@ -764,7 +783,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.post("/", data=post_data, **self.extra)
         response = view(request, pk=alices_project.id)
         self.assertEqual(response.status_code, 400)
-        self.assertEquals(
+        self.assertEqual(
             response.data.get("detail"),
             "Form with the same id_string already exists in this account",
         )
@@ -782,11 +801,12 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.post("/", data=post_data, **self.extra)
         response = view(request, pk=new_project_id)
         self.assertEqual(response.status_code, 400)
-        self.assertEquals(
+        self.assertEqual(
             response.data.get("detail"),
             "Form with the same id_string already exists in this account",
         )
 
+    # pylint: disable=invalid-name
     @patch("onadata.apps.api.viewsets.project_viewset.send_mail")
     def test_allow_form_transfer_if_org_is_owned_by_user(self, mock_send_mail):
         # create bob's project and publish a form to it
@@ -826,6 +846,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         bobs_results = response.data
         self.assertListEqual(bobs_results.get("forms"), [])
 
+    # pylint: disable=invalid-name
     @patch("onadata.apps.api.viewsets.project_viewset.send_mail")
     def test_handle_integrity_error_on_form_transfer(self, mock_send_mail):
         # create bob's project and publish a form to it
@@ -860,6 +881,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             "Form with the same id_string already exists in this account",
         )
 
+    # pylint: disable=invalid-name
     @patch("onadata.apps.api.viewsets.project_viewset.send_mail")
     def test_form_transfer_when_org_creator_creates_project(self, mock_send_mail):
         projects_count = Project.objects.count()
@@ -874,7 +896,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             {
                 "name": "alice's project",
                 "owner": (
-                    "http://testserver/api/v1/users/%s" % alice_profile.user.username
+                    f"http://testserver/api/v1/users/{alice_profile.user.username}"
                 ),
                 "public": False,
             },
@@ -916,9 +938,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self._login_user_and_profile(alice_data)
         self.project = alice_project
         data = {
-            "owner": (
-                "http://testserver/api/v1/users/%s" % alice_profile.user.username
-            ),
+            "owner": ("http://testserver/api/v1/users/{alice_profile.user.username}"),
             "public": True,
             "public_data": True,
             "description": "transportation_2011_07_25",
@@ -945,6 +965,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=org_project.id)
         self.assertEqual(response.status_code, 201)
 
+    # pylint: disable=invalid-name
     def test_project_transfer_upgrades_permissions(self):
         """
         Test that existing project permissions are updated when necessary
@@ -972,7 +993,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self._login_user_and_profile({"username": bob.username, "email": bob.email})
         self._org_create()
         self.assertEqual(self.organization.created_by, bob)
-        org_url = "http://testserver/api/v1/users/" f"{self.organization.user.username}"
+        org_url = f"http://testserver/api/v1/users/{self.organization.user.username}"
         view = OrganizationProfileViewSet.as_view({"post": "members"})
         data = {"username": alice_profile.user.username, "role": OwnerRole.name}
         request = self.factory.post(
@@ -1017,6 +1038,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             if owner:
                 self.assertEqual(user["role"], OwnerRole.name)
 
+    # pylint: disable=invalid-name
     @override_settings(ALLOW_PUBLIC_DATASETS=False)
     def test_disallow_public_project_creation(self):
         """
@@ -1026,7 +1048,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         view = ProjectViewSet.as_view({"post": "create"})
         data = {
             "name": "demo",
-            "owner": "http://testserver/api/v1/users/%s" % self.user.username,
+            "owner": f"http://testserver/api/v1/users/{self.user.username}",
             "public": True,
         }
         request = self.factory.post("/", data=data, **self.extra)
@@ -1036,6 +1058,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             response.data["public"][0], "Public projects are currently disabled."
         )
 
+    # pylint: disable=invalid-name
     @patch("onadata.apps.api.viewsets.project_viewset.send_mail")
     def test_form_transfer_when_org_admin_not_creator_creates_project(
         self, mock_send_mail
@@ -1052,7 +1075,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             {
                 "name": "alice's project",
                 "owner": (
-                    "http://testserver/api/v1/users/%s" % alice_profile.user.username
+                    f"http://testserver/api/v1/users/{alice_profile.user.username}"
                 ),
                 "public": False,
             },
@@ -1094,9 +1117,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         # let alice create a form in her personal project
         self.project = alice_project
         data = {
-            "owner": (
-                "http://testserver/api/v1/users/%s" % alice_profile.user.username
-            ),
+            "owner": ("http://testserver/api/v1/users/{alice_profile.user.username}"),
             "public": True,
             "public_data": True,
             "description": "transportation_2011_07_25",
@@ -1123,6 +1144,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=org_project.id)
         self.assertEqual(response.status_code, 201)
 
+    # pylint: disable=invalid-name
     @patch("onadata.apps.api.viewsets.project_viewset.send_mail")
     def test_project_share_endpoint(self, mock_send_mail):
         # create project and publish form to project
@@ -1160,8 +1182,10 @@ class TestProjectViewSet(TestAbstractViewSet):
             self.assertEqual(response.get("Cache-Control"), None)
             self.assertFalse(mock_send_mail.called)
 
+            # pylint: disable=protected-access
             role_class._remove_obj_permissions(alice_profile.user, self.project)
 
+    # pylint: disable=invalid-name
     @patch("onadata.apps.api.viewsets.project_viewset.send_mail")
     def test_project_share_endpoint_form_published_later(self, mock_send_mail):
         # create project
@@ -1202,6 +1226,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             self.assertEqual(response.get("Cache-Control"), None)
             self.assertFalse(mock_send_mail.called)
 
+            # pylint: disable=protected-access
             role_class._remove_obj_permissions(alice_profile.user, self.project)
             self.xform.delete()
 
@@ -1225,6 +1250,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 204)
         self.assertFalse(role_class.user_has_role(alice_profile.user, self.project))
 
+    # pylint: disable=too-many-statements
     def test_project_filter_by_owner(self):
         """
         Test projects endpoint filter by owner.
@@ -1345,6 +1371,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(project.metadata, json_metadata)
 
+    # pylint: disable=invalid-name
     def test_cache_updated_on_project_update(self):
         view = ProjectViewSet.as_view({"get": "retrieve", "patch": "partial_update"})
         self._project_create()
@@ -1377,7 +1404,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         projectid = self.project.pk
         data = {
             "name": "updated name",
-            "owner": "http://testserver/api/v1/users/%s" % self.user.username,
+            "owner": f"http://testserver/api/v1/users/{self.user.username}",
             "metadata": {
                 "description": "description",
                 "location": "Nairobi, Kenya",
@@ -1390,6 +1417,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         data.update({"metadata": json.loads(data.get("metadata"))})
         self.assertDictContainsSubset(data, response.data)
 
+    # pylint: disable=invalid-name
     def test_project_partial_updates_to_existing_metadata(self):
         self._project_create()
         view = ProjectViewSet.as_view({"patch": "partial_update"})
@@ -1404,6 +1432,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(project.metadata, json_metadata)
 
+    # pylint: disable=invalid-name
     def test_project_update_shared_cascades_to_xforms(self):
         self._publish_xls_form_to_project()
         view = ProjectViewSet.as_view({"patch": "partial_update"})
@@ -1431,6 +1460,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(len(self.project.user_stars.all()), 1)
         self.assertEqual(self.project.user_stars.all()[0], self.user)
 
+    # pylint: disable=invalid-name
     def test_create_project_invalid_metadata(self):
         """
         Make sure that invalid metadata values are outright rejected
@@ -1439,7 +1469,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         view = ProjectViewSet.as_view({"post": "create"})
         data = {
             "name": "demo",
-            "owner": "http://testserver/api/v1/users/%s" % self.user.username,
+            "owner": f"http://testserver/api/v1/users/{self.user.username}",
             "metadata": "null",
             "public": False,
         }
@@ -1494,9 +1524,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(len(response.data), 2)
 
         alice_profile, bob_profile = sorted(response.data, key=itemgetter("username"))
-        self.assertEquals(
-            sorted(bob_profile.items()), sorted(user_profile_data.items())
-        )
+        self.assertEqual(sorted(bob_profile.items()), sorted(user_profile_data.items()))
         self.assertEqual(alice_profile["username"], "alice")
 
     def test_user_can_view_public_projects(self):
@@ -1522,7 +1550,7 @@ class TestProjectViewSet(TestAbstractViewSet):
     def test_projects_same_name_diff_case(self):
         data1 = {
             "name": "demo",
-            "owner": "http://testserver/api/v1/users/%s" % self.user.username,
+            "owner": f"http://testserver/api/v1/users/{self.user.username}",
             "metadata": {
                 "description": "Some description",
                 "location": "Naivasha, Kenya",
@@ -1539,7 +1567,7 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         data2 = {
             "name": "DEMO",
-            "owner": "http://testserver/api/v1/users/%s" % self.user.username,
+            "owner": f"http://testserver/api/v1/users/{self.user.username}",
             "metadata": {
                 "description": "Some description",
                 "location": "Naivasha, Kenya",
@@ -1575,7 +1603,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         # invalid id
         response = view(request, pk="1w")
         self.assertEqual(response.status_code, 400)
-        error_msg = "Invalid value for project_id. It must be a " "positive integer."
+        error_msg = "Invalid value for project_id. It must be a positive integer."
         self.assertEqual(str(response.data["detail"]), error_msg)
 
     def test_publish_to_public_project(self):
@@ -1591,8 +1619,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.project = public_project
         self._publish_xls_form_to_project(public=True)
 
-        self.assertEquals(self.xform.shared, True)
-        self.assertEquals(self.xform.shared_data, True)
+        self.assertEqual(self.xform.shared, True)
+        self.assertEqual(self.xform.shared_data, True)
 
     def test_public_form_private_project(self):
         self.project = Project(
@@ -1656,8 +1684,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.project = public_project
 
         data = {
-            "owner": "http://testserver/api/v1/users/%s"
-            % self.project.organization.username,
+            "owner": f"http://testserver/api/v1/users/{self.project.organization.username}",
             "public": True,
             "public_data": True,
             "description": "transportation_2011_07_25",
@@ -1671,8 +1698,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         }
         self._publish_xls_form_to_project(publish_data=data, merge=False)
 
-        self.assertEquals(self.xform.shared, True)
-        self.assertEquals(self.xform.shared_data, True)
+        self.assertEqual(self.xform.shared, True)
+        self.assertEqual(self.xform.shared_data, True)
 
     def test_project_all_users_can_share_remove_themselves(self):
         self._publish_xls_form_to_project()
@@ -1717,7 +1744,7 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 400)
         error = {"remove": ["Project requires at least one owner"]}
-        self.assertEquals(response.data, error)
+        self.assertEqual(response.data, error)
 
         self.assertTrue(OwnerRole.user_has_role(bob_profile.user, self.project))
 
@@ -1745,12 +1772,12 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.project.refresh_from_db()
         current_last_date = self.project.date_modified
 
-        self.assertNotEquals(last_date, current_last_date)
+        self.assertNotEqual(last_date, current_last_date)
 
         self._make_submissions()
 
         self.project.refresh_from_db()
-        self.assertNotEquals(current_last_date, self.project.date_modified)
+        self.assertNotEqual(current_last_date, self.project.date_modified)
 
     def test_anon_project_form_endpoint(self):
         self._project_create()
@@ -1816,7 +1843,7 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         view = ProjectViewSet.as_view({"patch": "partial_update"})
 
-        data_patch = {"owner": "http://testserver/api/v1/users/%s" % alice.username}
+        data_patch = {"owner": f"http://testserver/api/v1/users/{alice.username}"}
         request = self.factory.patch("/", data=data_patch, **self.extra)
         response = view(request, pk=projectid)
 
@@ -1830,7 +1857,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=projectid)
         self.assertEqual(response.status_code, 200)
         self.project.refresh_from_db()
-        self.assertEquals(self.project.organization, alice)
+        self.assertEqual(self.project.organization, alice)
         self.assertTrue(OwnerRole.user_has_role(alice, self.project))
 
     def test_cannot_share_project_to_owner(self):
@@ -1849,7 +1876,7 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
-            response.data["username"], ["Cannot share project" " with the owner (bob)"]
+            response.data["username"], ["Cannot share project with the owner (bob)"]
         )
         self.assertTrue(OwnerRole.user_has_role(self.user, self.project))
 
@@ -1879,7 +1906,7 @@ class TestProjectViewSet(TestAbstractViewSet):
 
             if user == alice_profile.user:
                 r = p.get("role")
-                self.assertEquals(r, ReadOnlyRole.name)
+                self.assertEqual(r, ReadOnlyRole.name)
 
     def test_move_project_owner_org(self):
         # create project and publish form to project
@@ -1892,8 +1919,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         old_org = self.project.organization
 
         data_patch = {
-            "owner": "http://testserver/api/v1/users/%s"
-            % self.organization.user.username
+            "owner": f"http://testserver/api/v1/users/{self.organization.user.username}"
         }
         request = self.factory.patch("/", data=data_patch, **self.extra)
         response = view(request, pk=projectid)
@@ -2011,11 +2037,11 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         for user in users:
             if user.get("user") == "bob":
-                self.assertEquals(user.get("role"), "owner")
+                self.assertEqual(user.get("role"), "owner")
             elif user.get("user") == "alice":
-                self.assertEquals(user.get("role"), "readonly-no-download")
+                self.assertEqual(user.get("role"), "readonly-no-download")
             elif user.get("user") == "tom":
-                self.assertEquals(user.get("role"), "readonly")
+                self.assertEqual(user.get("role"), "readonly")
 
     def test_team_users_in_a_project(self):
         self._team_create()
@@ -2050,9 +2076,9 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=project.pk)
 
         self.assertIsNotNone(response.data["teams"])
-        self.assertEquals(3, len(response.data["teams"]))
-        self.assertEquals(response.data["teams"][2]["role"], "editor")
-        self.assertEquals(
+        self.assertEqual(3, len(response.data["teams"]))
+        self.assertEqual(response.data["teams"][2]["role"], "editor")
+        self.assertEqual(
             response.data["teams"][2]["users"][0], str(chuck_profile.user.username)
         )
 
@@ -2085,7 +2111,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         )
         response = view(request, user="denoinc")
 
-        self.assertEquals(201, response.status_code)
+        self.assertEqual(201, response.status_code)
         data = json.dumps(
             {"username": chuck_profile.user.username, "role": OwnerRole.name}
         )
@@ -2095,15 +2121,14 @@ class TestProjectViewSet(TestAbstractViewSet):
         )
         response = view(request, user="denoinc")
 
-        self.assertEquals(201, response.status_code)
+        self.assertEqual(201, response.status_code)
 
         # admin 2 creates a project
         self.user = chuck_profile.user
-        self.extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
+        self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
         data = {
             "name": "demo",
-            "owner": "http://testserver/api/v1/users/%s"
-            % self.organization.user.username,
+            "owner": f"http://testserver/api/v1/users/{self.organization.user.username}",
             "metadata": {
                 "description": "Some description",
                 "location": "Naivasha, Kenya",
@@ -2117,12 +2142,12 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         # admin 1 tries to access project created by admin 2
         self.user = alice_profile.user
-        self.extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
+        self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
         request = self.factory.get("/", **self.extra)
 
         response = view(request, pk=self.project.pk)
 
-        self.assertEquals(200, response.status_code)
+        self.assertEqual(200, response.status_code)
 
         # assert admin can add colaborators
         tompoo_data = {"username": "tompoo", "email": "tompoo@localhost.com"}
@@ -2137,7 +2162,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 204)
 
         self.user = bob
-        self.extra = {"HTTP_AUTHORIZATION": "Token %s" % bob.auth_token}
+        self.extra = {"HTTP_AUTHORIZATION": f"Token {bob.auth_token}"}
 
         # remove from admin org
         data = json.dumps({"username": alice_profile.user.username})
@@ -2147,25 +2172,25 @@ class TestProjectViewSet(TestAbstractViewSet):
             "/", data=data, content_type="application/json", **self.extra
         )
         response = view(request, user="denoinc")
-        self.assertEquals(200, response.status_code)
+        self.assertEqual(200, response.status_code)
 
         view = ProjectViewSet.as_view({"get": "retrieve"})
 
         self.user = alice_profile.user
-        self.extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
+        self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
         request = self.factory.get("/", **self.extra)
 
         response = view(request, pk=self.project.pk)
 
         # user cant access the project removed from org
-        self.assertEquals(404, response.status_code)
+        self.assertEqual(404, response.status_code)
 
     def test_public_project_on_creation(self):
         view = ProjectViewSet.as_view({"post": "create"})
 
         data = {
             "name": "demopublic",
-            "owner": "http://testserver/api/v1/users/%s" % self.user.username,
+            "owner": f"http://testserver/api/v1/users/{self.user.username}",
             "metadata": {
                 "description": "Some description",
                 "location": "Naivasha, Kenya",
@@ -2190,7 +2215,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self._publish_xls_form_to_project()
         data = {
             "name": "demo2",
-            "owner": "http://testserver/api/v1/users/%s" % self.user.username,
+            "owner": f"http://testserver/api/v1/users/{self.user.username}",
             "metadata": {
                 "description": "Some description",
                 "location": "Naivasha, Kenya",
@@ -2205,8 +2230,8 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         data = {
             "name": "My DataView",
-            "xform": "http://testserver/api/v1/forms/%s" % self.xform.pk,
-            "project": "http://testserver/api/v1/projects/%s" % project2.pk,
+            "xform": f"http://testserver/api/v1/forms/{self.xform.pk}",
+            "project": f"http://testserver/api/v1/projects/{project2.pk}",
             "columns": columns,
             "query": "[ ]",
         }
@@ -2243,7 +2268,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self._publish_xls_form_to_project()
         data = {
             "name": "demo2",
-            "owner": "http://testserver/api/v1/users/%s" % self.user.username,
+            "owner": f"http://testserver/api/v1/users/{self.user.username}",
             "metadata": {
                 "description": "Some description",
                 "location": "Naivasha, Kenya",
@@ -2256,8 +2281,8 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         data = {
             "name": "My DataView",
-            "xform": "http://testserver/api/v1/forms/%s" % self.xform.pk,
-            "project": "http://testserver/api/v1/projects/%s" % project2.pk,
+            "xform": f"http://testserver/api/v1/forms/{self.xform.pk}",
+            "project": f"http://testserver/api/v1/projects/{project2.pk}",
             "columns": '["name", "age", "gender"]',
             "query": '[{"column":"age","filter":">","value":"20"},'
             '{"column":"age","filter":"<","value":"50"}]',
@@ -2498,9 +2523,9 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         for user in users:
             if user.get("user") == "bob":
-                self.assertEquals(user.get("role"), "owner")
+                self.assertEqual(user.get("role"), "owner")
             else:
-                self.assertEquals(user.get("role"), "readonly")
+                self.assertEqual(user.get("role"), "readonly")
 
     @patch("onadata.apps.api.viewsets.project_viewset.send_mail")
     def test_sends_mail_on_multi_share(self, mock_send_mail):

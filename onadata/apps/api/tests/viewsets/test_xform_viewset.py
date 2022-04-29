@@ -4346,8 +4346,8 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
         data = {
             "name": "Another DataView",
-            "xform": "http://testserver/api/v1/forms/%s" % self.xform.pk,
-            "project": "http://testserver/api/v1/projects/%s" % self.project.pk,
+            "xform": f"http://testserver/api/v1/forms/{self.xform.pk}",
+            "project": f"http://testserver/api/v1/projects/{self.project.pk}",
             "columns": '["name", "age", "gender"]',
             "query": '[{"column":"age","filter":">","value":"50"}]',
         }
@@ -4397,8 +4397,8 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         self._create_dataview()
         data = {
             "name": "Another DataView",
-            "xform": "http://testserver/api/v1/forms/%s" % self.xform.pk,
-            "project": "http://testserver/api/v1/projects/%s" % self.project.pk,
+            "xform": f"http://testserver/api/v1/forms/{self.xform.pk}",
+            "project": f"http://testserver/api/v1/projects/{self.project.pk}",
             "columns": '["name", "age", "gender"]',
             "query": '[{"column":"age","filter":">","value":"50"}]',
         }

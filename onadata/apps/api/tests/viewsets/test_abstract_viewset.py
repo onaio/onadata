@@ -213,7 +213,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         self.project = Project.objects.filter(name=data["name"], created_by=self.user)[
             0
         ]
-        data["url"] = "http://testserver/api/v1/projects/%s" % self.project.pk
+        data["url"] = f"http://testserver/api/v1/projects/{self.project.pk}"
         self.assertDictContainsSubset(data, response.data)
 
         request.user = self.user
@@ -482,7 +482,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         )
         self.assertEquals(
             response.data["url"],
-            "http://testserver/api/v1/dataviews/%s" % self.data_view.pk,
+            f"http://testserver/api/v1/dataviews/{self.data_view.pk}",
         )
 
     def _create_widget(self, data=None, group_by=""):
@@ -491,7 +491,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         if not data:
             data = {
                 "title": "Widget that",
-                "content_object": "http://testserver/api/v1/forms/%s" % self.xform.pk,
+                "content_object": f"http://testserver/api/v1/forms/{self.xform.pk}",
                 "description": "Test widget",
                 "aggregation": "Sum",
                 "widget_type": "charts",

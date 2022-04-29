@@ -105,7 +105,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             'name':
             'Merged Dataset',
             'project':
-            "http://testserver/api/v1/projects/%s" % self.project.pk,
+            f"http://testserver/api/v1/projects/{self.project.pk}",
         }
         # anonymous user
         request = self.factory.post('/', data=data)
@@ -584,7 +584,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             'name':
             'Merged Dataset',
             'project':
-            "http://testserver/api/v1/projects/%s" % self.project.pk,
+            f"http://testserver/api/v1/projects/{self.project.pk}",
         }
 
         request = self.factory.post('/', data=data, **self.extra)
@@ -614,7 +614,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             'name':
             'Merged Dataset',
             'project':
-            "http://testserver/api/v1/projects/%s" % self.project.pk,
+            f"http://testserver/api/v1/projects/{self.project.pk}",
         }
 
         request = self.factory.post('/', data=data, **self.extra)
@@ -688,7 +688,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             'name':
             'Merged Dataset',
             'project':
-            "http://testserver/api/v1/projects/%s" % self.project.pk,
+            f"http://testserver/api/v1/projects/{self.project.pk}",
         }
 
         request = self.factory.post('/', data=data, **self.extra)
