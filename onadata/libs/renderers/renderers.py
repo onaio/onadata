@@ -92,7 +92,7 @@ class DecimalEncoder(JSONEncoder):
         return JSONEncoder.default(self, obj)
 
 
-class XLSRenderer(BaseRenderer):  # pylint: disable=R0903
+class XLSRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
     """
     XLSRenderer - renders .xls spreadsheet documents with
                   application/vnd.openxmlformats.
@@ -117,7 +117,8 @@ class XLSXRenderer(XLSRenderer):  # pylint: disable=too-few-public-methods
     format = "xlsx"
 
 
-class CSVRenderer(BaseRenderer):  # pylint: disable=abstract-method, R0903
+# pylint: disable=abstract-method, too-few-public-methods
+class CSVRenderer(BaseRenderer):
     """
     XLSRenderer - renders comma separated files (CSV) with text/csv.
     """
@@ -127,7 +128,7 @@ class CSVRenderer(BaseRenderer):  # pylint: disable=abstract-method, R0903
     charset = "utf-8"
 
 
-class CSVZIPRenderer(BaseRenderer):  # pylint: disable=R0903
+class CSVZIPRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
     """
     CSVZIPRenderer - renders a ZIP file that contains CSV files.
     """
@@ -139,7 +140,7 @@ class CSVZIPRenderer(BaseRenderer):  # pylint: disable=R0903
     def render(self, data, accepted_media_type=None, renderer_context=None):
         if isinstance(data, six.text_type):
             return data.encode("utf-8")
-        elif isinstance(data, dict):
+        if isinstance(data, dict):
             return json.dumps(data)
         return data
 
@@ -156,7 +157,7 @@ class SAVZIPRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
     def render(self, data, accepted_media_type=None, renderer_context=None):
         if isinstance(data, six.text_type):
             return data.encode("utf-8")
-        elif isinstance(data, dict):
+        if isinstance(data, dict):
             return json.dumps(data)
         return data
 
@@ -187,7 +188,7 @@ class KMLRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
         return data
 
 
-class GoogleSheetsRenderer(XLSRenderer):  # pylint: disable=R0903
+class GoogleSheetsRenderer(XLSRenderer):  # pylint: disable=too-few-public-methods
     """
     GoogleSheetsRenderer = Google Sheets excel exports.
     """
@@ -201,7 +202,8 @@ class MediaFileContentNegotiation(negotiation.DefaultContentNegotiation):
                                   matching format.
     """
 
-    def filter_renderers(self, renderers, format):  # pylint: disable=W0622
+    # pylint: disable=redefined-builtin
+    def filter_renderers(self, renderers, format):
         """
         If there is a '.json' style format suffix, filter the renderers
         so that we only negotiation against those that accept that format.
@@ -214,7 +216,7 @@ class MediaFileContentNegotiation(negotiation.DefaultContentNegotiation):
         return renderers
 
 
-class MediaFileRenderer(BaseRenderer):  # pylint: disable=R0903
+class MediaFileRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
     """
     MediaFileRenderer - render binary media files.
     """
@@ -230,7 +232,7 @@ class MediaFileRenderer(BaseRenderer):  # pylint: disable=R0903
         return data
 
 
-class XFormListRenderer(BaseRenderer):  # pylint: disable=R0903
+class XFormListRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
     """
     Renderer which serializes to XML.
     """
@@ -248,7 +250,7 @@ class XFormListRenderer(BaseRenderer):  # pylint: disable=R0903
         """
         if data is None:
             return ""
-        elif isinstance(data, six.string_types):
+        if isinstance(data, six.string_types):
             return data
 
         stream = BytesIO()
@@ -287,7 +289,8 @@ class XFormListRenderer(BaseRenderer):  # pylint: disable=R0903
             xml.characters(smart_text(data))
 
 
-class XFormManifestRenderer(XFormListRenderer):  # pylint: disable=R0903
+# pylint: disable=too-few-public-methods
+class XFormManifestRenderer(XFormListRenderer):
     """
     XFormManifestRenderer - render XFormManifest XML.
     """
@@ -297,7 +300,8 @@ class XFormManifestRenderer(XFormListRenderer):  # pylint: disable=R0903
     xmlns = "http://openrosa.org/xforms/xformsManifest"
 
 
-class TemplateXMLRenderer(TemplateHTMLRenderer):  # pylint: disable=R0903
+# pylint: disable=too-few-public-methods
+class TemplateXMLRenderer(TemplateHTMLRenderer):
     """
     TemplateXMLRenderer - Render XML template.
     """
@@ -312,9 +316,7 @@ class TemplateXMLRenderer(TemplateHTMLRenderer):  # pylint: disable=R0903
         if response and response.exception:
             return XMLRenderer().render(data, accepted_media_type, renderer_context)
 
-        return super(TemplateXMLRenderer, self).render(
-            data, accepted_media_type, renderer_context
-        )
+        return super().render(data, accepted_media_type, renderer_context)
 
 
 class InstanceXMLRenderer(XMLRenderer):
@@ -331,6 +333,7 @@ class InstanceXMLRenderer(XMLRenderer):
             self.stream.truncate(0)
             self.stream.seek(0)
             return ret
+        return None
 
     def stream_data(self, data, serializer):
         if data is None:
@@ -441,7 +444,7 @@ class InstanceXMLRenderer(XMLRenderer):
             xml.characters(force_str(data))
 
 
-class StaticXMLRenderer(StaticHTMLRenderer):  # pylint: disable=R0903
+class StaticXMLRenderer(StaticHTMLRenderer):  # pylint: disable=too-few-public-methods
     """
     StaticXMLRenderer - render static XML document.
     """
@@ -450,7 +453,7 @@ class StaticXMLRenderer(StaticHTMLRenderer):  # pylint: disable=R0903
     media_type = "text/xml"
 
 
-class GeoJsonRenderer(BaseRenderer):  # pylint: disable=R0903
+class GeoJsonRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
     """
     GeoJsonRenderer - render .geojson data as json.
     """
@@ -463,7 +466,7 @@ class GeoJsonRenderer(BaseRenderer):  # pylint: disable=R0903
         return json.dumps(data)
 
 
-class OSMRenderer(BaseRenderer):  # pylint: disable=R0903
+class OSMRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
     """
     OSMRenderer - render .osm data as XML.
     """
@@ -490,7 +493,8 @@ class OSMRenderer(BaseRenderer):  # pylint: disable=R0903
         return get_combined_osm(data)
 
 
-class OSMExportRenderer(BaseRenderer):  # pylint: disable=R0903, W0223
+# pylint: disable=too-few-public-methods,abstract-method
+class OSMExportRenderer(BaseRenderer):
     """
     OSMExportRenderer - render .osm data as XML.
     """
@@ -500,7 +504,8 @@ class OSMExportRenderer(BaseRenderer):  # pylint: disable=R0903, W0223
     charset = "utf-8"
 
 
-class DebugToolbarRenderer(TemplateHTMLRenderer):  # pylint: disable=R0903
+# pylint: disable=too-few-public-methods
+class DebugToolbarRenderer(TemplateHTMLRenderer):
     """
     DebugToolbarRenderer - render .debug as HTML.
     """
@@ -518,12 +523,10 @@ class DebugToolbarRenderer(TemplateHTMLRenderer):  # pylint: disable=R0903
             )
         }
 
-        return super(DebugToolbarRenderer, self).render(
-            data, accepted_media_type, renderer_context
-        )
+        return super().render(data, accepted_media_type, renderer_context)
 
 
-class ZipRenderer(BaseRenderer):  # pylint: disable=R0903
+class ZipRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
     """
     ZipRenderer - render .zip files.
     """
@@ -535,7 +538,7 @@ class ZipRenderer(BaseRenderer):  # pylint: disable=R0903
     def render(self, data, accepted_media_type=None, renderer_context=None):
         if isinstance(data, six.text_type):
             return data.encode("utf-8")
-        elif isinstance(data, dict):
+        if isinstance(data, dict):
             return json.dumps(data)
         return data
 
@@ -563,10 +566,8 @@ class FLOIPRenderer(JSONRenderer):
         results = data
         if request.method == "GET" and response.status_code == 200:
             if isinstance(data, dict):
-                results = [i for i in floip_rows_list(data)]
+                results = list(floip_rows_list(data))
             else:
-                results = [i for i in floip_list(data)]
+                results = list(floip_list(data))
 
-        return super(FLOIPRenderer, self).render(
-            results, accepted_media_type, renderer_context
-        )
+        return super().render(results, accepted_media_type, renderer_context)
