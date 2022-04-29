@@ -5,7 +5,7 @@ from xml.dom import NotFoundErr
 from django.conf import settings
 from django.core.files import File
 from django.core.validators import ValidationError
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.http import Http404
 from django.utils.translation import ugettext as _
 
@@ -38,12 +38,15 @@ from onadata.libs.utils.logger_tools import PublishXForm
 from onadata.libs.utils.viewer_tools import get_form
 
 
+User = get_user_model()
+
+
 def _extract_uuid(text):
     if isinstance(text, six.string_types):
         form_id_parts = text.split("/")
 
         if form_id_parts.__len__() < 2:
-            raise ValidationError(_("Invalid formId %s." % text))
+            raise ValidationError(_(f"Invalid formId {text}."))
 
         text = form_id_parts[1]
         text = text[text.find("@key=") : -1].replace("@key=", "")
@@ -65,7 +68,7 @@ def _parse_int(num):
     try:
         return num and int(num)
     except ValueError:
-        pass
+        return None
 
 
 class BriefcaseViewset(
@@ -87,10 +90,11 @@ class BriefcaseViewset(
     serializer_class = XFormListSerializer
     template_name = "openrosa_response.xml"
 
+    # pylint: disable=unused-argument
     def get_object(self, queryset=None):
-        formId = self.request.GET.get("formId", "")
-        id_string = _extract_id_string(formId)
-        uuid = _extract_uuid(formId)
+        form_id = self.request.GET.get("formId", "")
+        id_string = _extract_id_string(form_id)
+        uuid = _extract_uuid(form_id)
         username = self.kwargs.get("username")
 
         obj = get_object_or_404(
@@ -103,6 +107,7 @@ class BriefcaseViewset(
 
         return obj
 
+    # pylint: disable=too-many-branches
     def filter_queryset(self, queryset):
         username = self.kwargs.get("username")
         if username is None and self.request.user.is_anonymous:
@@ -118,7 +123,7 @@ class BriefcaseViewset(
             else:
                 queryset = queryset.filter(user=profile.user)
         else:
-            queryset = super(BriefcaseViewset, self).filter_queryset(queryset)
+            queryset = super().filter_queryset(queryset)
 
         formId = self.request.GET.get("formId", "")
 
@@ -175,8 +180,8 @@ class BriefcaseViewset(
         response_status = status.HTTP_201_CREATED
         username = kwargs.get("username")
         form_user = (
-            username and get_object_or_404(User, username=username)
-        ) or request.user
+            get_object_or_404(User, username=username) if username else request.user
+        )
 
         if not request.user.has_perm("can_add_xform", form_user.profile):
             raise exceptions.PermissionDenied(
@@ -190,12 +195,14 @@ class BriefcaseViewset(
 
         if isinstance(xform_def, File):
             do_form_upload = PublishXForm(xform_def, form_user)
-            dd = publish_form(do_form_upload.publish_xform)
+            data_dictionary = publish_form(do_form_upload.publish_xform)
 
-            if isinstance(dd, XForm):
-                data["message"] = _("%s successfully published." % dd.id_string)
+            if isinstance(data_dictionary, XForm):
+                data["message"] = _(
+                    f"{data_dictionary.id_string} successfully published."
+                )
             else:
-                data["message"] = dd["text"]
+                data["message"] = data_dictionary["text"]
                 response_status = status.HTTP_400_BAD_REQUEST
         else:
             data["message"] = _("Missing xml file.")
@@ -227,9 +234,7 @@ class BriefcaseViewset(
 
         xml_obj = clean_and_parse_xml(self.object.xml)
         submission_xml_root_node = xml_obj.documentElement
-        submission_xml_root_node.setAttribute(
-            "instanceID", "uuid:%s" % self.object.uuid
-        )
+        submission_xml_root_node.setAttribute("instanceID", f"uuid:{self.object.uuid}")
         submission_xml_root_node.setAttribute(
             "submissionDate", self.object.date_created.isoformat()
         )
