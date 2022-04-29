@@ -7,7 +7,6 @@ from io import BytesIO, StringIO
 
 import unicodecsv as csv
 import openpyxl
-from builtins import str as text
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
@@ -37,7 +36,7 @@ def is_newline_error(e):
         "new-line character seen in unquoted field - do you need"
         " to open the file in universal-newline mode?"
     )
-    return newline_error == text(e)
+    return newline_error == str(e)
 
 
 def process_xlsform(xls, default_name):

@@ -1182,6 +1182,7 @@ def clear_project_cache(project_id):
 # pylint: disable=unused-argument
 def save_project(sender, instance=None, created=False, **kwargs):
     """Update the date_modified field in the XForm's project."""
+    clear_project_cache(instance.project_id)
     instance.project.save(update_fields=["date_modified"])
 
 

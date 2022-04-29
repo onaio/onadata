@@ -1796,18 +1796,17 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         with HTTMock(enketo_mock):
             self._project_create()
 
+            cleared_cache_content = ["forms"]
             # set project XForm cache
-            cache.set(f"{PROJ_FORMS_CACHE}{self.project.pk}", ["forms"])
+            cache.set(f"{PROJ_FORMS_CACHE}{self.project.pk}", cleared_cache_content)
 
-            self.assertNotEqual(
-                cache.get(f"{PROJ_FORMS_CACHE}{self.project.pk}"), None
-            )
+            self.assertNotEqual(cache.get(f"{PROJ_FORMS_CACHE}{self.project.pk}"), None)
 
             self._publish_xls_form_to_project()
 
-            # test project XForm cache is empty
-            self.assertEqual(
-                cache.get(f"{PROJ_FORMS_CACHE}{self.project.pk}"), None
+            # test project XForm cache has new content
+            self.assertNotEqual(
+                cache.get(f"{PROJ_FORMS_CACHE}{self.project.pk}"), cleared_cache_content
             )
 
     def test_form_delete(self):
@@ -1824,9 +1823,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             # set project XForm cache
             cache.set(f"{PROJ_FORMS_CACHE}{self.project.pk}", ["forms"])
 
-            self.assertNotEqual(
-                cache.get(f"{PROJ_FORMS_CACHE}{self.project.pk}"), None
-            )
+            self.assertNotEqual(cache.get(f"{PROJ_FORMS_CACHE}{self.project.pk}"), None)
 
             view = XFormViewSet.as_view({"delete": "destroy", "get": "retrieve"})
             formid = self.xform.pk
@@ -1836,9 +1833,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.status_code, 204)
 
             # test project XForm cache is emptied
-            self.assertEqual(
-                cache.get(f"{PROJ_FORMS_CACHE}{self.project.pk}"), None
-            )
+            self.assertEqual(cache.get(f"{PROJ_FORMS_CACHE}{self.project.pk}"), None)
 
             self.xform.refresh_from_db()
 
@@ -1975,7 +1970,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.status_code, 400)
             self.assertEqual(
                 str(response.data["project"]),
-                '[ErrorDetail(string="Field \'id\' expected a number but got \'abc123\'.", code=\'invalid\')]',
+                "[ErrorDetail(string=\"Field 'id' expected a number but got 'abc123'.\", code='invalid')]",
             )
 
             # pylint: disable=no-member

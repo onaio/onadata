@@ -2575,7 +2575,9 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data["forms"]), 1)
-        self.assertEqual(response.data["forms"][0]["name"], self.xform.title)
+        self.assertEqual(
+            response.data["forms"][0]["name"], self.xform.title, response.data
+        )
         self.assertEqual(
             response.data["forms"][0]["last_submission_time"],
             self.xform.time_of_last_submission(),
