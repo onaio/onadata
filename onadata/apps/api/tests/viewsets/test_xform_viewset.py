@@ -1797,17 +1797,17 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self._project_create()
 
             # set project XForm cache
-            cache.set("{}{}".format(PROJ_FORMS_CACHE, self.project.pk), ["forms"])
+            cache.set(f"{PROJ_FORMS_CACHE}{self.project.pk}", ["forms"])
 
             self.assertNotEqual(
-                cache.get("{}{}".format(PROJ_FORMS_CACHE, self.project.pk)), None
+                cache.get(f"{PROJ_FORMS_CACHE}{self.project.pk}"), None
             )
 
             self._publish_xls_form_to_project()
 
             # test project XForm cache is empty
             self.assertEqual(
-                cache.get("{}{}".format(PROJ_FORMS_CACHE, self.project.pk)), None
+                cache.get(f"{PROJ_FORMS_CACHE}{self.project.pk}"), None
             )
 
     def test_form_delete(self):
@@ -1822,10 +1822,10 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertNotEqual(etag_value, None)
 
             # set project XForm cache
-            cache.set("{}{}".format(PROJ_FORMS_CACHE, self.project.pk), ["forms"])
+            cache.set(f"{PROJ_FORMS_CACHE}{self.project.pk}", ["forms"])
 
             self.assertNotEqual(
-                cache.get("{}{}".format(PROJ_FORMS_CACHE, self.project.pk)), None
+                cache.get(f"{PROJ_FORMS_CACHE}{self.project.pk}"), None
             )
 
             view = XFormViewSet.as_view({"delete": "destroy", "get": "retrieve"})
@@ -1837,7 +1837,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             # test project XForm cache is emptied
             self.assertEqual(
-                cache.get("{}{}".format(PROJ_FORMS_CACHE, self.project.pk)), None
+                cache.get(f"{PROJ_FORMS_CACHE}{self.project.pk}"), None
             )
 
             self.xform.refresh_from_db()

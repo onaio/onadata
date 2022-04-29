@@ -891,7 +891,7 @@ class XForm(XFormMixin, BaseModel):
             title_xml = self.title[:XFORM_TITLE_LENGTH]
             if isinstance(self.xml, b):
                 self.xml = self.xml.decode("utf-8")
-            self.xml = title_pattern.sub("<h:title>{title_xml}</h:title>", self.xml)
+            self.xml = title_pattern.sub(f"<h:title>{title_xml}</h:title>", self.xml)
             self._set_hash()
         if contains_xml_invalid_char(title_xml):
             raise XLSFormError(
@@ -1027,7 +1027,6 @@ class XForm(XFormMixin, BaseModel):
         without violating the uniqueness constraint.
         Also soft deletes associated dataviews
         """
-
         soft_deletion_time = timezone.now()
         deletion_suffix = soft_deletion_time.strftime("-deleted-at-%s")
         self.deleted_at = soft_deletion_time
@@ -1060,6 +1059,7 @@ class XForm(XFormMixin, BaseModel):
         # Delete associated Form Media Files
         for metadata in self.metadata_set.filter(deleted_at__isnull=True):
             metadata.soft_delete()
+        clear_project_cache(self.project_id)
 
     def submission_count(self, force_update=False):
         """Returns the form's number of submission."""
@@ -1171,6 +1171,7 @@ post_delete.connect(
 
 
 def clear_project_cache(project_id):
+    """Clear project cache"""
     safe_delete(f"{PROJ_OWNER_CACHE}{project_id}")
     safe_delete(f"{PROJ_FORMS_CACHE}{project_id}")
     safe_delete(f"{PROJ_BASE_FORMS_CACHE}{project_id}")
