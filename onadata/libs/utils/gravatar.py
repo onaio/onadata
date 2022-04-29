@@ -1,8 +1,9 @@
 # -*- codingL: utf-8 -*-
 """Gravatar utils module"""
 import hashlib
+import requests
 from six.moves.urllib.parse import urlencode
-from six.moves.urllib.request import urlopen
+
 
 DEFAULT_GRAVATAR = "https://ona.io/static/images/default_avatar.png"
 GRAVATAR_ENDPOINT = "https://secure.gravatar.com/avatar/"
@@ -29,4 +30,4 @@ def get_gravatar_img_link(user):
 def gravatar_exists(user):
     """Checks if the Gravatar URL exists"""
     url = GRAVATAR_ENDPOINT + email_md5(user) + "?" + "d=404"
-    return urlopen(url).getcode() != 404
+    return requests.get(url).status_code != 404
