@@ -8,7 +8,7 @@ from datetime import datetime
 from deprecated import deprecated
 
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GeometryCollection, Point
 from django.core.cache import cache
@@ -77,32 +77,34 @@ from onadata.libs.utils.timing import calculate_duration
 ASYNC_POST_SUBMISSION_PROCESSING_ENABLED = getattr(
     settings, "ASYNC_POST_SUBMISSION_PROCESSING_ENABLED", False
 )
+User = get_user_model()
 
 
 def get_attachment_url(attachment, suffix=None):
     kwargs = {"pk": attachment.pk}
-    url = "{}?filename={}".format(
-        reverse("files-detail", kwargs=kwargs), attachment.media_file.name
+    url = (
+        f"{reverse('files-detail', kwargs=kwargs)}"
+        f"?filename={attachment.media_file.name}"
     )
     if suffix:
-        url += "&suffix={}".format(suffix)
+        url += f"&suffix={suffix}"
 
     return url
 
 
 def _get_attachments_from_instance(instance):
     attachments = []
-    for a in instance.attachments.filter(deleted_at__isnull=True):
-        attachment = dict()
-        attachment["download_url"] = get_attachment_url(a)
-        attachment["small_download_url"] = get_attachment_url(a, "small")
-        attachment["medium_download_url"] = get_attachment_url(a, "medium")
-        attachment["mimetype"] = a.mimetype
-        attachment["filename"] = a.media_file.name
-        attachment["name"] = a.name
-        attachment["instance"] = a.instance.pk
+    for item in instance.attachments.filter(deleted_at__isnull=True):
+        attachment = {}
+        attachment["download_url"] = get_attachment_url(item)
+        attachment["small_download_url"] = get_attachment_url(item, "small")
+        attachment["medium_download_url"] = get_attachment_url(item, "medium")
+        attachment["mimetype"] = item.mimetype
+        attachment["filename"] = item.media_file.name
+        attachment["name"] = item.name
+        attachment["instance"] = item.instance.pk
         attachment["xform"] = instance.xform.id
-        attachment["id"] = a.id
+        attachment["id"] = item.id
         attachments.append(attachment)
 
     return attachments
@@ -156,11 +158,7 @@ def get_id_string_from_xml_str(xml_str):
         elems = root_node.getElementsByTagName("data")
 
         for data in elems:
-            for child in data.childNodes:
-                id_string = data.childNodes[0].getAttribute("id")
-
-                if len(id_string) > 0:
-                    break
+            id_string = data.childNodes[0].getAttribute("id")
 
             if len(id_string) > 0:
                 break
@@ -206,6 +204,8 @@ def _update_submission_count_for_today(
 @transaction.atomic()
 def update_xform_submission_count(instance_id, created):
     if created:
+
+        # pylint: disable=import-outside-toplevel
         from multidb.pinning import use_master
 
         with use_master:
@@ -240,15 +240,16 @@ def update_xform_submission_count(instance_id, created):
                 # Track submissions made today
                 _update_submission_count_for_today(instance.xform_id)
 
-                safe_delete("{}{}".format(XFORM_DATA_VERSIONS, instance.xform_id))
-                safe_delete("{}{}".format(DATAVIEW_COUNT, instance.xform_id))
-                safe_delete("{}{}".format(XFORM_COUNT, instance.xform_id))
+                safe_delete(f"{XFORM_DATA_VERSIONS}{instance.xform_id}")
+                safe_delete(f"{DATAVIEW_COUNT}{instance.xform_id}")
+                safe_delete(f"{XFORM_COUNT}{instance.xform_id}")
                 # Clear project cache
                 from onadata.apps.logger.models.xform import clear_project_cache
 
                 clear_project_cache(instance.xform.project_id)
 
 
+# pylint: disable=unused-argument,invalid-name
 def update_xform_submission_count_delete(sender, instance, **kwargs):
     try:
         xform = XForm.objects.select_for_update().get(pk=instance.xform.pk)
@@ -256,8 +257,8 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
         pass
     else:
         xform.num_of_submissions -= 1
-        if xform.num_of_submissions < 0:
-            xform.num_of_submissions = 0
+
+        xform.num_of_submissions = max(xform.num_of_submissions, 0)
         xform.save(update_fields=["num_of_submissions"])
         profile_qs = User.profile.get_queryset()
         try:
@@ -266,8 +267,7 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
             pass
         else:
             profile.num_of_submissions -= 1
-            if profile.num_of_submissions < 0:
-                profile.num_of_submissions = 0
+            profile.num_of_submissions = max(profile.num_of_submissions, 0)
             profile.save()
 
         # Track submissions made today
@@ -275,13 +275,13 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
             xform.id, incr=False, date_created=instance.date_created
         )
 
-        for a in [PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE]:
-            safe_delete("{}{}".format(a, xform.project.pk))
+        for cache_prefix in [PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE]:
+            safe_delete(f"{cache_prefix}{xform.project.pk}")
 
-        safe_delete("{}{}".format(IS_ORG, xform.pk))
-        safe_delete("{}{}".format(XFORM_DATA_VERSIONS, xform.pk))
-        safe_delete("{}{}".format(DATAVIEW_COUNT, xform.pk))
-        safe_delete("{}{}".format(XFORM_COUNT, xform.pk))
+        safe_delete(f"{IS_ORG}{xform.pk}")
+        safe_delete(f"{XFORM_DATA_VERSIONS}{xform.pk}")
+        safe_delete(f"{DATAVIEW_COUNT}{xform.pk}")
+        safe_delete(f"{XFORM_COUNT}{xform.pk}")
 
         if xform.instances.exclude(geom=None).count() < 1:
             xform.instances_with_geopoints = False
@@ -301,6 +301,7 @@ def save_full_json(instance_id, created):
             instance.save(update_fields=["json"])
 
 
+# pylint: disable=unused-argument
 @app.task
 def update_project_date_modified(instance_id, created):
     # update the date modified field of the project which will change
@@ -324,15 +325,16 @@ def convert_to_serializable_date(date):
     return date
 
 
-class InstanceBaseClass(object):
+class InstanceBaseClass:
     """Interface of functions for Instance and InstanceHistory model"""
 
     @property
     def point(self):
-        gc = self.geom
+        geom_collection = self.geom
 
-        if gc and len(gc):
-            return gc[0]
+        if geom_collection and len(geom_collection):
+            return geom_collection[0]
+        return None
 
     def numeric_converter(self, json_dict, numeric_fields=None):
         if numeric_fields is None:
@@ -372,7 +374,7 @@ class InstanceBaseClass(object):
                     except ValueError:
                         return
 
-            if not xform.instances_with_geopoints and len(points):
+            if not xform.instances_with_geopoints and points:
                 xform.instances_with_geopoints = True
                 xform.save()
 
@@ -422,10 +424,11 @@ class InstanceBaseClass(object):
                     if review.get_note_text():
                         doc[REVIEW_COMMENT] = review.get_note_text()
 
-            # pylint: disable=attribute-defined-outside-init
+            # pylint: disable=attribute-defined-outside-init,access-member-before-definition
             if not self.date_created:
                 self.date_created = submission_time()
 
+            # pylint: disable=access-member-before-definition
             if not self.date_modified:
                 self.date_modified = self.date_created
 
@@ -442,9 +445,10 @@ class InstanceBaseClass(object):
                 edited = self.last_edited is not None
 
             doc[EDITED] = edited
-            edited and doc.update(
-                {LAST_EDITED: convert_to_serializable_date(self.last_edited)}
-            )
+            if edited:
+                doc.update(
+                    {LAST_EDITED: convert_to_serializable_date(self.last_edited)}
+                )
         return doc
 
     def _set_parser(self):
@@ -453,12 +457,12 @@ class InstanceBaseClass(object):
             self._parser = XFormInstanceParser(self.xml, self.xform)
 
     def _set_survey_type(self):
-        self.survey_type, created = SurveyType.objects.get_or_create(
+        self.survey_type, _created = SurveyType.objects.get_or_create(
             slug=self.get_root_node_name()
         )
 
     def _set_uuid(self):
-        # pylint: disable=no-member, attribute-defined-outside-init
+        # pylint: disable=no-member,attribute-defined-outside-init,access-member-before-definition
         if self.xml and not self.uuid:
             # pylint: disable=no-member
             uuid = get_uuid_from_xml(self.xml)
@@ -470,6 +474,7 @@ class InstanceBaseClass(object):
         self._set_parser()
         return self._parser.get(abbreviated_xpath)
 
+    # pylint: disable=unused-argument
     def get_dict(self, force_new=False, flat=True):
         """Return a python object representation of this instance's XML."""
         self._set_parser()
@@ -675,7 +680,7 @@ class Instance(models.Model, InstanceBaseClass):
         # pylint: disable=no-member
         self.version = self.json.get(VERSION, self.xform.version)
 
-        super(Instance, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     # pylint: disable=no-member
     def set_deleted(self, deleted_at=timezone.now(), user=None):
@@ -698,6 +703,7 @@ class Instance(models.Model, InstanceBaseClass):
         queryset.update(**kwargs)
 
 
+# pylint: disable=unused-argument
 def post_save_submission(sender, instance=None, created=False, **kwargs):
     if instance.deleted_at is not None:
         _update_submission_count_for_today(
@@ -805,6 +811,7 @@ class InstanceHistory(models.Model, InstanceBaseClass):
         if not hasattr(self, "_parser"):
             self._parser = XFormInstanceParser(self.xml, self.xform_instance.xform)
 
+    # pylint: disable=unused-argument
     @classmethod
     def set_deleted_at(cls, instance_id, deleted_at=timezone.now()):
         return None

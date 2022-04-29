@@ -66,9 +66,10 @@ def instances_xml(url, request, **kwargs):
     response = requests.Response()
     client = DigestClient()
     client.set_authorization("bob", "bob", "Digest")
-    res = client.get("%s?%s" % (url.path, url.query))
+    res = client.get(f"{url.path}?{url.query}")
     if res.status_code == 302:
         res = client.get(res["Location"])
+        assert res.status_code == 200, res.content
         response.encoding = res.get("content-type")
         response._content = get_streaming_content(res)
     else:
@@ -108,16 +109,13 @@ class TestBriefcaseClient(TestBase):
             "deno", "briefcase", "forms", self.xform.id_string
         )
         self.assertTrue(storage.exists(forms_folder_path))
-        forms_path = os.path.join(forms_folder_path, "%s.xml" % self.xform.id_string)
+        forms_path = os.path.join(forms_folder_path, "{self.xform.id_string}.xml")
         self.assertTrue(storage.exists(forms_path))
         form_media_path = os.path.join(forms_folder_path, "form-media")
         self.assertTrue(storage.exists(form_media_path))
         media_path = os.path.join(form_media_path, "screenshot.png")
         self.assertTrue(storage.exists(media_path))
 
-        """
-        Download instance xml
-        """
         with HTTMock(instances_xml):
             self.bc.download_instances(self.xform.id_string)
         instance_folder_path = os.path.join(
@@ -131,7 +129,7 @@ class TestBriefcaseClient(TestBase):
         self.assertTrue(storage.exists(instance_path))
         media_file = "1335783522563.jpg"
         media_path = os.path.join(
-            instance_folder_path, "uuid%s" % instance.uuid, media_file
+            instance_folder_path, "uuid{instance.uuid}", media_file
         )
         self.assertTrue(storage.exists(media_path))
 
