@@ -168,7 +168,7 @@ class TestNoteViewSet(TestBase):
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
 
-        instance = self.xform.instances.all()[0]
+        instance = self.xform.instances.get(pk=dataid)
         self.assertEqual(len(instance.json["_notes"]), 1, instance.json)
 
         note = instance.json["_notes"][0]

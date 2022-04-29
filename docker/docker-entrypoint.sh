@@ -13,7 +13,7 @@ if $RUN_DB_INIT_SCRIPT; then
     psql -h db -U postgres onadata -c "CREATE EXTENSION postgis; CREATE EXTENSION postgis_topology;"
 fi
 
-virtualenv -p "$(which ${SELECTED_PYTHON})" /srv/onadata/.virtualenv/"${SELECTED_PYTHON}"
+virtualenv -p "$(which ${SELECTED_PYTHON})" "/srv/onadata/.virtualenv/${SELECTED_PYTHON}"
 . /srv/onadata/.virtualenv/"${SELECTED_PYTHON}"/bin/activate
 
 cd /srv/onadata

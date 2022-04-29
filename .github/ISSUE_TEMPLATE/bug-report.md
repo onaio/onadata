@@ -9,7 +9,7 @@ assignees: ''
 
 ### Environmental Information
 
-  - Onadata version:
+- Onadata version:
 
 ### Problem description
 
