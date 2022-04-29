@@ -109,7 +109,7 @@ class TestBriefcaseClient(TestBase):
             "deno", "briefcase", "forms", self.xform.id_string
         )
         self.assertTrue(storage.exists(forms_folder_path))
-        forms_path = os.path.join(forms_folder_path, "{self.xform.id_string}.xml")
+        forms_path = os.path.join(forms_folder_path, f"{self.xform.id_string}.xml")
         self.assertTrue(storage.exists(forms_path))
         form_media_path = os.path.join(forms_folder_path, "form-media")
         self.assertTrue(storage.exists(form_media_path))
@@ -124,12 +124,12 @@ class TestBriefcaseClient(TestBase):
         self.assertTrue(storage.exists(instance_folder_path))
         instance = Instance.objects.all()[0]
         instance_path = os.path.join(
-            instance_folder_path, "uuid%s" % instance.uuid, "submission.xml"
+            instance_folder_path, f"uuid{instance.uuid}", "submission.xml"
         )
         self.assertTrue(storage.exists(instance_path))
         media_file = "1335783522563.jpg"
         media_path = os.path.join(
-            instance_folder_path, "uuid{instance.uuid}", media_file
+            instance_folder_path, f"uuid{instance.uuid}", media_file
         )
         self.assertTrue(storage.exists(media_path))
 
