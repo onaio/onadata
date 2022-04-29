@@ -1,13 +1,17 @@
+# -*- codingL: utf-8 -*-
+"""onadata.libs.models.signals module"""
 import django.dispatch
 
 from onadata.apps.logger.models import XForm
 
-xform_tags_add = django.dispatch.Signal(providing_args=["xform", "tags"])
-xform_tags_delete = django.dispatch.Signal(providing_args=["xform", "tag"])
+XFORM_TAGS_ADD = django.dispatch.Signal(providing_args=["xform", "tags"])
+XFORM_TAGS_DELETE = django.dispatch.Signal(providing_args=["xform", "tag"])
 
 
-@django.dispatch.receiver(xform_tags_add, sender=XForm)
+# pylint: disable=unused-argument
+@django.dispatch.receiver(XFORM_TAGS_ADD, sender=XForm)
 def add_tags_to_xform_instances(sender, **kwargs):
+    """Adds tags to an xform instance."""
     xform = kwargs.get("xform", None)
     tags = kwargs.get("tags", None)
     if isinstance(xform, XForm) and isinstance(tags, list):
@@ -20,8 +24,10 @@ def add_tags_to_xform_instances(sender, **kwargs):
             instance.parsed_instance.save()
 
 
-@django.dispatch.receiver(xform_tags_delete, sender=XForm)
+# pylint: disable=unused-argument
+@django.dispatch.receiver(XFORM_TAGS_DELETE, sender=XForm)
 def delete_tag_from_xform_instances(sender, **kwargs):
+    """Deletes tags associated with an xform when it is deleted."""
     xform = kwargs.get("xform", None)
     tag = kwargs.get("tag", None)
     if isinstance(xform, XForm) and isinstance(tag, str):
