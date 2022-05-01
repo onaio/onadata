@@ -4,9 +4,8 @@ UserProfile model class
 """
 import requests
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.db import models
-from django.db.models import JSONField
 from django.db.models.signals import post_save, pre_save
 from django.utils.translation import ugettext_lazy
 from guardian.shortcuts import get_perms_for_model, assign_perm
@@ -22,6 +21,9 @@ from onadata.apps.main.signals import (
 )
 
 REQUIRE_AUTHENTICATION = "REQUIRE_ODK_AUTHENTICATION"
+
+# pylint: disable=invalid-name
+User = get_user_model()
 
 
 class UserProfile(models.Model):
@@ -49,22 +51,31 @@ class UserProfile(models.Model):
         User, null=True, blank=True, on_delete=models.SET_NULL
     )
     num_of_submissions = models.IntegerField(default=0)
-    metadata = JSONField(default=dict, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
     date_modified = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return "%s[%s]" % (self.name, self.user.username)
+        return f"{self.name}[{self.user.username}]"
 
     @property
     def gravatar(self):
+        """
+        Returns Gravatar URL.
+        """
         return get_gravatar_img_link(self.user)
 
     @property
     def gravatar_exists(self):
+        """
+        Check if Gravatar URL exists.
+        """
         return gravatar_exists(self.user)
 
     @property
     def twitter_clean(self):
+        """
+        Remove the '@' from twitter name.
+        """
         if self.twitter.startswith("@"):
             return self.twitter[1:]
         return self.twitter
@@ -77,7 +88,7 @@ class UserProfile(models.Model):
         if self.pk is None and hasattr(settings, REQUIRE_AUTHENTICATION):
             self.require_auth = getattr(settings, REQUIRE_AUTHENTICATION)
 
-        super(UserProfile, self).save(force_insert, force_update, using, update_fields)
+        super().save(force_insert, force_update, using, update_fields)
 
     class Meta:
         app_label = "main"
@@ -88,12 +99,20 @@ class UserProfile(models.Model):
         )
 
 
+# pylint: disable=unused-argument
 def create_auth_token(sender, instance=None, created=False, **kwargs):
+    """
+    Creates an authentication Token.
+    """
     if created:
         Token.objects.create(user=instance)
 
 
+# pylint: disable=unused-argument
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
+    """
+    Assign's permission to the user that created the profile.
+    """
     if created:
         for perm in get_perms_for_model(UserProfile):
             assign_perm(perm.codename, instance.user, instance)
@@ -102,15 +121,19 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
                 assign_perm(perm.codename, instance.created_by, instance)
 
 
+# pylint: disable=unused-argument
 def set_kpi_formbuilder_permissions(sender, instance=None, created=False, **kwargs):
+    """
+    Assign KPI permissions to allow the user to create forms using KPI formbuilder.
+    """
     if created:
         kpi_formbuilder_url = (
             hasattr(settings, "KPI_FORMBUILDER_URL") and settings.KPI_FORMBUILDER_URL
         )
         if kpi_formbuilder_url:
             requests.post(
-                "%s/%s" % (kpi_formbuilder_url, "grant-default-model-level-perms"),
-                headers={"Authorization": "Token %s" % instance.user.auth_token},
+                f"{kpi_formbuilder_url}/grant-default-model-level-perms",
+                headers={"Authorization": "Token {instance.user.auth_token}"},
             )
 
 
@@ -135,12 +158,14 @@ post_save.connect(
 )
 
 
+# pylint: disable=too-few-public-methods
 class UserProfileUserObjectPermission(UserObjectPermissionBase):
     """Guardian model to create direct foreign keys."""
 
     content_object = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
 
 
+# pylint: disable=too-few-public-methods
 class UserProfileGroupObjectPermission(GroupObjectPermissionBase):
     """Guardian model to create direct foreign keys."""
 

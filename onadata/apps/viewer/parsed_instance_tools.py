@@ -1,10 +1,15 @@
-import json
-import six
+# -*- coding: utf-8 -*-
+"""
+ParsedInstance model utility functions
+"""
 import datetime
+import json
 from builtins import str as text
 from typing import Any, Tuple
 
-from onadata.libs.utils.common_tags import MONGO_STRFTIME, DATE_FORMAT
+import six
+
+from onadata.libs.utils.common_tags import DATE_FORMAT, MONGO_STRFTIME
 
 KNOWN_DATES = ["_submission_time"]
 NONE_JSON_FIELDS = {
@@ -14,6 +19,7 @@ NONE_JSON_FIELDS = {
     "_version": "version",
     "_last_edited": "last_edited",
 }
+OPERANDS = {"$gt": ">", "$gte": ">=", "$lt": "<", "$lte": "<=", "$i": "~*"}
 
 
 def _json_sql_str(key, known_integers=None, known_dates=None, known_decimals=None):
@@ -35,11 +41,12 @@ def _json_sql_str(key, known_integers=None, known_dates=None, known_decimals=Non
     return _json_str
 
 
+# pylint: disable=too-many-locals,too-many-branches
 def _parse_where(query, known_integers, known_decimals, or_where, or_params):
     # using a dictionary here just incase we will need to filter using
     # other table columns
     where, where_params = [], []
-    OPERANDS = {"$gt": ">", "$gte": ">=", "$lt": "<", "$lte": "<=", "$i": "~*"}
+    # pylint: disable=too-many-nested-blocks
     for (field_key, field_value) in six.iteritems(query):
         if isinstance(field_value, dict):
             if field_key in NONE_JSON_FIELDS:
@@ -66,7 +73,7 @@ def _parse_where(query, known_integers, known_decimals, or_where, or_params):
                     where_params.extend((field_key, text(_v)))
         else:
             if field_key in NONE_JSON_FIELDS:
-                where.append("{} = %s".format(NONE_JSON_FIELDS[field_key]))
+                where.append(f"{NONE_JSON_FIELDS[field_key]} = %s")
                 where_params.extend([text(field_value)])
             elif field_value is None:
                 where.append(f"json->>'{field_key}' IS NULL")
@@ -93,6 +100,9 @@ def _merge_duplicate_keys(pairs: Tuple[str, Any]):
 
 
 def get_where_clause(query, form_integer_fields=None, form_decimal_fields=None):
+    """
+    Returns where clause and related parameters.
+    """
     if form_integer_fields is None:
         form_integer_fields = []
     if form_decimal_fields is None:
@@ -102,6 +112,7 @@ def get_where_clause(query, form_integer_fields=None, form_decimal_fields=None):
     where = []
     where_params = []
 
+    # pylint: disable=too-many-nested-blocks
     try:
         if query and isinstance(query, (dict, six.string_types)):
             query = (
@@ -120,7 +131,7 @@ def get_where_clause(query, form_integer_fields=None, form_decimal_fields=None):
                 for or_query in or_dict:
                     for k, v in or_query.items():
                         if v is None:
-                            or_where.extend(["json->>'{}' IS NULL".format(k)])
+                            or_where.extend([f"json->>'{k}' IS NULL"])
                         elif isinstance(v, list):
                             for value in v:
                                 or_where.extend(["json->>%s = %s"])

@@ -183,7 +183,7 @@ class XFormMixin:
                 if m.data_type == key:
                     return m.data_value
 
-        return obj.metadata_set.all()
+        return None
 
     # pylint: disable=no-self-use
     def get_users(self, obj):
