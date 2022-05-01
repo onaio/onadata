@@ -340,7 +340,6 @@ class XFormInstanceParser:
         # pylint: disable=invalid-name
         self.dd = data_dictionary
         self.parse(xml_str)
-        self._attributes = {}
 
     def parse(self, xml_str):
         """
@@ -382,6 +381,7 @@ class XFormInstanceParser:
         return self._attributes
 
     def _set_attributes(self):
+        # pylint: disable=attribute-defined-outside-init
         self._attributes = {}
         all_attributes = list(_get_all_attributes(self._root_node))
         for key, value in all_attributes:
