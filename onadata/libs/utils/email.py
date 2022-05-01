@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+email utility functions.
+"""
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
@@ -6,17 +10,22 @@ from rest_framework.reverse import reverse
 
 
 def get_verification_url(redirect_url, request, verification_key):
+    """Returns the verification_url"""
     verification_url = getattr(settings, "VERIFICATION_URL", None)
     url = verification_url or reverse("userprofile-verify-email", request=request)
     query_params_dict = {"verification_key": verification_key}
-    redirect_url and query_params_dict.update({"redirect_url": redirect_url})
+    if redirect_url:
+        query_params_dict.update({"redirect_url": redirect_url})
     query_params_string = urlencode(query_params_dict)
-    verification_url = "{}?{}".format(url, query_params_string)
+    verification_url = f"{url}?{query_params_string}"
 
     return verification_url
 
 
 def get_verification_email_data(email, username, verification_url, request):
+    """
+    Returns the verification email content
+    """
     email_data = {"email": email}
 
     ctx_dict = {
@@ -37,7 +46,7 @@ def get_verification_email_data(email, username, verification_url, request):
     return email_data
 
 
-def get_account_lockout_email_data(username, ip, end=False):
+def get_account_lockout_email_data(username, ip_address, end=False):
     """Generates both the email upon start and end of account lockout"""
     message_path = "account_lockout/lockout_start.txt"
     subject_path = "account_lockout/lockout_email_subject.txt"
@@ -45,7 +54,7 @@ def get_account_lockout_email_data(username, ip, end=False):
         message_path = "account_lockout/lockout_end.txt"
     ctx_dict = {
         "username": username,
-        "remote_ip": ip,
+        "remote_ip": ip_address,
         "lockout_time": getattr(settings, "LOCKOUT_TIME", 1800) / 60,
         "support_email": getattr(settings, "SUPPORT_EMAIL", "support@example.com"),
     }

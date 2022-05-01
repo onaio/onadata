@@ -12,6 +12,7 @@ class JsonField(serializers.Field):
     Deserialize a string instance containing a JSON document to a Python object.
     """
 
+    # pylint: disable=no-self-use
     def to_representation(self, value):
         """
         Deserialize ``value`` a `str` instance containing a
@@ -21,7 +22,12 @@ class JsonField(serializers.Field):
             return json.loads(value)
         return value
 
+    # pylint: disable=no-self-use
     def to_internal_value(self, data):
+        """
+        Deserialize ``value`` a `str` instance containing a
+        JSON document to a Python object.
+        """
         if isinstance(data, str):
             try:
                 return json.loads(data)

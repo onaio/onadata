@@ -1,17 +1,23 @@
+# -*- coding: utf-8 -*-
+"""
+Team model
+"""
 from django.db import models
 from django.db.models.signals import post_save
-from django.contrib.auth.models import User, Group
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from guardian.shortcuts import assign_perm, get_perms_for_model
 
 from onadata.apps.logger.models.project import Project
 
 
+# pylint: disable=invalid-name
+User = get_user_model()
+
+
 class Team(Group):
     """
-    TODO: documentation
-    TODO: Whenever a member is removed from members team,
-    we  should remove them from all teams and projects
-    within the organization.
+    Team model based on the Group.
     """
 
     class Meta:
@@ -38,17 +44,22 @@ class Team(Group):
 
     @property
     def team_name(self):
+        """Return the team name."""
         return self.__str__()
 
     def save(self, *args, **kwargs):
         # allow use of same name in different organizations/users
         # concat with #
         if not self.name.startswith("#".join([self.organization.username])):
-            self.name = "%s#%s" % (self.organization.username, self.name)
-        super(Team, self).save(*args, **kwargs)
+            self.name = f"{self.organization.username}#{self.name}"
+        super().save(*args, **kwargs)
 
 
+# pylint: disable=unused-argument
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
+    """
+    Apply permissions to the creator of the team.
+    """
     if created:
         for perm in get_perms_for_model(Team):
             assign_perm(perm.codename, instance.organization, instance)

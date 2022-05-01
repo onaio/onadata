@@ -4448,7 +4448,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEquals(2, count)
 
             # delete cache
-            safe_delete("{}{}".format(ENKETO_URL_CACHE, self.xform.pk))
+            safe_delete(f"{ENKETO_URL_CACHE}{self.xform.pk}")
 
             view = XFormViewSet.as_view(
                 {
@@ -5076,7 +5076,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         instance.set_deleted()
 
         # delete cache
-        safe_delete("{}{}".format(XFORM_DATA_VERSIONS, self.xform.pk))
+        safe_delete(f"{XFORM_DATA_VERSIONS}{self.xform.pk}")
 
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=self.xform.pk)

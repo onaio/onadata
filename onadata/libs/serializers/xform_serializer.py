@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+XForm model serialization.
+"""
 import logging
 import os
 from hashlib import md5
@@ -5,7 +9,7 @@ from hashlib import md5
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
@@ -13,7 +17,6 @@ from django.db.models import Count
 from django.utils.translation import ugettext as _
 from six.moves.urllib.parse import urlparse
 from six import itervalues
-from requests.exceptions import ConnectionError
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
@@ -43,6 +46,9 @@ from onadata.libs.utils.viewer_tools import get_enketo_urls, get_form_url
 SUBMISSION_RETRIEVAL_THRESHOLD = getattr(
     settings, "SUBMISSION_RETRIEVAL_THRESHOLD", 10000
 )
+
+# pylint: disable=invalid-name
+User = get_user_model()
 
 
 def _create_enketo_urls(request, xform):
@@ -77,9 +83,9 @@ def _create_enketo_urls(request, xform):
             MetaData.enketo_single_submit_url(xform, single_url)
             data["single_url"] = single_url
     except ConnectionError as e:
-        logging.exception("Connection Error: %s" % e)
+        logging.exception("Connection Error: %s", e)
     except EnketoError as e:
-        logging.exception("Enketo Error: %s" % e.message)
+        logging.exception("Enketo Error: %s", e.message)
 
     return data
 
@@ -93,17 +99,23 @@ def _set_cache(cache_key, cache_data, obj):
     :param obj:
     :return: Data that has been cached
     """
-    cache.set("{}{}".format(cache_key, obj.pk), cache_data)
+    cache.set(f"{cache_key}{obj.pk}", cache_data)
     return cache_data
 
 
 def user_to_username(item):
+    """
+    Replaces the item["user"] user object with the to user.username.
+    """
     item["user"] = item["user"].username
 
     return item
 
 
 def clean_public_key(value):
+    """
+    Strips public key comments and spaces from a public key ``value``.
+    """
     if value.startswith("-----BEGIN PUBLIC KEY-----") and value.endswith(
         "-----END PUBLIC KEY-----"
     ):
@@ -113,6 +125,8 @@ def clean_public_key(value):
             .replace(" ", "")
             .rstrip()
         )
+
+    return value
 
 
 class MultiLookupIdentityField(serializers.HyperlinkedIdentityField):
@@ -126,9 +140,13 @@ class MultiLookupIdentityField(serializers.HyperlinkedIdentityField):
 
     def __init__(self, *args, **kwargs):
         self.lookup_fields = kwargs.pop("lookup_fields", self.lookup_fields)
-        super(MultiLookupIdentityField, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
+    # pylint: disable=redefined-builtin
     def get_url(self, obj, view_name, request, format):
+        """
+        Returns URL to the given object.
+        """
         kwargs = {}
         for model_field, url_param in self.lookup_fields:
             attr = obj
@@ -136,16 +154,21 @@ class MultiLookupIdentityField(serializers.HyperlinkedIdentityField):
                 attr = getattr(attr, field)
             kwargs[url_param] = attr
 
-        if not format and hasattr(self, "format"):
-            fmt = self.format
-        else:
-            fmt = format
+        fmt = self.format if not format and hasattr(self, "format") else format
 
         return reverse(view_name, kwargs=kwargs, request=request, format=fmt)
 
 
-class XFormMixin(object):
+class XFormMixin:
+    """
+    XForm mixins
+    """
+
+    # pylint: disable=no-self-use
     def get_xls_available(self, obj):
+        """
+        Returns True if ``obj.xls.url`` is not None, indicates XLS is present.
+        """
         available = False
         if obj and obj.xls:
             try:
@@ -159,17 +182,21 @@ class XFormMixin(object):
             for m in obj.metadata_set.all():
                 if m.data_type == key:
                     return m.data_value
-        else:
-            return obj.metadata_set.all()
 
+        return obj.metadata_set.all()
+
+    # pylint: disable=no-self-use
     def get_users(self, obj):
+        """
+        Returns a list of users based on XForm permissions.
+        """
         xform_perms = []
         if obj:
-            xform_perms = cache.get("{}{}".format(XFORM_PERMISSIONS_CACHE, obj.pk))
+            xform_perms = cache.get(f"{XFORM_PERMISSIONS_CACHE}{obj.pk}")
             if xform_perms:
                 return xform_perms
 
-            cache.set("{}{}".format(XFORM_PERMISSIONS_CACHE, obj.pk), xform_perms)
+            cache.set(f"{XFORM_PERMISSIONS_CACHE}{obj.pk}", xform_perms)
         data = {}
         for perm in obj.xformuserobjectpermission_set.all():
             if perm.user_id not in data:
@@ -193,13 +220,16 @@ class XFormMixin(object):
 
         xform_perms = list(itervalues(data))
 
-        cache.set("{}{}".format(XFORM_PERMISSIONS_CACHE, obj.pk), xform_perms)
+        cache.set(f"{XFORM_PERMISSIONS_CACHE}{obj.pk}", xform_perms)
 
         return xform_perms
 
     def get_enketo_url(self, obj):
+        """
+        Returns Enketo URL for given ``obj``.
+        """
         if obj:
-            _enketo_url = cache.get("{}{}".format(ENKETO_URL_CACHE, obj.pk))
+            _enketo_url = cache.get(f"{ENKETO_URL_CACHE}{obj.pk}")
             if _enketo_url:
                 return _enketo_url
 
@@ -213,9 +243,12 @@ class XFormMixin(object):
         return None
 
     def get_enketo_single_submit_url(self, obj):
+        """
+        Returns single submit Enketo URL for given ``obj``.
+        """
         if obj:
             _enketo_single_submit_url = cache.get(
-                "{}{}".format(ENKETO_SINGLE_SUBMIT_URL_CACHE, obj.pk)
+                f"{ENKETO_SINGLE_SUBMIT_URL_CACHE}{obj.pk}"
             )
             if _enketo_single_submit_url:
                 return _enketo_single_submit_url
@@ -230,19 +263,21 @@ class XFormMixin(object):
         return None
 
     def get_enketo_preview_url(self, obj):
+        """
+        Returns preview Enketo URL for given ``obj``.
+        """
         if obj:
-            _enketo_preview_url = cache.get(
-                "{}{}".format(ENKETO_PREVIEW_URL_CACHE, obj.pk)
-            )
+            _enketo_preview_url = cache.get(f"{ENKETO_PREVIEW_URL_CACHE}{obj.pk}")
             if _enketo_preview_url:
                 return _enketo_preview_url
 
             url = self._get_metadata(obj, "enketo_preview_url")
             if url is None:
-                try:
-                    enketo_urls = _create_enketo_urls(self.context.get("request"), obj)
-                    url = enketo_urls.get("preview_url")
-                except Exception:
+                enketo_urls = _create_enketo_urls(self.context.get("request"), obj)
+                url = (
+                    enketo_urls["preview_url"] if "preview_url" in enketo_urls else url
+                )
+                if url is None:
                     return url
 
             return _set_cache(ENKETO_PREVIEW_URL_CACHE, url, obj)
@@ -251,7 +286,7 @@ class XFormMixin(object):
 
     def get_data_views(self, obj):
         if obj:
-            key = "{}{}".format(XFORM_LINKED_DATAVIEWS, obj.pk)
+            key = f"{XFORM_LINKED_DATAVIEWS}{obj.pk}"
             data_views = cache.get(key)
             if data_views:
                 return data_views
@@ -267,18 +302,22 @@ class XFormMixin(object):
             return data_views
         return []
 
+    # pylint: disable=no-self-use
     def get_num_of_submissions(self, obj):
+        """
+        Returns number of submissions.
+        """
         if obj:
-            key = "{}{}".format(XFORM_COUNT, obj.pk)
+            key = f"{XFORM_COUNT}{obj.pk}"
             count = cache.get(key)
             if count:
                 return count
 
-            force_update = True if obj.is_merged_dataset else False
-            count = obj.submission_count(force_update)
+            count = obj.submission_count(obj.is_merged_dataset)
 
             cache.set(key, count)
             return count
+        return 0
 
     def get_last_submission_time(self, obj):
         """Return datetime of last submission
@@ -427,10 +466,14 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             "deleted_by",
         )
 
+    # pylint: disable=no-self-use
     def get_metadata(self, obj):
+        """
+        Returns XForn ``obj`` metadata.
+        """
         xform_metadata = []
         if obj:
-            xform_metadata = cache.get("{}{}".format(XFORM_METADATA_CACHE, obj.pk))
+            xform_metadata = cache.get(f"{XFORM_METADATA_CACHE}{obj.pk}")
             if xform_metadata:
                 return xform_metadata
 
@@ -439,7 +482,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
                     obj.metadata_set.all(), many=True, context=self.context
                 ).data
             )
-            cache.set("{}{}".format(XFORM_METADATA_CACHE, obj.pk), xform_metadata)
+            cache.set(f"{XFORM_METADATA_CACHE}{obj.pk}", xform_metadata)
 
         return xform_metadata
 
@@ -451,10 +494,10 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
         """
         try:
             load_pem_public_key(value.encode("utf-8"), backend=default_backend())
-        except ValueError:
+        except ValueError as e:
             raise serializers.ValidationError(
                 _("The public key is not a valid base64 RSA key")
-            )
+            ) from e
         return clean_public_key(value)
 
     def _check_if_allowed_public(self, value):  # pylint: disable=no-self-use
@@ -478,14 +521,18 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
         """
         return self._check_if_allowed_public(value)
 
+    # pylint: disable=no-self-use
     def get_form_versions(self, obj):
+        """
+        Returns all form versions.
+        """
         versions = []
         if obj:
-            versions = cache.get("{}{}".format(XFORM_DATA_VERSIONS, obj.pk))
+            versions = cache.get(f"{XFORM_DATA_VERSIONS}{obj.pk}")
 
             if versions:
                 return versions
-            elif obj.num_of_submissions > SUBMISSION_RETRIEVAL_THRESHOLD:
+            if obj.num_of_submissions > SUBMISSION_RETRIEVAL_THRESHOLD:
                 return []
 
             versions = list(
@@ -495,29 +542,44 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             )
 
             if versions:
-                cache.set("{}{}".format(XFORM_DATA_VERSIONS, obj.pk), list(versions))
+                cache.set(f"{XFORM_DATA_VERSIONS}{obj.pk}", list(versions))
 
         return versions
 
 
 class XFormCreateSerializer(XFormSerializer):
+    """
+    XForm serializer that is only relevant during the XForm publishing process.
+    """
+
     has_id_string_changed = serializers.SerializerMethodField()
 
+    # pylint: disable=no-self-use
     def get_has_id_string_changed(self, obj):
+        """
+        Returns the value of ``obj.has_id_string_changed``
+        """
         return obj.has_id_string_changed
 
 
 class XFormListSerializer(serializers.Serializer):
-    formID = serializers.ReadOnlyField(source="id_string")
+    """
+    XForm serializer for OpenRosa form list API.
+    """
+
+    formID = serializers.ReadOnlyField(source="id_string")  # noqa
     name = serializers.ReadOnlyField(source="title")
     version = serializers.ReadOnlyField()
     hash = serializers.ReadOnlyField()
-    descriptionText = serializers.ReadOnlyField(source="description")
-    downloadUrl = serializers.SerializerMethodField("get_url")
-    manifestUrl = serializers.SerializerMethodField("get_manifest_url")
+    descriptionText = serializers.ReadOnlyField(source="description")  # noqa
+    downloadUrl = serializers.SerializerMethodField("get_url")  # noqa
+    manifestUrl = serializers.SerializerMethodField("get_manifest_url")  # noqa
 
     @check_obj
     def get_url(self, obj):
+        """
+        Returns XForm download URL.
+        """
         kwargs = {"pk": obj.pk, "username": obj.user.username}
         request = self.context.get("request")
 
@@ -525,6 +587,9 @@ class XFormListSerializer(serializers.Serializer):
 
     @check_obj
     def get_manifest_url(self, obj):
+        """
+        Return manifest URL.
+        """
         kwargs = {"pk": obj.pk, "username": obj.user.username}
         request = self.context.get("request")
         object_list = MetaData.objects.filter(data_type="media", object_id=obj.pk)
@@ -536,10 +601,13 @@ class XFormListSerializer(serializers.Serializer):
 class XFormManifestSerializer(serializers.Serializer):
     filename = serializers.SerializerMethodField()
     hash = serializers.SerializerMethodField()
-    downloadUrl = serializers.SerializerMethodField("get_url")
+    downloadUrl = serializers.SerializerMethodField("get_url")  # noqa
 
     @check_obj
     def get_url(self, obj):
+        """
+        Return media download URL.
+        """
         kwargs = {
             "pk": obj.content_object.pk,
             "username": obj.content_object.user.username,
@@ -555,17 +623,19 @@ class XFormManifestSerializer(serializers.Serializer):
         group_delimiter = self.context.get(GROUP_DELIMETER_TAG)
         repeat_index_tags = self.context.get(REPEAT_INDEX_TAGS)
         if group_delimiter and repeat_index_tags and fmt == "csv":
-            return url + "?%s=%s&%s=%s" % (
-                GROUP_DELIMETER_TAG,
-                group_delimiter,
-                REPEAT_INDEX_TAGS,
-                repeat_index_tags,
+            return url + (
+                f"?{GROUP_DELIMETER_TAG}={group_delimiter}"
+                f"&{REPEAT_INDEX_TAGS}={repeat_index_tags}"
             )
 
         return url
 
+    # pylint: disable=no-self-use
     @check_obj
     def get_hash(self, obj):
+        """
+        Returns MD5 hash based on last_submission_time for a media linked form.
+        """
         filename = obj.data_value
         hsh = obj.file_hash
         parts = filename.split(" ")
@@ -588,22 +658,25 @@ class XFormManifestSerializer(serializers.Serializer):
                     xform = data_view.xform
 
             if xform and xform.last_submission_time:
-                hsh = "md5:%s" % (
-                    md5(
-                        xform.last_submission_time.isoformat().encode("utf-8")
-                    ).hexdigest()
-                )
+                md5_hash = md5(
+                    xform.last_submission_time.isoformat().encode("utf-8")
+                ).hexdigest()
+                hsh = f"md5:{md5_hash}"
 
-        return "%s" % (hsh or "md5:")
+        return f"{hsh or 'md5:'}"
 
+    # pylint: disable=no-self-use
     @check_obj
     def get_filename(self, obj):
+        """
+        Returns media filename.
+        """
         filename = obj.data_value
         parts = filename.split(" ")
         # filtered dataset is of the form "xform PK name", filename is the
         # third item
         if len(parts) > 2:
-            filename = "%s.csv" % parts[2]
+            filename = "{parts[2]}.csv"
         else:
             try:
                 URLValidator()(filename)
@@ -617,6 +690,10 @@ class XFormManifestSerializer(serializers.Serializer):
 
 
 class XFormVersionListSerializer(serializers.ModelSerializer):
+    """
+    XFormVersion list API serializer
+    """
+
     xform = serializers.HyperlinkedRelatedField(
         view_name="xform-detail",
         lookup_field="pk",

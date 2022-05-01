@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Widget serializer
+"""
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
 from django.urls import resolve, get_script_prefix, Resolver404
@@ -27,6 +31,7 @@ class GenericRelatedField(serializers.HyperlinkedRelatedField):
         self.resolve = resolve
         self.reverse = reverse
         self.format = kwargs.pop("format", "json")
+        # pylint: disable=bad-super-call
         super(serializers.RelatedField, self).__init__(*args, **kwargs)
 
     def _setup_field(self, view_name):
@@ -48,6 +53,7 @@ class GenericRelatedField(serializers.HyperlinkedRelatedField):
 
         self._setup_field(self.view_name)
 
+        # pylint: disable=bad-super-call,super-with-arguments
         return super(GenericRelatedField, self).to_representation(value)
 
     def to_internal_value(self, data):
@@ -82,6 +88,11 @@ class GenericRelatedField(serializers.HyperlinkedRelatedField):
 
 
 class WidgetSerializer(serializers.HyperlinkedModelSerializer):
+    """
+    WidgetSerializer
+    """
+
+    # pylint: disable=invalid-name
     id = serializers.ReadOnlyField()
     url = serializers.HyperlinkedIdentityField(
         view_name="widgets-detail", lookup_field="pk"
@@ -142,10 +153,10 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
             try:
                 # Check if column exists in xform
                 get_field_from_field_xpath(column, xform)
-            except Http404:
+            except Http404 as e:
                 raise serializers.ValidationError(
-                    {"column": ("'{}' not in the form.".format(column))}
-                )
+                    {"column": f"'{column}' not in the form."}
+                ) from e
 
         order = attrs.get("order")
 
