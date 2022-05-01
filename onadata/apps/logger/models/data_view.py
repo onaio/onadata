@@ -4,7 +4,6 @@ DataView model class
 """
 import datetime
 import json
-from builtins import str as text
 
 from django.conf import settings
 from django.contrib.gis.db import models
@@ -90,8 +89,8 @@ def has_attachments_fields(data_view):
             attachments += get_elements_of_type(xform, element_type)
 
         if attachments:
-            for a in data_view.columns:
-                if a in attachments:
+            for attachment in data_view.columns:
+                if attachment in attachments:
                     return True
 
     return False
@@ -192,7 +191,7 @@ class DataView(models.Model):
         )
         params = [self.xform.pk, instance.id] + where_params
 
-        cursor.execute(sql, [text(i) for i in params])
+        cursor.execute(sql, [str(i) for i in params])
         records = None
         for row in cursor.fetchall():
             records = row[0]
@@ -232,16 +231,16 @@ class DataView(models.Model):
         where = []
         where_params = []
 
-        query = data_view.query
+        queries = data_view.query
 
         or_where = []
         or_params = []
 
-        for qu in query:
-            comp = qu.get("filter")
-            column = qu.get("column")
-            value = qu.get("value")
-            condi = qu.get("condition")
+        for query in queries:
+            comp = query.get("filter")
+            column = query.get("column")
+            value = query.get("value")
+            condi = query.get("condition")
 
             json_str = _json_sql_str(
                 column, known_integers, known_dates, known_decimals
@@ -252,10 +251,10 @@ class DataView(models.Model):
 
             if condi and condi.lower() == "or":
                 or_where = append_where_list(comp, or_where, json_str)
-                or_params.extend((column, text(value)))
+                or_params.extend((column, str(value)))
             else:
                 where = append_where_list(comp, where, json_str)
-                where_params.extend((column, text(value)))
+                where_params.extend((column, str(value)))
 
         if or_where:
             or_where = ["".join(["(", " OR ".join(or_where), ")"])]
@@ -276,7 +275,7 @@ class DataView(models.Model):
         params = [] if params is None else params
 
         cursor = connection.cursor()
-        sql_params = tuple(i if isinstance(i, tuple) else text(i) for i in params)
+        sql_params = tuple(i if isinstance(i, tuple) else str(i) for i in params)
 
         if count:
             from_pos = sql.upper().find(" FROM")
@@ -416,10 +415,7 @@ class DataView(models.Model):
             filter_query,
         )
 
-        try:
-            records = list(DataView.query_iterator(sql, columns, params, count))
-        except Exception as e:
-            return {"error": _(text(e))}
+        records = list(DataView.query_iterator(sql, columns, params, count))
 
         return records
 
