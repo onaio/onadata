@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+fix_readonly_role_perms - Reassign permission to the model when permissions are changed
+"""
 from guardian.shortcuts import get_perms
 
 from django.core.management.base import BaseCommand, CommandError
@@ -21,10 +25,41 @@ from onadata.libs.permissions import (
 from onadata.libs.utils.model_tools import queryset_iterator
 
 
+# pylint: disable=invalid-name
 User = get_user_model()
 
 
+def check_role(role_class, user, obj, new_perm=None):
+    """
+    Test if the user has the role for the object provided
+    :param role_class:
+    :param user:
+    :param obj:
+    :param new_perm:
+    :return:
+    """
+    new_perm = new_perm if new_perm is None else []
+    # remove the new permission because the old model doesnt have it
+    perm_list = role_class.class_to_permissions[type(obj)]
+    old_perm_set = set(perm_list)
+    newly_added_perm = set(new_perm)
+
+    if newly_added_perm.issubset(old_perm_set):
+        diff_set = old_perm_set.difference(newly_added_perm)
+
+        if isinstance(user, Team):
+            return set(get_perms(user, obj)) == diff_set
+
+        return user.has_perms(list(diff_set), obj)
+    return False
+
+
 class Command(BaseCommand):
+    """
+    fix_readonly_role_perms - Reassign permission to the model when
+                             permissions are changed
+    """
+
     args = "<app model [created_perm] >"
     help = _("Reassign permission to the model when permissions are changed")
 
@@ -105,38 +140,16 @@ class Command(BaseCommand):
 
             # For each role reassign the perms
             for role_class in reversed(ROLES):
-                # want to only process for readonly perms
-                if role_class.user_has_role(user, obj) or role_class not in [
+                not_readonly = role_class.user_has_role(
+                    user, obj
+                ) or role_class not in [
                     ReadOnlyRoleNoDownload,
                     ReadOnlyRole,
-                ]:
+                ]
+                if not_readonly:
                     continue
 
-                if self.check_role(role_class, user, obj, new_perm):
+                if check_role(role_class, user, obj, new_perm):
                     # If true
                     role_class.add(user, obj)
                     break
-
-    def check_role(self, role_class, user, obj, new_perm=None):
-        """
-        Test if the user has the role for the object provided
-        :param role_class:
-        :param user:
-        :param obj:
-        :param new_perm:
-        :return:
-        """
-        new_perm = new_perm if new_perm is None else []
-        # remove the new permission because the old model doesnt have it
-        perm_list = role_class.class_to_permissions[type(obj)]
-        old_perm_set = set(perm_list)
-        newly_added_perm = set(new_perm)
-
-        if newly_added_perm.issubset(old_perm_set):
-            diff_set = old_perm_set.difference(newly_added_perm)
-
-            if isinstance(user, Team):
-                return set(get_perms(user, obj)) == diff_set
-
-            return user.has_perms(list(diff_set), obj)
-        return False

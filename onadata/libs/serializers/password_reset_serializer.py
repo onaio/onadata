@@ -1,7 +1,10 @@
-from builtins import bytes as b
+# -*- coding: utf-8 -*-
+"""
+Password reset serializer.
+"""
 from six.moves.urllib.parse import urlparse
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.core.mail import send_mail
 from django.template import loader
@@ -14,8 +17,14 @@ from rest_framework import serializers
 from onadata.libs.utils.user_auth import invalidate_and_regen_tokens
 
 
+# pylint: disable=invalid-name
+User = get_user_model()
+
+
 class CustomPasswordResetTokenGenerator(PasswordResetTokenGenerator):
-    """Custom Password Token Generator Class."""
+    """
+    Custom Password Token Generator Class.
+    """
 
     def _make_hash_value(self, user, timestamp):
         # Include user email alongside user password to the generated token
@@ -38,6 +47,7 @@ class CustomPasswordResetTokenGenerator(PasswordResetTokenGenerator):
 default_token_generator = CustomPasswordResetTokenGenerator()
 
 
+# pylint: disable=unused-argument,too-many-arguments
 def get_password_reset_email(
     user,
     reset_url,
@@ -49,7 +59,7 @@ def get_password_reset_email(
     """Creates the subject and email body for password reset email."""
     result = urlparse(reset_url)
     site_name = domain = result.hostname
-    encoded_username = urlsafe_base64_encode(b(user.username.encode("utf-8")))
+    encoded_username = urlsafe_base64_encode(bytes(user.username.encode("utf-8")))
     c = {
         "email": user.email,
         "domain": domain,
@@ -71,24 +81,37 @@ def get_password_reset_email(
 
 
 def get_user_from_uid(uid):
+    """
+    Return user from base64 encoded ``uid``.
+    """
     if uid is None:
         raise serializers.ValidationError(_("uid is required!"))
     try:
         uid = urlsafe_base64_decode(uid)
         user = User.objects.get(pk=uid)
-    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-        raise serializers.ValidationError(_("Invalid uid %s") % uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist) as e:
+        raise serializers.ValidationError(_("Invalid uid {uid}")) from e
 
     return user
 
 
-class PasswordResetChange(object):
+# pylint: disable=too-few-public-methods
+class PasswordResetChange:
+    """
+    Class resets and changes the password.
+
+    Class imitates a model functionality for use with PasswordResetSerializer
+    """
+
     def __init__(self, uid, new_password, token):
         self.uid = uid
         self.new_password = new_password
         self.token = token
 
     def save(self):
+        """
+        Set a new user password and invalidate/regenerate tokens.
+        """
         user = get_user_from_uid(self.uid)
         if user:
             user.set_password(self.new_password)
@@ -96,12 +119,20 @@ class PasswordResetChange(object):
             invalidate_and_regen_tokens(user)
 
 
-class PasswordReset(object):
+# pylint: disable=too-few-public-methods
+class PasswordReset:
+    """
+    Class resets the password and sends the reset email.
+
+    Class imitates a model functionality for use with PasswordResetSerializer
+    """
+
     def __init__(self, email, reset_url, email_subject=None):
         self.email = email
         self.reset_url = reset_url
         self.email_subject = email_subject
 
+    # pylint: disable=unused-argument
     def save(
         self,
         subject_template_name="registration/password_reset_subject.txt",
@@ -133,24 +164,34 @@ class PasswordReset(object):
             send_mail(subject, email, from_email, [user.email])
 
 
+# pylint: disable=abstract-method
 class PasswordResetSerializer(serializers.Serializer):
+    """
+    Password reset serializer.
+    """
+
     email = serializers.EmailField(label=_("Email"), max_length=254)
     reset_url = serializers.URLField(label=_("Reset URL"), max_length=254)
     email_subject = serializers.CharField(
         label=_("Email Subject"), required=False, max_length=78, allow_blank=True
     )
 
+    # pylint: disable=no-self-use
     def validate_email(self, value):
+        """
+        Validates the email.
+        """
         users = User.objects.filter(email__iexact=value)
 
         if users.count() == 0:
-            raise serializers.ValidationError(
-                _("User '%(value)s' does not exist." % {"value": value})
-            )
+            raise serializers.ValidationError(_(f"User '{value}' does not exist."))
 
         return value
 
     def validate_email_subject(self, value):
+        """
+        Validate the email subject is not empty.
+        """
         if len(value) == 0:
             return None
 
@@ -164,11 +205,19 @@ class PasswordResetSerializer(serializers.Serializer):
 
 
 class PasswordResetChangeSerializer(serializers.Serializer):
+    """
+    Reset and change password serializer.
+    """
+
     uid = serializers.CharField(max_length=50)
     new_password = serializers.CharField(min_length=4, max_length=128)
     token = serializers.CharField(max_length=128)
 
+    # pylint: disable=no-self-use
     def validate_uid(self, value):
+        """
+        Validate the user uid.
+        """
         get_user_from_uid(value)
 
         return value

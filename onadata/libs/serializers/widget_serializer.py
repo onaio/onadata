@@ -22,6 +22,10 @@ from onadata.libs.utils.string import str2bool
 
 
 class GenericRelatedField(serializers.HyperlinkedRelatedField):
+    """
+    GenericRelatedField - handle related field relations for XForm and DataView
+    """
+
     default_error_messages = {
         "incorrect_match": _("`{input}` is not a valid relation.")
     }
@@ -35,18 +39,23 @@ class GenericRelatedField(serializers.HyperlinkedRelatedField):
         super(serializers.RelatedField, self).__init__(*args, **kwargs)
 
     def _setup_field(self, view_name):
+        # pylint: disable=attribute-defined-outside-init
         self.lookup_url_kwarg = self.lookup_field
 
         if view_name == "xform-detail":
+            # pylint: disable=attribute-defined-outside-init
             self.queryset = XForm.objects.all()
 
         if view_name == "dataviews-detail":
+            # pylint: disable=attribute-defined-outside-init
             self.queryset = DataView.objects.all()
 
     def to_representation(self, value):
         if isinstance(value, XForm):
+            # pylint: disable=attribute-defined-outside-init
             self.view_name = "xform-detail"
         elif isinstance(value, DataView):
+            # pylint: disable=attribute-defined-outside-init
             self.view_name = "dataviews-detail"
         else:
             raise Exception(_("Unknown type for content_object."))
@@ -103,7 +112,12 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
     order = serializers.IntegerField(required=False)
     metadata = JsonField(required=False)
 
+    # pylint: disable=too-few-public-methods
     class Meta:
+        """
+        Meta model - specifies the fields in the Model Widget for the serializer
+        """
+
         model = Widget
         fields = (
             "id",
@@ -123,6 +137,9 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
         )
 
     def get_data(self, obj):
+        """
+        Return the Widget.query_data(obj)
+        """
         # Get the request obj
         request = self.context.get("request")
 
@@ -167,6 +184,9 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
         return attrs
 
     def validate_content_object(self, value):
+        """
+        Validate if a user is the owner f the organization.
+        """
         request = self.context.get("request")
         users = get_users_with_perms(
             value.project, attach_perms=False, with_group_users=False

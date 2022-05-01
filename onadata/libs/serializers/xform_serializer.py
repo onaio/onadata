@@ -676,7 +676,7 @@ class XFormManifestSerializer(serializers.Serializer):
         # filtered dataset is of the form "xform PK name", filename is the
         # third item
         if len(parts) > 2:
-            filename = "{parts[2]}.csv"
+            filename = f"{parts[2]}.csv"
         else:
             try:
                 URLValidator()(filename)

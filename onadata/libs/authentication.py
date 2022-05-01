@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Authentication classes.
+"""
+Authentication classes.
 """
 from __future__ import unicode_literals
 
@@ -92,7 +93,7 @@ def get_api_token(cookie_jwt):
     except BadSignature as e:
         raise exceptions.AuthenticationFailed(_(f"Bad Signature: {e}")) from e
     except jwt.DecodeError as e:
-        raise exceptions.AuthenticationFailed(_("JWT DecodeError: {e}")) from e
+        raise exceptions.AuthenticationFailed(_(f"JWT DecodeError: {e}")) from e
     except Token.DoesNotExist as e:
         raise exceptions.AuthenticationFailed(_("Invalid token")) from e
 
