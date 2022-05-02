@@ -164,7 +164,7 @@ def get_id_string_from_xml_str(xml_str):
     root_node = xml_obj.documentElement
     id_string = root_node.getAttribute("id")
 
-    if id_string:
+    if not id_string:
         # may be hidden in submission/data/id_string
         elems = root_node.getElementsByTagName("data")
 

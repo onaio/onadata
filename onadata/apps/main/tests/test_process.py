@@ -593,7 +593,7 @@ class TestProcess(TestBase):
         )
         with open(path, "rb") as xls_file:
             post_data = {"xls_file": xls_file}
-            response = self.client.post(f"/{self.user.username}", post_data)
+            response = self.client.post(f"/{self.user.username}/", post_data)
             self.assertEqual(response.status_code, 200)
 
     def test_metadata_file_hash(self):

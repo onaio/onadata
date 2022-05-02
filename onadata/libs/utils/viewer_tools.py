@@ -127,15 +127,16 @@ def django_file(path, field_name, content_type):
     # adapted from here: http://groups.google.com/group/django-users/browse_th\
     # read/thread/834f988876ff3c45/
 
-    with open(path, "rb") as file_object:
-        return InMemoryUploadedFile(
-            file=file_object,
-            field_name=field_name,
-            name=file_object.name,
-            content_type=content_type,
-            size=os.path.getsize(path),
-            charset=None,
-        )
+    # pylint: disable=consider-using-with
+    file_object = open(path, "rb")
+    return InMemoryUploadedFile(
+        file=file_object,
+        field_name=field_name,
+        name=file_object.name,
+        content_type=content_type,
+        size=os.path.getsize(path),
+        charset=None,
+    )
 
 
 def export_def_from_filename(filename):
