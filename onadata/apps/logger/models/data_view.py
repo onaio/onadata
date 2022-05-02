@@ -8,10 +8,10 @@ import json
 from django.conf import settings
 from django.contrib.gis.db import models
 from django.db import connection
-from django.db.models import JSONField
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from django.utils.translation import ugettext as _
+from django.db.utils import DataError
 
 from onadata.apps.viewer.parsed_instance_tools import get_where_clause
 from onadata.libs.models.sorting import (  # noqa pylint: disable=unused-import
@@ -105,8 +105,8 @@ class DataView(models.Model):
     xform = models.ForeignKey("logger.XForm", on_delete=models.CASCADE)
     project = models.ForeignKey("logger.Project", on_delete=models.CASCADE)
 
-    columns = JSONField()
-    query = JSONField(default=dict, blank=True)
+    columns = models.JSONField()
+    query = models.JSONField(default=dict, blank=True)
     instances_with_geopoints = models.BooleanField(default=False)
     matches_parent = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True)
@@ -415,7 +415,10 @@ class DataView(models.Model):
             filter_query,
         )
 
-        records = list(DataView.query_iterator(sql, columns, params, count))
+        try:
+            records = list(DataView.query_iterator(sql, columns, params, count))
+        except DataError as e:
+            return {"error": _(str(e))}
 
         return records
 
