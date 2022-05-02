@@ -7,14 +7,17 @@ import six
 
 from django.db import models
 from django.db import connection
-from django.db.models import JSONField
 from django.utils.translation import ugettext as _
 
 DEFAULT_LIMIT = 1000
 
 
 class Audit(models.Model):
-    json = JSONField()
+    """
+    Audit model - persists audit logs.
+    """
+
+    json = models.JSONField()
 
     class Meta:
         app_label = "main"
@@ -33,6 +36,9 @@ class AuditLog:
         self.data = data
 
     def save(self):
+        """
+        Persists an audit to the DB
+        """
         audit = Audit(json=self.data)
         audit.save()
 
@@ -88,6 +94,9 @@ class AuditLog:
         limit=DEFAULT_LIMIT,
         count=False,
     ):
+        """
+        Queries the Audit model and returns an iterator of the records.
+        """
         if start is not None and (start < 0 or limit < 0):
             raise ValueError(_("Invalid start/limit params"))
 

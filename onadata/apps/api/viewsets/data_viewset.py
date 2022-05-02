@@ -41,7 +41,7 @@ from onadata.apps.viewer.models.parsed_instance import (
     query_data,
 )
 from onadata.libs import filters
-from onadata.libs.data import parse_int
+from onadata.libs.data import parse_int, strtobool
 from onadata.libs.exceptions import EnketoError, NoRecordsPermission
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin,
@@ -75,22 +75,6 @@ SUBMISSION_RETRIEVAL_THRESHOLD = getattr(
 )
 
 BaseViewset = get_baseviewset_class()
-
-
-# source from deprecated module distutils/util.py
-def strtobool(val):
-    """Convert a string representation of truth to true (1) or false (0).
-
-    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
-    are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
-    'val' is anything else.
-    """
-    val = val.lower()
-    if val in ("y", "yes", "t", "true", "on", "1"):
-        return 1
-    if val in ("n", "no", "f", "false", "off", "0"):
-        return 0
-    raise ValueError(f"invalid truth value {val}")
 
 
 def get_data_and_form(kwargs):
