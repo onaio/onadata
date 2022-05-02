@@ -123,7 +123,7 @@ class DigestAuthentication(BaseAuthentication):
                 _(
                     "Invalid username/password. "
                     f"For security reasons, after {remaining_attempts} more failed "
-                    "login attempts you'll have to wait {lockout_time} minutes "
+                    f"login attempts you'll have to wait {lockout_time} minutes "
                     "before trying again."
                 )
             )
