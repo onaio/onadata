@@ -74,6 +74,7 @@ def _get_instances_uuids(xml_doc):
     return uuids
 
 
+# pylint: disable=too-many-instance-attributes
 class BriefcaseClient:
     """ODK BriefcaseClient class"""
 

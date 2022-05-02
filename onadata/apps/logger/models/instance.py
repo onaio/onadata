@@ -413,7 +413,7 @@ class InstanceBaseClass:
         doc = self.get_dict()
         # pylint: disable=no-member
         if self.id:
-            geopoint = ([self.point.y, self.point.x] if self.point else [None, None],)
+            geopoint = [self.point.y, self.point.x] if self.point else [None, None]
             doc.update(
                 {
                     UUID: self.uuid,

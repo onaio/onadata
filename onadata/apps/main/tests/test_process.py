@@ -163,24 +163,25 @@ class TestProcess(TestBase):
                 "transportation.xlsx",
             )
 
+            # pylint: disable=consider-using-with
             with open(path, "rb") as xls_file:
                 mock_urlopen.return_value = xls_file
 
                 response = self.client.post(
-                    f"/{self.user.username}", {"xls_url": xls_url}
+                    f"/{self.user.username}/", {"xls_url": xls_url}
                 )
 
                 mock_urlopen.assert_called_with(xls_url)
 
-            # make sure publishing the survey worked
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(XForm.objects.count(), pre_count + 1)
+                # make sure publishing the survey worked
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(XForm.objects.count(), pre_count + 1)
 
     def test_bad_url_upload(self):
         """Test uploading an XLSForm from a badly formatted URL."""
         xls_url = "formhuborg/pld/forms/transportation_2011_07_25/form.xlsx"
         pre_count = XForm.objects.count()
-        response = self.client.post(f"/{self.user.username}", {"xls_url": xls_url})
+        response = self.client.post(f"/{self.user.username}/", {"xls_url": xls_url})
         # make sure publishing the survey worked
         self.assertEqual(response.status_code, 200)
         self.assertEqual(XForm.objects.count(), pre_count)

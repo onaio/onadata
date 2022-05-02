@@ -1,26 +1,25 @@
-import six
-
+# -*- coding: utf-8 -*-
+"""
+The /briefcase API implementation.
+"""
 from xml.dom import NotFoundErr
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.files import File
 from django.core.validators import ValidationError
-from django.contrib.auth import get_user_model
 from django.http import Http404
 from django.utils.translation import ugettext as _
 
-from rest_framework import exceptions
-from rest_framework import mixins
-from rest_framework import status
-from rest_framework import viewsets
-from rest_framework import permissions
+import six
+from rest_framework import exceptions, mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
 from rest_framework.renderers import BrowsableAPIRenderer
 from rest_framework.response import Response
 
-from onadata.apps.api.tools import get_media_file_response
 from onadata.apps.api.permissions import ViewDjangoObjectPermissions
+from onadata.apps.api.tools import get_media_file_response
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.xform import XForm
@@ -31,12 +30,12 @@ from onadata.libs import filters
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.mixins.openrosa_headers_mixin import get_openrosa_headers
 from onadata.libs.renderers.renderers import TemplateXMLRenderer
-from onadata.libs.serializers.xform_serializer import XFormListSerializer
-from onadata.libs.serializers.xform_serializer import XFormManifestSerializer
-from onadata.libs.utils.logger_tools import publish_form
-from onadata.libs.utils.logger_tools import PublishXForm
+from onadata.libs.serializers.xform_serializer import (
+    XFormListSerializer,
+    XFormManifestSerializer,
+)
+from onadata.libs.utils.logger_tools import PublishXForm, publish_form
 from onadata.libs.utils.viewer_tools import get_form
-
 
 User = get_user_model()
 
@@ -57,11 +56,11 @@ def _extract_uuid(text):
     return text
 
 
-def _extract_id_string(formId):
-    if isinstance(formId, six.string_types):
-        return formId[0 : formId.find("[")]
+def _extract_id_string(id_string):
+    if isinstance(id_string, six.string_types):
+        return id_string[0 : id_string.find("[")]
 
-    return formId
+    return id_string
 
 
 def _parse_int(num):
@@ -71,6 +70,7 @@ def _parse_int(num):
         return None
 
 
+# pylint: disable=too-many-ancestors
 class BriefcaseViewset(
     mixins.CreateModelMixin,
     mixins.RetrieveModelMixin,
@@ -125,12 +125,12 @@ class BriefcaseViewset(
         else:
             queryset = super().filter_queryset(queryset)
 
-        formId = self.request.GET.get("formId", "")
+        id_string = self.request.GET.get("formId", "")
 
-        if formId.find("[") != -1:
-            formId = _extract_id_string(formId)
+        if id_string.find("[") != -1:
+            id_string = _extract_id_string(id_string)
 
-        xform_kwargs = {"queryset": queryset, "id_string__iexact": formId}
+        xform_kwargs = {"queryset": queryset, "id_string__iexact": id_string}
         if username:
             xform_kwargs["user__username__iexact"] = username
         xform = get_form(xform_kwargs)
@@ -158,17 +158,19 @@ class BriefcaseViewset(
         # and removes the need to perform a count on the database.
         instance_count = len(instances)
 
+        # pylint: disable=attribute-defined-outside-init
         if instance_count > 0:
             last_instance = instances[instance_count - 1]
-            self.resumptionCursor = last_instance.get("pk")
+            self.resumption_cursor = last_instance.get("pk")
         elif instance_count == 0 and cursor:
-            self.resumptionCursor = cursor
+            self.resumption_cursor = cursor
         else:
-            self.resumptionCursor = 0
+            self.resumption_cursor = 0
 
         return instances
 
     def create(self, request, *args, **kwargs):
+        """Accepts an XForm XML and publishes it as a form."""
         if request.method.upper() == "HEAD":
             return Response(
                 status=status.HTTP_204_NO_CONTENT,
@@ -216,11 +218,13 @@ class BriefcaseViewset(
         )
 
     def list(self, request, *args, **kwargs):
+        """Returns a list of submissions with reference submission download."""
+        # pylint: disable=attribute-defined-outside-init
         self.object_list = self.filter_queryset(self.get_queryset())
 
         data = {
             "instances": self.object_list,
-            "resumptionCursor": self.resumptionCursor,
+            "resumptionCursor": self.resumption_cursor,
         }
 
         return Response(
@@ -230,6 +234,8 @@ class BriefcaseViewset(
         )
 
     def retrieve(self, request, *args, **kwargs):
+        """Returns a single submission XML for download."""
+        # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
 
         xml_obj = clean_and_parse_xml(self.object.xml)
@@ -260,6 +266,8 @@ class BriefcaseViewset(
 
     @action(methods=["GET"], detail=True)
     def manifest(self, request, *args, **kwargs):
+        """Returns list of media content."""
+        # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
         object_list = MetaData.objects.filter(
             data_type="media", object_id=self.object.id
@@ -273,14 +281,16 @@ class BriefcaseViewset(
 
     @action(methods=["GET"], detail=True)
     def media(self, request, *args, **kwargs):
+        """Returns a single media content."""
+        # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
-        pk = kwargs.get("metadata")
+        metadata_pk = kwargs.get("metadata")
 
-        if not pk:
+        if not metadata_pk:
             raise Http404()
 
         meta_obj = get_object_or_404(
-            MetaData, data_type="media", xform=self.object, pk=pk
+            MetaData, data_type="media", xform=self.object, pk=metadata_pk
         )
 
         return get_media_file_response(meta_obj)
