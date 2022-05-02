@@ -1,20 +1,23 @@
+# -*- coding: utf-8 -*-
+"""
+The /data API endpoint.
+"""
 import json
+import math
 import types
 from builtins import str as text
 from typing import Union
-
-import six
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.db.models.query import QuerySet
 from django.db.utils import DataError, OperationalError
-from django.http import Http404
-from django.http import StreamingHttpResponse
+from django.http import Http404, StreamingHttpResponse
 from django.utils import timezone
-from distutils.util import strtobool
 from django.utils.translation import ugettext as _
+
+import six
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ParseError
@@ -23,24 +26,23 @@ from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 
-from onadata.apps.api.permissions import ConnectViewsetPermissions
-from onadata.apps.api.permissions import XFormPermissions
-from onadata.apps.api.tools import add_tags_to_instance
-from onadata.apps.api.tools import get_baseviewset_class
-from onadata.apps.logger.models import OsmData, MergedXForm
+from onadata.apps.api.permissions import ConnectViewsetPermissions, XFormPermissions
+from onadata.apps.api.tools import add_tags_to_instance, get_baseviewset_class
+from onadata.apps.logger.models import MergedXForm, OsmData
 from onadata.apps.logger.models.attachment import Attachment
-from onadata.apps.logger.models.instance import Instance, FormInactiveError
+from onadata.apps.logger.models.instance import FormInactiveError, Instance
 from onadata.apps.logger.models.xform import XForm
-from onadata.apps.messaging.constants import XFORM, SUBMISSION_DELETED
+from onadata.apps.messaging.constants import SUBMISSION_DELETED, XFORM
 from onadata.apps.messaging.serializers import send_message
-from onadata.apps.viewer.models.parsed_instance import get_etag_hash_from_query
-from onadata.apps.viewer.models.parsed_instance import get_sql_with_params
-from onadata.apps.viewer.models.parsed_instance import get_where_clause
-from onadata.apps.viewer.models.parsed_instance import query_data
+from onadata.apps.viewer.models.parsed_instance import (
+    get_etag_hash_from_query,
+    get_sql_with_params,
+    get_where_clause,
+    query_data,
+)
 from onadata.libs import filters
 from onadata.libs.data import parse_int
-from onadata.libs.exceptions import EnketoError
-from onadata.libs.exceptions import NoRecordsPermission
+from onadata.libs.exceptions import EnketoError, NoRecordsPermission
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin,
 )
@@ -57,15 +59,15 @@ from onadata.libs.renderers import renderers
 from onadata.libs.serializers.data_serializer import (
     DataInstanceSerializer,
     DataInstanceXMLSerializer,
+    DataSerializer,
     InstanceHistorySerializer,
+    JsonDataSerializer,
+    OSMSerializer,
 )
-from onadata.libs.serializers.data_serializer import DataSerializer
-from onadata.libs.serializers.data_serializer import JsonDataSerializer
-from onadata.libs.serializers.data_serializer import OSMSerializer
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.utils.common_tools import json_stream
-from onadata.libs.utils.viewer_tools import get_form_url, get_enketo_urls
+from onadata.libs.utils.viewer_tools import get_enketo_urls, get_form_url
 
 SAFE_METHODS = ["GET", "HEAD", "OPTIONS"]
 SUBMISSION_RETRIEVAL_THRESHOLD = getattr(
@@ -75,7 +77,26 @@ SUBMISSION_RETRIEVAL_THRESHOLD = getattr(
 BaseViewset = get_baseviewset_class()
 
 
+# source from deprecated module distutils/util.py
+def strtobool(val):
+    """Convert a string representation of truth to true (1) or false (0).
+
+    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
+    are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
+    'val' is anything else.
+    """
+    val = val.lower()
+    if val in ("y", "yes", "t", "true", "on", "1"):
+        return 1
+    if val in ("n", "no", "f", "false", "off", "0"):
+        return 0
+    raise ValueError(f"invalid truth value {val}")
+
+
 def get_data_and_form(kwargs):
+    """
+    Checks if the dataid in ``kwargs`` is a valid integer.
+    """
     data_id = text(kwargs.get("dataid"))
     if not data_id.isdigit():
         raise ParseError(_("Data ID should be an integer"))
@@ -94,9 +115,10 @@ def delete_instance(instance, user):
     try:
         instance.set_deleted(timezone.now(), user)
     except FormInactiveError as e:
-        raise ParseError(text(e))
+        raise ParseError(text(e)) from e
 
 
+# pylint: disable=too-many-ancestors
 class DataViewSet(
     AnonymousUserPublicFormsMixin,
     AuthenticateHeaderMixin,
@@ -141,7 +163,7 @@ class DataViewSet(
 
     def get_serializer_class(self):
         pk_lookup, dataid_lookup = self.lookup_fields
-        pk = self.kwargs.get(pk_lookup)
+        form_pk = self.kwargs.get(pk_lookup)
         dataid = self.kwargs.get(dataid_lookup)
         fmt = self.kwargs.get("format", self.request.GET.get("format"))
         sort = self.request.GET.get("sort")
@@ -152,35 +174,40 @@ class DataViewSet(
             serializer_class = GeoJsonSerializer
         elif fmt == "xml":
             serializer_class = DataInstanceXMLSerializer
-        elif pk is not None and dataid is None and pk != self.public_data_endpoint:
+        elif (
+            form_pk is not None
+            and dataid is None
+            and form_pk != self.public_data_endpoint
+        ):
             if sort or fields:
                 serializer_class = JsonDataSerializer
             else:
                 serializer_class = DataInstanceSerializer
         else:
-            serializer_class = super(DataViewSet, self).get_serializer_class()
+            serializer_class = super().get_serializer_class()
 
         return serializer_class
 
+    # pylint: disable=unused-argument
     def get_object(self, queryset=None):
-        obj = super(DataViewSet, self).get_object()
+        obj = super().get_object()
         pk_lookup, dataid_lookup = self.lookup_fields
-        pk = self.kwargs.get(pk_lookup)
+        form_pk = self.kwargs.get(pk_lookup)
         dataid = self.kwargs.get(dataid_lookup)
 
-        if pk is not None and dataid is not None:
+        if form_pk is not None and dataid is not None:
             try:
                 int(dataid)
-            except ValueError:
-                raise ParseError(_("Invalid dataid %(dataid)s" % {"dataid": dataid}))
+            except ValueError as e:
+                raise ParseError(_(f"Invalid dataid {dataid}")) from e
 
             if not obj.is_merged_dataset:
                 obj = get_object_or_404(
-                    Instance, pk=dataid, xform__pk=pk, deleted_at__isnull=True
+                    Instance, pk=dataid, xform__pk=form_pk, deleted_at__isnull=True
                 )
             else:
                 xforms = obj.mergedxform.xforms.filter(deleted_at__isnull=True)
-                pks = [xform_id for xform_id in xforms.values_list("pk", flat=True)]
+                pks = list(xforms.values_list("pk", flat=True))
 
                 obj = get_object_or_404(
                     Instance, pk=dataid, xform_id__in=pks, deleted_at__isnull=True
@@ -193,45 +220,46 @@ class DataViewSet(
             Q(shared=True) | Q(shared_data=True), deleted_at__isnull=True
         )
 
-    def _filtered_or_shared_qs(self, qs, pk):
-        filter_kwargs = {self.lookup_field: pk}
-        qs = qs.filter(**filter_kwargs).only("id", "shared")
+    def _filtered_or_shared_queryset(self, queryset, form_pk):
+        filter_kwargs = {self.lookup_field: form_pk}
+        queryset = queryset.filter(**filter_kwargs).only("id", "shared")
 
-        if not qs:
+        if not queryset:
             filter_kwargs["shared_data"] = True
-            qs = XForm.objects.filter(**filter_kwargs).only("id", "shared")
+            queryset = XForm.objects.filter(**filter_kwargs).only("id", "shared")
 
-            if not qs:
+            if not queryset:
                 raise Http404(_("No data matches with given query."))
 
-        return qs
+        return queryset
 
+    # pylint: disable=unused-argument
     def filter_queryset(self, queryset, view=None):
-        qs = super(DataViewSet, self).filter_queryset(queryset.only("id", "shared"))
-        pk = self.kwargs.get(self.lookup_field)
+        queryset = super().filter_queryset(queryset.only("id", "shared"))
+        form_pk = self.kwargs.get(self.lookup_field)
 
-        if pk:
+        if form_pk:
             try:
-                int(pk)
-            except ValueError:
-                if pk == self.public_data_endpoint:
-                    qs = self._get_public_forms_queryset()
+                int(form_pk)
+            except ValueError as e:
+                if form_pk == self.public_data_endpoint:
+                    queryset = self._get_public_forms_queryset()
                 else:
-                    raise ParseError(_("Invalid pk %(pk)s" % {"pk": pk}))
+                    raise ParseError(_(f"Invalid pk {form_pk}")) from e
             else:
-                qs = self._filtered_or_shared_qs(qs, pk)
+                queryset = self._filtered_or_shared_queryset(queryset, form_pk)
         else:
             tags = self.request.query_params.get("tags")
             not_tagged = self.request.query_params.get("not_tagged")
 
             if tags and isinstance(tags, six.string_types):
                 tags = tags.split(",")
-                qs = qs.filter(tags__name__in=tags)
+                queryset = queryset.filter(tags__name__in=tags)
             if not_tagged and isinstance(not_tagged, six.string_types):
                 not_tagged = not_tagged.split(",")
-                qs = qs.exclude(tags__name__in=not_tagged)
+                queryset = queryset.exclude(tags__name__in=not_tagged)
 
-        return qs
+        return queryset
 
     @action(
         methods=["GET", "POST", "DELETE"],
@@ -241,7 +269,11 @@ class DataViewSet(
         ],
     )
     def labels(self, request, *args, **kwargs):
+        """
+        Data labels API endpoint.
+        """
         http_status = status.HTTP_400_BAD_REQUEST
+        # pylint: disable=attribute-defined-outside-init
         self.object = instance = self.get_object()
 
         if request.method == "POST":
@@ -278,11 +310,15 @@ class DataViewSet(
 
     @action(methods=["GET"], detail=True)
     def enketo(self, request, *args, **kwargs):
+        """
+        Data Enketo URLs endpoint
+        """
+        # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
         data = {}
         if isinstance(self.object, XForm):
             raise ParseError(_("Data id not provided."))
-        elif isinstance(self.object, Instance):
+        if isinstance(self.object, Instance):
             if request.user.has_perm("change_xform", self.object.xform):
                 return_url = request.query_params.get("return_url")
                 form_url = get_form_url(
@@ -304,7 +340,7 @@ class DataViewSet(
                     if "edit_url" in data:
                         data["url"] = data.pop("edit_url")
                 except EnketoError as e:
-                    raise ParseError(text(e))
+                    raise ParseError(text(e)) from e
             else:
                 raise PermissionDenied(_("You do not have edit permissions."))
 
@@ -315,62 +351,60 @@ class DataViewSet(
     def destroy(self, request, *args, **kwargs):
         instance_ids = request.data.get("instance_ids")
         delete_all_submissions = strtobool(request.data.get("delete_all", "False"))
+        # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
 
         if isinstance(self.object, XForm):
             if not instance_ids and not delete_all_submissions:
                 raise ParseError(_("Data id(s) not provided."))
+            initial_count = self.object.submission_count()
+            if delete_all_submissions:
+                # Update timestamp only for active records
+                self.object.instances.filter(deleted_at__isnull=True).update(
+                    deleted_at=timezone.now(),
+                    date_modified=timezone.now(),
+                    deleted_by=request.user,
+                )
             else:
-                initial_count = self.object.submission_count()
-                if delete_all_submissions:
-                    # Update timestamp only for active records
-                    self.object.instances.filter(deleted_at__isnull=True).update(
-                        deleted_at=timezone.now(),
-                        date_modified=timezone.now(),
-                        deleted_by=request.user,
-                    )
-                else:
-                    instance_ids = [x for x in instance_ids.split(",") if x.isdigit()]
-                    if not instance_ids:
-                        raise ParseError(_("Invalid data ids were provided."))
+                instance_ids = [x for x in instance_ids.split(",") if x.isdigit()]
+                if not instance_ids:
+                    raise ParseError(_("Invalid data ids were provided."))
 
-                    self.object.instances.filter(
-                        id__in=instance_ids,
-                        xform=self.object,
-                        # do not update this timestamp when the record have
-                        # already been deleted.
-                        deleted_at__isnull=True,
-                    ).update(
-                        deleted_at=timezone.now(),
-                        date_modified=timezone.now(),
-                        deleted_by=request.user,
-                    )
-
-                # updates the num_of_submissions for the form.
-                after_count = self.object.submission_count(force_update=True)
-                number_of_records_deleted = initial_count - after_count
-
-                # update the date modified field of the project
-                self.object.project.date_modified = timezone.now()
-                self.object.project.save(update_fields=["date_modified"])
-
-                # send message
-                send_message(
-                    instance_id=instance_ids,
-                    target_id=self.object.id,
-                    target_type=XFORM,
-                    user=request.user,
-                    message_verb=SUBMISSION_DELETED,
+                self.object.instances.filter(
+                    id__in=instance_ids,
+                    xform=self.object,
+                    # do not update this timestamp when the record have
+                    # already been deleted.
+                    deleted_at__isnull=True,
+                ).update(
+                    deleted_at=timezone.now(),
+                    date_modified=timezone.now(),
+                    deleted_by=request.user,
                 )
 
-                return Response(
-                    data={
-                        "message": "%d records were deleted" % number_of_records_deleted
-                    },
-                    status=status.HTTP_200_OK,
-                )
+            # updates the num_of_submissions for the form.
+            after_count = self.object.submission_count(force_update=True)
+            number_of_records_deleted = initial_count - after_count
 
-        elif isinstance(self.object, Instance):
+            # update the date modified field of the project
+            self.object.project.date_modified = timezone.now()
+            self.object.project.save(update_fields=["date_modified"])
+
+            # send message
+            send_message(
+                instance_id=instance_ids,
+                target_id=self.object.id,
+                target_type=XFORM,
+                user=request.user,
+                message_verb=SUBMISSION_DELETED,
+            )
+
+            return Response(
+                data={"message": f"{number_of_records_deleted} records were deleted"},
+                status=status.HTTP_200_OK,
+            )
+
+        if isinstance(self.object, Instance):
 
             if request.user.has_perm(CAN_DELETE_SUBMISSION, self.object.xform):
                 instance_id = self.object.pk
@@ -389,30 +423,29 @@ class DataViewSet(
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def retrieve(self, request, *args, **kwargs):
-        data_id, _format = get_data_and_form(kwargs)
+        _data_id, _format = get_data_and_form(kwargs)
+        # pylint: disable=attribute-defined-outside-init
         self.object = instance = self.get_object()
 
         if _format == "json" or _format is None or _format == "debug":
             return Response(instance.json)
-        elif _format == "xml":
+        if _format == "xml":
             return Response(instance.xml)
-        elif _format == "geojson":
-            return super(DataViewSet, self).retrieve(request, *args, **kwargs)
-        elif _format == Attachment.OSM:
+        if _format == "geojson":
+            return super().retrieve(request, *args, **kwargs)
+        if _format == Attachment.OSM:
             serializer = self.get_serializer(instance.osm_data.all())
 
             return Response(serializer.data)
-        else:
-            raise ParseError(
-                _(
-                    "'%(_format)s' format unknown or not implemented!"
-                    % {"_format": _format}
-                )
-            )
+
+        raise ParseError(_(f"'{_format}' format unknown or not implemented!"))
 
     @action(methods=["GET"], detail=True)
     def history(self, request, *args, **kwargs):
-        data_id, _format = get_data_and_form(kwargs)
+        """
+        Return submission history.
+        """
+        _data_id, _format = get_data_and_form(kwargs)
         instance = self.get_object()
 
         # retrieve all history objects and return them
@@ -420,14 +453,9 @@ class DataViewSet(
             instance_history = instance.submission_history.all()
             serializer = InstanceHistorySerializer(instance_history, many=True)
             return Response(serializer.data)
-        else:
-            raise ParseError(
-                _(
-                    "'%(_format)s' format unknown or not implemented!"
-                    % {"_format": _format}
-                )
-            )
+        raise ParseError(_(f"'{_format}' format unknown or not implemented!"))
 
+    # pylint: disable=too-many-locals,too-many-branches
     def _set_pagination_headers(
         self,
         xform: XForm,
@@ -437,8 +465,6 @@ class DataViewSet(
         """
         Sets the self.headers value for the viewset
         """
-        import math
-
         url = self.request.build_absolute_uri()
         query = self.request.query_params.get("query")
         base_url = url.split("?")[0]
@@ -475,13 +501,14 @@ class DataViewSet(
             )
 
         last_page = math.ceil(num_of_records / current_page_size)
-        if last_page != current_page and last_page != current_page + 1:
+        if last_page not in (current_page, current_page + 1):
             last_page_url = f"{base_url}?page={last_page}&page_size={current_page_size}"
 
         if current_page != 1:
             first_page_url = f"{base_url}?page=1&page_size={current_page_size}"
 
         if not hasattr(self, "headers"):
+            # pylint: disable=attribute-defined-outside-init
             self.headers = {}
 
         for rel, link in (
@@ -494,6 +521,7 @@ class DataViewSet(
                 links.append(f'<{link}>; rel="{rel}"')
         self.headers.update({"Link": ", ".join(links)})
 
+    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     def list(self, request, *args, **kwargs):
         fields = request.GET.get("fields")
         query = request.GET.get("query", {})
@@ -506,31 +534,34 @@ class DataViewSet(
         is_public_request = lookup == self.public_data_endpoint
 
         if lookup_field not in list(kwargs):
+            # pylint: disable=attribute-defined-outside-init
             self.object_list = self.filter_queryset(self.get_queryset())
             serializer = self.get_serializer(self.object_list, many=True)
 
             return Response(serializer.data)
 
         if is_public_request:
+            # pylint: disable=attribute-defined-outside-init
             self.object_list = self._get_public_forms_queryset()
         elif lookup:
-            qs = self.filter_queryset(self.get_queryset()).values_list(
+            queryset = self.filter_queryset(self.get_queryset()).values_list(
                 "pk", "is_merged_dataset"
             )
-            xform_id, is_merged_dataset = qs[0] if qs else (lookup, False)
+            xform_id, is_merged_dataset = queryset[0] if queryset else (lookup, False)
             pks = [xform_id]
             if is_merged_dataset:
                 merged_form = MergedXForm.objects.get(pk=xform_id)
-                qs = merged_form.xforms.filter(deleted_at__isnull=True).values_list(
-                    "id", "num_of_submissions"
-                )
+                queryset = merged_form.xforms.filter(
+                    deleted_at__isnull=True
+                ).values_list("id", "num_of_submissions")
                 try:
-                    pks, num_of_submissions = [list(value) for value in zip(*qs)]
+                    pks, num_of_submissions = [list(value) for value in zip(*queryset)]
                     num_of_submissions = sum(num_of_submissions)
                 except ValueError:
                     pks, num_of_submissions = [], 0
             else:
                 num_of_submissions = XForm.objects.get(id=xform_id).num_of_submissions
+            # pylint: disable=attribute-defined-outside-init
             self.object_list = Instance.objects.filter(
                 xform_id__in=pks, deleted_at=None
             ).only("json")
@@ -538,15 +569,18 @@ class DataViewSet(
             # Enable ordering for XForms with Submissions that are less
             # than the SUBMISSION_RETRIEVAL_THRESHOLD
             if num_of_submissions < SUBMISSION_RETRIEVAL_THRESHOLD:
+                # pylint: disable=attribute-defined-outside-init
                 self.object_list = self.object_list.order_by("id")
 
             xform = self.get_object()
+            # pylint: disable=attribute-defined-outside-init
             self.object_list = filter_queryset_xform_meta_perms(
                 xform, request.user, self.object_list
             )
             tags = self.request.query_params.get("tags")
             not_tagged = self.request.query_params.get("not_tagged")
 
+            # pylint: disable=attribute-defined-outside-init
             self.object_list = filters.InstanceFilter(
                 self.request.query_params, queryset=self.object_list, request=request
             ).qs
@@ -578,18 +612,22 @@ class DataViewSet(
 
             return Response(serializer.data)
 
-        elif export_type is None or export_type in ["json"]:
+        if export_type is None or export_type in ["json"]:
             # perform default viewset retrieve, no data export
-            return super(DataViewSet, self).list(request, *args, **kwargs)
+            return super().list(request, *args, **kwargs)
 
-        elif export_type == "geojson":
+        if export_type == "geojson":
             serializer = self.get_serializer(self.object_list, many=True)
 
             return Response(serializer.data)
 
         return custom_response_handler(request, xform, query, export_type)
 
+    # pylint: disable=too-many-arguments
     def set_object_list(self, query, fields, sort, start, limit, is_public_request):
+        """
+        Set the submission instances queryset.
+        """
         try:
             enable_etag = True
             if not is_public_request:
@@ -599,6 +637,7 @@ class DataViewSet(
 
             where, where_params = get_where_clause(query)
             if where:
+                # pylint: disable=attribute-defined-outside-init
                 self.object_list = self.object_list.extra(
                     where=where, params=where_params
                 )
@@ -606,15 +645,18 @@ class DataViewSet(
             if (start and limit or limit) and (not sort and not fields):
                 start = start if start is not None else 0
                 limit = limit if start is None or start == 0 else start + limit
+                # pylint: disable=attribute-defined-outside-init
                 self.object_list = filter_queryset_xform_meta_perms(
                     self.get_object(), self.request.user, self.object_list
                 )
+                # pylint: disable=attribute-defined-outside-init
                 self.object_list = self.object_list[start:limit]
             elif (sort or limit or start or fields) and not is_public_request:
                 try:
                     query = filter_queryset_xform_meta_perms_sql(
                         self.get_object(), self.request.user, query
                     )
+                    # pylint: disable=attribute-defined-outside-init
                     self.object_list = query_data(
                         xform,
                         query=query,
@@ -625,6 +667,7 @@ class DataViewSet(
                         json_only=not self.kwargs.get("format") == "xml",
                     )
                 except NoRecordsPermission:
+                    # pylint: disable=attribute-defined-outside-init
                     self.object_list = []
 
             # ETags are Disabled for XForms with Submissions that surpass
@@ -649,9 +692,9 @@ class DataViewSet(
                         (get_etag_hash_from_query(records, sql, params)),
                     )
         except ValueError as e:
-            raise ParseError(text(e))
+            raise ParseError(text(e)) from e
         except DataError as e:
-            raise ParseError(text(e))
+            raise ParseError(text(e)) from e
 
     def paginate_queryset(self, queryset):
         if self.paginator is None:
@@ -660,6 +703,7 @@ class DataViewSet(
             queryset, self.request, view=self, count=self.data_count
         )
 
+    # pylint: disable=too-many-arguments,too-many-locals
     def _get_data(self, query, fields, sort, start, limit, is_public_request):
         self.set_object_list(query, fields, sort, start, limit, is_public_request)
 
@@ -669,7 +713,7 @@ class DataViewSet(
             self.paginator.page_size_query_param,
         ]
         query_param_keys = self.request.query_params
-        should_paginate = any([k in query_param_keys for k in pagination_keys])
+        should_paginate = any(k in query_param_keys for k in pagination_keys)
 
         if not should_paginate and not is_public_request:
             # Paginate requests that try to retrieve data that surpasses
@@ -693,12 +737,14 @@ class DataViewSet(
             )
 
             try:
+                # pylint: disable=attribute-defined-outside-init
                 self.object_list = self.paginate_queryset(self.object_list)
             except OperationalError:
+                # pylint: disable=attribute-defined-outside-init
                 self.object_list = self.paginate_queryset(self.object_list)
 
-        STREAM_DATA = getattr(settings, "STREAM_DATA", False)
-        if STREAM_DATA:
+        stream_data = getattr(settings, "STREAM_DATA", False)
+        if stream_data:
             response = self._get_streaming_response()
         else:
             serializer = self.get_serializer(self.object_list, many=True)
@@ -722,6 +768,7 @@ class DataViewSet(
                 content_type="application/xml",
             )
         else:
+            # pylint: disable=http-response-with-content-type-json
             response = StreamingHttpResponse(
                 json_stream(self.object_list, get_json_string),
                 content_type="application/json",
@@ -738,5 +785,10 @@ class DataViewSet(
         return response
 
 
+# pylint: disable=too-many-ancestors
 class AuthenticatedDataViewSet(DataViewSet):
+    """
+    Authenticated requests only.
+    """
+
     permission_classes = (ConnectViewsetPermissions,)

@@ -2,7 +2,6 @@
 """
 OSM Data model class
 """
-from django.db.models import JSONField
 from django.contrib.gis.db import models
 
 
@@ -17,7 +16,7 @@ class OsmData(models.Model):
     xml = models.TextField()
     osm_id = models.CharField(max_length=20)
     osm_type = models.CharField(max_length=10, default="way")
-    tags = JSONField(default=dict, null=False)
+    tags = models.JSONField(default=dict, null=False)
     geom = models.GeometryCollectionField()
     filename = models.CharField(max_length=255)
     field_name = models.CharField(max_length=255, blank=True, default="")
@@ -44,6 +43,9 @@ class OsmData(models.Model):
         return sorted([prefix + key.id for key in query])
 
     def get_tags_with_prefix(self):
+        """
+        Returns tags prefixed by the field_name.
+        """
         doc = {self.field_name + ":" + self.osm_type + ":id": self.osm_id}
         for k, v in self.tags.items():
             doc[self.field_name + ":" + k] = v
@@ -61,6 +63,10 @@ class OsmData(models.Model):
                 }
             )
 
-    def save(self, *args, **kwargs):
+    def save(
+        self, force_insert=False, force_update=False, using=None, update_fields=None
+    ):
         self._set_centroid_in_tags()
-        super().save(*args, **kwargs)
+        super().save(
+            force_insert=False, force_update=False, using=None, update_fields=None
+        )

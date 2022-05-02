@@ -171,9 +171,9 @@ def _start_index_limit(records, sql, fields, params, sort, start_index, limit):
     has_json_fields = ParsedInstance._has_json_fields(sort)
     if start_index is not None and (has_json_fields or fields):
         params += [start_index]
-        sql = f"{sql} OFFSET %%s"
+        sql = f"{sql} OFFSET %s"
     if limit is not None and (has_json_fields or fields):
-        sql = f"{sql} LIMIT %%s"
+        sql = f"{sql} LIMIT %s"
         params += [limit]
     if (
         start_index is not None

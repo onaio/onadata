@@ -1,16 +1,31 @@
+# -*- coding: utf-8 -*-
+"""
+Test increase_odk_token_lifetime command
+"""
 from datetime import timedelta
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.management import call_command
+
 from six import StringIO
 
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.api.models.odk_token import ODKToken
+from onadata.apps.main.tests.test_base import TestBase
 
 
 class IncreaseODKTokenLifetimeTest(TestBase):
+    """
+    Test increase_odk_token_lifetime command
+    """
+
+    # pylint: disable=invalid-name
     def test_increase_odk_token_lifetime(self):
-        user = User.objects.create(username="dave", email="dave@example.com")
+        """
+        Test increase_odk_token_lifetime command
+        """
+        user = get_user_model().objects.create(
+            username="dave", email="dave@example.com"
+        )
         token = ODKToken.objects.create(user=user)
         expiry_date = token.expires
 

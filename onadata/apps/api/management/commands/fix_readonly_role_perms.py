@@ -54,10 +54,66 @@ def check_role(role_class, user, obj, new_perm=None):
     return False
 
 
+def reassign_perms(user, model, new_perm):
+    """
+    Gets all the permissions the user has on objects and assigns the new
+    permission to them
+    :param user:
+    :param model:
+    :param new_perm:
+    :return:
+    """
+
+    # Get the unique permission model objects filtered by content type
+    #  for the user
+    if isinstance(user, Team):
+        if model == "project":
+            objects = user.projectgroupobjectpermission_set.filter(
+                group_id=user.pk
+            ).distinct("content_object_id")
+        else:
+            objects = user.xformgroupobjectpermission_set.filter(
+                group_id=user.pk
+            ).distinct("content_object_id")
+    else:
+        if model == "project":
+            objects = user.projectuserobjectpermission_set.all()
+        else:
+            objects = user.xformuserobjectpermission_set.all()
+
+    for perm_obj in objects:
+        obj = perm_obj.content_object
+        ROLES = [
+            ReadOnlyRoleNoDownload,
+            ReadOnlyRole,
+            DataEntryOnlyRole,
+            DataEntryMinorRole,
+            DataEntryRole,
+            EditorMinorRole,
+            EditorRole,
+            ManagerRole,
+            OwnerRole,
+        ]
+
+        # For each role reassign the perms
+        for role_class in reversed(ROLES):
+            not_readonly = role_class.user_has_role(user, obj) or role_class not in [
+                ReadOnlyRoleNoDownload,
+                ReadOnlyRole,
+            ]
+            if not_readonly:
+                continue
+
+            if check_role(role_class, user, obj, new_perm):
+                # If true
+                role_class.add(user, obj)
+                break
+
+
 class Command(BaseCommand):
     """
     fix_readonly_role_perms - Reassign permission to the model when
-                             permissions are changed
+                              permissions are changed
     """
 
     args = "<app model [created_perm] >"
@@ -88,68 +144,9 @@ class Command(BaseCommand):
             teams = Team.objects.filter(organization__username=username)
         # Get all the users
         for user in queryset_iterator(users):
-            self.reassign_perms(user, app, model, new_perms)
+            reassign_perms(user, model, new_perms)
 
         for team in queryset_iterator(teams):
-            self.reassign_perms(team, app, model, new_perms)
+            reassign_perms(team, model, new_perms)
 
         self.stdout.write("Re-assigining finished", ending="\n")
-
-    # pylint: disable=unused-argument
-    def reassign_perms(self, user, app, model, new_perm):
-        """
-        Gets all the permissions the user has on objects and assigns the new
-        permission to them
-        :param user:
-        :param app:
-        :param model:
-        :param new_perm:
-        :return:
-        """
-
-        # Get the unique permission model objects filtered by content type
-        #  for the user
-        if isinstance(user, Team):
-            if model == "project":
-                objects = user.projectgroupobjectpermission_set.filter(
-                    group_id=user.pk
-                ).distinct("content_object_id")
-            else:
-                objects = user.xformgroupobjectpermission_set.filter(
-                    group_id=user.pk
-                ).distinct("content_object_id")
-        else:
-            if model == "project":
-                objects = user.projectuserobjectpermission_set.all()
-            else:
-                objects = user.xformuserobjectpermission_set.all()
-
-        for perm_obj in objects:
-            obj = perm_obj.content_object
-            ROLES = [
-                ReadOnlyRoleNoDownload,
-                ReadOnlyRole,
-                DataEntryOnlyRole,
-                DataEntryMinorRole,
-                DataEntryRole,
-                EditorMinorRole,
-                EditorRole,
-                ManagerRole,
-                OwnerRole,
-            ]
-
-            # For each role reassign the perms
-            for role_class in reversed(ROLES):
-                not_readonly = role_class.user_has_role(
-                    user, obj
-                ) or role_class not in [
-                    ReadOnlyRoleNoDownload,
-                    ReadOnlyRole,
-                ]
-                if not_readonly:
-                    continue
-
-                if check_role(role_class, user, obj, new_perm):
-                    # If true
-                    role_class.add(user, obj)
-                    break
