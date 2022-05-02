@@ -1,22 +1,21 @@
 # -*- coding: utf-8 -*-
-"""Util functions for data views."""
+"""Utility functions for data views."""
 import json
 import os
-import requests
 import sys
 import zipfile
-from builtins import open
 from json.decoder import JSONDecodeError
 from tempfile import NamedTemporaryFile
 from typing import Dict
 from xml.dom import minidom
 
-from six.moves.urllib.parse import urljoin
-
 from django.conf import settings
 from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.translation import ugettext as _
+
+import requests
+from six.moves.urllib.parse import urljoin
 
 from onadata.libs.exceptions import EnketoError
 from onadata.libs.utils import common_tags
@@ -127,16 +126,16 @@ def django_file(path, field_name, content_type):
     """Return an InMemoryUploadedFile object for file uploads."""
     # adapted from here: http://groups.google.com/group/django-users/browse_th\
     # read/thread/834f988876ff3c45/
-    file_object = open(path, "rb")
 
-    return InMemoryUploadedFile(
-        file=file_object,
-        field_name=field_name,
-        name=file_object.name,
-        content_type=content_type,
-        size=os.path.getsize(path),
-        charset=None,
-    )
+    with open(path, "rb") as file_object:
+        return InMemoryUploadedFile(
+            file=file_object,
+            field_name=field_name,
+            name=file_object.name,
+            content_type=content_type,
+            size=os.path.getsize(path),
+            charset=None,
+        )
 
 
 def export_def_from_filename(filename):
@@ -183,7 +182,7 @@ def get_enketo_urls(
                 "instance": instance_xml,
                 "instance_id": instance_id,
                 # convert to unicode string in python3 compatible way
-                "return_url": "%s" % return_url,
+                "return_url": f"{return_url}",
             }
         )
 
@@ -215,20 +214,22 @@ def get_enketo_urls(
 
     handle_enketo_error(response)
 
+    return None
+
 
 def handle_enketo_error(response):
     """Handle enketo error response."""
     try:
         data = json.loads(response.content)
-    except (ValueError, JSONDecodeError):
+    except (ValueError, JSONDecodeError) as e:
         report_exception(
-            "HTTP Error {}".format(response.status_code), response.text, sys.exc_info()
+            f"HTTP Error {response.status_code}", response.text, sys.exc_info()
         )
         if response.status_code == 502:
             raise EnketoError(
-                "Sorry, we cannot load your form right now.  Please try " "again later."
-            )
-        raise EnketoError()
+                "Sorry, we cannot load your form right now.  Please try again later."
+            ) from e
+        raise EnketoError() from e
     else:
         if "message" in data:
             raise EnketoError(data["message"])
@@ -243,7 +244,7 @@ def generate_enketo_form_defaults(xform, **kwargs):
         for (name, value) in kwargs.items():
             field = xform.get_survey_element(name)
             if field:
-                defaults["defaults[{}]".format(field.get_xpath())] = value
+                defaults[f"defaults[{field.get_xpath()}]"] = value
 
     return defaults
 
@@ -251,30 +252,30 @@ def generate_enketo_form_defaults(xform, **kwargs):
 def create_attachments_zipfile(attachments):
     """Return a zip file with submission attachments."""
     # create zip_file
-    tmp = NamedTemporaryFile()
-    with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as z:
-        for attachment in attachments:
-            default_storage = get_storage_class()()
-            filename = attachment.media_file.name
+    with NamedTemporaryFile() as tmp:
+        with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as z:
+            for attachment in attachments:
+                default_storage = get_storage_class()()
+                filename = attachment.media_file.name
 
-            if default_storage.exists(filename):
-                try:
-                    with default_storage.open(filename) as f:
-                        if f.size > settings.ZIP_REPORT_ATTACHMENT_LIMIT:
-                            report_exception(
-                                "Create attachment zip exception",
-                                "File is greater than {} bytes".format(
-                                    settings.ZIP_REPORT_ATTACHMENT_LIMIT
-                                ),
-                            )
-                            break
-                        else:
+                if default_storage.exists(filename):
+                    try:
+                        with default_storage.open(filename) as f:
+                            if f.size > settings.ZIP_REPORT_ATTACHMENT_LIMIT:
+                                report_exception(
+                                    "Create attachment zip exception",
+                                    (
+                                        "File is greater than "
+                                        f"{settings.ZIP_REPORT_ATTACHMENT_LIMIT} bytes"
+                                    ),
+                                )
+                                break
                             z.writestr(attachment.media_file.name, f.read())
-                except IOError as e:
-                    report_exception("Create attachment zip exception", e)
-                    break
+                    except IOError as e:
+                        report_exception("Create attachment zip exception", e)
+                        break
 
-    return tmp
+        return tmp
 
 
 def get_form(kwargs):
@@ -282,8 +283,10 @@ def get_form(kwargs):
     # adding inline imports here because adding them at the top of the file
     # triggers the following error:
     # django.core.exceptions.AppRegistryNotReady: Apps aren't loaded yet.
-    from onadata.apps.logger.models import XForm
+    # pylint: disable=import-outside-toplevel
     from django.http import Http404
+
+    from onadata.apps.logger.models import XForm
 
     queryset = kwargs.pop("queryset", XForm.objects.all())
     kwargs["deleted_at__isnull"] = True
@@ -294,6 +297,7 @@ def get_form(kwargs):
     raise Http404("XForm does not exist.")
 
 
+# pylint: disable=too-many-arguments
 def get_form_url(
     request,
     username=None,
@@ -317,16 +321,14 @@ def get_form_url(
     else:
         http_host = request.META.get("HTTP_HOST", "ona.io")
 
-    url = "%s://%s" % (protocol, http_host)
+    url = f"{protocol}://{http_host}"
 
     if preview:
         url += "/preview"
 
     if xform_pk and generate_consistent_urls:
-        url += "/enketo/{}".format(xform_pk)
+        url += f"/enketo/{xform_pk}"
     elif username:
-        url += (
-            "/{}/{}".format(username, xform_pk) if xform_pk else "/{}".format(username)
-        )
+        url += f"/{username}/{xform_pk}" if xform_pk else f"/{username}"
 
     return url
