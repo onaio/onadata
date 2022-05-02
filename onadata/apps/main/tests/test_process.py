@@ -1,23 +1,27 @@
+# -*- coding: utf-8 -*-
+"""
+Test usage process - form publishing and export.
+"""
 import csv
 import fnmatch
-from io import BytesIO
 import json
 import os
 import re
-from builtins import open
 from datetime import datetime
 from hashlib import md5
-from xml.dom import minidom, Node
+from io import BytesIO
+from xml.dom import Node, minidom
 
-import pytz
-import requests
-import openpyxl
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 from django.urls import reverse
+
+import openpyxl
+import pytz
+import requests
 from django_digest.test import Client as DigestClient
-from six import iteritems
 from mock import patch
+from six import iteritems
 
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
@@ -32,14 +36,18 @@ uuid_regex = re.compile(r'(</instance>.*uuid[^//]+="\')([^\']+)(\'".*)', re.DOTA
 
 
 class TestProcess(TestBase):
+    """
+    Test form publishing processes.
+    """
+
     loop_str = "loop_over_transport_types_frequency"
     frequency_str = "frequency_to_referral_facility"
-    ambulance_key = "%s/ambulance/%s" % (loop_str, frequency_str)
-    bicycle_key = "%s/bicycle/%s" % (loop_str, frequency_str)
-    other_key = "%s/other/%s" % (loop_str, frequency_str)
-    taxi_key = "%s/taxi/%s" % (loop_str, frequency_str)
-    transport_ambulance_key = "transport/%s" % ambulance_key
-    transport_bicycle_key = "transport/%s" % bicycle_key
+    ambulance_key = f"{loop_str}/ambulance/{frequency_str}"
+    bicycle_key = f"{loop_str}/bicycle/{frequency_str}"
+    other_key = f"{loop_str}/other/{frequency_str}"
+    taxi_key = f"{loop_str}/taxi/{frequency_str}"
+    transport_ambulance_key = "transport/{ambulance_key}"
+    transport_bicycle_key = "transport/{bicycle_key}"
     uuid_to_submission_times = {
         "5b2cc313-fc09-437e-8149-fcd32f695d41": "2013-02-14T15:37:21",
         "f3d8dc65-91a6-4d0f-9e97-802128083390": "2013-02-14T15:37:22",
@@ -47,13 +55,9 @@ class TestProcess(TestBase):
         "9f0a1508-c3b7-4c99-be00-9b237c26bcbf": "2013-02-14T15:37:24",
     }
 
-    def setUp(self):
-        super(TestProcess, self).setUp()
-
-    def tearDown(self):
-        super(TestProcess, self).tearDown()
-
+    # pylint: disable=unused-argument
     def test_process(self, username=None, password=None):
+        """Test usage process."""
         self._publish_xls_file()
         self._check_formlist()
         self._download_xform()
@@ -75,6 +79,7 @@ class TestProcess(TestBase):
             i.save()
 
     def test_uuid_submit(self):
+        """Test submission with uuid included."""
         self._publish_xls_file()
         survey = "transport_2011-07-25_19-05-49"
         path = os.path.join(
@@ -85,17 +90,20 @@ class TestProcess(TestBase):
             survey,
             survey + ".xml",
         )
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             post_data = {"xml_submission_file": f, "uuid": self.xform.uuid}
             url = "/submission"
+            # pylint: disable=attribute-defined-outside-init
             self.response = self.client.post(url, post_data)
 
     def test_publish_xlsx_file(self):
+        """Test publishing an XLSX file."""
         self._publish_xlsx_file()
 
     @patch("onadata.apps.main.forms.requests")
     @patch("onadata.apps.main.forms.urlopen")
     def test_google_url_upload(self, mock_urlopen, mock_requests):
+        """Test uploading an XLSForm from a Google Docs SpreadSheet URL."""
         if self._internet_on(url="http://google.com"):
             xls_url = (
                 "https://docs.google.com/spreadsheet/pub?"
@@ -113,35 +121,34 @@ class TestProcess(TestBase):
                 "transportation.xlsx",
             )
 
-            xls_file = open(path, "rb")
-            mock_response = requests.Response()
-            mock_response.status_code = 200
-            mock_response.headers = {
-                "content-type": (
-                    "application/vnd.openxmlformats-"
-                    "officedocument.spreadsheetml.sheet"
-                ),
-                "content-disposition": (
-                    'attachment; filename="transportation.'
-                    "xlsx\"; filename*=UTF-8''transportation.xlsx"
-                ),
-            }
-            mock_requests.get.return_value = mock_response
-            mock_urlopen.return_value = xls_file
-            response = self.client.post(
-                "/%s/" % self.user.username, {"xls_url": xls_url}
-            )
+            with open(path, "rb") as xls_file:
+                mock_response = requests.Response()
+                mock_response.status_code = 200
+                mock_response.headers = {
+                    "content-type": (
+                        "application/vnd.openxmlformats-"
+                        "officedocument.spreadsheetml.sheet"
+                    ),
+                    "content-disposition": (
+                        'attachment; filename="transportation.'
+                        "xlsx\"; filename*=UTF-8''transportation.xlsx"
+                    ),
+                }
+                mock_requests.get.return_value = mock_response
+                mock_urlopen.return_value = xls_file
+                response = self.client.post(
+                    f"/{self.user.username}/", {"xls_url": xls_url}
+                )
 
-            mock_urlopen.assert_called_with(xls_url)
-            mock_requests.get.assert_called_with(xls_url)
-            # cleanup the resources
-            xls_file.close()
-            # make sure publishing the survey worked
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(XForm.objects.count(), pre_count + 1)
+                mock_urlopen.assert_called_with(xls_url)
+                mock_requests.get.assert_called_with(xls_url)
+                # make sure publishing the survey worked
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(XForm.objects.count(), pre_count + 1)
 
     @patch("onadata.apps.main.forms.urlopen")
     def test_url_upload(self, mock_urlopen):
+        """Test uploading an XLSForm from a URL."""
         if self._internet_on(url="http://google.com"):
             xls_url = "https://ona.io/examples/forms/tutorial/form.xlsx"
             pre_count = XForm.objects.count()
@@ -156,25 +163,24 @@ class TestProcess(TestBase):
                 "transportation.xlsx",
             )
 
-            xls_file = open(path, "rb")
-            mock_urlopen.return_value = xls_file
+            with open(path, "rb") as xls_file:
+                mock_urlopen.return_value = xls_file
 
-            response = self.client.post(
-                "/%s/" % self.user.username, {"xls_url": xls_url}
-            )
+                response = self.client.post(
+                    f"/{self.user.username}", {"xls_url": xls_url}
+                )
 
-            mock_urlopen.assert_called_with(xls_url)
-            # cleanup the resources
-            xls_file.close()
+                mock_urlopen.assert_called_with(xls_url)
 
             # make sure publishing the survey worked
             self.assertEqual(response.status_code, 200)
             self.assertEqual(XForm.objects.count(), pre_count + 1)
 
     def test_bad_url_upload(self):
+        """Test uploading an XLSForm from a badly formatted URL."""
         xls_url = "formhuborg/pld/forms/transportation_2011_07_25/form.xlsx"
         pre_count = XForm.objects.count()
-        response = self.client.post("/%s/" % self.user.username, {"xls_url": xls_url})
+        response = self.client.post(f"/{self.user.username}", {"xls_url": xls_url})
         # make sure publishing the survey worked
         self.assertEqual(response.status_code, 200)
         self.assertEqual(XForm.objects.count(), pre_count)
@@ -184,10 +190,11 @@ class TestProcess(TestBase):
     # containing the files you would like to test.
     # DO NOT CHECK IN PRIVATE XLS FILES!!
     def test_upload_all_xls(self):
+        """Test all XLSForms in online_xls folder can upload successfuly."""
         root_dir = os.path.join(self.this_directory, "fixtures", "online_xls")
         if os.path.exists(root_dir):
             success = True
-            for root, sub_folders, filenames in os.walk(root_dir):
+            for root, _sub_folders, filenames in os.walk(root_dir):
                 # ignore files that don't end in '.xlsx'
                 for filename in fnmatch.filter(filenames, "*.xlsx"):
                     success = self._publish_file(os.path.join(root, filename), False)
@@ -195,30 +202,33 @@ class TestProcess(TestBase):
                         # delete it so we don't have id_string conflicts
                         if self.xform:
                             self.xform.delete()
+                            # pylint: disable=attribute-defined-outside-init
                             self.xform = None
-                print("finished sub-folder %s" % root)
+                print(f"finished sub-folder {root}")
             self.assertEqual(success, True)
 
+    # pylint: disable=invalid-name
     def test_url_upload_non_dot_xls_path(self):
+        """Test a non .xls URL allows XLSForm upload."""
         if self._internet_on():
             xls_url = "http://formhub.org/formhub_u/forms/tutorial/form.xlsx"
             pre_count = XForm.objects.count()
-            response = self.client.post(
-                "/%s/" % self.user.username, {"xls_url": xls_url}
-            )
+            response = self.client.post(f"/{self.user.username}", {"xls_url": xls_url})
             # make sure publishing the survey worked
             self.assertEqual(response.status_code, 200)
             self.assertEqual(XForm.objects.count(), pre_count + 1)
 
+    # pylint: disable=invalid-name
     def test_not_logged_in_cannot_upload(self):
+        """Test anonymous user cannot upload an XLSForm."""
         path = os.path.join(
             self.this_directory, "fixtures", "transportation", "transportation.xlsx"
         )
-        if not path.startswith("/%s/" % self.user.username):
+        if not path.startswith(f"/{self.user.username}"):
             path = os.path.join(self.this_directory, path)
         with open(path, "rb") as xls_file:
             post_data = {"xls_file": xls_file}
-            return self.client.post("/%s/" % self.user.username, post_data)
+            return self.client.post(f"/{self.user.username}", post_data)
 
     def _publish_file(self, xls_path, strict=True):
         """
@@ -228,15 +238,16 @@ class TestProcess(TestBase):
         TestBase._publish_xls_file(self, xls_path)
         # make sure publishing the survey worked
         if XForm.objects.count() != pre_count + 1:
-            print("\nPublish Failure for file: %s" % xls_path)
+            print(f"\nPublish Failure for file: {xls_path}")
             if strict:
                 self.assertEqual(XForm.objects.count(), pre_count + 1)
             else:
                 return False
+        # pylint: disable=attribute-defined-outside-init
         self.xform = list(XForm.objects.all())[-1]
         return True
 
-    def _publish_xls_file(self):
+    def _publish_xls_file(self, path=None):
         xls_path = os.path.join(
             self.this_directory, "fixtures", "transportation", "transportation.xlsx"
         )
@@ -244,21 +255,17 @@ class TestProcess(TestBase):
         self.assertEqual(self.xform.id_string, "transportation_2011_07_25")
 
     def _check_formlist(self):
-        url = "/%s/formList" % self.user.username
+        url = f"/{self.user.username}/formList"
         client = DigestClient()
         client.set_authorization("bob", "bob")
         response = client.get(url)
-        self.download_url = "http://testserver/%s/forms/%s/form.xml" % (
-            self.user.username,
-            self.xform.pk,
+        # pylint: disable=attribute-defined-outside-init
+        self.download_url = (
+            f"http://testserver/{self.user.username}/forms/{self.xform.pk}/form.xml"
         )
         md5_hash = md5(self.xform.xml.encode("utf-8")).hexdigest()
-        expected_content = """<?xml version="1.0" encoding="utf-8"?>
-<xforms xmlns="http://openrosa.org/xforms/xformsList"><xform><formID>transportation_2011_07_25</formID><name>transportation_2011_07_25</name><version>2014111</version><hash>md5:%(hash)s</hash><descriptionText></descriptionText><downloadUrl>%(download_url)s</downloadUrl></xform></xforms>"""  # noqa
-        expected_content = expected_content % {
-            "download_url": self.download_url,
-            "hash": md5_hash,
-        }
+        expected_content = f"""<?xml version="1.0" encoding="utf-8"?>
+<xforms xmlns="http://openrosa.org/xforms/xformsList"><xform><formID>transportation_2011_07_25</formID><name>transportation_2011_07_25</name><version>2014111</version><hash>md5:{md5_hash}</hash><descriptionText></descriptionText><downloadUrl>{self.download_url}</downloadUrl></xform></xforms>"""  # noqa
         self.assertEqual(response.content.decode("utf-8"), expected_content)
         self.assertTrue(response.has_header("X-OpenRosa-Version"))
         self.assertTrue(response.has_header("Date"))
@@ -305,13 +312,15 @@ class TestProcess(TestBase):
 
     def _check_data_dictionary(self):
         # test to make sure the data dictionary returns the expected headers
-        qs = DataDictionary.objects.filter(user=self.user)
-        self.assertEqual(qs.count(), 1)
+        queryset = DataDictionary.objects.filter(user=self.user)
+        self.assertEqual(queryset.count(), 1)
+        # pylint: disable=attribute-defined-outside-init
         self.data_dictionary = DataDictionary.objects.all()[0]
         with open(
             os.path.join(
                 self.this_directory, "fixtures", "transportation", "headers.json"
-            )
+            ),
+            encoding="utf-8",
         ) as f:
             expected_list = json.load(f)
         self.assertEqual(self.data_dictionary.get_headers(), expected_list)
@@ -321,7 +330,8 @@ class TestProcess(TestBase):
         with open(
             os.path.join(
                 self.this_directory, "fixtures", "transportation", "headers_csv.json"
-            )
+            ),
+            encoding="utf-8",
         ) as f:
             expected_list = json.load(f)
         self.assertEqual(sorted(next(actual_csv)), sorted(expected_list))
@@ -418,6 +428,7 @@ class TestProcess(TestBase):
         )
         self._test_csv_response(response, test_file_path)
 
+    # pylint: disable=too-many-locals
     def _check_csv_export_second_pass(self):
         url = reverse(
             "csv_export",
@@ -494,12 +505,16 @@ class TestProcess(TestBase):
             },
         ]
 
-        dd = DataDictionary.objects.get(pk=self.xform.pk)
-        additional_headers = dd._additional_headers() + ["_id", "_date_modified"]
+        data_dictionary = DataDictionary.objects.get(pk=self.xform.pk)
+        # pylint: disable=protected-access
+        additional_headers = data_dictionary._additional_headers() + [
+            "_id",
+            "_date_modified",
+        ]
         for row, expected_dict in zip(actual_csv, data):
             test_dict = {}
-            d = dict(zip(headers, row))
-            for (k, v) in iteritems(d):
+            row_dict = dict(zip(headers, row))
+            for (k, v) in iteritems(row_dict):
                 if not (v in ["n/a", "False"] or k in additional_headers):
                     test_dict[k] = v
             this_list = []
@@ -511,6 +526,7 @@ class TestProcess(TestBase):
             self.assertEqual(test_dict, dict(this_list))
 
     def test_xls_export_content(self):
+        """Test publish and export XLS content."""
         self._publish_xls_file()
         self._make_submissions()
         self._update_dynamic_data()
@@ -563,6 +579,7 @@ class TestProcess(TestBase):
         response = self.client.get(url)
         self.assertContains(response, 'Method "GET" not allowed', status_code=405)
 
+    # pylint: disable=invalid-name
     def test_publish_bad_xls_with_unicode_in_error(self):
         """
         Publish an xls where the error has a unicode character
@@ -575,26 +592,31 @@ class TestProcess(TestBase):
         )
         with open(path, "rb") as xls_file:
             post_data = {"xls_file": xls_file}
-            response = self.client.post("/%s/" % self.user.username, post_data)
+            response = self.client.post(f"/{self.user.username}", post_data)
             self.assertEqual(response.status_code, 200)
 
     def test_metadata_file_hash(self):
+        """Test a metadata file hash is generated."""
         self._publish_transportation_form()
         src = os.path.join(
             self.this_directory, "fixtures", "transportation", "screenshot.png"
         )
-        uf = UploadedFile(file=open(src, "rb"), content_type="image/png")
-        count = MetaData.objects.count()
-        MetaData.media_upload(self.xform, uf)
-        # assert successful insert of new metadata record
-        self.assertEqual(MetaData.objects.count(), count + 1)
-        md = MetaData.objects.get(object_id=self.xform.id, data_value="screenshot.png")
-        # assert checksum string has been generated, hash length > 1
-        self.assertTrue(len(md.hash) > 16)
+        with open(src, "rb") as screenshot_file:
+            upload_file = UploadedFile(file=screenshot_file, content_type="image/png")
+            count = MetaData.objects.count()
+            MetaData.media_upload(self.xform, upload_file)
+            # assert successful insert of new metadata record
+            self.assertEqual(MetaData.objects.count(), count + 1)
+            metadata = MetaData.objects.get(
+                object_id=self.xform.id, data_value="screenshot.png"
+            )
+            # assert checksum string has been generated, hash length > 1
+            self.assertTrue(len(metadata.hash) > 16)
 
+    # pylint: disable=invalid-name
     def test_uuid_injection_in_cascading_select(self):
         """
-        Uuid is injected in the right instance for forms with cascading select
+        UUID is injected in the right instance for forms with cascading select
         """
         pre_count = XForm.objects.count()
         xls_path = os.path.join(
@@ -603,7 +625,6 @@ class TestProcess(TestBase):
             "cascading_selects",
             "new_cascading_select.xlsx",
         )
-        file_name, file_ext = os.path.splitext(os.path.split(xls_path)[1])
         TestBase._publish_xls_file(self, xls_path)
         post_count = XForm.objects.count()
         self.assertEqual(post_count, pre_count + 1)
@@ -652,10 +673,11 @@ class TestProcess(TestBase):
         self.assertEqual(len(calculate_bind_nodes), 1)
         calculate_bind_node = calculate_bind_nodes[0]
         self.assertEqual(
-            calculate_bind_node.getAttribute("calculate"), "'%s'" % xform.uuid
+            calculate_bind_node.getAttribute("calculate"), f"'{xform.uuid}'"
         )
 
     def test_csv_publishing(self):
+        """Test publishing a CSV XLSForm."""
         csv_text = "\n".join(
             [
                 "survey,,",
@@ -667,20 +689,23 @@ class TestProcess(TestBase):
         url = reverse("user_profile", kwargs={"username": self.user.username})
         num_xforms = XForm.objects.count()
         params = {"text_xls_form": csv_text}
-        self.response = self.client.post(url, params)
+        self.client.post(url, params)
         self.assertEqual(XForm.objects.count(), num_xforms + 1)
 
+    # pylint: disable=invalid-name
     def test_truncate_xform_title_to_255(self):
+        """Test the XLSForm title is truncated at 255 characters."""
         self._publish_transportation_form()
         title = "a" * (XFORM_TITLE_LENGTH + 1)
         groups = re.match(
             r"(.+<h:title>)([^<]+)(</h:title>.*)", self.xform.xml, re.DOTALL
         ).groups()
-        self.xform.xml = "{0}{1}{2}".format(groups[0], title, groups[2])
+        self.xform.xml = f"{groups[0]}{title}{groups[2]}"
         self.xform.title = title
         self.xform.save()
         self.assertEqual(self.xform.title, "a" * XFORM_TITLE_LENGTH)
 
+    # pylint: disable=invalid-name
     def test_multiple_submissions_by_different_users(self):
         """
         Two users publishing the same form breaks the CSV export.

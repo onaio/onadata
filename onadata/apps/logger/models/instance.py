@@ -3,9 +3,7 @@
 Instance model class
 """
 import math
-import pytz
 from datetime import datetime
-from deprecated import deprecated
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -13,11 +11,14 @@ from django.contrib.gis.db import models
 from django.contrib.gis.geos import GeometryCollection, Point
 from django.core.cache import cache
 from django.db import connection, transaction
-from django.db.models import Q, JSONField
+from django.db.models import Q
 from django.db.models.signals import post_delete, post_save
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext as _
+
+import pytz
+from deprecated import deprecated
 from taggit.managers import TaggableManager
 
 from onadata.apps.logger.models.submission_review import SubmissionReview
@@ -56,6 +57,8 @@ from onadata.libs.utils.common_tags import (
     MEDIA_COUNT,
     MONGO_STRFTIME,
     NOTES,
+    REVIEW_COMMENT,
+    REVIEW_DATE,
     REVIEW_STATUS,
     START,
     STATUS,
@@ -67,8 +70,6 @@ from onadata.libs.utils.common_tags import (
     VERSION,
     XFORM_ID,
     XFORM_ID_STRING,
-    REVIEW_COMMENT,
-    REVIEW_DATE,
 )
 from onadata.libs.utils.dict_tools import get_values_matching_key
 from onadata.libs.utils.model_tools import set_uuid
@@ -77,10 +78,14 @@ from onadata.libs.utils.timing import calculate_duration
 ASYNC_POST_SUBMISSION_PROCESSING_ENABLED = getattr(
     settings, "ASYNC_POST_SUBMISSION_PROCESSING_ENABLED", False
 )
+# pylint: disable=invalid-name
 User = get_user_model()
 
 
 def get_attachment_url(attachment, suffix=None):
+    """
+    Returns the attachment URL for a given suffix
+    """
     kwargs = {"pk": attachment.pk}
     url = (
         f"{reverse('files-detail', kwargs=kwargs)}"
@@ -131,6 +136,9 @@ class FormIsMergedDatasetError(Exception):
 
 
 def numeric_checker(string_value):
+    """
+    Checks if a ``string_value`` is a numeric value.
+    """
     try:
         return int(string_value)
     except ValueError:
@@ -149,24 +157,28 @@ def numeric_checker(string_value):
 
 
 def get_id_string_from_xml_str(xml_str):
+    """
+    Parses an XML ``xml_str`` and returns the top level id string.
+    """
     xml_obj = clean_and_parse_xml(xml_str)
     root_node = xml_obj.documentElement
     id_string = root_node.getAttribute("id")
 
-    if len(id_string) == 0:
+    if id_string:
         # may be hidden in submission/data/id_string
         elems = root_node.getElementsByTagName("data")
 
         for data in elems:
             id_string = data.childNodes[0].getAttribute("id")
 
-            if len(id_string) > 0:
+            if id_string:
                 break
 
     return id_string
 
 
 def submission_time():
+    """Returns current timestamp via timezone.now()."""
     return timezone.now()
 
 
@@ -203,6 +215,7 @@ def _update_submission_count_for_today(
 @app.task
 @transaction.atomic()
 def update_xform_submission_count(instance_id, created):
+    """Updates the XForm submissions count on a new submission being created."""
     if created:
 
         # pylint: disable=import-outside-toplevel
@@ -251,6 +264,7 @@ def update_xform_submission_count(instance_id, created):
 
 # pylint: disable=unused-argument,invalid-name
 def update_xform_submission_count_delete(sender, instance, **kwargs):
+    """Updates the XForm submissions count on deletion of a submission."""
     try:
         xform = XForm.objects.select_for_update().get(pk=instance.xform.pk)
     except XForm.DoesNotExist:
@@ -304,6 +318,10 @@ def save_full_json(instance_id, created):
 # pylint: disable=unused-argument
 @app.task
 def update_project_date_modified(instance_id, created):
+    """Update the project's date_modified
+
+    Changes the etag value of the projects endpoint.
+    """
     # update the date modified field of the project which will change
     # the etag value of the projects endpoint
     try:
@@ -319,6 +337,7 @@ def update_project_date_modified(instance_id, created):
 
 
 def convert_to_serializable_date(date):
+    """Returns the ISO format of a date object if it has the attribute 'isoformat'."""
     if hasattr(date, "isoformat"):
         return date.isoformat()
 
@@ -330,13 +349,15 @@ class InstanceBaseClass:
 
     @property
     def point(self):
+        """Returns the Point of the first geom if it is a collection."""
         geom_collection = self.geom
 
-        if geom_collection and len(geom_collection):
+        if geom_collection and isinstance(geom_collection, list):
             return geom_collection[0]
-        return None
+        return self.geom
 
     def numeric_converter(self, json_dict, numeric_fields=None):
+        """Converts strings in a python object ``json_dict`` to their numeric value."""
         if numeric_fields is None:
             # pylint: disable=no-member
             numeric_fields = get_numeric_fields(self.xform)
@@ -378,17 +399,21 @@ class InstanceBaseClass:
                 xform.instances_with_geopoints = True
                 xform.save()
 
+            # pylint: disable=attribute-defined-outside-init
             self.geom = GeometryCollection(points)
 
     def _set_json(self):
+        # pylint: disable=attribute-defined-outside-init
         self.json = self.get_full_dict()
 
     def get_full_dict(self, load_existing=True):
+        """Returns the submission XML as a python dictionary object."""
         doc = self.json or {} if load_existing else {}
         # Get latest dict
         doc = self.get_dict()
         # pylint: disable=no-member
         if self.id:
+            geopoint = ([self.point.y, self.point.x] if self.point else [None, None],)
             doc.update(
                 {
                     UUID: self.uuid,
@@ -402,9 +427,7 @@ class InstanceBaseClass:
                     DURATION: self.get_duration(),
                     XFORM_ID_STRING: self._parser.get_xform_id_string(),
                     XFORM_ID: self.xform.pk,
-                    GEOLOCATION: [self.point.y, self.point.x]
-                    if self.point
-                    else [None, None],
+                    GEOLOCATION: geopoint,
                     SUBMITTED_BY: self.user.username if self.user else None,
                 }
             )
@@ -454,9 +477,11 @@ class InstanceBaseClass:
     def _set_parser(self):
         if not hasattr(self, "_parser"):
             # pylint: disable=no-member
+            # pylint: disable=attribute-defined-outside-init
             self._parser = XFormInstanceParser(self.xml, self.xform)
 
     def _set_survey_type(self):
+        # pylint: disable=attribute-defined-outside-init
         self.survey_type, _created = SurveyType.objects.get_or_create(
             slug=self.get_root_node_name()
         )
@@ -471,6 +496,7 @@ class InstanceBaseClass:
         set_uuid(self)
 
     def get(self, abbreviated_xpath):
+        """Returns the XML element at the ``abbreviated_xpath``."""
         self._set_parser()
         return self._parser.get(abbreviated_xpath)
 
@@ -487,6 +513,7 @@ class InstanceBaseClass:
         return self.numeric_converter(instance_dict)
 
     def get_notes(self):
+        """Returns a list of notes."""
         # pylint: disable=no-member
         return [note.get_data() for note in self.notes.all()]
 
@@ -504,14 +531,17 @@ class InstanceBaseClass:
             return None
 
     def get_root_node(self):
+        """Returns the XML submission's root node."""
         self._set_parser()
         return self._parser.get_root_node()
 
     def get_root_node_name(self):
+        """Returns the XML submission's root node name."""
         self._set_parser()
         return self._parser.get_root_node_name()
 
     def get_duration(self):
+        """Returns the duration between the `start` and `end` questions of a form."""
         data = self.get_dict()
         # pylint: disable=no-member
         start_name = _get_tag_or_element_type_xpath(self.xform, START)
@@ -526,6 +556,7 @@ class InstanceBaseClass:
         Used in favour of `get_review_status_and_comment`.
         """
         try:
+            # pylint: disable=no-member
             return self.reviews.latest("date_modified")
         except SubmissionReview.DoesNotExist:
             return None
@@ -536,7 +567,7 @@ class Instance(models.Model, InstanceBaseClass):
     Model representing a single submission to an XForm
     """
 
-    json = JSONField(default=dict, null=False)
+    json = models.JSONField(default=dict, null=False)
     xml = models.TextField()
     user = models.ForeignKey(
         User, related_name="instances", null=True, on_delete=models.SET_NULL
@@ -595,6 +626,7 @@ class Instance(models.Model, InstanceBaseClass):
 
     @classmethod
     def set_deleted_at(cls, instance_id, deleted_at=timezone.now(), user=None):
+        """Set's the timestamp when a submission was deleted."""
         try:
             instance = cls.objects.get(id=instance_id)
         except cls.DoesNotExist:
@@ -658,6 +690,7 @@ class Instance(models.Model, InstanceBaseClass):
 
     @property
     def attachments_count(self):
+        """Returns the number of attachments a submission has."""
         return (
             self.attachments.filter(name__in=self.get_expected_media())
             .distinct("name")
@@ -665,6 +698,7 @@ class Instance(models.Model, InstanceBaseClass):
             .count()
         )
 
+    # pylint: disable=arguments-differ
     def save(self, *args, **kwargs):
         force = kwargs.get("force")
 
@@ -684,6 +718,7 @@ class Instance(models.Model, InstanceBaseClass):
 
     # pylint: disable=no-member
     def set_deleted(self, deleted_at=timezone.now(), user=None):
+        """Set the timestamp and user when a submission is deleted."""
         if user:
             self.deleted_by = user
         self.deleted_at = deleted_at
@@ -705,6 +740,12 @@ class Instance(models.Model, InstanceBaseClass):
 
 # pylint: disable=unused-argument
 def post_save_submission(sender, instance=None, created=False, **kwargs):
+    """Update XForm, Project, JSON field
+
+    - XForm submission coun
+    - Project date modified
+    - Update the submission JSON field data
+    """
     if instance.deleted_at is not None:
         _update_submission_count_for_today(
             instance.xform_id, incr=False, date_created=instance.date_created
@@ -733,6 +774,8 @@ post_delete.connect(
 
 
 class InstanceHistory(models.Model, InstanceBaseClass):
+    """Stores deleted submission XML to maintain a history of edits."""
+
     class Meta:
         app_label = "logger"
 
@@ -753,65 +796,81 @@ class InstanceHistory(models.Model, InstanceBaseClass):
 
     @property
     def xform(self):
+        """Returns the XForm object linked to this submission."""
         return self.xform_instance.xform
 
     @property
     def attachments(self):
+        """Returns the attachments linked to this submission."""
         return self.xform_instance.attachments.all()
 
     @property
     def json(self):
+        """Returns the XML submission as a python dictionary object."""
         return self.get_full_dict(load_existing=False)
 
     @property
     def status(self):
+        """Returns the submission's status"""
         return self.xform_instance.status
 
     @property
     def tags(self):
+        """Returns the tags linked to the submission."""
         return self.xform_instance.tags
 
     @property
     def notes(self):
+        """Returns the notes attached to the submission."""
         return self.xform_instance.notes.all()
 
     @property
     def reviews(self):
+        """Returns the submission reviews."""
         return self.xform_instance.reviews.all()
 
     @property
     def version(self):
+        """Returns the XForm verison for the submission."""
         return self.xform_instance.version
 
     @property
     def osm_data(self):
+        """Returns the OSM data for the submission."""
         return self.xform_instance.osm_data
 
     @property
     def deleted_at(self):
+        """Mutes the deleted_at method for the history record."""
         return None
 
     @property
     def total_media(self):
+        """Returns the number of attachments linked to submission."""
         return self.xform_instance.total_media
 
     @property
     def has_a_review(self):
+        """Returns the value of a submission.has_a_review."""
         return self.xform_instance.has_a_review
 
     @property
     def media_count(self):
+        """Returns the number of media attached to the submission."""
         return self.xform_instance.media_count
 
     @property
     def media_all_received(self):
+        """Returns the value of the submission.media_all_received."""
         return self.xform_instance.media_all_received
 
     def _set_parser(self):
         if not hasattr(self, "_parser"):
+            # pylint: disable=attribute-defined-outside-init
             self._parser = XFormInstanceParser(self.xml, self.xform_instance.xform)
 
     # pylint: disable=unused-argument
     @classmethod
     def set_deleted_at(cls, instance_id, deleted_at=timezone.now()):
+        """Mutes the set_deleted_at method for the history record."""
         return None

@@ -252,30 +252,31 @@ def generate_enketo_form_defaults(xform, **kwargs):
 def create_attachments_zipfile(attachments):
     """Return a zip file with submission attachments."""
     # create zip_file
-    with NamedTemporaryFile() as tmp:
-        with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as z:
-            for attachment in attachments:
-                default_storage = get_storage_class()()
-                filename = attachment.media_file.name
+    # pylint: disable=consider-using-with
+    tmp = NamedTemporaryFile()
+    with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as z:
+        for attachment in attachments:
+            default_storage = get_storage_class()()
+            filename = attachment.media_file.name
 
-                if default_storage.exists(filename):
-                    try:
-                        with default_storage.open(filename) as f:
-                            if f.size > settings.ZIP_REPORT_ATTACHMENT_LIMIT:
-                                report_exception(
-                                    "Create attachment zip exception",
-                                    (
-                                        "File is greater than "
-                                        f"{settings.ZIP_REPORT_ATTACHMENT_LIMIT} bytes"
-                                    ),
-                                )
-                                break
-                            z.writestr(attachment.media_file.name, f.read())
-                    except IOError as e:
-                        report_exception("Create attachment zip exception", e)
-                        break
+            if default_storage.exists(filename):
+                try:
+                    with default_storage.open(filename) as f:
+                        if f.size > settings.ZIP_REPORT_ATTACHMENT_LIMIT:
+                            report_exception(
+                                "Create attachment zip exception",
+                                (
+                                    "File is greater than "
+                                    f"{settings.ZIP_REPORT_ATTACHMENT_LIMIT} bytes"
+                                ),
+                            )
+                            break
+                        z.writestr(attachment.media_file.name, f.read())
+                except IOError as e:
+                    report_exception("Create attachment zip exception", e)
+                    break
 
-        return tmp
+    return tmp
 
 
 def get_form(kwargs):

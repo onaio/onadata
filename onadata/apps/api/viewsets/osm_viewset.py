@@ -104,6 +104,7 @@ class OsmViewSet(
     queryset = XForm.objects.filter().select_related()
 
     def get_serializer_class(self):
+        """Returns the OSMSiteMapSerializer class when list API is invoked."""
         form_pk = self.kwargs.get("pk")
         if self.action == "list" and form_pk is None:
             return OSMSiteMapSerializer
@@ -111,6 +112,7 @@ class OsmViewSet(
         return super().get_serializer_class()
 
     def filter_queryset(self, queryset):
+        """Filters the queryset using the ``pk`` when used."""
         form_pk = self.kwargs.get("pk")
         if form_pk:
             queryset = queryset.filter(pk=form_pk)
@@ -118,6 +120,7 @@ class OsmViewSet(
         return super().filter_queryset(queryset)
 
     def get_object(self):
+        """Returns the Instance object using the ``pk`` and ``dataid`` lookup values."""
         obj = super().get_object()
         pk_lookup, dataid_lookup = self.lookup_fields
         form_pk = self.kwargs.get(pk_lookup)
@@ -134,6 +137,7 @@ class OsmViewSet(
         return obj
 
     def retrieve(self, request, *args, **kwargs):
+        """Returns a single Instance JSON object API response"""
         fmt = kwargs.get("format", request.accepted_renderer.format)
         if fmt != "osm":
             pk_lookup, dataid_lookup = self.lookup_fields
@@ -159,6 +163,7 @@ class OsmViewSet(
         return Response(serializer.data)
 
     def list(self, request, *args, **kwargs):
+        """Returns a list of URLs to the individual XForm OSM data."""
         fmt = kwargs.get("format", request.accepted_renderer.format)
         form_pk = kwargs.get("pk")
         if form_pk:
