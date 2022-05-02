@@ -5,7 +5,6 @@ The /data API endpoint.
 import json
 import math
 import types
-from builtins import str as text
 from typing import Union
 
 from django.conf import settings
@@ -81,7 +80,7 @@ def get_data_and_form(kwargs):
     """
     Checks if the dataid in ``kwargs`` is a valid integer.
     """
-    data_id = text(kwargs.get("dataid"))
+    data_id = str(kwargs.get("dataid"))
     if not data_id.isdigit():
         raise ParseError(_("Data ID should be an integer"))
 
@@ -99,7 +98,7 @@ def delete_instance(instance, user):
     try:
         instance.set_deleted(timezone.now(), user)
     except FormInactiveError as e:
-        raise ParseError(text(e)) from e
+        raise ParseError(str(e)) from e
 
 
 # pylint: disable=too-many-ancestors
@@ -324,7 +323,7 @@ class DataViewSet(
                     if "edit_url" in data:
                         data["url"] = data.pop("edit_url")
                 except EnketoError as e:
-                    raise ParseError(text(e)) from e
+                    raise ParseError(str(e)) from e
             else:
                 raise PermissionDenied(_("You do not have edit permissions."))
 
@@ -676,9 +675,9 @@ class DataViewSet(
                         (get_etag_hash_from_query(records, sql, params)),
                     )
         except ValueError as e:
-            raise ParseError(text(e)) from e
+            raise ParseError(str(e)) from e
         except DataError as e:
-            raise ParseError(text(e)) from e
+            raise ParseError(str(e)) from e
 
     def paginate_queryset(self, queryset):
         if self.paginator is None:
