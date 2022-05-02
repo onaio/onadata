@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+MetaData model
+"""
 from __future__ import unicode_literals
 
 import logging
@@ -6,9 +10,7 @@ import os
 from contextlib import closing
 from hashlib import md5
 
-import requests
 from django.conf import settings
-from django.utils import timezone
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
@@ -17,13 +19,16 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.validators import URLValidator
 from django.db import IntegrityError, models
 from django.db.models.signals import post_delete, post_save
+from django.utils import timezone
+
+import requests
 
 from onadata.libs.utils.cache_tools import XFORM_METADATA_CACHE, safe_delete
 from onadata.libs.utils.common_tags import (
     GOOGLE_SHEET_DATA_TYPE,
     TEXTIT,
-    XFORM_META_PERMS,
     TEXTIT_DETAILS,
+    XFORM_META_PERMS,
 )
 
 CHUNK_SIZE = 1024
@@ -38,6 +43,9 @@ ANONYMOUS_USERNAME = "anonymous"
 
 
 def is_valid_url(uri):
+    """
+    Validates a URI.
+    """
     try:
         urlvalidate(uri)
     except ValidationError:
@@ -47,6 +55,9 @@ def is_valid_url(uri):
 
 
 def upload_to(instance, filename):
+    """
+    Returns the upload path for given ``filename``.
+    """
     username = None
 
     if (
@@ -64,16 +75,22 @@ def upload_to(instance, filename):
 
 
 def save_metadata(metadata_obj):
+    """
+    Saves the MetaData object and returns it.
+    """
     try:
         metadata_obj.save()
     except IntegrityError:
-        logging.exception("MetaData object '%s' already exists" % metadata_obj)
+        logging.exception("MetaData object '%s' already exists", metadata_obj)
 
     return metadata_obj
 
 
 def get_default_content_type():
-    content_object, created = ContentType.objects.get_or_create(
+    """
+    Returns the default content type id for the XForm model.
+    """
+    content_object, _created = ContentType.objects.get_or_create(
         app_label="logger", model=XFORM_MODEL_NAME
     )
 
@@ -94,7 +111,7 @@ def unique_type_for_form(content_object, data_type, data_value=None, data_file=N
             object_id=content_object.id, content_type=content_type, data_type=data_type
         ).first()
     else:
-        result, created = MetaData.objects.update_or_create(
+        result, _created = MetaData.objects.update_or_create(
             object_id=content_object.id,
             content_type=content_type,
             data_type=data_type,
@@ -112,6 +129,9 @@ def unique_type_for_form(content_object, data_type, data_value=None, data_file=N
 
 
 def type_for_form(content_object, data_type):
+    """
+    Returns the MetaData queryset for ``content_object`` of the given ``data_type``.
+    """
     content_type = ContentType.objects.get_for_model(content_object)
     return MetaData.objects.filter(
         object_id=content_object.id, content_type=content_type, data_type=data_type
@@ -124,8 +144,8 @@ def create_media(media):
         filename = media.data_value.split("/")[-1]
         data_file = NamedTemporaryFile()
         content_type = mimetypes.guess_type(filename)
-        with closing(requests.get(media.data_value, stream=True)) as r:
-            for chunk in r.iter_content(chunk_size=CHUNK_SIZE):
+        with closing(requests.get(media.data_value, stream=True)) as resp:
+            for chunk in resp.iter_content(chunk_size=CHUNK_SIZE):
                 if chunk:
                     data_file.write(chunk)
         data_file.seek(os.SEEK_SET, os.SEEK_END)
@@ -164,6 +184,7 @@ def media_resources(media_list, download=False):
     return data
 
 
+# pylint: disable=too-many-public-methods
 class MetaData(models.Model):
     data_type = models.CharField(max_length=255)
     data_value = models.CharField(max_length=255)
@@ -187,16 +208,22 @@ class MetaData(models.Model):
 
     def save(self, *args, **kwargs):
         self._set_hash()
-        super(MetaData, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     @property
     def hash(self):
+        """
+        Returns the md5 hash of the metadata file.
+        """
         if self.file_hash is not None and self.file_hash != "":
             return self.file_hash
-        else:
-            return self._set_hash()
+
+        return self._set_hash()
 
     def _set_hash(self):
+        """
+        Returns the md5 hash of the metadata file.
+        """
         if not self.data_file:
             return None
 
@@ -210,7 +237,7 @@ class MetaData(models.Model):
             except IOError:
                 return ""
             else:
-                self.file_hash = "md5:%s" % md5(self.data_file.read()).hexdigest()
+                self.file_hash = f"md5:{md5(self.data_file.read()).hexdigest()}"
 
                 return self.file_hash
 
@@ -265,52 +292,78 @@ class MetaData(models.Model):
                 # {'A': 'a', 'B': 'b c'}
                 return dict([tuple(a.strip().split(" ", 1)) for a in data_list])
 
+        return metadata_data_value
+
     @staticmethod
     def published_by_formbuilder(content_object, data_value=None):
+        """
+        Returns the metadata object where data_type is 'published_by_formbuilder'
+        """
         data_type = "published_by_formbuilder"
         return unique_type_for_form(content_object, data_type, data_value)
 
     @staticmethod
     def enketo_url(content_object, data_value=None):
+        """
+        Returns the metadata object where data_type is 'enket_url'
+        """
         data_type = "enketo_url"
         return unique_type_for_form(content_object, data_type, data_value)
 
     @staticmethod
     def enketo_preview_url(content_object, data_value=None):
+        """
+        Returns the metadata object where data_type is 'enketo_preview_url'
+        """
         data_type = "enketo_preview_url"
         return unique_type_for_form(content_object, data_type, data_value)
 
     @staticmethod
     def enketo_single_submit_url(content_object, data_value=None):
+        """
+        Returns the metadata object where data_type is 'enketo_single_submit_url'
+        """
         data_type = "enketo_single_submit_url"
         return unique_type_for_form(content_object, data_type, data_value)
 
     @staticmethod
     def form_license(content_object, data_value=None):
+        """
+        Returns the metadata object where data_type is 'form_license'
+        """
         data_type = "form_license"
         obj = unique_type_for_form(content_object, data_type, data_value)
 
-        return (obj and obj.data_value) or None
+        return obj.data_value if obj else None
 
     @staticmethod
     def data_license(content_object, data_value=None):
+        """
+        Returns the metadata object where data_type is 'data_license'
+        """
         data_type = "data_license"
         obj = unique_type_for_form(content_object, data_type, data_value)
 
-        return (obj and obj.data_value) or None
+        return obj.data_value if obj else None
 
     @staticmethod
     def source(content_object, data_value=None, data_file=None):
+        """
+        Returns the metadata object where data_type is 'source'
+        """
         data_type = "source"
         return unique_type_for_form(content_object, data_type, data_value, data_file)
 
     @staticmethod
     def supporting_docs(content_object, data_file=None):
+        """
+        Returns the metadata object where data_type is 'supporting_doc'
+        """
         data_type = "supporting_doc"
         if data_file:
             content_type = ContentType.objects.get_for_model(content_object)
 
-            doc, created = MetaData.objects.update_or_create(
+            _doc, _created = MetaData.objects.update_or_create(
                 data_type=data_type,
                 content_type=content_type,
                 object_id=content_object.id,
@@ -325,6 +378,9 @@ class MetaData(models.Model):
 
     @staticmethod
     def media_upload(content_object, data_file=None, download=False):
+        """
+        Returns the metadata object where data_type is 'media'
+        """
         data_type = "media"
         if data_file:
             allowed_types = settings.SUPPORTED_MEDIA_UPLOAD_TYPES
@@ -337,7 +393,7 @@ class MetaData(models.Model):
             if data_content_type in allowed_types:
                 content_type = ContentType.objects.get_for_model(content_object)
 
-                media, created = MetaData.objects.update_or_create(
+                _media, _created = MetaData.objects.update_or_create(
                     data_type=data_type,
                     content_type=content_type,
                     object_id=content_object.id,
@@ -355,7 +411,7 @@ class MetaData(models.Model):
         data_type = "media"
 
         if is_valid_url(uri):
-            media, created = MetaData.objects.update_or_create(
+            _media, _created = MetaData.objects.update_or_create(
                 data_type=data_type,
                 data_value=uri,
                 defaults={
@@ -365,20 +421,23 @@ class MetaData(models.Model):
 
     @staticmethod
     def mapbox_layer_upload(content_object, data=None):
+        """
+        Returns the metadata object where data_type is 'mapbox_layer'
+        """
         data_type = "mapbox_layer"
         if data and not MetaData.objects.filter(
             object_id=content_object.id, data_type="mapbox_layer"
         ):
-            s = ""
+            data_value = ""
             for key in data:
-                s = s + data[key] + "||"
+                data_value = data_value + data[key] + "||"
 
             content_type = ContentType.objects.get_for_model(content_object)
             mapbox_layer = MetaData(
                 data_type=data_type,
                 content_type=content_type,
                 object_id=content_object.id,
-                data_value=s,
+                data_value=data_value,
             )
             mapbox_layer.save()
         if type_for_form(content_object, data_type):
@@ -389,11 +448,14 @@ class MetaData(models.Model):
             data_values["attribution"] = values[2]
             data_values["id"] = type_for_form(content_object, data_type)[0].id
             return data_values
-        else:
-            return None
+
+        return None
 
     @staticmethod
     def external_export(content_object, data_value=None):
+        """
+        Returns the metadata object where data_type is 'external_export'
+        """
         data_type = "external_export"
 
         if data_value:
@@ -413,18 +475,27 @@ class MetaData(models.Model):
 
     @property
     def external_export_url(self):
+        """
+        Returns the external export URL
+        """
         parts = self.data_value.split("|")
 
         return parts[1] if len(parts) > 1 else None
 
     @property
     def external_export_name(self):
+        """
+        Returns the external export name
+        """
         parts = self.data_value.split("|")
 
         return parts[0] if len(parts) > 1 else None
 
     @property
     def external_export_template(self):
+        """
+        Returns the exxernal export, "XLS report", template
+        """
         parts = self.data_value.split("|")
 
         return parts[1].replace("xls", "templates") if len(parts) > 1 else None
@@ -439,11 +510,17 @@ class MetaData(models.Model):
 
     @staticmethod
     def textit_flow_details(content_object, data_value: str = ""):
+        """
+        Returns the metadata object where data_type is 'textit_details'
+        """
         data_type = TEXTIT_DETAILS
         return unique_type_for_form(content_object, data_type, data_value)
 
     @property
     def is_linked_dataset(self):
+        """
+        Returns True if the metadata object is a linked dataset.
+        """
         return isinstance(self.data_value, str) and (
             self.data_value.startswith("xform")
             or self.data_value.startswith("dataview")
@@ -451,28 +528,45 @@ class MetaData(models.Model):
 
     @staticmethod
     def xform_meta_permission(content_object, data_value=None):
+        """
+        Returns the metadata object where data_type is 'xform_meta_perms'
+        """
         data_type = XFORM_META_PERMS
 
         return unique_type_for_form(content_object, data_type, data_value)
 
     @staticmethod
     def submission_review(content_object, data_value=None):
+        """
+        Returns the metadata object where data_type is 'submission_review'
+        """
         data_type = "submission_review"
         return unique_type_for_form(content_object, data_type, data_value)
 
     @staticmethod
     def instance_csv_imported_by(content_object, data_value=None):
+        """
+        Returns the metadata object where data_type is 'imported_via_csv_by'
+        """
         data_type = "imported_via_csv_by"
         return unique_type_for_form(content_object, data_type, data_value)
 
 
+# pylint: disable=unused-argument,invalid-name
 def clear_cached_metadata_instance_object(
     sender, instance=None, created=False, **kwargs
 ):
-    safe_delete("{}{}".format(XFORM_METADATA_CACHE, instance.object_id))
+    """
+    Clear the cache for the metadata object.
+    """
+    safe_delete(f"{XFORM_METADATA_CACHE}{instance.object_id}")
 
 
+# pylint: disable=unused-argument
 def update_attached_object(sender, instance=None, created=False, **kwargs):
+    """
+    Save the content_object attached to a MetaData instance.
+    """
     if instance:
         instance.content_object.save()
 

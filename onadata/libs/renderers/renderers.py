@@ -80,19 +80,39 @@ def floip_list(data):
             yield i
 
 
+def _pop_xml_attributes(xml_dictionary: dict) -> Tuple[dict, dict]:
+    """
+    Extracts XML attributes from the ``xml_dictionary``.
+    """
+    ret = xml_dictionary.copy()
+    attributes = {}
+
+    for key, value in xml_dictionary.items():
+        if key.startswith("@"):
+            attributes.update({key.replace("@", ""): value})
+            del ret[key]
+
+    return ret, attributes
+
+
 class DecimalEncoder(JSONEncoder):
     """
     JSON DecimalEncoder that returns None for decimal nan json values.
     """
 
-    def default(self, obj):  # pylint: disable=method-hidden
+    # pylint: disable=method-hidden
+    def default(self, obj):
+        """
+        JSON DecimalEncoder that returns None for decimal nan json values.
+        """
         # Handle Decimal NaN values
         if isinstance(obj, decimal.Decimal) and math.isnan(obj):
             return None
         return JSONEncoder.default(self, obj)
 
 
-class XLSRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
+# pylint: disable=abstract-method,too-few-public-methods
+class XLSRenderer(BaseRenderer):
     """
     XLSRenderer - renders .xls spreadsheet documents with
                   application/vnd.openxmlformats.
@@ -101,8 +121,11 @@ class XLSRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
     media_type = "application/vnd.openxmlformats"
     format = "xls"
     charset = None
-
+    # pylint: disable=no-self-use,unused-argument
     def render(self, data, accepted_media_type=None, renderer_context=None):
+        """
+        Encode ``data`` string to 'utf-8'.
+        """
         if isinstance(data, six.text_type):
             return data.encode("utf-8")
         return data
@@ -202,7 +225,7 @@ class MediaFileContentNegotiation(negotiation.DefaultContentNegotiation):
                                   matching format.
     """
 
-    # pylint: disable=redefined-builtin
+    # pylint: disable=redefined-builtin,no-self-use
     def filter_renderers(self, renderers, format):
         """
         If there is a '.json' style format suffix, filter the renderers
@@ -339,6 +362,7 @@ class InstanceXMLRenderer(XMLRenderer):
         if data is None:
             yield ""
 
+        # pylint: disable=attribute-defined-outside-init
         self.stream = StringIO()
 
         xml = SimplerXMLGenerator(self.stream, self.charset)
@@ -358,7 +382,7 @@ class InstanceXMLRenderer(XMLRenderer):
             try:
                 next_item = next(data)
                 out = serializer(out).data
-                out, attributes = self._pop_xml_attributes(out)
+                out, attributes = _pop_xml_attributes(out)
                 xml.startElement(self.item_tag_name, attributes)
                 self._to_xml(xml, out)
                 xml.endElement(self.item_tag_name)
@@ -366,7 +390,7 @@ class InstanceXMLRenderer(XMLRenderer):
                 out = next_item
             except StopIteration:
                 out = serializer(out).data
-                out, attributes = self._pop_xml_attributes(out)
+                out, attributes = _pop_xml_attributes(out)
                 xml.startElement(self.item_tag_name, attributes)
                 self._to_xml(xml, out)
                 xml.endElement(self.item_tag_name)
@@ -398,21 +422,10 @@ class InstanceXMLRenderer(XMLRenderer):
 
         return stream.getvalue()
 
-    def _pop_xml_attributes(self, xml_dictionary: dict) -> Tuple[dict, dict]:
-        ret = xml_dictionary.copy()
-        attributes = {}
-
-        for key, value in xml_dictionary.items():
-            if key.startswith("@"):
-                attributes.update({key.replace("@", ""): value})
-                del ret[key]
-
-        return ret, attributes
-
     def _to_xml(self, xml, data):
         if isinstance(data, (list, tuple)):
             for item in data:
-                item, attributes = self._pop_xml_attributes(item)
+                item, attributes = _pop_xml_attributes(item)
                 xml.startElement(self.item_tag_name, attributes)
                 self._to_xml(xml, item)
                 xml.endElement(self.item_tag_name)
@@ -428,7 +441,7 @@ class InstanceXMLRenderer(XMLRenderer):
                         xml.endElement(key)
 
                 elif isinstance(value, dict):
-                    value, attributes = self._pop_xml_attributes(value)
+                    value, attributes = _pop_xml_attributes(value)
                     xml.startElement(key, attributes)
                     self._to_xml(xml, value)
                     xml.endElement(key)
