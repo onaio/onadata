@@ -3481,8 +3481,6 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     @patch("onadata.libs.utils.api_export_tools.AsyncResult")
     def test_export_async_connection_error(self, async_result):
         with HTTMock(enketo_mock):
-            from requests import ConnectionError
-
             async_result.side_effect = ConnectionError(
                 "Error opening socket: a socket error occurred"
             )

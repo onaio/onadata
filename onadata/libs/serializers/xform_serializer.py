@@ -599,6 +599,8 @@ class XFormListSerializer(serializers.Serializer):
 
 
 class XFormManifestSerializer(serializers.Serializer):
+    """XForm Manifest serializer class."""
+
     filename = serializers.SerializerMethodField()
     hash = serializers.SerializerMethodField()
     downloadUrl = serializers.SerializerMethodField("get_url")  # noqa
