@@ -75,7 +75,7 @@ def get_linked_object(parts):
             obj_pk = parts[1]
             try:
                 obj_pk = int(obj_pk)
-            except ValueError:
+            except ValueError as e:
                 raise serializers.ValidationError(
                     {
                         "data_value": _(
@@ -83,11 +83,12 @@ def get_linked_object(parts):
                             % {"type": obj_type, "id": obj_pk}
                         )
                     }
-                )
+                ) from e
             else:
                 model = DataView if obj_type == DATAVIEW_TAG else XForm
 
                 return get_object_or_404(model, pk=obj_pk)
+    return None
 
 
 class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
@@ -95,7 +96,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
     MetaData HyperlinkedModelSerializer
     """
 
-    id = serializers.ReadOnlyField()  # pylint: disable=C0103
+    id = serializers.ReadOnlyField()  # pylint: disable=invalid-name
     xform = XFormRelatedField(queryset=XForm.objects.all(), required=False)
     project = ProjectRelatedField(queryset=Project.objects.all(), required=False)
     instance = InstanceRelatedField(queryset=Instance.objects.all(), required=False)
@@ -138,7 +139,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             and getattr(obj.data_file, "url")
         ):
             return obj.data_file.url
-        elif obj.data_type in [MEDIA_TYPE] and obj.is_linked_dataset:
+        if obj.data_type in [MEDIA_TYPE] and obj.is_linked_dataset:
             kwargs = {
                 "kwargs": {
                     "pk": obj.content_object.pk,
@@ -150,7 +151,9 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             }
 
             return reverse("xform-media", **kwargs)
+        return None
 
+    # pylint: disable=too-many-branches
     def validate(self, attrs):
         """
         Validate url if we are adding a media uri instead of a media file
@@ -177,19 +180,14 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             )
             if data_content_type not in allowed_types:
                 raise serializers.ValidationError(
-                    {
-                        "data_file": _(
-                            "Unsupported media file type %s" % data_content_type
-                        )
-                    }
+                    {"data_file": _(f"Unsupported media file type {data_content_type}")}
                 )
-            else:
-                attrs["data_file_type"] = data_content_type
+            attrs["data_file_type"] = data_content_type
 
         if data_type == "media" and data_file is None:
             try:
                 URLValidator()(value)
-            except ValidationError:
+            except ValidationError as e:
                 parts = value.split()
                 if len(parts) < 3:
                     raise serializers.ValidationError(
@@ -216,20 +214,20 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                                     "User has no permission to " "the dataview."
                                 )
                             }
-                        )
+                        ) from e
                 else:
                     raise serializers.ValidationError(
-                        {"data_value": _("Invalid url '%s'." % value)}
-                    )
+                        {"data_value": _(f"Invalid url '{value}'.")}
+                    ) from e
             else:
                 # check if we have a value for the filename.
                 if not os.path.basename(urlparse(value).path):
                     raise serializers.ValidationError(
                         {
                             "data_value": _(
-                                "Cannot get filename from URL %s. URL should "
+                                f"Cannot get filename from URL {value}. URL should "
                                 "include the filename e.g "
-                                "http://example.com/data.csv" % value
+                                "http://example.com/data.csv"
                             )
                         }
                     )
@@ -243,7 +241,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
 
         return attrs
 
-    # pylint: disable=R0201
+    # pylint: disable=no-self-use
     def get_content_object(self, validated_data):
         """
         Returns the validated 'xform' or 'project' or 'instance' ids being
@@ -256,6 +254,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                 or validated_data.get("project")
                 or validated_data.get("instance")
             )
+        return None
 
     def create(self, validated_data):
         data_type = validated_data.get("data_type")
@@ -289,10 +288,9 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                 # ensure only one submission_review metadata exists per form
                 if MetaData.submission_review(content_object):
                     raise serializers.ValidationError(_(UNIQUE_TOGETHER_ERROR))
-                else:
-                    metadata = MetaData.submission_review(
-                        content_object, data_value=data_value
-                    )
+                metadata = MetaData.submission_review(
+                    content_object, data_value=data_value
+                )
             elif data_type == IMPORTED_VIA_CSV_BY:
                 metadata = MetaData.instance_csv_imported_by(
                     content_object, data_value=data_value
@@ -308,11 +306,12 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                 )
 
             return metadata
-        except IntegrityError:
-            raise serializers.ValidationError(_(UNIQUE_TOGETHER_ERROR))
+        except IntegrityError as e:
+            raise serializers.ValidationError(_(UNIQUE_TOGETHER_ERROR)) from e
+        return None
 
     def update(self, instance, validated_data):
-        instance = super(MetaDataSerializer, self).update(instance, validated_data)
+        instance = super().update(instance, validated_data)
 
         if instance.data_type == XFORM_META_PERMS:
             update_role_by_meta_xform_perms(instance.content_object)

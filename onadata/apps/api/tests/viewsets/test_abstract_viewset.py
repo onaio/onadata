@@ -106,6 +106,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         self.maxDiff = None
 
     def user_profile_data(self):
+        """Returns the user profile python object."""
         return {
             "id": self.user.pk,
             "url": "http://testserver/api/v1/profiles/bob",
@@ -493,8 +494,10 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
                 "xform": f"http://testserver/api/v1/forms/{xform.pk}",
                 "project": f"http://testserver/api/v1/projects/{project.pk}",
                 "columns": '["name", "age", "gender"]',
-                "query": '[{"column":"age","filter":">","value":"20"},'
-                '{"column":"age","filter":"<","value":"50"}]',
+                "query": (
+                    '[{"column":"age","filter":">","value":"20"},'
+                    '{"column":"age","filter":"<","value":"50"}]'
+                ),
             }
         request = self.factory.post("/", data=data, **self.extra)
         response = view(request)

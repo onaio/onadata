@@ -352,7 +352,7 @@ class InstanceBaseClass:
         """Returns the Point of the first geom if it is a collection."""
         geom_collection = self.geom
 
-        if geom_collection and isinstance(geom_collection, list):
+        if geom_collection and geom_collection.num_points:
             return geom_collection[0]
         return self.geom
 

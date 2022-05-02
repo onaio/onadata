@@ -46,8 +46,8 @@ class TestProcess(TestBase):
     bicycle_key = f"{loop_str}/bicycle/{frequency_str}"
     other_key = f"{loop_str}/other/{frequency_str}"
     taxi_key = f"{loop_str}/taxi/{frequency_str}"
-    transport_ambulance_key = "transport/{ambulance_key}"
-    transport_bicycle_key = "transport/{bicycle_key}"
+    transport_ambulance_key = f"transport/{ambulance_key}"
+    transport_bicycle_key = f"transport/{bicycle_key}"
     uuid_to_submission_times = {
         "5b2cc313-fc09-437e-8149-fcd32f695d41": "2013-02-14T15:37:21",
         "f3d8dc65-91a6-4d0f-9e97-802128083390": "2013-02-14T15:37:22",

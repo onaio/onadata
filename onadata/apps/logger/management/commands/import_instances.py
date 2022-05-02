@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-# vim: ai ts=4 sts=4 et sw=5 coding=utf-8
+# vim: ai ts=4 sts=4 et sw=5
+# -*- coding: utf-8 -*-
 """
 import_instances - import ODK instances from a zipped file.
 """
@@ -41,6 +42,7 @@ class Command(BaseCommand):
             % {"total": total_count, "imported": success_count, "errors": errors}
         )
 
+    # pylint: disable=unused-argument
     def handle(self, *args, **kwargs):
         if len(args) < 2:
             raise CommandError(_("Usage: <command> username file/path."))
@@ -72,10 +74,11 @@ class Command(BaseCommand):
                 self._log_import(results)
             for file in files:
                 filepath = os.path.join(path, file)
-                if (
+                is_zip_file = (
                     os.path.isfile(filepath)
                     and os.path.splitext(filepath)[1].lower() == ".zip"
-                ):
+                )
+                if is_zip_file:
                     self.stdout.write(_(f"Importing from zip at {filepath}..\n"))
                     results = import_instances_from_zip(filepath, user)
                     self._log_import(results)
