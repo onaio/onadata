@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+TestBase - a TestCase base class.
+"""
 from __future__ import unicode_literals
 
 import base64
@@ -5,15 +9,11 @@ import csv
 import os
 import re
 import socket
-from builtins import open
-from six.moves.urllib.error import URLError
-from six.moves.urllib.request import urlopen
 from io import StringIO
 from tempfile import NamedTemporaryFile
 
 from django.conf import settings
-from django.contrib.auth import authenticate
-from django.contrib.auth.models import User
+from django.contrib.auth import authenticate, get_user_model
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.test import RequestFactory, TransactionTestCase
 from django.test.client import Client
@@ -21,22 +21,32 @@ from django.utils import timezone
 
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
-from onadata.libs.test_utils.pyxform_test_case import PyxformMarkdown
 from rest_framework.test import APIRequestFactory
+from six.moves.urllib.error import URLError
+from six.moves.urllib.request import urlopen
 
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.logger.views import submission
 from onadata.apps.main.models import UserProfile
 from onadata.apps.viewer.models import DataDictionary
+from onadata.libs.test_utils.pyxform_test_case import PyxformMarkdown
 from onadata.libs.utils.common_tools import (
     filename_from_disposition,
     get_response_content,
 )
 from onadata.libs.utils.user_auth import get_user_default_project
 
+# pylint: disable=invalid-name
+User = get_user_model()
 
+
+# pylint: disable=too-many-instance-attributes
 class TestBase(PyxformMarkdown, TransactionTestCase):
+    """
+    A TransactionTestCase base class for test modules.
+    """
+
     maxDiff = None
     surveys = [
         "transport_2011-07-25_19-05-49",
@@ -52,11 +62,13 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         self.base_url = "http://testserver"
         self.factory = RequestFactory()
 
+    # pylint: disable=no-self-use
     def _fixture_path(self, *args):
         return os.path.join(os.path.dirname(__file__), "fixtures", *args)
 
+    # pylint: disable=no-self-use
     def _create_user(self, username, password, create_profile=False):
-        user, created = User.objects.get_or_create(username=username)
+        user, _created = User.objects.get_or_create(username=username)
         user.set_password(password)
         user.save()
 
@@ -68,6 +80,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
 
         return user
 
+    # pylint: disable=no-self-use
     def _login(self, username, password):
         client = Client()
         assert client.login(username=username, password=password)
@@ -88,7 +101,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             self.anon = Client()
 
     def _publish_xls_file(self, path):
-        if not path.startswith("/%s/" % self.user.username):
+        if not path.startswith(f"/{self.user.username}/"):
             path = os.path.join(self.this_directory, path)
         with open(path, "rb") as f:
             xls_file = InMemoryUploadedFile(
@@ -100,6 +113,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
                 None,
             )
             if not hasattr(self, "project"):
+                # pylint: disable=attribute-defined-outside-init
                 self.project = get_user_default_project(self.user)
 
             DataDictionary.objects.create(
@@ -126,6 +140,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         count = XForm.objects.count()
         self._publish_xls_file(path)
         self.assertEqual(XForm.objects.count(), count + 1)
+        # pylint: disable=attribute-defined-outside-init
         self.xform = XForm.objects.order_by("pk").reverse()[0]
 
     def _share_form_data(self, id_string="transportation_2011_07_25"):
@@ -140,6 +155,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         count = XForm.objects.count()
         TestBase._publish_xls_file(self, xls_path)
         self.assertEqual(XForm.objects.count(), count + 1)
+        # pylint: disable=attribute-defined-outside-init
         self.xform = XForm.objects.order_by("pk").reverse()[0]
 
     def _submit_transport_instance(self, survey_at=0):
@@ -188,6 +204,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
                 media_file,
             ),
         )
+        # pylint: disable=attribute-defined-outside-init
         self.attachment = Attachment.objects.all().reverse()[0]
         self.attachment_media_file = self.attachment.media_file
 
@@ -204,6 +221,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             path = self._fixture_path("gps", "instances", survey + ".xml")
             self._make_submission(path)
 
+    # pylint: disable=too-many-arguments,too-many-locals,unused-argument
     def _make_submission(
         self,
         path,
@@ -222,16 +240,15 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         tmp_file = None
 
         if add_uuid:
-            tmp_file = NamedTemporaryFile(delete=False, mode="w")
-            split_xml = None
+            with NamedTemporaryFile(delete=False, mode="w") as tmp_file:
+                split_xml = None
 
-            with open(path, encoding="utf-8") as _file:
-                split_xml = re.split(r"(<transport>)", _file.read())
+                with open(path, encoding="utf-8") as _file:
+                    split_xml = re.split(r"(<transport>)", _file.read())
 
-            split_xml[1:1] = ["<formhub><uuid>%s</uuid></formhub>" % self.xform.uuid]
-            tmp_file.write("".join(split_xml))
-            path = tmp_file.name
-            tmp_file.close()
+                split_xml[1:1] = [f"<formhub><uuid>{self.xform.uuid}</uuid></formhub>"]
+                tmp_file.write("".join(split_xml))
+                path = tmp_file.name
 
         with open(path, encoding="utf-8") as f:
             post_data = {"xml_submission_file": f}
@@ -239,12 +256,13 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             if username is None:
                 username = self.user.username
 
-            url_prefix = "%s/" % username if username else ""
-            url = "/%ssubmission" % url_prefix
+            url_prefix = f"{username if username else ''}/"
+            url = f"/{url_prefix}submission"
 
             request = self.factory.post(url, post_data)
             request.user = authenticate(username=auth.username, password=auth.password)
 
+            # pylint: disable=attribute-defined-outside-init
             self.response = submission(request, username=username)
 
             if auth and self.response.status_code == 401:
@@ -267,16 +285,19 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             data = {"xml_submission_file": f}
             if attachment_path is not None:
                 if isinstance(attachment_path, list):
-                    for c in range(len(attachment_path)):
-                        data["media_file_{}".format(c)] = open(attachment_path[c], "rb")
+                    for index, item_path in enumerate(attachment_path):
+                        # pylint: disable=consider-using-with
+                        data[f"media_file_{index}"] = open(item_path, "rb")
                 else:
+                    # pylint: disable=consider-using-with
                     data["media_file"] = open(attachment_path, "rb")
 
-            url = "/%s/submission" % self.user.username
+            url = f"/{self.user.username}/submission"
             auth = DigestAuth("bob", "bob")
             self.factory = APIRequestFactory()
             request = self.factory.post(url, data)
             request.user = authenticate(username="bob", password="bob")
+            # pylint: disable=attribute-defined-outside-init
             self.response = submission(request, username=self.user.username)
 
             if auth and self.response.status_code == 401:
@@ -316,8 +337,8 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
 
     def _check_url(self, url, timeout=1):
         try:
-            urlopen(url, timeout=timeout)
-            return True
+            with urlopen(url, timeout=timeout):
+                return True
         except (URLError, socket.timeout):
             pass
         return False
@@ -329,13 +350,16 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
     def _set_auth_headers(self, username, password):
         return {
             "HTTP_AUTHORIZATION": "Basic "
-            + base64.b64encode(("%s:%s" % (username, password)).encode("utf-8")).decode(
+            + base64.b64encode(f"{username}:{password}".encode("utf-8")).decode(
                 "utf-8"
             ),
         }
 
-    def _get_authenticated_client(self, url, username="bob", password="bob", extra={}):
+    def _get_authenticated_client(
+        self, url, username="bob", password="bob", extra=None
+    ):
         client = DigestClient()
+        extra = {} if extra is None else extra
         # request with no credentials
         req = client.get(url, {}, **extra)
         self.assertEqual(req.status_code, 401)
@@ -348,7 +372,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         mock_time.return_value = current_time
 
     def _set_require_auth(self, auth=True):
-        profile, created = UserProfile.objects.get_or_create(user=self.user)
+        profile, _created = UserProfile.objects.get_or_create(user=self.user)
         profile.require_auth = auth
         profile.save()
 
@@ -372,7 +396,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         self._publish_xls_file_and_set_xform(path)
 
         view = XFormViewSet.as_view({"post": "csv_import"})
-        csv_import = open(
+        with open(
             os.path.join(
                 settings.PROJECT_ROOT,
                 "apps",
@@ -383,11 +407,11 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
                 "GeoLocationForm_2015_01_15_01_28_45.csv",
             ),
             encoding="utf-8",
-        )
-        post_data = {"csv_file": csv_import}
-        request = self.factory.post("/", data=post_data, **self.extra)
-        response = view(request, pk=self.xform.id)
-        self.assertEqual(response.status_code, 200)
+        ) as csv_import:
+            post_data = {"csv_file": csv_import}
+            request = self.factory.post("/", data=post_data, **self.extra)
+            response = view(request, pk=self.xform.id)
+            self.assertEqual(response.status_code, 200)
 
     def _publish_markdown(self, md_xlsform, user, project=None, **kwargs):
         """
@@ -419,7 +443,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
 
         data = get_response_content(response)
         reader = csv.DictReader(StringIO(data))
-        data = [_ for _ in reader]
+        data = list(reader)
         with open(csv_file_path, encoding="utf-8") as test_file:
             expected_csv_reader = csv.DictReader(test_file)
             for index, row in enumerate(expected_csv_reader):
@@ -429,7 +453,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
 
     def _test_csv_files(self, csv_file, csv_file_path):
         reader = csv.DictReader(csv_file)
-        data = [_ for _ in reader]
+        data = list(reader)
         with open(csv_file_path, encoding="utf-8") as test_file:
             expected_csv_reader = csv.DictReader(test_file)
             for index, row in enumerate(expected_csv_reader):

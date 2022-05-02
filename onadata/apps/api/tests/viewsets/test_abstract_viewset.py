@@ -189,8 +189,8 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         )
         response = view(request)
         self.assertEqual(response.status_code, 201)
-        data["url"] = "http://testserver/api/v1/orgs/{data['org']}"
-        data["user"] = "http://testserver/api/v1/users/{data['org']}"
+        data["url"] = f"http://testserver/api/v1/orgs/{data['org']}"
+        data["user"] = f"http://testserver/api/v1/users/{data['org']}"
         data["creator"] = "http://testserver/api/v1/users/bob"
         self.assertDictContainsSubset(data, response.data)
         # pylint: disable=attribute-defined-outside-init
