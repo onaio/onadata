@@ -128,7 +128,6 @@ class Command(BaseCommand):
         if len(args) < 3:
             raise CommandError("Param not set. <app model [created_perm]>")
 
-        app = args[0]
         model = args[1]
         username = args[2]
         new_perms = list(args[3:])

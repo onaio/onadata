@@ -121,6 +121,7 @@ class XLSRenderer(BaseRenderer):
     media_type = "application/vnd.openxmlformats"
     format = "xls"
     charset = None
+
     # pylint: disable=no-self-use,unused-argument
     def render(self, data, accepted_media_type=None, renderer_context=None):
         """
