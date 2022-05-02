@@ -42,7 +42,7 @@ class TestExportTasks(TestBase):
             export = result[0]
             self.assertTrue(export.id)
             self.assertIn("username", options)
-            self.assertEquals(options.get("id_string"), self.xform.id_string)
+            self.assertEqual(options.get("id_string"), self.xform.id_string)
 
     def test_mark_expired_pending_exports_as_failed(self):
         self._publish_transportation_form_and_submit_instance()
@@ -56,7 +56,7 @@ class TestExportTasks(TestBase):
         export.save()
         mark_expired_pending_exports_as_failed()
         export = Export.objects.filter(pk=export.pk).first()
-        self.assertEquals(export.internal_status, Export.FAILED)
+        self.assertEqual(export.internal_status, Export.FAILED)
 
     def test_delete_expired_failed_exports(self):
         self._publish_transportation_form_and_submit_instance()
@@ -70,4 +70,4 @@ class TestExportTasks(TestBase):
         export.save()
         pk = export.pk
         delete_expired_failed_exports()
-        self.assertEquals(Export.objects.filter(pk=pk).first(), None)
+        self.assertEqual(Export.objects.filter(pk=pk).first(), None)

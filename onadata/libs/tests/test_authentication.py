@@ -103,8 +103,8 @@ class TestTempTokenAuthentication(TestCase):
             returned_user,
             returned_token,
         ) = self.temp_token_authentication.authenticate_credentials(token.key)
-        self.assertEquals(user, returned_user)
-        self.assertEquals(token, returned_token)
+        self.assertEqual(user, returned_user)
+        self.assertEqual(token, returned_token)
 
 
 class TestTempTokenURLParameterAuthentication(TestCase):

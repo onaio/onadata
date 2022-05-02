@@ -79,7 +79,7 @@ class TestMetaDataFilter(TestBase):
         request = self.factory.get('/', data=params, **self.extra)
         response = self.view(request)
 
-        self.assertEquals(len(response.data), 1)
+        self.assertEqual(len(response.data), 1)
 
     def test_metadata_filter_for_user_without_xform_perms(self):
         self._create_user_and_login("alice", "password")
@@ -91,7 +91,7 @@ class TestMetaDataFilter(TestBase):
         request = self.factory.get('/', data=params, **extra)
         response = self.view(request)
 
-        self.assertEquals(len(response.data), 0)
+        self.assertEqual(len(response.data), 0)
 
     def test_filter_for_foreign_instance_request(self):
         self._create_user_and_login("alice", "password")
@@ -110,7 +110,7 @@ class TestMetaDataFilter(TestBase):
         request = self.factory.get('/', data=params, **extra)
         response = self.view(request)
 
-        self.assertEquals(len(response.data), 0)
+        self.assertEqual(len(response.data), 0)
 
     def test_filter_for_dataview_metadata_instance_request(self):
         # """Dataview IDs should not yield any submission metadata"""
@@ -128,7 +128,7 @@ class TestMetaDataFilter(TestBase):
         request = self.factory.get('/', data=params, **self.extra)
         response = self.view(request)
 
-        self.assertEquals(len(response.data), 0)
+        self.assertEqual(len(response.data), 0)
 
     def test_filter_given_user_without_permissions_to_xform(self):
         """Instance metadata isn't listed for users without form perms"""
@@ -152,7 +152,7 @@ class TestMetaDataFilter(TestBase):
         request = self.factory.get('/', data=params, **self.extra)
         response = self.view(request)
 
-        self.assertEquals(len(response.data), 0)
+        self.assertEqual(len(response.data), 0)
 
     def test_filter_given_dataview_in_project_without_instance(self):
         """Meta data for submissions shouldn't be accessible from dataview"""
@@ -173,4 +173,4 @@ class TestMetaDataFilter(TestBase):
         request = self.factory.get('/', data=params, **self.extra)
         response = self.view(request)
 
-        self.assertEquals(len(response.data), 0)
+        self.assertEqual(len(response.data), 0)

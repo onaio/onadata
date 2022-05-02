@@ -76,7 +76,7 @@ class TestApiExportTools(TestBase):
         resp = process_async_export(
             request, self.xform, export_type, options=options)
 
-        self.assertEquals(resp['job_status'], status_msg[SUCCESSFUL])
+        self.assertEqual(resp['job_status'], status_msg[SUCCESSFUL])
         self.assertIn("export_url", resp)
 
     # pylint: disable=invalid-name

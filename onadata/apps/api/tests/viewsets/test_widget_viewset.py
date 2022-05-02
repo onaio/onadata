@@ -81,9 +81,9 @@ class TestWidgetViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=data, **self.extra)
         response = self.view(request)
 
-        self.assertEquals(response.status_code, 400)
-        self.assertEquals(count, Widget.objects.all().count())
-        self.assertEquals(
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(count, Widget.objects.all().count())
+        self.assertEqual(
             response.data['content_object'],
             [u"`%s` is not a valid relation." % data['content_object']]
         )
@@ -102,9 +102,9 @@ class TestWidgetViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=data, **self.extra)
         response = self.view(request)
 
-        self.assertEquals(response.status_code, 400)
-        self.assertEquals(count, Widget.objects.all().count())
-        self.assertEquals(response.data['column'],
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(count, Widget.objects.all().count())
+        self.assertEqual(response.data['column'],
                           [u"This field is required."])
 
     def test_create_unsupported_widget_type(self):
@@ -122,9 +122,9 @@ class TestWidgetViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=data, **self.extra)
         response = self.view(request)
 
-        self.assertEquals(response.status_code, 400)
-        self.assertEquals(count, Widget.objects.all().count())
-        self.assertEquals(response.data['widget_type'],
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(count, Widget.objects.all().count())
+        self.assertEqual(response.data['widget_type'],
                           [u'"%s" is not a valid choice.'
                            % data['widget_type']])
 
@@ -149,13 +149,13 @@ class TestWidgetViewSet(TestAbstractViewSet):
 
         self.widget = Widget.objects.all().order_by('pk').reverse()[0]
 
-        self.assertEquals(key, self.widget.key)
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.data['title'], 'My new title updated')
-        self.assertEquals(response.data['key'], key)
-        self.assertEquals(response.data['description'],
+        self.assertEqual(key, self.widget.key)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['title'], 'My new title updated')
+        self.assertEqual(response.data['key'], key)
+        self.assertEqual(response.data['description'],
                           "new description")
-        self.assertEquals(response.data['aggregation'],
+        self.assertEqual(response.data['aggregation'],
                           "new aggregation")
 
     def test_patch_widget(self):
@@ -168,8 +168,8 @@ class TestWidgetViewSet(TestAbstractViewSet):
         request = self.factory.patch('/', data=data, **self.extra)
         response = self.view(request, pk=self.widget.pk)
 
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.data['column'], '_submitted_by')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['column'], '_submitted_by')
 
     def test_delete_widget(self):
         ct = ContentType.objects.get(model='xform', app_label='logger')
@@ -180,11 +180,11 @@ class TestWidgetViewSet(TestAbstractViewSet):
         request = self.factory.delete('/', **self.extra)
         response = self.view(request, pk=self.widget.pk)
 
-        self.assertEquals(response.status_code, 204)
+        self.assertEqual(response.status_code, 204)
 
         after_count = Widget.objects.filter(content_type=ct,
                                             object_id=self.xform.pk).count()
-        self.assertEquals(count - 1, after_count)
+        self.assertEqual(count - 1, after_count)
 
     def test_list_widgets(self):
         self._create_widget()
@@ -207,8 +207,8 @@ class TestWidgetViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = view(request)
 
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(len(response.data), 2)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
 
     def test_widget_permission_create(self):
 
@@ -236,7 +236,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
                                     content_type="application/json",
                                     **self.extra)
         response = view(request)
-        self.assertEquals(response.status_code, 400)
+        self.assertEqual(response.status_code, 400)
 
         # owner
         OwnerRole.add(self.user, self.project)
@@ -244,7 +244,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
                                     content_type="application/json",
                                     **self.extra)
         response = view(request)
-        self.assertEquals(response.status_code, 201)
+        self.assertEqual(response.status_code, 201)
 
         # readonly
         ReadOnlyRole.add(self.user, self.project)
@@ -252,7 +252,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
                                     content_type="application/json",
                                     **self.extra)
         response = view(request)
-        self.assertEquals(response.status_code, 201)
+        self.assertEqual(response.status_code, 201)
 
         # dataentryonlyrole
         DataEntryOnlyRole.add(self.user, self.project)
@@ -261,7 +261,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
                                     **self.extra)
 
         response = view(request)
-        self.assertEquals(response.status_code, 201)
+        self.assertEqual(response.status_code, 201)
 
     def test_widget_permission_change(self):
         self._create_widget()
@@ -278,8 +278,8 @@ class TestWidgetViewSet(TestAbstractViewSet):
         request = self.factory.patch('/', data=data, **self.extra)
         response = self.view(request, pk=self.widget.pk)
 
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.data['title'], 'Widget those')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['title'], 'Widget those')
 
         ReadOnlyRole.add(self.user, self.project)
         ReadOnlyRole.add(self.user, self.xform)
@@ -287,8 +287,8 @@ class TestWidgetViewSet(TestAbstractViewSet):
         request = self.factory.patch('/', data=data, **self.extra)
         response = self.view(request, pk=self.widget.pk)
 
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.data['title'], 'Widget those')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['title'], 'Widget those')
 
     def test_widget_permission_list(self):
         self._create_widget()
@@ -303,8 +303,8 @@ class TestWidgetViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = view(request)
 
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(len(response.data), 0)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
 
         # assign alice the perms
         ReadOnlyRole.add(self.user, self.xform)
@@ -312,8 +312,8 @@ class TestWidgetViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = view(request)
 
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(len(response.data), 1)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
 
     def test_widget_permission_get(self):
         self._create_widget()
@@ -324,7 +324,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = self.view(request, pk=self.widget.pk)
 
-        self.assertEquals(response.status_code, 404)
+        self.assertEqual(response.status_code, 404)
 
         # assign alice the perms
         ReadOnlyRole.add(self.user, self.project)
@@ -333,7 +333,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
         response = self.view(request, formid=self.xform.pk,
                              pk=self.widget.pk)
 
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
 
     def test_widget_data(self):
         self._create_widget()
@@ -348,7 +348,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertIsNotNone(response.data.get('data'))
         self.assertIn('data', response.data.get('data'))
-        self.assertEquals(len(response.data.get('data')['data']), 8)
+        self.assertEqual(len(response.data.get('data')['data']), 8)
         self.assertIn('age', response.data.get('data')['data'][0])
         self.assertIn('count', response.data.get('data')['data'][0])
 
@@ -371,7 +371,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertIsNotNone(response.data.get('data'))
         self.assertIn('data', response.data.get('data'))
-        self.assertEquals(len(response.data.get('data')['data']), 2)
+        self.assertEqual(len(response.data.get('data')['data']), 2)
         self.assertIn('gender', response.data.get('data')['data'][0])
         self.assertIn('sum', response.data.get('data')['data'][0])
         self.assertIn('mean', response.data.get('data')['data'][0])
@@ -395,7 +395,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertIsNotNone(response.data.get('data'))
-        self.assertEquals(response.data.get('data'),
+        self.assertEqual(response.data.get('data'),
                           {
                               'field_type': u'select one',
                               'data_type': 'categorized',
@@ -423,7 +423,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertIsNotNone(response.data.get('data'))
         self.assertIn('data', response.data.get('data'))
-        self.assertEquals(len(response.data.get('data')['data']), 8)
+        self.assertEqual(len(response.data.get('data')['data']), 8)
         self.assertIn('age', response.data.get('data')['data'][0])
         self.assertIn('count', response.data.get('data')['data'][0])
 
@@ -447,7 +447,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertIsNotNone(response.data.get('data'))
         self.assertIn('data', response.data.get('data'))
-        self.assertEquals(len(response.data.get('data')['data']), 8)
+        self.assertEqual(len(response.data.get('data')['data']), 8)
         self.assertIn('age', response.data.get('data')['data'][0])
         self.assertIn('count', response.data.get('data')['data'][0])
 
@@ -481,7 +481,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
         response = view(request)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEquals(len(response.data), 0)
+        self.assertEqual(len(response.data), 0)
 
         # Anonymous user can access widget in public form
         self.xform.shared_data = True
@@ -491,7 +491,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
         response = view(request, formid=self.xform.pk)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEquals(len(response.data), 1)
+        self.assertEqual(len(response.data), 1)
 
     def test_widget_pk_formid_required(self):
         self._create_widget()
@@ -509,8 +509,8 @@ class TestWidgetViewSet(TestAbstractViewSet):
         request = self.factory.put('/', data=data, **self.extra)
         response = self.view(request)
 
-        self.assertEquals(response.status_code, 400)
-        self.assertEquals(response.data,
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data,
                           {u'detail': u"'pk' required for this"
                            u" action"})
 
@@ -539,8 +539,8 @@ class TestWidgetViewSet(TestAbstractViewSet):
         request = self.factory.get('/', data=data, **self.extra)
         response = view(request)
 
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(len(response.data), 1)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
 
     def test_create_column_not_in_form(self):
         data = {
@@ -556,9 +556,9 @@ class TestWidgetViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=data, **self.extra)
         response = self.view(request)
 
-        self.assertEquals(response.status_code, 400)
-        self.assertEquals(count, Widget.objects.all().count())
-        self.assertEquals(response.data['column'],
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(count, Widget.objects.all().count())
+        self.assertEqual(response.data['column'],
                           [u"'doesnotexists' not in the form."])
 
     def test_create_widget_with_xform_no_perms(self):
@@ -576,8 +576,8 @@ class TestWidgetViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=data, **self.extra)
         response = self.view(request)
 
-        self.assertEquals(response.status_code, 400)
-        self.assertEquals(response.data['content_object'],
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['content_object'],
                           [u"You don't have permission to the Project."])
 
     def test_filter_widgets_by_dataview(self):
@@ -615,8 +615,8 @@ class TestWidgetViewSet(TestAbstractViewSet):
         request = self.factory.get('/', data=data, **self.extra)
         response = view(request)
 
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(len(response.data), 2)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
 
         data = {
             "dataview": "so_invalid"
@@ -625,8 +625,8 @@ class TestWidgetViewSet(TestAbstractViewSet):
         request = self.factory.get('/', data=data, **self.extra)
         response = view(request)
 
-        self.assertEquals(response.status_code, 400)
-        self.assertEquals(response.data['detail'],
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['detail'],
                           u"Invalid value for dataview %s." % "so_invalid")
 
     def test_order_widget(self):
@@ -642,14 +642,14 @@ class TestWidgetViewSet(TestAbstractViewSet):
         request = self.factory.patch('/', data=data, **self.extra)
         response = self.view(request, pk=self.widget.pk)
 
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.data['order'], 1)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['order'], 1)
 
         widget = Widget.objects.all().order_by('pk')[0]
-        self.assertEquals(widget.order, 0)
+        self.assertEqual(widget.order, 0)
 
         widget = Widget.objects.all().order_by('pk')[1]
-        self.assertEquals(widget.order, 2)
+        self.assertEqual(widget.order, 2)
 
     def test_widget_data_case_sensitive(self):
         xlsform_path = os.path.join(
@@ -686,7 +686,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertIsNotNone(response.data.get('data'))
-        self.assertEquals(response.data.get('data'),
+        self.assertEqual(response.data.get('data'),
                           {
                               'field_type': u'select one',
                               'data_type': 'categorized',
@@ -740,7 +740,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
                                     **extra)
         response = view(request)
 
-        self.assertEquals(response.status_code, 201)
+        self.assertEqual(response.status_code, 201)
 
     def test_create_multiple_choice(self):
         data = {

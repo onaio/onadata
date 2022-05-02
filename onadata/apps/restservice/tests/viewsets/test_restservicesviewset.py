@@ -33,8 +33,8 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=post_data, **self.extra)
         response = self.view(request)
 
-        self.assertEquals(response.status_code, 201)
-        self.assertEquals(count + 1, RestService.objects.all().count())
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(count + 1, RestService.objects.all().count())
 
     def test_textit_service_missing_params(self):
         post_data = {
@@ -45,7 +45,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=post_data, **self.extra)
         response = self.view(request)
 
-        self.assertEquals(response.status_code, 400)
+        self.assertEqual(response.status_code, 400)
 
     def _create_textit_service(self):
         count = RestService.objects.all().count()
@@ -61,12 +61,12 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=post_data, **self.extra)
         response = self.view(request)
 
-        self.assertEquals(response.status_code, 201)
-        self.assertEquals(count + 1, RestService.objects.all().count())
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(count + 1, RestService.objects.all().count())
 
         meta = MetaData.objects.filter(object_id=self.xform.id,
                                        data_type='textit')
-        self.assertEquals(len(meta), 1)
+        self.assertEqual(len(meta), 1)
         rs = RestService.objects.last()
 
         expected_dict = {
@@ -124,8 +124,8 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         request = self.factory.delete('/', **self.extra)
         response = self.view(request, pk=rest['id'])
 
-        self.assertEquals(response.status_code, 204)
-        self.assertEquals(count - 1, RestService.objects.all().count())
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(count - 1, RestService.objects.all().count())
         a_meta_count = MetaData.objects.filter(object_id=self.xform.id,
                                                data_type='textit').count()
         self.assertEqual(meta_count - 1, a_meta_count)
@@ -149,8 +149,8 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         request = self.factory.put('/', data=post_data, **self.extra)
         response = self.view(request, pk=rest.pk)
 
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.data['name'], "textit")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['name'], "textit")
         self.assertEqual(response.data['flow_title'], 'test-flow')
         metadata_count = MetaData.objects.count()
 
@@ -180,8 +180,8 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = self.view(request, pk=rest.get('id'))
 
-        self.assertEquals(response.status_code, 400)
-        self.assertEquals(response.data,
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data,
                           [u"Error occurred when loading textit service."
                            u"Resolve by updating auth_token, flow_uuid and "
                            u"contacts fields"])
@@ -198,7 +198,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         request = self.factory.put('/', data=post_data, **self.extra)
         response = self.view(request, pk=rest.get('id'))
 
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
 
     def test_delete(self):
         rest = RestService(name="testservice",
@@ -211,8 +211,8 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         request = self.factory.delete('/', **self.extra)
         response = self.view(request, pk=rest.pk)
 
-        self.assertEquals(response.status_code, 204)
-        self.assertEquals(count - 1, RestService.objects.all().count())
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(count - 1, RestService.objects.all().count())
 
     def test_retrieve(self):
         rest = RestService(name="testservice",
@@ -233,9 +233,9 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         }
         response.data.pop('date_modified')
         response.data.pop('date_created')
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
 
-        self.assertEquals(response.data, data)
+        self.assertEqual(response.data, data)
 
     def test_duplicate_rest_service(self):
         post_data = {
@@ -249,7 +249,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=post_data, **self.extra)
         response = self.view(request)
 
-        self.assertEquals(response.status_code, 201)
+        self.assertEqual(response.status_code, 201)
 
         post_data = {
             "name": "textit",
@@ -262,7 +262,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=post_data, **self.extra)
         response = self.view(request)
 
-        self.assertEquals(response.status_code, 400)
+        self.assertEqual(response.status_code, 400)
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('requests.post')
@@ -281,7 +281,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self._make_submissions()
 
         self.assertTrue(mock_http.called)
-        self.assertEquals(mock_http.call_count, 4)
+        self.assertEqual(mock_http.call_count, 4)
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('requests.post')
@@ -313,6 +313,6 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=post_data, **self.extra)
         response = self.view(request)
 
-        self.assertEquals(response.status_code, 400)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data, {'xform': [u'Invalid form id']})
-        self.assertEquals(count, RestService.objects.all().count())
+        self.assertEqual(count, RestService.objects.all().count())

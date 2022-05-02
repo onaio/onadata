@@ -173,7 +173,7 @@ class TestXFormInstanceParser(TestBase):
             "multiple_nodes_error.xml"
         )
         self._make_submission(xml_submission_file_path)
-        self.assertEquals(201, self.response.status_code)
+        self.assertEqual(201, self.response.status_code)
 
     def test_multiple_media_files_on_encrypted_form(self):
         self._create_user_and_login()

@@ -134,12 +134,12 @@ class TestMQTTBackend(TestCase):
         mqtt.send(instance=instance)
         self.assertTrue(mocked.called)
         args, kwargs = mocked.call_args_list[0]
-        self.assertEquals(mqtt.get_topic(instance), args[0])
-        self.assertEquals(get_payload(instance), kwargs['payload'])
-        self.assertEquals('localhost', kwargs['hostname'])
-        self.assertEquals(8883, kwargs['port'])
-        self.assertEquals(0, kwargs['qos'])
-        self.assertEquals(False, kwargs['retain'])
+        self.assertEqual(mqtt.get_topic(instance), args[0])
+        self.assertEqual(get_payload(instance), kwargs['payload'])
+        self.assertEqual('localhost', kwargs['hostname'])
+        self.assertEqual(8883, kwargs['port'])
+        self.assertEqual(0, kwargs['qos'])
+        self.assertEqual(False, kwargs['retain'])
         self.assertDictEqual(
             dict(ca_certs='cacert.pem',
                  certfile='emq.pem',

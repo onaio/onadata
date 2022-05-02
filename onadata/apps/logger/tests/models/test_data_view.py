@@ -91,13 +91,13 @@ class TestIntegratedDataView(TestAbstractViewSet):
             self.all_data,
             self.sort)
 
-        self.assertEquals(sql, expected_sql)
+        self.assertEqual(sql, expected_sql)
         self.assertEqual(len(columns), 8)
 
         self.cursor.execute(sql, [str(i) for i in (params)])
         results = self.cursor.fetchall()
 
-        self.assertEquals(len(results), 3)
+        self.assertEqual(len(results), 3)
 
     def test_generate_query_string_for_data_with_limit_filter(self):
         limit_filter = 1
@@ -114,14 +114,14 @@ class TestIntegratedDataView(TestAbstractViewSet):
             self.all_data,
             self.sort)
 
-        self.assertEquals(sql, expected_sql)
+        self.assertEqual(sql, expected_sql)
 
         records = [record for record in DataView.query_iterator(sql,
                                                                 columns,
                                                                 params,
                                                                 self.count)]
 
-        self.assertEquals(len(records), limit_filter)
+        self.assertEqual(len(records), limit_filter)
 
     def test_generate_query_string_for_data_with_start_index_filter(self):
         start_index = 2
@@ -138,13 +138,13 @@ class TestIntegratedDataView(TestAbstractViewSet):
             self.all_data,
             self.sort)
 
-        self.assertEquals(sql, expected_sql)
+        self.assertEqual(sql, expected_sql)
 
         records = [record for record in DataView.query_iterator(sql,
                                                                 columns,
                                                                 params,
                                                                 self.count)]
-        self.assertEquals(len(records), 1)
+        self.assertEqual(len(records), 1)
         self.assertIn('name', records[0])
         self.assertIn('age', records[0])
         self.assertIn('gender', records[0])
@@ -165,7 +165,7 @@ class TestIntegratedDataView(TestAbstractViewSet):
             self.all_data,
             sort)
 
-        self.assertEquals(sql, expected_sql)
+        self.assertEqual(sql, expected_sql)
 
         records = [record for record in DataView.query_iterator(sql,
                                                                 columns,
@@ -189,7 +189,7 @@ class TestIntegratedDataView(TestAbstractViewSet):
             self.all_data,
             sort)
 
-        self.assertEquals(sql, expected_sql)
+        self.assertEqual(sql, expected_sql)
 
         records = [record for record in DataView.query_iterator(sql,
                                                                 columns,

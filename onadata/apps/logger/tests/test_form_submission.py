@@ -84,7 +84,7 @@ class TestFormSubmission(TestBase):
         mock_pop.side_effect = IOError(
             'request data read error')
 
-        self.assertEquals(0, self.xform.instances.count())
+        self.assertEqual(0, self.xform.instances.count())
 
         xml_submission_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
@@ -93,14 +93,14 @@ class TestFormSubmission(TestBase):
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 400)
 
-        self.assertEquals(0, self.xform.instances.count())
+        self.assertEqual(0, self.xform.instances.count())
 
     @patch('django.utils.datastructures.MultiValueDict.pop')
     def test_fail_with_ioerror_wsgi(self, mock_pop):
         mock_pop.side_effect = IOError(
             'error during read(65536) on wsgi.input')
 
-        self.assertEquals(0, self.xform.instances.count())
+        self.assertEqual(0, self.xform.instances.count())
 
         xml_submission_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
@@ -109,7 +109,7 @@ class TestFormSubmission(TestBase):
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 400)
 
-        self.assertEquals(0, self.xform.instances.count())
+        self.assertEqual(0, self.xform.instances.count())
 
     def test_submission_to_require_auth_anon(self):
         """
@@ -349,7 +349,7 @@ class TestFormSubmission(TestBase):
 
         # check that instance history's submission_date is equal to instance's
         # date_created - last_edited by default is null for an instance
-        self.assertEquals(edited_instance.date_created,
+        self.assertEqual(edited_instance.date_created,
                           instance_history_1.submission_date)
         # check that '_last_edited' key is not in the json
         self.assertIn(LAST_EDITED, edited_instance.json)
@@ -376,7 +376,7 @@ class TestFormSubmission(TestBase):
         record = cursor[0]
         edited_instance = self.xform.instances.first()
         instance_history_2 = InstanceHistory.objects.last()
-        self.assertEquals(instance_before_second_edit.last_edited,
+        self.assertEqual(instance_before_second_edit.last_edited,
                           instance_history_2.submission_date)
         # check that '_last_edited' key is not in the json
         self.assertIn(LAST_EDITED, edited_instance.json)
@@ -586,7 +586,7 @@ class TestFormSubmission(TestBase):
             'error during read(65536) on wsgi.input'
         )
 
-        self.assertEquals(0, self.xform.instances.count())
+        self.assertEqual(0, self.xform.instances.count())
 
         xml_submission_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
@@ -595,7 +595,7 @@ class TestFormSubmission(TestBase):
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 400)
 
-        self.assertEquals(0, self.xform.instances.count())
+        self.assertEqual(0, self.xform.instances.count())
 
     def test_form_submission_with_infinity_values(self):
         """
@@ -616,6 +616,6 @@ class TestFormSubmission(TestBase):
         )
 
         self._make_submission(path=xml_submission_file_path)
-        self.assertEquals(400, self.response.status_code)
+        self.assertEqual(400, self.response.status_code)
         self.assertIn(
             'invalid input syntax for type json', str(self.response.message))

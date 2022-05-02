@@ -48,7 +48,7 @@ class RestServiceTest(TestBase):
                      'service_name': service_name}
         response = self.client.post(add_service_url, post_data)
         self.assertEqual(response.status_code, 200)
-        self.assertEquals(RestService.objects.all().count(), count + 1)
+        self.assertEqual(RestService.objects.all().count(), count + 1)
 
     def add_rest_service_with_usename_and_id_string_in_uppercase(self):
         add_service_url = reverse(add_service, kwargs={
@@ -61,7 +61,7 @@ class RestServiceTest(TestBase):
     def test_create_rest_service(self):
         count = RestService.objects.all().count()
         self._create_rest_service()
-        self.assertEquals(RestService.objects.all().count(), count + 1)
+        self.assertEqual(RestService.objects.all().count(), count + 1)
 
     def test_service_definition(self):
         self._create_rest_service()
@@ -134,7 +134,7 @@ class RestServiceTest(TestBase):
         self.assertFalse(mock_http.called)
         self._make_submission(xml_submission)
         self.assertTrue(mock_http.called)
-        self.assertEquals(mock_http.call_count, 1)
+        self.assertEqual(mock_http.call_count, 1)
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('requests.post')
@@ -146,7 +146,7 @@ class RestServiceTest(TestBase):
         self.assertFalse(mock_http.called)
         self._make_submission(xml_submission)
         self.assertFalse(mock_http.called)
-        self.assertEquals(mock_http.call_count, 0)
+        self.assertEqual(mock_http.call_count, 0)
 
     def test_clean_keys_of_slashes(self):
         service = ServiceDefinition()
@@ -164,5 +164,5 @@ class RestServiceTest(TestBase):
             "zero_column": "0"
         }
 
-        self.assertEquals(expected_data,
+        self.assertEqual(expected_data,
                           service.clean_keys_of_slashes(test_data))

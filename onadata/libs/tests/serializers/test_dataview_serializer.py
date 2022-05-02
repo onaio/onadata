@@ -73,7 +73,7 @@ class TestDataViewSerializer(TestAbstractViewSet):
         self.assertTrue(is_valid)
 
         serializer.save()
-        self.assertEquals(DataView.objects.count(), 1)
+        self.assertEqual(DataView.objects.count(), 1)
 
         # Try and save the same data again and confirm it fails
         serializer = DataViewSerializer(
@@ -86,4 +86,4 @@ class TestDataViewSerializer(TestAbstractViewSet):
         serializer.errors.get(
             'non_field_errors')[0].title() == expected_error_msg
 
-        self.assertEquals(DataView.objects.count(), 1)
+        self.assertEqual(DataView.objects.count(), 1)

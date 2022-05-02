@@ -132,7 +132,7 @@ class TestExportList(TestBase):
         response = self.client.get(url, custom_params)
         self.assertEqual(response.status_code, 200)
         count1 = len(Export.objects.all())
-        self.assertEquals(count + 1, count1)
+        self.assertEqual(count + 1, count1)
 
     def test_external_export_list_no_template(self):
         kwargs = {'username': self.user.username,
@@ -143,10 +143,10 @@ class TestExportList(TestBase):
         count = len(Export.objects.all())
         response = self.client.get(url)
         self.assertEqual(response.status_code, 403)
-        self.assertEquals(response.content.decode('utf-8'),
+        self.assertEqual(response.content.decode('utf-8'),
                           u'No XLS Template set.')
         count1 = len(Export.objects.all())
-        self.assertEquals(count, count1)
+        self.assertEqual(count, count1)
 
 
 class TestDataExportURL(TestBase):

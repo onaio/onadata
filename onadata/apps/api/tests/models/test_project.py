@@ -45,9 +45,9 @@ class TestProject(TestAbstractModels, TestBase):
             project=project
         )
         project.soft_delete()
-        self.assertEquals(
+        self.assertEqual(
             1, Project.objects.filter(deleted_at__isnull=False).count())
-        self.assertEquals(
+        self.assertEqual(
             1, XForm.objects.filter(deleted_at__isnull=False).count())
 
     def test_project_detetion_reverts_when_an_exception_raised(self):
@@ -100,16 +100,16 @@ class TestProject(TestAbstractModels, TestBase):
 
         with self.assertRaises(XLSFormError):
             project.soft_delete()
-            self.assertEquals(1, Project.objects.filter(
+            self.assertEqual(1, Project.objects.filter(
                 deleted_at__isnull=True).count())
             self.assertIsNone(project.deleted_at)
 
-            self.assertEquals(1, XForm.objects.filter(
+            self.assertEqual(1, XForm.objects.filter(
                 project=project, deleted_at__isnull=True).count())
 
         # Try deleting the Xform; it should also roll back due to the exception
         with self.assertRaises(XLSFormError):
             XForm.objects.all()[0].soft_delete()
-            self.assertEquals(1, XForm.objects.filter(
+            self.assertEqual(1, XForm.objects.filter(
                 deleted_at__isnull=True).count())
             self.assertIsNone(XForm.objects.all()[0].deleted_at)

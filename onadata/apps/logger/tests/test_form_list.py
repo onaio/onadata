@@ -41,4 +41,4 @@ class TestFormList(TestBase):
         request = self.factory.get('/')
         request.user = AnonymousUser()
         response = formList(request, self.user.username)
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)

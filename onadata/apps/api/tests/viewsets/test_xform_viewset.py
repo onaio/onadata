@@ -1027,9 +1027,9 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.xform.refresh_from_db()
 
             # diff versions
-            self.assertNotEquals(version, self.xform.version)
-            self.assertEquals(form_id, self.xform.pk)
-            self.assertEquals(id_string, self.xform.id_string)
+            self.assertNotEqual(version, self.xform.version)
+            self.assertEqual(form_id, self.xform.pk)
+            self.assertEqual(id_string, self.xform.id_string)
 
     def test_xform_hash_changes_after_form_replacement(self):
         with HTTMock(enketo_mock):
@@ -1061,7 +1061,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertEqual(response.status_code, 200)
 
             self.xform.refresh_from_db()
-            self.assertNotEquals(xform_old_hash, self.xform.hash)
+            self.assertNotEqual(xform_old_hash, self.xform.hash)
 
     def test_hash_changes_after_update_xform_xls_file(self):
         with HTTMock(enketo_mock):
@@ -1092,7 +1092,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertEqual(response.status_code, 200)
 
             self.xform.refresh_from_db()
-            self.assertNotEquals(xform_old_hash, self.xform.hash)
+            self.assertNotEqual(xform_old_hash, self.xform.hash)
 
     def test_login_enketo_no_redirect(self):
         with HTTMock(enketo_urls_mock):
@@ -1242,7 +1242,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
                 self.assertDictContainsSubset(data, response.data)
                 self.assertTrue(OwnerRole.user_has_role(self.user, xform))
-                self.assertEquals("owner", response.data["users"][0]["role"])
+                self.assertEqual("owner", response.data["users"][0]["role"])
 
                 # pylint: disable=no-member
                 self.assertIsNotNone(
@@ -1298,7 +1298,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 )
                 self.assertDictContainsSubset(data, response.data)
                 self.assertTrue(OwnerRole.user_has_role(self.user, xform))
-                self.assertEquals("owner", response.data["users"][0]["role"])
+                self.assertEqual("owner", response.data["users"][0]["role"])
 
                 # pylint: disable=no-member
                 self.assertIsNotNone(
@@ -1339,7 +1339,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
                 self.assertDictContainsSubset(data, response.data)
                 self.assertTrue(OwnerRole.user_has_role(self.user, xform))
-                self.assertEquals("owner", response.data["users"][0]["role"])
+                self.assertEqual("owner", response.data["users"][0]["role"])
 
                 # pylint: disable=no-member
                 self.assertIsNotNone(
@@ -1528,7 +1528,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 )
                 self.assertIsNotNone(metadata)
                 self.assertTrue(OwnerRole.user_has_role(self.user, xform))
-                self.assertEquals("owner", response.data["users"][0]["role"], self.user)
+                self.assertEqual("owner", response.data["users"][0]["role"], self.user)
 
     def test_publish_csv_with_universal_newline_xlsform(self):
         with HTTMock(enketo_mock):
@@ -2099,7 +2099,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 response = view(request, pk=formid, format="xls")
                 self.assertEqual(response.status_code, 302)
                 expected_url = "http://xls_server/xls/ee3ff9d8f5184fc4a8fdebc2547cc059"
-                self.assertEquals(response.url, expected_url)
+                self.assertEqual(response.url, expected_url)
 
     def test_external_export_with_data_id(self):
         with HTTMock(enketo_mock):
@@ -2141,7 +2141,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 response = view(request, pk=formid, format="xls")
                 self.assertEqual(response.status_code, 302)
                 expected_url = "http://xls_server/xls/ee3ff9d8f5184fc4a8fdebc2547cc059"
-                self.assertEquals(response.url, expected_url)
+                self.assertEqual(response.url, expected_url)
 
     def test_external_export_error(self):
         with HTTMock(enketo_mock):
@@ -2317,7 +2317,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             response = view(request, pk=self.xform.id)
             self.assertEqual(response.status_code, 400)
             self.assertIn("error", response.data)
-            self.assertEquals(
+            self.assertEqual(
                 response.data.get("error"),
                 "Sorry uploaded file does not match the form. "
                 "The file is missing the column(s): age, name.",
@@ -2342,7 +2342,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             self.assertEqual(response.status_code, 200)
             self.assertIn("info", response.data)
-            self.assertEquals(
+            self.assertEqual(
                 response.data.get("info"),
                 "Additional column(s) excluded from the upload:" " '_additional'.",
             )
@@ -2475,11 +2475,11 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             new_version = self.xform.version
             new_last_updated_at = self.xform.last_updated_at
             # diff versions
-            self.assertNotEquals(last_updated_at, new_last_updated_at)
-            self.assertNotEquals(version, new_version)
-            self.assertNotEquals(title_old, self.xform.title)
-            self.assertEquals(form_id, self.xform.pk)
-            self.assertEquals(id_string, self.xform.id_string)
+            self.assertNotEqual(last_updated_at, new_last_updated_at)
+            self.assertNotEqual(version, new_version)
+            self.assertNotEqual(title_old, self.xform.title)
+            self.assertEqual(form_id, self.xform.pk)
+            self.assertEqual(id_string, self.xform.id_string)
 
     def test_manager_can_update_xform_xls_file(self):
         """Manager Role can replace xlsform"""
@@ -2531,10 +2531,10 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         new_version = self.xform.version
 
         # diff versions
-        self.assertNotEquals(version, new_version)
-        self.assertNotEquals(title_old, self.xform.title)
-        self.assertEquals(form_id, self.xform.pk)
-        self.assertEquals(id_string, self.xform.id_string)
+        self.assertNotEqual(version, new_version)
+        self.assertNotEqual(title_old, self.xform.title)
+        self.assertEqual(form_id, self.xform.pk)
+        self.assertEqual(id_string, self.xform.id_string)
         xml = self.xform.xml
         fhuuid = xml.find("formhub/uuid")
         self.assertEqual(xml[xml[:fhuuid].rfind("=") + 2 : fhuuid], "/data/")
@@ -2797,8 +2797,8 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             new_version = self.xform.version
 
             # fails to update the form
-            self.assertEquals(version, new_version)
-            self.assertEquals(form_id, self.xform.pk)
+            self.assertEqual(version, new_version)
+            self.assertEqual(form_id, self.xform.pk)
 
     def test_update_xform_xls_file_with_submissions(self):
         with HTTMock(enketo_mock):
@@ -2836,10 +2836,10 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             self.xform.refresh_from_db()
 
-            self.assertEquals(form_id, self.xform.pk)
-            self.assertNotEquals(version, self.xform.version)
-            self.assertNotEquals(xform_json, self.xform.json)
-            self.assertNotEquals(xform_xml, self.xform.xml)
+            self.assertEqual(form_id, self.xform.pk)
+            self.assertNotEqual(version, self.xform.version)
+            self.assertNotEqual(xform_json, self.xform.json)
+            self.assertNotEqual(xform_xml, self.xform.xml)
             is_updated_form = (
                 len(
                     [
@@ -2884,8 +2884,8 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.xform.refresh_from_db()
 
             # diff versions
-            self.assertEquals(self.xform.version, "212121211")
-            self.assertEquals(form_id, self.xform.pk)
+            self.assertEqual(self.xform.version, "212121211")
+            self.assertEqual(form_id, self.xform.pk)
 
     @patch("onadata.apps.main.forms.urlopen")
     def test_update_xform_xls_url(self, mock_urlopen):
@@ -2924,10 +2924,10 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             self.xform.refresh_from_db()
 
-            self.assertEquals(count, XForm.objects.all().count())
+            self.assertEqual(count, XForm.objects.all().count())
             # diff versions
-            self.assertEquals(self.xform.version, "212121211")
-            self.assertEquals(form_id, self.xform.pk)
+            self.assertEqual(self.xform.version, "212121211")
+            self.assertEqual(form_id, self.xform.pk)
 
     @patch("onadata.apps.main.forms.urlopen")
     def test_update_xform_dropbox_url(self, mock_urlopen):
@@ -2966,10 +2966,10 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             self.xform.refresh_from_db()
 
-            self.assertEquals(count, XForm.objects.all().count())
+            self.assertEqual(count, XForm.objects.all().count())
             # diff versions
-            self.assertEquals(self.xform.version, "212121211")
-            self.assertEquals(form_id, self.xform.pk)
+            self.assertEqual(self.xform.version, "212121211")
+            self.assertEqual(form_id, self.xform.pk)
 
     def test_update_xform_using_put_with_invalid_input(self):
         with HTTMock(enketo_mock):
@@ -3073,7 +3073,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.xform.refresh_from_db()
 
             # check that description has been sanitized
-            self.assertEquals(
+            self.assertEqual(
                 conditional_escape(unsanitized_html_str), self.xform.description
             )
 
@@ -3109,10 +3109,10 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             self.xform.refresh_from_db()
 
-            self.assertEquals(version, self.xform.version)
-            self.assertEquals(self.xform.description, "Transport form")
-            self.assertEquals(self.xform.title, "Transport Form")
-            self.assertEquals(form_id, self.xform.pk)
+            self.assertEqual(version, self.xform.version)
+            self.assertEqual(self.xform.description, "Transport form")
+            self.assertEqual(self.xform.title, "Transport Form")
+            self.assertEqual(form_id, self.xform.pk)
 
     def test_update_xform_using_put_without_required_field(self):
         with HTTMock(enketo_mock):
@@ -3142,7 +3142,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.get("Cache-Control"), None)
-            self.assertEquals(response.data, {"title": ["This field is required."]})
+            self.assertEqual(response.data, {"title": ["This field is required."]})
 
     def test_public_xform_accessible_by_authenticated_users(self):
         with HTTMock(enketo_mock):
@@ -3184,7 +3184,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
         self.assertTrue("job_uuid" in response.data)
 
-        self.assertEquals(count + 1, XForm.objects.count())
+        self.assertEqual(count + 1, XForm.objects.count())
 
         # get the result
         get_data = {"job_uuid": response.data.get("job_uuid")}
@@ -3194,7 +3194,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         self.assertTrue(mock_get_status.called)
 
         self.assertEqual(response.status_code, 202)
-        self.assertEquals(response.data, {"job_status": "PENDING"})
+        self.assertEqual(response.data, {"job_status": "PENDING"})
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch(
@@ -3284,7 +3284,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             response = view(request)
 
             self.assertEqual(response.status_code, 202)
-            self.assertEquals(response.data, error_message)
+            self.assertEqual(response.data, error_message)
 
     def test_survey_preview_endpoint(self):
         view = XFormViewSet.as_view({"post": "survey_preview", "get": "survey_preview"})
@@ -3366,7 +3366,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.status_code, 202)
             self.assertTrue("job_uuid" in response.data)
             self.assertTrue("time_async_triggered" in response.data)
-            self.assertEquals(count, XForm.objects.count())
+            self.assertEqual(count, XForm.objects.count())
 
             view = XFormViewSet.as_view({"get": "delete_async"})
 
@@ -3376,7 +3376,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             self.assertTrue(mock_get_status.called)
             self.assertEqual(response.status_code, 202)
-            self.assertEquals(response.data, {"job_status": "PENDING"})
+            self.assertEqual(response.data, {"job_status": "PENDING"})
 
             xform = XForm.objects.get(pk=formid)
 
@@ -3636,7 +3636,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         response = view(request)
 
         self.assertEqual(response.status_code, 202)
-        self.assertEquals(response.data, {"error": "Empty job uuid"})
+        self.assertEqual(response.data, {"error": "Empty job uuid"})
 
     def test_always_new_report_with_data_id(self):
         with HTTMock(enketo_mock):
@@ -3679,7 +3679,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 response = view(request, pk=formid, format="xls")
                 self.assertEqual(response.status_code, 302)
                 expected_url = "http://xls_server/xls/ee3ff9d8f5184fc4a8fdebc2547cc059"
-                self.assertEquals(response.url, expected_url)
+                self.assertEqual(response.url, expected_url)
 
             count = Export.objects.filter(
                 xform=self.xform, export_type=Export.EXTERNAL_EXPORT
@@ -3690,13 +3690,13 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 response = view(request, pk=formid, format="xls")
                 self.assertEqual(response.status_code, 302)
                 expected_url = "http://xls_server/xls/ee3ff9d8f5184fc4a8fdebc2547cc057"
-                self.assertEquals(response.url, expected_url)
+                self.assertEqual(response.url, expected_url)
 
             count2 = Export.objects.filter(
                 xform=self.xform, export_type=Export.EXTERNAL_EXPORT
             ).count()
 
-            self.assertEquals(count + 1, count2)
+            self.assertEqual(count + 1, count2)
 
     def test_different_form_versions(self):
         with HTTMock(enketo_mock):
@@ -4249,7 +4249,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             response = view(request, pk=self.xform.pk, format="csv")
             self.assertEqual(response.status_code, 200)
 
-            self.assertEquals(count + 1, Export.objects.all().count())
+            self.assertEqual(count + 1, Export.objects.all().count())
 
             headers = dict(response.items())
             self.assertEqual(headers["Content-Type"], "application/csv")
@@ -4264,7 +4264,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.status_code, 200)
 
             # no new export generated
-            self.assertEquals(count + 1, Export.objects.all().count())
+            self.assertEqual(count + 1, Export.objects.all().count())
 
             headers = dict(response.items())
             self.assertEqual(headers["Content-Type"], "application/csv")
@@ -4361,7 +4361,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("data_views", response.data)
-        self.assertEquals(2, len(response.data["data_views"]))
+        self.assertEqual(2, len(response.data["data_views"]))
 
     def test_delete_xform_also_deletes_linked_dataviews(self):
         """
@@ -4410,7 +4410,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertIn("data_views", response.data)
-        self.assertEquals(2, len(response.data["data_views"]))
+        self.assertEqual(2, len(response.data["data_views"]))
 
         # delete xform
         view = XFormViewSet.as_view({"delete": "destroy", "get": "retrieve"})
@@ -4445,7 +4445,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             count = MetaData.objects.filter(
                 object_id=self.xform.id, data_type="enketo_url"
             ).count()
-            self.assertEquals(2, count)
+            self.assertEqual(2, count)
 
             # delete cache
             safe_delete(f"{ENKETO_URL_CACHE}{self.xform.pk}")
@@ -4531,7 +4531,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             count = Export.objects.all().count()
             response = self._get_date_filtered_export(query_str)
-            self.assertEquals(count + 1, Export.objects.all().count())
+            self.assertEqual(count + 1, Export.objects.all().count())
 
             test_file_path = os.path.join(
                 settings.PROJECT_ROOT,
@@ -4549,7 +4549,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             export = Export.objects.last()
             self.assertIn("query", export.options)
-            self.assertEquals(export.options["query"], query_str)
+            self.assertEqual(export.options["query"], query_str)
 
     @patch("onadata.libs.utils.api_export_tools.AsyncResult")
     def test_export_form_data_async_with_filtered_date(self, async_result):
@@ -4585,7 +4585,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 self.assertIsNotNone(response.data)
                 self.assertEqual(response.status_code, 202)
                 self.assertTrue("job_uuid" in response.data)
-                self.assertEquals(count + 1, Export.objects.all().count())
+                self.assertEqual(count + 1, Export.objects.all().count())
 
                 task_id = response.data.get("job_uuid")
                 get_data = {"job_uuid": task_id}
@@ -4599,7 +4599,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
                 export = Export.objects.last()
                 self.assertIn("query", export.options)
-                self.assertEquals(export.options["query"], query_str)
+                self.assertEqual(export.options["query"], query_str)
 
     def test_previous_export_with_date_filter_is_returned(self):
         with HTTMock(enketo_mock):
@@ -4626,7 +4626,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self._get_date_filtered_export(query_str)
 
             # no change in count of exports
-            self.assertEquals(count, Export.objects.all().count())
+            self.assertEqual(count, Export.objects.all().count())
 
     def test_download_export_with_export_id(self):
         with HTTMock(enketo_mock):
@@ -4710,7 +4710,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.status_code, 200)
 
             # should create a new export
-            self.assertEquals(count + 1, Export.objects.all().count())
+            self.assertEqual(count + 1, Export.objects.all().count())
 
     @patch("onadata.libs.utils.api_export_tools.AsyncResult")
     def test_export_form_data_async_include_labels(self, async_result):
@@ -5203,7 +5203,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.status_code, 200)
 
             # should generate new
-            self.assertEquals(count + 1, Export.objects.all().count())
+            self.assertEqual(count + 1, Export.objects.all().count())
 
             survey = self.surveys[0]
             self._make_submission(
@@ -5227,7 +5227,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.status_code, 200)
 
             # changed options, should generate new
-            self.assertEquals(count + 2, Export.objects.all().count())
+            self.assertEqual(count + 2, Export.objects.all().count())
 
             data = {"export_type": "csv", "win_excel_utf8": False}
 
@@ -5236,7 +5236,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.status_code, 200)
 
             # reused options, should generate new with new submission
-            self.assertEquals(count + 3, Export.objects.all().count())
+            self.assertEqual(count + 3, Export.objects.all().count())
 
     def test_upload_xml_form_file(self):
         with HTTMock(enketo_mock):

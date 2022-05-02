@@ -88,7 +88,7 @@ class TestFormMetadata(TestBase):
         count = len(MetaData.objects.filter(object_id=self.xform.id,
                     data_type='supporting_doc'))
         self._add_metadata()
-        self.assertEquals(count + 1, len(MetaData.objects.filter(
+        self.assertEqual(count + 1, len(MetaData.objects.filter(
             object_id=self.xform.id, data_type='supporting_doc')))
 
     def test_delete_cached_xform_metadata_object_on_save(self):
@@ -98,13 +98,13 @@ class TestFormMetadata(TestBase):
 
         self.assertIsNone(
             cache.get('{}{}'.format(XFORM_METADATA_CACHE, self.xform.id)))
-        self.assertEquals(count + 1, MetaData.objects.count())
+        self.assertEqual(count + 1, MetaData.objects.count())
 
     def test_adds_supporting_media_on_submit(self):
         count = len(MetaData.objects.filter(object_id=self.xform.id,
                     data_type='media'))
         self._add_metadata(data_type='media')
-        self.assertEquals(count + 1, len(MetaData.objects.filter(
+        self.assertEqual(count + 1, len(MetaData.objects.filter(
             object_id=self.xform.id, data_type='media')))
 
     def test_adds_mapbox_layer_on_submit(self):
@@ -114,7 +114,7 @@ class TestFormMetadata(TestBase):
         self.post_data['map_name'] = 'test_mapbox_layer'
         self.post_data['link'] = 'http://0.0.0.0:8080'
         self.client.post(self.edit_url, self.post_data)
-        self.assertEquals(count + 1, MetaData.objects.filter(
+        self.assertEqual(count + 1, MetaData.objects.filter(
             object_id=self.xform.id, data_type='mapbox_layer').count())
 
     def test_shows_supporting_doc_after_submit(self):
@@ -305,7 +305,7 @@ class TestFormMetadata(TestBase):
         uri = 'https://devtrac.ona.io/fieldtrips.csv'
         count = MetaData.objects.filter(data_type='media').count()
         self.client.post(self.edit_url, {'media_url': uri})
-        self.assertEquals(count + 1,
+        self.assertEqual(count + 1,
                           len(MetaData.objects.filter(data_type='media')))
 
     def test_windows_csv_file_upload(self):

@@ -73,7 +73,7 @@ class TestCsvExport(TestBase):
             u'/data/bed_net[2]/member[2]/name',
             u'/data/meta/instanceID'
         ]
-        self.assertEquals(data_dictionary.xpaths(repeat_iterations=2), xpaths)
+        self.assertEqual(data_dictionary.xpaths(repeat_iterations=2), xpaths)
         # test csv
         export = generate_export(
             Export.CSV_EXPORT,

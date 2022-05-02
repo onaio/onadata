@@ -764,7 +764,7 @@ class TestDataViewSet(TestBase):
         # Confirm instance json now has _review_status field
         self.assertIn('_review_status', dict(instance.json))
         # Confirm instance submission review status
-        self.assertEquals('1', instance.json['_review_status'])
+        self.assertEqual('1', instance.json['_review_status'])
 
         # Query xform data by submission review status 3
         query_str = '{"_review_status": 3}'
@@ -2026,10 +2026,10 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=self.xform.pk, format='geojson')
 
         self.assertEqual(response.status_code, 200)
-        self.assertEquals(response.data['type'], 'FeatureCollection')
-        self.assertEquals(len(response.data['features']), 4)
-        self.assertEquals(response.data['features'][0]['type'], 'Feature')
-        self.assertEquals(
+        self.assertEqual(response.data['type'], 'FeatureCollection')
+        self.assertEqual(len(response.data['features']), 4)
+        self.assertEqual(response.data['features'][0]['type'], 'Feature')
+        self.assertEqual(
             response.data['features'][0]['geometry']['geometries'][0]['type'],
             'Point'
         )
@@ -2051,10 +2051,10 @@ class TestDataViewSet(TestBase):
 
         self.assertEqual(response.status_code, 200)
 
-        self.assertEquals(response.data['type'], 'Feature')
-        self.assertEquals(len(response.data['geometry']['coordinates']), 5)
+        self.assertEqual(response.data['type'], 'Feature')
+        self.assertEqual(len(response.data['geometry']['coordinates']), 5)
         self.assertIn('path', response.data['properties'])
-        self.assertEquals(response.data['geometry']['type'], 'LineString')
+        self.assertEqual(response.data['geometry']['type'], 'LineString')
 
         view = DataViewSet.as_view({'get': 'list'})
 
@@ -2062,10 +2062,10 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=self.xform.pk, format='geojson')
 
         self.assertEqual(response.status_code, 200)
-        self.assertEquals(response.data['type'], 'FeatureCollection')
-        self.assertEquals(len(response.data['features']), 4)
-        self.assertEquals(response.data['features'][0]['type'], 'Feature')
-        self.assertEquals(response.data['features'][0]['geometry']['type'],
+        self.assertEqual(response.data['type'], 'FeatureCollection')
+        self.assertEqual(len(response.data['features']), 4)
+        self.assertEqual(response.data['features'][0]['type'], 'Feature')
+        self.assertEqual(response.data['features'][0]['geometry']['type'],
                           'LineString')
 
     def test_geojson_polygon(self):
@@ -2085,10 +2085,10 @@ class TestDataViewSet(TestBase):
 
         self.assertEqual(response.status_code, 200)
 
-        self.assertEquals(response.data['type'], 'Feature')
-        self.assertEquals(len(response.data['geometry']['coordinates'][0]), 6)
+        self.assertEqual(response.data['type'], 'Feature')
+        self.assertEqual(len(response.data['geometry']['coordinates'][0]), 6)
         self.assertIn('shape', response.data['properties'])
-        self.assertEquals(response.data['geometry']['type'], 'Polygon')
+        self.assertEqual(response.data['geometry']['type'], 'Polygon')
 
         view = DataViewSet.as_view({'get': 'list'})
 
@@ -2096,10 +2096,10 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=self.xform.pk, format='geojson')
 
         self.assertEqual(response.status_code, 200)
-        self.assertEquals(response.data['type'], 'FeatureCollection')
-        self.assertEquals(len(response.data['features']), 4)
-        self.assertEquals(response.data['features'][0]['type'], 'Feature')
-        self.assertEquals(response.data['features'][0]['geometry']['type'],
+        self.assertEqual(response.data['type'], 'FeatureCollection')
+        self.assertEqual(len(response.data['features']), 4)
+        self.assertEqual(response.data['features'][0]['type'], 'Feature')
+        self.assertEqual(response.data['features'][0]['geometry']['type'],
                           'Polygon')
 
     def test_data_in_public_project(self):
@@ -2110,7 +2110,7 @@ class TestDataViewSet(TestBase):
         formid = self.xform.pk
         with HTTMock(enketo_urls_mock):
             response = view(request, pk=formid)
-            self.assertEquals(response.status_code, 200)
+            self.assertEqual(response.status_code, 200)
             self.assertEqual(len(response.data), 4)
             # get project id
             projectid = self.xform.project.pk
@@ -2136,7 +2136,7 @@ class TestDataViewSet(TestBase):
             formid = self.xform.pk
             response = view(request, pk=formid)
 
-            self.assertEquals(response.status_code, 200)
+            self.assertEqual(response.status_code, 200)
             self.assertEqual(len(response.data), 4)
 
     def test_data_diff_version(self):
@@ -2162,19 +2162,19 @@ class TestDataViewSet(TestBase):
 
         response = data_view(request, pk=self.xform.pk)
 
-        self.assertEquals(len(response.data), 5)
+        self.assertEqual(len(response.data), 5)
 
         query_str = '{"_version": "2014111"}'
         request = self.factory.get('/?query=%s' % query_str, **self.extra)
         response = data_view(request, pk=self.xform.pk)
 
-        self.assertEquals(len(response.data), 4)
+        self.assertEqual(len(response.data), 4)
 
         query_str = '{"_version": "212121211"}'
         request = self.factory.get('/?query=%s' % query_str, **self.extra)
         response = data_view(request, pk=self.xform.pk)
 
-        self.assertEquals(len(response.data), 1)
+        self.assertEqual(len(response.data), 1)
 
     def test_last_modified_on_data_list_response(self):
         self._make_submissions()
@@ -2184,7 +2184,7 @@ class TestDataViewSet(TestBase):
         formid = self.xform.pk
         response = view(request, pk=formid)
 
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get('Cache-Control'), 'max-age=60')
 
         self.assertTrue(response.has_header('ETag'))
@@ -2195,9 +2195,9 @@ class TestDataViewSet(TestBase):
         formid = self.xform.pk
         response = view(request, pk=formid)
 
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
 
-        self.assertEquals(etag_value, response.get('ETag'))
+        self.assertEqual(etag_value, response.get('ETag'))
 
         # delete one submission
         inst = Instance.objects.filter(xform=self.xform)
@@ -2208,8 +2208,8 @@ class TestDataViewSet(TestBase):
         formid = self.xform.pk
         response = view(request, pk=formid)
 
-        self.assertEquals(response.status_code, 200)
-        self.assertNotEquals(etag_value, response.get('ETag'))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(etag_value, response.get('ETag'))
 
     def test_submission_history(self):
         """Test submission json includes has_history key"""

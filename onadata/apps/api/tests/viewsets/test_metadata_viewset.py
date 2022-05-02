@@ -102,7 +102,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         # Duplicate upload
         response = self._add_form_metadata(self.xform, data_type,
                                            self.data_value, self.path, False)
-        self.assertEquals(response.status_code, 400)
+        self.assertEqual(response.status_code, 400)
         self.assertIn(UNIQUE_TOGETHER_ERROR, response.data)
 
     def test_forms_endpoint_with_metadata(self):
@@ -389,14 +389,14 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         request = self.factory.get("/", **self.extra)
         response = view(request)
 
-        self.assertEquals(MetaData.objects.count(), expected_metadata_count)
+        self.assertEqual(MetaData.objects.count(), expected_metadata_count)
 
         for record in response.data:
             if record.get("xform"):
-                self.assertEquals(record.get('xform'), self.xform.id)
+                self.assertEqual(record.get('xform'), self.xform.id)
                 self.assertIsNone(record.get('project'))
             else:
-                self.assertEquals(record.get('project'), self.project.id)
+                self.assertEqual(record.get('project'), self.project.id)
                 self.assertIsNone(record.get('xform'))
 
     def test_should_only_return_xform_metadata(self):
@@ -594,5 +594,5 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data, **self.extra)
         d_response = view(request)
 
-        self.assertEquals(d_response.status_code, 400)
+        self.assertEqual(d_response.status_code, 400)
         self.assertIn(UNIQUE_TOGETHER_ERROR, d_response.data)

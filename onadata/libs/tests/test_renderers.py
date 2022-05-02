@@ -30,7 +30,7 @@ class TestRenderers(TestCase):
             ['2018-03-05T13:57:26+00:00', 19, None, 1, 'age', 10, None]
         ]  # yapf: disable
         result = [_ for _ in floip_rows_list(data)]
-        self.assertEquals(result, expected_data)
+        self.assertEqual(result, expected_data)
 
     def test_floip_rows_list_w_flow_fields(self):  # pylint: disable=C0103
         """
@@ -50,4 +50,4 @@ class TestRenderers(TestCase):
             ['2018-03-05T13:57:26+00:00', 34, '789', '345', 'age', 10, None]
         ]  # yapf: disable
         result = [_ for _ in floip_rows_list(data)]
-        self.assertEquals(result, expected_data)
+        self.assertEqual(result, expected_data)

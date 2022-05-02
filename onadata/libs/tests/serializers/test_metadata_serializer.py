@@ -88,5 +88,5 @@ class TestMetaDataViewSerializer(TestAbstractViewSet):
             }
             serializer = MetaDataSerializer(data=data)
             self.assertTrue(serializer.is_valid())
-            self.assertEquals(serializer.validated_data['data_file_type'],
+            self.assertEqual(serializer.validated_data['data_file_type'],
                               'image/svg+xml')

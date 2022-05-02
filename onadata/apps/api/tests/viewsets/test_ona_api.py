@@ -18,7 +18,7 @@ class TestOnaApi(TestAbstractViewSet):
         request = self.factory.get(path)
         request.resolver_match = resolve(path)
         response = view(request)
-        self.assertEquals(len(response.data), 29)
+        self.assertEqual(len(response.data), 29)
 
     def test_number_of_v2_viewsets(self):
         '''
@@ -30,4 +30,4 @@ class TestOnaApi(TestAbstractViewSet):
         request = self.factory.get(path)
         request.resolver_match = resolve(path)
         response = view(request)
-        self.assertEquals(len(response.data), 1)
+        self.assertEqual(len(response.data), 1)

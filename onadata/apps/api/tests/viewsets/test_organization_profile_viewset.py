@@ -239,7 +239,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             '/', data=json.dumps(data),
             content_type="application/json")
         response = self.view(request)
-        self.assertEquals(response.status_code, 401)
+        self.assertEqual(response.status_code, 401)
 
     def test_orgs_members_list(self):
         self._org_create()
@@ -409,7 +409,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 401)
-        self.assertNotEquals(set(response.data), set([u'denoinc', u'aboy']))
+        self.assertNotEqual(set(response.data), set([u'denoinc', u'aboy']))
 
     def test_add_members_to_org_with_non_member_user(self):
         self._org_create()
@@ -896,7 +896,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 400)
-        self.assertEquals(response.data,
+        self.assertEqual(response.data,
                           {
                               u'non_field_errors':
                                   [u'Organization cannot be without an owner']
@@ -966,7 +966,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 400)
-        self.assertEquals(response.data,
+        self.assertEqual(response.data,
                           {
                               u'non_field_errors':
                                   [u'Organization cannot be without an owner']
@@ -983,11 +983,11 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         request = self.factory.delete('/', **self.extra)
         response = view(request, user='denoinc')
 
-        self.assertEquals(204, response.status_code)
+        self.assertEqual(204, response.status_code)
 
-        self.assertEquals(0, OrganizationProfile.objects.filter(
+        self.assertEqual(0, OrganizationProfile.objects.filter(
             user__username='denoinc').count())
-        self.assertEquals(0, User.objects.filter(username='denoinc').count())
+        self.assertEqual(0, User.objects.filter(username='denoinc').count())
 
     def test_orgs_non_creator_delete(self):
         self._org_create()
