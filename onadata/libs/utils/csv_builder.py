@@ -1,11 +1,17 @@
-from itertools import chain
+# -*- coding=utf-8 -*-
+"""
+CSV export utility functions.
+"""
 from collections import OrderedDict
+from itertools import chain
 
-import unicodecsv as csv
 from django.conf import settings
 from django.db.models.query import QuerySet
 from django.utils.translation import ugettext as _
+
 from six import iteritems
+
+import unicodecsv as csv
 from pyxform.question import Question
 from pyxform.section import RepeatingSection, Section
 
@@ -14,7 +20,6 @@ from onadata.apps.logger.models.xform import XForm, question_types_to_exclude
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance, query_data
 from onadata.libs.exceptions import NoRecordsFoundError
-from onadata.libs.utils.export_tools import str_to_bool
 from onadata.libs.utils.common_tags import (
     ATTACHMENTS,
     BAMBOO_DATASET_ID,
@@ -26,8 +31,13 @@ from onadata.libs.utils.common_tags import (
     ID,
     MEDIA_ALL_RECEIVED,
     MEDIA_COUNT,
+    MULTIPLE_SELECT_TYPE,
     NA_REP,
     NOTES,
+    REVIEW_COMMENT,
+    REVIEW_DATE,
+    REVIEW_STATUS,
+    SELECT_BIND_TYPE,
     STATUS,
     SUBMISSION_TIME,
     SUBMITTED_BY,
@@ -36,17 +46,13 @@ from onadata.libs.utils.common_tags import (
     UUID,
     VERSION,
     XFORM_ID_STRING,
-    REVIEW_STATUS,
-    REVIEW_COMMENT,
-    MULTIPLE_SELECT_TYPE,
-    SELECT_BIND_TYPE,
-    REVIEW_DATE,
 )
 from onadata.libs.utils.export_builder import (
     get_choice_label,
     get_value_or_attachment_uri,
     track_task_progress,
 )
+from onadata.libs.utils.export_tools import str_to_bool
 from onadata.libs.utils.model_tools import get_columns_with_hxl
 
 # the bind type of select multiples that we use to compare
@@ -69,26 +75,33 @@ YES = 1
 NO = 0
 
 
+# pylint: disable=invalid-name
 def remove_dups_from_list_maintain_order(lst):
+    """Removes duplicates from a list and still maintains the order."""
     return list(OrderedDict.fromkeys(lst))
 
 
 def get_prefix_from_xpath(xpath):
+    """Returns xpath prefix."""
     xpath = str(xpath)
     parts = xpath.rsplit("/", 1)
     if len(parts) == 1:
         return None
-    elif len(parts) == 2:
-        return "%s/" % parts[0]
-    else:
-        raise ValueError("%s cannot be prefixed, it returns %s" % (xpath, str(parts)))
+    if len(parts) == 2:
+        return f"{parts[0]}/"
+    raise ValueError(f"{xpath} cannot be prefixed, it returns {str(parts)}")
 
 
-def get_labels_from_columns(columns, dd, group_delimiter, language=None):
+def get_labels_from_columns(columns, data_dictionary, group_delimiter, language=None):
+    """Return ``column`` labels"""
     labels = []
     for col in columns:
-        elem = dd.get_survey_element(col)
-        label = dd.get_label(col, elem=elem, language=language) if elem else col
+        elem = data_dictionary.get_survey_element(col)
+        label = (
+            data_dictionary.get_label(col, elem=elem, language=language)
+            if elem
+            else col
+        )
         if elem is not None and elem.type == "":
             label = group_delimiter.join([elem.parent.name, label])
         if label == "":
@@ -98,11 +111,13 @@ def get_labels_from_columns(columns, dd, group_delimiter, language=None):
     return labels
 
 
-def get_column_names_only(columns, dd, group_delimiter):
+# pylint: disable=unused-argument
+def get_column_names_only(columns, data_dictionary, group_delimiter):
+    """Return column names as a list."""
     new_columns = []
     for col in columns:
         new_col = None
-        elem = dd.get_survey_element(col)
+        elem = data_dictionary.get_survey_element(col)
         if elem is None:
             new_col = col
         elif elem.type != "":
@@ -114,13 +129,14 @@ def get_column_names_only(columns, dd, group_delimiter):
     return new_columns
 
 
+# pylint: disable=unused-argument,too-many-arguments,too-many-locals
 def write_to_csv(
     path,
     rows,
     columns,
     columns_with_hxl=None,
     remove_group_name=False,
-    dd=None,
+    data_dictionary=None,
     group_delimiter=DEFAULT_GROUP_DELIMITER,
     include_labels=False,
     include_labels_only=False,
@@ -130,6 +146,7 @@ def write_to_csv(
     index_tags=DEFAULT_INDEX_TAGS,
     language=None,
 ):
+    """Writes ``rows`` to a file in CSV format."""
     na_rep = getattr(settings, "NA_REP", NA_REP)
     encoding = "utf-8-sig" if win_excel_utf8 else "utf-8"
     with open(path, "wb") as csvfile:
@@ -137,8 +154,10 @@ def write_to_csv(
 
         # Check if to truncate the group name prefix
         if not include_labels_only:
-            if remove_group_name and dd:
-                new_cols = get_column_names_only(columns, dd, group_delimiter)
+            if remove_group_name and data_dictionary:
+                new_cols = get_column_names_only(
+                    columns, data_dictionary, group_delimiter
+                )
             else:
                 new_cols = columns
 
@@ -153,13 +172,14 @@ def write_to_csv(
 
         if include_labels or include_labels_only:
             labels = get_labels_from_columns(
-                columns, dd, group_delimiter, language=language
+                columns, data_dictionary, group_delimiter, language=language
             )
             writer.writerow(labels)
 
         if include_hxl and columns_with_hxl:
             hxl_row = [columns_with_hxl.get(col, "") for col in columns]
-            hxl_row and writer.writerow(hxl_row)
+            if hxl_row:
+                writer.writerow(hxl_row)
 
         for i, row in enumerate(rows, start=1):
             for col in AbstractDataFrameBuilder.IGNORED_COLUMNS:
@@ -168,7 +188,12 @@ def write_to_csv(
             track_task_progress(i, total_records)
 
 
-class AbstractDataFrameBuilder(object):
+# pylint: disable=too-few-public-methods,too-many-instance-attributes
+class AbstractDataFrameBuilder:
+    """
+    Abstract Data Frame Builder class
+    """
+
     IGNORED_COLUMNS = [
         XFORM_ID_STRING,
         STATUS,
@@ -199,6 +224,7 @@ class AbstractDataFrameBuilder(object):
     Group functionality used by any DataFrameBuilder i.e. XLS, CSV and KML
     """
 
+    # pylint: disable=too-many-arguments,too-many-locals
     def __init__(
         self,
         username,
@@ -229,6 +255,7 @@ class AbstractDataFrameBuilder(object):
         self.filter_query = filter_query
         self.group_delimiter = group_delimiter
         self.split_select_multiples = split_select_multiples
+        # pylint: disable=invalid-name
         self.BINARY_SELECT_MULTIPLES = binary_select_multiples
         self.VALUE_SELECT_MULTIPLES = value_select_multiples
         self.start = start
@@ -262,9 +289,9 @@ class AbstractDataFrameBuilder(object):
         ):
             raise ValueError(
                 _(
-                    "Invalid option for repeat_index_tags: %s "
+                    f"Invalid option for repeat_index_tags: {index_tags} "
                     "expecting a tuple with opening and closing tags "
-                    "e.g repeat_index_tags=('[', ']')" % index_tags
+                    "e.g repeat_index_tags=('[', ']')"
                 )
             )
         self.index_tags = index_tags
@@ -274,24 +301,26 @@ class AbstractDataFrameBuilder(object):
         self._setup()
 
     def _setup(self):
-        self.dd = self.xform
-        self.select_multiples = self._collect_select_multiples(self.dd, self.language)
-        self.gps_fields = self._collect_gps_fields(self.dd)
+        self.data_dictionary = self.xform
+        self.select_multiples = self._collect_select_multiples(
+            self.data_dictionary, self.language
+        )
+        self.gps_fields = self._collect_gps_fields(self.data_dictionary)
 
     @classmethod
-    def _fields_to_select(cls, dd):
+    def _fields_to_select(cls, data_dictionary):
         return [
             c.get_abbreviated_xpath()
-            for c in dd.get_survey_elements()
+            for c in data_dictionary.get_survey_elements()
             if isinstance(c, Question)
         ]
 
     @classmethod
-    def _collect_select_multiples(cls, dd, language=None):
+    def _collect_select_multiples(cls, data_dictionary, language=None):
         select_multiples = []
         select_multiple_elements = [
             e
-            for e in dd.get_survey_elements_with_choices()
+            for e in data_dictionary.get_survey_elements_with_choices()
             if e.bind.get("type") == SELECT_BIND_TYPE and e.type == MULTIPLE_SELECT_TYPE
         ]
         for e in select_multiple_elements:
@@ -300,7 +329,7 @@ class AbstractDataFrameBuilder(object):
                 (
                     c.get_abbreviated_xpath(),
                     c.name,
-                    get_choice_label(c.label, dd, language),
+                    get_choice_label(c.label, data_dictionary, language),
                 )
                 for c in e.children
             ]
@@ -310,13 +339,15 @@ class AbstractDataFrameBuilder(object):
             if (
                 (not choices and e.choice_filter) or is_choice_randomized
             ) and e.itemset:
-                itemset = dd.survey.to_json_dict()["choices"].get(e.itemset)
+                itemset = data_dictionary.survey.to_json_dict()["choices"].get(
+                    e.itemset
+                )
                 choices = (
                     [
                         (
                             "/".join([xpath, i.get("name")]),
                             i.get("name"),
-                            get_choice_label(i.get("label"), dd, language),
+                            get_choice_label(i.get("label"), data_dictionary, language),
                         )
                         for i in itemset
                     ]
@@ -327,6 +358,7 @@ class AbstractDataFrameBuilder(object):
 
         return dict(select_multiples)
 
+    # pylint: disable=too-many-arguments
     @classmethod
     def _split_select_multiples(
         cls,
@@ -346,58 +378,43 @@ class AbstractDataFrameBuilder(object):
             if key in record:
                 # split selected choices by spaces and join by / to the
                 # element's xpath
-                selections = ["%s/%s" % (key, r) for r in record[key].split(" ")]
+                selections = [f"{key}/{r}" for r in record[key].split(" ")]
                 if value_select_multiples:
                     record.update(
-                        dict(
-                            [
-                                (
-                                    choice.replace("/" + name, "/" + label)
-                                    if show_choice_labels
-                                    else choice,
-                                    (
-                                        label
-                                        if show_choice_labels
-                                        else record[key].split()[
-                                            selections.index(choice)
-                                        ]
-                                    )
-                                    if choice in selections
-                                    else None,
-                                )
-                                for choice, name, label in choices
-                            ]
-                        )
+                        {
+                            choice.replace("/" + name, "/" + label)
+                            if show_choice_labels
+                            else choice: (
+                                label
+                                if show_choice_labels
+                                else record[key].split()[selections.index(choice)]
+                            )
+                            if choice in selections
+                            else None
+                            for choice, name, label in choices
+                        }
                     )
                 elif not binary_select_multiples:
                     # add columns to record for every choice, with default
                     # False and set to True for items in selections
                     record.update(
-                        dict(
-                            [
-                                (
-                                    choice.replace("/" + name, "/" + label)
-                                    if show_choice_labels
-                                    else choice,
-                                    choice in selections,
-                                )
-                                for choice, name, label in choices
-                            ]
-                        )
+                        {
+                            choice.replace("/" + name, "/" + label)
+                            if show_choice_labels
+                            else choice: choice in selections
+                            for choice, name, label in choices
+                        }
                     )
                 else:
                     record.update(
-                        dict(
-                            [
-                                (
-                                    choice.replace("/" + name, "/" + label)
-                                    if show_choice_labels
-                                    else choice,
-                                    YES if choice in selections else NO,
-                                )
-                                for choice, name, label in choices
-                            ]
-                        )
+                        {
+                            choice.replace("/" + name, "/" + label)
+                            if show_choice_labels
+                            else choice: YES
+                            if choice in selections
+                            else NO
+                            for choice, name, label in choices
+                        }
                     )
                 # remove the column since we are adding separate columns
                 # for each choice
@@ -418,10 +435,10 @@ class AbstractDataFrameBuilder(object):
         return record
 
     @classmethod
-    def _collect_gps_fields(cls, dd):
+    def _collect_gps_fields(cls, data_dictionary):
         return [
             e.get_abbreviated_xpath()
-            for e in dd.get_survey_elements()
+            for e in data_dictionary.get_survey_elements()
             if e.bind.get("type") == "geopoint"
         ]
 
@@ -434,7 +451,7 @@ class AbstractDataFrameBuilder(object):
             tags = []
             for tag in record["_tags"]:
                 if "," in tag and " " in tag:
-                    tags.append('"%s"' % tag)
+                    tags.append(f'"{tag}"')
                 else:
                     tags.append(tag)
             record.update({"_tags": ", ".join(sorted(tags))})
@@ -445,7 +462,7 @@ class AbstractDataFrameBuilder(object):
         for (key, value) in iteritems(record):
             if key in gps_fields and isinstance(value, str):
                 gps_xpaths = DataDictionary.get_additional_geopoint_xpaths(key)
-                gps_parts = dict([(xpath, None) for xpath in gps_xpaths])
+                gps_parts = {xpath: None for xpath in gps_xpaths}
                 # hack, check if its a list and grab the object within that
                 parts = value.split(" ")
                 # TODO: check whether or not we can have a gps recording
@@ -461,6 +478,7 @@ class AbstractDataFrameBuilder(object):
                         cls._split_gps_fields(list_item, gps_fields)
         record.update(updated_gps_fields)
 
+    # pylint: disable=too-many-arguments
     def _query_data(
         self,
         query="{}",
@@ -487,26 +505,30 @@ class AbstractDataFrameBuilder(object):
         # if count was requested, return the count
         if count:
             return record_count
-        else:
-            query_args = {
-                "xform": self.xform,
-                "query": query,
-                "fields": fields,
-                "start": self.start,
-                "end": self.end,
-                # TODO: we might want to add this in for the user
-                # to sepcify a sort order
-                "sort": "id",
-                "start_index": start,
-                "limit": limit,
-                "count": False,
-            }
-            cursor = query_data(**query_args)
 
-            return cursor
+        query_args = {
+            "xform": self.xform,
+            "query": query,
+            "fields": fields,
+            "start": self.start,
+            "end": self.end,
+            # TODO: we might want to add this in for the user
+            # to sepcify a sort order
+            "sort": "id",
+            "start_index": start,
+            "limit": limit,
+            "count": False,
+        }
+        cursor = query_data(**query_args)
+
+        return cursor
 
 
+# pylint: disable=too-few-public-methods
 class CSVDataFrameBuilder(AbstractDataFrameBuilder):
+    """CSV data frame builder"""
+
+    # pylint: disable=too-many-arguments,too-many-locals
     def __init__(
         self,
         username,
@@ -532,7 +554,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         language=None,
     ):
 
-        super(CSVDataFrameBuilder, self).__init__(
+        super().__init__(
             username,
             id_string,
             filter_query,
@@ -558,12 +580,12 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
         self.ordered_columns = OrderedDict()
         self.image_xpaths = (
-            [] if not self.include_images else self.dd.get_media_survey_xpaths()
+            []
+            if not self.include_images
+            else self.data_dictionary.get_media_survey_xpaths()
         )
 
-    def _setup(self):
-        super(CSVDataFrameBuilder, self)._setup()
-
+    # pylint: disable=too-many-arguments,too-many-branches,too-many-locals
     @classmethod
     def _reindex(
         cls,
@@ -593,14 +615,17 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
             for elem in children:
                 if not question_types_to_exclude(elem.type):
-                    xp = elem.get_abbreviated_xpath()
-                    item[xp] = repeat_value.get(xp, DEFAULT_NA_REP)
+                    abbreviated_xpath = elem.get_abbreviated_xpath()
+                    item[abbreviated_xpath] = repeat_value.get(
+                        abbreviated_xpath, DEFAULT_NA_REP
+                    )
 
             return item
 
-        d = {}
+        record = {}
 
         # check for lists
+        # pylint: disable=too-many-nested-blocks
         if (
             isinstance(value, list)
             and len(value) > 0
@@ -625,28 +650,18 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                                 parent_prefix + key.split("/")[len(parent_prefix) :]
                             )
                             xpaths = [
-                                "{key}{open_tag}{index}{close_tag}".format(
-                                    key=_key,
-                                    open_tag=index_tags[0],
-                                    index=index,
-                                    close_tag=index_tags[1],
-                                )
+                                f"{_key}{index_tags[0]}{index}{index_tags[1]}"
                             ] + nested_key.split("/")[len(_key.split("/")) :]
                         else:
                             xpaths = [
-                                "{key}{open_tag}{index}{close_tag}".format(
-                                    key=key,
-                                    open_tag=index_tags[0],
-                                    index=index,
-                                    close_tag=index_tags[1],
-                                )
+                                f"{key}{index_tags[0]}{index}{index_tags[1]}"
                             ] + nested_key.split("/")[len(key.split("/")) :]
                         # re-create xpath the split on /
                         xpaths = "/".join(xpaths).split("/")
                         new_prefix = xpaths[:-1]
                         if isinstance(nested_val, list):
                             # if nested_value is a list, rinse and repeat
-                            d.update(
+                            record.update(
                                 cls._reindex(
                                     nested_key,
                                     nested_val,
@@ -669,7 +684,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                             if key in list(ordered_columns):
                                 if new_xpath not in ordered_columns[key]:
                                     ordered_columns[key].append(new_xpath)
-                            d[new_xpath] = get_value_or_attachment_uri(
+                            record[new_xpath] = get_value_or_attachment_uri(
                                 nested_key,
                                 nested_val,
                                 row,
@@ -679,7 +694,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                                 language=language,
                             )
                 else:
-                    d[key] = get_value_or_attachment_uri(
+                    record[key] = get_value_or_attachment_uri(
                         key,
                         value,
                         row,
@@ -693,9 +708,9 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             # safe to simply assign
             if key == NOTES:
                 # Do not include notes
-                d[key] = ""
+                record[key] = ""
             else:
-                d[key] = get_value_or_attachment_uri(
+                record[key] = get_value_or_attachment_uri(
                     key,
                     value,
                     row,
@@ -704,7 +719,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                     show_choice_labels=show_choice_labels,
                     language=language,
                 )
-        return d
+        return record
 
     @classmethod
     def _build_ordered_columns(
@@ -717,7 +732,6 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         are not considered columns
         """
         for child in survey_element.children:
-            # child_xpath = child.get_abbreviated_xpath()
             if isinstance(child, Section):
                 child_is_repeating = False
                 if isinstance(child, RepeatingSection):
@@ -757,7 +771,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
         # add ordered columns for gps fields
         for key in self.gps_fields:
-            gps_xpaths = self.dd.get_additional_geopoint_xpaths(key)
+            gps_xpaths = self.data_dictionary.get_additional_geopoint_xpaths(key)
             self.ordered_columns[key] = [key] + gps_xpaths
 
         # add ordered columns for nested repeat data
@@ -769,7 +783,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                     value,
                     self.ordered_columns,
                     record,
-                    self.dd,
+                    self.data_dictionary,
                     include_images=self.image_xpaths,
                     split_select_multiples=self.split_select_multiples,
                     index_tags=self.index_tags,
@@ -804,7 +818,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                     value,
                     self.ordered_columns,
                     record,
-                    self.dd,
+                    self.data_dictionary,
                     include_images=self.image_xpaths,
                     split_select_multiples=self.split_select_multiples,
                     index_tags=self.index_tags,
@@ -816,7 +830,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
     def export_to(self, path, dataview=None):
         self.ordered_columns = OrderedDict()
-        self._build_ordered_columns(self.dd.survey, self.ordered_columns)
+        self._build_ordered_columns(self.data_dictionary.survey, self.ordered_columns)
 
         if dataview:
             cursor = dataview.query_data(
@@ -863,15 +877,15 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             )
 
             # add extra columns
-            columns += [col for col in self.extra_columns]
+            columns += list(self.extra_columns)
 
-            for field in self.dd.get_survey_elements_of_type("osm"):
+            for field in self.data_dictionary.get_survey_elements_of_type("osm"):
                 columns += OsmData.get_tag_keys(
                     self.xform, field.get_abbreviated_xpath(), include_prefix=True
                 )
 
         columns_with_hxl = self.include_hxl and get_columns_with_hxl(
-            self.dd.survey_elements
+            self.data_dictionary.survey_elements
         )
 
         write_to_csv(
@@ -880,7 +894,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             columns,
             columns_with_hxl=columns_with_hxl,
             remove_group_name=self.remove_group_name,
-            dd=self.dd,
+            data_dictionary=self.data_dictionary,
             group_delimiter=self.group_delimiter,
             include_labels=self.include_labels,
             include_labels_only=self.include_labels_only,

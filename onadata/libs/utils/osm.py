@@ -23,17 +23,18 @@ def _get_xml_obj(xml):
     if not isinstance(xml, bytes):
         xml = xml.strip().encode()
     try:
-        return etree.fromstring(xml)  # pylint: disable=E1101
-    except etree.XMLSyntaxError as e:  # pylint: disable=E1101
+        return etree.fromstring(xml)  # pylint: disable=no-member
+    except etree.XMLSyntaxError as e:  # pylint: disable=no-member
         if "Attribute action redefined" in e.msg:
             xml = xml.replace(b'action="modify" ', b"")
 
             return _get_xml_obj(xml)
+    return None
 
 
 def _get_node(ref, root):
     point = None
-    nodes = root.xpath('//node[@id="{}"]'.format(ref))
+    nodes = root.xpath(f'//node[@id="{ref}"]')
     if nodes:
         node = nodes[0]
         point = Point(float(node.get("lon")), float(node.get("lat")))
@@ -61,11 +62,11 @@ def get_combined_osm(osm_list):
             for child in _osm.getchildren():
                 osm.append(child)
         if osm is not None:
-            # pylint: disable=E1101
+            # pylint: disable=no-member
             return etree.tostring(osm, encoding="utf-8", xml_declaration=True)
-    elif isinstance(osm_list, dict):
+    if isinstance(osm_list, dict):
         if "detail" in osm_list:
-            xml = "<error>%s</error>" % osm_list["detail"]
+            xml = f"<error>{osm_list['detail']}</error>"
     return xml.encode("utf-8")
 
 
@@ -166,7 +167,7 @@ def save_osm_data(instance_id):
                 if isinstance(osm_xml, bytes):
                     osm_xml = osm_xml.decode("utf-8")
             except IOError as e:
-                logging.exception("IOError saving osm data: %s" % str(e))
+                logging.exception("IOError saving osm data: %s", str(e))
                 continue
             else:
                 filename = None
@@ -226,6 +227,6 @@ def osm_flat_dict(instance_id):
     for osm in osm_data:
         for tag in osm.tags:
             for (k, v) in iteritems(tag):
-                tags.update({"osm_{}".format(k): v})
+                tags.update({f"osm_{k}": v})
 
     return tags

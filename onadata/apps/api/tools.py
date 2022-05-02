@@ -8,7 +8,8 @@ from datetime import datetime
 
 from django import forms
 from django.conf import settings
-from django.contrib.auth.models import Permission, User
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.sites.models import Site
 from django.core.files.storage import get_storage_class
@@ -19,16 +20,16 @@ from django.db.models import Q
 from django.db.utils import IntegrityError
 from django.http import HttpResponseNotFound, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
-from django.utils.translation import ugettext as _
 from django.utils.module_loading import import_string
-from six import iteritems
-from guardian.shortcuts import assign_perm, get_perms_for_model, remove_perm
-from guardian.shortcuts import get_perms
+from django.utils.translation import ugettext as _
+
+from guardian.shortcuts import assign_perm, get_perms, get_perms_for_model, remove_perm
 from kombu.exceptions import OperationalError
+from multidb.pinning import use_master
 from registration.models import RegistrationProfile
 from rest_framework import exceptions
+from six import iteritems
 from taggit.forms import TagField
-from multidb.pinning import use_master
 
 from onadata.apps.api.models.organization_profile import (
     OrganizationProfile,
@@ -80,6 +81,9 @@ from onadata.libs.utils.user_auth import (
 )
 
 DECIMAL_PRECISION = 2
+
+# pylint: disable=invalid-name
+User = get_user_model()
 
 
 def _get_first_last_names(name):
@@ -157,8 +161,8 @@ def create_organization_object(org_name, creator, attrs=None):
     new_user.save()
     try:
         registration_profile = RegistrationProfile.objects.create_profile(new_user)
-    except IntegrityError:
-        raise ValidationError(_("%s already exists" % org_name))
+    except IntegrityError as e:
+        raise ValidationError(_(f"{org_name} already exists")) from e
     if email:
         site = Site.objects.get(pk=settings.SITE_ID)
         registration_profile.send_activation_email(site)
@@ -203,7 +207,7 @@ def get_organization_members_team(organization):
     create members team if it does not exist and add organization owner
     to the members team"""
     try:
-        team = Team.objects.get(name="%s#%s" % (organization.user.username, MEMBERS))
+        team = Team.objects.get(name=f"{organization.user.username}#{MEMBERS}")
     except Team.DoesNotExist:
         team = create_organization_team(organization, MEMBERS)
         add_user_to_team(team, organization.user)
@@ -222,8 +226,6 @@ def get_or_create_organization_owners_team(org):
     try:
         team = Team.objects.get(name=team_name, organization=org.user)
     except Team.DoesNotExist:
-        from multidb.pinning import use_master  # pylint: disable=import-error
-
         with use_master:
             queryset = Team.objects.filter(name=team_name, organization=org.user)
             if queryset.count() > 0:
@@ -383,14 +385,13 @@ def do_publish_xlsform(user, post, files, owner, id_string=None, project=None):
         )
         if not ManagerRole.user_has_role(user, xform):
             raise exceptions.PermissionDenied(
-                _("{} has no manager/owner role to the form {}".format(user, xform))
+                _(f"{user} has no manager/owner role to the form {xform}")
             )
     elif not user.has_perm("can_add_xform", owner.profile):
         raise exceptions.PermissionDenied(
             detail=_(
-                "User %(user)s has no permission to add xforms to "
-                "account %(account)s"
-                % {"user": user.username, "account": owner.username}
+                f"User {user.username} has no permission to add xforms to "
+                f"account {owner.username}"
             )
         )
 
@@ -400,7 +401,7 @@ def do_publish_xlsform(user, post, files, owner, id_string=None, project=None):
         """
 
         if project:
-            args = (post and dict(list(iteritems(post)))) or {}
+            args = dict(list(iteritems(post))) if post else {}
             args["project"] = project.pk
         else:
             args = post
@@ -448,18 +449,14 @@ def publish_project_xform(request, project):
 
     if "formid" in request.data:
         xform = get_object_or_404(XForm, pk=request.data.get("formid"))
-        safe_delete("{}{}".format(PROJ_OWNER_CACHE, xform.project.pk))
-        safe_delete("{}{}".format(PROJ_FORMS_CACHE, xform.project.pk))
-        safe_delete("{}{}".format(PROJ_BASE_FORMS_CACHE, xform.project.pk))
-        safe_delete("{}{}".format(PROJ_NUM_DATASET_CACHE, xform.project.pk))
-        safe_delete("{}{}".format(PROJ_SUB_DATE_CACHE, xform.project.pk))
+        safe_delete(f"{PROJ_OWNER_CACHE}{xform.project.pk}")
+        safe_delete(f"{PROJ_FORMS_CACHE}{xform.project.pk}")
+        safe_delete(f"{PROJ_BASE_FORMS_CACHE}{xform.project.pk}")
+        safe_delete(f"{PROJ_NUM_DATASET_CACHE}{xform.project.pk}")
+        safe_delete(f"{PROJ_SUB_DATE_CACHE}{xform.project.pk}")
         if not ManagerRole.user_has_role(request.user, xform):
             raise exceptions.PermissionDenied(
-                _(
-                    "{} has no manager/owner role to the form {}".format(
-                        request.user, xform
-                    )
-                )
+                _(f"{request.user} has no manager/owner role to the form {xform}")
             )
 
         msg = "Form with the same id_string already exists in this account"
@@ -474,8 +471,8 @@ def publish_project_xform(request, project):
         try:
             with transaction.atomic():
                 xform.save()
-        except IntegrityError:
-            raise exceptions.ParseError(_(msg))
+        except IntegrityError as e:
+            raise exceptions.ParseError(_(msg)) from e
         else:
             # First assign permissions to the person who uploaded the form
             OwnerRole.add(request.user, xform)
@@ -709,9 +706,9 @@ def generate_tmp_path(uploaded_csv_file):
     """
     if isinstance(uploaded_csv_file, InMemoryUploadedFile):
         uploaded_csv_file.open()
-        tmp_file = tempfile.NamedTemporaryFile(delete=False)
-        tmp_file.write(uploaded_csv_file.read())
-        tmp_path = tmp_file.name
+        with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+            tmp_file.write(uploaded_csv_file.read())
+            tmp_path = tmp_file.name
         uploaded_csv_file.close()
     else:
         tmp_path = uploaded_csv_file.temporary_file_path()
@@ -756,10 +753,10 @@ def get_xform_users(xform):
                 "user": user.username,
             }
 
-    for k in data:
-        data[k]["permissions"].sort()
-        data[k]["role"] = get_role(data[k]["permissions"], xform)
-        del data[k]["permissions"]
+    for value in data.values():
+        value["permissions"].sort()
+        value["role"] = get_role(value["permissions"], xform)
+        del value["permissions"]
 
     return data
 
@@ -772,7 +769,7 @@ def get_team_members(org_username):
     """
     members = []
     try:
-        team = Team.objects.get(name="{}#{}".format(org_username, MEMBERS))
+        team = Team.objects.get(name=f"{org_username}#{MEMBERS}")
     except Team.DoesNotExist:
         pass
     else:
@@ -812,6 +809,7 @@ def update_role_by_meta_xform_perms(xform):
 
 
 def replace_attachment_name_with_url(data):
+    """Replaces the attachment filename with a URL in ``data`` object."""
     site_url = Site.objects.get_current().domain
 
     for record in data:

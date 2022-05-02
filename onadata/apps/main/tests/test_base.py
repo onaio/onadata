@@ -19,11 +19,12 @@ from django.test import RequestFactory, TransactionTestCase
 from django.test.client import Client
 from django.utils import timezone
 
+from six.moves.urllib.error import URLError
+from six.moves.urllib.request import urlopen
+
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from rest_framework.test import APIRequestFactory
-from six.moves.urllib.error import URLError
-from six.moves.urllib.request import urlopen
 
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Attachment, Instance, XForm

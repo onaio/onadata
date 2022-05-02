@@ -17,6 +17,7 @@ class Audit(models.Model):
     Audit model - persists audit logs.
     """
 
+    # pylint: disable=no-member
     json = models.JSONField()
 
     class Meta:
@@ -52,6 +53,7 @@ class AuditLog:
         # cursor seems to stringify dicts
         # added workaround to parse stringified dicts to json
         def parse_json(data):
+            """Helper function to return a JSON string ``data`` as a python object."""
             try:
                 return json.loads(data)
             except ValueError:
@@ -154,7 +156,7 @@ class AuditLog:
 
             sql, params = records.query.sql_with_params()
 
-            if isinstance(sort, six.string_types) and len(sort) > 0:
+            if isinstance(sort, six.string_types) and sort:
                 direction = "DESC" if sort.startswith("-") else "ASC"
                 sort = sort[1:] if sort.startswith("-") else sort
                 sql = f"{sql} ORDER BY json->>%s {direction}"

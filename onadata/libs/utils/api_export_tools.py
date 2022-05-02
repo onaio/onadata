@@ -23,7 +23,6 @@ from oauth2client.client import (
     TokenRevokeError,
 )
 from oauth2client.contrib.django_util.storage import DjangoORMStorage as Storage
-from requests import ConnectionError
 from rest_framework import exceptions, status
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
@@ -108,10 +107,7 @@ def _get_export_type(export_type):
         export_type = EXPORT_EXT[export_type]
     else:
         raise exceptions.ParseError(
-            _(
-                "'%(export_type)s' format not known or not implemented!"
-                % {"export_type": export_type}
-            )
+            _(f"'{export_type}' format not known or not implemented!")
         )
 
     return export_type
@@ -298,13 +294,13 @@ def _generate_new_export(request, xform, query, export_type, dataview_pk=False):
             audit,
             request,
         )
-    except NoRecordsFoundError:
-        raise Http404(_("No records found to export"))
+    except NoRecordsFoundError as e:
+        raise Http404(_("No records found to export")) from e
     except J2XException as e:
         # j2x exception
         return async_status(FAILED, str(e))
     except SPSSIOError as e:
-        raise exceptions.ParseError(str(e))
+        raise exceptions.ParseError(str(e)) from e
     else:
         return export
 
@@ -319,8 +315,7 @@ def log_export(request, xform, export_type):
         log.Actions.EXPORT_DOWNLOADED,
         request.user,
         xform.user,
-        _("Downloaded %(export_type)s export on '%(id_string)s'.")
-        % {"id_string": xform.id_string, "export_type": export_type.upper()},
+        _("Downloaded {export_type.upper()} export on '{id_string}'."),
         audit,
         request,
     )
@@ -333,8 +328,7 @@ def external_export_response(export):
     """
     if isinstance(export, Export) and export.internal_status == Export.SUCCESSFUL:
         return HttpResponseRedirect(export.export_url)
-    else:
-        http_status = status.HTTP_400_BAD_REQUEST
+    http_status = status.HTTP_400_BAD_REQUEST
 
     return Response(json.dumps(export), http_status, content_type="application/json")
 
@@ -345,9 +339,9 @@ def _generate_filename(request, xform, remove_group_name=False, dataview_pk=Fals
     else:
         # append group name removed flag otherwise use the form id_string
         if remove_group_name:
-            filename = "{}-{}".format(xform.id_string, GROUPNAME_REMOVED_FLAG)
+            filename = f"{xform.id_string}-{GROUPNAME_REMOVED_FLAG}"
         elif dataview_pk:
-            filename = "{}-{}".format(xform.id_string, DATAVIEW_EXPORT)
+            filename = f"{xform.id_string}-{DATAVIEW_EXPORT}"
         else:
             filename = xform.id_string
 
@@ -363,17 +357,17 @@ def _set_start_end_params(request, query):
         try:
             if request.GET.get("start"):
                 query[SUBMISSION_TIME]["$gte"] = _format_date_for_mongo(
-                    request.GET["start"], datetime
+                    request.GET["start"]
                 )
 
             if request.GET.get("end"):
                 query[SUBMISSION_TIME]["$lte"] = _format_date_for_mongo(
-                    request.GET["end"], datetime
+                    request.GET["end"]
                 )
-        except ValueError:
+        except ValueError as e:
             raise exceptions.ParseError(
                 _("Dates must be in the format YY_MM_DD_hh_mm_ss")
-            )
+            ) from e
         else:
             query = json.dumps(query)
 
@@ -391,8 +385,11 @@ def _get_extension_from_export_type(export_type):
     return extension
 
 
-def _format_date_for_mongo(x, datetime):  # pylint: disable=W0621, C0103
-    return datetime.strptime(x, "%y_%m_%d_%H_%M_%S").strftime("%Y-%m-%dT%H:%M:%S")
+# pylint: disable=invalid-name
+def _format_date_for_mongo(datetime_str):
+    return datetime.strptime(datetime_str, "%y_%m_%d_%H_%M_%S").strftime(
+        "%Y-%m-%dT%H:%M:%S"
+    )
 
 
 def process_async_export(request, xform, export_type, options=None):
@@ -497,8 +494,8 @@ def _create_export_async(
         export, async_result = viewer_task.create_async_export(
             xform, export_type, query, force_xlsx, options=options
         )
-    except ExportConnectionError:
-        raise ServiceUnavailable
+    except ExportConnectionError as e:
+        raise ServiceUnavailable from e
 
     return async_result.task_id
 
@@ -556,7 +553,7 @@ def get_async_response(job_uuid, request, xform, count=0):
     except (OperationalError, ConnectionError) as e:
         report_exception("Connection Error", e, sys.exc_info())
         if count > 0:
-            raise ServiceUnavailable
+            raise ServiceUnavailable from e
 
         return get_async_response(job_uuid, request, xform, count + 1)
     except BacklogLimitExceeded:
@@ -566,13 +563,14 @@ def get_async_response(job_uuid, request, xform, count=0):
     return resp
 
 
-def response_for_format(data, format=None):  # pylint: disable=W0622
+# pylint: disable=redefined-builtin
+def response_for_format(data, format=None):
     """
     Return appropriately formatted data in Response().
     """
     if format == "xml":
         formatted_data = data.xml
-    elif format == "xls" or format == "xlsx":
+    elif format in ("xls", "xlsx"):
         if not data.xls or not data.xls.storage.exists(data.xls.name):
             raise Http404()
 

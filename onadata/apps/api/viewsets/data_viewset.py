@@ -73,6 +73,7 @@ SUBMISSION_RETRIEVAL_THRESHOLD = getattr(
     settings, "SUBMISSION_RETRIEVAL_THRESHOLD", 10000
 )
 
+# pylint: disable=invalid-name
 BaseViewset = get_baseviewset_class()
 
 
@@ -145,6 +146,7 @@ class DataViewSet(
     queryset = XForm.objects.filter(deleted_at__isnull=True)
 
     def get_serializer_class(self):
+        """Returns appropriate serializer class based on context."""
         pk_lookup, dataid_lookup = self.lookup_fields
         form_pk = self.kwargs.get(pk_lookup)
         dataid = self.kwargs.get(dataid_lookup)
@@ -173,6 +175,7 @@ class DataViewSet(
 
     # pylint: disable=unused-argument
     def get_object(self, queryset=None):
+        """Returns the appropriate object based on context."""
         obj = super().get_object()
         pk_lookup, dataid_lookup = self.lookup_fields
         form_pk = self.kwargs.get(pk_lookup)
@@ -218,6 +221,7 @@ class DataViewSet(
 
     # pylint: disable=unused-argument
     def filter_queryset(self, queryset, view=None):
+        """Returns and filters queryset based on context and query params."""
         queryset = super().filter_queryset(queryset.only("id", "shared"))
         form_pk = self.kwargs.get(self.lookup_field)
 
@@ -332,6 +336,7 @@ class DataViewSet(
         return Response(data=data)
 
     def destroy(self, request, *args, **kwargs):
+        """Soft deletes submissions data."""
         instance_ids = request.data.get("instance_ids")
         delete_all_submissions = strtobool(request.data.get("delete_all", "False"))
         # pylint: disable=attribute-defined-outside-init
@@ -406,6 +411,7 @@ class DataViewSet(
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def retrieve(self, request, *args, **kwargs):
+        """Returns API data for the targeted object."""
         _data_id, _format = get_data_and_form(kwargs)
         # pylint: disable=attribute-defined-outside-init
         self.object = instance = self.get_object()
@@ -506,6 +512,7 @@ class DataViewSet(
 
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     def list(self, request, *args, **kwargs):
+        """Returns list of data API endpoints for different forms."""
         fields = request.GET.get("fields")
         query = request.GET.get("query", {})
         sort = request.GET.get("sort")

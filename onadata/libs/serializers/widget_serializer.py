@@ -51,6 +51,7 @@ class GenericRelatedField(serializers.HyperlinkedRelatedField):
             self.queryset = DataView.objects.all()
 
     def to_representation(self, value):
+        """Set's the self.view_name based on the type of ``value``."""
         if isinstance(value, XForm):
             # pylint: disable=attribute-defined-outside-init
             self.view_name = "xform-detail"
@@ -62,10 +63,11 @@ class GenericRelatedField(serializers.HyperlinkedRelatedField):
 
         self._setup_field(self.view_name)
 
-        # pylint: disable=bad-super-call,super-with-arguments
+        # pylint: disable=bad-super-call
         return super(GenericRelatedField, self).to_representation(value)
 
     def to_internal_value(self, data):
+        """Verifies that ``data`` is a valid URL."""
         try:
             http_prefix = data.startswith(("http:", "https:"))
         except AttributeError:
@@ -155,6 +157,7 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
         return data
 
     def validate(self, attrs):
+        """Validates that column exists in the XForm."""
         column = attrs.get("column")
 
         # Get the form
@@ -194,11 +197,8 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
 
         profile = value.project.organization.profile
         # Shared or an admin in the organization
-        if (
-            request.user not in users
-            and not is_organization(profile)
-            and not OwnerRole.user_has_role(request.user, profile)
-        ):
+        is_owner = OwnerRole.user_has_role(request.user, profile)
+        if request.user not in users and not is_organization(profile) and not is_owner:
             raise serializers.ValidationError(
                 _("You don't have permission to the Project.")
             )

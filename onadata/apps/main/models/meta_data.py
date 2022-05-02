@@ -8,7 +8,7 @@ import logging
 import mimetypes
 import os
 from contextlib import closing
-from hashlib import md5
+import hashlib
 
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
@@ -31,15 +31,11 @@ from onadata.libs.utils.common_tags import (
     XFORM_META_PERMS,
 )
 
+ANONYMOUS_USERNAME = "anonymous"
 CHUNK_SIZE = 1024
 INSTANCE_MODEL_NAME = "instance"
 PROJECT_MODEL_NAME = "project"
 XFORM_MODEL_NAME = "xform"
-
-
-urlvalidate = URLValidator()
-
-ANONYMOUS_USERNAME = "anonymous"
 
 
 def is_valid_url(uri):
@@ -47,7 +43,7 @@ def is_valid_url(uri):
     Validates a URI.
     """
     try:
-        urlvalidate(uri)
+        URLValidator()(uri)
     except ValidationError:
         return False
 
@@ -58,12 +54,10 @@ def upload_to(instance, filename):
     """
     Returns the upload path for given ``filename``.
     """
+    is_instance_model = instance.content_type.model == INSTANCE_MODEL_NAME
     username = None
 
-    if (
-        instance.content_object.user is None
-        and instance.content_type.model == INSTANCE_MODEL_NAME
-    ):
+    if instance.content_object.user is None and is_instance_model:
         username = instance.content_object.xform.user.username
     else:
         username = instance.content_object.user.username
@@ -107,6 +101,7 @@ def unique_type_for_form(content_object, data_type, data_value=None, data_file=N
     content_type = ContentType.objects.get_for_model(content_object)
 
     if data_value is None and data_file is None:
+        # pylint: disable=no-member
         result = MetaData.objects.filter(
             object_id=content_object.id, content_type=content_type, data_type=data_type
         ).first()
@@ -145,6 +140,7 @@ def create_media(media):
         data_file = NamedTemporaryFile()
         content_type = mimetypes.guess_type(filename)
         with closing(requests.get(media.data_value, stream=True)) as resp:
+            # pylint: disable=no-member
             for chunk in resp.iter_content(chunk_size=CHUNK_SIZE):
                 if chunk:
                     data_file.write(chunk)
@@ -206,6 +202,7 @@ class MetaData(models.Model):
         app_label = "main"
         unique_together = ("object_id", "data_type", "data_value", "content_type")
 
+    # pylint: disable=arguments-differ
     def save(self, *args, **kwargs):
         self._set_hash()
         super().save(*args, **kwargs)
@@ -237,7 +234,10 @@ class MetaData(models.Model):
             except IOError:
                 return ""
             else:
-                self.file_hash = f"md5:{md5(self.data_file.read()).hexdigest()}"
+                file_hash = hashlib.new(
+                    "md5", self.data_file.read(), usedforsecurity=False
+                ).hexdigest()
+                self.file_hash = f"md5:{file_hash}"
 
                 return self.file_hash
 

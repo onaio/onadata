@@ -61,6 +61,7 @@ class ProjectViewSet(
     List, Retrieve, Update, Create Project and Project Forms.
     """
 
+    # pylint: disable=no-member
     queryset = Project.objects.filter(deleted_at__isnull=True).select_related()
     serializer_class = ProjectSerializer
     lookup_field = "pk"
@@ -69,11 +70,13 @@ class ProjectViewSet(
     filter_backends = (AnonUserProjectFilter, ProjectOwnerFilter, TagFilter)
 
     def get_serializer_class(self):
+        """Return BaseProjectSerializer class when listing projects."""
         if self.action == "list":
             return BaseProjectSerializer
         return super().get_serializer_class()
 
     def get_queryset(self):
+        """Use 'prepared' prefetched queryset for GET requests."""
         if self.request.method.upper() in ["GET", "OPTIONS"]:
             self.queryset = Project.prefetched.filter(
                 deleted_at__isnull=True, organization__is_active=True
@@ -82,6 +85,7 @@ class ProjectViewSet(
         return super().get_queryset()
 
     def update(self, request, *args, **kwargs):
+        """Updates project properties and set's cache with the updated records."""
         project_id = kwargs.get("pk")
         response = super().update(request, *args, **kwargs)
         cache.set(f"{PROJ_OWNER_CACHE}{project_id}", response.data)
@@ -206,6 +210,7 @@ class ProjectViewSet(
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def destroy(self, request, *args, **kwargs):
+        """ "Soft deletes a project"""
         project = self.get_object()
         user = request.user
         project.soft_delete(user)
