@@ -613,7 +613,7 @@ class TestExportTools(TestBase):
         expected_data = {"fruit": {"orange": "Orange", "mango": "Mango"}}
         self.assertEqual(export_builder._get_sav_value_labels(), expected_data)
 
-        export_builder.dd._default_language = "Swahili"
+        export_builder.data_dicionary._default_language = "Swahili"
         expected_data = {"fruit": {"orange": "Chungwa", "mango": "Maembe"}}
         self.assertEqual(export_builder._get_sav_value_labels(), expected_data)
 

@@ -338,7 +338,7 @@ class XFormInstanceParser:
 
     def __init__(self, xml_str, data_dictionary):
         # pylint: disable=invalid-name
-        self.dd = data_dictionary
+        self.data_dicionary = data_dictionary
         self.parse(xml_str)
 
     def parse(self, xml_str):
@@ -349,10 +349,12 @@ class XFormInstanceParser:
         self._root_node = self._xml_obj.documentElement
         repeats = [
             e.get_abbreviated_xpath()
-            for e in self.dd.get_survey_elements_of_type("repeat")
+            for e in self.data_dicionary.get_survey_elements_of_type("repeat")
         ]
 
-        self._dict = _xml_node_to_dict(self._root_node, repeats, self.dd.encrypted)
+        self._dict = _xml_node_to_dict(
+            self._root_node, repeats, self.data_dicionary.encrypted
+        )
         self._flat_dict = {}
 
         if self._dict is None:
