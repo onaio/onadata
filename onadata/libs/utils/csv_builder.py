@@ -626,11 +626,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
         # check for lists
         # pylint: disable=too-many-nested-blocks
-        if (
-            isinstance(value, list)
-            and len(value) > 0
-            and key not in [ATTACHMENTS, NOTES]
-        ):
+        if isinstance(value, list) and value and key not in [ATTACHMENTS, NOTES]:
             for index, item in enumerate(value):
                 # start at 1
                 index += 1
@@ -829,6 +825,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             yield flat_dict
 
     def export_to(self, path, dataview=None):
+        """Export a CSV formated to the given ``path``."""
         self.ordered_columns = OrderedDict()
         self._build_ordered_columns(self.data_dictionary.survey, self.ordered_columns)
 

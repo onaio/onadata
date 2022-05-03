@@ -192,12 +192,13 @@ class PasswordResetSerializer(serializers.Serializer):
         """
         Validate the email subject is not empty.
         """
-        if len(value) == 0:
+        if value:
             return None
 
         return value
 
     def create(self, validated_data):
+        """Reset a user password."""
         instance = PasswordReset(**validated_data)
         instance.save()
 
@@ -223,11 +224,12 @@ class PasswordResetChangeSerializer(serializers.Serializer):
         return value
 
     def validate(self, attrs):
+        """Validates the generated user token."""
         user = get_user_from_uid(attrs.get("uid"))
         token = attrs.get("token")
 
         if not default_token_generator.check_token(user, token):
-            raise serializers.ValidationError(_("Invalid token: %s") % token)
+            raise serializers.ValidationError(_(f"Invalid token: {token}"))
 
         return attrs
 

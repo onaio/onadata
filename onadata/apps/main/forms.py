@@ -3,14 +3,14 @@
 forms module.
 """
 import os
+import random
 import re
 from six.moves.urllib.parse import urlparse
-from six.moves.urllib.request import urlopen
 
 import requests
 from django import forms
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.validators import URLValidator
@@ -62,6 +62,10 @@ VALID_XLSFORM_CONTENT_TYPES = [
 VALID_FILE_EXTENSIONS = [".xlsx", ".csv"]
 
 
+# pylint: disable=invalid-name
+User = get_user_model()
+
+
 def get_filename(response):
     """
     Get filename from a Content-Desposition header.
@@ -71,9 +75,9 @@ def get_filename(response):
     # following format:
     # 'attachment; filename="ActApp_Survey_System.xlsx"; filename*=UTF-8\'\'ActApp_Survey_System.xlsx' # noqa
     cleaned_xls_file = ""
-    content = response.headers.get("content-disposition").split("; ")
+    content = response.headers.get("Content-Disposition").split("; ")
     counter = [a for a in content if a.startswith("filename=")]
-    if len(counter) >= 1:
+    if counter:
         filename_key_val = counter[0]
         filename = filename_key_val.split("=")[1].replace('"', "")
         name, extension = os.path.splitext(filename)
@@ -124,7 +128,7 @@ class PermissionForm(forms.Form):
 
     def __init__(self, username):
         self.username = username
-        super(PermissionForm, self).__init__()
+        super().__init__()
 
 
 class UserProfileForm(ModelForm):
@@ -134,6 +138,7 @@ class UserProfileForm(ModelForm):
 
     class Meta:
         model = UserProfile
+        # pylint: disable=modelform-uses-exclude
         exclude = ("user", "created_by", "num_of_submissions")
 
     email = forms.EmailField(widget=forms.TextInput())
@@ -144,7 +149,7 @@ class UserProfileForm(ModelForm):
         """
         metadata = self.cleaned_data.get("metadata")
 
-        return metadata if metadata is not None else dict()
+        return metadata if metadata is not None else {}
 
 
 class UserProfileFormRegister(forms.Form):
@@ -207,14 +212,11 @@ class RegistrationFormUserProfile(RegistrationFormUniqueEmail, UserProfileFormRe
 
         if username in self.RESERVED_USERNAMES:
             raise forms.ValidationError(
-                _("%s is a reserved name, please choose another") % username
+                _(f"{username} is a reserved name, please choose another")
             )
-        elif not self.legal_usernames_re.search(username):
+        if not self.legal_usernames_re.search(username):
             raise forms.ValidationError(
-                _(
-                    "username may only contain alpha-numeric characters and "
-                    "underscores"
-                )
+                _("username may only contain alpha-numeric characters and underscores")
             )
         try:
             User.objects.get(username=username)
@@ -356,13 +358,14 @@ class QuickConverter(
         project = self.cleaned_data["project"]
         if project is not None:
             try:
-                # pylint: disable=attribute-defined-outside-init, no-member
+                # pylint: disable=attribute-defined-outside-init,no-member
                 self._project = Project.objects.get(pk=int(project))
-            except (Project.DoesNotExist, ValueError):
-                raise forms.ValidationError(_("Unknown project id: %s" % project))
+            except (Project.DoesNotExist, ValueError) as e:
+                raise forms.ValidationError(_(f"Unknown project id: {project}")) from e
 
         return project
 
+    # pylint: disable=too-many-locals
     def publish(self, user, id_string=None, created_by=None):
         """
         Publish XLSForm.
@@ -379,11 +382,11 @@ class QuickConverter(
                 csv_data = self.cleaned_data["text_xls_form"]
 
                 # assigning the filename to a random string (quick fix)
-                import random
 
-                rand_name = "uploaded_form_%s.csv" % "".join(
+                random_string = "".join(
                     random.sample("abcdefghijklmnopqrstuvwxyz0123456789", 6)
                 )
+                rand_name = f"uploaded_form_{random_string}.csv"
 
                 cleaned_xls_file = default_storage.save(
                     upload_to(None, rand_name, user.username),
@@ -401,12 +404,13 @@ class QuickConverter(
             )
 
             if cleaned_url:
+                self.validate(cleaned_url)
                 cleaned_xls_file = urlparse(cleaned_url)
                 cleaned_xls_file = "_".join(cleaned_xls_file.path.split("/")[-2:])
                 name, extension = os.path.splitext(cleaned_xls_file)
 
                 if extension not in VALID_FILE_EXTENSIONS and name:
-                    response = requests.get(cleaned_url)
+                    response = requests.head(cleaned_url)
                     if (
                         response.headers.get("content-type")
                         in VALID_XLSFORM_CONTENT_TYPES
@@ -415,9 +419,10 @@ class QuickConverter(
                         cleaned_xls_file = get_filename(response)
 
                 cleaned_xls_file = upload_to(None, cleaned_xls_file, user.username)
-                self.validate(cleaned_url)
-                xls_data = ContentFile(urlopen(cleaned_url).read())
-                cleaned_xls_file = default_storage.save(cleaned_xls_file, xls_data)
+                response = requests.get(cleaned_url)
+                if response.status_code < 400:
+                    xls_data = ContentFile(response.content)
+                    cleaned_xls_file = default_storage.save(cleaned_xls_file, xls_data)
 
             project = self.cleaned_data["project"]
 
@@ -444,6 +449,7 @@ class QuickConverter(
             return publish_xls_form(
                 cleaned_xls_file, user, project, id_string, created_by or user
             )
+        return None
 
 
 class ActivateSMSSupportForm(forms.Form):

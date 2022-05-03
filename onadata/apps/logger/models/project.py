@@ -3,10 +3,10 @@
 Project model class
 """
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
-from django.db.models import Prefetch, JSONField
+from django.db.models import Prefetch
 from django.db.models.signals import post_save
 from django.utils import timezone
 
@@ -17,14 +17,24 @@ from taggit.managers import TaggableManager
 from onadata.libs.models.base_model import BaseModel
 from onadata.libs.utils.common_tags import OWNER_TEAM_NAME
 
+# pylint: disable=invalid-name
+User = get_user_model()
 
+
+# pylint: disable=too-few-public-methods
 class PrefetchManager(models.Manager):
-    def get_queryset(self):
-        from onadata.apps.logger.models.xform import XForm
-        from onadata.apps.api.models.team import Team
+    """Project prefetched manager - prefetches models related to the Project model."""
 
+    def get_queryset(self):
+        """Return a queryset with the XForm, Team, tags, and other related relations
+        prefetched."""
+        # pylint: disable=import-outside-toplevel
+        from onadata.apps.api.models.team import Team
+        from onadata.apps.logger.models.xform import XForm
+
+        # pylint: disable=no-member
         return (
-            super(PrefetchManager, self)
+            super()
             .get_queryset()
             .select_related("created_by", "organization")
             .prefetch_related(
@@ -83,7 +93,8 @@ class Project(BaseModel):
     """
 
     name = models.CharField(max_length=255)
-    metadata = JSONField(default=dict)
+    # pylint: disable=no-member
+    metadata = models.JSONField(default=dict)
     organization = models.ForeignKey(
         settings.AUTH_USER_MODEL, related_name="project_org", on_delete=models.CASCADE
     )
@@ -123,21 +134,22 @@ class Project(BaseModel):
         )
 
     def __str__(self):
-        return "%s|%s" % (self.organization, self.name)
+        return f"{self.organization}|{self.name}"
 
     def clean(self):
-        # pylint: disable=E1101
+        """Raises a validation error if a project with same name and organization exists."""
         query_set = Project.objects.exclude(pk=self.pk).filter(
             name__iexact=self.name, organization=self.organization
         )
         if query_set.exists():
             raise ValidationError(
-                'Project name "%s" is already in'
-                " use in this account." % self.name.lower()
+                f'Project name "{self.name.lower()}" is already in'
+                " use in this account."
             )
 
     @property
     def user(self):
+        """Returns the user who created the project."""
         return self.created_by
 
     @transaction.atomic()
@@ -161,13 +173,15 @@ class Project(BaseModel):
             form.soft_delete(user=user)
 
 
+# pylint: disable=unused-argument
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
+    """Sets permissions to users who are owners of the organization."""
     if created:
         for perm in get_perms_for_model(Project):
             assign_perm(perm.codename, instance.organization, instance)
 
             owners = instance.organization.team_set.filter(
-                name="{}#{}".format(instance.organization.username, OWNER_TEAM_NAME),
+                name=f"{instance.organization.username}#{OWNER_TEAM_NAME}",
                 organization=instance.organization,
             )
             for owner in owners:
@@ -187,12 +201,14 @@ post_save.connect(
 )
 
 
+# pylint: disable=too-few-public-methods
 class ProjectUserObjectPermission(UserObjectPermissionBase):
     """Guardian model to create direct foreign keys."""
 
     content_object = models.ForeignKey(Project, on_delete=models.CASCADE)
 
 
+# pylint: disable=too-few-public-methods
 class ProjectGroupObjectPermission(GroupObjectPermissionBase):
     """Guardian model to create direct foreign keys."""
 

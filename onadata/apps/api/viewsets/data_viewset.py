@@ -687,6 +687,7 @@ class DataViewSet(
             raise ParseError(str(e)) from e
 
     def paginate_queryset(self, queryset):
+        """Returns a paginated queryset."""
         if self.paginator is None:
             return None
         return self.paginator.paginate_queryset(
@@ -748,6 +749,7 @@ class DataViewSet(
         """
 
         def get_json_string(item):
+            """Returns the ``item`` Instance instance as a JSON string."""
             return json.dumps(item.json if isinstance(item, Instance) else item)
 
         if self.kwargs.get("format") == "xml":
