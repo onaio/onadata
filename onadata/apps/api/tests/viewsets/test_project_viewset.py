@@ -20,7 +20,10 @@ import dateutil.parser
 import requests
 
 from onadata.apps.api import tools
-from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
+    TestAbstractViewSet,
+    get_mocked_response_for_file,
+)
 from onadata.apps.api.tools import get_or_create_organization_owners_team
 from onadata.apps.api.viewsets.organization_profile_viewset import (
     OrganizationProfileViewSet,
@@ -93,8 +96,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         super().tearDown()
 
     # pylint: disable=invalid-name
-    @patch("onadata.apps.main.forms.urlopen")
-    def test_publish_xlsform_using_url_upload(self, mock_urlopen):
+    @patch("onadata.apps.main.forms.requests")
+    def test_publish_xlsform_using_url_upload(self, mock_requests):
         with HTTMock(enketo_mock):
             self._project_create()
             view = ProjectViewSet.as_view({"post": "forms"})
@@ -113,13 +116,17 @@ class TestProjectViewSet(TestAbstractViewSet):
             )
 
             with open(path, "rb") as xls_file:
-                mock_urlopen.return_value = xls_file
+                mock_response = get_mocked_response_for_file(
+                    xls_file, "transportation_different_id_string.xlsx", 200
+                )
+                mock_requests.head.return_value = mock_response
+                mock_requests.get.return_value = mock_response
 
                 post_data = {"xls_url": xls_url}
                 request = self.factory.post("/", data=post_data, **self.extra)
                 response = view(request, pk=project_id)
 
-                mock_urlopen.assert_called_with(xls_url)
+                mock_requests.get.assert_called_with(xls_url)
                 xls_file.close()
                 self.assertEqual(response.status_code, 201)
                 self.assertEqual(XForm.objects.count(), pre_count + 1)

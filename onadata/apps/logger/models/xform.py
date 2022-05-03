@@ -1014,15 +1014,12 @@ class XForm(XFormMixin, BaseModel):
         if not self.sms_id_string and (
             update_fields is None or "id_string" in update_fields
         ):
-            try:
-                # try to guess the form's wanted sms_id_string
-                # from it's json rep (from XLSForm)
-                # otherwise, use id_string to ensure uniqueness
+            if isinstance(self.json, str):
                 self.sms_id_string = json.loads(self.json).get(
                     "sms_keyword", self.id_string
                 )
-            except ValueError:
-                self.sms_id_string = self.id_string
+            else:
+                self.sms_id_string = self.json.get("sms_keyword", self.id_string)
 
         if update_fields is None or "public_key" in update_fields:
             self._set_public_key_field()

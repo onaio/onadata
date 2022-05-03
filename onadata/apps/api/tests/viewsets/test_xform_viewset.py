@@ -50,7 +50,10 @@ from onadata.apps.api.tests.mocked_data import (
     xls_url_no_extension_mock_content_disposition_attr_jumbled_v1,
     xls_url_no_extension_mock_content_disposition_attr_jumbled_v2,
 )
-from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
+    TestAbstractViewSet,
+    get_mocked_response_for_file,
+)
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Attachment
@@ -114,27 +117,9 @@ def raise_bad_status_line(arg):
     raise BadStatusLine("RANDOM STATUS")
 
 
-# pylint: disable=invalid-name
-def get_mocked_response_for_file(file_object, filename, status_code=200):
-    """Returns a requests.Response() object for mocked tests."""
-    mock_response = requests.Response()
-    mock_response.status_code = status_code
-    mock_response.headers = {
-        "content-type": (
-            "application/vnd.openxmlformats-" "officedocument.spreadsheetml.sheet"
-        ),
-        "Content-Disposition": (
-            'attachment; filename="transportation.'
-            f"xlsx\"; filename*=UTF-8''{filename}"
-        ),
-    }
-    # pylint: disable=protected-access
-    mock_response._content = file_object.read()
-
-    return mock_response
-
-
 class TestXFormViewSet(TestAbstractViewSet):
+    """Test XFormViewSet"""
+
     def setUp(self):
         super(TestXFormViewSet, self).setUp()
         self.view = XFormViewSet.as_view(

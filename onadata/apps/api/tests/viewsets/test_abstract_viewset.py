@@ -7,6 +7,8 @@ import os
 import re
 from tempfile import NamedTemporaryFile
 
+import requests
+
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import Permission
@@ -68,6 +70,26 @@ def add_uuid_to_submission_xml(path, xform):
         path = tmp_file.name
 
     return path
+
+
+# pylint: disable=invalid-name
+def get_mocked_response_for_file(file_object, filename, status_code=200):
+    """Returns a requests.Response() object for mocked tests."""
+    mock_response = requests.Response()
+    mock_response.status_code = status_code
+    mock_response.headers = {
+        "content-type": (
+            "application/vnd.openxmlformats-" "officedocument.spreadsheetml.sheet"
+        ),
+        "Content-Disposition": (
+            'attachment; filename="transportation.'
+            f"xlsx\"; filename*=UTF-8''{filename}"
+        ),
+    }
+    # pylint: disable=protected-access
+    mock_response._content = file_object.read()
+
+    return mock_response
 
 
 # pylint: disable=too-many-instance-attributes
