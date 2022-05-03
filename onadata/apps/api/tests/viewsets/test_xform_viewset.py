@@ -19,6 +19,7 @@ from xml.dom import Node
 from xml.dom import minidom
 
 import jwt
+import requests
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
@@ -90,7 +91,14 @@ from onadata.libs.utils.common_tools import (
 )
 
 
+ROLES = [ReadOnlyRole, DataEntryRole, EditorRole, ManagerRole, OwnerRole]
+
+JWT_SECRET_KEY = "thesecretkey"
+JWT_ALGORITHM = "HS256"
+
+
 def fixtures_path(filepath):
+    """Returns the file object at the given filepath."""
     return open(
         os.path.join(
             settings.PROJECT_ROOT, "libs", "tests", "utils", "fixtures", filepath
@@ -106,10 +114,24 @@ def raise_bad_status_line(arg):
     raise BadStatusLine("RANDOM STATUS")
 
 
-ROLES = [ReadOnlyRole, DataEntryRole, EditorRole, ManagerRole, OwnerRole]
+# pylint: disable=invalid-name
+def get_mocked_response_for_file(file_object, filename, status_code=200):
+    """Returns a requests.Response() object for mocked tests."""
+    mock_response = requests.Response()
+    mock_response.status_code = status_code
+    mock_response.headers = {
+        "content-type": (
+            "application/vnd.openxmlformats-" "officedocument.spreadsheetml.sheet"
+        ),
+        "Content-Disposition": (
+            'attachment; filename="transportation.'
+            f"xlsx\"; filename*=UTF-8''{filename}"
+        ),
+    }
+    # pylint: disable=protected-access
+    mock_response._content = file_object.read()
 
-JWT_SECRET_KEY = "thesecretkey"
-JWT_ALGORITHM = "HS256"
+    return mock_response
 
 
 class TestXFormViewSet(TestAbstractViewSet):
@@ -1355,8 +1377,9 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertIsInstance(xform, XForm)
             self.assertEqual(counter + 2, XForm.objects.count())
 
-    @patch("onadata.apps.main.forms.urlopen")
-    def test_publish_xlsform_using_url_upload(self, mock_urlopen):
+    # pylint: disable=invalid-name
+    @patch("onadata.apps.main.forms.requests")
+    def test_publish_xlsform_using_url_upload(self, mock_requests):
         with HTTMock(enketo_mock):
             view = XFormViewSet.as_view({"post": "create"})
 
@@ -1372,21 +1395,26 @@ class TestXFormViewSet(TestAbstractViewSet):
                 "transportation_different_id_string.xlsx",
             )
 
-            xls_file = open(path, "rb")
-            mock_urlopen.return_value = xls_file
+            with open(path, "rb") as xls_file:
+                mock_response = get_mocked_response_for_file(
+                    xls_file, "transportation_different_id_string.xlsx", 200
+                )
+                mock_requests.head.return_value = mock_response
+                mock_requests.get.return_value = mock_response
 
-            post_data = {"xls_url": xls_url}
-            request = self.factory.post("/", data=post_data, **self.extra)
-            response = view(request)
+                post_data = {"xls_url": xls_url}
+                request = self.factory.post("/", data=post_data, **self.extra)
+                response = view(request)
 
-            mock_urlopen.assert_called_with(xls_url)
-            xls_file.close()
+                mock_requests.get.assert_called_with(xls_url)
+                xls_file.close()
 
-            self.assertEqual(response.status_code, 201)
-            self.assertEqual(XForm.objects.count(), pre_count + 1)
+                self.assertEqual(response.status_code, 201)
+                self.assertEqual(XForm.objects.count(), pre_count + 1)
 
-    @patch("onadata.apps.main.forms.urlopen")
-    def test_publish_xlsform_using_url_with_no_extension(self, mock_urlopen):
+    # pylint: disable=invalid-name
+    @patch("onadata.apps.main.forms.requests")
+    def test_publish_xlsform_using_url_with_no_extension(self, mock_requests):
         with HTTMock(enketo_mock, xls_url_no_extension_mock):
             view = XFormViewSet.as_view({"post": "create"})
 
@@ -1402,19 +1430,24 @@ class TestXFormViewSet(TestAbstractViewSet):
                 "transportation_different_id_string.xlsx",
             )
 
-            xls_file = open(path, "rb")
-            mock_urlopen.return_value = xls_file
+            with open(path, "rb") as xls_file:
+                mock_response = get_mocked_response_for_file(
+                    xls_file, "transportation_version.xlsx", 200
+                )
+                mock_requests.head.return_value = mock_response
+                mock_requests.get.return_value = mock_response
 
-            post_data = {"xls_url": xls_url}
-            request = self.factory.post("/", data=post_data, **self.extra)
-            response = view(request)
+                post_data = {"xls_url": xls_url}
+                request = self.factory.post("/", data=post_data, **self.extra)
+                response = view(request)
 
-            self.assertEqual(response.status_code, 201)
-            self.assertEqual(XForm.objects.count(), pre_count + 1)
+                self.assertEqual(response.status_code, 201, response.data)
+                self.assertEqual(XForm.objects.count(), pre_count + 1)
 
-    @patch("onadata.apps.main.forms.urlopen")
+    # pylint: disable=invalid-name
+    @patch("onadata.apps.main.forms.requests")
     def test_publish_xlsform_using_url_content_disposition_attr_jumbled_v1(
-        self, mock_urlopen
+        self, mock_requests
     ):
         with HTTMock(
             enketo_mock, xls_url_no_extension_mock_content_disposition_attr_jumbled_v1
@@ -1433,19 +1466,24 @@ class TestXFormViewSet(TestAbstractViewSet):
                 "transportation_different_id_string.xlsx",
             )
 
-            xls_file = open(path, "rb")
-            mock_urlopen.return_value = xls_file
+            with open(path, "rb") as xls_file:
+                mock_response = get_mocked_response_for_file(
+                    xls_file, "transportation_different_id_string.xlsx", 200
+                )
+                mock_requests.head.return_value = mock_response
+                mock_requests.get.return_value = mock_response
 
-            post_data = {"xls_url": xls_url}
-            request = self.factory.post("/", data=post_data, **self.extra)
-            response = view(request)
+                post_data = {"xls_url": xls_url}
+                request = self.factory.post("/", data=post_data, **self.extra)
+                response = view(request)
 
-            self.assertEqual(response.status_code, 201)
-            self.assertEqual(XForm.objects.count(), pre_count + 1)
+                self.assertEqual(response.status_code, 201)
+                self.assertEqual(XForm.objects.count(), pre_count + 1)
 
-    @patch("onadata.apps.main.forms.urlopen")
+    # pylint: disable=invalid-name
+    @patch("onadata.apps.main.forms.requests")
     def test_publish_xlsform_using_url_content_disposition_attr_jumbled_v2(
-        self, mock_urlopen
+        self, mock_requests
     ):
         with HTTMock(
             enketo_mock, xls_url_no_extension_mock_content_disposition_attr_jumbled_v2
@@ -1464,18 +1502,23 @@ class TestXFormViewSet(TestAbstractViewSet):
                 "transportation_different_id_string.xlsx",
             )
 
-            xls_file = open(path, "rb")
-            mock_urlopen.return_value = xls_file
+            with open(path, "rb") as xls_file:
+                mock_response = get_mocked_response_for_file(
+                    xls_file, "transportation_different_id_string.xlsx", 200
+                )
+                mock_requests.head.return_value = mock_response
+                mock_requests.get.return_value = mock_response
 
-            post_data = {"xls_url": xls_url}
-            request = self.factory.post("/", data=post_data, **self.extra)
-            response = view(request)
+                post_data = {"xls_url": xls_url}
+                request = self.factory.post("/", data=post_data, **self.extra)
+                response = view(request)
 
-            self.assertEqual(response.status_code, 201)
-            self.assertEqual(XForm.objects.count(), pre_count + 1)
+                self.assertEqual(response.status_code, 201)
+                self.assertEqual(XForm.objects.count(), pre_count + 1)
 
-    @patch("onadata.apps.main.forms.urlopen")
-    def test_publish_csvform_using_url_upload(self, mock_urlopen):
+    # pylint: disable=invalid-name
+    @patch("onadata.apps.main.forms.requests")
+    def test_publish_csvform_using_url_upload(self, mock_requests):
         with HTTMock(enketo_mock):
             view = XFormViewSet.as_view({"post": "create"})
 
@@ -1490,19 +1533,24 @@ class TestXFormViewSet(TestAbstractViewSet):
                 "text_and_integer.csv",
             )
 
-            csv_file = open(path, "rb")
-            mock_urlopen.return_value = csv_file
+            with open(path, "rb") as csv_file:
+                mock_response = get_mocked_response_for_file(
+                    csv_file, "text_and_integer.csv", 200
+                )
+                mock_requests.head.return_value = mock_response
+                mock_requests.get.return_value = mock_response
 
-            post_data = {"csv_url": csv_url}
-            request = self.factory.post("/", data=post_data, **self.extra)
-            response = view(request)
+                post_data = {"csv_url": csv_url}
+                request = self.factory.post("/", data=post_data, **self.extra)
+                response = view(request)
 
-            mock_urlopen.assert_called_with(csv_url)
-            csv_file.close()
+                mock_requests.get.assert_called_with(csv_url)
+                csv_file.close()
 
-            self.assertEqual(response.status_code, 201)
-            self.assertEqual(XForm.objects.count(), pre_count + 1)
+                self.assertEqual(response.status_code, 201)
+                self.assertEqual(XForm.objects.count(), pre_count + 1)
 
+    # pylint: disable=invalid-name
     def test_publish_select_external_xlsform(self):
         with HTTMock(enketo_urls_mock):
             view = XFormViewSet.as_view({"post": "create"})
@@ -2887,8 +2935,8 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(self.xform.version, "212121211")
             self.assertEqual(form_id, self.xform.pk)
 
-    @patch("onadata.apps.main.forms.urlopen")
-    def test_update_xform_xls_url(self, mock_urlopen):
+    @patch("onadata.apps.main.forms.requests")
+    def test_update_xform_xls_url(self, mock_requests):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
             form_id = self.xform.pk
@@ -2913,24 +2961,28 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 "transportation_version.xlsx",
             )
 
-            xls_file = open(path, "rb")
-            mock_urlopen.return_value = xls_file
+            with open(path, "rb") as xls_file:
+                mock_response = get_mocked_response_for_file(
+                    xls_file, "transportation_version.xlsx", 200
+                )
+                mock_requests.head.return_value = mock_response
+                mock_requests.get.return_value = mock_response
 
-            post_data = {"xls_url": xls_url}
-            request = self.factory.patch("/", data=post_data, **self.extra)
-            response = view(request, pk=form_id)
+                post_data = {"xls_url": xls_url}
+                request = self.factory.patch("/", data=post_data, **self.extra)
+                response = view(request, pk=form_id)
 
-            self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.status_code, 200)
 
-            self.xform.refresh_from_db()
+                self.xform.refresh_from_db()
 
-            self.assertEqual(count, XForm.objects.all().count())
-            # diff versions
-            self.assertEqual(self.xform.version, "212121211")
-            self.assertEqual(form_id, self.xform.pk)
+                self.assertEqual(count, XForm.objects.all().count())
+                # diff versions
+                self.assertEqual(self.xform.version, "212121211")
+                self.assertEqual(form_id, self.xform.pk)
 
-    @patch("onadata.apps.main.forms.urlopen")
-    def test_update_xform_dropbox_url(self, mock_urlopen):
+    @patch("onadata.apps.main.forms.requests")
+    def test_update_xform_dropbox_url(self, mock_requests):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
             form_id = self.xform.pk
@@ -2955,21 +3007,25 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 "transportation_version.xlsx",
             )
 
-            xls_file = open(path, "rb")
-            mock_urlopen.return_value = xls_file
+            with open(path, "rb") as xls_file:
+                mock_response = get_mocked_response_for_file(
+                    xls_file, "transportation_version.xlsx", 200
+                )
+                mock_requests.head.return_value = mock_response
+                mock_requests.get.return_value = mock_response
 
-            post_data = {"dropbox_xls_url": xls_url}
-            request = self.factory.patch("/", data=post_data, **self.extra)
-            response = view(request, pk=form_id)
+                post_data = {"dropbox_xls_url": xls_url}
+                request = self.factory.patch("/", data=post_data, **self.extra)
+                response = view(request, pk=form_id)
 
-            self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.status_code, 200)
 
-            self.xform.refresh_from_db()
+                self.xform.refresh_from_db()
 
-            self.assertEqual(count, XForm.objects.all().count())
-            # diff versions
-            self.assertEqual(self.xform.version, "212121211")
-            self.assertEqual(form_id, self.xform.pk)
+                self.assertEqual(count, XForm.objects.all().count())
+                # diff versions
+                self.assertEqual(self.xform.version, "212121211")
+                self.assertEqual(form_id, self.xform.pk)
 
     def test_update_xform_using_put_with_invalid_input(self):
         with HTTMock(enketo_mock):
@@ -5420,24 +5476,6 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             response = view(request, pk=self.xform.id)
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.data.get("error"), "csv_file not a csv file")
-
-    @patch("onadata.apps.main.forms.urlopen", side_effect=raise_bad_status_line)
-    def test_error_raised_xform_url_upload_urllib_error(self, mock_urlopen):
-        """
-        Test that the BadStatusLine error thrown by urlopen when a status
-        code is not understood is handled properly
-        """
-        view = XFormViewSet.as_view({"post": "create"})
-
-        xls_url = "http://localhost:2000"
-
-        post_data = {"xls_url": xls_url}
-        request = self.factory.post("/", data=post_data, **self.extra)
-        response = view(request)
-        error_msg = "An error occurred while publishing the form. " "Please try again."
-
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data.get("text"), error_msg)
 
     def test_export_csvzip_form_data_async(self):
         with HTTMock(enketo_mock):
