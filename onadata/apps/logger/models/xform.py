@@ -207,7 +207,12 @@ def check_version_set(survey):
         # set utc time as the default version
         survey_json["version"] = datetime.utcnow().strftime("%Y%m%d%H%M")
         builder = SurveyElementBuilder()
-        survey = builder.create_survey_element_from_json(json.dumps(survey_json))
+        if isinstance(survey_json, str):
+            survey = builder.create_survey_element_from_json(survey_json)
+        elif isinstance(survey_json, dict):
+            survey = builder.create_survey_element_from_dict(
+                survey_json
+            )
     return survey
 
 
