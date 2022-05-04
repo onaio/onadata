@@ -36,7 +36,7 @@ RUN apt-get update -q &&\
         build-essential \
         supervisor \
         python3.9 \
-        python3.9-dev \
+        python3-dev \
         python3-pip \
         python3-setuptools \
         git \
