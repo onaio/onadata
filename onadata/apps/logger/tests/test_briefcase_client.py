@@ -44,7 +44,10 @@ def form_list_xml(url, request, **kwargs):
         res = download_media_data(
             req, username="bob", id_string=id_string, data_id=data_id
         )
-        assert res.status_code == 200, f"{data_id} - {res.content} {res.status_code}"
+        ids = list(Instance.objects.values_list("id", flat=True))
+        assert (
+            res.status_code == 200
+        ), f"{data_id} - {res.content} {res.status_code} -{ids}"
         # pylint: disable=protected-access
         response._content = get_streaming_content(res)
     else:

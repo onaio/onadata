@@ -1137,7 +1137,7 @@ def download_media_data(request, username, id_string, data_id):
                     request.user,
                     owner,
                     _(
-                        "Media f'{os.path.basename(file_path)}' "
+                        f"Media '{os.path.basename(file_path)}' "
                         f"downloaded from '{xform.id_string}'."
                     ),
                     audit,
