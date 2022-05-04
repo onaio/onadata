@@ -19,7 +19,6 @@ from xml.dom import Node
 from xml.dom import minidom
 
 import jwt
-import requests
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
