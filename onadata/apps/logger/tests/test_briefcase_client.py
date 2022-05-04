@@ -45,9 +45,10 @@ def form_list_xml(url, request, **kwargs):
             req, username="bob", id_string=id_string, data_id=data_id
         )
         ids = list(Instance.objects.values_list("id", flat=True))
+        xids = list(XForm.objects.values_list("id", flat=True))
         assert (
             res.status_code == 200
-        ), f"{data_id} - {res.content} {res.status_code} -{ids}"
+        ), f"{data_id} - {res.content} {res.status_code} -{ids} {xids} {url}"
         # pylint: disable=protected-access
         response._content = get_streaming_content(res)
     else:
