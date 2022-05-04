@@ -84,7 +84,7 @@ RUN python3 -m pip install --no-cache-dir -U pip && \
     python3 -m pip install --no-cache-dir -r requirements/base.pip && \
     python3 -m pip install --no-cache-dir -r requirements/s3.pip && \
     python3 -m pip install --no-cache-dir -r requirements/ses.pip && \
-    python3 -m pip install --no-cache-dir uwsgitop django-prometheus==v2.2.0
+    python3 -m pip install --no-cache-dir pyyaml uwsgitop django-prometheus==v2.2.0
 
 # Compile API Docs
 RUN make -C docs html
