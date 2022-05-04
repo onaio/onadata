@@ -1,4 +1,4 @@
-FROM python:3.8 as intermediate
+FROM python:3.9 as intermediate
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV PYTHONUNBUFFERED 1
@@ -14,7 +14,7 @@ RUN mkdir -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 RUN --mount=type=ssh if [ -n "$optional_packages" ]; then pip install ${optional_packages} ; fi
 
 FROM ubuntu:20.04
-COPY --from=intermediate /usr/local/lib/python3.8/site-packages/ /usr/local/lib/python3.8/dist-packages/
+COPY --from=intermediate /usr/local/lib/python3.9/site-packages/ /usr/local/lib/python3.9/dist-packages/
 
 ARG release_version=v2.4.1
 
@@ -35,8 +35,8 @@ RUN apt-get update -q &&\
         libmemcached-dev \
         build-essential \
         supervisor \
-        python3.8 \
-        python3.8-dev \
+        python3.9 \
+        python3.9-dev \
         python3-pip \
         python3-setuptools \
         git \
@@ -47,6 +47,7 @@ RUN apt-get update -q &&\
         libjpeg-dev \
         libxml2-dev \
         libxslt1-dev \
+        libpython3.9-dev \
         zlib1g-dev \
         ghostscript \
         python3-celery \
