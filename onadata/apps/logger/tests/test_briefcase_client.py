@@ -25,6 +25,7 @@ storage = get_storage_class()()
 
 @urlmatch(netloc=r"(.*\.)?testserver$")
 def form_list_xml(url, request, **kwargs):
+    """Mock different ODK Aggregate Server API requests."""
     response = requests.Response()
     factory = RequestFactory()
     req = factory.get(url.path)
@@ -43,16 +44,20 @@ def form_list_xml(url, request, **kwargs):
         res = download_media_data(
             req, username="bob", id_string=id_string, data_id=data_id
         )
+        assert res.status_code == 200, f"{data_id} - {res.content} {res.status_code}"
+        # pylint: disable=protected-access
         response._content = get_streaming_content(res)
     else:
         res = formList(req, username="bob")
     response.status_code = 200
     if not response._content:
+        # pylint: disable=protected-access
         response._content = res.content
     return response
 
 
 def get_streaming_content(res):
+    """Return the contents of ``res.streaming_content``."""
     tmp = BytesIO()
     for chunk in res.streaming_content:
         tmp.write(chunk)
