@@ -15,6 +15,8 @@ from django.utils import timezone
 from django.utils.module_loading import import_string
 from django.utils.translation import ugettext as _
 
+from six.moves.urllib.parse import urlencode
+
 from multidb.pinning import use_master
 from registration.models import RegistrationProfile
 from rest_framework import serializers, status
@@ -24,7 +26,6 @@ from rest_framework.filters import OrderingFilter
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
-from six.moves.urllib.parse import urlencode
 
 from onadata.apps.api.permissions import UserProfilePermissions
 from onadata.apps.api.tasks import send_verification_email
@@ -269,6 +270,7 @@ class UserProfileViewSet(
         return Response(data=lock_out, status=status.HTTP_400_BAD_REQUEST)
 
     def partial_update(self, request, *args, **kwargs):
+        """Allows for partial update of the user profile data."""
         profile = self.get_object()
         metadata = profile.metadata or {}
         if request.data.get("overwrite") == "false":
@@ -329,6 +331,7 @@ class UserProfileViewSet(
     # pylint: disable=no-self-use
     @action(detail=False)
     def verify_email(self, request, *args, **kwargs):
+        """Accpet's email verification token and marks the profile as verified."""
         verified_key_text = getattr(settings, "VERIFIED_KEY_TEXT", None)
 
         if not verified_key_text:
@@ -378,6 +381,7 @@ class UserProfileViewSet(
     # pylint: disable=no-self-use
     @action(methods=["POST"], detail=False)
     def send_verification_email(self, request, *args, **kwargs):
+        """Sends verification email on user profile registration."""
         verified_key_text = getattr(settings, "VERIFIED_KEY_TEXT", None)
         if not verified_key_text:
             return Response(status=status.HTTP_204_NO_CONTENT)
