@@ -53,6 +53,7 @@ def merge_list_of_dicts(list_of_dicts, override_keys: list = None):
     """
     result = {}
 
+    # pylint: disable=too-many-nested-blocks
     for row in list_of_dicts:
         for k, v in row.items():
             if isinstance(v, list):
@@ -98,7 +99,7 @@ def remove_indices_from_dict(obj):
     Removes indices from a obj dict.
     """
     if not isinstance(obj, dict):
-        raise ValueError("Expecting a dict, found: {}".format(type(obj)))
+        raise ValueError(f"Expecting a dict, found: {type(obj)}")
 
     result = {}
     for key, val in obj.items():
@@ -150,7 +151,7 @@ def dict_lists2strings(adict):
     :param d: The dict to convert.
     :returns: The converted dict."""
     for k, v in adict.items():
-        if isinstance(v, list) and all([isinstance(e, str) for e in v]):
+        if isinstance(v, list) and all(isinstance(e, str) for e in v):
             adict[k] = " ".join(v)
         elif isinstance(v, dict):
             adict[k] = dict_lists2strings(v)
@@ -182,7 +183,7 @@ def query_list_to_dict(query_list_str):
     Returns a 'label' and 'text' from a Rapidpro values JSON string as a dict.
     """
     data_list = json.loads(query_list_str)
-    data_dict = dict()
+    data_dict = {}
     for value in data_list:
         data_dict[value["label"]] = value["text"]
 

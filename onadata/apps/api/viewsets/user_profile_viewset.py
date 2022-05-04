@@ -5,18 +5,17 @@ UserProfileViewSet module.
 
 import datetime
 import json
-from six.moves.urllib.parse import urlencode
-
 
 from django.conf import settings
 from django.core.cache import cache
 from django.core.validators import ValidationError
 from django.db.models import Count
-from django.http import HttpResponseRedirect, HttpResponseBadRequest
-from django.utils.translation import ugettext as _
+from django.http import HttpResponseBadRequest, HttpResponseRedirect
 from django.utils import timezone
 from django.utils.module_loading import import_string
+from django.utils.translation import ugettext as _
 
+from multidb.pinning import use_master
 from registration.models import RegistrationProfile
 from rest_framework import serializers, status
 from rest_framework.decorators import action
@@ -25,22 +24,14 @@ from rest_framework.filters import OrderingFilter
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
-from multidb.pinning import use_master
+from six.moves.urllib.parse import urlencode
 
-from onadata.apps.api.tasks import send_verification_email
 from onadata.apps.api.permissions import UserProfilePermissions
+from onadata.apps.api.tasks import send_verification_email
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.models import UserProfile
-from onadata.libs.utils.email import get_verification_email_data, get_verification_url
-from onadata.libs.utils.cache_tools import (
-    safe_delete,
-    CHANGE_PASSWORD_ATTEMPTS,
-    LOCKOUT_CHANGE_PASSWORD_USER,
-    USER_PROFILE_PREFIX,
-)
 from onadata.libs import filters
-from onadata.libs.utils.user_auth import invalidate_and_regen_tokens
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
@@ -49,6 +40,14 @@ from onadata.libs.serializers.monthly_submissions_serializer import (
     MonthlySubmissionsSerializer,
 )
 from onadata.libs.serializers.user_profile_serializer import UserProfileSerializer
+from onadata.libs.utils.cache_tools import (
+    CHANGE_PASSWORD_ATTEMPTS,
+    LOCKOUT_CHANGE_PASSWORD_USER,
+    USER_PROFILE_PREFIX,
+    safe_delete,
+)
+from onadata.libs.utils.email import get_verification_email_data, get_verification_url
+from onadata.libs.utils.user_auth import invalidate_and_regen_tokens
 
 BaseViewset = get_baseviewset_class()  # pylint: disable=invalid-name
 LOCKOUT_TIME = getattr(settings, "LOCKOUT_TIME", 1800)
@@ -78,9 +77,9 @@ def check_if_key_exists(a_key, expected_dict):
     for key, value in expected_dict.items():
         if key == a_key:
             return True
-        elif isinstance(value, dict):
+        if isinstance(value, dict):
             return check_if_key_exists(a_key, value)
-        elif isinstance(value, list):
+        if isinstance(value, list):
             for list_item in value:
                 if isinstance(list_item, dict):
                     return check_if_key_exists(a_key, list_item)
@@ -99,30 +98,35 @@ def serializer_from_settings():
 
 
 def set_is_email_verified(profile, is_email_verified):
+    """Sets is_email_verified value in the profile's metadata object."""
     profile.metadata.update({"is_email_verified": is_email_verified})
     profile.save()
 
 
 def check_user_lockout(request):
+    """Returns the error object with lockout error message."""
     username = request.user.username
-    lockout = cache.get("{}{}".format(LOCKOUT_CHANGE_PASSWORD_USER, username))
-    response_obj = {
-        "error": "Too many password reset attempts, Try again in {} minutes"
-    }
+    lockout = cache.get(f"{LOCKOUT_CHANGE_PASSWORD_USER}{username}")
     if lockout:
         time_locked_out = datetime.datetime.now() - datetime.datetime.strptime(
             lockout, "%Y-%m-%dT%H:%M:%S"
         )
         remaining_time = round((LOCKOUT_TIME - time_locked_out.seconds) / 60)
-        response = response_obj["error"].format(remaining_time)
-        return response
+        response_obj = {
+            "error": _(
+                "Too many password reset attempts. "
+                f"Try again in {remaining_time} minutes"
+            )
+        }
+        return response_obj
+    return None
 
 
 def change_password_attempts(request):
     """Track number of login attempts made by user within a specified amount
     of time"""
     username = request.user.username
-    password_attempts = "{}{}".format(CHANGE_PASSWORD_ATTEMPTS, username)
+    password_attempts = f"{CHANGE_PASSWORD_ATTEMPTS}{username}"
     attempts = cache.get(password_attempts)
 
     if attempts:
@@ -130,7 +134,7 @@ def change_password_attempts(request):
         attempts = cache.get(password_attempts)
         if attempts >= MAX_CHANGE_PASSWORD_ATTEMPTS:
             cache.set(
-                "{}{}".format(LOCKOUT_CHANGE_PASSWORD_USER, username),
+                f"{LOCKOUT_CHANGE_PASSWORD_USER}{username}",
                 datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
                 LOCKOUT_TIME,
             )
@@ -144,8 +148,9 @@ def change_password_attempts(request):
     return 1
 
 
+# pylint: disable=too-many-ancestors
 class UserProfileViewSet(
-    AuthenticateHeaderMixin,  # pylint: disable=R0901
+    AuthenticateHeaderMixin,
     CacheControlMixin,
     ETagsMixin,
     ObjectLookupMixin,
@@ -170,7 +175,7 @@ class UserProfileViewSet(
     def get_object(self, queryset=None):
         """Lookup user profile by pk or username"""
         if self.kwargs.get(self.lookup_field, None) is None:
-            raise ParseError("Expected URL keyword argument `%s`." % self.lookup_field)
+            raise ParseError(_(f"Expected URL keyword argument `{self.lookup_field}`."))
 
         if queryset is None:
             queryset = self.filter_queryset(self.get_queryset())
@@ -181,7 +186,7 @@ class UserProfileViewSet(
         if self.lookup_field in serializer.get_fields():
             k = serializer.get_fields()[self.lookup_field]
             if isinstance(k, serializers.HyperlinkedRelatedField):
-                lookup_field = "%s__%s" % (self.lookup_field, k.lookup_field)
+                lookup_field = f"{self.lookup_field}__{k.lookup_field}"
 
         lookup = self.kwargs[self.lookup_field]
         filter_kwargs = {lookup_field: lookup}
@@ -189,7 +194,7 @@ class UserProfileViewSet(
         try:
             user_pk = int(lookup)
         except (TypeError, ValueError):
-            filter_kwargs = {"%s__iexact" % lookup_field: lookup}
+            filter_kwargs = {f"{lookup_field}__iexact": lookup}
         else:
             filter_kwargs = {"user__pk": user_pk}
 
@@ -203,7 +208,7 @@ class UserProfileViewSet(
     def update(self, request, *args, **kwargs):
         """Update user in cache and db"""
         username = kwargs.get("user")
-        response = super(UserProfileViewSet, self).update(request, *args, **kwargs)
+        response = super().update(request, *args, **kwargs)
         cache.set(f"{USER_PROFILE_PREFIX}{username}", response.data)
         return response
 
@@ -213,12 +218,12 @@ class UserProfileViewSet(
         cached_user = cache.get(f"{USER_PROFILE_PREFIX}{username}")
         if cached_user:
             return Response(cached_user)
-        response = super(UserProfileViewSet, self).retrieve(request, *args, **kwargs)
+        response = super().retrieve(request, *args, **kwargs)
         return response
 
     def create(self, request, *args, **kwargs):
         """Create and cache user profile"""
-        response = super(UserProfileViewSet, self).create(request, *args, **kwargs)
+        response = super().create(request, *args, **kwargs)
         profile = response.data
         user_name = profile.get("username")
         cache.set(f"{USER_PROFILE_PREFIX}{user_name}", profile)
@@ -235,7 +240,6 @@ class UserProfileViewSet(
         current_password = request.data.get("current_password", None)
         new_password = request.data.get("new_password", None)
         lock_out = check_user_lockout(request)
-        response_obj = {"error": "Invalid password. You have {} attempts left."}
 
         if new_password:
             if not lock_out:
@@ -254,8 +258,13 @@ class UserProfileViewSet(
                 response = change_password_attempts(request)
                 if isinstance(response, int):
                     limits_remaining = MAX_CHANGE_PASSWORD_ATTEMPTS - response
-                    response = response_obj["error"].format(limits_remaining)
-                return Response(data=response, status=status.HTTP_400_BAD_REQUEST)
+                    response_obj = {
+                        "error": _(
+                            "Invalid password. "
+                            f"You have {limits_remaining} attempts left."
+                        )
+                    }
+                return Response(data=response_obj, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(data=lock_out, status=status.HTTP_400_BAD_REQUEST)
 
@@ -278,7 +287,7 @@ class UserProfileViewSet(
             profile.save()
             return Response(data=profile.metadata, status=status.HTTP_200_OK)
 
-        return super(UserProfileViewSet, self).partial_update(request, *args, **kwargs)
+        return super().partial_update(request, *args, **kwargs)
 
     @action(methods=["GET"], detail=True)
     def monthly_submissions(self, request, *args, **kwargs):
@@ -317,6 +326,7 @@ class UserProfileViewSet(
         serializer = MonthlySubmissionsSerializer(instance_count, many=True)
         return Response(serializer.data[0])
 
+    # pylint: disable=no-self-use
     @action(detail=False)
     def verify_email(self, request, *args, **kwargs):
         verified_key_text = getattr(settings, "VERIFIED_KEY_TEXT", None)
@@ -328,26 +338,28 @@ class UserProfileViewSet(
         verification_key = request.query_params.get("verification_key")
         response_message = _("Missing or invalid verification key")
         if verification_key:
-            rp = None
+            registration_profile = None
             try:
-                rp = RegistrationProfile.objects.select_related(
+                registration_profile = RegistrationProfile.objects.select_related(
                     "user", "user__profile"
                 ).get(activation_key=verification_key)
             except RegistrationProfile.DoesNotExist:
                 with use_master:
                     try:
-                        rp = RegistrationProfile.objects.select_related(
-                            "user", "user__profile"
-                        ).get(activation_key=verification_key)
+                        registration_profile = (
+                            RegistrationProfile.objects.select_related(
+                                "user", "user__profile"
+                            ).get(activation_key=verification_key)
+                        )
                     except RegistrationProfile.DoesNotExist:
                         pass
 
-            if rp:
-                rp.activation_key = verified_key_text
-                rp.save()
+            if registration_profile:
+                registration_profile.activation_key = verified_key_text
+                registration_profile.save()
 
-                username = rp.user.username
-                set_is_email_verified(rp.user.profile, True)
+                username = registration_profile.user.username
+                set_is_email_verified(registration_profile.user.profile, True)
                 # Clear profiles cache
                 safe_delete(f"{USER_PROFILE_PREFIX}{username}")
 
@@ -355,7 +367,7 @@ class UserProfileViewSet(
 
                 if redirect_url:
                     query_params_string = urlencode(response_data)
-                    redirect_url = "{}?{}".format(redirect_url, query_params_string)
+                    redirect_url = f"{redirect_url}?{query_params_string}"
 
                     return HttpResponseRedirect(redirect_url)
 
@@ -363,6 +375,7 @@ class UserProfileViewSet(
 
         return HttpResponseBadRequest(response_message)
 
+    # pylint: disable=no-self-use
     @action(methods=["POST"], detail=False)
     def send_verification_email(self, request, *args, **kwargs):
         verified_key_text = getattr(settings, "VERIFIED_KEY_TEXT", None)
@@ -375,16 +388,18 @@ class UserProfileViewSet(
 
         if username:
             try:
-                rp = RegistrationProfile.objects.get(user__username=username)
+                registration_profile = RegistrationProfile.objects.get(
+                    user__username=username
+                )
             except RegistrationProfile.DoesNotExist:
                 pass
             else:
-                set_is_email_verified(rp.user.profile, False)
+                set_is_email_verified(registration_profile.user.profile, False)
 
-                verification_key = rp.activation_key
+                verification_key = registration_profile.activation_key
                 if verification_key == verified_key_text:
                     verification_key = (
-                        rp.user.registrationprofile.create_new_activation_key()
+                        registration_profile.user.registrationprofile.create_new_activation_key()
                     )
 
                 verification_url = get_verification_url(
@@ -392,7 +407,10 @@ class UserProfileViewSet(
                 )
 
                 email_data = get_verification_email_data(
-                    rp.user.email, rp.user.username, verification_url, request
+                    registration_profile.user.email,
+                    registration_profile.user.username,
+                    verification_url,
+                    request,
                 )
 
                 send_verification_email.delay(**email_data)
