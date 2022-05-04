@@ -368,7 +368,9 @@ def profile_settings(request, username):
                 reverse(public_profile, kwargs={"username": request.user.username})
             )
     else:
-        form = UserProfileForm(instance=profile, initial={"email": content_user.email})
+        form = UserProfileForm(
+            instance=user_profile, initial={"email": content_user.email}
+        )
 
     return render(
         request, "settings.html", {"content_user": content_user, "form": form}
@@ -611,7 +613,7 @@ def api(request, username=None, id_string=None):
         response_text = f"{callback}({response_text})"
         response = HttpResponse(response_text)
     else:
-        response = JsonResponse(list(cursor))
+        response = JsonResponse(list(cursor), safe=False)
 
     add_cors_headers(response)
 
@@ -1475,15 +1477,21 @@ def qrcode(request, username, id_string):
 
     results = _("Unexpected Error occured: No QRCODE generated")
     status = HTTPStatus.OK
-    enketo_urls = get_enketo_urls(formhub_url, id_string)
-    if enketo_urls:
-        url = enketo_urls.get("url")
-        image = generate_qrcode(url)
-        results = f"""<img class="qrcode" src="{image}" alt="{url}" />
-                </br><a href="{url}" target="_blank">{url}</a>"""
-
-    else:
+    try:
+        enketo_urls = get_enketo_urls(formhub_url, id_string)
+    except EnketoError as e:
+        error_msg = _(f"Error Generating QRCODE: {e}")
+        results = f"""<div class="alert alert-error">{error_msg}</div>"""
         status = HTTPStatus.BAD_REQUEST
+    else:
+        if enketo_urls:
+            url = enketo_urls.get("url")
+            image = generate_qrcode(url)
+            results = f"""<img class="qrcode" src="{image}" alt="{url}" />
+                    </br><a href="{url}" target="_blank">{url}</a>"""
+
+        else:
+            status = HTTPStatus.BAD_REQUEST
 
     return HttpResponse(results, content_type="text/html", status=status)
 
