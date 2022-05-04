@@ -9,8 +9,10 @@ import logging
 from django.contrib.gis.geos import GeometryCollection, LineString, Point, Polygon
 from django.contrib.gis.geos.error import GEOSException
 from django.db import IntegrityError, models, transaction
-from six import iteritems
+
+from defusedxml.lxml import fromstring
 from lxml import etree
+from six import iteritems
 
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import Instance
@@ -23,7 +25,7 @@ def _get_xml_obj(xml):
     if not isinstance(xml, bytes):
         xml = xml.strip().encode()
     try:
-        return etree.fromstring(xml)  # pylint: disable=no-member
+        return fromstring(xml)
     except etree.XMLSyntaxError as e:  # pylint: disable=no-member
         if "Attribute action redefined" in e.msg:
             xml = xml.replace(b'action="modify" ', b"")
