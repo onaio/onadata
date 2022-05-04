@@ -10,7 +10,7 @@ from django.contrib.gis.geos import GeometryCollection, LineString, Point, Polyg
 from django.contrib.gis.geos.error import GEOSException
 from django.db import IntegrityError, models, transaction
 
-from defusedxml.lxml import _etree, fromstring
+from defusedxml.lxml import _etree, fromstring, tostring
 from six import iteritems
 
 from onadata.apps.logger.models.attachment import Attachment
@@ -64,7 +64,7 @@ def get_combined_osm(osm_list):
                 osm.append(child)
         if osm is not None:
             # pylint: disable=no-member
-            return etree.tostring(osm, encoding="utf-8", xml_declaration=True)
+            return tostring(osm, encoding="utf-8", xml_declaration=True)
     if isinstance(osm_list, dict):
         if "detail" in osm_list:
             xml = f"<error>{osm_list['detail']}</error>"
