@@ -250,18 +250,18 @@ def retrieve_user_identification(request) -> Tuple[Optional[str], Optional[str]]
     """
     ip_address = None
 
-    if request.headers.get('X-Real-Ip'):
-        ip_address = request.headers['X-Real-Ip'].split(",")[0]
+    if request.headers.get("X-Real-Ip"):
+        ip_address = request.headers["X-Real-Ip"].split(",")[0]
     else:
         ip_address = request.META.get("REMOTE_ADDR")
 
     try:
-        if isinstance(request.headers['Authorization'], bytes):
+        if isinstance(request.headers["Authorization"], bytes):
             username = (
-                request.headers['Authorization'].decode("utf-8").split('"')[1].strip()
+                request.headers["Authorization"].decode("utf-8").split('"')[1].strip()
             )
         else:
-            username = request.headers['Authorization'].split('"')[1].strip()
+            username = request.headers["Authorization"].split('"')[1].strip()
     except (TypeError, AttributeError, IndexError):
         pass
     else:
