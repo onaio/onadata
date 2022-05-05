@@ -12,30 +12,32 @@ from onadata.apps.logger.models import Instance
 
 
 class Command(BaseCommand):
-    help = gettext_lazy("Fixes deleted instances by syncing "
-                         "deleted items from mongo.")
+    help = gettext_lazy(
+        "Fixes deleted instances by syncing " "deleted items from mongo."
+    )
 
     def handle(self, *args, **kwargs):
         # Reset all sql deletes to None
-        Instance.objects.exclude(
-            deleted_at=None, xform__downloadable=True).update(deleted_at=None)
+        Instance.objects.exclude(deleted_at=None, xform__downloadable=True).update(
+            deleted_at=None
+        )
 
         # Get all mongo deletes
-        query = '{"$and": [{"_deleted_at": {"$exists": true}}, ' \
-                '{"_deleted_at": {"$ne": null}}]}'
+        query = (
+            '{"$and": [{"_deleted_at": {"$exists": true}}, '
+            '{"_deleted_at": {"$ne": null}}]}'
+        )
         query = json.loads(query)
         xform_instances = settings.MONGO_DB.instances
         cursor = xform_instances.find(query)
         for record in cursor:
             # update sql instance with deleted_at datetime from mongo
             try:
-                i = Instance.objects.get(
-                    uuid=record["_uuid"],  xform__downloadable=True)
+                i = Instance.objects.get(uuid=record["_uuid"], xform__downloadable=True)
             except Instance.DoesNotExist:
                 continue
             else:
                 deleted_at = parse_datetime(record["_deleted_at"])
                 if not timezone.is_aware(deleted_at):
-                    deleted_at = timezone.make_aware(
-                        deleted_at, timezone.utc)
+                    deleted_at = timezone.make_aware(deleted_at, timezone.utc)
                 i.set_deleted(deleted_at)
