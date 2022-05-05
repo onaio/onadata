@@ -29,6 +29,7 @@ class J2XException(Exception):
     """Raise for json-to-xls exceptions on external exports."""
 
 
+# pylint: disable=too-few-public-methods
 class ServiceUnavailable(APIException):
     """Custom service unavailable exception."""
 

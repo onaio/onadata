@@ -696,7 +696,7 @@ class XFormViewSet(
                 if xls_file and xls_file.name.split(".")[-1] in XLS_EXTENSIONS:
                     csv_file = submission_xls_to_csv(xls_file)
                 overwrite = request.query_params.get("overwrite")
-                overwrite = overwrite.lower() == "true"
+                overwrite = overwrite is not None and overwrite.lower() == "true"
                 size_threshold = settings.CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD
                 try:
                     csv_size = csv_file.size
