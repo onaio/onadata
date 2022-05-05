@@ -217,6 +217,12 @@ class MetaData(models.Model):
 
         return self._set_hash()
 
+    def set_hash(self):
+        """
+        Returns the md5 hash of the metadata file.
+        """
+        return self._set_hash()
+
     def _set_hash(self):
         """
         Returns the md5 hash of the metadata file.
