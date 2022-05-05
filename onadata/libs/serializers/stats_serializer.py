@@ -90,7 +90,7 @@ class SubmissionStatsInstanceSerializer(serializers.Serializer):
     @property
     def data(self):
         """Return the data as a list with ReturnList instead of a python object."""
-        ret = super().data
+        ret = super(serializers.Serializer, self).data
 
         return ReturnList(ret, serializer=self)
 
