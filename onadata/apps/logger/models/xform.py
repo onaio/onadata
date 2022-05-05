@@ -210,9 +210,7 @@ def check_version_set(survey):
         if isinstance(survey_json, str):
             survey = builder.create_survey_element_from_json(survey_json)
         elif isinstance(survey_json, dict):
-            survey = builder.create_survey_element_from_dict(
-                survey_json
-            )
+            survey = builder.create_survey_element_from_dict(survey_json)
     return survey
 
 
@@ -708,7 +706,7 @@ class XFormMixin:
         if elem and elem.bind.get("type") == "geopoint":
             geodata = item[key].split()
             for i, v in enumerate(geodata):
-                new_key = f"{key}_{self.geodata_suffixes[i]}"
+                new_key = f"{key}_{self.GEODATA_SUFFIXES[i]}"
                 item[new_key] = v
 
     def get_data_for_excel(self):

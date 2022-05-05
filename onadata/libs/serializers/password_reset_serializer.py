@@ -234,6 +234,7 @@ class PasswordResetChangeSerializer(serializers.Serializer):
         return attrs
 
     def create(self, validated_data, instance=None):
+        """Set a new user password and invalidate/regenerate tokens."""
         instance = PasswordResetChange(**validated_data)
         instance.save()
 

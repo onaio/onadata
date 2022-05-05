@@ -126,7 +126,7 @@ def clone_xlsform(request, username):
             id_string__iexact=id_string,
             deleted_at__isnull=True,
         )
-        if len(id_string) > 0 and id_string[0].isdigit():
+        if id_string and id_string[0].isdigit():
             id_string = "_" + id_string
         path = xform.xls.name
         if default_storage.exists(path):
@@ -206,6 +206,7 @@ def profile(request, username):
     if request.method == "POST" and request.user.is_authenticated:
 
         def set_form():
+            """Publishes the XLSForm."""
             form = QuickConverter(request.POST, request.FILES)
             survey = form.publish(request.user).survey
             audit = {}
@@ -1354,6 +1355,7 @@ def update_xform(request, username, id_string):
     owner = xform.user
 
     def set_form():
+        """Publishes the XLSForm"""
         form = QuickConverter(request.POST, request.FILES)
         survey = form.publish(request.user, id_string).survey
         enketo_webform_url = reverse(
@@ -1416,7 +1418,7 @@ def activity_fields(request):
         {"id": "msg", "label": "Description", "type": "string", "searchable": True},
     ]
 
-    return JsonResponse(fields)
+    return JsonResponse(fields, safe=False)
 
 
 @is_owner
@@ -1458,7 +1460,9 @@ def activity_api(request, username):
         response_text = f"{callback}({response_text})"
         return HttpResponse(response_text)
 
-    return JsonResponse(records, json_dumps_params={"default": stringify_unknowns})
+    return JsonResponse(
+        records, json_dumps_params={"default": stringify_unknowns}, safe=False
+    )
 
 
 def qrcode(request, username, id_string):
@@ -1555,6 +1559,7 @@ def service_health(request):
 @require_GET
 @login_required
 def username_list(request):
+    """Show's the list of usernames."""
     data = []
     query = request.GET.get("query", None)
     if query:
@@ -1563,9 +1568,10 @@ def username_list(request):
         )
         data = [user["username"] for user in users]
 
-    return JsonResponse(data)
+    return JsonResponse(data, safe=False)
 
 
+# pylint: disable=too-few-public-methods
 class OnaAuthorizationView(AuthorizationView):
 
     """
@@ -1574,6 +1580,7 @@ class OnaAuthorizationView(AuthorizationView):
     """
 
     def get_context_data(self, **kwargs):
+        """Adds `user` and `request_path` to context and returns the context."""
         context = super().get_context_data(**kwargs)
         context["user"] = self.request.user
         context["request_path"] = self.request.get_full_path()

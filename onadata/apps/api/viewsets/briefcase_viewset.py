@@ -37,6 +37,7 @@ from onadata.libs.serializers.xform_serializer import (
 from onadata.libs.utils.logger_tools import PublishXForm, publish_form
 from onadata.libs.utils.viewer_tools import get_form
 
+# pylint: disable=invalid-name
 User = get_user_model()
 
 
@@ -92,6 +93,7 @@ class BriefcaseViewset(
 
     # pylint: disable=unused-argument
     def get_object(self, queryset=None):
+        """Returns an Instance submission object for the given UUID."""
         form_id = self.request.GET.get("formId", "")
         id_string = _extract_id_string(form_id)
         uuid = _extract_uuid(form_id)
@@ -109,6 +111,7 @@ class BriefcaseViewset(
 
     # pylint: disable=too-many-branches
     def filter_queryset(self, queryset):
+        """Filters an XForm submission instances using ODK Aggregate query parameters."""
         username = self.kwargs.get("username")
         if username is None and self.request.user.is_anonymous:
             # raises a permission denied exception, forces authentication

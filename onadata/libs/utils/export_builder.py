@@ -195,7 +195,7 @@ def encode_if_str(row, key, encode_dates=False, sav_writer=None):
     if isinstance(val, (datetime, date)):
         if sav_writer:
             if isinstance(val, datetime):
-                if len(val.isoformat()):
+                if val.isoformat():
                     strptime_fmt = "%Y-%m-%dT%H:%M:%S"
                 else:
                     strptime_fmt = "%Y-%m-%dT%H:%M:%S.%f%z"
@@ -983,7 +983,7 @@ class ExportBuilder:
 
         return row
 
-    # pylint: disable=too-many-locals,too-many-branches
+    # pylint: disable=too-many-locals,too-many-branches,unused-argument
     def to_zipped_csv(self, path, data, *args, **kwargs):
         """Export CSV formatted files from ``data`` and zip the files."""
 
@@ -1101,7 +1101,7 @@ class ExportBuilder:
             i += 1
         return generated_name
 
-    # pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals,too-many-statements,unused-argument
     def to_xls_export(self, path, data, *args, **kwargs):
         """Export data to a spreadsheet document."""
 
@@ -1385,7 +1385,7 @@ class ExportBuilder:
 
         duplicate_names = []  # list of (xpath, var_name)
         already_done = []  # list of xpaths
-        for field, label, xpath, var_name in fields_and_labels:
+        for _field, label, xpath, var_name in fields_and_labels:
             var_labels[var_name] = label
             #  keep track of duplicates
             if xpath not in already_done:

@@ -791,7 +791,9 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = view(request, user="bob")
         user = User.objects.get(username__iexact=self.user.username)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, "Invalid password. You have 9 attempts left.")
+        self.assertEqual(
+            response.data, {"error": "Invalid password. You have 9 attempts left."}
+        )
         self.assertFalse(user.check_password(new_password))
 
     def test_profile_create_with_name(self):
@@ -1125,7 +1127,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         setattr(
             response,
             "_content",
-            {"detail": "Successfully granted default model level perms to" " user."},
+            {"detail": "Successfully granted default model level perms to user."},
         )
         return response
 
@@ -1318,7 +1320,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = view(request, user="bob")
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
-            response.data, "Invalid password." " You have 9 attempts left."
+            response.data, {"error": "Invalid password. You have 9 attempts left."}
         )
         self.assertEqual(cache.get("change_password_attempts-bob"), 1)
 
@@ -1326,7 +1328,9 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         request = self.factory.post("/", data=post_data, **self.extra)
         response = view(request, user="bob")
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, "Invalid password. You have 8 attempts left.")
+        self.assertEqual(
+            response.data, {"error": "Invalid password. You have 8 attempts left."}
+        )
         self.assertEqual(cache.get("change_password_attempts-bob"), 2)
 
         # check user is locked out
@@ -1337,7 +1341,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
             response.data,
-            "Too many password reset attempts," " Try again in 30 minutes",
+            {"error": "Too many password reset attempts. Try again in 30 minutes"},
         )
         self.assertEqual(cache.get("change_password_attempts-bob"), 10)
         self.assertIsNotNone(cache.get("lockout_change_password_user-bob"))
