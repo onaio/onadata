@@ -2,10 +2,8 @@
 """
 logger views.
 """
-import json
 import os
 import tempfile
-from builtins import str as text
 from datetime import datetime
 
 import pytz
@@ -13,7 +11,7 @@ import six
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.sites.models import Site
 from django.core.files import File
 from django.core.files.storage import get_storage_class
@@ -22,6 +20,7 @@ from django.http import (
     HttpResponseBadRequest,
     HttpResponseForbidden,
     HttpResponseRedirect,
+    JsonResponse,
 )
 from django.shortcuts import get_object_or_404, render
 from django.template import RequestContext, loader
@@ -62,18 +61,21 @@ from onadata.libs.utils.viewer_tools import get_enketo_urls, get_form, get_form_
 
 IO_ERROR_STRINGS = ["request data read error", "error during read(65536) on wsgi.input"]
 
+# pylint: disable=invalid-name
+User = get_user_model()
+
 
 def _bad_request(e):
-    strerror = text(e)
+    strerror = str(e)
 
     return strerror and strerror in IO_ERROR_STRINGS
 
 
-def _extract_uuid(text):
-    text = text[text.find("@key=") : -1].replace("@key=", "")
-    if text.startswith("uuid:"):
-        text = text.replace("uuid:", "")
-    return text
+def _extract_uuid(input_string):
+    input_string = input_string[input_string.find("@key=") : -1].replace("@key=", "")
+    if input_string.startswith("uuid:"):
+        input_string = input_string.replace("uuid:", "")
+    return input_string
 
 
 def _parse_int(num):
@@ -81,6 +83,7 @@ def _parse_int(num):
         return num and int(num)
     except ValueError:
         pass
+    return None
 
 
 def _html_submission_response(request, instance):
@@ -97,7 +100,7 @@ def _submission_response(instance):
     data["message"] = _("Successful submission.")
     data["formid"] = instance.xform.id_string
     data["encrypted"] = instance.xform.encrypted
-    data["instanceID"] = "uuid:%s" % instance.uuid
+    data["instanceID"] = f"uuid:{instance.uuid}"
     data["submissionDate"] = instance.date_created.isoformat()
     data["markedAsCompleteDate"] = instance.date_modified.isoformat()
 
@@ -163,7 +166,7 @@ def bulksubmission(request, username):
             "success": success_count,
             "rejected": total_count - success_count,
         },
-        "errors": "%d %s" % (len(errors), errors),
+        "errors": f"{len(errors)} {errors}",
     }
     audit = {"bulk_submission_log": json_msg}
     audit_log(
@@ -174,7 +177,7 @@ def bulksubmission(request, username):
         audit,
         request,
     )
-    response = HttpResponse(json.dumps(json_msg))
+    response = JsonResponse(json_msg)
     response.status_code = 200
     response["Location"] = request.build_absolute_uri(request.path)
     return response
@@ -189,11 +192,12 @@ def bulksubmission_form(request, username=None):
     if request.user.username == username:
         return render(request, "bulk_submission_form.html")
 
-    return HttpResponseRedirect("/%s" % request.user.username)
+    return HttpResponseRedirect(f"/{request.user.username}")
 
 
+# pylint: disable=invalid-name
 @require_GET
-def formList(request, username):  # pylint: disable=C0103
+def formList(request, username):
     """
     formList view, /formList OpenRosa Form Discovery API 1.0.
     """
@@ -253,8 +257,9 @@ def formList(request, username):  # pylint: disable=C0103
     return response
 
 
+# pylint: disable=invalid-name
 @require_GET
-def xformsManifest(request, username, id_string):  # pylint: disable=C0103
+def xformsManifest(request, username, id_string):
     """
     XFormManifest view, part of OpenRosa Form Discovery API 1.0.
     """
@@ -290,9 +295,11 @@ def xformsManifest(request, username, id_string):  # pylint: disable=C0103
     return response
 
 
+# pylint: disable=too-many-return-statements
+# pylint: disable=too-many-branches
 @require_http_methods(["HEAD", "POST"])
 @csrf_exempt
-def submission(request, username=None):  # pylint: disable=R0911,R0912
+def submission(request, username=None):
     """
     Submission view, /submission of the OpenRosa Form Submission API 1.0.
     """
@@ -309,7 +316,7 @@ def submission(request, username=None):  # pylint: disable=R0911,R0912
         response = OpenRosaResponse(status=204)
         if username:
             response["Location"] = request.build_absolute_uri().replace(
-                request.get_full_path(), "/%s/submission" % username
+                request.get_full_path(), f"/{username}/submission"
             )
         else:
             response["Location"] = request.build_absolute_uri().replace(
@@ -340,7 +347,7 @@ def submission(request, username=None):  # pylint: disable=R0911,R0912
 
         if error:
             return error
-        elif instance is None:
+        if instance is None:
             return OpenRosaResponseBadRequest(_("Unable to create submission."))
 
         audit = {"xform": instance.xform.id_string}
@@ -369,13 +376,14 @@ def submission(request, username=None):  # pylint: disable=R0911,R0912
     except IOError as e:
         if _bad_request(e):
             return OpenRosaResponseBadRequest(_("File transfer interruption."))
-        else:
-            raise
+        raise
     finally:
         if xml_file_list:
-            [_file.close() for _file in xml_file_list]  # pylint: disable=W0106
+            for _file in xml_file_list:
+                _file.close()
         if media_files:
-            [_file.close() for _file in media_files]  # pylint: disable=W0106
+            for _file in media_files:
+                _file.close()
 
 
 def download_xform(request, username, id_string):
@@ -448,15 +456,13 @@ def download_xlsform(request, username, id_string):
 
         return response
 
-    else:
-        messages.add_message(
-            request,
-            messages.WARNING,
-            _("No XLS file for your form " "<strong>%(id)s</strong>")
-            % {"id": id_string},
-        )
+    messages.add_message(
+        request,
+        messages.WARNING,
+        _("No XLS file for your form " "<strong>%(id)s</strong>") % {"id": id_string},
+    )
 
-        return HttpResponseRedirect("/%s" % username)
+    return HttpResponseRedirect(f"/{username}")
 
 
 def download_jsonform(request, username, id_string):
@@ -480,7 +486,7 @@ def download_jsonform(request, username, id_string):
     response = response_with_mimetype_and_name("json", id_string, show_date=False)
     if "callback" in request.GET and request.GET.get("callback") != "":
         callback = request.GET.get("callback")
-        response.content = "%s(%s)" % (callback, xform.json)
+        response.content = f"{callback}({xform.json})"
     else:
         add_cors_headers(response)
         response.content = xform.json
@@ -540,7 +546,7 @@ def toggle_downloadable(request, username, id_string):
         audit,
         request,
     )
-    return HttpResponseRedirect("/%s" % username)
+    return HttpResponseRedirect(f"/{username}")
 
 
 def enter_data(request, username, id_string):
@@ -576,12 +582,12 @@ def enter_data(request, username, id_string):
         data["form_view"] = True
         data["message"] = {
             "type": "alert-error",
-            "text": "Enketo error, reason: %s" % e,
+            "text": f"Enketo error, reason: {e}",
         }
         messages.add_message(
             request,
             messages.WARNING,
-            _("Enketo error: enketo replied %s") % e,
+            _(f"Enketo error: enketo replied {e}"),
             fail_silently=True,
         )
         return render(request, "profile.html", data)
@@ -608,7 +614,7 @@ def edit_data(request, username, id_string, data_id):
             reverse("form-show", kwargs={"username": username, "id_string": id_string})
         )
 
-    url = "%sdata/edit_url" % settings.ENKETO_URL
+    url = f"{settings.ENKETO_URL}data/edit_url"
     # see commit 220f2dad0e for tmp file creation
     injected_xml = inject_instanceid(instance.xml, instance.uuid)
     return_url = request.build_absolute_uri(
@@ -616,7 +622,7 @@ def edit_data(request, username, id_string, data_id):
             "submission-instance", kwargs={"username": username, "id_string": id_string}
         )
         + "#/"
-        + text(instance.id)
+        + str(instance.id)
     )
     form_url = get_form_url(request, username, settings.ENKETO_PROTOCOL)
 
@@ -631,12 +637,12 @@ def edit_data(request, username, id_string, data_id):
     except EnketoError as e:
         context.message = {
             "type": "alert-error",
-            "text": "Enketo error, reason: %s" % e,
+            "text": f"Enketo error, reason: {e}",
         }
         messages.add_message(
             request,
             messages.WARNING,
-            _("Enketo error: enketo replied %s") % e,
+            _(f"Enketo error: enketo replied {e}"),
             fail_silently=True,
         )
     else:
@@ -727,7 +733,7 @@ def view_download_submission(request, username):
     if not has_permission(xform, form_user, request, xform.shared_data):
         return HttpResponseForbidden("Not shared.")
     submission_xml_root_node = instance.get_root_node()
-    submission_xml_root_node.setAttribute("instanceID", "uuid:%s" % instance.uuid)
+    submission_xml_root_node.setAttribute("instanceID", f"uuid:{instance.uuid}")
     submission_xml_root_node.setAttribute(
         "submissionDate", instance.date_created.isoformat()
     )
@@ -755,15 +761,12 @@ def form_upload(request, username):
         return authenticator.build_challenge_response()
     if form_user != request.user:
         return HttpResponseForbidden(
-            _(
-                "Not allowed to upload form[s] to %(user)s account."
-                % {"user": form_user}
-            )
+            _(f"Not allowed to upload form[s] to {form_user} account.")
         )
     if request.method == "HEAD":
         response = OpenRosaResponse(status=204)
         response["Location"] = request.build_absolute_uri().replace(
-            request.get_full_path(), "/%s/formUpload" % form_user.username
+            request.get_full_path(), f"/{form_user.username}/formUpload"
         )
         return response
     xform_def = request.FILES.get("form_def_file", None)
@@ -773,11 +776,11 @@ def form_upload(request, username):
         xform = publish_form(do_form_upload.publish_xform)
         status = 201
         if isinstance(xform, XForm):
-            content = _("%s successfully published." % xform.id_string)
+            content = _(f"{xform.id_string} successfully published.")
         else:
             content = xform["text"]
             if isinstance(content, Exception):
-                content = content
+                content = str(content)
                 status = 500
             else:
                 status = 400
