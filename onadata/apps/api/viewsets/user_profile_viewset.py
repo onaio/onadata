@@ -259,13 +259,13 @@ class UserProfileViewSet(
                 response = change_password_attempts(request)
                 if isinstance(response, int):
                     limits_remaining = MAX_CHANGE_PASSWORD_ATTEMPTS - response
-                    response_obj = {
+                    response = {
                         "error": _(
                             "Invalid password. "
                             f"You have {limits_remaining} attempts left."
                         )
                     }
-                return Response(data=response_obj, status=status.HTTP_400_BAD_REQUEST)
+                return Response(data=response, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(data=lock_out, status=status.HTTP_400_BAD_REQUEST)
 
