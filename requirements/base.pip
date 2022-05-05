@@ -4,6 +4,7 @@
 #
 #    pip-compile --output-file=requirements/base.pip requirements/base.in
 #
+
 -e git+https://github.com/onaio/django-digest.git@6bf61ec08502fd3545d4f2c0838b6cb15e7ffa92#egg=django-digest
     # via -r requirements/base.in
 -e git+https://github.com/onaio/django-multidb-router.git@f711368180d58eef87eda54fadfd5f8355623d52#egg=django-multidb-router
