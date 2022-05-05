@@ -456,8 +456,10 @@ class TestConnectViewSet(TestAbstractViewSet):
         )
         self.assertEqual(cache.get(safe_key(f"login_attempts-{request_ip}-bob")), 2)
 
+        request = self._get_request_session_with_auth(
+            view, auth, extra={"HTTP_X_REAL_IP": "5.6.7.8"}
+        )
         # login attempts are tracked separately for other IPs
-        request.META.update({"HTTP_X_REAL_IP": "5.6.7.8"})
         response = view(request)
         self.assertEqual(response.status_code, 401)
         self.assertEqual(cache.get(safe_key(f"login_attempts-{request_ip}-bob")), 2)

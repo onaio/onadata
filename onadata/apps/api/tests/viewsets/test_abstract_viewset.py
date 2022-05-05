@@ -629,13 +629,14 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
             return self.is_sorted_asc(s[1:])
         return False
 
-    def _get_request_session_with_auth(self, view, auth):
+    def _get_request_session_with_auth(self, view, auth, extra=None):
         request = self.factory.head("/")
         response = view(request)
         self.assertTrue(response.has_header("WWW-Authenticate"))
         self.assertTrue(response["WWW-Authenticate"].startswith("Digest "))
         self.assertIn("nonce=", response["WWW-Authenticate"])
-        request = self.factory.get("/")
+        extra = {} if extra is None else extra
+        request = self.factory.get("/", **extra)
         request.META.update(auth(request.META, response))
         request.session = self.client.session
 
