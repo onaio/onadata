@@ -8,8 +8,8 @@ from xml.dom import minidom, Node
 
 import dateutil.parser
 
-from django.utils.encoding import smart_text, smart_str
-from django.utils.translation import ugettext as _
+from django.utils.encoding import smart_str
+from django.utils.translation import gettext as _
 
 from onadata.libs.utils.common_tags import XFORM_ID_STRING, VERSION
 
@@ -168,7 +168,7 @@ def clean_and_parse_xml(xml_string):
     Returns an XML object via minidom.parseString(xml_string)
     """
     clean_xml_str = xml_string.strip()
-    clean_xml_str = re.sub(r">\s+<", "><", smart_text(clean_xml_str))
+    clean_xml_str = re.sub(r">\s+<", "><", smart_str(clean_xml_str))
     xml_obj = minidom.parseString(smart_str(clean_xml_str))
     return xml_obj
 

@@ -10,7 +10,7 @@ from xml.parsers.expat import ExpatError
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.http import HttpRequest
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models.instance import FormInactiveError

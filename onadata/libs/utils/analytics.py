@@ -189,11 +189,11 @@ def track(user, event_name, properties=None, context=None, request=None):
         if request:
             context['ip'] = request.META.get('REMOTE_ADDR', '')
             context['userId'] = user.id
-            context['receivedAt'] = request.META.get('HTTP_DATE', '')
-            context['userAgent'] = request.META.get('HTTP_USER_AGENT', '')
+            context['receivedAt'] = request.headers.get('Date', '')
+            context['userAgent'] = request.headers.get('User-Agent', '')
             context['campaign']['source'] = settings.HOSTNAME
             context['page']['path'] = request.path
-            context['page']['referrer'] = request.META.get('HTTP_REFERER', '')
+            context['page']['referrer'] = request.headers.get('Referer', '')
             context['page']['url'] = request.build_absolute_uri()
 
         if _segment:

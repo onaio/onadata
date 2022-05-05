@@ -5,7 +5,7 @@ import json
 
 from django.http import HttpResponseRedirect, Http404
 from django.core.cache import cache
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 import jwt
 import requests

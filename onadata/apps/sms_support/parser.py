@@ -6,7 +6,7 @@ from builtins import str as text
 from datetime import datetime, date
 from io import BytesIO
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from onadata.apps.logger.models import XForm
 from onadata.apps.sms_support.tools import SMS_API_ERROR, SMS_PARSING_ERROR,\

@@ -9,7 +9,7 @@ import types
 from django.conf import settings
 from django.db import connection, models
 from django.db.models.query import EmptyQuerySet
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 import six
 from dateutil import parser

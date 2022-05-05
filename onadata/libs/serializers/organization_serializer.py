@@ -5,7 +5,7 @@ Organization Serializer
 
 from django.contrib.auth.models import User
 from django.db.models.query import QuerySet
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from rest_framework import serializers
 

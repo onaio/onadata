@@ -13,7 +13,7 @@ from django.db.models import Count
 from django.http import HttpResponseBadRequest, HttpResponseRedirect
 from django.utils import timezone
 from django.utils.module_loading import import_string
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from six.moves.urllib.parse import urlencode
 

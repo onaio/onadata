@@ -1,12 +1,12 @@
 from django.core.management import BaseCommand
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext_lazy
 
 from onadata.apps.logger.models.project import Project
 from onadata.libs.utils.model_tools import queryset_iterator
 
 
 class Command(BaseCommand):
-    help = ugettext_lazy("Ensures all the forms are owned by the project"
+    help = gettext_lazy("Ensures all the forms are owned by the project"
                          " owner")
 
     def handle(self, *args, **kwargs):

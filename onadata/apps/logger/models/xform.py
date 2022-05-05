@@ -22,8 +22,8 @@ from django.db.models.signals import post_delete, pre_save
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import conditional_escape
-from django.utils.translation import ugettext as _
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 from six import iteritems
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from pyxform import SurveyElementBuilder, constants, create_survey_element_from_dict
@@ -830,12 +830,12 @@ class XForm(XFormMixin, BaseModel):
     # the following fields are filled in automatically
     sms_id_string = models.SlugField(
         editable=False,
-        verbose_name=ugettext_lazy("SMS ID"),
+        verbose_name=gettext_lazy("SMS ID"),
         max_length=MAX_ID_LENGTH,
         default="",
     )
     id_string = models.SlugField(
-        editable=False, verbose_name=ugettext_lazy("ID"), max_length=MAX_ID_LENGTH
+        editable=False, verbose_name=gettext_lazy("ID"), max_length=MAX_ID_LENGTH
     )
     title = models.CharField(editable=False, max_length=XFORM_TITLE_LENGTH)
     date_created = models.DateTimeField(auto_now_add=True)
@@ -880,8 +880,8 @@ class XForm(XFormMixin, BaseModel):
             ("user", "id_string", "project"),
             ("user", "sms_id_string", "project"),
         )
-        verbose_name = ugettext_lazy("XForm")
-        verbose_name_plural = ugettext_lazy("XForms")
+        verbose_name = gettext_lazy("XForm")
+        verbose_name_plural = gettext_lazy("XForms")
         ordering = ("pk",)
         permissions = (
             ("view_xform_all", _("Can view all associated data")),
@@ -1121,7 +1121,7 @@ class XForm(XFormMixin, BaseModel):
 
         return self.num_of_submissions
 
-    submission_count.short_description = ugettext_lazy("Submission Count")
+    submission_count.short_description = gettext_lazy("Submission Count")
 
     @property
     def submission_count_for_today(self):

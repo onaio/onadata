@@ -21,7 +21,7 @@ from django.db.utils import IntegrityError
 from django.http import HttpResponseNotFound, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.utils.module_loading import import_string
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from guardian.shortcuts import assign_perm, get_perms, get_perms_for_model, remove_perm
 from kombu.exceptions import OperationalError

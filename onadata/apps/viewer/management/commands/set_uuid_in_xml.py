@@ -1,12 +1,12 @@
 from django.core.management.base import BaseCommand
-from django.utils.translation import ugettext as _, ugettext_lazy
+from django.utils.translation import gettext as _, gettext_lazy
 
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.model_tools import queryset_iterator
 
 
 class Command(BaseCommand):
-    help = ugettext_lazy("Insert UUID into XML of all existing XForms")
+    help = gettext_lazy("Insert UUID into XML of all existing XForms")
 
     def handle(self, *args, **kwargs):
         self.stdout.write(_('%(nb)d XForms to update')

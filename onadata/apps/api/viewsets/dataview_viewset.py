@@ -1,5 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+The /dataview API endpoint implementation.
+"""
 from django.db.models.signals import post_delete, post_save
 from django.http import Http404, HttpResponseBadRequest
+from django.utils.translation import gettext as _
 
 from celery.result import AsyncResult
 from rest_framework import status
@@ -41,13 +46,18 @@ from onadata.libs.utils.chart_tools import (
 from onadata.libs.utils.export_tools import str_to_bool
 from onadata.libs.utils.model_tools import get_columns_with_hxl
 
+# pylint: disable=invalid-name
 BaseViewset = get_baseviewset_class()
 
 
 def get_form_field_chart_url(url, field):
-    return "%s?field_name=%s" % (url, field)
+    """
+    Returns a chart's ``url`` with the field_name ``field`` parameter appended to it.
+    """
+    return f"{url}?field_name={field}"
 
 
+# pylint: disable=too-many-ancestors
 class DataViewViewSet(
     AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin, BaseViewset, ModelViewSet
 ):
@@ -76,6 +86,7 @@ class DataViewViewSet(
 
         return serializer_class
 
+    # pylint: disable=redefined-builtin,unused-argument
     @action(methods=["GET"], detail=True)
     def data(self, request, format="json", **kwargs):
         """Retrieve the data from the xform using this dataview"""
@@ -85,6 +96,7 @@ class DataViewViewSet(
         sort = request.GET.get("sort")
         query = request.GET.get("query")
         export_type = self.kwargs.get("format", request.GET.get("format"))
+        # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
         if export_type is None or export_type in ["json", "debug"]:
             data = DataView.query_data(
@@ -102,13 +114,14 @@ class DataViewViewSet(
 
             return Response(serializer.data)
 
-        else:
-            return custom_response_handler(
-                request, self.object.xform, query, export_type, dataview=self.object
-            )
+        return custom_response_handler(
+            request, self.object.xform, query, export_type, dataview=self.object
+        )
 
+    # pylint: disable=too-many-locals
     @action(methods=["GET"], detail=True)
     def export_async(self, request, *args, **kwargs):
+        """Initiate's exports asynchronously."""
         params = request.query_params
         job_uuid = params.get("job_uuid")
         export_type = params.get("format")
@@ -166,8 +179,10 @@ class DataViewViewSet(
             data=resp, status=status.HTTP_202_ACCEPTED, content_type="application/json"
         )
 
+    # pylint: disable=redefined-builtin,unused-argument
     @action(methods=["GET"], detail=True)
     def form(self, request, format="json", **kwargs):
+        """Returns the form as either json, xml or XLS linked the dataview."""
         dataview = self.get_object()
         xform = dataview.xform
         if format not in ["json", "xml", "xls"]:
@@ -182,6 +197,7 @@ class DataViewViewSet(
 
     @action(methods=["GET"], detail=True)
     def form_details(self, request, *args, **kwargs):
+        """Returns the dataview's form API data."""
         dataview = self.get_object()
         xform = dataview.xform
         serializer = XFormSerializer(xform, context={"request": request})
@@ -190,6 +206,7 @@ class DataViewViewSet(
 
     @action(methods=["GET"], detail=True)
     def charts(self, request, *args, **kwargs):
+        """Returns the charts data for the given dataview."""
         dataview = self.get_object()
         xform = dataview.xform
         serializer = self.get_serializer(dataview)
@@ -215,7 +232,7 @@ class DataViewViewSet(
                 common_tags.DURATION,
             ]
         ):
-            raise Http404("Field %s does not not exist on the dataview" % field_name)
+            raise Http404(_(f"Field {field_name} does not not exist on the dataview"))
 
         if field_name or field_xpath:
             data = get_chart_data_for_field(
@@ -245,6 +262,7 @@ class DataViewViewSet(
 
     @action(methods=["GET"], detail=True)
     def xls_export(self, request, *args, **kwargs):
+        """Returns the data views XLS export files."""
         dataview = self.get_object()
         xform = dataview.xform
 
@@ -258,21 +276,25 @@ class DataViewViewSet(
         )
 
     def destroy(self, request, *args, **kwargs):
+        """Soft deletes the the dataview."""
         dataview = self.get_object()
         user = request.user
         dataview.soft_delete(user)
-        safe_delete("{}{}".format(PROJ_OWNER_CACHE, dataview.project.pk))
+        safe_delete(f"{PROJ_OWNER_CACHE}{dataview.project.pk}")
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+# pylint: disable=unused-argument
 def dataview_post_save_callback(sender, instance=None, created=False, **kwargs):
-    safe_delete("{}{}".format(PROJECT_LINKED_DATAVIEWS, instance.project.pk))
+    """Clear project cache post dataview save."""
+    safe_delete(f"{PROJECT_LINKED_DATAVIEWS}{instance.project.pk}")
 
 
 def dataview_post_delete_callback(sender, instance, **kwargs):
+    """Clear project cache post dataview delete."""
     if instance.project:
-        safe_delete("{}{}".format(PROJECT_LINKED_DATAVIEWS, instance.project.pk))
+        safe_delete(f"{PROJECT_LINKED_DATAVIEWS}{instance.project.pk}")
 
 
 post_save.connect(

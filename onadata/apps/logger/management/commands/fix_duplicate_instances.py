@@ -3,13 +3,13 @@
 
 from django.core.management.base import BaseCommand
 from django.db import connection
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext_lazy
 
 from onadata.apps.logger.models import Instance
 
 
 class Command(BaseCommand):
-    help = ugettext_lazy("Fix duplicate instances by merging the attachments.")
+    help = gettext_lazy("Fix duplicate instances by merging the attachments.")
 
     def query_data(self, sql):
         cursor = connection.cursor()

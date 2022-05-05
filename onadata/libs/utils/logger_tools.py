@@ -26,7 +26,7 @@ from django.http import (HttpResponse, HttpResponseNotFound,
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.encoding import DjangoUnicodeDecodeError
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from modilabs.utils.subprocess_timeout import ProcessTimedOut
 from multidb.pinning import use_master
 from pyxform.errors import PyXFormError

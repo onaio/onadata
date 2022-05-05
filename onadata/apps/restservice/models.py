@@ -7,7 +7,7 @@ import importlib
 from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_delete, post_save
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext_lazy
 
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.models import MetaData
@@ -24,16 +24,16 @@ class RestService(models.Model):
         app_label = "restservice"
         unique_together = ("service_url", "xform", "name")
 
-    service_url = models.URLField(ugettext_lazy("Service URL"))
+    service_url = models.URLField(gettext_lazy("Service URL"))
     xform = models.ForeignKey(XForm, on_delete=models.CASCADE)
     name = models.CharField(max_length=50, choices=SERVICE_CHOICES)
     date_created = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     date_modified = models.DateTimeField(auto_now=True, null=True, blank=True)
     active = models.BooleanField(
-        ugettext_lazy("Active"), default=True, blank=False, null=False
+        gettext_lazy("Active"), default=True, blank=False, null=False
     )
     inactive_reason = models.TextField(
-        ugettext_lazy("Inactive reason"), blank=True, default=""
+        gettext_lazy("Inactive reason"), blank=True, default=""
     )
 
     def __str__(self):

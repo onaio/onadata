@@ -3,8 +3,8 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.storage import get_storage_class
 from django.core.management.base import BaseCommand, CommandError
-from django.utils.translation import ugettext as _
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.xform import XForm
@@ -16,21 +16,21 @@ THUMB_CONF = settings.THUMB_CONF
 
 
 class Command(BaseCommand):
-    help = ugettext_lazy("Creates thumbnails for "
+    help = gettext_lazy("Creates thumbnails for "
                          "all form images and stores them")
 
     def add_arguments(self, parser):
         parser.add_argument(
             '-u',
             '--username',
-            help=ugettext_lazy("Username of the form user"))
+            help=gettext_lazy("Username of the form user"))
         parser.add_argument(
-            '-i', '--id_string', help=ugettext_lazy("id string of the form"))
+            '-i', '--id_string', help=gettext_lazy("id string of the form"))
         parser.add_argument(
             '-f',
             '--force',
             action='store_false',
-            help=ugettext_lazy("regenerate thumbnails if they exist."))
+            help=gettext_lazy("regenerate thumbnails if they exist."))
 
     def handle(self, *args, **options):
         attachments_qs = Attachment.objects.select_related(

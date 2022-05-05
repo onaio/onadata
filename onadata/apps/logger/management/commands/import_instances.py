@@ -9,8 +9,8 @@ import os
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
-from django.utils.translation import ugettext as _
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 
 from onadata.apps.logger.import_tools import (
     import_instances_from_path,
@@ -27,7 +27,7 @@ class Command(BaseCommand):
     """
 
     args = "username path"
-    help = ugettext_lazy(
+    help = gettext_lazy(
         "Import a zip file, a directory containing zip files "
         "or a directory of ODK instances"
     )

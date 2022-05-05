@@ -7,7 +7,7 @@ from itertools import chain
 
 from django.conf import settings
 from django.db.models.query import QuerySet
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from six import iteritems
 

@@ -7,7 +7,7 @@ from django.shortcuts import render
 from django.template.base import Template
 from django.template.context import Context
 from django.template.loader import render_to_string
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from onadata.libs.utils.viewer_tools import get_form
 from onadata.apps.restservice.forms import RestServiceForm

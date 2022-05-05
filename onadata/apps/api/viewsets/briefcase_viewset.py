@@ -9,7 +9,7 @@ from django.contrib.auth import get_user_model
 from django.core.files import File
 from django.core.validators import ValidationError
 from django.http import Http404
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 import six
 from rest_framework import exceptions, mixins, permissions, status, viewsets

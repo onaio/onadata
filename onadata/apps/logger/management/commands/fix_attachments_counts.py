@@ -6,8 +6,8 @@ import os
 
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
-from django.utils.translation import ugettext as _
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 from multidb.pinning import use_master
 
 from onadata.apps.logger.models.attachment import get_original_filename
@@ -32,7 +32,7 @@ class Command(BaseCommand):
     Fix attachments count command.
     """
     args = 'username'
-    help = ugettext_lazy("Fix attachments count.")
+    help = gettext_lazy("Fix attachments count.")
 
     def add_arguments(self, parser):
         parser.add_argument('username')

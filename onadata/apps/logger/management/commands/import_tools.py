@@ -7,7 +7,7 @@ import os
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
-from django.utils.translation import ugettext as _, ugettext_lazy
+from django.utils.translation import gettext as _, gettext_lazy
 
 from onadata.libs.logger.import_tools import import_instances_from_zip
 from onadata.libs.logger.models import Instance
@@ -17,7 +17,7 @@ IMAGES_DIR = os.path.join(settings.MEDIA_ROOT, "attachments")
 
 
 class Command(BaseCommand):
-    help = ugettext_lazy("Import ODK forms and instances.")
+    help = gettext_lazy("Import ODK forms and instances.")
 
     def handle(self, *args, **kwargs):
         if args.__len__() < 2:

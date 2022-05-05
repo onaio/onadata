@@ -3,7 +3,8 @@ import sys
 import django
 
 from django.conf import settings
-from django.conf.urls import include, url, i18n
+from django.urls import include, re_path
+from django.conf.urls import i18n
 from django.contrib.staticfiles import views as staticfiles_views
 from django.urls import re_path
 from django.views.generic import RedirectView
@@ -38,10 +39,10 @@ admin.autodiscover()
 urlpatterns = [
     # change Language
     re_path(r'^i18n/', include(i18n)),
-    url('^api/v1/', include(api_v1_router.urls)),
-    url('^api/v2/', include(api_v2_router.urls)),
+    re_path('^api/v1/', include(api_v1_router.urls)),
+    re_path('^api/v2/', include(api_v2_router.urls)),
     # open id connect urls
-    url(r"^", include("oidc.urls")),
+    re_path(r"^", include("oidc.urls")),
     re_path(r'^api-docs/',
             RedirectView.as_view(url=settings.STATIC_DOC, permanent=True)),
     re_path(r'^api/$',

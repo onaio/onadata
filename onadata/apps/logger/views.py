@@ -26,7 +26,7 @@ from django.http import (
 from django.shortcuts import get_object_or_404, render
 from django.template import RequestContext, loader
 from django.urls import reverse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from django_digest import HttpDigestAuthenticator

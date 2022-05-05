@@ -13,7 +13,7 @@ import six
 
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-from django.utils.encoding import smart_text, force_str
+from django.utils.encoding import smart_str, force_str
 from django.utils.xmlutils import SimplerXMLGenerator
 from six import iteritems
 from rest_framework import negotiation
@@ -310,7 +310,7 @@ class XFormListRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
             pass
 
         else:
-            xml.characters(smart_text(data))
+            xml.characters(smart_str(data))
 
 
 # pylint: disable=too-few-public-methods

@@ -3,7 +3,7 @@
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext_lazy
 
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
@@ -11,7 +11,7 @@ from onadata.apps.main.models import UserProfile
 
 
 class Command(BaseCommand):
-    help = ugettext_lazy("Fix num of submissions")
+    help = gettext_lazy("Fix num of submissions")
 
     def handle(self, *args, **kwargs):
         i = 0

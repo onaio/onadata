@@ -10,7 +10,7 @@ from django.core.files.storage import get_storage_class
 from django.db import models
 from django.db.models import JSONField
 from django.db.models.signals import post_delete
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from onadata.libs.utils.common_tags import OSM
 from onadata.libs.utils import async_status

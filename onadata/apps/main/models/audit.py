@@ -7,7 +7,7 @@ import six
 
 from django.db import models
 from django.db import connection
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 DEFAULT_LIMIT = 1000
 

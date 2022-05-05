@@ -6,13 +6,13 @@ import glob
 import os
 
 from django.core.management.base import BaseCommand
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext_lazy
 
 from onadata.apps.logger.models import XForm
 
 
 class Command(BaseCommand):
-    help = ugettext_lazy("Import a folder of XForms for ODK.")
+    help = gettext_lazy("Import a folder of XForms for ODK.")
 
     def handle(self, *args, **kwargs):
         path = args[0]

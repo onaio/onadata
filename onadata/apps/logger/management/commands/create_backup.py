@@ -1,7 +1,7 @@
 import os
 
 from django.core.management.base import BaseCommand, CommandError
-from django.utils.translation import ugettext_lazy, ugettext as _
+from django.utils.translation import gettext_lazy, gettext as _
 from django.contrib.auth.models import User
 
 from onadata.apps.logger.models import XForm
@@ -10,7 +10,7 @@ from onadata.libs.utils.backup_tools import create_zip_backup
 
 class Command(BaseCommand):
     args = "outfile username [id_string]"
-    help = ugettext_lazy(
+    help = gettext_lazy(
         "Create a zip backup of a form and all its submissions")
 
     def handle(self, *args, **options):

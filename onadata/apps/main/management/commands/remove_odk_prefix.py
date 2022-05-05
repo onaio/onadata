@@ -1,10 +1,10 @@
 from django.core.management.base import BaseCommand
 from django.db import connection
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext_lazy
 
 
 class Command(BaseCommand):
-    help = ugettext_lazy("Remove from logger and viewer apps")
+    help = gettext_lazy("Remove from logger and viewer apps")
 
     option_list = BaseCommand.option_list
 

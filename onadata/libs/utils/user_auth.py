@@ -147,7 +147,7 @@ def helper_auth_helper(request):
         return None
         # source, http://djangosnippets.org/snippets/243/
     if 'HTTP_AUTHORIZATION' in request.META:
-        auth = request.META['HTTP_AUTHORIZATION'].split()
+        auth = request.headers['Authorization'].split()
         if len(auth) == 2 and auth[0].lower() == "basic":
             uname, passwd = base64.b64decode(auth[1].encode(
                 'utf-8')).decode('utf-8').split(':')

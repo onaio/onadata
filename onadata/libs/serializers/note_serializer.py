@@ -2,7 +2,7 @@
 """
 Note Serializers Module
 """
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from guardian.shortcuts import assign_perm
 from rest_framework import exceptions, serializers

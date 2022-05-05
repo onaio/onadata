@@ -14,7 +14,7 @@ from django.db.models.query import QuerySet
 from django.db.utils import DataError, OperationalError
 from django.http import Http404, StreamingHttpResponse
 from django.utils import timezone
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 import six
 from rest_framework import status

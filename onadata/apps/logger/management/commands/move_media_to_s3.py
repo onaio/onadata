@@ -3,7 +3,7 @@ import sys
 
 from django.core.files.storage import get_storage_class
 from django.core.management.base import BaseCommand
-from django.utils.translation import ugettext as _, ugettext_lazy
+from django.utils.translation import gettext as _, gettext_lazy
 
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.attachment import upload_to as\
@@ -13,7 +13,7 @@ from onadata.apps.logger.models.xform import XForm, upload_to as\
 
 
 class Command(BaseCommand):
-    help = ugettext_lazy("Moves all attachments and xls files "
+    help = gettext_lazy("Moves all attachments and xls files "
                          "to s3 from the local file system storage.")
 
     def handle(self, *args, **kwargs):

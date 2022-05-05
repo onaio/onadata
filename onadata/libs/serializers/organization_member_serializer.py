@@ -1,5 +1,5 @@
 from django.contrib.auth.models import User
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django.core.mail import send_mail
 
 from rest_framework import serializers

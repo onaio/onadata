@@ -5,7 +5,7 @@ import os
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Q
 from django.http import HttpRequest
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext_lazy
 
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.utils.viewer_tools import get_enketo_urls, get_form_url
@@ -14,7 +14,7 @@ from onadata.libs.utils.viewer_tools import get_enketo_urls, get_form_url
 class Command(BaseCommand):
     """Updates enketo preview urls in MetaData model"""
 
-    help = ugettext_lazy("Updates enketo preview urls in MetaData model")
+    help = gettext_lazy("Updates enketo preview urls in MetaData model")
 
     def add_arguments(self, parser):
         parser.add_argument(

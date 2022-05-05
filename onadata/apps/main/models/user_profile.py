@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.db.models.signals import post_save, pre_save
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext_lazy
 
 import requests
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
@@ -44,7 +44,7 @@ class UserProfile(models.Model):
     twitter = models.CharField(max_length=255, blank=True)
     description = models.CharField(max_length=255, blank=True)
     require_auth = models.BooleanField(
-        default=False, verbose_name=ugettext_lazy("Require Phone Authentication")
+        default=False, verbose_name=gettext_lazy("Require Phone Authentication")
     )
     address = models.CharField(max_length=255, blank=True)
     phonenumber = models.CharField(max_length=30, blank=True)

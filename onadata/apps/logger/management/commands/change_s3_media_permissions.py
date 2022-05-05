@@ -4,11 +4,11 @@ import sys
 
 from django.core.management.base import BaseCommand, CommandError
 from django.core.files.storage import get_storage_class
-from django.utils.translation import ugettext as _, ugettext_lazy
+from django.utils.translation import gettext as _, gettext_lazy
 
 
 class Command(BaseCommand):
-    help = ugettext_lazy("Makes all s3 files private")
+    help = gettext_lazy("Makes all s3 files private")
 
     def handle(self, *args, **kwargs):
         permissions = ('private', 'public-read', 'authenticated-read')

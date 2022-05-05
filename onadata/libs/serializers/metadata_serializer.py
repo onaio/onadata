@@ -12,7 +12,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db.utils import IntegrityError
 from django.shortcuts import get_object_or_404
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from six.moves.urllib.parse import urlparse
 from rest_framework import serializers
 from rest_framework.reverse import reverse

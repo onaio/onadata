@@ -1,5 +1,5 @@
 from django.contrib.auth.models import User
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext_lazy
 from django.core.management.base import BaseCommand
 from django.conf import settings
 
@@ -9,7 +9,7 @@ from onadata.libs.utils.model_tools import queryset_iterator
 
 class Command(BaseCommand):
     args = '<username>'
-    help = ugettext_lazy("Sync account with '_id'")
+    help = gettext_lazy("Sync account with '_id'")
 
     def handle(self, *args, **kwargs):
 

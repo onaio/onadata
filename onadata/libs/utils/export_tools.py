@@ -21,7 +21,7 @@ from django.core.files.temp import NamedTemporaryFile
 from django.db.models.query import QuerySet
 from django.shortcuts import render
 from django.utils import timezone
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from six.moves.urllib.parse import urlparse
 from six import iteritems
 from json2xlsclient.client import Client

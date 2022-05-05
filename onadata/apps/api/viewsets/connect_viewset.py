@@ -1,7 +1,7 @@
 from django.core.exceptions import MultipleObjectsReturned
 from django.utils import timezone
 from django.utils.decorators import classonlymethod
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django.views.decorators.cache import never_cache
 from rest_framework import status, viewsets
 from rest_framework.authtoken.models import Token

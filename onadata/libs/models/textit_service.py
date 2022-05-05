@@ -6,7 +6,7 @@ RapidPro.
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.restservice.models import RestService
 from django.conf import settings
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django.db import IntegrityError
 from rest_framework import serializers
 

@@ -15,7 +15,7 @@ from io import BytesIO
 from django.conf import settings
 from django.core.mail import mail_admins
 from django.db import OperationalError
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 import six
 from raven.contrib.django.raven_compat.models import client

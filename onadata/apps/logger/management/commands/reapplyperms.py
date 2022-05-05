@@ -7,7 +7,7 @@ from datetime import timedelta
 from onadata.apps.logger.models import XForm
 from django.db.models import Q
 from django.core.management.base import BaseCommand
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from multidb.pinning import use_master
 

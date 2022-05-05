@@ -2,7 +2,7 @@
 # vim: ai ts=4 sts=4 et sw=4 fileencoding=utf-8
 
 from django.core.management.base import BaseCommand
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext_lazy
 
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.xform import XForm
@@ -10,7 +10,7 @@ from onadata.libs.utils.model_tools import queryset_iterator
 
 
 class Command(BaseCommand):
-    help = ugettext_lazy("Set xform.instances_with_osm")
+    help = gettext_lazy("Set xform.instances_with_osm")
 
     def handle(self, *args, **kwargs):
         pks = Attachment.objects.filter(

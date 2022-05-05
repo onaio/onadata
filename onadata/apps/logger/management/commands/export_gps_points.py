@@ -2,14 +2,14 @@
 import csv
 
 from django.core.management.base import BaseCommand
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext_lazy
 
 from onadata.apps.logger.models import Instance
 from onadata.libs.utils.model_tools import queryset_iterator
 
 
 class Command(BaseCommand):
-    help = ugettext_lazy("Export all gps points with their timestamps")
+    help = gettext_lazy("Export all gps points with their timestamps")
 
     def handle(self, *args, **kwargs):
         with open('gps_points_export.csv', 'w') as csvfile:

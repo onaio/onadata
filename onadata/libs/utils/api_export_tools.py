@@ -14,7 +14,7 @@ from celery.result import AsyncResult
 from django.conf import settings
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from kombu.exceptions import OperationalError
 from oauth2client import client as google_client
 from oauth2client.client import (

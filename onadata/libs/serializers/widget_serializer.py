@@ -5,7 +5,7 @@ Widget serializer
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
 from django.urls import resolve, get_script_prefix, Resolver404
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from six.moves.urllib.parse import urlparse
 
 from guardian.shortcuts import get_users_with_perms

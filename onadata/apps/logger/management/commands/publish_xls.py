@@ -2,8 +2,8 @@ import os
 
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
-from django.utils.translation import ugettext as _
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 from pyxform.builder import create_survey_from_xls
 
 from onadata.apps.logger.models.project import Project
@@ -15,7 +15,7 @@ from onadata.libs.utils.viewer_tools import django_file
 
 class Command(BaseCommand):
     args = 'xls_file username project'
-    help = ugettext_lazy("Publish an XLS file with the option of replacing an"
+    help = gettext_lazy("Publish an XLS file with the option of replacing an"
                          "existing one")
 
     def add_arguments(self, parser):
@@ -28,7 +28,7 @@ class Command(BaseCommand):
             '--replace',
             action='store_true',
             dest='replace',
-            help=ugettext_lazy("Replace existing form if any"))
+            help=gettext_lazy("Replace existing form if any"))
 
     def handle(self, *args, **options):
         try:

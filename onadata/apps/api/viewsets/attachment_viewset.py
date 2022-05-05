@@ -1,7 +1,7 @@
 from builtins import str as text
 
 from django.http import Http404
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django.core.files.storage import default_storage
 from django.conf import settings
 from rest_framework import renderers

@@ -2,7 +2,7 @@
 
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from onadata.libs.utils.briefcase_client import BriefcaseClient
 

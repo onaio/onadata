@@ -15,8 +15,8 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.validators import URLValidator
 from django.forms import ModelForm
-from django.utils.translation import ugettext as _
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 from registration.forms import RegistrationFormUniqueEmail
 
 # pylint: disable=ungrouped-imports
@@ -28,29 +28,29 @@ from onadata.libs.utils.logger_tools import publish_xls_form, publish_xml_form
 from onadata.libs.utils.user_auth import get_user_default_project
 
 FORM_LICENSES_CHOICES = (
-    ("No License", ugettext_lazy("No License")),
+    ("No License", gettext_lazy("No License")),
     (
         "https://creativecommons.org/licenses/by/3.0/",
-        ugettext_lazy("Attribution CC BY"),
+        gettext_lazy("Attribution CC BY"),
     ),
     (
         "https://creativecommons.org/licenses/by-sa/3.0/",
-        ugettext_lazy("Attribution-ShareAlike CC BY-SA"),
+        gettext_lazy("Attribution-ShareAlike CC BY-SA"),
     ),
 )
 
 DATA_LICENSES_CHOICES = (
-    ("No License", ugettext_lazy("No License")),
-    ("http://opendatacommons.org/licenses/pddl/summary/", ugettext_lazy("PDDL")),
-    ("http://opendatacommons.org/licenses/by/summary/", ugettext_lazy("ODC-BY")),
-    ("http://opendatacommons.org/licenses/odbl/summary/", ugettext_lazy("ODBL")),
+    ("No License", gettext_lazy("No License")),
+    ("http://opendatacommons.org/licenses/pddl/summary/", gettext_lazy("PDDL")),
+    ("http://opendatacommons.org/licenses/by/summary/", gettext_lazy("ODC-BY")),
+    ("http://opendatacommons.org/licenses/odbl/summary/", gettext_lazy("ODBL")),
 )
 
 PERM_CHOICES = (
-    ("view", ugettext_lazy("Can view")),
-    ("edit", ugettext_lazy("Can edit")),
-    ("report", ugettext_lazy("Can submit to")),
-    ("remove", ugettext_lazy("Remove permissions")),
+    ("view", gettext_lazy("Can view")),
+    ("edit", gettext_lazy("Can edit")),
+    ("report", gettext_lazy("Can submit to")),
+    ("remove", gettext_lazy("Remove permissions")),
 )
 
 VALID_XLSFORM_CONTENT_TYPES = [
@@ -231,7 +231,7 @@ class SourceForm(forms.Form):
     Source document form.
     """
 
-    source = forms.FileField(label=ugettext_lazy("Source document"), required=True)
+    source = forms.FileField(label=gettext_lazy("Source document"), required=True)
 
 
 class SupportDocForm(forms.Form):
@@ -239,7 +239,7 @@ class SupportDocForm(forms.Form):
     Supporting document.
     """
 
-    doc = forms.FileField(label=ugettext_lazy("Supporting document"), required=True)
+    doc = forms.FileField(label=gettext_lazy("Supporting document"), required=True)
 
 
 class MediaForm(forms.Form):
@@ -247,7 +247,7 @@ class MediaForm(forms.Form):
     Media file upload form.
     """
 
-    media = forms.FileField(label=ugettext_lazy("Media upload"), required=True)
+    media = forms.FileField(label=gettext_lazy("Media upload"), required=True)
 
     def clean_media(self):
         """
@@ -270,7 +270,7 @@ class MapboxLayerForm(forms.Form):
     attribution = forms.CharField(
         widget=forms.TextInput(), required=False, max_length=255
     )
-    link = forms.URLField(label=ugettext_lazy("JSONP url"), required=True)
+    link = forms.URLField(label=gettext_lazy("JSONP url"), required=True)
 
 
 class QuickConverterFile(forms.Form):
@@ -278,7 +278,7 @@ class QuickConverterFile(forms.Form):
     Uploads XLSForm form.
     """
 
-    xls_file = forms.FileField(label=ugettext_lazy("XLS File"), required=False)
+    xls_file = forms.FileField(label=gettext_lazy("XLS File"), required=False)
 
 
 class QuickConverterURL(forms.Form):
@@ -286,7 +286,7 @@ class QuickConverterURL(forms.Form):
     Uploads XLSForm from a URL.
     """
 
-    xls_url = forms.URLField(label=ugettext_lazy("XLS URL"), required=False)
+    xls_url = forms.URLField(label=gettext_lazy("XLS URL"), required=False)
 
 
 class QuickConverterDropboxURL(forms.Form):
@@ -294,7 +294,7 @@ class QuickConverterDropboxURL(forms.Form):
     Uploads XLSForm from Dropbox.
     """
 
-    dropbox_xls_url = forms.URLField(label=ugettext_lazy("XLS URL"), required=False)
+    dropbox_xls_url = forms.URLField(label=gettext_lazy("XLS URL"), required=False)
 
 
 class QuickConverterCsvFile(forms.Form):
@@ -302,7 +302,7 @@ class QuickConverterCsvFile(forms.Form):
     Uploads CSV XLSForm.
     """
 
-    csv_url = forms.URLField(label=ugettext_lazy("CSV URL"), required=False)
+    csv_url = forms.URLField(label=gettext_lazy("CSV URL"), required=False)
 
 
 class QuickConverterTextXlsForm(forms.Form):
@@ -311,7 +311,7 @@ class QuickConverterTextXlsForm(forms.Form):
     """
 
     text_xls_form = forms.CharField(
-        label=ugettext_lazy("XLSForm Representation"), required=False
+        label=gettext_lazy("XLSForm Representation"), required=False
     )
 
 
@@ -320,7 +320,7 @@ class QuickConverterXmlFile(forms.Form):
     Uploads an XForm XML.
     """
 
-    xml_file = forms.FileField(label=ugettext_lazy("XML File"), required=False)
+    xml_file = forms.FileField(label=gettext_lazy("XML File"), required=False)
 
 
 class QuickConverterFloipFile(forms.Form):
@@ -329,7 +329,7 @@ class QuickConverterFloipFile(forms.Form):
     """
 
     floip_file = forms.FileField(
-        label=ugettext_lazy("FlOIP results data packages descriptor File"),
+        label=gettext_lazy("FlOIP results data packages descriptor File"),
         required=False,
     )
 
@@ -461,10 +461,10 @@ class ActivateSMSSupportForm(forms.Form):
         coerce=lambda x: x == "True",
         choices=((False, "No"), (True, "Yes")),
         widget=forms.Select,
-        label=ugettext_lazy("Enable SMS Support"),
+        label=gettext_lazy("Enable SMS Support"),
     )
     sms_id_string = forms.CharField(
-        max_length=50, required=True, label=ugettext_lazy("SMS Keyword")
+        max_length=50, required=True, label=gettext_lazy("SMS Keyword")
     )
 
     def clean_sms_id_string(self):

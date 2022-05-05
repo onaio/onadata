@@ -1,4 +1,4 @@
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext_lazy
 from django.core.management.base import BaseCommand
 
 from onadata.apps.logger.models import Attachment
@@ -9,7 +9,7 @@ from onadata.libs.utils.osm import save_osm_data
 
 class Command(BaseCommand):
     args = '<username>'
-    help = ugettext_lazy("Populate OsmData model with osm info.")
+    help = gettext_lazy("Populate OsmData model with osm info.")
 
     def handle(self, *args, **kwargs):
         xforms = XForm.objects.filter(instances_with_osm=True)

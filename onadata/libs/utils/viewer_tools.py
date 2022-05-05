@@ -12,7 +12,7 @@ from xml.dom import minidom
 from django.conf import settings
 from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 import requests
 from six.moves.urllib.parse import urljoin
@@ -154,7 +154,7 @@ def get_client_ip(request):
     arguments:
     request -- HttpRequest object.
     """
-    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+    x_forwarded_for = request.headers.get('X-Forwarded-For')
     if x_forwarded_for:
         return x_forwarded_for.split(",")[0]
 
@@ -321,7 +321,7 @@ def get_form_url(
         http_host = settings.TEST_HTTP_HOST
         username = settings.TEST_USERNAME
     else:
-        http_host = request.META.get("HTTP_HOST", "ona.io")
+        http_host = request.headers.get('Host', "ona.io")
 
     url = f"{protocol}://{http_host}"
 

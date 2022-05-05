@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from onadata.libs.utils.viewer_tools import get_client_ip
 

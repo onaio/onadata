@@ -3,14 +3,14 @@ import sys
 
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
-from django.utils.translation import ugettext_lazy, ugettext as _
+from django.utils.translation import gettext_lazy, gettext as _
 
 from onadata.libs.utils.backup_tools import restore_backup_from_zip
 
 
 class Command(BaseCommand):
     args = 'username input_file'
-    help = ugettext_lazy("Restore a zip backup of a form and all its"
+    help = gettext_lazy("Restore a zip backup of a form and all its"
                          " submissions")
 
     def handle(self, *args, **options):

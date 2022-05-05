@@ -1,13 +1,13 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth.models import User
 from django.template.loader import get_template
-from django.utils.translation import ugettext as _, ugettext_lazy
+from django.utils.translation import gettext as _, gettext_lazy
 
 from templated_email import send_templated_mail
 
 
 class Command(BaseCommand):
-    help = ugettext_lazy("Send an email to all onadata users")
+    help = gettext_lazy("Send an email to all onadata users")
 
     def add_arguments(self, parser):
         parser.add_argument("-m", "--message", dest="message", default=False)

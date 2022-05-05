@@ -6,13 +6,13 @@ from django.conf import settings
 from django.core.management import BaseCommand
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext_lazy
 
 from onadata.apps.logger.models import Instance
 
 
 class Command(BaseCommand):
-    help = ugettext_lazy("Fixes deleted instances by syncing "
+    help = gettext_lazy("Fixes deleted instances by syncing "
                          "deleted items from mongo.")
 
     def handle(self, *args, **kwargs):
