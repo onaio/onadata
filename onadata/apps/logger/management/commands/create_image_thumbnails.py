@@ -1,6 +1,10 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+create_image_thumbnails - creates thumbnails for all form images and stores them.
+"""
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.files.storage import get_storage_class
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import gettext as _
@@ -16,7 +20,9 @@ THUMB_CONF = settings.THUMB_CONF
 
 
 class Command(BaseCommand):
-    help = gettext_lazy("Creates thumbnails for " "all form images and stores them")
+    """Creates thumbnails for all form images and stores them"""
+
+    help = gettext_lazy("Creates thumbnails for all form images and stores them")
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -32,29 +38,28 @@ class Command(BaseCommand):
             help=gettext_lazy("regenerate thumbnails if they exist."),
         )
 
+    # pylint: disable=too-many-branches,too-many-locals
     def handle(self, *args, **options):
         attachments_qs = Attachment.objects.select_related(
             "instance", "instance__xform"
         )
+        # pylint: disable=invalid-name
+        User = get_user_model()
         if options.get("username"):
             username = options.get("username")
             try:
                 user = User.objects.get(username=username)
-            except User.DoesNotExist:
-                raise CommandError(
-                    "Error: username %(username)s does not exist"
-                    % {"username": username}
-                )
+            except User.DoesNotExist as e:
+                raise CommandError(f"Error: username {username} does not exist") from e
             attachments_qs = attachments_qs.filter(instance__user=user)
         if options.get("id_string"):
             id_string = options.get("id_string")
             try:
                 xform = XForm.objects.get(id_string=id_string)
-            except XForm.DoesNotExist:
+            except XForm.DoesNotExist as e:
                 raise CommandError(
-                    "Error: Form with id_string %(id_string)s does not exist"
-                    % {"id_string": id_string}
-                )
+                    f"Error: Form with id_string {id_string} does not exist"
+                ) from e
             attachments_qs = attachments_qs.filter(instance__xform=xform)
         fs = get_storage_class("django.core.files.storage.FileSystemStorage")()
         for att in queryset_iterator(attachments_qs):
@@ -72,17 +77,10 @@ class Command(BaseCommand):
                         resize(filename, att.extension)
                     else:
                         resize_local_env(filename, att.extension)
-                    path = get_path(filename, "%s" % THUMB_CONF["small"]["suffix"])
+                    path = get_path(filename, f'{THUMB_CONF["small"]["suffix"]}')
                     if default_storage.exists(path):
-                        self.stdout.write(
-                            _("Thumbnails created for %(file)s") % {"file": filename}
-                        )
+                        self.stdout.write(_(f"Thumbnails created for {filename}"))
                     else:
-                        self.stdout.write(
-                            _("Problem with the file %(file)s") % {"file": filename}
-                        )
-                except (IOError, OSError) as e:
-                    self.stderr.write(
-                        _("Error on %(filename)s: %(error)s")
-                        % {"filename": filename, "error": e}
-                    )
+                        self.stdout.write(_(f"Problem with the file {filename}"))
+                except (IOError, OSError) as error:
+                    self.stderr.write(_(f"Error on {filename}: {error}"))
