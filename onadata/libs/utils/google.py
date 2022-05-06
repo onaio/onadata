@@ -1,11 +1,18 @@
-from oauth2client.client import OAuth2WebServerFlow
-from django.conf import settings
+from typing import Optional
 
-google_flow = OAuth2WebServerFlow(
-    client_id=settings.GOOGLE_OAUTH2_CLIENT_ID,
-    client_secret=settings.GOOGLE_OAUTH2_CLIENT_SECRET,
-    scope=' '.join(
-        ['https://docs.google.com/feeds/',
-         'https://spreadsheets.google.com/feeds/',
-         'https://www.googleapis.com/auth/drive.file']),
-    redirect_uri=settings.GOOGLE_STEP2_URI,  prompt="consent")
+from django.conf import settings
+from google_auth_oauthlib.flow import Flow
+
+
+def create_flow(redirect_uri: Optional[str] = None) -> Flow:
+    return Flow.from_client_config(
+        settings.GOOGLE_FLOW,
+        scopes=['https://docs.google.com/feeds/',
+            'https://spreadsheets.google.com/feeds/',
+            'https://www.googleapis.com/auth/drive.file'],
+        redirect_uri=redirect_uri or settings.GOOGLE_STEP2_URI, prompt="consent")
+# google_flow = OAuth2WebServerFlow(
+#     client_id=settings.GOOGLE_OAUTH2_CLIENT_ID,
+#     client_secret=settings.GOOGLE_OAUTH2_CLIENT_SECRET,
+#     scope=' '.join(
+#     redirect_uri=settings.GOOGLE_STEP2_URI,  prompt="consent")
