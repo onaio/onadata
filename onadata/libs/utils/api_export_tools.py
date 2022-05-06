@@ -16,13 +16,6 @@ from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
 from kombu.exceptions import OperationalError
-from oauth2client import client as google_client
-from oauth2client.client import (
-    HttpAccessTokenRefreshError,
-    OAuth2WebServerFlow,
-    TokenRevokeError,
-)
-from oauth2client.contrib.django_util.storage import DjangoORMStorage as Storage
 from rest_framework import exceptions, status
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
@@ -43,6 +36,7 @@ from onadata.libs.exceptions import (
 )
 from onadata.libs.permissions import filter_queryset_xform_meta_perms_sql
 from onadata.libs.utils import log
+from onadata.libs.utils.google import create_flow
 from onadata.libs.utils.async_status import (
     FAILED,
     PENDING,
@@ -596,40 +590,30 @@ def generate_google_web_flow(request):
         redirect_uri = request.data.get("redirect_uri")
     else:
         redirect_uri = settings.GOOGLE_STEP2_URI
-    return OAuth2WebServerFlow(
-        client_id=settings.GOOGLE_OAUTH2_CLIENT_ID,
-        client_secret=settings.GOOGLE_OAUTH2_CLIENT_SECRET,
-        scope=" ".join(
-            [
-                "https://docs.google.com/feeds/",
-                "https://spreadsheets.google.com/feeds/",
-                "https://www.googleapis.com/auth/drive.file",
-            ]
-        ),
-        redirect_uri=redirect_uri,
-        prompt="consent",
-    )
-
+    return create_flow(redirect_uri)
 
 def _get_google_credential(request):
-    token = None
-    credential = None
-    if request.user.is_authenticated:
-        storage = Storage(TokenStorageModel, "id", request.user, "credential")
-        credential = storage.get()
-    elif request.session.get("access_token"):
-        credential = google_client.OAuth2Credentials.from_json(token)
+    # TODO: Handle storage and retrieval
+    # token = None
+    # credential = None
+    # if request.user.is_authenticated:
+    #     storage = Storage(TokenStorageModel, "id", request.user, "credential")
+    #     credential = storage.get()
+    # elif request.session.get("access_token"):
+    #     credential = google_client.OAuth2Credentials.from_json(token)
 
-    if credential:
-        try:
-            credential.get_access_token()
-        except HttpAccessTokenRefreshError:
-            try:
-                credential.revoke(httplib2.Http())
-            except TokenRevokeError:
-                storage.delete()
+    # if credential:
+    #     try:
+    #         credential.get_access_token()
+    #     except HttpAccessTokenRefreshError:
+    #         try:
+    #             credential.revoke(httplib2.Http())
+    #         except TokenRevokeError:
+    #             storage.delete()
 
-    if not credential or credential.invalid:
-        google_flow = generate_google_web_flow(request)
-        return HttpResponseRedirect(google_flow.step1_get_authorize_url())
-    return credential
+    # if not credential or credential.invalid:
+    #     google_flow = generate_google_web_flow(request)
+    #     return HttpResponseRedirect(google_flow.step1_get_authorize_url())
+    # return credential
+    google_flow = generate_google_web_flow(request)
+    return HttpResponseRedirect(google_flow.authorization_url())

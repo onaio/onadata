@@ -31,8 +31,6 @@ import pytz
 import requests
 from dict2xml import dict2xml
 from dpath import util as dpath_util
-from oauth2client import client as google_client
-from oauth2client.contrib.django_util.storage import DjangoORMStorage as Storage
 
 try:
     from savReaderWriter import SPSSIOError
@@ -57,7 +55,7 @@ from onadata.libs.utils.export_tools import (
     should_create_new_export,
     str_to_bool,
 )
-from onadata.libs.utils.google import google_flow
+from onadata.libs.utils.google import create_flow
 from onadata.libs.utils.image_tools import image_url
 from onadata.libs.utils.log import Actions, audit_log
 from onadata.libs.utils.logger_tools import (
@@ -471,14 +469,16 @@ def create_export(request, username, id_string, export_type):
 
 
 def _get_google_credential(request):
-    token = None
-    if request.user.is_authenticated:
-        storage = Storage(TokenStorageModel, "id", request.user, "credential")
-        credential = storage.get()
-    elif request.session.get("access_token"):
-        credential = google_client.OAuth2Credentials.from_json(token)
-
-    return credential or HttpResponseRedirect(google_flow.step1_get_authorize_url())
+    # token = None
+    # if request.user.is_authenticated:
+    #     storage = Storage(TokenStorageModel, "id", request.user, "credential")
+    #     credential = storage.get()
+    # elif request.session.get("access_token"):
+    #     credential = google_client.OAuth2Credentials.from_json(token)
+    #
+    # return credential or HttpResponseRedirect(google_flow.step1_get_authorize_url())
+    google_flow = create_flow()
+    return HttpResponseRedirect(google_flow.authorization_url())
 
 
 def export_list(request, username, id_string, export_type):  # noqa C901
@@ -805,7 +805,8 @@ def google_xls_export(request, username, id_string):
         request.session["google_redirect_url"] = reverse(
             google_xls_export, kwargs={"username": username, "id_string": id_string}
         )
-        return HttpResponseRedirect(google_flow.step1_get_authorize_url())
+        google_flow = create_flow()
+        return HttpResponseRedirect(google_flow.authorization_url())
 
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_form({"user": owner, "id_string__iexact": id_string})
