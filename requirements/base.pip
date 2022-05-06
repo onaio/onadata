@@ -12,6 +12,8 @@
     # via -r requirements/base.in
 -e git+https://github.com/onaio/ona-oidc.git@v0.0.10#egg=ona-oidc
     # via -r requirements/base.in
+-e file:///home/dave/src/onadata
+    # via -r requirements/base.in
 -e git+https://github.com/onaio/floip-py.git@3c980eb184069ae7c3c9136b18441978237cd41d#egg=pyfloip
     # via -r requirements/base.in
 -e git+https://github.com/onaio/python-digest.git@08267ca8afc1a52f91352ebb5385e8e6d074fc36#egg=python-digest
@@ -182,7 +184,9 @@ future==0.18.2
 geojson==2.5.0
     # via onadata
 google-auth==2.6.6
-    # via google-auth-oauthlib
+    # via
+    #   google-auth-oauthlib
+    #   onadata
 google-auth-oauthlib==0.5.1
     # via onadata
 greenlet==1.1.2
