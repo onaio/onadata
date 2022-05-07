@@ -11,6 +11,7 @@ class InstanceRelatedField(serializers.RelatedField):
     """A custom field to represent the content_object generic relationship"""
 
     def get_attribute(self, instance):
+        """Returns instance pk."""
         val = get_object_id_by_content_type(instance, Instance)
         if val:
             return val
@@ -18,10 +19,11 @@ class InstanceRelatedField(serializers.RelatedField):
         raise SkipField()
 
     def to_internal_value(self, data):
+        """Validates if the instance exists."""
         try:
             return Instance.objects.get(pk=data)
-        except ValueError:
-            raise Exception("instance id should be an integer")
+        except ValueError as e:
+            raise Exception("instance id should be an integer") from e
 
     def to_representation(self, value):
         """Serialize instance object"""

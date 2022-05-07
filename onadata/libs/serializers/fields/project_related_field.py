@@ -21,8 +21,8 @@ class ProjectRelatedField(serializers.RelatedField):
     def to_internal_value(self, data):
         try:
             return Project.objects.get(pk=data)
-        except ValueError:
-            raise Exception("project id should be an integer")
+        except ValueError as e:
+            raise Exception("project id should be an integer") from e
 
     def to_representation(self, value):
         """Serialize project object"""
