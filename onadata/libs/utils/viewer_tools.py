@@ -7,7 +7,7 @@ import zipfile
 from json.decoder import JSONDecodeError
 from tempfile import NamedTemporaryFile
 from typing import Dict
-from xml.dom import minidom
+from defusedxml import minidom
 
 from django.conf import settings
 from django.core.files.storage import get_storage_class
@@ -154,7 +154,7 @@ def get_client_ip(request):
     arguments:
     request -- HttpRequest object.
     """
-    x_forwarded_for = request.headers.get('X-Forwarded-For')
+    x_forwarded_for = request.headers.get("X-Forwarded-For")
     if x_forwarded_for:
         return x_forwarded_for.split(",")[0]
 
@@ -321,7 +321,7 @@ def get_form_url(
         http_host = settings.TEST_HTTP_HOST
         username = settings.TEST_USERNAME
     else:
-        http_host = request.headers.get('Host', "ona.io")
+        http_host = request.headers.get("Host", "ona.io")
 
     url = f"{protocol}://{http_host}"
 
