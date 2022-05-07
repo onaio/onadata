@@ -2,12 +2,13 @@
 """
 XForm model serialization.
 """
+import hashlib
 import logging
 import os
-from hashlib import md5
 
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.serialization import load_pem_public_key
+from six import itervalues
+from six.moves.urllib.parse import urlparse
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
@@ -15,14 +16,14 @@ from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db.models import Count
 from django.utils.translation import gettext as _
-from six.moves.urllib.parse import urlparse
-from six import itervalues
+
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
-from onadata.apps.logger.models import DataView, Instance, XForm
+from onadata.apps.logger.models import DataView, Instance, XForm, XFormVersion
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.apps.logger.models import XFormVersion
 from onadata.libs.exceptions import EnketoError
 from onadata.libs.permissions import get_role, is_organization
 from onadata.libs.serializers.dataview_serializer import DataViewMinimalSerializer
@@ -30,18 +31,17 @@ from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.utils.cache_tools import (
     ENKETO_PREVIEW_URL_CACHE,
-    ENKETO_URL_CACHE,
     ENKETO_SINGLE_SUBMIT_URL_CACHE,
+    ENKETO_URL_CACHE,
+    XFORM_COUNT,
+    XFORM_DATA_VERSIONS,
     XFORM_LINKED_DATAVIEWS,
     XFORM_METADATA_CACHE,
     XFORM_PERMISSIONS_CACHE,
-    XFORM_DATA_VERSIONS,
-    XFORM_COUNT,
 )
 from onadata.libs.utils.common_tags import GROUP_DELIMETER_TAG, REPEAT_INDEX_TAGS
 from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.viewer_tools import get_enketo_urls, get_form_url
-
 
 SUBMISSION_RETRIEVAL_THRESHOLD = getattr(
     settings, "SUBMISSION_RETRIEVAL_THRESHOLD", 10000
@@ -129,6 +129,7 @@ def clean_public_key(value):
     return value
 
 
+# pylint: disable=too-few-public-methods
 class MultiLookupIdentityField(serializers.HyperlinkedIdentityField):
     """
     Custom HyperlinkedIdentityField that supports multiple lookup fields.
@@ -285,6 +286,7 @@ class XFormMixin:
         return None
 
     def get_data_views(self, obj):
+        """Returns a list of filtered datasets linked to the form."""
         if obj:
             key = f"{XFORM_LINKED_DATAVIEWS}{obj.pk}"
             data_views = cache.get(key)
@@ -343,6 +345,8 @@ class XFormMixin:
 
 
 class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
+    """XForm base serializer."""
+
     formid = serializers.ReadOnlyField(source="id")
     owner = serializers.HyperlinkedRelatedField(
         view_name="user-detail",
@@ -377,6 +381,7 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     data_views = serializers.SerializerMethodField()
     xls_available = serializers.SerializerMethodField()
 
+    # pylint: disable=too-few-public-methods,missing-class-docstring
     class Meta:
         model = XForm
         read_only_fields = (
@@ -404,6 +409,10 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
 
 
 class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
+    """
+    XForm model serializer
+    """
+
     formid = serializers.ReadOnlyField(source="id")
     metadata = serializers.SerializerMethodField()
     owner = serializers.HyperlinkedRelatedField(
@@ -547,6 +556,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
         return versions
 
 
+# pylint: disable=abstract-method
 class XFormCreateSerializer(XFormSerializer):
     """
     XForm serializer that is only relevant during the XForm publishing process.
@@ -562,6 +572,7 @@ class XFormCreateSerializer(XFormSerializer):
         return obj.has_id_string_changed
 
 
+# pylint: disable=abstract-method
 class XFormListSerializer(serializers.Serializer):
     """
     XForm serializer for OpenRosa form list API.
@@ -617,7 +628,8 @@ class XFormManifestSerializer(serializers.Serializer):
         }
         request = self.context.get("request")
         try:
-            fmt = obj.data_value[obj.data_value.rindex(".") + 1 :]
+            fmt_index = obj.data_value.rindex(".") + 1
+            fmt = obj.data_value[fmt_index:]
         except ValueError:
             fmt = "csv"
         url = reverse("xform-media", kwargs=kwargs, request=request, format=fmt.lower())
@@ -660,8 +672,10 @@ class XFormManifestSerializer(serializers.Serializer):
                     xform = data_view.xform
 
             if xform and xform.last_submission_time:
-                md5_hash = md5(
-                    xform.last_submission_time.isoformat().encode("utf-8")
+                md5_hash = hashlib.new(
+                    "md5",
+                    xform.last_submission_time.isoformat().encode("utf-8"),
+                    usedforsecurity=False,
                 ).hexdigest()
                 hsh = f"md5:{md5_hash}"
 
@@ -691,6 +705,7 @@ class XFormManifestSerializer(serializers.Serializer):
         return filename
 
 
+# pylint: disable=too-few-public-methods
 class XFormVersionListSerializer(serializers.ModelSerializer):
     """
     XFormVersion list API serializer
