@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
+"""
+The /forms API endpoint.
+"""
 import json
 import os
 import random
 from datetime import datetime
-
-import six
-from six.moves.urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -27,7 +27,9 @@ from django.utils.http import urlencode
 from django.utils.translation import gettext as _
 from django.views.decorators.cache import never_cache
 
+import six
 from django_filters.rest_framework import DjangoFilterBackend
+from six.moves.urllib.parse import urlparse
 
 try:
     from multidb.pinning import use_master
@@ -355,7 +357,9 @@ class XFormViewSet(
 
         return super().get_serializer_class()
 
+    # pylint: disable=unused-argument
     def create(self, request, *args, **kwargs):
+        """Support XLSForm publishing endpoint `POST /api/v1/forms`."""
         try:
             owner = _get_owner(request)
         except ValidationError as e:
@@ -376,6 +380,7 @@ class XFormViewSet(
 
         return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
+    # pylint: disable=unused-argument
     @action(methods=["POST", "GET"], detail=False)
     def create_async(self, request, *args, **kwargs):
         """Temporary Endpoint for Async form creation"""
@@ -446,6 +451,7 @@ class XFormViewSet(
         return response
 
     # pylint: disable=no-self-use
+    # pylint: disable=unused-argument
     @action(methods=["GET"], detail=False)
     def login(self, request, **kwargs):
         """Authenticate and redirect to URL in `return` query parameter."""
@@ -467,6 +473,7 @@ class XFormViewSet(
 
         return HttpResponseForbidden("Authentication failure, cannot redirect")
 
+    # pylint: disable=unused-argument
     @action(methods=["GET"], detail=True)
     def enketo(self, request, **kwargs):
         """Expose enketo urls."""
@@ -955,6 +962,7 @@ class XFormViewSet(
         return response
 
     def list(self, request, *args, **kwargs):
+        """List forms API endpoint `GET /api/v1/forms`."""
         stream_data = getattr(settings, "STREAM_DATA", False)
         try:
             queryset = self.filter_queryset(self.get_queryset())
