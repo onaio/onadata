@@ -3,7 +3,7 @@
 Organization Serializer
 """
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.db.models.query import QuerySet
 from django.utils.translation import gettext as _
 
@@ -19,6 +19,9 @@ from onadata.apps.api.tools import (
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.libs.permissions import get_role_in_org
 from onadata.libs.serializers.fields.json_field import JsonField
+
+# pylint: disable=invalid-name
+User = get_user_model()
 
 
 class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
@@ -46,7 +49,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         owner_only_fields = ("metadata",)
 
     def __init__(self, *args, **kwargs):
-        super(OrganizationSerializer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         if self.instance and hasattr(self.Meta, "owner_only_fields"):
             request = self.context.get("request")
@@ -60,6 +63,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
                     self.fields.pop(field)
 
     def update(self, instance, validated_data):
+        """Update organization profile properties."""
         # update the user model
         if "name" in validated_data:
             first_name, last_name = _get_first_last_names(validated_data.get("name"))
@@ -67,9 +71,10 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
             instance.user.last_name = last_name
             instance.user.save()
 
-        return super(OrganizationSerializer, self).update(instance, validated_data)
+        return super().update(instance, validated_data)
 
     def create(self, validated_data):
+        """Create an organization profile."""
         org = validated_data.get("user")
         if org:
             org = org.get("username")
@@ -95,9 +100,9 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
 
         if org in RegistrationFormUserProfile.RESERVED_USERNAMES:
             raise serializers.ValidationError(
-                _("%s is a reserved name, please choose another" % org)
+                _(f"{org} is a reserved name, please choose another")
             )
-        elif not RegistrationFormUserProfile.legal_usernames_re.search(org):
+        if not RegistrationFormUserProfile.legal_usernames_re.search(org):
             raise serializers.ValidationError(
                 _(
                     "Organization may only contain alpha-numeric characters and "
@@ -109,14 +114,14 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         except User.DoesNotExist:
             return org
 
-        raise serializers.ValidationError(_("Organization %s already exists." % org))
+        raise serializers.ValidationError(_(f"Organization {org} already exists."))
 
     def get_users(self, obj):  # pylint: disable=no-self-use
         """
         Return organization members.
         """
 
-        def create_user_list(user_list):
+        def _create_user_list(user_list):
             return [
                 {
                     "user": u.username,
@@ -134,7 +139,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         if owners and members:
             members = members.exclude(username__in=[user.username for user in owners])
 
-        members_list = create_user_list(members)
-        owners_list = create_user_list(owners)
+        members_list = _create_user_list(members)
+        owners_list = _create_user_list(owners)
 
         return owners_list + members_list
