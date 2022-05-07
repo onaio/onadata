@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+"""
+Django rest_framework ViewSet filters.
+"""
 from uuid import UUID
 
 import six
@@ -121,8 +124,10 @@ class XFormListXFormPKFilter:
 class FormIDFilter(django_filter_filters.FilterSet):
     """formID filter using the XForm.id_string."""
 
+    # pylint: disable=invalid-name
     formID = django_filter_filters.CharFilter(field_name="id_string")  # noqa
 
+    # pylint: disable=missing-class-docstring
     class Meta:
         model = XForm
         fields = ["formID"]
@@ -152,9 +157,11 @@ class OrganizationPermissionFilter(ObjectPermissionsFilter):
 
 # pylint: disable=too-few-public-methods
 class XFormOwnerFilter(filters.BaseFilterBackend):
+    """XForm `owner` filter"""
 
     owner_prefix = "user"
 
+    # pylint: disable=unused-argument
     def filter_queryset(self, request, queryset, view):
         owner = request.query_params.get("owner")
 
@@ -168,6 +175,9 @@ class XFormOwnerFilter(filters.BaseFilterBackend):
 
 # pylint: disable=too-few-public-methods
 class DataFilter(ObjectPermissionsFilter):
+    """Shared data filter."""
+
+    # pylint: disable=unused-argument
     def filter_queryset(self, request, queryset, view):
         if request.user.is_anonymous:
             return queryset.filter(Q(shared_data=True))
@@ -191,6 +201,7 @@ class InstanceFilter(django_filter_filters.FilterSet):
     )
     media_all_received = django_filter_filters.BooleanFilter()
 
+    # pylint: disable=missing-class-docstring
     class Meta:
         model = Instance
         date_field_lookups = [
@@ -232,9 +243,13 @@ class InstanceFilter(django_filter_filters.FilterSet):
 
 # pylint: disable=too-few-public-methods
 class ProjectOwnerFilter(filters.BaseFilterBackend):
+    """Project `owner` filter."""
+
     owner_prefix = "organization"
 
+    # pylint: disable=unused-argument
     def filter_queryset(self, request, queryset, view):
+        """Project `owner` filter."""
         owner = request.query_params.get("owner")
 
         if owner:
@@ -249,6 +264,8 @@ class ProjectOwnerFilter(filters.BaseFilterBackend):
 
 # pylint: disable=too-few-public-methods
 class AnonUserProjectFilter(ObjectPermissionsFilter):
+    """Anonymous user project filter."""
+
     owner_prefix = "organization"
 
     def filter_queryset(self, request, queryset, view):
@@ -281,6 +298,8 @@ class AnonUserProjectFilter(ObjectPermissionsFilter):
 
 # pylint: disable=too-few-public-methods
 class TagFilter(filters.BaseFilterBackend):
+    """Tag filter using the `tags` query parameter."""
+
     def filter_queryset(self, request, queryset, view):
         # filter by tags if available.
         tags = request.query_params.get("tags", None)
@@ -294,6 +313,8 @@ class TagFilter(filters.BaseFilterBackend):
 
 # pylint: disable=too-few-public-methods
 class XFormPermissionFilterMixin:
+    """XForm permission filter."""
+
     def _xform_filter(self, request, view, keyword):
         """Use XForm permissions"""
 
@@ -323,6 +344,8 @@ class XFormPermissionFilterMixin:
 
 # pylint: disable=too-few-public-methods
 class ProjectPermissionFilterMixin:
+    """Project permission filter."""
+
     def _project_filter(self, request, view, keyword):
         project_id = request.query_params.get("project")
 
@@ -350,6 +373,8 @@ class ProjectPermissionFilterMixin:
 
 # pylint: disable=too-few-public-methods
 class InstancePermissionFilterMixin:
+    """Instance permission filter."""
+
     # pylint: disable=too-many-locals
     def _instance_filter(self, request, view, keyword):
         instance_kwarg = {}
@@ -401,6 +426,8 @@ class InstancePermissionFilterMixin:
 
 # pylint: disable=too-few-public-methods
 class RestServiceFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
+    """Rest service filter."""
+
     def filter_queryset(self, request, queryset, view):
         return self._xform_filter_queryset(request, queryset, view, "xform_id")
 
@@ -412,6 +439,8 @@ class MetaDataFilter(
     XFormPermissionFilterMixin,
     ObjectPermissionsFilter,
 ):
+    """Meta data filter."""
+
     def filter_queryset(self, request, queryset, view):
         keyword = "object_id"
 
@@ -453,6 +482,8 @@ class MetaDataFilter(
 
 # pylint: disable=too-few-public-methods
 class AttachmentFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
+    """Attachment filter."""
+
     def filter_queryset(self, request, queryset, view):
 
         queryset = self._xform_filter_queryset(
@@ -481,6 +512,8 @@ class AttachmentFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
 
 # pylint: disable=too-few-public-methods
 class AttachmentTypeFilter(filters.BaseFilterBackend):
+    """Attachment type filter using `type` query parameter."""
+
     def filter_queryset(self, request, queryset, view):
         attachment_type = request.query_params.get("type")
 
@@ -494,6 +527,8 @@ class AttachmentTypeFilter(filters.BaseFilterBackend):
 
 # pylint: disable=too-few-public-methods
 class TeamOrgFilter(filters.BaseFilterBackend):
+    """Team organization filter using `org` query parameter"""
+
     def filter_queryset(self, request, queryset, view):
         org = request.data.get("org") or request.query_params.get("org")
 
@@ -612,7 +647,7 @@ class ExportFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
                 request, queryset, view, "xform_id"
             ).exclude(*has_submitted_by_key)
 
-        old_perm_format = self.perm_format
+        old_perm_format = getattr(self, "perm_format")
 
         # only if request.user has access to all data
         # noqa pylint: disable=attribute-defined-outside-init

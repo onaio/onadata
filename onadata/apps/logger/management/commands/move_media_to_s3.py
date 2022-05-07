@@ -22,6 +22,7 @@ class Command(BaseCommand):
         "to s3 from the local file system storage."
     )
 
+    # pylint: disable=unused-argument
     def handle(self, *args, **kwargs):
         """Moves all XLSForm file from local storage to S3 storage."""
         local_fs = get_storage_class("django.core.files.storage.FileSystemStorage")()
