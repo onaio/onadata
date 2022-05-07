@@ -100,7 +100,7 @@ class LabelsMixin:
             "label",
         ],
     )
-    def labels(self, request, format="json", **kwargs):  # noqa
+    def labels(self, request, **kwargs):
         """Process request to labels endpoint.
 
         :param request: HTTP request object.
