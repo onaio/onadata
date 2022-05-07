@@ -8,12 +8,10 @@ import os
 from datetime import datetime
 from http import HTTPStatus
 
-from bson import json_util
-from bson.objectid import ObjectId
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.core.files.storage import default_storage, get_storage_class
 from django.db import IntegrityError
@@ -28,9 +26,12 @@ from django.http import (
 from django.shortcuts import get_object_or_404, render
 from django.template import loader
 from django.urls import reverse
-from django.utils.translation import gettext as _
 from django.utils.html import conditional_escape
+from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
+
+from bson import json_util
+from bson.objectid import ObjectId
 from guardian.shortcuts import assign_perm, remove_perm
 from oauth2_provider.views.base import AuthorizationView
 from rest_framework.authtoken.models import Token
@@ -346,6 +347,9 @@ def profile_settings(request, username):
     if request.user.username != username:
         return HttpResponseNotFound("Page not found")
     content_user = check_and_set_user(request, username)
+    if isinstance(content_user, str):
+        return HttpResponseRedirect(content_user)
+
     user_profile, _created = UserProfile.objects.get_or_create(user=content_user)
     if request.method == "POST":
         form = UserProfileForm(request.POST, instance=user_profile)
@@ -382,8 +386,9 @@ def profile_settings(request, username):
 def public_profile(request, username):
     """Show user's public profile page view."""
     content_user = check_and_set_user(request, username)
-    if isinstance(content_user, HttpResponseRedirect):
-        return content_user
+    if isinstance(content_user, str):
+        return HttpResponseRedirect(content_user)
+
     data = {}
     set_profile_data(data, content_user)
     data["is_owner"] = request.user == content_user
@@ -536,7 +541,7 @@ def api_token(request, username=None):
 
 # pylint: disable=too-many-locals,too-many-branches
 @require_http_methods(["GET", "OPTIONS"])
-def api(request, username=None, id_string=None):
+def api(request, username=None, id_string=None):  # noqa C901
     """
     Returns all results as JSON.  If a parameter string is passed,
     it takes the 'query' parameter, converts this string to a dictionary, an
@@ -649,7 +654,7 @@ def public_api(request, username, id_string):
 
 # pylint: disable=too-many-locals,too-many-branches,too-many-statements
 @login_required
-def edit(request, username, id_string):
+def edit(request, username, id_string):  # noqa C901
     """Edit form page view."""
     xform = XForm.objects.get(
         user__username__iexact=username,
@@ -1195,7 +1200,7 @@ def form_photos(request, username, id_string):
 
 # pylint: disable=too-many-branches
 @require_POST
-def set_perm(request, username, id_string):
+def set_perm(request, username, id_string):  # noqa C901
     """Assign form permissions to a user."""
     xform = get_form(
         {"user__username__iexact": username, "id_string__iexact": id_string}
