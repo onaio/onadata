@@ -1,24 +1,29 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # vim: ai ts=4 sts=4 et sw=4 nu
+"""
+sms_support utility functions module.
+"""
 
 import copy
 import io
 import mimetypes
 from xml.parsers.expat import ExpatError
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.http import HttpRequest
+from django.urls import reverse
 from django.utils.translation import gettext as _
 
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models.instance import FormInactiveError
-from onadata.apps.logger.xform_instance_parser import DuplicateInstance
-from onadata.apps.logger.xform_instance_parser import InstanceEmptyError
-from onadata.apps.logger.xform_instance_parser import InstanceInvalidUserError
-from onadata.libs.utils.log import Actions
-from onadata.libs.utils.log import audit_log
+from onadata.apps.logger.xform_instance_parser import (
+    DuplicateInstance,
+    InstanceEmptyError,
+    InstanceInvalidUserError,
+)
+from onadata.libs.utils.log import Actions, audit_log
 from onadata.libs.utils.logger_tools import create_instance
 
 SMS_API_ERROR = "SMS_API_ERROR"
@@ -27,11 +32,10 @@ SMS_SUBMISSION_ACCEPTED = "SMS_SUBMISSION_ACCEPTED"
 SMS_SUBMISSION_REFUSED = "SMS_SUBMISSION_REFUSED"
 SMS_INTERNAL_ERROR = "SMS_INTERNAL_ERROR"
 
-BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "abcdefghijklmnopqrstuvwxyz0123456789+/="
+BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
 DEFAULT_SEPARATOR = "+"
 DEFAULT_ALLOW_MEDIA = False
 NA_VALUE = "n/a"
-BASE64_ALPHABET = None
 META_FIELDS = (
     "start",
     "end",
@@ -46,8 +50,12 @@ DEFAULT_DATE_FORMAT = "%Y-%m-%d"
 DEFAULT_DATETIME_FORMAT = "%Y-%m-%d-%H:%M"
 SENSITIVE_FIELDS = ("text", "select all that apply", "geopoint", "barcode")
 
+# pylint: disable=invalid-name
+User = get_user_model()
+
 
 def is_last(index, items):
+    """Returns True if ``index`` is the last index in ``items``."""
     return index == len(items) - 1 or (
         items[-1].get("type") == "note" and index == len(items) - 2
     )
@@ -63,6 +71,7 @@ def get_sms_instance_id(instance):
 
 
 def sms_media_to_file(file_object, name):
+    """Returns a file object from an SMS string."""
     if isinstance(file_object, str):
         file_object = io.BytesIO(file_object)
 
@@ -86,6 +95,7 @@ def sms_media_to_file(file_object, name):
     )
 
 
+# pylint: disable=too-many-return-statements
 def generate_instance(username, xml_file, media_files, uuid=None):
     """Process an XForm submission as if done via HTTP
 
@@ -103,7 +113,7 @@ def generate_instance(username, xml_file, media_files, uuid=None):
     except InstanceEmptyError:
         return {
             "code": SMS_INTERNAL_ERROR,
-            "text": _("Received empty submission. " "No instance was created"),
+            "text": _("Received empty submission. No instance was created"),
         }
     except FormInactiveError:
         return {"code": SMS_SUBMISSION_REFUSED, "text": _("Form is not active")}
@@ -127,15 +137,15 @@ def generate_instance(username, xml_file, media_files, uuid=None):
         Actions.SUBMISSION_CREATED,
         user,
         instance.xform.user,
-        _("Created submission on form %(id_string)s.")
-        % {"id_string": instance.xform.id_string},
+        _(f"Created submission on form {instance.xform.id_string}."),
         audit,
         HttpRequest(),
     )
 
     xml_file.close()
-    if len(media_files):
-        [_file.close() for _file in media_files]
+    if media_files:
+        for _file in media_files:
+            _file.close()
 
     return {
         "code": SMS_SUBMISSION_ACCEPTED,
@@ -149,29 +159,31 @@ def is_sms_related(json_survey):
 
     return True if one sms-related field is defined."""
 
-    def treat(value, key=None):
+    def _treat(value, key=None):
         if key is None:
             return False
         if key in ("sms_field", "sms_option") and value:
             if not value.lower() in ("no", "false"):
                 return True
+        return False
 
-    def walk(dl):
+    def _walk(dl):
         if not isinstance(dl, (dict, list)):
             return False
         iterator = [(None, e) for e in dl] if isinstance(dl, list) else dl.items()
         for k, v in iterator:
             if k == "parent":
                 continue
-            if treat(v, k):
+            if _treat(v, k):
                 return True
-            if walk(v):
+            if _walk(v):
                 return True
         return False
 
-    return walk(json_survey)
+    return _walk(json_survey)
 
 
+# pylint: disable=too-many-locals,too-many-branches
 def check_form_sms_compatibility(form, json_survey=None):
     """Tests all SMS related rules on the XForm representation
 
@@ -182,16 +194,13 @@ def check_form_sms_compatibility(form, json_survey=None):
         json_survey = form.get("form_o", {})
 
     def prep_return(msg, comp=None):
-
-        from django.urls import reverse
-
         error = "alert-info"
         warning = "alert-info"
         success = "alert-success"
+        syntax_url = reverse("syntax")
         outro = (
-            '<br />Please check the <a href="%(syntax_url)s'
-            '#9-sms-support">'
-            "SMS Syntax Page</a>." % {"syntax_url": reverse("syntax")}
+            f'<br />Please check the <a href="{syntax_url}#9-sms-support">'
+            "SMS Syntax Page</a>."
         )
 
         # no compatibility at all
@@ -207,7 +216,7 @@ def check_form_sms_compatibility(form, json_survey=None):
         elif comp == 1:
             alert = warning
             msg = "%(prefix)s <ul>%(msg)s</ul>" % {
-                "prefix": "Your form can be used with SMS, " "knowing that:",
+                "prefix": "Your form can be used with SMS, knowing that:",
                 "msg": msg,
             }
         # SMS compatible
@@ -252,7 +261,7 @@ def check_form_sms_compatibility(form, json_survey=None):
             _(
                 "All your groups must have an 'sms_field' "
                 "(use 'meta' prefixed ones for non-fillable "
-                "groups). %s" % bad_groups[-1]
+                f"groups). {bad_groups[-1]}"
             )
         )
     # all select_one or select_multiple fields muts have sms_option for each.
@@ -265,7 +274,7 @@ def check_form_sms_compatibility(form, json_survey=None):
             if xlsf_type in ("select one", "select all that apply"):
                 nb_choices = len(xlsf_choices)
                 options = list(
-                    set([c.get("sms_option", "") or None for c in xlsf_choices])
+                    set(c.get("sms_option", "") or None for c in xlsf_choices)
                 )
                 try:
                     options.remove(None)
@@ -276,10 +285,9 @@ def check_form_sms_compatibility(form, json_survey=None):
                     return prep_return(
                         _(
                             "Not all options in the choices list for "
-                            "<strong>%s</strong> have an "
+                            f"<strong>{xlsf_name}</strong> have an "
                             "<em>sms_option</em> value."
                         )
-                        % xlsf_name
                     )
 
     # has sensitive (space containing) fields in non-last position
@@ -296,7 +304,7 @@ def check_form_sms_compatibility(form, json_survey=None):
                     _(
                         "Questions for which values can contain "
                         "spaces are only allowed on last "
-                        "position of group (%s)" % field.get("name")
+                        f"position of group ({field.get('name')})"
                     )
                 )
     # separator is not set or is within BASE64 alphabet and sms_allow_media
@@ -308,9 +316,9 @@ def check_form_sms_compatibility(form, json_survey=None):
         return prep_return(
             _(
                 "When allowing medias ('sms_allow_media'), your "
-                "separator (%s) must be outside Base64 alphabet "
+                f"separator ({separator}) must be outside Base64 alphabet "
                 "(letters, digits and +/=). "
-                "You case use '#' instead." % separator
+                "You case use '#' instead."
             )
         )
 
@@ -329,7 +337,7 @@ def check_form_sms_compatibility(form, json_survey=None):
                 warnings.append(
                     "<li>You have 'date' fields without "
                     "explicitly setting a date format. "
-                    "Default (%s) will be used.</li>" % DEFAULT_DATE_FORMAT
+                    f"Default ({DEFAULT_DATE_FORMAT}) will be used.</li>"
                 )
                 break
     # has datetime field with no datetime format
@@ -341,7 +349,7 @@ def check_form_sms_compatibility(form, json_survey=None):
                 warnings.append(
                     "<li>You have 'datetime' fields without "
                     "explicitly setting a datetime format. "
-                    "Default (%s) will be used.</li>" % DEFAULT_DATETIME_FORMAT
+                    f"Default ({DEFAULT_DATETIME_FORMAT}) will be used.</li>"
                 )
                 break
 
@@ -350,16 +358,16 @@ def check_form_sms_compatibility(form, json_survey=None):
         warnings.append(
             "<li>'sms_date_format' contains space which will "
             "require 'date' questions to be positioned at "
-            "the end of groups (%s).</li>" % date_format
+            f"the end of groups ({date_format}).</li>"
         )
     if "datetime" in sensitive_fields:
         warnings.append(
             "<li>'sms_datetime_format' contains space which will "
             "require 'datetime' questions to be positioned at "
-            "the end of groups (%s).</li>" % datetime_format
+            f"the end of groups ({datetime_format}).</li>"
         )
 
-    if len(warnings):
+    if warnings:
         return prep_return("".join(warnings), comp=1)
 
     # Good to go
