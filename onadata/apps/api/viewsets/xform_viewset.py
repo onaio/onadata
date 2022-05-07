@@ -703,7 +703,11 @@ class XFormViewSet(
                 if xls_file and xls_file.name.split(".")[-1] in XLS_EXTENSIONS:
                     csv_file = submission_xls_to_csv(xls_file)
                 overwrite = request.query_params.get("overwrite")
-                overwrite = overwrite is not None and overwrite.lower() == "true"
+                overwrite = (
+                    overwrite.lower() == "true"
+                    if isinstance(overwrite, str)
+                    else overwrite
+                )
                 size_threshold = settings.CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD
                 try:
                     csv_size = csv_file.size
@@ -773,7 +777,11 @@ class XFormViewSet(
                 resp.update({"error": "csv_file not a csv file"})
             else:
                 overwrite = request.query_params.get("overwrite")
-                overwrite = overwrite.lower() == "true"
+                overwrite = (
+                    overwrite.lower() == "true"
+                    if isinstance(overwrite, str)
+                    else overwrite
+                )
                 size_threshold = settings.CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD
                 if csv_file.size < size_threshold:
                     resp.update(
