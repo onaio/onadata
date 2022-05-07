@@ -304,6 +304,7 @@ def query_data(
     count=None,
     json_only: bool = True,
 ):
+    """Query the submissions table and returns the results."""
 
     sql, params, records = get_sql_with_params(
         xform,
