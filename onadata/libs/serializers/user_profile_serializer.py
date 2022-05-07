@@ -5,34 +5,37 @@ UserProfile Serializers.
 import copy
 import re
 
-
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.sites.models import Site
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
-from django.utils.translation import gettext as _
+from django.db.models.query import QuerySet
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 import six
 from django_digest.backend.db import update_partial_digests
-from django.db.models.query import QuerySet
 from registration.models import RegistrationProfile
 from rest_framework import serializers
 
-from onadata.apps.api.tasks import send_verification_email
 from onadata.apps.api.models.temp_token import TempToken
+from onadata.apps.api.tasks import send_verification_email
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models import UserProfile
 from onadata.libs.authentication import expired
 from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
 from onadata.libs.serializers.fields.json_field import JsonField
-from onadata.libs.utils.cache_tools import IS_ORG
 from onadata.libs.utils.analytics import track_object_event
-from onadata.libs.utils.email import get_verification_url, get_verification_email_data
+from onadata.libs.utils.cache_tools import IS_ORG
+from onadata.libs.utils.email import get_verification_email_data, get_verification_url
 
 RESERVED_NAMES = RegistrationFormUserProfile.RESERVED_USERNAMES
 LEGAL_USERNAMES_REGEX = RegistrationFormUserProfile.legal_usernames_re
+
+
+# pylint: disable=invalid-name
+User = get_user_model()
 
 
 def _get_first_last_names(name, limit=30):
@@ -44,13 +47,14 @@ def _get_first_last_names(name, limit=30):
         # imposition of 30 characters on both first_name and last_name hence
         # ensure we only have 30 characters for either field
 
-        return name[:limit], name[limit : limit * 2]
+        end = limit * 2
+        return name[:limit], name[limit:end]
 
     name_split = name.split()
     first_name = name_split[0]
     last_name = ""
 
-    if len(name_split) > 1:
+    if name_split:
         last_name = " ".join(name_split[1:])
 
     return first_name, last_name
@@ -133,9 +137,11 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         view_name="user-detail", lookup_field="username", read_only=True
     )
     metadata = JsonField(required=False)
-    id = serializers.ReadOnlyField(source="user.id")  # pylint: disable=C0103
+    # pylint: disable=invalid-name
+    id = serializers.ReadOnlyField(source="user.id")
     joined_on = serializers.ReadOnlyField(source="user.date_joined")
 
+    # pylint: disable=too-few-public-methods,missing-class-docstring
     class Meta:
         model = UserProfile
         fields = (
@@ -162,7 +168,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         owner_only_fields = ("metadata",)
 
     def __init__(self, *args, **kwargs):
-        super(UserProfileSerializer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if self.instance and hasattr(self.Meta, "owner_only_fields"):
             request = self.context.get("request")
             if (
@@ -178,19 +184,19 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         Returns True if it is an organization profile.
         """
         if obj:
-            is_org = cache.get("{}{}".format(IS_ORG, obj.pk))
+            is_org = cache.get(f"{IS_ORG}{obj.pk}")
             if is_org:
                 return is_org
 
         is_org = is_organization(obj)
-        cache.set("{}{}".format(IS_ORG, obj.pk), is_org)
+        cache.set(f"{IS_ORG}{obj.pk}", is_org)
         return is_org
 
     def to_representation(self, instance):
         """
         Serialize objects -> primitives.
         """
-        ret = super(UserProfileSerializer, self).to_representation(instance)
+        ret = super().to_representation(instance)
         if "password" in ret:
             del ret["password"]
 
@@ -211,6 +217,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         return ret
 
     def update(self, instance, validated_data):
+        """Update user properties."""
         params = validated_data
         password = params.get("password1")
         email = params.get("email")
@@ -218,7 +225,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         # Check password if email is being updated
         if email and not password:
             raise serializers.ValidationError(
-                _("Your password is required when updating your email " "address.")
+                _("Your password is required when updating your email address.")
             )
         if password and not instance.user.check_password(password):
             raise serializers.ValidationError(_("Invalid password"))
@@ -246,29 +253,30 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             # force django-digest to regenerate its stored partial digests
             update_partial_digests(instance.user, password)
 
-        return super(UserProfileSerializer, self).update(instance, params)
+        return super().update(instance, params)
 
     @track_object_event(
         user_field="user", properties={"name": "name", "country": "country"}
     )
     def create(self, validated_data):
+        """Creates a user registration profile and account."""
         params = validated_data
         request = self.context.get("request")
         metadata = {}
-
+        username = params.get("username")
         site = Site.objects.get(pk=settings.SITE_ID)
         try:
             new_user = RegistrationProfile.objects.create_inactive_user(
-                username=params.get("username"),
+                username=username,
                 password=params.get("password1"),
                 email=params.get("email"),
                 site=site,
                 send_email=settings.SEND_EMAIL_ACTIVATION_API,
             )
-        except IntegrityError:
+        except IntegrityError as e:
             raise serializers.ValidationError(
-                _("User account {} already exists".format(params.get("username")))
-            )
+                _(f"User account {username} already exists")
+            ) from e
         new_user.is_active = True
         new_user.first_name = params.get("first_name")
         new_user.last_name = params.get("last_name")
@@ -293,6 +301,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             metadata=metadata,
         )
         profile.save()
+
         return profile
 
     def validate_username(self, value):
@@ -303,16 +312,16 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
         if username in RESERVED_NAMES:
             raise serializers.ValidationError(
-                _("%s is a reserved name, please choose another" % username)
+                _(f"{username} is a reserved name, please choose another")
             )
-        elif not LEGAL_USERNAMES_REGEX.search(username):
+        if not LEGAL_USERNAMES_REGEX.search(username):
             raise serializers.ValidationError(
                 _(
                     "username may only contain alpha-numeric characters and "
                     "underscores"
                 )
             )
-        elif len(username) < 3:
+        if len(username) < 3:
             raise serializers.ValidationError(
                 _("Username must have 3 or more characters")
             )
@@ -320,7 +329,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         if self.instance:
             users = users.exclude(pk=self.instance.user.pk)
         if users.exists():
-            raise serializers.ValidationError(_("%s already exists" % username))
+            raise serializers.ValidationError(_(f"{username} already exists"))
 
         return username
 
@@ -347,7 +356,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             match = re.search(r"^[A-Za-z0-9_]{1,15}$", value)
             if not match:
                 raise serializers.ValidationError(
-                    _("Invalid twitter username {}".format(value))
+                    _(f"Invalid twitter username {value}")
                 )
 
         return value
@@ -403,24 +412,26 @@ class UserProfileWithTokenSerializer(serializers.HyperlinkedModelSerializer):
             "temp_token",
         )
 
-    def get_api_token(self, object):  # pylint: disable=R0201,W0622
+    # pylint: disable=no-self-use
+    def get_api_token(self, obj):
         """
         Returns user's API Token.
         """
-        return object.user.auth_token.key
+        return obj.user.auth_token.key
 
-    def get_temp_token(self, object):  # pylint: disable=R0201,W0622
+    # pylint: disable=no-self-use
+    def get_temp_token(self, obj):
         """
         This should return a valid temp token for this user profile.
         """
-        token, created = TempToken.objects.get_or_create(user=object.user)
+        token, created = TempToken.objects.get_or_create(user=obj.user)
         check_expired = getattr(settings, "CHECK_EXPIRED_TEMP_TOKEN", True)
 
         try:
             if check_expired and not created and expired(token.created):
                 with transaction.atomic():
-                    TempToken.objects.get(user=object.user).delete()
-                    token = TempToken.objects.create(user=object.user)
+                    TempToken.objects.get(user=obj.user).delete()
+                    token = TempToken.objects.create(user=obj.user)
         except IntegrityError:
             pass
 
