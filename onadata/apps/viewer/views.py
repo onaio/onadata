@@ -1,20 +1,17 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=too-many-lines
 """
 data views.
 """
-import json
 import os
 from datetime import datetime
 from tempfile import NamedTemporaryFile
 from time import strftime, strptime
 from wsgiref.util import FileWrapper
 
-import pytz
-import requests
-from dict2xml import dict2xml
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
 from django.core.files.storage import FileSystemStorage, get_storage_class
 from django.http import (
     HttpResponse,
@@ -22,12 +19,17 @@ from django.http import (
     HttpResponseForbidden,
     HttpResponseNotFound,
     HttpResponseRedirect,
+    JsonResponse,
 )
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template import loader
 from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
+
+import pytz
+import requests
+from dict2xml import dict2xml
 from dpath import util as dpath_util
 from oauth2client import client as google_client
 from oauth2client.contrib.django_util.storage import DjangoORMStorage as Storage
@@ -46,6 +48,7 @@ from onadata.apps.viewer.tasks import create_async_export
 from onadata.apps.viewer.xls_writer import XlsWriter
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.chart_tools import build_chart_data
+from onadata.libs.utils.common_tools import get_uuid
 from onadata.libs.utils.export_tools import (
     DEFAULT_GROUP_DELIMITER,
     generate_export,
@@ -71,7 +74,9 @@ from onadata.libs.utils.viewer_tools import (
     export_def_from_filename,
     get_form,
 )
-from onadata.libs.utils.common_tools import get_uuid
+
+# pylint: disable=invalid-name
+User = get_user_model()
 
 
 def _get_start_end_submission_time(request):
@@ -114,7 +119,7 @@ def instances_for_export(data_dictionary, start=None, end=None):
     """
     Returns Instance submission queryset filtered by start and end dates.
     """
-    kwargs = dict()
+    kwargs = {}
     if start:
         kwargs["date_created__gte"] = start
     if end:
@@ -207,7 +212,7 @@ def map_view(request, username, id_string, template="map.html"):
         Actions.FORM_MAP_VIEWED,
         request.user,
         owner,
-        _("Requested map on '%(id_string)s'.") % {"id_string": xform.id_string},
+        _(f"Requested map on '{xform.id_string}'."),
         audit,
         request,
     )
@@ -257,9 +262,9 @@ def add_submission_with(request, username, id_string):
         "thank_you_submission", kwargs={"username": username, "id_string": id_string}
     )
     if settings.DEBUG:
-        openrosa_url = "https://dev.formhub.org/{}".format(username)
+        openrosa_url = f"https://dev.formhub.org/{username}"
     else:
-        openrosa_url = request.build_absolute_uri("/{}".format(username))
+        openrosa_url = request.build_absolute_uri(f"/{username}")
     payload = {
         "return_url": return_url,
         "form_id": id_string,
@@ -275,10 +280,11 @@ def add_submission_with(request, username, id_string):
         verify=getattr(settings, "VERIFY_SSL", True),
     )
 
+    # pylint: disable=http-response-with-content-type-json
     return HttpResponse(response.text, content_type="application/json")
 
 
-# pylint: disable=W0613
+# pylint: disable=unused-argument
 def thank_you_submission(request, username, id_string):
     """
     Thank you view after successful submission.
@@ -286,13 +292,14 @@ def thank_you_submission(request, username, id_string):
     return HttpResponse("Thank You")
 
 
-# pylint: disable=R0914
+# pylint: disable=too-many-locals
 def data_export(request, username, id_string, export_type):
     """
     Data export view.
     """
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_form({"user": owner, "id_string__iexact": id_string})
+    id_string = xform.id_string
 
     helper_auth_helper(request)
     if not has_permission(xform, owner, request):
@@ -325,14 +332,15 @@ def data_export(request, username, id_string, export_type):
         start, end = _get_start_end_submission_time(request)
         options.update({"start": start, "end": end})
 
+        # pylint: disable=broad-except
         try:
             export = generate_export(export_type, xform, None, options)
+            export_type = export_type.upper()
             audit_log(
                 Actions.EXPORT_CREATED,
                 request.user,
                 owner,
-                _("Created %(export_type)s export on '%(id_string)s'.")
-                % {"id_string": xform.id_string, "export_type": export_type.upper()},
+                _(f"Created {export_type} export on '{id_string}'."),
                 audit,
                 request,
             )
@@ -342,14 +350,14 @@ def data_export(request, username, id_string, export_type):
             return HttpResponseBadRequest(str(e))
     else:
         export = newest_export_for(xform, export_type, options)
+    export_type = export_type.upper()
 
     # log download as well
     audit_log(
         Actions.EXPORT_DOWNLOADED,
         request.user,
         owner,
-        _("Downloaded %(export_type)s export on '%(id_string)s'.")
-        % {"id_string": xform.id_string, "export_type": export_type.upper()},
+        _(f"Downloaded {export_type} export on '{id_string}'."),
         audit,
         request,
     )
@@ -357,7 +365,7 @@ def data_export(request, username, id_string, export_type):
     if not export.filename and not export.error_message:
         # tends to happen when using newset_export_for.
         return HttpResponseNotFound("File does not exist!")
-    elif not export.filename and export.error_message:
+    if not export.filename and export.error_message:
         return HttpResponseBadRequest(str(export.error_message))
 
     # get extension from file_path, exporter could modify to
@@ -377,7 +385,7 @@ def data_export(request, username, id_string, export_type):
     return response
 
 
-# pylint: disable=R0914
+# pylint: disable=too-many-locals
 @login_required
 @require_POST
 def create_export(request, username, id_string, export_type):
@@ -408,9 +416,7 @@ def create_export(request, username, id_string, export_type):
     # export options
     group_delimiter = request.POST.get("options[group_delimiter]", "/")
     if group_delimiter not in [".", "/"]:
-        return HttpResponseBadRequest(
-            _("%s is not a valid delimiter" % group_delimiter)
-        )
+        return HttpResponseBadRequest(_(f"{group_delimiter} is not a valid delimiter"))
 
     # default is True, so when dont_.. is yes
     # split_select_multiples becomes False
@@ -439,18 +445,16 @@ def create_export(request, username, id_string, export_type):
     try:
         create_async_export(xform, export_type, query, force_xlsx, options)
     except ExportTypeError:
-        return HttpResponseBadRequest(_("%s is not a valid export type" % export_type))
+        return HttpResponseBadRequest(_(f"{export_type} is not a valid export type"))
     else:
         audit = {"xform": xform.id_string, "export_type": export_type}
+        export_type = export_type.upper()
+        id_string = xform.id_string
         audit_log(
             Actions.EXPORT_CREATED,
             request.user,
             owner,
-            _("Created %(export_type)s export on '%(id_string)s'.")
-            % {
-                "export_type": export_type.upper(),
-                "id_string": xform.id_string,
-            },
+            _(f"Created {export_type} export on '{id_string}'."),
             audit,
             request,
         )
@@ -485,7 +489,7 @@ def export_list(request, username, id_string, export_type):
 
     if export_type not in Export.EXPORT_TYPE_DICT:
         return HttpResponseBadRequest(
-            _('Export type "%s" is not supported.' % export_type)
+            _(f'Export type "{export_type}" is not supported.')
         )
 
     if export_type == Export.GOOGLE_SHEETS_EXPORT:
@@ -521,9 +525,9 @@ def export_list(request, username, id_string, export_type):
             create_async_export(
                 xform, export_type, query=None, force_xlsx=True, options=options
             )
-        except Export.ExportTypeError:
+        except ExportTypeError:
             return HttpResponseBadRequest(
-                _("%s is not a valid export type" % export_type)
+                _(f"{export_type} is not a valid export type")
             )
 
     metadata_qs = MetaData.objects.filter(
@@ -593,11 +597,11 @@ def export_progress(request, username, id_string, export_type):
             ):
                 status["url"] = None
         # mark as complete if it either failed or succeeded but NOT pending
-        if export.status == Export.SUCCESSFUL or export.status == Export.FAILED:
+        if export.status in [Export.SUCCESSFUL, Export.FAILED]:
             status["complete"] = True
         statuses.append(status)
 
-    return HttpResponse(json.dumps(statuses), content_type="application/json")
+    return JsonResponse(statuses, safe=False)
 
 
 def export_download(request, username, id_string, export_type, filename):
@@ -614,25 +618,24 @@ def export_download(request, username, id_string, export_type, filename):
     # find the export entry in the db
     export = get_object_or_404(Export, xform=xform, filename=filename)
 
-    if (
-        export_type == Export.GOOGLE_SHEETS_EXPORT
-        or export_type == Export.EXTERNAL_EXPORT
-    ) and export.export_url is not None:
+    is_external_export = export_type in [
+        Export.GOOGLE_SHEETS_EXPORT,
+        Export.EXTERNAL_EXPORT,
+    ]
+    if is_external_export and export.export_url is not None:
         return HttpResponseRedirect(export.export_url)
 
     ext, mime_type = export_def_from_filename(export.filename)
+    export_type = export.export_type.upper()
+    filename = export.filename
+    id_string = xform.id_string
 
     audit = {"xform": xform.id_string, "export_type": export.export_type}
     audit_log(
         Actions.EXPORT_DOWNLOADED,
         request.user,
         owner,
-        _("Downloaded %(export_type)s export '%(filename)s' " "on '%(id_string)s'.")
-        % {
-            "export_type": export.export_type.upper(),
-            "filename": export.filename,
-            "id_string": xform.id_string,
-        },
+        _(f"Downloaded {export_type} export '{filename}' on '{id_string}'."),
         audit,
         request,
     )
@@ -669,19 +672,17 @@ def delete_export(request, username, id_string, export_type):
 
     # find the export entry in the db
     export = get_object_or_404(Export, id=export_id)
-
+    export_type = export.export_type.upper()
     export.delete()
+
+    filename = export.filename
+    id_string = xform.id_string
     audit = {"xform": xform.id_string, "export_type": export.export_type}
     audit_log(
         Actions.EXPORT_DOWNLOADED,
         request.user,
         owner,
-        _("Deleted %(export_type)s export '%(filename)s'" " on '%(id_string)s'.")
-        % {
-            "export_type": export.export_type.upper(),
-            "filename": export.filename,
-            "id_string": xform.id_string,
-        },
+        _(f"Deleted {export_type} export '{filename}' on '{id_string}'."),
         audit,
         request,
     )
@@ -720,10 +721,7 @@ def zip_export(request, username, id_string):
             Actions.EXPORT_CREATED,
             request.user,
             owner,
-            _("Created ZIP export on '%(id_string)s'.")
-            % {
-                "id_string": xform.id_string,
-            },
+            _(f"Created ZIP export on '{xform.id_string}'."),
             audit,
             request,
         )
@@ -732,10 +730,7 @@ def zip_export(request, username, id_string):
             Actions.EXPORT_DOWNLOADED,
             request.user,
             owner,
-            _("Downloaded ZIP export on '%(id_string)s'.")
-            % {
-                "id_string": xform.id_string,
-            },
+            _(f"Downloaded ZIP export on '{xform.id_string}'."),
             audit,
             request,
         )
@@ -776,10 +771,7 @@ def kml_export(request, username, id_string):
         Actions.EXPORT_CREATED,
         request.user,
         owner,
-        _("Created KML export on '%(id_string)s'.")
-        % {
-            "id_string": xform.id_string,
-        },
+        _(f"Created KML export on '{xform.id_string}'."),
         audit,
         request,
     )
@@ -788,10 +780,7 @@ def kml_export(request, username, id_string):
         Actions.EXPORT_DOWNLOADED,
         request.user,
         owner,
-        _("Downloaded KML export on '%(id_string)s'.")
-        % {
-            "id_string": xform.id_string,
-        },
+        _(f"Downloaded KML export on '{xform.id_string}'."),
         audit,
         request,
     )
@@ -832,11 +821,11 @@ def google_xls_export(request, username, id_string):
         return data_dictionary
 
     xls_writer = XlsWriter()
-    tmp = NamedTemporaryFile(delete=False)
-    xls_writer.set_file(tmp)
-    xls_writer.set_data_dictionary(data_dictionary)
-    temp_file = xls_writer.save_workbook_to_file()
-    temp_file.close()
+    with NamedTemporaryFile(delete=False) as tmp:
+        xls_writer.set_file(tmp)
+        xls_writer.set_data_dictionary(data_dictionary)
+        temp_file = xls_writer.save_workbook_to_file()
+        temp_file.close()
     url = None
     os.unlink(tmp.name)
     audit = {"xform": xform.id_string, "export_type": "google"}
@@ -844,10 +833,7 @@ def google_xls_export(request, username, id_string):
         Actions.EXPORT_CREATED,
         request.user,
         owner,
-        _("Created Google Docs export on '%(id_string)s'.")
-        % {
-            "id_string": xform.id_string,
-        },
+        _(f"Created Google Docs export on '{xform.id_string}'."),
         audit,
         request,
     )
@@ -872,10 +858,7 @@ def data_view(request, username, id_string):
         Actions.FORM_DATA_VIEWED,
         request.user,
         owner,
-        _("Requested data view for '%(id_string)s'.")
-        % {
-            "id_string": xform.id_string,
-        },
+        _(f"Requested data view for '{xform.id_string}'."),
         audit,
         request,
     )
@@ -919,8 +902,7 @@ def instance(request, username, id_string):
     """
     Data view for browsing submissions one at a time.
     """
-    # pylint: disable=W0612
-    xform, is_owner, can_edit, can_view = get_xform_and_perms(
+    xform, _is_owner, can_edit, can_view = get_xform_and_perms(
         username, id_string, request
     )
     # no access
@@ -938,10 +920,7 @@ def instance(request, username, id_string):
         Actions.FORM_DATA_VIEWED,
         request.user,
         xform.user,
-        _("Requested instance view for '%(id_string)s'.")
-        % {
-            "id_string": xform.id_string,
-        },
+        _(f"Requested instance view for '{xform.id_string}'."),
         audit,
         request,
     )
@@ -962,8 +941,7 @@ def charts(request, username, id_string):
     """
     Charts view.
     """
-    # pylint: disable=W0612
-    xform, is_owner, can_edit, can_view = get_xform_and_perms(
+    xform, _is_owner, _can_edit, can_view = get_xform_and_perms(
         username, id_string, request
     )
 
@@ -1003,8 +981,7 @@ def stats_tables(request, username, id_string):
     """
     Stats view.
     """
-    # pylint: disable=W0612
-    xform, is_owner, can_edit, can_view = get_xform_and_perms(
+    xform, _is_owner, _can_edit, can_view = get_xform_and_perms(
         username, id_string, request
     )
     # no access
