@@ -3,7 +3,6 @@
 update_enketo_urls - command to update Enketo preview URLs in the MetaData model.
 """
 import argparse
-import os
 import sys
 
 from django.core.management.base import BaseCommand, CommandError
