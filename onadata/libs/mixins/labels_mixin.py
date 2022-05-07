@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 """LabelMixin module"""
 from django import forms
+
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from taggit.forms import TagField
 
 from onadata.apps.logger.models import XForm
-from onadata.libs.models.signals import XFORM_TAGS_ADD, XFORM_TAGS_DELETE
+from onadata.libs.models.signals import xform_tags_add, xform_tags_delete
 
 
 class TagForm(forms.Form):
@@ -33,7 +34,7 @@ def _labels_post(request, instance):
                 instance.tags.add(tag)
 
             if isinstance(instance, XForm):
-                XFORM_TAGS_ADD.send(sender=XForm, xform=instance, tags=tags)
+                xform_tags_add.send(sender=XForm, xform=instance, tags=tags)
 
             return status.HTTP_201_CREATED
     return None
@@ -51,7 +52,7 @@ def _labels_delete(label, instance):
     instance.tags.remove(label)
 
     if isinstance(instance, XForm):
-        XFORM_TAGS_DELETE.send(sender=XForm, xform=instance, tag=label)
+        xform_tags_delete.send(sender=XForm, xform=instance, tag=label)
 
     # Accepted, label does not exist hence nothing removed
     http_status = (

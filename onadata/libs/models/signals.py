@@ -4,12 +4,12 @@ import django.dispatch
 
 from onadata.apps.logger.models import XForm
 
-XFORM_TAGS_ADD = django.dispatch.Signal(providing_args=["xform", "tags"])
-XFORM_TAGS_DELETE = django.dispatch.Signal(providing_args=["xform", "tag"])
+xform_tags_add = django.dispatch.Signal(providing_args=["xform", "tags"])
+xform_tags_delete = django.dispatch.Signal(providing_args=["xform", "tag"])
 
 
 # pylint: disable=unused-argument
-@django.dispatch.receiver(XFORM_TAGS_ADD, sender=XForm)
+@django.dispatch.receiver(xform_tags_add, sender=XForm)
 def add_tags_to_xform_instances(sender, **kwargs):
     """Adds tags to an xform instance."""
     xform = kwargs.get("xform", None)
@@ -25,7 +25,7 @@ def add_tags_to_xform_instances(sender, **kwargs):
 
 
 # pylint: disable=unused-argument
-@django.dispatch.receiver(XFORM_TAGS_DELETE, sender=XForm)
+@django.dispatch.receiver(xform_tags_delete, sender=XForm)
 def delete_tag_from_xform_instances(sender, **kwargs):
     """Deletes tags associated with an xform when it is deleted."""
     xform = kwargs.get("xform", None)
