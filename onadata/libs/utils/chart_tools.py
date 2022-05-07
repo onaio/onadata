@@ -225,7 +225,7 @@ def _use_labels_from_group_by_name(  # noqa C901
 
 
 # pylint: disable=too-many-locals,too-many-branches,too-many-arguments
-def build_chart_data_for_field(  # noqa
+def build_chart_data_for_field(  # noqa C901
     xform, field, language_index=0, choices=None, group_by=None, data_view=None
 ):
     """Returns the chart data for a given field."""

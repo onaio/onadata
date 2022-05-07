@@ -78,8 +78,6 @@ class Command(BaseCommand):
             data_value = meta_data.data_value
             xform = meta_data.content_object
             xform_pk = xform.pk
-            if not os.path.exists("/tmp/enketo_url"):
-                break
 
             form_url = get_form_url(
                 request,

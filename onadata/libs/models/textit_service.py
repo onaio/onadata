@@ -3,28 +3,38 @@
 TextItService model: sets up all properties for interaction with TextIt or
 RapidPro.
 """
+from django.conf import settings
+from django.db import IntegrityError
+from django.utils.translation import gettext as _
+
+from rest_framework import serializers
+
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.restservice.models import RestService
-from django.conf import settings
-from django.utils.translation import gettext as _
-from django.db import IntegrityError
-from rest_framework import serializers
 
 METADATA_SEPARATOR = settings.METADATA_SEPARATOR
 
 
-# pylint: disable=R0902
-class TextItService(object):
+# pylint: disable=too-many-instance-attributes
+class TextItService:
     """
     TextItService model: access/create/update RestService and MetaData objects
     with all properties for TextIt or RapidPro like services.
     """
 
-    # pylint: disable=R0913
-    def __init__(self, xform, service_url=None, name=None, auth_token=None,
-                 flow_uuid=None, contacts=None,
-                 pk=None, flow_title: str = ""):
-        self.pk = pk  # pylint: disable=C0103
+    # pylint: disable=too-many-arguments,invalid-name
+    def __init__(
+        self,
+        xform,
+        service_url=None,
+        name=None,
+        auth_token=None,
+        flow_uuid=None,
+        contacts=None,
+        pk=None,
+        flow_title: str = "",
+    ):
+        self.pk = pk
         self.xform = xform
         self.auth_token = auth_token
         self.flow_uuid = flow_uuid
@@ -42,8 +52,7 @@ class TextItService(object):
         Creates and updates RestService and MetaData objects with textit or
         rapidpro service properties.
         """
-        service = RestService() if not self.pk else \
-            RestService.objects.get(pk=self.pk)
+        service = RestService() if not self.pk else RestService.objects.get(pk=self.pk)
 
         service.name = self.name
         service.service_url = self.service_url
@@ -51,9 +60,8 @@ class TextItService(object):
         try:
             service.save()
         except IntegrityError as e:
-            if str(e).startswith("duplicate key value violates unique "
-                                 "constraint"):
-                msg = _(u"The service already created for this form.")
+            if str(e).startswith("duplicate key value violates unique constraint"):
+                msg = _("The service already created for this form.")
             else:
                 msg = _(str(e))
             raise serializers.ValidationError(msg)
@@ -64,13 +72,10 @@ class TextItService(object):
         self.active = service.active
         self.inactive_reason = service.inactive_reason
 
-        data_value = '{}|{}|{}'.format(self.auth_token,
-                                       self.flow_uuid,
-                                       self.contacts)
+        data_value = f"{self.auth_token}|{self.flow_uuid}|{self.contacts}"
 
         MetaData.textit(self.xform, data_value=data_value)
-        MetaData.textit_flow_details(
-            self.xform, data_value=self.flow_title)
+        MetaData.textit_flow_details(self.xform, data_value=self.flow_title)
 
         if self.xform.is_merged_dataset:
             for xform in self.xform.mergedxform.xforms.all():
@@ -87,10 +92,13 @@ class TextItService(object):
         data_value = MetaData.textit(self.xform)
 
         try:
-            self.auth_token, self.flow_uuid, self.contacts = \
-                data_value.split(METADATA_SEPARATOR)
-        except ValueError:
+            self.auth_token, self.flow_uuid, self.contacts = data_value.split(
+                METADATA_SEPARATOR
+            )
+        except ValueError as e:
             raise serializers.ValidationError(
-                _("Error occurred when loading textit service."
-                  "Resolve by updating auth_token, flow_uuid and contacts"
-                  " fields"))
+                _(
+                    "Error occurred when loading textit service."
+                    "Resolve by updating auth_token, flow_uuid and contacts fields"
+                )
+            ) from e
