@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
-"""update_enketo_urls - command to update Enketo preview URLs in the MetaData model."""
+"""
+update_enketo_urls - command to update Enketo preview URLs in the MetaData model.
+"""
+import argparse
 import os
+import sys
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Q
@@ -27,6 +31,9 @@ class Command(BaseCommand):
             "--generate_consistent_urls",
             dest="generate_consistent_urls",
             default=True,
+        )
+        parser.add_argument(
+            "enketo_urls_file", argparse.FileType("r"), default=sys.stdin
         )
 
     # pylint: disable=too-many-locals
