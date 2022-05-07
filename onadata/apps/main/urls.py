@@ -1,32 +1,36 @@
+# -*- coding: utf-8 -*-
+"""
+URLs path.
+"""
 import sys
 
 import django
-
 from django.conf import settings
-from django.urls import include, re_path
 from django.conf.urls import i18n
+
+# enable the admin:
+from django.contrib import admin
 from django.contrib.staticfiles import views as staticfiles_views
+from django.urls import include, re_path
 from django.views.generic import RedirectView
 
 from onadata.apps import sms_support
+from onadata.apps.api.urls.v1_urls import (
+    BriefcaseViewset,
+    XFormListViewSet,
+    XFormSubmissionViewSet,
+)
 from onadata.apps.api.urls.v1_urls import router as api_v1_router
 from onadata.apps.api.urls.v2_urls import router as api_v2_router
-from onadata.apps.api.urls.v1_urls import XFormListViewSet
 from onadata.apps.api.viewsets.xform_list_viewset import PreviewXFormListViewSet
-from onadata.apps.api.urls.v1_urls import XFormSubmissionViewSet
-from onadata.apps.api.urls.v1_urls import BriefcaseViewset
+from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger import views as logger_views
 from onadata.apps.main import views as main_views
 from onadata.apps.main.registration_urls import urlpatterns as registration_patterns
 from onadata.apps.restservice import views as restservice_views
 from onadata.apps.sms_support import views as sms_support_views
 from onadata.apps.viewer import views as viewer_views
-from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-
 from onadata.libs.utils.analytics import init_analytics
-
-# enable the admin:
-from django.contrib import admin
 
 TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
 
@@ -166,6 +170,7 @@ urlpatterns = [
         name="delete-metadata",
     ),
     re_path(
+        # pylint: disable=line-too-long
         r"^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/formid-media/(?P<data_id>\d+)",
         main_views.download_media_data,  # noqa
         name="download-media-data",
@@ -324,6 +329,7 @@ urlpatterns = [
         name="form-version-detail",
     ),
     re_path(
+        # pylint: disable=line-too-long
         r"^api/v1/forms/(?P<pk>[^/.]+)/versions/(?P<version_id>[^/.]+)\.(?P<format>[a-z0-9]+)/?$",  # noqa
         XFormViewSet.as_view({"get": "versions"}),
         name="form-version-detail",
@@ -385,6 +391,7 @@ urlpatterns = [
         name="xform-media",
     ),
     re_path(
+        # pylint: disable=line-too-long
         r"^(?P<username>\w+)/xformsMedia/(?P<pk>[\d+^/]+)/(?P<metadata>[\d+^/.]+)\.(?P<format>([a-z]|[0-9])*)$",  # noqa
         XFormListViewSet.as_view({"get": "media", "head": "media"}),
         name="xform-media",
@@ -451,6 +458,7 @@ urlpatterns = [
     ),
     # SMS support
     re_path(
+        # pylint: disable=line-too-long
         r"^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/sms_submission/(?P<service>[a-z]+)/?$",  # noqa
         sms_support.providers.import_submission_for_form,
         name="sms_submission_form_api",
