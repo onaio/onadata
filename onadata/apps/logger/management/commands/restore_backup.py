@@ -22,23 +22,23 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # pylint: disable=invalid-name
-        User = get_user_model()
+        User = get_user_model()  # noqa N806
         try:
             username = args[0]
-        except IndexError:
+        except IndexError as e:
             raise CommandError(
                 _("You must provide the username to publish the form to.")
-            )
+            ) from e
             # make sure user exists
         try:
             User.objects.get(username=username)
-        except User.DoesNotExist:
-            raise CommandError(_(f"The user '{username}' does not exist."))
+        except User.DoesNotExist as e:
+            raise CommandError(_(f"The user '{username}' does not exist.")) from e
 
         try:
             input_file = args[1]
-        except IndexError:
-            raise CommandError(_("You must provide the path to restore from."))
+        except IndexError as e:
+            raise CommandError(_("You must provide the path to restore from.")) from e
         else:
             input_file = os.path.realpath(input_file)
 

@@ -11,7 +11,6 @@ from defusedxml import minidom
 
 from django.conf import settings
 from django.core.files.storage import get_storage_class
-from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.translation import gettext as _
 
 import requests
@@ -120,23 +119,6 @@ def _all_attributes(node):
     for child in node.childNodes:
         for pair in _all_attributes(child):
             yield pair
-
-
-def django_file(path, field_name, content_type):
-    """Return an InMemoryUploadedFile object for file uploads."""
-    # adapted from here: http://groups.google.com/group/django-users/browse_th\
-    # read/thread/834f988876ff3c45/
-
-    # pylint: disable=consider-using-with
-    file_object = open(path, "rb")
-    return InMemoryUploadedFile(
-        file=file_object,
-        field_name=field_name,
-        name=file_object.name,
-        content_type=content_type,
-        size=os.path.getsize(path),
-        charset=None,
-    )
 
 
 def export_def_from_filename(filename):

@@ -163,6 +163,7 @@ class XFormOwnerFilter(filters.BaseFilterBackend):
 
     # pylint: disable=unused-argument
     def filter_queryset(self, request, queryset, view):
+        """Filter by `owner` query parameter."""
         owner = request.query_params.get("owner")
 
         if owner:
@@ -179,6 +180,7 @@ class DataFilter(ObjectPermissionsFilter):
 
     # pylint: disable=unused-argument
     def filter_queryset(self, request, queryset, view):
+        """Filter by ``XForm.shared_data = True`` for anonymous users."""
         if request.user.is_anonymous:
             return queryset.filter(Q(shared_data=True))
         return queryset
@@ -300,7 +302,9 @@ class AnonUserProjectFilter(ObjectPermissionsFilter):
 class TagFilter(filters.BaseFilterBackend):
     """Tag filter using the `tags` query parameter."""
 
+    # pylint: disable=unused-argument
     def filter_queryset(self, request, queryset, view):
+        """Tag filter using the `tags` query parameter."""
         # filter by tags if available.
         tags = request.query_params.get("tags", None)
 
@@ -543,7 +547,11 @@ class TeamOrgFilter(filters.BaseFilterBackend):
 
 # pylint: disable=too-few-public-methods
 class UserNoOrganizationsFilter(filters.BaseFilterBackend):
+    """Filter by ``orgs`` query parameter."""
+
     def filter_queryset(self, request, queryset, view):
+        """Returns all users that are not organizations when `orgs=false`
+        query parameter"""
         if str(request.query_params.get("orgs")).lower() == "false":
             organization_user_ids = OrganizationProfile.objects.values_list(
                 "user__id", flat=True
@@ -555,6 +563,8 @@ class UserNoOrganizationsFilter(filters.BaseFilterBackend):
 
 # pylint: disable=too-few-public-methods
 class OrganizationsSharedWithUserFilter(filters.BaseFilterBackend):
+    """Filters by ``shared_with`` query parameter."""
+
     def filter_queryset(self, request, queryset, view):
         """
         This returns a queryset containing only organizations to which
@@ -588,7 +598,10 @@ class OrganizationsSharedWithUserFilter(filters.BaseFilterBackend):
 
 # pylint: disable=too-few-public-methods
 class WidgetFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
+    """Filter to return forms shared with user."""
+
     def filter_queryset(self, request, queryset, view):
+        """Filter to return forms shared with user when ``view.action == "list"``."""
 
         if view.action == "list":
             # Return widgets from xform user has perms to
@@ -599,7 +612,11 @@ class WidgetFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
 
 # pylint: disable=too-few-public-methods
 class UserProfileFilter(filters.BaseFilterBackend):
+    """Filter by the ``users`` query parameter."""
+
     def filter_queryset(self, request, queryset, view):
+        """Filter by the ``users`` query parameter - returns a queryset of only the users
+        in the users parameter when `view.action == "list"`"""
         if view.action == "list":
             users = request.GET.get("users")
             if users:
@@ -615,7 +632,10 @@ class UserProfileFilter(filters.BaseFilterBackend):
 
 # pylint: disable=too-few-public-methods
 class NoteFilter(filters.BaseFilterBackend):
+    """Notes filter by the query parameter ``instance``."""
+
     def filter_queryset(self, request, queryset, view):
+        """Notes filter by the query parameter ``instance``."""
         instance_id = request.query_params.get("instance")
 
         if instance_id:
@@ -634,10 +654,11 @@ class NoteFilter(filters.BaseFilterBackend):
 class ExportFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
     """
     ExportFilter class uses permissions on the related xform to filter Export
-    queryesets. Also filters submitted_by a specific user.
+    querysets. Also filters submitted_by a specific user.
     """
 
     def filter_queryset(self, request, queryset, view):
+        """Filter by xform permissions and submitted by user."""
         has_submitted_by_key = (
             Q(options__has_key="query") & Q(options__query__has_key="_submitted_by"),
         )

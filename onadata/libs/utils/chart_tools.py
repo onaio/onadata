@@ -190,7 +190,9 @@ def _use_labels_from_field_name(field_name, field, data_type, data, choices=None
     return data
 
 
-def _use_labels_from_group_by_name(field_name, field, data_type, data, choices=None):
+def _use_labels_from_group_by_name(  # noqa C901
+    field_name, field, data_type, data, choices=None
+):
     # truncate field name to 63 characters to fix #354
     truncated_name = field_name[0:POSTGRES_ALIAS_LENGTH]
 
@@ -223,7 +225,7 @@ def _use_labels_from_group_by_name(field_name, field, data_type, data, choices=N
 
 
 # pylint: disable=too-many-locals,too-many-branches,too-many-arguments
-def build_chart_data_for_field(
+def build_chart_data_for_field(  # noqa
     xform, field, language_index=0, choices=None, group_by=None, data_view=None
 ):
     """Returns the chart data for a given field."""
@@ -447,7 +449,7 @@ def get_field_label(field, language_index=0):
 
 
 # pylint: disable=too-many-arguments
-def get_chart_data_for_field(
+def get_chart_data_for_field(  # noqa C901
     field_name, xform, accepted_format, group_by, field_xpath=None, data_view=None
 ):
     """

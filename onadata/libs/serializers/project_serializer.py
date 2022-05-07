@@ -232,6 +232,7 @@ class ProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
     name = serializers.ReadOnlyField(source="title")
     published_by_formbuilder = serializers.SerializerMethodField()
 
+    # pylint: disable=too-few-public-methods,missing-class-docstring
     class Meta:
         model = XForm
         fields = (
@@ -472,6 +473,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         return value
 
     def update(self, instance, validated_data):
+        """Update project properties."""
         metadata = JsonField.to_json(validated_data.get("metadata"))
         if metadata is None:
             metadata = {}
@@ -527,6 +529,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         },
     )
     def create(self, validated_data):
+        """Creates a project."""
         metadata = validated_data.get("metadata", {})
         if metadata is None:
             metadata = {}
