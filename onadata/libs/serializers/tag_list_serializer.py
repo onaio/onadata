@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-"""Tags list serializer module."""
+"""
+Tags list serializer module.
+"""
 from django.utils.translation import gettext as _
 
 from rest_framework import serializers
