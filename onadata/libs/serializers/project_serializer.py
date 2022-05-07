@@ -5,7 +5,7 @@ Project Serializer module.
 from six import itervalues
 
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db.utils import IntegrityError
 from django.utils.translation import gettext as _
@@ -14,14 +14,14 @@ from rest_framework import serializers
 
 from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.api.tools import (
-    get_organization_members_team,
     get_or_create_organization_owners_team,
+    get_organization_members_team,
 )
 from onadata.apps.logger.models import Project, XForm
 from onadata.libs.permissions import (
+    ManagerRole,
     OwnerRole,
     ReadOnlyRole,
-    ManagerRole,
     get_role,
     is_organization,
 )
@@ -33,14 +33,17 @@ from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
     PROJ_NUM_DATASET_CACHE,
+    PROJ_OWNER_CACHE,
     PROJ_PERM_CACHE,
     PROJ_SUB_DATE_CACHE,
     PROJ_TEAM_USERS_CACHE,
     PROJECT_LINKED_DATAVIEWS,
-    PROJ_OWNER_CACHE,
     safe_delete,
 )
 from onadata.libs.utils.decorators import check_obj
+
+# pylint: disable=invalid-name
+User = get_user_model()
 
 
 def get_project_xforms(project):
@@ -62,7 +65,8 @@ def get_last_submission_date(project):
 
     :param project: The project to find the last submission date for.
     """
-    last_submission_date = cache.get("{}{}".format(PROJ_SUB_DATE_CACHE, project.pk))
+    cache_key = f"{PROJ_SUB_DATE_CACHE}{project.pk}"
+    last_submission_date = cache.get(cache_key)
     if last_submission_date:
         return last_submission_date
     xforms = get_project_xforms(project)
@@ -72,7 +76,7 @@ def get_last_submission_date(project):
     dates.sort(reverse=True)
     last_submission_date = dates[0] if dates else None
 
-    cache.set("{}{}".format(PROJ_SUB_DATE_CACHE, project.pk), last_submission_date)
+    cache.set(cache_key, last_submission_date)
 
     return last_submission_date
 
@@ -83,12 +87,13 @@ def get_num_datasets(project):
 
     :param project: The project to find datasets for.
     """
-    count = cache.get("{}{}".format(PROJ_NUM_DATASET_CACHE, project.pk))
+    project_cache_key = f"{PROJ_NUM_DATASET_CACHE}{project.pk}"
+    count = cache.get(project_cache_key)
     if count:
         return count
 
     count = len(get_project_xforms(project))
-    cache.set("{}{}".format(PROJ_NUM_DATASET_CACHE, project.pk), count)
+    cache.set(project_cache_key, count)
     return count
 
 
@@ -113,7 +118,8 @@ def get_teams(project):
     """
     Return the teams with access to the project.
     """
-    teams_users = cache.get("{}{}".format(PROJ_TEAM_USERS_CACHE, project.pk))
+    project_team_cache_key = f"{PROJ_TEAM_USERS_CACHE}{project.pk}"
+    teams_users = cache.get(project_team_cache_key)
     if teams_users:
         return teams_users
 
@@ -129,7 +135,7 @@ def get_teams(project):
             {"name": team.name, "role": get_role(perms, project), "users": users}
         )
 
-    cache.set("{}{}".format(PROJ_TEAM_USERS_CACHE, project.pk), teams_users)
+    cache.set(project_team_cache_key, teams_users)
     return teams_users
 
 
@@ -138,8 +144,9 @@ def get_users(project, context, all_perms=True):
     """
     Return a list of users and organizations that have access to the project.
     """
+    project_permissions_cache_key = f"{PROJ_PERM_CACHE}{project.pk}"
     if all_perms:
-        users = cache.get("{}{}".format(PROJ_PERM_CACHE, project.pk))
+        users = cache.get(project_permissions_cache_key)
         if users:
             return users
 
@@ -187,7 +194,7 @@ def get_users(project, context, all_perms=True):
     results = list(itervalues(data))
 
     if all_perms:
-        cache.set("{}{}".format(PROJ_PERM_CACHE, project.pk), results)
+        cache.set(project_permissions_cache_key, results)
 
     return results
 
@@ -197,6 +204,7 @@ def set_owners_permission(user, project):
     OwnerRole.add(user, project)
 
 
+# pylint: disable=too-few-public-methods
 class BaseProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
     """
     BaseProjectXFormSerializer class.
@@ -205,11 +213,13 @@ class BaseProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
     formid = serializers.ReadOnlyField(source="id")
     name = serializers.ReadOnlyField(source="title")
 
+    # pylint: disable=too-few-public-methods,missing-class-docstring
     class Meta:
         model = XForm
         fields = ("name", "formid", "id_string", "is_merged_dataset")
 
 
+# pylint: disable=too-few-public-methods
 class ProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
     """
     ProjectXFormSerializer class - to return project xform info.
@@ -320,7 +330,8 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
         """
         Return list of xforms in the project.
         """
-        forms = cache.get("{}{}".format(PROJ_BASE_FORMS_CACHE, obj.pk))
+        project_forms_cache_key = f"{PROJ_BASE_FORMS_CACHE}{obj.pk}"
+        forms = cache.get(project_forms_cache_key)
         if forms:
             return forms
 
@@ -330,7 +341,7 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
             xforms, context={"request": request}, many=True
         )
         forms = list(serializer.data)
-        cache.set("{}{}".format(PROJ_BASE_FORMS_CACHE, obj.pk), forms)
+        cache.set(project_forms_cache_key, forms)
 
         return forms
 
@@ -404,6 +415,8 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         exclude = ("shared", "user_stars", "deleted_by", "organization")
 
     def validate(self, attrs):
+        """Validate the project name does not exist and the user has the permissions to
+        create a project in the organization."""
         name = attrs.get("name")
         organization = attrs.get("organization")
         if not self.instance and organization:
@@ -412,7 +425,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             )
             if project_w_same_name:
                 raise serializers.ValidationError(
-                    {"name": _("Project {} already exists.".format(name))}
+                    {"name": _(f"Project {name} already exists.")}
                 )
         else:
             organization = organization or self.instance.organization
@@ -428,8 +441,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
                 {
                     "owner": _(
                         "You do not have permission to create a project "
-                        "in the organization %(organization)s."
-                        % {"organization": organization}
+                        f"in the organization {organization}."
                     )
                 }
             )
@@ -452,8 +464,8 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         msg = serializers.ValidationError(_("Invaid value for metadata"))
         try:
             json_val = JsonField.to_json(value)
-        except ValueError:
-            raise serializers.ValidationError(msg)
+        except ValueError as e:
+            raise serializers.ValidationError(msg) from e
         else:
             if json_val is None:
                 raise serializers.ValidationError(msg)
@@ -462,7 +474,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     def update(self, instance, validated_data):
         metadata = JsonField.to_json(validated_data.get("metadata"))
         if metadata is None:
-            metadata = dict()
+            metadata = {}
         owner = validated_data.get("organization")
 
         if self.partial and metadata:
@@ -490,13 +502,15 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
                 members = members.exclude(username=owner.username)
 
                 # Add permissions to all users in Owners and Members team
-                [OwnerRole.add(owner, instance) for owner in owners]
-                [ReadOnlyRole.add(member, instance) for member in members]
+                for owner in owners:
+                    OwnerRole.add(owner, instance)
+                for member in members:
+                    ReadOnlyRole.add(member, instance)
 
             # clear cache
-            safe_delete("{}{}".format(PROJ_PERM_CACHE, instance.pk))
+            safe_delete(f"{PROJ_PERM_CACHE}{instance.pk}")
 
-        project = super(ProjectSerializer, self).update(instance, validated_data)
+        project = super().update(instance, validated_data)
 
         project.xform_set.exclude(shared=project.shared).update(
             shared=project.shared, shared_data=project.shared
@@ -513,23 +527,23 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         },
     )
     def create(self, validated_data):
-        metadata = validated_data.get("metadata", dict())
+        metadata = validated_data.get("metadata", {})
         if metadata is None:
-            metadata = dict()
+            metadata = {}
         created_by = self.context["request"].user
 
         try:
-            project = Project.objects.create(  # pylint: disable=E1101
+            project = Project.objects.create(  # pylint: disable=no-member
                 name=validated_data.get("name"),
                 organization=validated_data.get("organization"),
                 created_by=created_by,
                 shared=validated_data.get("shared", False),
                 metadata=metadata,
             )
-        except IntegrityError:
+        except IntegrityError as e:
             raise serializers.ValidationError(
                 "The fields name, organization must make a unique set."
-            )
+            ) from e
         else:
             project.xform_set.exclude(shared=project.shared).update(
                 shared=project.shared, shared_data=project.shared
@@ -552,7 +566,8 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         """
         Return list of xforms in the project.
         """
-        forms = cache.get("{}{}".format(PROJ_FORMS_CACHE, obj.pk))
+        project_forms_cache_key = f"{PROJ_FORMS_CACHE}{obj.pk}"
+        forms = cache.get(project_forms_cache_key)
         if forms:
             return forms
         xforms = get_project_xforms(obj)
@@ -561,7 +576,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             xforms, context={"request": request}, many=True
         )
         forms = list(serializer.data)
-        cache.set("{}{}".format(PROJ_FORMS_CACHE, obj.pk), forms)
+        cache.set(project_forms_cache_key, forms)
 
         return forms
 
@@ -594,7 +609,8 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         """
         Return a list of filtered datasets.
         """
-        data_views = cache.get("{}{}".format(PROJECT_LINKED_DATAVIEWS, obj.pk))
+        project_dataview_cache_key = f"{PROJECT_LINKED_DATAVIEWS}{obj.pk}"
+        data_views = cache.get(project_dataview_cache_key)
         if data_views:
             return data_views
 
@@ -609,6 +625,6 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         )
         data_views = list(serializer.data)
 
-        cache.set("{}{}".format(PROJECT_LINKED_DATAVIEWS, obj.pk), data_views)
+        cache.set(project_dataview_cache_key, data_views)
 
         return data_views
