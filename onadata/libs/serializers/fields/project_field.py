@@ -16,6 +16,7 @@ class ProjectField(serializers.Field):
         """Returns the project pk."""
         return value.pk
 
+    # pylint: disable=no-self-use
     def to_internal_value(self, data):
         """Validates that a project exists."""
         if data is not None:

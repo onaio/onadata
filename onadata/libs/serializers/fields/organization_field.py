@@ -10,10 +10,14 @@ from onadata.apps.api.models.organization_profile import OrganizationProfile
 
 
 class OrganizationField(serializers.Field):
+    """organization serializer field"""
+
+    # pylint: disable=no-self-use
     def to_representation(self, value):
         """Return the organization pk."""
         return value.pk
 
+    # pylint: disable=no-self-use
     def to_internal_value(self, data):
         """Validate the organization exists."""
         if data is not None:

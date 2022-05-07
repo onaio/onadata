@@ -111,7 +111,7 @@ def import_submission_for_form(request, username, id_string):
     )
 
 
-# pylin: disable=unused-argument
+# pylint: disable=unused-argument
 def process_message_for_smssync(username, sms_identity, sms_text, sms_time, id_string):
     """Process a text instance and return in SMSSync expected format"""
 
