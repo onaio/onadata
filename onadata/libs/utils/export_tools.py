@@ -11,10 +11,8 @@ import re
 import sys
 from datetime import datetime, timedelta
 
-import builtins
-import six
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.files.base import File
 from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
@@ -22,17 +20,18 @@ from django.db.models.query import QuerySet
 from django.shortcuts import render
 from django.utils import timezone
 from django.utils.translation import gettext as _
-from six.moves.urllib.parse import urlparse
-from six import iteritems
+
+import six
 from json2xlsclient.client import Client
+from multidb.pinning import use_master
 from rest_framework import exceptions
+from six import iteritems
+from six.moves.urllib.parse import urlparse
 
 try:
     from savReaderWriter import SPSSIOError
 except ImportError:
     SPSSIOError = Exception
-
-from multidb.pinning import use_master
 
 from onadata.apps.logger.models import Attachment, Instance, OsmData, XForm
 from onadata.apps.logger.models.data_view import DataView
@@ -42,10 +41,10 @@ from onadata.apps.viewer.models.parsed_instance import query_data
 from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 from onadata.libs.utils.common_tags import DATAVIEW_EXPORT, GROUPNAME_REMOVED_FLAG
 from onadata.libs.utils.common_tools import (
-    str_to_bool,
     cmp_to_key,
     report_exception,
     retry,
+    str_to_bool,
 )
 from onadata.libs.utils.export_builder import ExportBuilder
 from onadata.libs.utils.model_tools import get_columns_with_hxl, queryset_iterator
@@ -57,6 +56,9 @@ DEFAULT_INDEX_TAGS = ("[", "]")
 SUPPORTED_INDEX_TAGS = ("[", "]", "(", ")", "{", "}", ".", "_")
 EXPORT_QUERY_KEY = "query"
 MAX_RETRIES = 3
+
+# pylint: disable=invalid-name
+User = get_user_model()
 
 
 def md5hash(string):
@@ -90,8 +92,6 @@ def get_or_create_export(export_id, xform, export_type, options):
             return Export.objects.get(pk=export_id)
         except Export.DoesNotExist:
             if getattr(settings, "SLAVE_DATABASES", []):
-                from multidb.pinning import use_master
-
                 with use_master:
                     try:
                         return Export.objects.get(pk=export_id)
@@ -103,7 +103,7 @@ def get_or_create_export(export_id, xform, export_type, options):
 
 # pylint: disable=too-many-locals, too-many-branches, too-many-statements
 @retry(MAX_RETRIES)
-def generate_export(export_type, xform, export_id=None, options=None):
+def generate_export(export_type, xform, export_id=None, options=None):  # noqa C901
     """
     Create appropriate export object given the export type.
 
@@ -208,6 +208,7 @@ def generate_export(export_type, xform, export_id=None, options=None):
 
     # get the export function by export type
     func = getattr(export_builder, export_type_func_map[export_type])
+    # pylint: disable=broad-except
     try:
         func.__call__(
             temp_file.name,
@@ -234,13 +235,13 @@ def generate_export(export_type, xform, export_id=None, options=None):
         return export
 
     # generate filename
-    basename = "%s_%s" % (id_string, datetime.now().strftime("%Y_%m_%d_%H_%M_%S_%f"))
+    basename = f'{id_string}_{datetime.now().strftime("%Y_%m_%d_%H_%M_%S_%f")}'
 
     if remove_group_name:
         # add 'remove group name' flag to filename
-        basename = "{}-{}".format(basename, GROUPNAME_REMOVED_FLAG)
+        basename = f"{basename}-{GROUPNAME_REMOVED_FLAG}"
     if dataview:
-        basename = "{}-{}".format(basename, DATAVIEW_EXPORT)
+        basename = f"{basename}-{DATAVIEW_EXPORT}"
 
     filename = basename + "." + extension
 
@@ -306,7 +307,7 @@ def check_pending_export(
         export_type=export_type,
         internal_status=Export.PENDING,
         created_on__gt=created_time,
-        **export_options_kwargs
+        **export_options_kwargs,
     ).last()
 
     return export
@@ -389,11 +390,12 @@ def increment_index_in_filename(filename):
         index = 1
         # split filename from ext
         basename, ext = os.path.splitext(filename)
-    new_filename = "%s-%d%s" % (basename, index, ext)
+    new_filename = f"{basename}-{index}{ext}"
+
     return new_filename
 
 
-# pylint: disable=R0913
+# pylint: disable=too-many-arguments
 def generate_attachments_zip_export(
     export_type, username, id_string, export_id=None, options=None, xform=None
 ):
@@ -429,37 +431,28 @@ def generate_attachments_zip_export(
         attachments = Attachment.objects.filter(instance__deleted_at__isnull=True)
         if xform.is_merged_dataset:
             attachments = attachments.filter(
-                instance__xform_id__in=[
-                    i
-                    for i in xform.mergedxform.xforms.filter(
+                instance__xform_id__in=list(
+                    xform.mergedxform.xforms.filter(
                         deleted_at__isnull=True
                     ).values_list("id", flat=True)
-                ]
+                )
             ).filter(instance_id__in=[i_id["_id"] for i_id in instance_ids])
         else:
             attachments = attachments.filter(instance__xform_id=xform.pk).filter(
                 instance_id__in=[i_id["_id"] for i_id in instance_ids]
             )
 
-    filename = "%s_%s.%s" % (
-        id_string,
-        datetime.now().strftime("%Y_%m_%d_%H_%M_%S"),
-        export_type.lower(),
+    filename = (
+        f'{id_string}_{datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}'
+        f".{export_type.lower()}"
     )
     file_path = os.path.join(username, "exports", id_string, export_type, filename)
     zip_file = None
 
-    try:
-        zip_file = create_attachments_zipfile(attachments)
-
-        try:
-            temp_file = builtins.open(zip_file.name, "rb")
+    with NamedTemporaryFile() as zip_file:
+        create_attachments_zipfile(attachments, zip_file)
+        with open(zip_file.name, "rb") as temp_file:
             filename = default_storage.save(file_path, File(temp_file, file_path))
-        finally:
-            temp_file.close()
-    finally:
-        if zip_file:
-            zip_file.close()
 
     export = get_or_create_export(export_id, xform, export_type, options)
     export.filedir, export.filename = os.path.split(filename)
@@ -512,7 +505,7 @@ def get_or_create_export_object(export_id, options, xform, export_type):
     return export
 
 
-# pylint: disable=R0913
+# pylint: disable=too-many-arguments
 def generate_kml_export(
     export_type, username, id_string, export_id=None, options=None, xform=None
 ):
@@ -536,7 +529,7 @@ def generate_kml_export(
         None, "survey.kml", {"data": kml_export_data(id_string, user, xform=xform)}
     )
 
-    basename = "%s_%s" % (id_string, datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
+    basename = f'{id_string}_{datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}'
     filename = basename + "." + export_type.lower()
     file_path = os.path.join(username, "exports", id_string, export_type, filename)
 
@@ -574,12 +567,11 @@ def kml_export_data(id_string, user, xform=None):
     if xform.is_merged_dataset:
         data_kwargs.update(
             {
-                "xform_id__in": [
-                    i
-                    for i in xform.mergedxform.xforms.filter(
+                "xform_id__in": list(
+                    xform.mergedxform.xforms.filter(
                         deleted_at__isnull=True
                     ).values_list("id", flat=True)
-                ]
+                )
             }
         )
     else:
@@ -593,14 +585,16 @@ def kml_export_data(id_string, user, xform=None):
         xpaths = list(data_for_display)
         xpaths.sort(key=cmp_to_key(instance.xform.get_xpath_cmp()))
         table_rows = [
-            "<tr><td>%s</td><td>%s</td></tr>"
-            % (cached_get_labels(xpath), data_for_display[xpath])
+            f"<tr><td>{cached_get_labels(xpath) }</td>"
+            f"<td>{data_for_display[xpath]}</td></tr>"
             for xpath in xpaths
             if not xpath.startswith("_")
         ]
         img_urls = image_urls(instance)
 
         if instance.point:
+            img_url = img_urls[0] if img_urls else ""
+            rows = "".join(table_rows)
             data_for_template.append(
                 {
                     "name": instance.xform.id_string,
@@ -609,8 +603,8 @@ def kml_export_data(id_string, user, xform=None):
                     "lng": instance.point.x,
                     "image_urls": img_urls,
                     "table": '<table border="1"><a href="#"><img width="210" '
-                    'class="thumbnail" src="%s" alt=""></a>%s'
-                    "</table>" % (img_urls[0] if img_urls else "", "".join(table_rows)),
+                    f'class="thumbnail" src="{img_url}" alt=""></a>{rows}'
+                    "</table>",
                 }
             )
 
@@ -623,12 +617,11 @@ def get_osm_data_kwargs(xform):
     kwargs = {"instance__deleted_at__isnull": True}
 
     if xform.is_merged_dataset:
-        kwargs["instance__xform_id__in"] = [
-            i
-            for i in xform.mergedxform.xforms.filter(
-                deleted_at__isnull=True
-            ).values_list("id", flat=True)
-        ]
+        kwargs["instance__xform_id__in"] = list(
+            xform.mergedxform.xforms.filter(deleted_at__isnull=True).values_list(
+                "id", flat=True
+            )
+        )
     else:
         kwargs["instance__xform_id"] = xform.pk
 
@@ -657,8 +650,8 @@ def generate_osm_export(
     kwargs = get_osm_data_kwargs(xform)
     osm_list = OsmData.objects.filter(**kwargs)
     content = get_combined_osm(osm_list)
-
-    basename = "%s_%s" % (id_string, datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
+    timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+    basename = f"{id_string}_{timestamp}"
     filename = basename + "." + extension
     file_path = os.path.join(username, "exports", id_string, export_type, filename)
 
@@ -704,16 +697,14 @@ def _get_server_from_metadata(xform, meta, token):
     try:
         report_templates = MetaData.external_export(xform)
     except MetaData.DoesNotExist:
-        from multidb.pinning import use_master
-
         with use_master:
             report_templates = MetaData.external_export(xform)
 
     if meta:
         try:
             int(meta)
-        except ValueError:
-            raise Exception("Invalid metadata pk {0}".format(meta))
+        except ValueError as e:
+            raise Exception(f"Invalid metadata pk {meta}") from e
 
         # Get the external server from the metadata
         result = report_templates.get(pk=meta)
@@ -735,7 +726,7 @@ def _get_server_from_metadata(xform, meta, token):
     return server, name
 
 
-def generate_external_export(
+def generate_external_export(  # noqa C901
     export_type, username, id_string, export_id=None, options=None, xform=None
 ):
     """
@@ -794,14 +785,14 @@ def generate_external_export(
                 status_code = client.xls.conn.last_response.status_code
         except Exception as e:
             raise J2XException(
-                "J2X client could not generate report. Server -> {0},"
-                " Error-> {1}".format(server, e)
-            )
+                f"J2X client could not generate report. Server -> {server},"
+                f" Error-> {e}"
+            ) from e
     else:
         if not server:
             raise J2XException("External server not set")
-        elif not records:
-            raise J2XException("No record to export. Form -> {0}".format(id_string))
+        if not records:
+            raise J2XException(f"No record to export. Form -> {id_string}")
 
     # get or create export object
     if export_id:
@@ -846,7 +837,8 @@ def upload_template_for_external_export(server, file_obj):
     return str(status_code) + "|" + response
 
 
-def parse_request_export_options(params):  # pylint: disable=too-many-branches
+# pylint: disable=too-many-branches
+def parse_request_export_options(params):  # noqa C901
     """
     Parse export options in the request object into values returned in a
     list. The list represents a boolean for whether the group name should be
@@ -944,8 +936,8 @@ def get_repeat_index_tags(index_tags):
             if tag not in SUPPORTED_INDEX_TAGS:
                 raise exceptions.ParseError(
                     _(
-                        "The tag %s is not supported, supported tags are %s"
-                        % (tag, SUPPORTED_INDEX_TAGS)
+                        f"The tag {tag} is not supported, "
+                        f"supported tags are {SUPPORTED_INDEX_TAGS}"
                     )
                 )
 

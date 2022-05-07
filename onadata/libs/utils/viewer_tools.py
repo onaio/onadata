@@ -5,7 +5,6 @@ import os
 import sys
 import zipfile
 from json.decoder import JSONDecodeError
-from tempfile import NamedTemporaryFile
 from typing import Dict
 from defusedxml import minidom
 
@@ -232,12 +231,13 @@ def generate_enketo_form_defaults(xform, **kwargs):
     return defaults
 
 
-def create_attachments_zipfile(attachments):
-    """Return a zip file with submission attachments."""
-    # create zip_file
-    # pylint: disable=consider-using-with
-    tmp = NamedTemporaryFile()
-    with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as z:
+def create_attachments_zipfile(attachments, zip_file):
+    """Return a zip file with submission attachments.
+
+    :param attachments: an Attachments queryset.
+    :param zip_file: a file object, more likely a NamedTemporaryFile() object.
+    """
+    with zipfile.ZipFile(zip_file, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as z:
         for attachment in attachments:
             default_storage = get_storage_class()()
             filename = attachment.media_file.name
@@ -258,8 +258,6 @@ def create_attachments_zipfile(attachments):
                 except IOError as e:
                     report_exception("Create attachment zip exception", e)
                     break
-
-    return tmp
 
 
 def get_form(kwargs):

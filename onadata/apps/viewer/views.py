@@ -293,7 +293,7 @@ def thank_you_submission(request, username, id_string):
 
 
 # pylint: disable=too-many-locals
-def data_export(request, username, id_string, export_type):
+def data_export(request, username, id_string, export_type):  # noqa C901
     """
     Data export view.
     """
@@ -481,7 +481,7 @@ def _get_google_credential(request):
     return credential or HttpResponseRedirect(google_flow.step1_get_authorize_url())
 
 
-def export_list(request, username, id_string, export_type):
+def export_list(request, username, id_string, export_type):  # noqa C901
     """
     Export list view.
     """
@@ -714,8 +714,8 @@ def zip_export(request, username, id_string):
     attachments = Attachment.objects.filter(instance__xform=xform)
     zip_file = None
 
-    try:
-        zip_file = create_attachments_zipfile(attachments)
+    with NamedTemporaryFile() as zip_file:
+        create_attachments_zipfile(attachments, zip_file)
         audit = {"xform": xform.id_string, "export_type": Export.ZIP_EXPORT}
         audit_log(
             Actions.EXPORT_CREATED,
@@ -741,9 +741,6 @@ def zip_export(request, username, id_string):
         response.write(FileWrapper(zip_file))
         response["Content-Length"] = zip_file.tell()
         zip_file.seek(0)
-    finally:
-        if zip_file:
-            zip_file.close()
 
     return response
 
