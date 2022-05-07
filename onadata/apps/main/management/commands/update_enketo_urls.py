@@ -33,7 +33,7 @@ class Command(BaseCommand):
             default=True,
         )
         parser.add_argument(
-            "enketo_urls_file", argparse.FileType("r"), default=sys.stdin
+            "enketo_urls_file", argparse.FileType("w"), default=sys.stdout
         )
 
     # pylint: disable=too-many-locals
@@ -44,6 +44,7 @@ class Command(BaseCommand):
         server_port = options.get("server_port")
         protocol = options.get("protocol")
         generate_consistent_urls = options.get("generate_consistent_urls")
+        enketo_urls_file = options.get("enketo_urls_file")
 
         if not server_name or not server_port or not protocol:
             raise CommandError(
@@ -80,24 +81,21 @@ class Command(BaseCommand):
             if not os.path.exists("/tmp/enketo_url"):
                 break
 
-            with open("/tmp/enketo_url", "a", encoding="utf-8") as f:
-                form_url = get_form_url(
-                    request,
-                    username=username,
-                    xform_pk=xform_pk,
-                    generate_consistent_urls=generate_consistent_urls,
-                )
-                enketo_urls = get_enketo_urls(form_url, id_string)
-                if data_type == "enketo_url":
-                    _enketo_url = enketo_urls.get("offline_url") or enketo_urls.get(
-                        "url"
-                    )
-                    MetaData.enketo_url(xform, _enketo_url)
-                elif data_type == "enketo_preview_url":
-                    _enketo_preview_url = enketo_urls.get("preview_url")
-                    MetaData.enketo_preview_url(xform, _enketo_preview_url)
+            form_url = get_form_url(
+                request,
+                username=username,
+                xform_pk=xform_pk,
+                generate_consistent_urls=generate_consistent_urls,
+            )
+            enketo_urls = get_enketo_urls(form_url, id_string)
+            if data_type == "enketo_url":
+                _enketo_url = enketo_urls.get("offline_url") or enketo_urls.get("url")
+                MetaData.enketo_url(xform, _enketo_url)
+            elif data_type == "enketo_preview_url":
+                _enketo_preview_url = enketo_urls.get("preview_url")
+                MetaData.enketo_preview_url(xform, _enketo_preview_url)
 
-                f.write(f"{id_string} : {data_value} \n")
+            enketo_urls_file.write(f"{id_string} : {data_value} \n")
             self.stdout.write(f"{data_type}: {meta_data.data_value}")
 
         self.stdout.write("enketo urls update complete!!")
