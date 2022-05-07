@@ -1,20 +1,25 @@
+# -*- coding=utf-8 -*-
+"""
+Chart utility functions.
+"""
 from __future__ import unicode_literals
 
 import re
-import six
-
-from builtins import str as text
 from collections import OrderedDict
 
 from django.db.utils import DataError
 from django.http import Http404
+
+import six
 from rest_framework.exceptions import ParseError
 
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.xform import XForm
-from onadata.libs.data.query import get_form_submissions_aggregated_by_select_one
-from onadata.libs.data.query import get_form_submissions_grouped_by_field
-from onadata.libs.data.query import get_form_submissions_grouped_by_select_one
+from onadata.libs.data.query import (
+    get_form_submissions_aggregated_by_select_one,
+    get_form_submissions_grouped_by_field,
+    get_form_submissions_grouped_by_select_one,
+)
 from onadata.libs.utils import common_tags
 
 # list of fields we can chart
@@ -65,23 +70,25 @@ def utc_time_string_for_javascript(date_string):
     match = timezone_re.match(date_string)
     if not match:
         raise ValueError(
-            "{} fos not match the format 2014-01-16T12:07:23.322+03".format(date_string)
+            f"{date_string} fos not match the format 2014-01-16T12:07:23.322+03"
         )
 
     date_time = match.groups()[0]
-    tz = match.groups()[1]
-    if len(tz) == 2:
-        tz += "00"
-    elif len(tz) != 4:
-        raise ValueError("len of {} must either be 2 or 4")
+    timezone = match.groups()[1]
+    if len(timezone) == 2:
+        timezone += "00"
+    elif len(timezone) != 4:
+        raise ValueError(f"len of {timezone} must either be 2 or 4")
 
-    return "{}+{}".format(date_time, tz)
+    return f"{date_time}+{timezone}"
 
 
 def find_choice_label(choices, string):
+    """Returns the choice label of the given ``string``."""
     for choice in choices:
         if choice["name"] == string:
             return choice["label"]
+    return None
 
 
 def get_field_choices(field, xform):
@@ -147,13 +154,13 @@ def _flatten_multiple_dict_into_one(field_name, group_by_name, data):
         for b in list({a.get(truncated_field_name) for a in data})
     ]
 
-    for a in data:
-        for b in final:
-            if a.get(truncated_field_name) == b.get(truncated_field_name):
-                b["items"].append(
+    for round_1 in data:
+        for round_2 in final:
+            if round_1.get(truncated_field_name) == round_2.get(truncated_field_name):
+                round_2["items"].append(
                     {
-                        truncated_group_by_name: a.get(truncated_group_by_name),
-                        "count": a.get("count"),
+                        truncated_group_by_name: round_1.get(truncated_group_by_name),
+                        "count": round_1.get("count"),
                     }
                 )
 
@@ -215,9 +222,11 @@ def _use_labels_from_group_by_name(field_name, field, data_type, data, choices=N
     return data
 
 
+# pylint: disable=too-many-locals,too-many-branches,too-many-arguments
 def build_chart_data_for_field(
     xform, field, language_index=0, choices=None, group_by=None, data_view=None
 ):
+    """Returns the chart data for a given field."""
     # check if its the special _submission_time META
     if isinstance(field, str):
         field_label, field_xpath, field_type = FIELD_DATA_MAP.get(field)
@@ -276,7 +285,7 @@ def build_chart_data_for_field(
                 xform, field_xpath, field_name, group_by_name, data_view
             )
         else:
-            raise ParseError("Cannot group by %s" % group_by_name)
+            raise ParseError(f"Cannot group by {group_by_name}")
     else:
         result = get_form_submissions_grouped_by_field(
             xform, field_xpath, field_name, data_view
@@ -293,15 +302,15 @@ def build_chart_data_for_field(
             group_by_name, group_by, group_by_data_type, result, choices=grp_choices
         )
     elif group_by and isinstance(group_by, list):
-        for g in group_by:
-            if isinstance(g, six.string_types):
+        for a_group in group_by:
+            if isinstance(a_group, six.string_types):
                 continue
 
-            group_by_data_type = DATA_TYPE_MAP.get(g.type, "categorized")
-            grp_choices = get_field_choices(g, xform)
+            group_by_data_type = DATA_TYPE_MAP.get(a_group.type, "categorized")
+            grp_choices = get_field_choices(a_group, xform)
             result = _use_labels_from_group_by_name(
-                g.get_abbreviated_xpath(),
-                g,
+                a_group.get_abbreviated_xpath(),
+                a_group,
                 group_by_data_type,
                 result,
                 choices=grp_choices,
@@ -314,10 +323,10 @@ def build_chart_data_for_field(
     if data_type == "time_based":
         result = [r for r in result if r.get(field_name) is not None]
         # for each check if it matches the timezone regexp and convert for js
-        for r in result:
-            if timezone_re.match(r[field_name]):
+        for row in result:
+            if timezone_re.match(row[field_name]):
                 try:
-                    r[field_name] = utc_time_string_for_javascript(r[field_name])
+                    row[field_name] = utc_time_string_for_javascript(row[field_name])
                 except ValueError:
                     pass
 
@@ -343,6 +352,7 @@ def calculate_ranges(page, items_per_page, total_items):
 
 
 def build_chart_data(xform, language_index=0, page=0):
+    """Returns chart data for all the fields in the ``xform``."""
     # only use chart-able fields
 
     fields = [e for e in xform.survey_elements if e.type in CHART_FIELDS]
@@ -360,6 +370,7 @@ def build_chart_data(xform, language_index=0, page=0):
 
 
 def build_chart_data_from_widget(widget, language_index=0):
+    """Returns chart data from a widget."""
 
     if isinstance(widget.content_object, XForm):
         xform = widget.content_object
@@ -378,7 +389,7 @@ def build_chart_data_from_widget(widget, language_index=0):
         fields = [e for e in xform.survey_elements if e.name == field_name]
 
         if len(fields) == 0:
-            raise ParseError("Field %s does not not exist on the form" % field_name)
+            raise ParseError(f"Field {field_name} does not not exist on the form")
 
         field = fields[0]
     choices = xform.survey.get("choices")
@@ -388,7 +399,7 @@ def build_chart_data_from_widget(widget, language_index=0):
     try:
         data = build_chart_data_for_field(xform, field, language_index, choices=choices)
     except DataError as e:
-        raise ParseError(text(e))
+        raise ParseError(str(e)) from e
 
     return data
 
@@ -405,22 +416,25 @@ def _get_field_from_field_fn(field_str, xform, field_fn):
         # use specified field to get summary
         fields = [e for e in xform.survey_elements if field_fn(e) == field_str]
         if len(fields) == 0:
-            raise Http404("Field %s does not not exist on the form" % field_str)
+            raise Http404(f"Field {field_str} does not not exist on the form")
         field = fields[0]
     return field
 
 
 def get_field_from_field_name(field_name, xform):
+    """Returns the field if the ``field_name`` is in the ``xform``."""
     return _get_field_from_field_fn(field_name, xform, lambda x: x.name)
 
 
 def get_field_from_field_xpath(field_xpath, xform):
+    """Returns the field if the ``field_xpath`` is in the ``xform``."""
     return _get_field_from_field_fn(
         field_xpath, xform, lambda x: x.get_abbreviated_xpath()
     )
 
 
 def get_field_label(field, language_index=0):
+    """Returns the ``field``'s label or name based on selected ``language_index``.'"""
     # check if label is dict i.e. multilang
     if isinstance(field.label, dict) and len(list(field.label)) > 0:
         languages = list(OrderedDict(field.label))
@@ -432,6 +446,7 @@ def get_field_label(field, language_index=0):
     return field_label
 
 
+# pylint: disable=too-many-arguments
 def get_chart_data_for_field(
     field_name, xform, accepted_format, group_by, field_xpath=None, data_view=None
 ):
@@ -461,7 +476,7 @@ def get_chart_data_for_field(
             xform, field, choices=choices, group_by=group_by, data_view=data_view
         )
     except DataError as e:
-        raise ParseError(text(e))
+        raise ParseError(str(e)) from e
     else:
         if accepted_format == "json" or not accepted_format:
             xform = xform.pk
