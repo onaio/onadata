@@ -35,7 +35,10 @@ class OsmData(models.Model):
         Returns sorted tag keys.
         """
         query = OsmData.objects.raw(
-            """SELECT DISTINCT JSONB_OBJECT_KEYS(tags) as id FROM "logger_osmdata" INNER JOIN "logger_instance" ON ( "logger_osmdata"."instance_id" = "logger_instance"."id" ) WHERE "logger_instance"."xform_id" = %s AND field_name = %s""",  # noqa
+            'SELECT DISTINCT JSONB_OBJECT_KEYS(tags) as id FROM "logger_osmdata"'
+            ' INNER JOIN "logger_instance"'
+            ' ON ( "logger_osmdata"."instance_id" = "logger_instance"."id" )'
+            ' WHERE "logger_instance"."xform_id" = %s AND field_name = %s',
             [xform.pk, field_path],
         )
         prefix = field_path + ":" if include_prefix else ""
