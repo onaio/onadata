@@ -84,3 +84,5 @@ tags
 .inputrc
 
 .eggs
+sonar-project.properties
+.scannerwork

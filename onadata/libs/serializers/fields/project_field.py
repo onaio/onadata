@@ -12,6 +12,7 @@ from onadata.apps.logger.models.project import Project
 class ProjectField(serializers.Field):
     """Project field for use with a Project object/instance."""
 
+    # pylint: disable=no-self-use
     def to_representation(self, value):
         """Returns the project pk."""
         return value.pk
