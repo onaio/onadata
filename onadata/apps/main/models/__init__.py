@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Main models.
+"""
 from __future__ import absolute_import
 
 from onadata.apps.main.models.user_profile import UserProfile  # noqa
