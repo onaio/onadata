@@ -8,8 +8,6 @@
     # via -r requirements/base.in
 -e git+https://github.com/onaio/django-multidb-router.git@f711368180d58eef87eda54fadfd5f8355623d52#egg=django-multidb-router
     # via -r requirements/base.in
--e git+https://github.com/onaio/oauth2client.git@75dfdee77fb640ae30469145c66440571dfeae5c#egg=oauth2client
-    # via -r requirements/base.in
 -e git+https://github.com/onaio/ona-oidc.git@v0.0.10#egg=ona-oidc
     # via -r requirements/base.in
 -e git+https://github.com/onaio/floip-py.git@3c980eb184069ae7c3c9136b18441978237cd41d#egg=pyfloip
@@ -192,9 +190,7 @@ greenlet==1.1.2
 httmock==1.4.0
     # via onadata
 httplib2==0.20.4
-    # via
-    #   oauth2client
-    #   onadata
+    # via onadata
 idna==3.3
     # via requests
 ijson==3.1.4
@@ -274,13 +270,10 @@ psycopg2-binary==2.9.3
     # via onadata
 pyasn1==0.4.8
     # via
-    #   oauth2client
     #   pyasn1-modules
     #   rsa
 pyasn1-modules==0.2.8
-    # via
-    #   google-auth
-    #   oauth2client
+    # via google-auth
 pycodestyle==2.8.0
     # via flake8
 pycparser==2.21
@@ -352,9 +345,7 @@ requests-oauthlib==1.3.1
 rfc3986==2.0.0
     # via tableschema
 rsa==4.8
-    # via
-    #   google-auth
-    #   oauth2client
+    # via google-auth
 s3transfer==0.5.2
     # via boto3
 savreaderwriter==3.4.2
@@ -372,7 +363,6 @@ six==1.16.0
     #   google-auth
     #   isodate
     #   linear-tsv
-    #   oauth2client
     #   python-dateutil
     #   python-memcached
     #   requests-mock
