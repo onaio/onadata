@@ -593,27 +593,21 @@ def generate_google_web_flow(request):
     return create_flow(redirect_uri)
 
 def _get_google_credential(request):
-    # TODO: Handle storage and retrieval
-    # token = None
-    # credential = None
-    # if request.user.is_authenticated:
-    #     storage = Storage(TokenStorageModel, "id", request.user, "credential")
-    #     credential = storage.get()
-    # elif request.session.get("access_token"):
-    #     credential = google_client.OAuth2Credentials.from_json(token)
+    token = None
+    credential = None
+    if request.user.is_authenticated:
+        storage = TokenStorageModel.objects.filter(id=request.user)
+        credential = storage.first()
+    #  elif request.session.get("access_token"):
+       #  credential = google_client.OAuth2Credentials.from_json(token)
 
-    # if credential:
-    #     try:
-    #         credential.get_access_token()
-    #     except HttpAccessTokenRefreshError:
-    #         try:
-    #             credential.revoke(httplib2.Http())
-    #         except TokenRevokeError:
-    #             storage.delete()
+    if credential:
+        credential.get_access_token()
 
     # if not credential or credential.invalid:
     #     google_flow = generate_google_web_flow(request)
     #     return HttpResponseRedirect(google_flow.step1_get_authorize_url())
     # return credential
     google_flow = generate_google_web_flow(request)
-    return HttpResponseRedirect(google_flow.authorization_url())
+    authorization_url, state = google_flow.authorization_url()
+    return HttpResponseRedirect(authorization_url)
