@@ -469,16 +469,12 @@ def create_export(request, username, id_string, export_type):
 
 
 def _get_google_credential(request):
-    # token = None
-    # if request.user.is_authenticated:
-    #     storage = Storage(TokenStorageModel, "id", request.user, "credential")
-    #     credential = storage.get()
-    # elif request.session.get("access_token"):
-    #     credential = google_client.OAuth2Credentials.from_json(token)
-    #
-    # return credential or HttpResponseRedirect(google_flow.step1_get_authorize_url())
     google_flow = create_flow()
-    return HttpResponseRedirect(google_flow.authorization_url())
+    return HttpResponseRedirect(
+        google_flow.authorization_url(
+            access_type="offline", include_granted_scopes="true"
+        )
+    )
 
 
 def export_list(request, username, id_string, export_type):  # noqa C901
