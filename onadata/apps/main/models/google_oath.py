@@ -10,7 +10,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import encoding
 
-from google.auth.credentials import Credentials
+from google.oauth2.credentials import Credentials
 
 
 class CredentialsField(models.Field):
@@ -28,7 +28,7 @@ class CredentialsField(models.Field):
     def get_internal_type(self):
         return 'BinaryField'
 
-    def from_db_value(self, value, expression, connection, context):
+    def from_db_value(self, value, expression, connection, context=None):
         """Overrides ``models.Field`` method. This converts the value
         returned from the database to an instance of this class.
         """
