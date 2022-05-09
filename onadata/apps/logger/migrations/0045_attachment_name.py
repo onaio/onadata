@@ -8,13 +8,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0044_xform_hash_sql_update'),
+        ("logger", "0044_xform_hash_sql_update"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='attachment',
-            name='name',
+            model_name="attachment",
+            name="name",
             field=models.CharField(blank=True, max_length=100, null=True),
         ),
     ]

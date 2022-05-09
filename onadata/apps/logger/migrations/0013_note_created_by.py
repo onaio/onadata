@@ -9,15 +9,19 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('logger', '0012_auto_20160114_0708'),
+        ("logger", "0012_auto_20160114_0708"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='note',
-            name='created_by',
-            field=models.ForeignKey(blank=True, to=settings.AUTH_USER_MODEL,
-                                    null=True, on_delete=models.CASCADE),
+            model_name="note",
+            name="created_by",
+            field=models.ForeignKey(
+                blank=True,
+                to=settings.AUTH_USER_MODEL,
+                null=True,
+                on_delete=models.CASCADE,
+            ),
             preserve_default=True,
         ),
     ]

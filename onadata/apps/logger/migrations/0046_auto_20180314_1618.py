@@ -8,13 +8,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0045_attachment_name'),
+        ("logger", "0045_attachment_name"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='xform',
-            name='uuid',
-            field=models.CharField(default='', max_length=36),
+            model_name="xform",
+            name="uuid",
+            field=models.CharField(default="", max_length=36),
         ),
     ]

@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0056_auto_20190125_0517'),
+        ("logger", "0056_auto_20190125_0517"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='xform',
-            name='public_key',
-            field=models.TextField(default=''),
+            model_name="xform",
+            name="public_key",
+            field=models.TextField(default=""),
         ),
     ]

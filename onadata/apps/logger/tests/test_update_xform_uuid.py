@@ -14,7 +14,8 @@ class TestUpdateXFormUUID(TestBase):
         #
         self.csv_filepath = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "fixtures", "test_update_xform_uuids.csv"
+            "fixtures",
+            "test_update_xform_uuids.csv",
         )
         # get the last defined uuid
         with open(self.csv_filepath, "r") as f:
@@ -33,8 +34,7 @@ class TestUpdateXFormUUID(TestBase):
         self.xform.uuid = self.new_uuid
         self.xform.save()
         try:
-            update_xform_uuid(self.user.username, self.xform.id_string,
-                              self.new_uuid)
+            update_xform_uuid(self.user.username, self.xform.id_string, self.new_uuid)
         except DuplicateUUIDError:
             self.assertTrue(True)
         else:

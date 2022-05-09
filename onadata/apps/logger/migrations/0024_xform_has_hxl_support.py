@@ -8,13 +8,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0023_auto_20160419_0403'),
+        ("logger", "0023_auto_20160419_0403"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='xform',
-            name='has_hxl_support',
+            model_name="xform",
+            name="has_hxl_support",
             field=models.BooleanField(default=False),
         ),
     ]

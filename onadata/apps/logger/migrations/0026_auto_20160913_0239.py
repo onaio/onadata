@@ -8,13 +8,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0025_xform_last_updated_at'),
+        ("logger", "0025_xform_last_updated_at"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='osmdata',
-            name='osm_id',
+            model_name="osmdata",
+            name="osm_id",
             field=models.CharField(max_length=20),
         ),
     ]

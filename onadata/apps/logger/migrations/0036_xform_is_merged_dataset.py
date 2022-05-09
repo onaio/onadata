@@ -8,13 +8,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0035_auto_20170712_0529'),
+        ("logger", "0035_auto_20170712_0529"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='xform',
-            name='is_merged_dataset',
+            model_name="xform",
+            name="is_merged_dataset",
             field=models.BooleanField(default=False),
         ),
     ]

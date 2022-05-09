@@ -21,16 +21,17 @@ def recalculate_xform_hash(apps, schema_editor):  # pylint: disable=W0613
     """
     Recalculate all XForm hashes.
     """
-    XForm = apps.get_model('logger', 'XForm')  # pylint: disable=C0103
-    xforms = XForm.objects.filter(downloadable=True,
-                                  deleted_at__isnull=True).only('xml')
+    XForm = apps.get_model("logger", "XForm")  # pylint: disable=C0103
+    xforms = XForm.objects.filter(downloadable=True, deleted_at__isnull=True).only(
+        "xml"
+    )
     count = xforms.count()
     counter = 0
 
     for xform in queryset_iterator(xforms, 500):
-        hash_value = md5(xform.xml.encode('utf8')).hexdigest()
+        hash_value = md5(xform.xml.encode("utf8")).hexdigest()
         xform.hash = f"md5:{hash_value}"
-        xform.save(update_fields=['hash'])
+        xform.save(update_fields=["hash"])
         counter += 1
         if counter % 500 == 0:
             print(f"Processed {counter} of {count} forms.")
@@ -42,9 +43,9 @@ def generate_uuid_if_missing(apps, schema_editor):
     """
     Generate uuids for XForms without them
     """
-    XForm = apps.get_model('logger', 'XForm')
+    XForm = apps.get_model("logger", "XForm")
 
-    for xform in XForm.objects.filter(uuid=''):
+    for xform in XForm.objects.filter(uuid=""):
         xform.uuid = onadata.libs.utils.common_tools.get_uuid()
         xform.save()
 
@@ -54,9 +55,10 @@ def regenerate_instance_json(apps, schema_editor):
     Regenerate Instance JSON
     """
     for inst in Instance.objects.filter(
-            deleted_at__isnull=True,
-            xform__downloadable=True,
-            xform__deleted_at__isnull=True):
+        deleted_at__isnull=True,
+        xform__downloadable=True,
+        xform__deleted_at__isnull=True,
+    ):
         inst.json = inst.get_full_dict(load_existing=False)
         inst.save()
 
@@ -67,8 +69,7 @@ def create_initial_xform_version(apps, schema_editor):
     Version
     """
     queryset = onadata.apps.logger.models.xform.XForm.objects.filter(
-        downloadable=True,
-        deleted_at__isnull=True
+        downloadable=True, deleted_at__isnull=True
     )
     for xform in queryset.iterator():
         if xform.version:
@@ -76,462 +77,1191 @@ def create_initial_xform_version(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    replaces = [('logger', '0001_initial'), ('logger', '0002_auto_20150717_0048'), ('logger', '0003_dataview_instances_with_geopoints'), ('logger', '0004_auto_20150910_0056'), ('logger', '0005_auto_20151015_0758'), ('logger', '0006_auto_20151106_0130'), ('logger', '0007_osmdata_field_name'), ('logger', '0008_osmdata_osm_type'), ('logger', '0009_auto_20151111_0438'), ('logger', '0010_attachment_file_size'), ('logger', '0011_dataview_matches_parent'), ('logger', '0012_auto_20160114_0708'), ('logger', '0013_note_created_by'), ('logger', '0014_note_instance_field'), ('logger', '0015_auto_20160222_0559'), ('logger', '0016_widget_aggregation'), ('logger', '0017_auto_20160224_0130'), ('logger', '0018_auto_20160301_0330'), ('logger', '0019_auto_20160307_0256'), ('logger', '0020_auto_20160408_0325'), ('logger', '0021_auto_20160408_0919'), ('logger', '0022_auto_20160418_0518'), ('logger', '0023_auto_20160419_0403'), ('logger', '0024_xform_has_hxl_support'), ('logger', '0025_xform_last_updated_at'), ('logger', '0026_auto_20160913_0239'), ('logger', '0027_auto_20161201_0730'), ('logger', '0028_auto_20170221_0838'), ('logger', '0029_auto_20170221_0908'), ('logger', '0030_auto_20170227_0137'), ('logger', '0028_auto_20170217_0502'), ('logger', '0031_merge'), ('logger', '0032_project_deleted_at'), ('logger', '0033_auto_20170705_0159'), ('logger', '0034_mergedxform'), ('logger', '0035_auto_20170712_0529'), ('logger', '0036_xform_is_merged_dataset'), ('logger', '0034_auto_20170814_0432'), ('logger', '0037_merge_20170825_0238'), ('logger', '0038_auto_20170828_1718'), ('logger', '0039_auto_20170909_2052'), ('logger', '0040_auto_20170912_1504'), ('logger', '0041_auto_20170912_1512'), ('logger', '0042_xform_hash'), ('logger', '0043_auto_20171010_0403'), ('logger', '0044_xform_hash_sql_update'), ('logger', '0045_attachment_name'), ('logger', '0046_auto_20180314_1618'), ('logger', '0047_dataview_deleted_at'), ('logger', '0048_dataview_deleted_by'), ('logger', '0049_xform_deleted_by'), ('logger', '0050_project_deleted_by'), ('logger', '0051_auto_20180522_1118'), ('logger', '0052_auto_20180805_2233'), ('logger', '0053_submissionreview'), ('logger', '0054_instance_has_a_review'), ('logger', '0055_auto_20180904_0713'), ('logger', '0056_auto_20190125_0517'), ('logger', '0057_xform_public_key'), ('logger', '0058_auto_20191211_0900'), ('logger', '0059_attachment_deleted_by'), ('logger', '0060_auto_20200305_0357'), ('logger', '0061_auto_20200713_0814'), ('logger', '0062_auto_20210202_0248'), ('logger', '0063_xformversion'), ('logger', '0064_auto_20210304_0314')]
+    replaces = [
+        ("logger", "0001_initial"),
+        ("logger", "0002_auto_20150717_0048"),
+        ("logger", "0003_dataview_instances_with_geopoints"),
+        ("logger", "0004_auto_20150910_0056"),
+        ("logger", "0005_auto_20151015_0758"),
+        ("logger", "0006_auto_20151106_0130"),
+        ("logger", "0007_osmdata_field_name"),
+        ("logger", "0008_osmdata_osm_type"),
+        ("logger", "0009_auto_20151111_0438"),
+        ("logger", "0010_attachment_file_size"),
+        ("logger", "0011_dataview_matches_parent"),
+        ("logger", "0012_auto_20160114_0708"),
+        ("logger", "0013_note_created_by"),
+        ("logger", "0014_note_instance_field"),
+        ("logger", "0015_auto_20160222_0559"),
+        ("logger", "0016_widget_aggregation"),
+        ("logger", "0017_auto_20160224_0130"),
+        ("logger", "0018_auto_20160301_0330"),
+        ("logger", "0019_auto_20160307_0256"),
+        ("logger", "0020_auto_20160408_0325"),
+        ("logger", "0021_auto_20160408_0919"),
+        ("logger", "0022_auto_20160418_0518"),
+        ("logger", "0023_auto_20160419_0403"),
+        ("logger", "0024_xform_has_hxl_support"),
+        ("logger", "0025_xform_last_updated_at"),
+        ("logger", "0026_auto_20160913_0239"),
+        ("logger", "0027_auto_20161201_0730"),
+        ("logger", "0028_auto_20170221_0838"),
+        ("logger", "0029_auto_20170221_0908"),
+        ("logger", "0030_auto_20170227_0137"),
+        ("logger", "0028_auto_20170217_0502"),
+        ("logger", "0031_merge"),
+        ("logger", "0032_project_deleted_at"),
+        ("logger", "0033_auto_20170705_0159"),
+        ("logger", "0034_mergedxform"),
+        ("logger", "0035_auto_20170712_0529"),
+        ("logger", "0036_xform_is_merged_dataset"),
+        ("logger", "0034_auto_20170814_0432"),
+        ("logger", "0037_merge_20170825_0238"),
+        ("logger", "0038_auto_20170828_1718"),
+        ("logger", "0039_auto_20170909_2052"),
+        ("logger", "0040_auto_20170912_1504"),
+        ("logger", "0041_auto_20170912_1512"),
+        ("logger", "0042_xform_hash"),
+        ("logger", "0043_auto_20171010_0403"),
+        ("logger", "0044_xform_hash_sql_update"),
+        ("logger", "0045_attachment_name"),
+        ("logger", "0046_auto_20180314_1618"),
+        ("logger", "0047_dataview_deleted_at"),
+        ("logger", "0048_dataview_deleted_by"),
+        ("logger", "0049_xform_deleted_by"),
+        ("logger", "0050_project_deleted_by"),
+        ("logger", "0051_auto_20180522_1118"),
+        ("logger", "0052_auto_20180805_2233"),
+        ("logger", "0053_submissionreview"),
+        ("logger", "0054_instance_has_a_review"),
+        ("logger", "0055_auto_20180904_0713"),
+        ("logger", "0056_auto_20190125_0517"),
+        ("logger", "0057_xform_public_key"),
+        ("logger", "0058_auto_20191211_0900"),
+        ("logger", "0059_attachment_deleted_by"),
+        ("logger", "0060_auto_20200305_0357"),
+        ("logger", "0061_auto_20200713_0814"),
+        ("logger", "0062_auto_20210202_0248"),
+        ("logger", "0063_xformversion"),
+        ("logger", "0064_auto_20210304_0314"),
+    ]
 
     initial = True
 
     dependencies = [
-        ('contenttypes', '0002_remove_content_type_name'),
+        ("contenttypes", "0002_remove_content_type_name"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('auth', '0001_initial'),
-        ('taggit', '0001_initial'),
-        ('contenttypes', '0001_initial'),
+        ("auth", "0001_initial"),
+        ("taggit", "0001_initial"),
+        ("contenttypes", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Project',
+            name="Project",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=255)),
-                ('metadata', django.contrib.postgres.fields.jsonb.JSONField(default=dict)),
-                ('shared', models.BooleanField(default=False)),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('created_by', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='project_owner', to=settings.AUTH_USER_MODEL)),
-                ('organization', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='project_org', to=settings.AUTH_USER_MODEL)),
-                ('tags', taggit.managers.TaggableManager(help_text='A comma-separated list of tags.', through='taggit.TaggedItem', to='taggit.Tag', verbose_name='Tags')),
-                ('user_stars', models.ManyToManyField(related_name='project_stars', to=settings.AUTH_USER_MODEL)),
-                ('deleted_at', models.DateTimeField(blank=True, null=True)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                (
+                    "metadata",
+                    django.contrib.postgres.fields.jsonb.JSONField(default=dict),
+                ),
+                ("shared", models.BooleanField(default=False)),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="project_owner",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "organization",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="project_org",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "tags",
+                    taggit.managers.TaggableManager(
+                        help_text="A comma-separated list of tags.",
+                        through="taggit.TaggedItem",
+                        to="taggit.Tag",
+                        verbose_name="Tags",
+                    ),
+                ),
+                (
+                    "user_stars",
+                    models.ManyToManyField(
+                        related_name="project_stars", to=settings.AUTH_USER_MODEL
+                    ),
+                ),
+                ("deleted_at", models.DateTimeField(blank=True, null=True)),
             ],
             options={
-                'permissions': (('view_project', 'Can view project'), ('add_project_xform', 'Can add xform to project'), ('report_project_xform', 'Can make submissions to the project'), ('transfer_project', 'Can transfer project to different owner'), ('can_export_project_data', 'Can export data in project'), ('view_project_all', 'Can view all associated data'), ('view_project_data', 'Can view submitted data')),
-                'unique_together': {('name', 'organization')},
+                "permissions": (
+                    ("view_project", "Can view project"),
+                    ("add_project_xform", "Can add xform to project"),
+                    ("report_project_xform", "Can make submissions to the project"),
+                    ("transfer_project", "Can transfer project to different owner"),
+                    ("can_export_project_data", "Can export data in project"),
+                    ("view_project_all", "Can view all associated data"),
+                    ("view_project_data", "Can view submitted data"),
+                ),
+                "unique_together": {("name", "organization")},
             },
         ),
         migrations.CreateModel(
-            name='SurveyType',
+            name="SurveyType",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('slug', models.CharField(max_length=100, unique=True)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("slug", models.CharField(max_length=100, unique=True)),
             ],
         ),
         migrations.CreateModel(
-            name='XForm',
+            name="XForm",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('xls', models.FileField(null=True, upload_to=onadata.apps.logger.models.xform.upload_to)),
-                ('json', models.TextField(default='')),
-                ('description', models.TextField(blank=True, default='', null=True)),
-                ('xml', models.TextField()),
-                ('require_auth', models.BooleanField(default=False)),
-                ('shared', models.BooleanField(default=False)),
-                ('shared_data', models.BooleanField(default=False)),
-                ('downloadable', models.BooleanField(default=True)),
-                ('allows_sms', models.BooleanField(default=False)),
-                ('encrypted', models.BooleanField(default=False)),
-                ('sms_id_string', models.SlugField(default=b'', editable=False, max_length=100, verbose_name='SMS ID')),
-                ('id_string', models.SlugField(editable=False, max_length=100, verbose_name='ID')),
-                ('title', models.CharField(editable=False, max_length=255)),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('deleted_at', models.DateTimeField(blank=True, null=True)),
-                ('last_submission_time', models.DateTimeField(blank=True, null=True)),
-                ('has_start_time', models.BooleanField(default=False)),
-                ('uuid', models.CharField(default='', max_length=32)),
-                ('bamboo_dataset', models.CharField(default='', max_length=60)),
-                ('instances_with_geopoints', models.BooleanField(default=False)),
-                ('instances_with_osm', models.BooleanField(default=False)),
-                ('num_of_submissions', models.IntegerField(default=0)),
-                ('version', models.CharField(blank=True, max_length=255, null=True)),
-                ('created_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
-                ('project', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='logger.project')),
-                ('tags', taggit.managers.TaggableManager(help_text='A comma-separated list of tags.', through='taggit.TaggedItem', to='taggit.Tag', verbose_name='Tags')),
-                ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='xforms', to=settings.AUTH_USER_MODEL)),
-                ('has_hxl_support', models.BooleanField(default=False)),
-                ('last_updated_at', models.DateTimeField(auto_now=True, default=datetime.datetime(2016, 8, 18, 12, 43, 30, 316792, tzinfo=utc))),
-                ('is_merged_dataset', models.BooleanField(default=False)),
-                ('hash', models.CharField(blank=True, default=None, max_length=36, null=True, verbose_name='Hash')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "xls",
+                    models.FileField(
+                        null=True, upload_to=onadata.apps.logger.models.xform.upload_to
+                    ),
+                ),
+                ("json", models.TextField(default="")),
+                ("description", models.TextField(blank=True, default="", null=True)),
+                ("xml", models.TextField()),
+                ("require_auth", models.BooleanField(default=False)),
+                ("shared", models.BooleanField(default=False)),
+                ("shared_data", models.BooleanField(default=False)),
+                ("downloadable", models.BooleanField(default=True)),
+                ("allows_sms", models.BooleanField(default=False)),
+                ("encrypted", models.BooleanField(default=False)),
+                (
+                    "sms_id_string",
+                    models.SlugField(
+                        default=b"",
+                        editable=False,
+                        max_length=100,
+                        verbose_name="SMS ID",
+                    ),
+                ),
+                (
+                    "id_string",
+                    models.SlugField(editable=False, max_length=100, verbose_name="ID"),
+                ),
+                ("title", models.CharField(editable=False, max_length=255)),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                ("deleted_at", models.DateTimeField(blank=True, null=True)),
+                ("last_submission_time", models.DateTimeField(blank=True, null=True)),
+                ("has_start_time", models.BooleanField(default=False)),
+                ("uuid", models.CharField(default="", max_length=32)),
+                ("bamboo_dataset", models.CharField(default="", max_length=60)),
+                ("instances_with_geopoints", models.BooleanField(default=False)),
+                ("instances_with_osm", models.BooleanField(default=False)),
+                ("num_of_submissions", models.IntegerField(default=0)),
+                ("version", models.CharField(blank=True, max_length=255, null=True)),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "project",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="logger.project"
+                    ),
+                ),
+                (
+                    "tags",
+                    taggit.managers.TaggableManager(
+                        help_text="A comma-separated list of tags.",
+                        through="taggit.TaggedItem",
+                        to="taggit.Tag",
+                        verbose_name="Tags",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="xforms",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                ("has_hxl_support", models.BooleanField(default=False)),
+                (
+                    "last_updated_at",
+                    models.DateTimeField(
+                        auto_now=True,
+                        default=datetime.datetime(
+                            2016, 8, 18, 12, 43, 30, 316792, tzinfo=utc
+                        ),
+                    ),
+                ),
+                ("is_merged_dataset", models.BooleanField(default=False)),
+                (
+                    "hash",
+                    models.CharField(
+                        blank=True,
+                        default=None,
+                        max_length=36,
+                        null=True,
+                        verbose_name="Hash",
+                    ),
+                ),
             ],
             options={
-                'ordering': ('pk',),
-                'verbose_name': 'XForm',
-                'verbose_name_plural': 'XForms',
-                'permissions': (('view_xform', 'Can view associated data'), ('view_xform_all', 'Can view all associated data'), ('view_xform_data', 'Can view submitted data'), ('report_xform', 'Can make submissions to the form'), ('move_xform', 'Can move form between projects'), ('transfer_xform', 'Can transfer form ownership.'), ('can_export_xform_data', 'Can export form data'), ('delete_submission', 'Can delete submissions from form')),
-                'unique_together': {('user', 'id_string', 'project'), ('user', 'sms_id_string', 'project')},
+                "ordering": ("pk",),
+                "verbose_name": "XForm",
+                "verbose_name_plural": "XForms",
+                "permissions": (
+                    ("view_xform", "Can view associated data"),
+                    ("view_xform_all", "Can view all associated data"),
+                    ("view_xform_data", "Can view submitted data"),
+                    ("report_xform", "Can make submissions to the form"),
+                    ("move_xform", "Can move form between projects"),
+                    ("transfer_xform", "Can transfer form ownership."),
+                    ("can_export_xform_data", "Can export form data"),
+                    ("delete_submission", "Can delete submissions from form"),
+                ),
+                "unique_together": {
+                    ("user", "id_string", "project"),
+                    ("user", "sms_id_string", "project"),
+                },
             },
         ),
         migrations.CreateModel(
-            name='Instance',
+            name="Instance",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('json', django.contrib.postgres.fields.jsonb.JSONField(default=dict)),
-                ('xml', models.TextField()),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('deleted_at', models.DateTimeField(default=None, null=True)),
-                ('status', models.CharField(default='submitted_via_web', max_length=20)),
-                ('uuid', models.CharField(db_index=True, default='', max_length=249)),
-                ('version', models.CharField(max_length=255, null=True)),
-                ('geom', django.contrib.gis.db.models.fields.GeometryCollectionField(null=True, srid=4326)),
-                ('survey_type', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='logger.surveytype')),
-                ('tags', taggit.managers.TaggableManager(help_text='A comma-separated list of tags.', through='taggit.TaggedItem', to='taggit.Tag', verbose_name='Tags')),
-                ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='instances', to=settings.AUTH_USER_MODEL)),
-                ('xform', models.ForeignKey(default=328, on_delete=django.db.models.deletion.CASCADE, related_name='instances', to='logger.xform')),
-                ('last_edited', models.DateTimeField(default=None, null=True)),
-                ('media_all_received', models.NullBooleanField(default=True, verbose_name='Received All Media Attachemts')),
-                ('media_count', models.PositiveIntegerField(default=0, null=True, verbose_name='Received Media Attachments')),
-                ('total_media', models.PositiveIntegerField(default=0, null=True, verbose_name='Total Media Attachments')),
-                ('checksum', models.CharField(blank=True, db_index=True, max_length=64, null=True)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("json", django.contrib.postgres.fields.jsonb.JSONField(default=dict)),
+                ("xml", models.TextField()),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                ("deleted_at", models.DateTimeField(default=None, null=True)),
+                (
+                    "status",
+                    models.CharField(default="submitted_via_web", max_length=20),
+                ),
+                ("uuid", models.CharField(db_index=True, default="", max_length=249)),
+                ("version", models.CharField(max_length=255, null=True)),
+                (
+                    "geom",
+                    django.contrib.gis.db.models.fields.GeometryCollectionField(
+                        null=True, srid=4326
+                    ),
+                ),
+                (
+                    "survey_type",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="logger.surveytype",
+                    ),
+                ),
+                (
+                    "tags",
+                    taggit.managers.TaggableManager(
+                        help_text="A comma-separated list of tags.",
+                        through="taggit.TaggedItem",
+                        to="taggit.Tag",
+                        verbose_name="Tags",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="instances",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "xform",
+                    models.ForeignKey(
+                        default=328,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="instances",
+                        to="logger.xform",
+                    ),
+                ),
+                ("last_edited", models.DateTimeField(default=None, null=True)),
+                (
+                    "media_all_received",
+                    models.NullBooleanField(
+                        default=True, verbose_name="Received All Media Attachemts"
+                    ),
+                ),
+                (
+                    "media_count",
+                    models.PositiveIntegerField(
+                        default=0, null=True, verbose_name="Received Media Attachments"
+                    ),
+                ),
+                (
+                    "total_media",
+                    models.PositiveIntegerField(
+                        default=0, null=True, verbose_name="Total Media Attachments"
+                    ),
+                ),
+                (
+                    "checksum",
+                    models.CharField(
+                        blank=True, db_index=True, max_length=64, null=True
+                    ),
+                ),
             ],
             options={
-                'unique_together': {('xform', 'uuid')},
+                "unique_together": {("xform", "uuid")},
             },
         ),
         migrations.CreateModel(
-            name='ProjectUserObjectPermission',
+            name="ProjectUserObjectPermission",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('content_object', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='logger.project')),
-                ('permission', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='auth.permission')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "content_object",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="logger.project"
+                    ),
+                ),
+                (
+                    "permission",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="auth.permission",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
-                'unique_together': {('user', 'permission', 'content_object')},
+                "abstract": False,
+                "unique_together": {("user", "permission", "content_object")},
             },
         ),
         migrations.CreateModel(
-            name='ProjectGroupObjectPermission',
+            name="ProjectGroupObjectPermission",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('content_object', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='logger.project')),
-                ('group', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='auth.group')),
-                ('permission', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='auth.permission')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "content_object",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="logger.project"
+                    ),
+                ),
+                (
+                    "group",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="auth.group"
+                    ),
+                ),
+                (
+                    "permission",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="auth.permission",
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
-                'unique_together': {('group', 'permission', 'content_object')},
+                "abstract": False,
+                "unique_together": {("group", "permission", "content_object")},
             },
         ),
         migrations.CreateModel(
-            name='XFormUserObjectPermission',
+            name="XFormUserObjectPermission",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('content_object', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='logger.xform')),
-                ('permission', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='auth.permission')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "content_object",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="logger.xform"
+                    ),
+                ),
+                (
+                    "permission",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="auth.permission",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
-                'unique_together': {('user', 'permission', 'content_object')},
+                "abstract": False,
+                "unique_together": {("user", "permission", "content_object")},
             },
         ),
         migrations.CreateModel(
-            name='XFormGroupObjectPermission',
+            name="XFormGroupObjectPermission",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('content_object', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='logger.xform')),
-                ('group', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='auth.group')),
-                ('permission', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='auth.permission')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "content_object",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="logger.xform"
+                    ),
+                ),
+                (
+                    "group",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="auth.group"
+                    ),
+                ),
+                (
+                    "permission",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="auth.permission",
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
-                'unique_together': {('group', 'permission', 'content_object')},
+                "abstract": False,
+                "unique_together": {("group", "permission", "content_object")},
             },
         ),
         migrations.CreateModel(
-            name='Note',
+            name="Note",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('note', models.TextField()),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('instance', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='notes', to='logger.instance')),
-                ('created_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
-                ('instance_field', models.TextField(blank=True, null=True)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("note", models.TextField()),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                (
+                    "instance",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="notes",
+                        to="logger.instance",
+                    ),
+                ),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                ("instance_field", models.TextField(blank=True, null=True)),
             ],
             options={
-                'permissions': (('view_note', 'View note'),),
+                "permissions": (("view_note", "View note"),),
             },
         ),
         migrations.CreateModel(
-            name='DataView',
+            name="DataView",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=255)),
-                ('columns', django.contrib.postgres.fields.jsonb.JSONField()),
-                ('query', django.contrib.postgres.fields.jsonb.JSONField(blank=True, default=dict)),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('project', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='logger.project')),
-                ('xform', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='logger.xform')),
-                ('instances_with_geopoints', models.BooleanField(default=False)),
-                ('matches_parent', models.BooleanField(default=False)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                ("columns", django.contrib.postgres.fields.jsonb.JSONField()),
+                (
+                    "query",
+                    django.contrib.postgres.fields.jsonb.JSONField(
+                        blank=True, default=dict
+                    ),
+                ),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                (
+                    "project",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="logger.project"
+                    ),
+                ),
+                (
+                    "xform",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="logger.xform"
+                    ),
+                ),
+                ("instances_with_geopoints", models.BooleanField(default=False)),
+                ("matches_parent", models.BooleanField(default=False)),
             ],
             options={
-                'verbose_name': 'Data View',
-                'verbose_name_plural': 'Data Views',
+                "verbose_name": "Data View",
+                "verbose_name_plural": "Data Views",
             },
         ),
         migrations.CreateModel(
-            name='OsmData',
+            name="OsmData",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('xml', models.TextField()),
-                ('osm_id', models.CharField(max_length=20)),
-                ('tags', django.contrib.postgres.fields.jsonb.JSONField(default=dict)),
-                ('geom', django.contrib.gis.db.models.fields.GeometryCollectionField(srid=4326)),
-                ('filename', models.CharField(max_length=255)),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('deleted_at', models.DateTimeField(default=None, null=True)),
-                ('instance', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='osm_data', to='logger.instance')),
-                ('field_name', models.CharField(blank=True, default=b'', max_length=255)),
-                ('osm_type', models.CharField(default=b'way', max_length=10)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("xml", models.TextField()),
+                ("osm_id", models.CharField(max_length=20)),
+                ("tags", django.contrib.postgres.fields.jsonb.JSONField(default=dict)),
+                (
+                    "geom",
+                    django.contrib.gis.db.models.fields.GeometryCollectionField(
+                        srid=4326
+                    ),
+                ),
+                ("filename", models.CharField(max_length=255)),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                ("deleted_at", models.DateTimeField(default=None, null=True)),
+                (
+                    "instance",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="osm_data",
+                        to="logger.instance",
+                    ),
+                ),
+                (
+                    "field_name",
+                    models.CharField(blank=True, default=b"", max_length=255),
+                ),
+                ("osm_type", models.CharField(default=b"way", max_length=10)),
             ],
             options={
-                'unique_together': {('instance', 'field_name')},
+                "unique_together": {("instance", "field_name")},
             },
         ),
         migrations.CreateModel(
-            name='Widget',
+            name="Widget",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('object_id', models.PositiveIntegerField()),
-                ('widget_type', models.CharField(choices=[(b'charts', b'Charts')], default=b'charts', max_length=25)),
-                ('view_type', models.CharField(max_length=50)),
-                ('column', models.CharField(max_length=255)),
-                ('group_by', models.CharField(blank=True, default=None, max_length=255, null=True)),
-                ('title', models.CharField(blank=True, default=None, max_length=255, null=True)),
-                ('description', models.CharField(blank=True, default=None, max_length=255, null=True)),
-                ('key', models.CharField(db_index=True, max_length=32, unique=True)),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('content_type', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='contenttypes.contenttype')),
-                ('order', models.PositiveIntegerField(db_index=True, default=0, editable=False)),
-                ('aggregation', models.CharField(blank=True, default=None, max_length=255, null=True)),
-                ('metadata', django.contrib.postgres.fields.jsonb.JSONField(blank=True, default=dict)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("object_id", models.PositiveIntegerField()),
+                (
+                    "widget_type",
+                    models.CharField(
+                        choices=[(b"charts", b"Charts")],
+                        default=b"charts",
+                        max_length=25,
+                    ),
+                ),
+                ("view_type", models.CharField(max_length=50)),
+                ("column", models.CharField(max_length=255)),
+                (
+                    "group_by",
+                    models.CharField(
+                        blank=True, default=None, max_length=255, null=True
+                    ),
+                ),
+                (
+                    "title",
+                    models.CharField(
+                        blank=True, default=None, max_length=255, null=True
+                    ),
+                ),
+                (
+                    "description",
+                    models.CharField(
+                        blank=True, default=None, max_length=255, null=True
+                    ),
+                ),
+                ("key", models.CharField(db_index=True, max_length=32, unique=True)),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                (
+                    "content_type",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="contenttypes.contenttype",
+                    ),
+                ),
+                (
+                    "order",
+                    models.PositiveIntegerField(
+                        db_index=True, default=0, editable=False
+                    ),
+                ),
+                (
+                    "aggregation",
+                    models.CharField(
+                        blank=True, default=None, max_length=255, null=True
+                    ),
+                ),
+                (
+                    "metadata",
+                    django.contrib.postgres.fields.jsonb.JSONField(
+                        blank=True, default=dict
+                    ),
+                ),
             ],
             options={
-                'ordering': ('order',),
+                "ordering": ("order",),
             },
         ),
         migrations.CreateModel(
-            name='OpenData',
+            name="OpenData",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=255)),
-                ('uuid', models.CharField(default=onadata.libs.utils.common_tools.get_uuid, max_length=32, unique=True)),
-                ('object_id', models.PositiveIntegerField(blank=True, null=True)),
-                ('active', models.BooleanField(default=True)),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('content_type', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='contenttypes.contenttype')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                (
+                    "uuid",
+                    models.CharField(
+                        default=onadata.libs.utils.common_tools.get_uuid,
+                        max_length=32,
+                        unique=True,
+                    ),
+                ),
+                ("object_id", models.PositiveIntegerField(blank=True, null=True)),
+                ("active", models.BooleanField(default=True)),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                (
+                    "content_type",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="contenttypes.contenttype",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Attachment',
+            name="Attachment",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('media_file', models.FileField(max_length=255, upload_to=onadata.apps.logger.models.attachment.upload_to)),
-                ('mimetype', models.CharField(blank=True, default=b'', max_length=100)),
-                ('extension', models.CharField(db_index=True, default='non', max_length=10)),
-                ('instance', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='attachments', to='logger.instance')),
-                ('date_created', models.DateTimeField(auto_now_add=True, null=True)),
-                ('date_modified', models.DateTimeField(auto_now=True, null=True)),
-                ('deleted_at', models.DateTimeField(default=None, null=True)),
-                ('file_size', models.PositiveIntegerField(default=0)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "media_file",
+                    models.FileField(
+                        max_length=255,
+                        upload_to=onadata.apps.logger.models.attachment.upload_to,
+                    ),
+                ),
+                ("mimetype", models.CharField(blank=True, default=b"", max_length=100)),
+                (
+                    "extension",
+                    models.CharField(db_index=True, default="non", max_length=10),
+                ),
+                (
+                    "instance",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="attachments",
+                        to="logger.instance",
+                    ),
+                ),
+                ("date_created", models.DateTimeField(auto_now_add=True, null=True)),
+                ("date_modified", models.DateTimeField(auto_now=True, null=True)),
+                ("deleted_at", models.DateTimeField(default=None, null=True)),
+                ("file_size", models.PositiveIntegerField(default=0)),
             ],
             options={
-                'ordering': ('pk',),
+                "ordering": ("pk",),
             },
         ),
         migrations.CreateModel(
-            name='MergedXForm',
+            name="MergedXForm",
             fields=[
-                ('xform_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='logger.xform')),
-                ('xforms', models.ManyToManyField(related_name='mergedxform_ptr', to='logger.XForm')),
+                (
+                    "xform_ptr",
+                    models.OneToOneField(
+                        auto_created=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        parent_link=True,
+                        primary_key=True,
+                        serialize=False,
+                        to="logger.xform",
+                    ),
+                ),
+                (
+                    "xforms",
+                    models.ManyToManyField(
+                        related_name="mergedxform_ptr", to="logger.XForm"
+                    ),
+                ),
             ],
             options={
-                'permissions': (('view_mergedxform', 'Can view associated data'),),
+                "permissions": (("view_mergedxform", "Can view associated data"),),
             },
-            bases=('logger.xform',),
+            bases=("logger.xform",),
         ),
         migrations.CreateModel(
-            name='InstanceHistory',
+            name="InstanceHistory",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('xml', models.TextField()),
-                ('uuid', models.CharField(default='', max_length=249)),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('xform_instance', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='submission_history', to='logger.instance')),
-                ('geom', django.contrib.gis.db.models.fields.GeometryCollectionField(null=True, srid=4326)),
-                ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
-                ('submission_date', models.DateTimeField(default=None, null=True)),
-                ('checksum', models.CharField(blank=True, max_length=64, null=True)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("xml", models.TextField()),
+                ("uuid", models.CharField(default="", max_length=249)),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                (
+                    "xform_instance",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="submission_history",
+                        to="logger.instance",
+                    ),
+                ),
+                (
+                    "geom",
+                    django.contrib.gis.db.models.fields.GeometryCollectionField(
+                        null=True, srid=4326
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                ("submission_date", models.DateTimeField(default=None, null=True)),
+                ("checksum", models.CharField(blank=True, max_length=64, null=True)),
             ],
         ),
         migrations.RunSQL(
             sql="UPDATE logger_xform SET hash = CONCAT('md5:', MD5(XML)) WHERE hash IS NULL;",
-            reverse_sql='',
+            reverse_sql="",
         ),
         migrations.AddField(
-            model_name='attachment',
-            name='name',
+            model_name="attachment",
+            name="name",
             field=models.CharField(blank=True, max_length=100, null=True),
         ),
         migrations.AlterField(
-            model_name='xform',
-            name='uuid',
-            field=models.CharField(default='', max_length=36),
+            model_name="xform",
+            name="uuid",
+            field=models.CharField(default="", max_length=36),
         ),
         migrations.AddField(
-            model_name='dataview',
-            name='deleted_at',
+            model_name="dataview",
+            name="deleted_at",
             field=models.DateTimeField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='dataview',
-            name='deleted_by',
-            field=models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='dataview_deleted_by', to=settings.AUTH_USER_MODEL),
+            model_name="dataview",
+            name="deleted_by",
+            field=models.ForeignKey(
+                blank=True,
+                default=None,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="dataview_deleted_by",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AddField(
-            model_name='xform',
-            name='deleted_by',
-            field=models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='xform_deleted_by', to=settings.AUTH_USER_MODEL),
+            model_name="xform",
+            name="deleted_by",
+            field=models.ForeignKey(
+                blank=True,
+                default=None,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="xform_deleted_by",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AddField(
-            model_name='project',
-            name='deleted_by',
-            field=models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='project_deleted_by', to=settings.AUTH_USER_MODEL),
+            model_name="project",
+            name="deleted_by",
+            field=models.ForeignKey(
+                blank=True,
+                default=None,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="project_deleted_by",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
-        migrations.RunPython(
-            recalculate_xform_hash
+        migrations.RunPython(recalculate_xform_hash),
+        migrations.AddField(
+            model_name="instance",
+            name="deleted_by",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="deleted_instances",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AddField(
-            model_name='instance',
-            name='deleted_by',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='deleted_instances', to=settings.AUTH_USER_MODEL),
-        ),
-        migrations.AddField(
-            model_name='instance',
-            name='has_a_review',
-            field=models.BooleanField(default=False, verbose_name='has_a_review'),
+            model_name="instance",
+            name="has_a_review",
+            field=models.BooleanField(default=False, verbose_name="has_a_review"),
         ),
         migrations.CreateModel(
-            name='SubmissionReview',
+            name="SubmissionReview",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('status', models.CharField(choices=[('1', 'Approved'), ('3', 'Pending'), ('2', 'Rejected')], db_index=True, default='3', max_length=1, verbose_name='Status')),
-                ('deleted_at', models.DateTimeField(db_index=True, default=None, null=True)),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('created_by', models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
-                ('deleted_by', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='deleted_reviews', to=settings.AUTH_USER_MODEL)),
-                ('instance', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='reviews', to='logger.instance')),
-                ('note', models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='notes', to='logger.note')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("1", "Approved"),
+                            ("3", "Pending"),
+                            ("2", "Rejected"),
+                        ],
+                        db_index=True,
+                        default="3",
+                        max_length=1,
+                        verbose_name="Status",
+                    ),
+                ),
+                (
+                    "deleted_at",
+                    models.DateTimeField(db_index=True, default=None, null=True),
+                ),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        blank=True,
+                        default=None,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "deleted_by",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="deleted_reviews",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "instance",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="reviews",
+                        to="logger.instance",
+                    ),
+                ),
+                (
+                    "note",
+                    models.ForeignKey(
+                        blank=True,
+                        default=None,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="notes",
+                        to="logger.note",
+                    ),
+                ),
             ],
         ),
         migrations.AlterModelOptions(
-            name='mergedxform',
+            name="mergedxform",
             options={},
         ),
         migrations.AlterModelOptions(
-            name='note',
+            name="note",
             options={},
         ),
         migrations.AlterModelOptions(
-            name='project',
-            options={'permissions': (('add_project_xform', 'Can add xform to project'), ('report_project_xform', 'Can make submissions to the project'), ('transfer_project', 'Can transfer project to different owner'), ('can_export_project_data', 'Can export data in project'), ('view_project_all', 'Can view all associated data'), ('view_project_data', 'Can view submitted data'))},
+            name="project",
+            options={
+                "permissions": (
+                    ("add_project_xform", "Can add xform to project"),
+                    ("report_project_xform", "Can make submissions to the project"),
+                    ("transfer_project", "Can transfer project to different owner"),
+                    ("can_export_project_data", "Can export data in project"),
+                    ("view_project_all", "Can view all associated data"),
+                    ("view_project_data", "Can view submitted data"),
+                )
+            },
         ),
         migrations.AlterModelOptions(
-            name='xform',
-            options={'ordering': ('pk',), 'permissions': (('view_xform_all', 'Can view all associated data'), ('view_xform_data', 'Can view submitted data'), ('report_xform', 'Can make submissions to the form'), ('move_xform', 'Can move form between projects'), ('transfer_xform', 'Can transfer form ownership.'), ('can_export_xform_data', 'Can export form data'), ('delete_submission', 'Can delete submissions from form')), 'verbose_name': 'XForm', 'verbose_name_plural': 'XForms'},
+            name="xform",
+            options={
+                "ordering": ("pk",),
+                "permissions": (
+                    ("view_xform_all", "Can view all associated data"),
+                    ("view_xform_data", "Can view submitted data"),
+                    ("report_xform", "Can make submissions to the form"),
+                    ("move_xform", "Can move form between projects"),
+                    ("transfer_xform", "Can transfer form ownership."),
+                    ("can_export_xform_data", "Can export form data"),
+                    ("delete_submission", "Can delete submissions from form"),
+                ),
+                "verbose_name": "XForm",
+                "verbose_name_plural": "XForms",
+            },
         ),
         migrations.AlterField(
-            model_name='attachment',
-            name='mimetype',
-            field=models.CharField(blank=True, default='', max_length=100),
+            model_name="attachment",
+            name="mimetype",
+            field=models.CharField(blank=True, default="", max_length=100),
         ),
         migrations.AlterField(
-            model_name='instance',
-            name='survey_type',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='logger.surveytype'),
+            model_name="instance",
+            name="survey_type",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.PROTECT, to="logger.surveytype"
+            ),
         ),
         migrations.AlterField(
-            model_name='instance',
-            name='user',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='instances', to=settings.AUTH_USER_MODEL),
+            model_name="instance",
+            name="user",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="instances",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AlterField(
-            model_name='osmdata',
-            name='field_name',
-            field=models.CharField(blank=True, default='', max_length=255),
+            model_name="osmdata",
+            name="field_name",
+            field=models.CharField(blank=True, default="", max_length=255),
         ),
         migrations.AlterField(
-            model_name='osmdata',
-            name='osm_type',
-            field=models.CharField(default='way', max_length=10),
+            model_name="osmdata",
+            name="osm_type",
+            field=models.CharField(default="way", max_length=10),
         ),
         migrations.AlterField(
-            model_name='project',
-            name='tags',
-            field=taggit.managers.TaggableManager(help_text='A comma-separated list of tags.', related_name='project_tags', through='taggit.TaggedItem', to='taggit.Tag', verbose_name='Tags'),
+            model_name="project",
+            name="tags",
+            field=taggit.managers.TaggableManager(
+                help_text="A comma-separated list of tags.",
+                related_name="project_tags",
+                through="taggit.TaggedItem",
+                to="taggit.Tag",
+                verbose_name="Tags",
+            ),
         ),
         migrations.AlterField(
-            model_name='widget',
-            name='order',
-            field=models.PositiveIntegerField(db_index=True, editable=False, verbose_name='order'),
+            model_name="widget",
+            name="order",
+            field=models.PositiveIntegerField(
+                db_index=True, editable=False, verbose_name="order"
+            ),
         ),
         migrations.AlterField(
-            model_name='widget',
-            name='widget_type',
-            field=models.CharField(choices=[('charts', 'Charts')], default='charts', max_length=25),
+            model_name="widget",
+            name="widget_type",
+            field=models.CharField(
+                choices=[("charts", "Charts")], default="charts", max_length=25
+            ),
         ),
         migrations.AlterField(
-            model_name='xform',
-            name='created_by',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL),
+            model_name="xform",
+            name="created_by",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AlterField(
-            model_name='xform',
-            name='sms_id_string',
-            field=models.SlugField(default='', editable=False, max_length=100, verbose_name='SMS ID'),
+            model_name="xform",
+            name="sms_id_string",
+            field=models.SlugField(
+                default="", editable=False, max_length=100, verbose_name="SMS ID"
+            ),
         ),
         migrations.AddField(
-            model_name='xform',
-            name='public_key',
-            field=models.TextField(blank=True, default='', null=True),
+            model_name="xform",
+            name="public_key",
+            field=models.TextField(blank=True, default="", null=True),
         ),
         migrations.AddField(
-            model_name='attachment',
-            name='deleted_by',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='deleted_attachments', to=settings.AUTH_USER_MODEL),
+            model_name="attachment",
+            name="deleted_by",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="deleted_attachments",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AlterField(
-            model_name='xform',
-            name='uuid',
-            field=models.CharField(db_index=True, default='', max_length=36),
+            model_name="xform",
+            name="uuid",
+            field=models.CharField(db_index=True, default="", max_length=36),
         ),
         migrations.RunPython(generate_uuid_if_missing),
         migrations.RunPython(regenerate_instance_json),
         migrations.CreateModel(
-            name='XFormVersion',
+            name="XFormVersion",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('xls', models.FileField(upload_to='')),
-                ('version', models.CharField(max_length=100)),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('xml', models.TextField()),
-                ('json', models.TextField()),
-                ('created_by', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
-                ('xform', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='versions', to='logger.xform')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("xls", models.FileField(upload_to="")),
+                ("version", models.CharField(max_length=100)),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                ("xml", models.TextField()),
+                ("json", models.TextField()),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "xform",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="versions",
+                        to="logger.xform",
+                    ),
+                ),
             ],
             options={
-                'unique_together': {('xform', 'version')},
+                "unique_together": {("xform", "version")},
             },
         ),
         migrations.RunPython(create_initial_xform_version),

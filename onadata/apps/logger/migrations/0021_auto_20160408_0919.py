@@ -9,13 +9,13 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0020_auto_20160408_0325'),
+        ("logger", "0020_auto_20160408_0325"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='project',
-            name='metadata',
+            model_name="project",
+            name="metadata",
             field=django.contrib.postgres.fields.jsonb.JSONField(default=dict),
         ),
     ]

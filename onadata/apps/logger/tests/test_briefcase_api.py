@@ -21,33 +21,35 @@ storage = get_storage_class()()
 
 
 def ordered_instances(xform):
-    return Instance.objects.filter(xform=xform).order_by('id')
+    return Instance.objects.filter(xform=xform).order_by("id")
 
 
 class TestBriefcaseAPI(TestBase):
-
     def setUp(self):
         super(TestBase, self).setUp()
         self.factory = APIRequestFactory()
         self._create_user_and_login()
         self._logout()
         self.form_def_path = os.path.join(
-            self.this_directory, 'fixtures', 'transportation',
-            'transportation.xml')
+            self.this_directory, "fixtures", "transportation", "transportation.xml"
+        )
         self._submission_list_url = reverse(
-            'view-submission-list', kwargs={'username': self.user.username})
+            "view-submission-list", kwargs={"username": self.user.username}
+        )
         self._submission_url = reverse(
-            'submissions', kwargs={'username': self.user.username})
+            "submissions", kwargs={"username": self.user.username}
+        )
         self._download_submission_url = reverse(
-            'view-download-submission',
-            kwargs={'username': self.user.username})
+            "view-download-submission", kwargs={"username": self.user.username}
+        )
         self._form_upload_url = reverse(
-            'form-upload', kwargs={'username': self.user.username})
+            "form-upload", kwargs={"username": self.user.username}
+        )
 
     def test_view_submission_list(self):
         self._publish_xml_form()
         self._make_submissions()
-        params = {'formId': self.xform.id_string}
+        params = {"formId": self.xform.id_string}
         request = self.factory.get(self._submission_list_url, params)
         response = view_submission_list(request, self.user.username)
         self.assertEqual(response.status_code, 401)
@@ -56,27 +58,30 @@ class TestBriefcaseAPI(TestBase):
         response = view_submission_list(request, self.user.username)
         self.assertEqual(response.status_code, 200)
         submission_list_path = os.path.join(
-            self.this_directory, 'fixtures', 'transportation',
-            'view', 'submissionList.xml')
+            self.this_directory,
+            "fixtures",
+            "transportation",
+            "view",
+            "submissionList.xml",
+        )
         instances = ordered_instances(self.xform)
 
         self.assertEqual(instances.count(), NUM_INSTANCES)
 
         last_index = instances[instances.count() - 1].pk
-        with open(submission_list_path, encoding='utf-8') as f:
+        with open(submission_list_path, encoding="utf-8") as f:
             expected_submission_list = f.read()
-            expected_submission_list = \
-                expected_submission_list.replace(
-                    '{{resumptionCursor}}', '%s' % last_index)
-            self.assertEqual(response.content.decode('utf-8'),
-                             expected_submission_list)
+            expected_submission_list = expected_submission_list.replace(
+                "{{resumptionCursor}}", "%s" % last_index
+            )
+            self.assertEqual(response.content.decode("utf-8"), expected_submission_list)
 
     def test_view_submission_list_w_deleted_submission(self):
         self._publish_xml_form()
         self._make_submissions()
-        uuid = 'f3d8dc65-91a6-4d0f-9e97-802128083390'
-        Instance.objects.filter(uuid=uuid).order_by('id').delete()
-        params = {'formId': self.xform.id_string}
+        uuid = "f3d8dc65-91a6-4d0f-9e97-802128083390"
+        Instance.objects.filter(uuid=uuid).order_by("id").delete()
+        params = {"formId": self.xform.id_string}
         request = self.factory.get(self._submission_list_url, params)
         response = view_submission_list(request, self.user.username)
         self.assertEqual(response.status_code, 401)
@@ -85,39 +90,43 @@ class TestBriefcaseAPI(TestBase):
         response = view_submission_list(request, self.user.username)
         self.assertEqual(response.status_code, 200)
         submission_list_path = os.path.join(
-            self.this_directory, 'fixtures', 'transportation',
-            'view', 'submissionList-4.xml')
+            self.this_directory,
+            "fixtures",
+            "transportation",
+            "view",
+            "submissionList-4.xml",
+        )
         instances = ordered_instances(self.xform)
 
         self.assertEqual(instances.count(), NUM_INSTANCES - 1)
 
         last_index = instances[instances.count() - 1].pk
-        with open(submission_list_path, encoding='utf-8') as f:
+        with open(submission_list_path, encoding="utf-8") as f:
             expected_submission_list = f.read()
-            expected_submission_list = \
-                expected_submission_list.replace(
-                    '{{resumptionCursor}}', '%s' % last_index)
-            self.assertEqual(response.content.decode('utf-8'),
-                             expected_submission_list)
+            expected_submission_list = expected_submission_list.replace(
+                "{{resumptionCursor}}", "%s" % last_index
+            )
+            self.assertEqual(response.content.decode("utf-8"), expected_submission_list)
 
-        formId = u'%(formId)s[@version=null and @uiVersion=null]/' \
-                 u'%(formId)s[@key=uuid:%(instanceId)s]' % {
-                     'formId': self.xform.id_string,
-                     'instanceId': uuid}
-        params = {'formId': formId}
+        formId = (
+            "%(formId)s[@version=null and @uiVersion=null]/"
+            "%(formId)s[@key=uuid:%(instanceId)s]"
+            % {"formId": self.xform.id_string, "instanceId": uuid}
+        )
+        params = {"formId": formId}
         response = self.client.get(self._download_submission_url, data=params)
         self.assertTrue(response.status_code, 404)
 
     def test_view_submission_list_OtherUser(self):
         self._publish_xml_form()
         self._make_submissions()
-        params = {'formId': self.xform.id_string}
+        params = {"formId": self.xform.id_string}
         # deno cannot view bob's submissionList
-        self._create_user('deno', 'deno')
+        self._create_user("deno", "deno")
         request = self.factory.get(self._submission_list_url, params)
         response = view_submission_list(request, self.user.username)
         self.assertEqual(response.status_code, 401)
-        auth = DigestAuth('deno', 'deno')
+        auth = DigestAuth("deno", "deno")
         request.META.update(auth(request.META, response))
         response = view_submission_list(request, self.user.username)
         self.assertEqual(response.status_code, 403)
@@ -137,8 +146,8 @@ class TestBriefcaseAPI(TestBase):
 
         self._publish_xml_form()
         self._make_submissions()
-        params = {'formId': self.xform.id_string}
-        params['numEntries'] = 2
+        params = {"formId": self.xform.id_string}
+        params["numEntries"] = 2
         instances = ordered_instances(self.xform)
 
         self.assertEqual(instances.count(), NUM_INSTANCES)
@@ -156,37 +165,42 @@ class TestBriefcaseAPI(TestBase):
 
             if index > 2:
                 last_index = get_last_index(self.xform, last_index)
-            filename = 'submissionList-%s.xml' % index
+            filename = "submissionList-%s.xml" % index
 
             if index == 4:
-                self.assertEqual(response.content.decode('utf-8'),
-                                 last_expected_submission_list)
+                self.assertEqual(
+                    response.content.decode("utf-8"), last_expected_submission_list
+                )
                 continue
             # set cursor for second request
-            params['cursor'] = last_index
+            params["cursor"] = last_index
             submission_list_path = os.path.join(
-                self.this_directory, 'fixtures', 'transportation',
-                'view', filename)
-            with open(submission_list_path, encoding='utf-8') as f:
+                self.this_directory, "fixtures", "transportation", "view", filename
+            )
+            with open(submission_list_path, encoding="utf-8") as f:
                 expected_submission_list = f.read()
-                last_expected_submission_list = expected_submission_list = \
-                    expected_submission_list.replace(
-                        '{{resumptionCursor}}', '%s' % last_index)
-                self.assertEqual(response.content.decode('utf-8'),
-                                 expected_submission_list)
+                last_expected_submission_list = (
+                    expected_submission_list
+                ) = expected_submission_list.replace(
+                    "{{resumptionCursor}}", "%s" % last_index
+                )
+                self.assertEqual(
+                    response.content.decode("utf-8"), expected_submission_list
+                )
             last_index += 2
 
     def test_view_downloadSubmission(self):
         self._publish_xml_form()
         self.maxDiff = None
         self._submit_transport_instance_w_attachment()
-        instanceId = u'5b2cc313-fc09-437e-8149-fcd32f695d41'
+        instanceId = "5b2cc313-fc09-437e-8149-fcd32f695d41"
         instance = Instance.objects.get(uuid=instanceId)
-        formId = u'%(formId)s[@version=null and @uiVersion=null]/' \
-                 u'%(formId)s[@key=uuid:%(instanceId)s]' % {
-                     'formId': self.xform.id_string,
-                     'instanceId': instanceId}
-        params = {'formId': formId}
+        formId = (
+            "%(formId)s[@version=null and @uiVersion=null]/"
+            "%(formId)s[@key=uuid:%(instanceId)s]"
+            % {"formId": self.xform.id_string, "instanceId": instanceId}
+        )
+        params = {"formId": formId}
         request = self.factory.get(self._download_submission_url, params)
         response = view_download_submission(request, self.user.username)
         self.assertEqual(response.status_code, 401)
@@ -195,49 +209,55 @@ class TestBriefcaseAPI(TestBase):
         response = view_download_submission(request, self.user.username)
         text = "uuid:%s" % instanceId
         download_submission_path = os.path.join(
-            self.this_directory, 'fixtures', 'transportation',
-            'view', 'downloadSubmission.xml')
-        with open(download_submission_path, encoding='utf-8') as f:
+            self.this_directory,
+            "fixtures",
+            "transportation",
+            "view",
+            "downloadSubmission.xml",
+        )
+        with open(download_submission_path, encoding="utf-8") as f:
             text = f.read()
-            for var in ((u'{{submissionDate}}',
-                         instance.date_created.isoformat()),
-                        (u'{{form_id}}', str(self.xform.id))):
+            for var in (
+                ("{{submissionDate}}", instance.date_created.isoformat()),
+                ("{{form_id}}", str(self.xform.id)),
+            ):
                 text = text.replace(*var)
 
             self.assertContains(response, instanceId, status_code=200)
-            self.assertMultiLineEqual(response.content.decode('utf-8'), text)
+            self.assertMultiLineEqual(response.content.decode("utf-8"), text)
 
     def test_view_downloadSubmission_OtherUser(self):
         self._publish_xml_form()
         self.maxDiff = None
         self._submit_transport_instance_w_attachment()
-        instanceId = u'5b2cc313-fc09-437e-8149-fcd32f695d41'
-        formId = u'%(formId)s[@version=null and @uiVersion=null]/' \
-                 u'%(formId)s[@key=uuid:%(instanceId)s]' % {
-                     'formId': self.xform.id_string,
-                     'instanceId': instanceId}
-        params = {'formId': formId}
+        instanceId = "5b2cc313-fc09-437e-8149-fcd32f695d41"
+        formId = (
+            "%(formId)s[@version=null and @uiVersion=null]/"
+            "%(formId)s[@key=uuid:%(instanceId)s]"
+            % {"formId": self.xform.id_string, "instanceId": instanceId}
+        )
+        params = {"formId": formId}
         # deno cannot view bob's downloadSubmission
-        self._create_user('deno', 'deno')
+        self._create_user("deno", "deno")
         request = self.factory.get(self._download_submission_url, params)
         response = view_download_submission(request, self.user.username)
         self.assertEqual(response.status_code, 401)
-        auth = DigestAuth('deno', 'deno')
+        auth = DigestAuth("deno", "deno")
         request.META.update(auth(request.META, response))
         response = view_download_submission(request, self.user.username)
         self.assertEqual(response.status_code, 403)
 
     def test_publish_xml_form_OtherUser(self):
         # deno cannot publish form to bob's account
-        self._create_user('deno', 'deno')
+        self._create_user("deno", "deno")
         count = XForm.objects.count()
 
-        with open(self.form_def_path, encoding='utf-8') as f:
-            params = {'form_def_file': f, 'dataFile': ''}
+        with open(self.form_def_path, encoding="utf-8") as f:
+            params = {"form_def_file": f, "dataFile": ""}
             request = self.factory.post(self._form_upload_url, params)
             response = form_upload(request, username=self.user.username)
             self.assertEqual(response.status_code, 401)
-            auth = DigestAuth('deno', 'deno')
+            auth = DigestAuth("deno", "deno")
             request.META.update(auth(request.META, response))
             response = form_upload(request, username=self.user.username)
             self.assertNotEqual(XForm.objects.count(), count + 1)
@@ -245,40 +265,38 @@ class TestBriefcaseAPI(TestBase):
 
     def test_publish_xml_form_where_filename_is_not_id_string(self):
         form_def_path = os.path.join(
-            self.this_directory, 'fixtures', 'transportation',
-            'Transportation Form.xml')
+            self.this_directory, "fixtures", "transportation", "Transportation Form.xml"
+        )
         count = XForm.objects.count()
-        with open(form_def_path, encoding='utf-8') as f:
-            params = {'form_def_file': f, 'dataFile': ''}
+        with open(form_def_path, encoding="utf-8") as f:
+            params = {"form_def_file": f, "dataFile": ""}
             request = self.factory.post(self._form_upload_url, params)
             response = form_upload(request, username=self.user.username)
             self.assertEqual(response.status_code, 401)
             auth = DigestAuth(self.login_username, self.login_password)
             request.META.update(auth(request.META, response))
             response = form_upload(request, username=self.user.username)
-            self.assertContains(
-                response, "successfully published.", status_code=201)
+            self.assertContains(response, "successfully published.", status_code=201)
             self.assertEqual(XForm.objects.count(), count + 1)
 
     def _publish_xml_form(self):
         count = XForm.objects.count()
-        with open(self.form_def_path, encoding='utf-8') as f:
-            params = {'form_def_file': f, 'dataFile': ''}
+        with open(self.form_def_path, encoding="utf-8") as f:
+            params = {"form_def_file": f, "dataFile": ""}
             request = self.factory.post(self._form_upload_url, params)
             response = form_upload(request, username=self.user.username)
             self.assertEqual(response.status_code, 401)
             auth = DigestAuth(self.login_username, self.login_password)
             request.META.update(auth(request.META, response))
             response = form_upload(request, username=self.user.username)
-            self.assertContains(
-                response, "successfully published.", status_code=201)
+            self.assertContains(response, "successfully published.", status_code=201)
             self.assertEqual(XForm.objects.count(), count + 1)
-        self.xform = XForm.objects.order_by('pk').reverse()[0]
+        self.xform = XForm.objects.order_by("pk").reverse()[0]
 
     def test_form_upload(self):
         self._publish_xml_form()
-        with open(self.form_def_path, encoding='utf-8') as f:
-            params = {'form_def_file': f, 'dataFile': ''}
+        with open(self.form_def_path, encoding="utf-8") as f:
+            params = {"form_def_file": f, "dataFile": ""}
             request = self.factory.post(self._form_upload_url, params)
             response = form_upload(request, username=self.user.username)
             self.assertEqual(response.status_code, 401)
@@ -287,25 +305,24 @@ class TestBriefcaseAPI(TestBase):
             response = form_upload(request, username=self.user.username)
             self.assertContains(
                 response,
-                u'Form with this id or SMS-keyword already exists',
-                status_code=400)
+                "Form with this id or SMS-keyword already exists",
+                status_code=400,
+            )
 
     def test_submission_with_instance_id_on_root_node(self):
         self._publish_xml_form()
-        message = u"Successful submission."
-        instanceId = u'5b2cc313-fc09-437e-8149-fcd32f695d41'
-        self.assertRaises(
-            Instance.DoesNotExist, Instance.objects.get, uuid=instanceId)
+        message = "Successful submission."
+        instanceId = "5b2cc313-fc09-437e-8149-fcd32f695d41"
+        self.assertRaises(Instance.DoesNotExist, Instance.objects.get, uuid=instanceId)
         submission_path = os.path.join(
-            self.this_directory, 'fixtures', 'transportation',
-            'view', 'submission.xml')
+            self.this_directory, "fixtures", "transportation", "view", "submission.xml"
+        )
         count = Instance.objects.count()
-        with open(submission_path, encoding='utf-8') as f:
-            post_data = {'xml_submission_file': f}
+        with open(submission_path, encoding="utf-8") as f:
+            post_data = {"xml_submission_file": f}
             self.factory = APIRequestFactory()
             request = self.factory.post(self._submission_url, post_data)
-            request.user = authenticate(username='bob',
-                                        password='bob')
+            request.user = authenticate(username="bob", password="bob")
             response = submission(request, username=self.user.username)
             self.assertContains(response, message, status_code=201)
             self.assertContains(response, instanceId, status_code=201)

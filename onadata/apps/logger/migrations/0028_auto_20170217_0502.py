@@ -9,44 +9,51 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0027_auto_20161201_0730'),
+        ("logger", "0027_auto_20161201_0730"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='project',
-            options={'permissions': (
-                ('view_project', 'Can view project'),
-                ('add_project_xform', 'Can add xform to project'),
-                ('report_project_xform',
-                 'Can make submissions to the project'),
-                ('transfer_project',
-                 'Can transfer project to different owner'),
-                ('can_export_project_data', 'Can export data in project'),
-                ('view_project_all', 'Can view all associated data'),
-                ('view_project_data', 'Can view submitted data'))},
+            name="project",
+            options={
+                "permissions": (
+                    ("view_project", "Can view project"),
+                    ("add_project_xform", "Can add xform to project"),
+                    ("report_project_xform", "Can make submissions to the project"),
+                    ("transfer_project", "Can transfer project to different owner"),
+                    ("can_export_project_data", "Can export data in project"),
+                    ("view_project_all", "Can view all associated data"),
+                    ("view_project_data", "Can view submitted data"),
+                )
+            },
         ),
         migrations.AlterModelOptions(
-            name='xform',
+            name="xform",
             options={
-                'ordering': ('id_string',),
-                'permissions': (
-                    ('view_xform', 'Can view associated data'),
-                    ('view_xform_all', 'Can view all associated data'),
-                    ('view_xform_data', 'Can view submitted data'),
-                    ('report_xform', 'Can make submissions to the form'),
-                    ('move_xform', 'Can move form between projects'),
-                    ('transfer_xform', 'Can transfer form ownership.'),
-                    ('can_export_xform_data', 'Can export form data'),
-                    ('delete_submission', 'Can delete submissions from form')),
-                'verbose_name': 'XForm', 'verbose_name_plural': 'XForms'},
+                "ordering": ("id_string",),
+                "permissions": (
+                    ("view_xform", "Can view associated data"),
+                    ("view_xform_all", "Can view all associated data"),
+                    ("view_xform_data", "Can view submitted data"),
+                    ("report_xform", "Can make submissions to the form"),
+                    ("move_xform", "Can move form between projects"),
+                    ("transfer_xform", "Can transfer form ownership."),
+                    ("can_export_xform_data", "Can export form data"),
+                    ("delete_submission", "Can delete submissions from form"),
+                ),
+                "verbose_name": "XForm",
+                "verbose_name_plural": "XForms",
+            },
         ),
         migrations.AlterField(
-            model_name='instance',
-            name='xform',
+            model_name="instance",
+            name="xform",
             field=models.ForeignKey(
-                default=328, on_delete=django.db.models.deletion.CASCADE,
-                related_name='instances', to='logger.XForm'),
+                default=328,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="instances",
+                to="logger.XForm",
+            ),
             preserve_default=False,
         ),
     ]

@@ -11,7 +11,7 @@ class XFormInstanceFS(object):
 
     @property
     def photos(self):
-        if not hasattr(self, '_photos'):
+        if not hasattr(self, "_photos"):
             available_photos = glob.glob(os.path.join(self.directory, "*.jpg"))
             self._photos = []
             for photo_path in available_photos:
@@ -22,7 +22,7 @@ class XFormInstanceFS(object):
 
     @property
     def osm(self):
-        if not hasattr(self, '_osm'):
+        if not hasattr(self, "_osm"):
             available_osm = glob.glob(os.path.join(self.directory, "*.osm"))
             self._osm = []
             for osm_path in available_osm:
@@ -33,13 +33,10 @@ class XFormInstanceFS(object):
 
     @property
     def metadata_directory(self):
-        if not hasattr(self, '_metadata_directory'):
-            instances_dir = os.path.join(
-                self.directory, "..", "..", "instances")
-            metadata_directory = os.path.join(
-                self.directory, "..", "..", "metadata")
-            if os.path.exists(instances_dir) and os.path.exists(
-                    metadata_directory):
+        if not hasattr(self, "_metadata_directory"):
+            instances_dir = os.path.join(self.directory, "..", "..", "instances")
+            metadata_directory = os.path.join(self.directory, "..", "..", "metadata")
+            if os.path.exists(instances_dir) and os.path.exists(metadata_directory):
                 self._metadata_directory = os.path.abspath(metadata_directory)
             else:
                 self._metadata_directory = False
@@ -47,8 +44,8 @@ class XFormInstanceFS(object):
 
     @property
     def xml(self):
-        if not hasattr(self, '_xml'):
-            with open(self.path, 'r') as f:
+        if not hasattr(self, "_xml"):
+            with open(self.path, "r") as f:
                 self._xml = f.read()
         return self._xml
 
@@ -56,9 +53,9 @@ class XFormInstanceFS(object):
     def is_valid_instance(cls, filepath):
         if not filepath.endswith(".xml"):
             return False
-        with open(filepath, 'r') as ff:
+        with open(filepath, "r") as ff:
             fxml = ff.read()
-            if not fxml.strip().startswith('<?xml'):
+            if not fxml.strip().startswith("<?xml"):
                 return False
         return True
 

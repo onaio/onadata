@@ -13,15 +13,15 @@ class XFormVersion(models.Model):
     storage backend for utilization in the future when a user requires
     the previous XForm versions XML or JSON.
     """
+
     xform = models.ForeignKey(
-        'logger.XForm', on_delete=models.CASCADE, related_name='versions')
+        "logger.XForm", on_delete=models.CASCADE, related_name="versions"
+    )
     xls = models.FileField()
     version = models.CharField(max_length=100)
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
-    created_by = models.ForeignKey(
-        'auth.User', on_delete=models.SET_NULL, null=True
-    )
+    created_by = models.ForeignKey("auth.User", on_delete=models.SET_NULL, null=True)
     xml = models.TextField()
     json = models.TextField()
 
@@ -29,4 +29,4 @@ class XFormVersion(models.Model):
         return f"{self.xform.title}-{self.version}"
 
     class Meta:
-        unique_together = ['xform', 'version']
+        unique_together = ["xform", "version"]

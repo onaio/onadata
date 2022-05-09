@@ -8,28 +8,30 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0032_project_deleted_at'),
+        ("logger", "0032_project_deleted_at"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='attachment',
-            options={'ordering': ('pk',)},
+            name="attachment",
+            options={"ordering": ("pk",)},
         ),
         migrations.AlterModelOptions(
-            name='xform',
+            name="xform",
             options={
-                'ordering': ('pk',),
-                'permissions':
-                (('view_xform', 'Can view associated data'),
-                 ('view_xform_all', 'Can view all associated data'),
-                 ('view_xform_data', 'Can view submitted data'),
-                 ('report_xform', 'Can make submissions to the form'),
-                 ('move_xform', 'Can move form between projects'),
-                 ('transfer_xform', 'Can transfer form ownership.'),
-                 ('can_export_xform_data', 'Can export form data'),
-                 ('delete_submission', 'Can delete submissions from form')),
-                'verbose_name': 'XForm',
-                'verbose_name_plural': 'XForms'},
+                "ordering": ("pk",),
+                "permissions": (
+                    ("view_xform", "Can view associated data"),
+                    ("view_xform_all", "Can view all associated data"),
+                    ("view_xform_data", "Can view submitted data"),
+                    ("report_xform", "Can make submissions to the form"),
+                    ("move_xform", "Can move form between projects"),
+                    ("transfer_xform", "Can transfer form ownership."),
+                    ("can_export_xform_data", "Can export form data"),
+                    ("delete_submission", "Can delete submissions from form"),
+                ),
+                "verbose_name": "XForm",
+                "verbose_name_plural": "XForms",
+            },
         ),
     ]

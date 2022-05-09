@@ -15,15 +15,16 @@ def recalculate_xform_hash(apps, schema_editor):  # pylint: disable=W0613
     """
     Recalculate all XForm hashes.
     """
-    XForm = apps.get_model('logger', 'XForm')  # pylint: disable=C0103
-    xforms = XForm.objects.filter(downloadable=True,
-                                  deleted_at__isnull=True).only('xml')
+    XForm = apps.get_model("logger", "XForm")  # pylint: disable=C0103
+    xforms = XForm.objects.filter(downloadable=True, deleted_at__isnull=True).only(
+        "xml"
+    )
     count = xforms.count()
     counter = 0
 
     for xform in queryset_iterator(xforms, 500):
-        xform.hash = u'md5:%s' % md5(xform.xml.encode('utf8')).hexdigest()
-        xform.save(update_fields=['hash'])
+        xform.hash = "md5:%s" % md5(xform.xml.encode("utf8")).hexdigest()
+        xform.save(update_fields=["hash"])
         counter += 1
         if counter % 500 == 0:
             print("Processed %d of %d forms." % (counter, count))
@@ -37,9 +38,7 @@ class Migration(migrations.Migration):
     """
 
     dependencies = [
-        ('logger', '0050_project_deleted_by'),
+        ("logger", "0050_project_deleted_by"),
     ]
 
-    operations = [
-        migrations.RunPython(recalculate_xform_hash)
-    ]
+    operations = [migrations.RunPython(recalculate_xform_hash)]

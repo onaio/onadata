@@ -8,13 +8,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0053_submissionreview'),
+        ("logger", "0053_submissionreview"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='instance',
-            name='has_a_review',
-            field=models.BooleanField(default=False, verbose_name='has_a_review'),
+            model_name="instance",
+            name="has_a_review",
+            field=models.BooleanField(default=False, verbose_name="has_a_review"),
         ),
     ]

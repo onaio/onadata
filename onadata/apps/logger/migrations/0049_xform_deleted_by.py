@@ -11,18 +11,20 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('logger', '0048_dataview_deleted_by'),
+        ("logger", "0048_dataview_deleted_by"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='xform',
-            name='deleted_by',
+            model_name="xform",
+            name="deleted_by",
             field=models.ForeignKey(
                 blank=True,
                 default=None,
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
-                related_name='xform_deleted_by', to=settings.AUTH_USER_MODEL),
+                related_name="xform_deleted_by",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
     ]

@@ -9,15 +9,17 @@ import onadata.libs.utils.common_tools
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0029_auto_20170221_0908'),
+        ("logger", "0029_auto_20170221_0908"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='opendata',
-            name='uuid',
+            model_name="opendata",
+            name="uuid",
             field=models.CharField(
                 default=onadata.libs.utils.common_tools.get_uuid,
                 max_length=32,
-                unique=True), ),
+                unique=True,
+            ),
+        ),
     ]

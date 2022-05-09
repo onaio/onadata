@@ -26,40 +26,44 @@ class SubmissionReview(models.Model):
     SubmissionReview Model Class
     """
 
-    APPROVED = '1'
-    REJECTED = '2'
-    PENDING = '3'
+    APPROVED = "1"
+    REJECTED = "2"
+    PENDING = "3"
 
-    STATUS_CHOICES = ((APPROVED, _('Approved')), (PENDING, _('Pending')),
-                      (REJECTED, _('Rejected')))
+    STATUS_CHOICES = (
+        (APPROVED, _("Approved")),
+        (PENDING, _("Pending")),
+        (REJECTED, _("Rejected")),
+    )
 
     instance = models.ForeignKey(
-        'logger.Instance', related_name='reviews', on_delete=models.CASCADE)
+        "logger.Instance", related_name="reviews", on_delete=models.CASCADE
+    )
     note = models.ForeignKey(
-        'logger.Note',
-        related_name='notes',
+        "logger.Note",
+        related_name="notes",
         blank=True,
         null=True,
         default=None,
-        on_delete=models.SET_NULL)
+        on_delete=models.SET_NULL,
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
         blank=True,
         default=None,
-        on_delete=models.CASCADE)
+        on_delete=models.CASCADE,
+    )
     status = models.CharField(
-        'Status',
-        max_length=1,
-        choices=STATUS_CHOICES,
-        default=PENDING,
-        db_index=True)
+        "Status", max_length=1, choices=STATUS_CHOICES, default=PENDING, db_index=True
+    )
     deleted_at = models.DateTimeField(null=True, default=None, db_index=True)
     deleted_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        related_name='deleted_reviews',
+        related_name="deleted_reviews",
         null=True,
-        on_delete=models.SET_NULL)
+        on_delete=models.SET_NULL,
+    )
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
 
@@ -67,7 +71,8 @@ class SubmissionReview(models.Model):
         """
         Meta Options for SubmissionReview
         """
-        app_label = 'logger'
+
+        app_label = "logger"
 
     def get_note_text(self):
         """
@@ -90,5 +95,7 @@ class SubmissionReview(models.Model):
 
 
 post_save.connect(
-    update_instance_json_on_save, sender=SubmissionReview,
-    dispatch_uid='update_instance_json_on_save')
+    update_instance_json_on_save,
+    sender=SubmissionReview,
+    dispatch_uid="update_instance_json_on_save",
+)

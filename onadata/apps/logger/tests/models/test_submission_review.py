@@ -24,7 +24,7 @@ class TestSubmissionReview(TestBase):
         instance = Instance.objects.first()
         note = Note(
             instance=instance,
-            note='Hey there',
+            note="Hey there",
             instance_field="",
         )
 

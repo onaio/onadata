@@ -8,7 +8,7 @@ from onadata.libs.utils.model_tools import queryset_iterator
 
 
 class Command(BaseCommand):
-    args = '<username>'
+    args = "<username>"
     help = gettext_lazy("Sync account with '_id'")
 
     def handle(self, *args, **kwargs):
@@ -18,7 +18,7 @@ class Command(BaseCommand):
             users = User.objects.filter(username__contains=args[0])
         else:
             # All the accounts
-            self.stdout.write("Fetching all the account {}", ending='\n')
+            self.stdout.write("Fetching all the account {}", ending="\n")
             users = User.objects.exclude(
                 username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
             )
@@ -27,24 +27,27 @@ class Command(BaseCommand):
             self.add_id(user)
 
     def add_id(self, user):
-        self.stdout.write("Syncing for account {}".format(user.username),
-                          ending='\n')
+        self.stdout.write("Syncing for account {}".format(user.username), ending="\n")
         xforms = XForm.objects.filter(user=user)
 
         count = 0
         failed = 0
-        for instance in Instance.objects.filter(
-                xform__downloadable=True, xform__in=xforms)\
-                .extra(where=['("logger_instance".json->>%s) is null'],
-                       params=["_id"]).iterator():
+        for instance in (
+            Instance.objects.filter(xform__downloadable=True, xform__in=xforms)
+            .extra(where=['("logger_instance".json->>%s) is null'], params=["_id"])
+            .iterator()
+        ):
             try:
                 instance.save()
                 count += 1
             except Exception as e:
                 failed += 1
-                self.stdout.write(str(e), ending='\n')
+                self.stdout.write(str(e), ending="\n")
                 pass
 
-        self.stdout.write("Syncing for account {}. Done. Success {}, Fail {}"
-                          .format(user.username, count, failed),
-                          ending='\n')
+        self.stdout.write(
+            "Syncing for account {}. Done. Success {}, Fail {}".format(
+                user.username, count, failed
+            ),
+            ending="\n",
+        )

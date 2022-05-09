@@ -6,13 +6,15 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0002_auto_20220425_0340'),
+        ("logger", "0002_auto_20220425_0340"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='instance',
-            name='media_all_received',
-            field=models.BooleanField(default=True, null=True, verbose_name='Received All Media Attachemts'),
+            model_name="instance",
+            name="media_all_received",
+            field=models.BooleanField(
+                default=True, null=True, verbose_name="Received All Media Attachemts"
+            ),
         ),
     ]

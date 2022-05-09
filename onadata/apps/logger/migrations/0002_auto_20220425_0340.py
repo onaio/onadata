@@ -7,53 +7,57 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0001_pre-django-3-upgrade'),
+        ("logger", "0001_pre-django-3-upgrade"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='dataview',
-            name='columns',
+            model_name="dataview",
+            name="columns",
             field=models.JSONField(),
         ),
         migrations.AlterField(
-            model_name='dataview',
-            name='query',
+            model_name="dataview",
+            name="query",
             field=models.JSONField(blank=True, default=dict),
         ),
         migrations.AlterField(
-            model_name='instance',
-            name='json',
+            model_name="instance",
+            name="json",
             field=models.JSONField(default=dict),
         ),
         migrations.AlterField(
-            model_name='instance',
-            name='xform',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='instances', to='logger.xform'),
+            model_name="instance",
+            name="xform",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="instances",
+                to="logger.xform",
+            ),
         ),
         migrations.AlterField(
-            model_name='osmdata',
-            name='tags',
+            model_name="osmdata",
+            name="tags",
             field=models.JSONField(default=dict),
         ),
         migrations.AlterField(
-            model_name='project',
-            name='metadata',
+            model_name="project",
+            name="metadata",
             field=models.JSONField(default=dict),
         ),
         migrations.AlterField(
-            model_name='widget',
-            name='metadata',
+            model_name="widget",
+            name="metadata",
             field=models.JSONField(blank=True, default=dict),
         ),
         migrations.AlterField(
-            model_name='xform',
-            name='json',
+            model_name="xform",
+            name="json",
             field=models.JSONField(default=dict),
         ),
         migrations.AlterField(
-            model_name='xform',
-            name='last_updated_at',
+            model_name="xform",
+            name="last_updated_at",
             field=models.DateTimeField(auto_now=True),
         ),
     ]

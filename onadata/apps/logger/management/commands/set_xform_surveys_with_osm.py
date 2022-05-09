@@ -13,10 +13,13 @@ class Command(BaseCommand):
     help = gettext_lazy("Set xform.instances_with_osm")
 
     def handle(self, *args, **kwargs):
-        pks = Attachment.objects.filter(
-            extension=Attachment.OSM,
-            instance__xform__instances_with_osm=False)\
-            .values_list('instance__xform', flat=True).distinct()
+        pks = (
+            Attachment.objects.filter(
+                extension=Attachment.OSM, instance__xform__instances_with_osm=False
+            )
+            .values_list("instance__xform", flat=True)
+            .distinct()
+        )
         xforms = XForm.objects.filter(pk__in=pks)
         total = xforms.count()
         count = 0

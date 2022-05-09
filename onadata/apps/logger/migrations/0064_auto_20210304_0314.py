@@ -11,10 +11,7 @@ def create_initial_xform_version(apps, schema_editor):
     Creates an XFormVersion object for an XForm that has no
     Version
     """
-    queryset = XForm.objects.filter(
-        downloadable=True,
-        deleted_at__isnull=True
-    )
+    queryset = XForm.objects.filter(downloadable=True, deleted_at__isnull=True)
     for xform in queryset.iterator():
         if xform.version:
             create_xform_version(xform, xform.user)
@@ -23,9 +20,7 @@ def create_initial_xform_version(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0063_xformversion'),
+        ("logger", "0063_xformversion"),
     ]
 
-    operations = [
-        migrations.RunPython(create_initial_xform_version)
-    ]
+    operations = [migrations.RunPython(create_initial_xform_version)]

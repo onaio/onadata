@@ -10,23 +10,24 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('logger', '0017_auto_20160224_0130'),
+        ("logger", "0017_auto_20160224_0130"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='instancehistory',
-            name='geom',
+            model_name="instancehistory",
+            name="geom",
             field=django.contrib.gis.db.models.fields.GeometryCollectionField(
-                srid=4326, null=True),
+                srid=4326, null=True
+            ),
             preserve_default=True,
         ),
         migrations.AddField(
-            model_name='instancehistory',
-            name='user',
+            model_name="instancehistory",
+            name="user",
             field=models.ForeignKey(
-                to=settings.AUTH_USER_MODEL, null=True,
-                on_delete=models.CASCADE),
+                to=settings.AUTH_USER_MODEL, null=True, on_delete=models.CASCADE
+            ),
             preserve_default=True,
         ),
     ]

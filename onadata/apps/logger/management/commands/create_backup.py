@@ -10,23 +10,22 @@ from onadata.libs.utils.backup_tools import create_zip_backup
 
 class Command(BaseCommand):
     args = "outfile username [id_string]"
-    help = gettext_lazy(
-        "Create a zip backup of a form and all its submissions")
+    help = gettext_lazy("Create a zip backup of a form and all its submissions")
 
     def handle(self, *args, **options):
         try:
             output_file = args[0]
         except IndexError:
-            raise CommandError(_("Provide the path to the zip file to backup"
-                                 " to"))
+            raise CommandError(_("Provide the path to the zip file to backup" " to"))
         else:
             output_file = os.path.realpath(output_file)
 
         try:
             username = args[1]
         except IndexError:
-            raise CommandError(_("You must provide the username to publish the"
-                                 " form to."))
+            raise CommandError(
+                _("You must provide the username to publish the" " form to.")
+            )
         # make sure user exists
         try:
             user = User.objects.get(username=username)
@@ -42,6 +41,5 @@ class Command(BaseCommand):
             try:
                 xform = XForm.objects.get(user=user, id_string=id_string)
             except XForm.DoesNotExist:
-                raise CommandError(_("The id_string '%s' does not exist.") %
-                                   id_string)
+                raise CommandError(_("The id_string '%s' does not exist.") % id_string)
         create_zip_backup(output_file, user, xform)

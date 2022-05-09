@@ -8,26 +8,29 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0037_merge_20170825_0238'),
+        ("logger", "0037_merge_20170825_0238"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='instance',
-            name='media_all_received',
+            model_name="instance",
+            name="media_all_received",
             field=models.NullBooleanField(
-                default=True, verbose_name='Received All Media Attachemts'), ),
+                default=True, verbose_name="Received All Media Attachemts"
+            ),
+        ),
         migrations.AlterField(
-            model_name='instance',
-            name='media_count',
+            model_name="instance",
+            name="media_count",
             field=models.PositiveIntegerField(
-                default=0,
-                null=True,
-                verbose_name='Received Media Attachments'), ),
+                default=0, null=True, verbose_name="Received Media Attachments"
+            ),
+        ),
         migrations.AlterField(
-            model_name='instance',
-            name='total_media',
+            model_name="instance",
+            name="total_media",
             field=models.PositiveIntegerField(
-                default=0, null=True, verbose_name='Total Media Attachments'),
+                default=0, null=True, verbose_name="Total Media Attachments"
+            ),
         ),
     ]

@@ -12,5 +12,5 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         path = args[0]
-        call_command('import_forms', os.path.join(path, "forms"))
-        call_command('import_instances', os.path.join(path, "instances"))
+        call_command("import_forms", os.path.join(path, "forms"))
+        call_command("import_instances", os.path.join(path, "instances"))
