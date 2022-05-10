@@ -37,7 +37,7 @@ class RestService(models.Model):
     )
 
     def __str__(self):
-        return "%s:%s - %s" % (self.xform, self.long_name, self.service_url)
+        return f"{self.xform}:{self.long_name} - {self.service_url}"
 
     def get_service_definition(self):
         """
@@ -45,7 +45,7 @@ class RestService(models.Model):
         """
         services_to_modules = getattr(settings, "REST_SERVICES_TO_MODULES", {})
         module_name = services_to_modules.get(
-            self.name, "onadata.apps.restservice.services.%s" % self.name
+            self.name, f"onadata.apps.restservice.services.{self.name}"
         )
         module = importlib.import_module(module_name)
 
@@ -61,7 +61,7 @@ class RestService(models.Model):
         return service_definition.verbose_name
 
 
-def delete_metadata(sender, instance, **kwargs):  # pylint: disable=W0613
+def delete_metadata(sender, instance, **kwargs):  # pylint: disable=unused-argument
     """
     Delete related metadata on deletion of the RestService.
     """
@@ -74,7 +74,7 @@ def delete_metadata(sender, instance, **kwargs):  # pylint: disable=W0613
 post_delete.connect(delete_metadata, sender=RestService, dispatch_uid="delete_metadata")
 
 
-# pylint: disable=W0613
+# pylint: disable=unused-argument
 def propagate_merged_datasets(sender, instance, **kwargs):
     """
     Propagate the service to the individual forms of a merged dataset.
@@ -94,7 +94,7 @@ post_save.connect(
 )
 
 
-# pylint: disable=W0613
+# pylint: disable=unused-argument
 def delete_merged_datasets_service(sender, instance, **kwargs):
     """
     Delete the service to the individual forms of a merged dataset.

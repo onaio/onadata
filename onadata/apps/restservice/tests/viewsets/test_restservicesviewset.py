@@ -18,7 +18,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
     """
 
     def setUp(self):
-        super(TestRestServicesViewSet, self).setUp()
+        super().setUp()
         self.view = RestServicesViewSet.as_view(
             {
                 "delete": "destroy",
@@ -31,6 +31,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self._publish_xls_form_to_project()
 
     def test_create(self):
+        """Test create service via API."""
         count = RestService.objects.all().count()
 
         post_data = {
@@ -44,7 +45,9 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(count + 1, RestService.objects.all().count())
 
+    # pylint: disable=invalid-name
     def test_textit_service_missing_params(self):
+        """Test creating a service with a missing parameter fails."""
         post_data = {
             "name": "textit",
             "service_url": "https://textit.io",
@@ -74,7 +77,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
 
         meta = MetaData.objects.filter(object_id=self.xform.id, data_type="textit")
         self.assertEqual(len(meta), 1)
-        rs = RestService.objects.last()
+        service = RestService.objects.last()
 
         expected_dict = {
             "name": "textit",
@@ -82,7 +85,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
             "auth_token": "sadsdfhsdf",
             "flow_uuid": "sdfskhfskdjhfs",
             "service_url": "https://textit.io",
-            "id": rs.pk,
+            "id": service.pk,
             "xform": self.xform.pk,
             "active": True,
             "inactive_reason": "",
@@ -96,9 +99,11 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         return response.data
 
     def test_create_textit_service(self):
+        """Test creating textit service via API."""
         self._create_textit_service()
 
     def test_retrieve_textit_services(self):
+        """Test retrieving the textit service via API."""
         response_data = self._create_textit_service()
 
         _id = response_data.get("id")
@@ -123,6 +128,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertEqual(response.data, expected_dict)
 
     def test_delete_textit_service(self):
+        """Test deleting a textit service via API"""
         rest = self._create_textit_service()
         count = RestService.objects.all().count()
         meta_count = MetaData.objects.filter(
@@ -140,6 +146,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertEqual(meta_count - 1, a_meta_count)
 
     def test_update(self):
+        """Test updating a service via API."""
         rest = RestService(
             name="testservice", service_url="http://serviec.io", xform=self.xform
         )
@@ -181,9 +188,10 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertEqual(MetaData.objects.count(), metadata_count)
 
     def test_update_with_errors(self):
+        """Test update errors if records is not in the write format."""
         rest = self._create_textit_service()
 
-        data_value = "{}|{}".format("test", "test2")
+        data_value = "test|test2"
         MetaData.textit(self.xform, data_value)
 
         request = self.factory.get("/", **self.extra)
@@ -214,6 +222,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
 
     def test_delete(self):
+        """Test delete service via API."""
         rest = RestService(
             name="testservice", service_url="http://serviec.io", xform=self.xform
         )
@@ -228,6 +237,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertEqual(count - 1, RestService.objects.all().count())
 
     def test_retrieve(self):
+        """Test retrieving a service via API."""
         rest = RestService(
             name="testservice", service_url="http://serviec.io", xform=self.xform
         )
@@ -251,6 +261,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertEqual(response.data, data)
 
     def test_duplicate_rest_service(self):
+        """Test duplicate service is not created."""
         post_data = {
             "name": "textit",
             "service_url": "https://textit.io",
@@ -280,6 +291,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch("requests.post")
     def test_textit_flow(self, mock_http):
+        """Test posting a submission to textit service."""
         rest = RestService(
             name="textit", service_url="https://server.io", xform=self.xform
         )
@@ -287,9 +299,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
 
         MetaData.textit(
             self.xform,
-            data_value="{}|{}|{}".format(
-                "sadsdfhsdf", "sdfskhfskdjhfs", "ksadaskjdajsda"
-            ),
+            data_value="sadsdfhsdf|sdfskhfskdjhfs|ksadaskjdajsda",
         )
 
         self.assertFalse(mock_http.called)
@@ -298,25 +308,8 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertTrue(mock_http.called)
         self.assertEqual(mock_http.call_count, 4)
 
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-    @patch("requests.post")
-    def test_textit_flow_without_parsed_instances(self, mock_http):
-        rest = RestService(
-            name="textit", service_url="https://server.io", xform=self.xform
-        )
-        rest.save()
-
-        MetaData.textit(
-            self.xform,
-            data_value="{}|{}|{}".format(
-                "sadsdfhsdf", "sdfskhfskdjhfs", "ksadaskjdajsda"
-            ),
-        )
-        self.assertFalse(mock_http.called)
-        self._make_submissions()
-        self.assertTrue(mock_http.called)
-
     def test_create_rest_service_invalid_form_id(self):
+        """Test creating with an invalid form id fails."""
         count = RestService.objects.all().count()
 
         post_data = {

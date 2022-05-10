@@ -1,4 +1,12 @@
-SERVICE_CHOICES = ((u'f2dhis2', u'f2dhis2'), (u'generic_json', u'JSON POST'),
-                   (u'generic_xml', u'XML POST'), (u'bamboo', u'bamboo'),
-                   (u'textit', u'TextIt POST'),
-                   (u'google_sheets', u'Google Sheet'))
+# -*- coding: utf-8 -*-
+"""
+restservice module.
+"""
+SERVICE_CHOICES = (
+    ("f2dhis2", "f2dhis2"),
+    ("generic_json", "JSON POST"),
+    ("generic_xml", "XML POST"),
+    ("bamboo", "bamboo"),
+    ("textit", "TextIt POST"),
+    ("google_sheets", "Google Sheet"),
+)

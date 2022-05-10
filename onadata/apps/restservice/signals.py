@@ -1,4 +1,4 @@
-# -*- coding=utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 RestService signals module
 """
@@ -11,11 +11,11 @@ ASYNC_POST_SUBMISSION_PROCESSING_ENABLED = getattr(
     settings, "ASYNC_POST_SUBMISSION_PROCESSING_ENABLED", False
 )
 
-# pylint: disable=C0103
+# pylint: disable=invalid-name
 trigger_webhook = django.dispatch.Signal(providing_args=["instance"])
 
 
-def call_webhooks(sender, **kwargs):  # pylint: disable=W0613
+def call_webhooks(sender, **kwargs):  # pylint: disable=unused-argument
     """
     Call webhooks signal.
     """

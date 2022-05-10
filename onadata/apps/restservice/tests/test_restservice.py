@@ -35,15 +35,18 @@ class RestServiceTest(TestBase):
         self._publish_xls_file(path)
         self.xform = XForm.objects.all().reverse()[0]
 
-    def wait(self, t=1):
-        time.sleep(t)
+    # pylint: disable=no-self-use
+    def wait(self, duration=1):
+        """Sleep for 1 second or as defined by ``duration``."""
+        time.sleep(duration)
 
     def _create_rest_service(self):
-        rs = RestService(
+        service = RestService(
             service_url=self.service_url, xform=self.xform, name=self.service_name
         )
-        rs.save()
-        self.restservice = rs
+        service.save()
+
+        return service
 
     def _add_rest_service(self, service_url, service_name):
         add_service_url = reverse(
@@ -58,7 +61,9 @@ class RestServiceTest(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(RestService.objects.all().count(), count + 1)
 
-    def add_rest_service_with_usename_and_id_string_in_uppercase(self):
+    # pylint: disable=invalid-name
+    def add_rest_service_with_username_and_id_string_in_uppercase(self):
+        """Test that the service url is not case sensitive"""
         add_service_url = reverse(
             add_service,
             kwargs={
@@ -70,19 +75,23 @@ class RestServiceTest(TestBase):
         self.assertEqual(response.status_code, 200)
 
     def test_create_rest_service(self):
+        """Test the RestService model."""
         count = RestService.objects.all().count()
         self._create_rest_service()
         self.assertEqual(RestService.objects.all().count(), count + 1)
 
     def test_service_definition(self):
-        self._create_rest_service()
-        sv = self.restservice.get_service_definition()()
-        self.assertEqual(isinstance(sv, RestServiceInterface), True)
+        """Test the service_definition is an instance of RestServiceInterface"""
+        restservice = self._create_rest_service()
+        service = restservice.get_service_definition()()
+        self.assertEqual(isinstance(service, RestServiceInterface), True)
 
     def test_add_service(self):
+        """Test adding a restservice."""
         self._add_rest_service(self.service_url, self.service_name)
 
     def test_anon_service_view(self):
+        """Test the rest service section is not available to asynchronous users."""
         self.xform.shared = True
         self.xform.save()
         self._logout()
@@ -101,6 +110,7 @@ class RestServiceTest(TestBase):
         )
 
     def test_delete_service(self):
+        """Test deletion of a service."""
         self._add_rest_service(self.service_url, self.service_name)
         count = RestService.objects.all().count()
         service = RestService.objects.reverse()[0]
@@ -113,7 +123,9 @@ class RestServiceTest(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(RestService.objects.all().count(), count - 1)
 
+    # pylint: disable=invalid-name
     def test_add_rest_service_with_wrong_id_string(self):
+        """Test the id_string is validated when adding a service url."""
         add_service_url = reverse(
             add_service,
             kwargs={"username": self.user.username, "id_string": "wrong_id_string"},
@@ -125,6 +137,7 @@ class RestServiceTest(TestBase):
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch("requests.post")
     def test_textit_service(self, mock_http):
+        """Test the textit service."""
         service_url = "https://textit.io/api/v1/runs.json"
         service_name = "textit"
 
@@ -137,7 +150,7 @@ class RestServiceTest(TestBase):
 
         MetaData.textit(
             self.xform,
-            data_value="{}|{}|{}".format(api_token, flow_uuid, default_contact),
+            data_value=f"{api_token}|{flow_uuid}|{default_contact}",
         )
 
         xml_submission = os.path.join(
@@ -152,6 +165,7 @@ class RestServiceTest(TestBase):
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch("requests.post")
     def test_rest_service_not_set(self, mock_http):
+        """Test a requests.post is not called when a service is not defined."""
         xml_submission = os.path.join(
             self.this_directory, "fixtures", "dhisform_submission1.xml"
         )
@@ -162,6 +176,7 @@ class RestServiceTest(TestBase):
         self.assertEqual(mock_http.call_count, 0)
 
     def test_clean_keys_of_slashes(self):
+        """Test ServiceDefinition.clean_keys_of_slashes() function."""
         service = ServiceDefinition()
 
         test_data = {

@@ -1,11 +1,16 @@
+# -*- coding: utf-8 -*-
+"""
+restservice async functions.
+"""
+from onadata.apps.logger.models.instance import Instance
 from onadata.apps.restservice.utils import call_service
 from onadata.celery import app
 
 
 @app.task()
 def call_service_async(instance_pk):
+    """Async function that calls call_service()."""
     # load the parsed instance
-    from onadata.apps.logger.models.instance import Instance
 
     try:
         instance = Instance.objects.get(pk=instance_pk)

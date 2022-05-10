@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Post submission data to a textit/rapidpro server.
+"""
 import json
 import requests
 from six import iteritems
@@ -10,19 +14,24 @@ from onadata.settings.common import METADATA_SEPARATOR
 
 
 class ServiceDefinition(RestServiceInterface):
+    """
+    Post submission data to a textit/rapidpro server.
+    """
+
+    # pylint: disable=invalid-name
     id = TEXTIT
     verbose_name = "TextIt POST"
 
-    def send(self, url, submission_instance):
+    def send(self, url, data=None):
         """
         Sends the submission to the configured rest service
         :param url:
-        :param submission_instance:
+        :param data:
         :return:
         """
-        extra_data = self.clean_keys_of_slashes(submission_instance.json)
+        extra_data = self.clean_keys_of_slashes(data.json)
 
-        data_value = MetaData.textit(submission_instance.xform)
+        data_value = MetaData.textit(data.xform)
 
         if data_value:
             token, flow, contacts = data_value.split(METADATA_SEPARATOR)
@@ -33,7 +42,7 @@ class ServiceDefinition(RestServiceInterface):
             }
             headers = {
                 "Content-Type": "application/json",
-                "Authorization": "Token {}".format(token),
+                "Authorization": f"Token {token}",
             }
 
             requests.post(url, headers=headers, data=json.dumps(post_data))
