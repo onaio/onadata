@@ -8,7 +8,6 @@ import sys
 from datetime import datetime
 import six
 
-import httplib2
 from celery.backends.rpc import BacklogLimitExceeded
 from celery.result import AsyncResult
 from django.conf import settings
