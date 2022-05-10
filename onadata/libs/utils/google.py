@@ -11,9 +11,3 @@ def create_flow(redirect_uri: Optional[str] = None) -> Flow:
             'https://www.googleapis.com/auth/docs',
             'https://www.googleapis.com/auth/drive.file'],
         redirect_uri=redirect_uri or settings.GOOGLE_STEP2_URI)
-
-# google_flow = OAuth2WebServerFlow(
-#     client_id=settings.GOOGLE_OAUTH2_CLIENT_ID,
-#     client_secret=settings.GOOGLE_OAUTH2_CLIENT_SECRET,
-#     scope=' '.join(
-#     redirect_uri=settings.GOOGLE_STEP2_URI,  prompt="consent")
