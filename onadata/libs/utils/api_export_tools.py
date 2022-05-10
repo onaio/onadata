@@ -608,3 +608,4 @@ def _get_google_credential(request):
             access_type="offline", include_granted_scopes="true"
         )
         return HttpResponseRedirect(authorization_url)
+    return credential
