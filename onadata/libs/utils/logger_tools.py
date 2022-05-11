@@ -53,7 +53,7 @@ from onadata.apps.logger.models.instance import (
     InstanceHistory,
     get_id_string_from_xml_str,
 )
-from onadata.apps.logger.models.xform import XLSFormError
+from onadata.apps.logger.models.xform import DuplicateUUIDError, XLSFormError
 from onadata.apps.logger.xform_instance_parser import (
     AttachmentNameError,
     DuplicateInstance,
@@ -757,7 +757,7 @@ def publish_form(callback):
                 ("An error occurred while publishing the form. " "Please try again.")
             ),
         }
-    except (AttributeError, ValidationError) as e:
+    except (AttributeError, DuplicateUUIDError, ValidationError) as e:
         report_exception(f"Form publishing exception: {e}", text(e), sys.exc_info())
         return {"type": "alert-error", "text": text(e)}
 
