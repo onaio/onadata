@@ -24,7 +24,8 @@ from onadata.apps.sms_support.tools import (
 )
 
 
-def get_sample_data_for(question, json_survey, as_names=False):
+# pylint: disable=too-many-return-statements,too-many-branches
+def get_sample_data_for(question, json_survey, as_names=False):  # noqa C901
     """return an example data for a particular question.
 
     If as_names is True, returns name (not sms_field) of the question"""
@@ -49,32 +50,31 @@ def get_sample_data_for(question, json_survey, as_names=False):
 
     if xlsf_type == "text":
         return safe_wrap("lorem ipsum")
-    elif xlsf_type == "integer":
+    if xlsf_type == "integer":
         return safe_wrap(4)
-    elif xlsf_type == "decimal":
+    if xlsf_type == "decimal":
         return safe_wrap(1.2)
-    elif xlsf_type == "select one":
+    if xlsf_type == "select one":
         return safe_wrap(" ".join([c.get("sms_option") for c in xlsf_choices][:1]))
-    elif xlsf_type == "select all that apply":
+    if xlsf_type == "select all that apply":
         return safe_wrap(" ".join([c.get("sms_option") for c in xlsf_choices][:2]))
-    elif xlsf_type == "geopoint":
+    if xlsf_type == "geopoint":
         return safe_wrap("12.65 -8")
-    elif xlsf_type in MEDIA_TYPES:
+    if xlsf_type in MEDIA_TYPES:
         exts = {"audio": "mp3", "video": "avi", "photo": "jpg"}
-        return safe_wrap("x.%s;dGhpc" % exts.get(xlsf_type, "ext"))
-    elif xlsf_type == "barcode":
+        return safe_wrap(f"x.{exts.get(xlsf_type, 'ext')};dGhpc")
+    if xlsf_type == "barcode":
         return safe_wrap("abc")
-    elif xlsf_type == "date":
+    if xlsf_type == "date":
         return safe_wrap(now.strftime(xlsf_date_fmt))
-    elif xlsf_type == "datetime":
+    if xlsf_type == "datetime":
         return safe_wrap(now.strftime(xlsf_datetime_fmt))
-    elif xlsf_type == "note":
+    if xlsf_type == "note":
         return None
-    else:
-        return safe_wrap("?")
+    return safe_wrap("?")
 
 
-def get_helper_text(question, json_survey):
+def get_helper_text(question, json_survey):  # noqa C901
     """The full sentence (html) of the helper for a question
 
     Includes the type, a description
@@ -100,15 +100,15 @@ def get_helper_text(question, json_survey):
         return text(value)
 
     if xlsf_type == "text":
-        return safe_wrap("Any string (excluding “%s”)" % separator)
-    elif xlsf_type == "integer":
+        return safe_wrap(f"Any string (excluding “{separator}”)")
+    if xlsf_type == "integer":
         return safe_wrap("Any integer digit.")
-    elif xlsf_type == "decimal":
+    if xlsf_type == "decimal":
         return safe_wrap("A decimal or integer value.")
-    elif xlsf_type == "select one":
+    if xlsf_type == "select one":
         helper = "Select one of the following:"
         helper += "<ul>"
-        # pylint: disable=E1101
+        # pylint: disable=no-member
         helper += "".join(
             [
                 '<li><span class="sms_autodoc_helper_choice_id">'
@@ -120,10 +120,10 @@ def get_helper_text(question, json_survey):
         )
         helper += "</ul>"
         return safe_wrap(helper)
-    elif xlsf_type == "select all that apply":
+    if xlsf_type == "select all that apply":
         helper = "Select none, one or more in:"
         helper += "<ul>"
-        # pylint: disable=E1101
+        # pylint: disable=no-member
         helper += "".join(
             [
                 '<li><span class="sms_autodoc_helper_choice_id">'
@@ -135,7 +135,7 @@ def get_helper_text(question, json_survey):
         )
         helper += "</ul>"
         return safe_wrap(helper)
-    elif xlsf_type == "geopoint":
+    if xlsf_type == "geopoint":
         helper = (
             'GPS coordinates as <span class="sms_autodoc_example">'
             "latitude longitude</span>."
@@ -143,29 +143,29 @@ def get_helper_text(question, json_survey):
             "altitude precision</span> after. All of them are decimal."
         )
         return safe_wrap(helper)
-    elif xlsf_type in MEDIA_TYPES:
+    if xlsf_type in MEDIA_TYPES:
         exts = {"audio": "mp3", "video": "avi", "photo": "jpg"}
         helper = (
             "File name and base64 data of the file as in "
-            '<span class="sms_autodoc_example">x.%s;dGhpc</span>.'
+            '<span class="sms_autodoc_example">'
+            f'x.{exts.get(xlsf_type, "ext")};dGhpc</span>.'
             "<br />It is <strong>not</strong> intented to be filled by "
-            "humans." % exts.get(xlsf_type, "ext")
+            "humans."
         )
         return safe_wrap(helper)
-    elif xlsf_type == "barcode":
+    if xlsf_type == "barcode":
         return safe_wrap("A string representing the value behind the barcode.")
-    elif xlsf_type == "date":
+    if xlsf_type == "date":
         return safe_wrap(
             "A date in the format: "
-            '<a href="http://strftime.org/">%s</a>' % xlsf_date_fmt
+            f'<a href="http://strftime.org/">{xlsf_date_fmt}</a>'
         )
-    elif xlsf_type == "datetime":
+    if xlsf_type == "datetime":
         return safe_wrap(
             "A datetime in the format: "
-            '<a href="http://strftime.org/">%s</a>' % xlsf_datetime_fmt
+            f'<a href="http://strftime.org/">{xlsf_datetime_fmt}</a>'
         )
-    else:
-        return safe_wrap("?")
+    return safe_wrap("?")
 
 
 def get_autodoc_for(xform):
@@ -190,9 +190,7 @@ def get_autodoc_for(xform):
         '<span class="sms_autodoc_keyword">%(keyword)s</span>'
         "<sup>%(qid)d</sup> " % {"keyword": xform.sms_id_string, "qid": len(helpers)}
     )
-    line_values = '<span class="sms_autodoc_keyword">%(keyword)s</span> ' % {
-        "keyword": xform.sms_id_string
-    }
+    line_values = f'<span class="sms_autodoc_keyword">{xform.sms_id_string}</span> '
     helpers.append(
         (
             "keyword",

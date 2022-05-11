@@ -1,46 +1,55 @@
+# -*- coding: utf-8 -*-
+# vim: ai ts=4 sts=4 et sw=4 nu
+"""
+SMS parser module - utility functionality to process SMS messages.
+"""
 import base64
+import binascii
 import logging
 import re
-from builtins import str as text
-from datetime import datetime, date
+from datetime import date, datetime
 from io import BytesIO
 
 from django.utils.translation import gettext as _
 
 from onadata.apps.logger.models import XForm
 from onadata.apps.sms_support.tools import (
-    SMS_API_ERROR,
-    SMS_PARSING_ERROR,
-    SMS_SUBMISSION_REFUSED,
-    sms_media_to_file,
-    generate_instance,
-    DEFAULT_SEPARATOR,
-    NA_VALUE,
-    META_FIELDS,
-    MEDIA_TYPES,
     DEFAULT_DATE_FORMAT,
     DEFAULT_DATETIME_FORMAT,
+    DEFAULT_SEPARATOR,
+    MEDIA_TYPES,
+    META_FIELDS,
+    NA_VALUE,
+    SMS_API_ERROR,
+    SMS_PARSING_ERROR,
     SMS_SUBMISSION_ACCEPTED,
+    SMS_SUBMISSION_REFUSED,
+    generate_instance,
     is_last,
+    sms_media_to_file,
 )
 from onadata.libs.utils.logger_tools import dict2xform
 
 
 class SMSSyntaxError(ValueError):
-    pass
+    """A custom SMS syntax error exception class."""
 
 
 class SMSCastingError(ValueError):
+    """A custom SMS type casting error exception class."""
+
     def __init__(self, message, question=None):
         if question:
             message = _("%(question)s: %(message)s") % {
                 "question": question,
                 "message": message,
             }
-        super(SMSCastingError, self).__init__(message)
+        super().__init__(message)
 
 
-def parse_sms_text(xform, identity, text):
+# pylint: disable=too-many-locals,too-many-branches
+def parse_sms_text(xform, identity, sms_text):  # noqa C901
+    """Parses an SMS text to return XForm specific answers, media, notes."""
 
     json_survey = xform.json_dict()
 
@@ -58,13 +67,15 @@ def parse_sms_text(xform, identity, text):
 
     # extract SMS data into indexed groups of values
     groups = {}
-    for group in text.split(separator)[1:]:
+    for group in sms_text.split(separator)[1:]:
         group_id, group_text = [s.strip() for s in group.split(None, 1)]
         groups.update({group_id: [s.strip() for s in group_text.split(None)]})
 
-    def cast_sms_value(value, question, medias=[]):
+    # pylint: disable=too-many-locals,too-many-return-statements,too-many-branches
+    def cast_sms_value(value, question, medias=None):
         """Check data type of value and return cleaned version"""
 
+        medias = [] if medias is None else medias
         xlsf_type = question.get("type")
         xlsf_name = question.get("name")
         xlsf_choices = question.get("children")
@@ -76,14 +87,14 @@ def parse_sms_text(xform, identity, text):
         # unsafe.
         # xlsf_constraint=question.get('constraint')
 
-        if xlsf_required and not len(value):
+        if xlsf_required and not value:
             raise SMSCastingError(_("Required field missing"), xlsf_name)
 
         def safe_wrap(func):
             try:
                 return func()
             except Exception as e:
-                raise SMSCastingError(_("%(error)s") % {"error": e}, xlsf_name)
+                raise SMSCastingError(_("%(error)s") % {"error": e}, xlsf_name) from e
 
         def media_value(value, medias):
             """handle media values
@@ -94,26 +105,26 @@ def parse_sms_text(xform, identity, text):
                 filename, b64content = value.split(";", 1)
                 medias.append((filename, base64.b64decode(b64content)))
                 return filename
-            except Exception as e:
+            except (AttributeError, TypeError, binascii.Error) as e:
                 raise SMSCastingError(
                     _("Media file format " "incorrect. %(except)r") % {"except": e},
                     xlsf_name,
-                )
+                ) from e
 
         if xlsf_type == "text":
             return safe_wrap(lambda: str(value))
-        elif xlsf_type == "integer":
+        if xlsf_type == "integer":
             return safe_wrap(lambda: int(value))
-        elif xlsf_type == "decimal":
+        if xlsf_type == "decimal":
             return safe_wrap(lambda: float(value))
-        elif xlsf_type == "select one":
+        if xlsf_type == "select one":
             for choice in xlsf_choices:
                 if choice.get("sms_option") == value:
                     return choice.get("name")
             raise SMSCastingError(
                 _("No matching choice " "for '%(input)s'") % {"input": value}, xlsf_name
             )
-        elif xlsf_type == "select all that apply":
+        if xlsf_type == "select all that apply":
             values = [s.strip() for s in value.split()]
             ret_values = []
             for indiv_value in values:
@@ -121,7 +132,7 @@ def parse_sms_text(xform, identity, text):
                     if choice.get("sms_option") == indiv_value:
                         ret_values.append(choice.get("name"))
             return " ".join(ret_values)
-        elif xlsf_type == "geopoint":
+        if xlsf_type == "geopoint":
             err_msg = _("Incorrect geopoint coordinates.")
             geodata = [s.strip() for s in value.split()]
             if len(geodata) < 2 and len(geodata) > 4:
@@ -130,30 +141,30 @@ def parse_sms_text(xform, identity, text):
                 # check that latitude and longitude are floats
                 lat, lon = [float(v) for v in geodata[:2]]
                 # and within sphere boundaries
-                if lat < -90 or lat > 90 or lon < -180 and lon > 180:
+                if -90 > lat > 90 or -180 > lon > 180:
                     raise SMSCastingError(err_msg, xlsf_name)
                 if len(geodata) == 4:
                     # check that altitude and accuracy are integers
-                    [int(v) for v in geodata[2:4]]
+                    for v in geodata[2:4]:
+                        int(v)
                 elif len(geodata) == 3:
                     # check that altitude is integer
                     int(geodata[2])
-            except Exception as e:
-                raise SMSCastingError(e, xlsf_name)
+            except ValueError as e:
+                raise SMSCastingError(e, xlsf_name) from e
             return " ".join(geodata)
-
-        elif xlsf_type in MEDIA_TYPES:
+        if xlsf_type in MEDIA_TYPES:
             # media content (image, video, audio) must be formatted as:
             # file_name;base64 encodeed content.
             # Example: hello.jpg;dGhpcyBpcyBteSBwaWN0dXJlIQ==
             return media_value(value, medias)
-        elif xlsf_type == "barcode":
-            return safe_wrap(lambda: text(value))
-        elif xlsf_type == "date":
+        if xlsf_type == "barcode":
+            return safe_wrap(lambda: str(value))
+        if xlsf_type == "date":
             return safe_wrap(lambda: datetime.strptime(value, xlsf_date_fmt).date())
-        elif xlsf_type == "datetime":
+        if xlsf_type == "datetime":
             return safe_wrap(lambda: datetime.strptime(value, xlsf_datetime_fmt))
-        elif xlsf_type == "note":
+        if xlsf_type == "note":
             return safe_wrap(lambda: "")
         raise SMSCastingError(
             _("Unsuported column '%(type)s'") % {"type": xlsf_type}, xlsf_name
@@ -163,11 +174,11 @@ def parse_sms_text(xform, identity, text):
         """XLSForm Meta field value"""
         if xlsf_type in ("deviceid", "subscriberid", "imei"):
             return NA_VALUE
-        elif xlsf_type in ("start", "end"):
+        if xlsf_type in ("start", "end"):
             return datetime.now().isoformat()
-        elif xlsf_type == "today":
+        if xlsf_type == "today":
             return date.today().isoformat()
-        elif xlsf_type == "phonenumber":
+        if xlsf_type == "phonenumber":
             return identity
         return NA_VALUE
 
@@ -250,7 +261,8 @@ def parse_sms_text(xform, identity, text):
     return survey_answers, medias, notes
 
 
-def process_incoming_smses(username, incomings, id_string=None):
+# pylint: disable=too-many-statements
+def process_incoming_smses(username, incomings, id_string=None):  # noqa C901
     """Process Incoming (identity, text[, id_string]) SMS"""
 
     xforms = []
@@ -264,6 +276,7 @@ def process_incoming_smses(username, incomings, id_string=None):
         )
     }
 
+    # pylint: disable=too-many-branches
     def process_incoming(incoming, id_string):
         # assign variables
         if len(incoming) >= 2:
@@ -281,7 +294,7 @@ def process_incoming_smses(username, incomings, id_string=None):
             )
             return
 
-        if not len(identity.strip()) or not len(text.strip()):
+        if not identity.strip() or not text.strip():
             responses.append(
                 {
                     "code": SMS_API_ERROR,
@@ -349,8 +362,7 @@ def process_incoming_smses(username, incomings, id_string=None):
                 responses.append(
                     {
                         "code": SMS_SUBMISSION_REFUSED,
-                        "text": _("Required field `%(field)s` is  " "missing.")
-                        % {"field": field},
+                        "text": _(f"Required field `{field}` is  " "missing."),
                     }
                 )
                 return
@@ -360,13 +372,13 @@ def process_incoming_smses(username, incomings, id_string=None):
 
         # compute notes
         data = {}
-        for g in json_submission.values():
-            data.update(g)
+        for group in json_submission.values():
+            data.update(group)
         for idx, note in enumerate(notes):
             try:
                 notes[idx] = note.replace("${", "{").format(**data)
-            except Exception as e:
-                logging.exception(_("Updating note threw exception: %s" % text(e)))
+            except AttributeError as e:
+                logging.exception("Updating note threw exception: %s", str(e))
 
         # process_incoming expectes submission to be a file-like object
         xforms.append(BytesIO(xml_submission.encode("utf-8")))
@@ -377,8 +389,8 @@ def process_incoming_smses(username, incomings, id_string=None):
     for incoming in incomings:
         try:
             process_incoming(incoming, id_string)
-        except Exception as e:
-            responses.append({"code": SMS_PARSING_ERROR, "text": text(e)})
+        except (SMSCastingError, SMSSyntaxError, ValueError) as e:
+            responses.append({"code": SMS_PARSING_ERROR, "text": str(e)})
 
     for idx, xform in enumerate(xforms):
         # generate_instance expects media as a request.FILES.values() list
@@ -397,8 +409,8 @@ def process_incoming_smses(username, incomings, id_string=None):
 
             # extend success_response with data from the answers
             data = {}
-            for g in json_submissions[idx].values():
-                data.update(g)
+            for group in json_submissions[idx].values():
+                data.update(group)
             success_response = success_response.replace("${", "{").format(**data)
             response.update({"text": success_response})
             # add sendouts (notes)

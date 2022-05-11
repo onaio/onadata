@@ -96,7 +96,7 @@ def sms_media_to_file(file_object, name):
 
 
 # pylint: disable=too-many-return-statements
-def generate_instance(username, xml_file, media_files, uuid=None):
+def generate_instance(username, xml_file, media_files, uuid=None):  # noqa C901
     """Process an XForm submission as if done via HTTP
 
     :param IO xml_file: file-like object containing XML XForm
@@ -154,7 +154,7 @@ def generate_instance(username, xml_file, media_files, uuid=None):
     }
 
 
-def is_sms_related(json_survey):
+def is_sms_related(json_survey):  # noqa C901
     """Whether a form is considered to want sms Support
 
     return True if one sms-related field is defined."""
@@ -183,8 +183,8 @@ def is_sms_related(json_survey):
     return _walk(json_survey)
 
 
-# pylint: disable=too-many-locals,too-many-branches
-def check_form_sms_compatibility(form, json_survey=None):
+# pylint: disable=too-many-locals,too-many-branches,too-many-statements
+def check_form_sms_compatibility(form, json_survey=None):  # noqa C901
     """Tests all SMS related rules on the XForm representation
 
     Returns a view-compatible dict(type, text) with warnings or
