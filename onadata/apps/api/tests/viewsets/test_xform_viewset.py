@@ -3853,7 +3853,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         returned_data.pop("date_modified")
         self.assertEqual(returned_data, expected_data)
         old_version = self.xform.version
-        expected_json = self.xform.json
+        expected_json = self.xform.json_dict()
         expected_xml = self.xform.xml
 
         # Replace form
@@ -3879,7 +3879,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         )
         response = view(request, pk=self.xform.pk, version_id=old_version)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, json.loads(expected_json))
+        self.assertEqual(response.data, expected_json)
 
         response = view(request, pk=self.xform.pk, version_id=old_version, format="xml")
         self.assertEqual(response.status_code, 200)

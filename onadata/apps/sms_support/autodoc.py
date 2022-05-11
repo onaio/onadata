@@ -13,7 +13,6 @@
 from __future__ import absolute_import
 
 import datetime
-import json
 from builtins import str as text
 
 from onadata.apps.sms_support.tools import (

@@ -2,7 +2,6 @@
 """
 Attachments serializer.
 """
-import json
 
 from six import itervalues
 

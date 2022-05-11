@@ -576,8 +576,9 @@ def response_for_format(data, format=None):
 
         formatted_data = data.xls
     else:
-        formatted_data = json.loads(data.json) \
-            if isinstance(data.json, str) else data.json
+        formatted_data = (
+            json.loads(data.json) if isinstance(data.json, str) else data.json
+        )
     return Response(formatted_data)
 
 

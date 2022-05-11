@@ -967,7 +967,7 @@ class XForm(XFormMixin, BaseModel):
 
     def json_dict(self):
         """Returns the `self.json` field data as a dict."""
-        if self.json and isinstance(self.json, dict):
+        if isinstance(self.json, dict):
             return self.json
 
         return json.loads(self.json)
