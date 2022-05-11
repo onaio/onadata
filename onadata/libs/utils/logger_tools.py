@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+logger_tools - Logger app utility functions.
+"""
 import json
 import os
 import re
@@ -10,20 +14,17 @@ from http.client import BadStatusLine
 from typing import NoReturn
 from wsgiref.util import FileWrapper
 from xml.dom import Node
-import xml.etree.ElementTree as ET
 from xml.parsers.expat import ExpatError
 
-import pytz
-from dict2xml import dict2xml
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.exceptions import (
     MultipleObjectsReturned,
     PermissionDenied,
     ValidationError,
 )
 from django.core.files.storage import get_storage_class
-from django.db import IntegrityError, transaction, DataError
+from django.db import DataError, IntegrityError, transaction
 from django.db.models import Q
 from django.http import (
     HttpResponse,
@@ -35,6 +36,10 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.encoding import DjangoUnicodeDecodeError
 from django.utils.translation import gettext as _
+
+import pytz
+from defusedxml.ElementTree import fromstring
+from dict2xml import dict2xml
 from modilabs.utils.subprocess_timeout import ProcessTimedOut
 from multidb.pinning import use_master
 from pyxform.errors import PyXFormError
@@ -44,29 +49,29 @@ from rest_framework.response import Response
 from onadata.apps.logger.models import Attachment, Instance, XForm, XFormVersion
 from onadata.apps.logger.models.instance import (
     FormInactiveError,
-    InstanceHistory,
     FormIsMergedDatasetError,
+    InstanceHistory,
     get_id_string_from_xml_str,
 )
 from onadata.apps.logger.models.xform import XLSFormError
 from onadata.apps.logger.xform_instance_parser import (
+    AttachmentNameError,
     DuplicateInstance,
     InstanceEmptyError,
+    InstanceEncryptionError,
+    InstanceFormatError,
     InstanceInvalidUserError,
     InstanceMultipleNodeError,
-    InstanceEncryptionError,
     NonUniqueFormIdError,
-    InstanceFormatError,
     clean_and_parse_xml,
     get_deprecated_uuid_from_xml,
     get_submission_date_from_xml,
     get_uuid_from_xml,
-    AttachmentNameError,
 )
 from onadata.apps.messaging.constants import (
-    XFORM,
-    SUBMISSION_EDITED,
     SUBMISSION_CREATED,
+    SUBMISSION_EDITED,
+    XFORM,
 )
 from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
@@ -74,7 +79,7 @@ from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.analytics import track_object_event
 from onadata.libs.utils.common_tags import METADATA_FIELDS
-from onadata.libs.utils.common_tools import report_exception, get_uuid
+from onadata.libs.utils.common_tools import get_uuid, report_exception
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -95,13 +100,18 @@ uuid_regex = re.compile(
 )
 
 
+# pylint: disable=invalid-name
+User = get_user_model()
+
+
 def create_xform_version(xform: XForm, user: User) -> XFormVersion:
     """
     Creates an XFormVersion object for the passed in XForm
     """
+    versioned_xform = None
     try:
         with transaction.atomic():
-            return XFormVersion.objects.create(
+            versioned_xform = XFormVersion.objects.create(
                 xform=xform,
                 xls=xform.xls,
                 json=xform.json
@@ -113,8 +123,10 @@ def create_xform_version(xform: XForm, user: User) -> XFormVersion:
             )
     except IntegrityError:
         pass
+    return versioned_xform
 
 
+# pylint: disable=too-many-arguments
 def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum, request=None):
     history = None
     instance = None
@@ -208,16 +220,14 @@ def dict2xform(jsform, form_id, root=None, username=None, gen_uuid=False):
     if gen_uuid:
         jsform["meta"] = {"instanceID": "uuid:" + get_uuid(hex_only=False)}
 
-    return "<?xml version='1.0' ?><{0} id='{1}'>{2}</{0}>".format(
-        root, form_id, dict2xml(jsform)
-    )
+    return f"<?xml version='1.0' ?><{root} id='{form_id}'>{dict2xml(jsform)}</{root}>"
 
 
 def get_first_record(queryset):
     """
     Returns the first item in a queryset sorted by id.
     """
-    records = sorted([record for record in queryset], key=lambda k: k.id)
+    records = sorted(list(queryset), key=lambda k: k.id)
     if records:
         return records[0]
 
@@ -225,11 +235,12 @@ def get_first_record(queryset):
 
 
 def get_uuid_from_submission(xml):
+    """Extracts and returns the UUID from a submission XML."""
     # parse UUID from uploaded XML
     split_xml = uuid_regex.split(xml.decode("utf-8"))
 
     # check that xml has UUID
-    return len(split_xml) > 1 and split_xml[1] or None
+    return split_xml[1] if len(split_xml) > 1 else None
 
 
 def get_xform_from_submission(xml, username, uuid=None, request=None):
@@ -268,7 +279,7 @@ def get_xform_from_submission(xml, username, uuid=None, request=None):
                     # Assumption: If the owner_username is equal to the XForm
                     # owner we've retrieved the correct form.
                     if username and xform.user.username == username:
-                        raise e
+                        raise e from e
             else:
                 return xform
 
@@ -280,8 +291,8 @@ def get_xform_from_submission(xml, username, uuid=None, request=None):
             user__username__iexact=username,
             deleted_at__isnull=True,
         )
-    except MultipleObjectsReturned:
-        raise NonUniqueFormIdError()
+    except MultipleObjectsReturned as e:
+        raise NonUniqueFormIdError() from e
 
 
 def _has_edit_xform_permission(xform, user):
@@ -292,6 +303,7 @@ def _has_edit_xform_permission(xform, user):
 
 
 def check_edit_submission_permissions(request_user, xform):
+    """Checks edit submission permissions."""
     if xform and request_user and request_user.is_authenticated:
         requires_auth = xform.user.profile.require_auth
         has_edit_perms = _has_edit_xform_permission(xform, request_user)
@@ -324,13 +336,14 @@ def check_submission_permissions(request, xform):
     :returns: None.
     :raises: PermissionDenied based on the above criteria.
     """
+    requires_authentication = (
+        xform.user.profile.require_auth
+        or xform.require_auth
+        or request.path == "/submission"
+    )
     if (
         request
-        and (
-            xform.user.profile.require_auth
-            or xform.require_auth
-            or request.path == "/submission"
-        )
+        and requires_authentication
         and xform.user != request.user
         and not request.user.has_perm("report_xform", xform)
     ):
@@ -356,7 +369,7 @@ def check_submission_encryption(xform: XForm, xml: bytes) -> NoReturn:
     from the submissions
     """
     submission_encrypted = False
-    submission_element = ET.fromstring(xml)
+    submission_element = fromstring(xml)
     encrypted_attrib = submission_element.attrib.get("encrypted")
     required_encryption_elems = [
         elem.tag
@@ -438,6 +451,7 @@ def save_submission(
     checksum,
     request=None,
 ):
+    """Persist a submission into the ParsedInstance model."""
     if not date_created_override:
         date_created_override = get_submission_date_from_xml(xml)
 
@@ -471,6 +485,7 @@ def get_filtered_instances(*args, **kwargs):
     return Instance.objects.filter(*args, **kwargs)
 
 
+# pylint: disable=too-many-locals
 def create_instance(
     username,
     xml_file,
@@ -577,8 +592,9 @@ def create_instance(
     return instance
 
 
+# pylint: disable=too-many-branches,too-many-statements
 @use_master
-def safe_create_instance(
+def safe_create_instance(  # noqa C901
     username,
     xml_file,
     media_files,
@@ -633,9 +649,7 @@ def safe_create_instance(
     except PermissionDenied as e:
         error = OpenRosaResponseForbidden(e)
     except UnreadablePostError as e:
-        error = OpenRosaResponseBadRequest(
-            _("Unable to read submitted file: %(error)s" % {"error": text(e)})
-        )
+        error = OpenRosaResponseBadRequest(_(f"Unable to read submitted file: {e}"))
     except InstanceMultipleNodeError as e:
         error = OpenRosaResponseBadRequest(e)
     except DjangoUnicodeDecodeError:
@@ -667,10 +681,13 @@ def response_with_mimetype_and_name(
     use_local_filesystem=False,
     full_mime=False,
 ):
+    """Returns a HttpResponse with Content-Disposition header set
+
+    Triggers a download on the browser."""
     if extension is None:
         extension = mimetype
     if not full_mime:
-        mimetype = "application/%s" % mimetype
+        mimetype = f"application/{mimetype}"
     if file_path:
         try:
             if not use_local_filesystem:
@@ -679,7 +696,8 @@ def response_with_mimetype_and_name(
                 response = StreamingHttpResponse(wrapper, content_type=mimetype)
                 response["Content-Length"] = default_storage.size(file_path)
             else:
-                wrapper = FileWrapper(open(file_path))
+                # pylint: disable=consider-using-with
+                wrapper = FileWrapper(open(file_path, "rb"))
                 response = StreamingHttpResponse(wrapper, content_type=mimetype)
                 response["Content-Length"] = os.path.getsize(file_path)
         except IOError:
@@ -693,22 +711,23 @@ def response_with_mimetype_and_name(
 
 
 def generate_content_disposition_header(name, extension, show_date=True):
+    """Returns the a Content-Description header formatting string,"""
     if name is None:
         return "attachment;"
     if show_date:
-        name = "%s-%s" % (name, datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
-    return "attachment; filename=%s.%s" % (name, extension)
+        timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        name = f"{name}-{timestamp}"
+    return f"attachment; filename={name}.{extension}"
 
 
 def store_temp_file(data):
-    tmp = tempfile.TemporaryFile()
+    """Creates a temporary file with the ``data`` and returns it."""
     ret = None
-    try:
+    with tempfile.TemporaryFile() as tmp:
         tmp.write(data)
         tmp.seek(0)
         ret = tmp
-    finally:
-        tmp.close()
+
     return ret
 
 
@@ -739,10 +758,8 @@ def publish_form(callback):
                 ("An error occurred while publishing the form. " "Please try again.")
             ),
         }
-    except (AttributeError, Exception, ValidationError) as e:
-        report_exception(
-            "Form publishing exception: {}".format(e), text(e), sys.exc_info()
-        )
+    except (AttributeError, ValidationError) as e:
+        report_exception(f"Form publishing exception: {e}", text(e), sys.exc_info())
         return {"type": "alert-error", "text": text(e)}
 
 
@@ -777,6 +794,7 @@ def publish_xls_form(xls_file, user, project, id_string=None, created_by=None):
     additional_context={"from": "Publish XML Form"},
 )
 def publish_xml_form(xml_file, user, project, id_string=None, created_by=None):
+    """Publish an XML XForm."""
     xml = xml_file.read()
     if isinstance(xml, bytes):
         xml = xml.decode("utf-8")
@@ -786,20 +804,20 @@ def publish_xml_form(xml_file, user, project, id_string=None, created_by=None):
         dd = DataDictionary.objects.get(user=user, id_string=id_string, project=project)
         dd.xml = xml
         dd.json = form_json
-        dd._mark_start_time_boolean()
+        dd.mark_start_time_boolean()
         set_uuid(dd)
-        dd._set_uuid_in_xml()
-        dd._set_hash()
+        dd.set_uuid_in_xml()
+        dd.set_hash()
         dd.save()
     else:
         created_by = created_by or user
         dd = DataDictionary(
             created_by=created_by, user=user, xml=xml, json=form_json, project=project
         )
-        dd._mark_start_time_boolean()
+        dd.mark_start_time_boolean()
         set_uuid(dd)
-        dd._set_uuid_in_xml(file_name=xml_file.name)
-        dd._set_hash()
+        dd.set_uuid_in_xml(file_name=xml_file.name)
+        dd.set_hash()
         dd.save()
 
     # Create an XFormVersion object for the published XLSForm
@@ -820,63 +838,75 @@ def remove_metadata_fields(data):
     return data
 
 
+def set_default_openrosa_headers(response):
+    """Sets the default OpenRosa headers into a ``response`` object."""
+    response["Content-Type"] = "text/html; charset=utf-8"
+    response["X-OpenRosa-Accept-Content-Length"] = DEFAULT_CONTENT_LENGTH
+    tz = pytz.timezone(settings.TIME_ZONE)
+    dt = datetime.now(tz).strftime("%a, %d %b %Y %H:%M:%S %Z")
+    response["Date"] = dt
+    response[OPEN_ROSA_VERSION_HEADER] = OPEN_ROSA_VERSION
+    response["Content-Type"] = DEFAULT_CONTENT_TYPE
+
+
 class BaseOpenRosaResponse(HttpResponse):
+    """The base HTTP response class with OpenRosa headers."""
+
     status_code = 201
 
     def __init__(self, *args, **kwargs):
-        super(BaseOpenRosaResponse, self).__init__(*args, **kwargs)
-
-        self[OPEN_ROSA_VERSION_HEADER] = OPEN_ROSA_VERSION
-        tz = pytz.timezone(settings.TIME_ZONE)
-        dt = datetime.now(tz).strftime("%a, %d %b %Y %H:%M:%S %Z")
-        self["Date"] = dt
-        self["X-OpenRosa-Accept-Content-Length"] = DEFAULT_CONTENT_LENGTH
-        self["Content-Type"] = DEFAULT_CONTENT_TYPE
+        super().__init__(*args, **kwargs)
+        set_default_openrosa_headers(self)
 
 
 class OpenRosaResponse(BaseOpenRosaResponse):
+    """An HTTP response class with OpenRosa headers for the created response."""
+
     status_code = 201
 
     def __init__(self, *args, **kwargs):
-        super(OpenRosaResponse, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.message = self.content
         # wrap content around xml
-        self.content = (
-            """<?xml version='1.0' encoding='UTF-8' ?>
+        self.content = f"""<?xml version='1.0' encoding='UTF-8' ?>
 <OpenRosaResponse xmlns="http://openrosa.org/http/response">
-        <message nature="">%s</message>
+        <message nature="">{self.content}</message>
 </OpenRosaResponse>"""
-            % self.content
-        )
 
 
 class OpenRosaResponseNotFound(OpenRosaResponse):
+    """An HTTP response class with OpenRosa headers for the Not Found response."""
+
     status_code = 404
 
 
 class OpenRosaResponseBadRequest(OpenRosaResponse):
+    """An HTTP response class with OpenRosa headers for the Bad Request response."""
+
     status_code = 400
 
 
 class OpenRosaResponseNotAllowed(OpenRosaResponse):
+    """An HTTP response class with OpenRosa headers for the Not Allowed response."""
+
     status_code = 405
 
 
 class OpenRosaResponseForbidden(OpenRosaResponse):
+    """An HTTP response class with OpenRosa headers for the Forbidden response."""
+
     status_code = 403
 
 
 class OpenRosaNotAuthenticated(Response):
+    """An HTTP response class with OpenRosa headers for the Not Authenticated
+    response."""
+
     status_code = 401
 
     def __init__(self, *args, **kwargs):
-        super(OpenRosaNotAuthenticated, self).__init__(*args, **kwargs)
-
-        self["Content-Type"] = "text/html; charset=utf-8"
-        self["X-OpenRosa-Accept-Content-Length"] = DEFAULT_CONTENT_LENGTH
-        tz = pytz.timezone(settings.TIME_ZONE)
-        dt = datetime.now(tz).strftime("%a, %d %b %Y %H:%M:%S %Z")
-        self["Date"] = dt
+        super().__init__(*args, **kwargs)
+        set_default_openrosa_headers(self)
 
 
 def inject_instanceid(xml_str, uuid):
@@ -911,22 +941,26 @@ def inject_instanceid(xml_str, uuid):
         else:
             uuid_tag = uuid_tags[0]
         # insert meta and instanceID
-        text_node = xml.createTextNode("uuid:%s" % uuid)
+        text_node = xml.createTextNode(f"uuid:{uuid}")
         uuid_tag.appendChild(text_node)
         return xml.toxml()
     return xml_str
 
 
 def remove_xform(xform):
+    """Deletes an XForm ``xform``."""
     # delete xform, and all related models
     xform.delete()
 
 
-class PublishXForm(object):
+class PublishXForm:
+    "A class to publish an XML XForm file."
+
     def __init__(self, xml_file, user):
         self.xml_file = xml_file
         self.user = user
         self.project = get_user_default_project(user)
 
     def publish_xform(self):
+        """Publish an XForm XML file."""
         return publish_xml_form(self.xml_file, self.user, self.project)

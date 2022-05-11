@@ -33,7 +33,7 @@ class TestSimpleSubmission(TestCase):
         builder = SurveyElementBuilder()
         sss = builder.create_survey_element_from_json(xform.json)
         xform.xml = sss.to_xml()
-        xform._mark_start_time_boolean()
+        xform.mark_start_time_boolean()
         xform.save()
 
     def _submit_at_hour(self, hour):

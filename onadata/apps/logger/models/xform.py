@@ -10,12 +10,11 @@ import re
 from datetime import datetime
 from xml.dom import Node
 
-import pytz
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import GenericRelation
-from django.core.exceptions import ObjectDoesNotExist
 from django.core.cache import cache
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models, transaction
 from django.db.models import Sum
 from django.db.models.signals import post_delete, pre_save
@@ -24,12 +23,14 @@ from django.utils import timezone
 from django.utils.html import conditional_escape
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
-from six import iteritems
+
+import pytz
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from pyxform import SurveyElementBuilder, constants, create_survey_element_from_dict
 from pyxform.question import Question
 from pyxform.section import RepeatingSection
 from pyxform.xform2json import create_survey_element_from_xml
+from six import iteritems
 from taggit.managers import TaggableManager
 
 from onadata.apps.logger.xform_instance_parser import XLSFormError, clean_and_parse_xml
@@ -38,30 +39,30 @@ from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
     PROJ_NUM_DATASET_CACHE,
+    PROJ_OWNER_CACHE,
     PROJ_SUB_DATE_CACHE,
     XFORM_COUNT,
-    PROJ_OWNER_CACHE,
     XFORM_SUBMISSION_COUNT_FOR_DAY,
     XFORM_SUBMISSION_COUNT_FOR_DAY_DATE,
     safe_delete,
 )
 from onadata.libs.utils.common_tags import (
+    DATE_MODIFIED,
     DURATION,
     ID,
     KNOWN_MEDIA_TYPES,
     MEDIA_ALL_RECEIVED,
     MEDIA_COUNT,
+    MULTIPLE_SELECT_TYPE,
     NOTES,
+    REVIEW_COMMENT,
+    REVIEW_STATUS,
     SUBMISSION_TIME,
     SUBMITTED_BY,
     TAGS,
     TOTAL_MEDIA,
     UUID,
     VERSION,
-    REVIEW_STATUS,
-    REVIEW_COMMENT,
-    MULTIPLE_SELECT_TYPE,
-    DATE_MODIFIED,
 )
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.mongo import _encode_for_mongo
@@ -234,7 +235,7 @@ class XFormMixin:
     PREFIX_NAME_REGEX = re.compile(r"(?P<prefix>.+/)(?P<name>[^/]+)$")
 
     # pylint: disable=too-many-locals
-    def _set_uuid_in_xml(self, file_name=None):
+    def set_uuid_in_xml(self, file_name=None):
         """
         Add bind to automatically set UUID node in XML.
         """
@@ -313,13 +314,13 @@ class XFormMixin:
         # hack
         # http://ronrothman.com/public/leftbraned/xml-dom-minidom-toprettyxml-\
         # and-silly-whitespace/
-        text_re = re.compile("(>)\n\s*(\s[^<>\s].*?)\n\s*(\s</)", re.DOTALL)  # noqa
+        text_re = re.compile(r"(>)\n\s*(\s[^<>\s].*?)\n\s*(\s</)", re.DOTALL)
         output_re = re.compile("\n.*(<output.*>)\n(  )*")
         pretty_xml = text_re.sub(
             lambda m: "".join(m.group(1, 2, 3)), self.xml.decode("utf-8")
         )
         inline_output = output_re.sub("\g<1>", pretty_xml)  # noqa
-        inline_output = re.compile("<label>\s*\n*\s*\n*\s*</label>").sub(  # noqa
+        inline_output = re.compile(r"<label>\s*\n*\s*\n*\s*</label>").sub(
             "<label></label>", inline_output
         )
         self.xml = inline_output
@@ -718,7 +719,8 @@ class XFormMixin:
                 self._expand_geocodes(row, key, elem)
             yield row
 
-    def _mark_start_time_boolean(self):
+    def mark_start_time_boolean(self):
+        """Sets True the `self.has_start_time` if the form has a start meta question."""
         starttime_substring = 'jr:preloadParams="start"'
         if self.xml.find(starttime_substring) != -1:
             self.has_start_time = True
@@ -726,6 +728,7 @@ class XFormMixin:
             self.has_start_time = False
 
     def get_survey_elements_of_type(self, element_type):
+        """Returns all survey elements of type ``element_type``."""
         return [e for e in self.get_survey_elements() if e.type == element_type]
 
     # pylint: disable=invalid-name
@@ -932,7 +935,7 @@ class XForm(XFormMixin, BaseModel):
             if isinstance(self.xml, bytes):
                 self.xml = self.xml.decode("utf-8")
             self.xml = TITLE_PATTERN.sub(f"<h:title>{title_xml}</h:title>", self.xml)
-            self._set_hash()
+            self.set_hash()
         if contains_xml_invalid_char(title_xml):
             raise XLSFormError(
                 _("Title shouldn't have any invalid xml " "characters ('>' '&' '<')")
@@ -947,7 +950,15 @@ class XForm(XFormMixin, BaseModel):
 
         self.title = title_xml
 
-    def _set_hash(self):
+    def get_hash(self):
+        """Returns the MD5 hash of the forms XML content prefixed by 'md5:'"""
+        md5_hash = hashlib.new(
+            "md5", self.xml.encode("utf-8"), usedforsecurity=False
+        ).hexdigest()
+        return f"md5:{md5_hash}"
+
+    def set_hash(self):
+        """Sets the MD5 hash of the form."""
         self.hash = self.get_hash()
 
     def _set_encrypted_field(self):
@@ -985,7 +996,7 @@ class XForm(XFormMixin, BaseModel):
         if update_fields is None or "title" in update_fields:
             self._set_title()
         if self.pk is None:
-            self._set_hash()
+            self.set_hash()
         if update_fields is None or "encrypted" in update_fields:
             self._set_encrypted_field()
         if update_fields is None or "id_string" in update_fields:
@@ -1173,13 +1184,6 @@ class XForm(XFormMixin, BaseModel):
             pass
 
         return last_submission_time
-
-    def get_hash(self):
-        """Returns the MD5 hash of the forms XML content prefixed by 'md5:'"""
-        md5_hash = hashlib.new(
-            "md5", self.xml.encode("utf-8"), usedforsecurity=False
-        ).hexdigest()
-        return f"md5:{md5_hash}"
 
     @property
     def can_be_replaced(self):

@@ -14,7 +14,7 @@ class Command(BaseCommand):
         for i, dd in enumerate(
                 queryset_iterator(DataDictionary.objects.all())):
             if dd.xls:
-                dd._set_uuid_in_xml()
+                dd.set_uuid_in_xml()
                 super(DataDictionary, dd).save()
             if (i + 1) % 10 == 0:
                 self.stdout.write(_('Updated %(nb)d XForms...') % {'nb': i})

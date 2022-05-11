@@ -182,6 +182,8 @@ def media_resources(media_list, download=False):
 
 # pylint: disable=too-many-public-methods
 class MetaData(models.Model):
+    """MetaData class model."""
+
     data_type = models.CharField(max_length=255)
     data_value = models.CharField(max_length=255)
     data_file = models.FileField(upload_to=upload_to, blank=True, null=True)
@@ -204,7 +206,7 @@ class MetaData(models.Model):
 
     # pylint: disable=arguments-differ
     def save(self, *args, **kwargs):
-        self._set_hash()
+        self.set_hash()
         super().save(*args, **kwargs)
 
     @property
@@ -215,15 +217,9 @@ class MetaData(models.Model):
         if self.file_hash is not None and self.file_hash != "":
             return self.file_hash
 
-        return self._set_hash()
+        return self.set_hash()
 
     def set_hash(self):
-        """
-        Returns the md5 hash of the metadata file.
-        """
-        return self._set_hash()
-
-    def _set_hash(self):
         """
         Returns the md5 hash of the metadata file.
         """
@@ -251,7 +247,6 @@ class MetaData(models.Model):
 
     def soft_delete(self):
         """
-        Return the soft deletion timestamp
         Mark the MetaData as soft deleted,
         by updating the deleted_at field.
         """
@@ -261,6 +256,7 @@ class MetaData(models.Model):
 
     @staticmethod
     def public_link(content_object, data_value=None):
+        """Returns the public link metadata."""
         data_type = "public_link"
         if data_value is False:
             data_value = "False"
@@ -270,6 +266,7 @@ class MetaData(models.Model):
 
     @staticmethod
     def set_google_sheet_details(content_object, data_value=None):
+        """Returns Google Sheet details metadata object."""
         data_type = GOOGLE_SHEET_DATA_TYPE
         return unique_type_for_form(content_object, data_type, data_value)
 
