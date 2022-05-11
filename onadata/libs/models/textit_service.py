@@ -91,6 +91,13 @@ class TextItService:
         """
         data_value = MetaData.textit(self.xform)
 
+        if data_value is None:
+            raise serializers.ValidationError(
+                _(
+                    "Error occurred when loading textit service."
+                    "Resolve by updating auth_token, flow_uuid and contacts fields"
+                )
+            )
         try:
             self.auth_token, self.flow_uuid, self.contacts = data_value.split(
                 METADATA_SEPARATOR
