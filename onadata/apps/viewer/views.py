@@ -472,7 +472,7 @@ def _get_google_credential(request):
     google_flow = create_flow()
     return HttpResponseRedirect(
         google_flow.authorization_url(
-            access_type="offline", include_granted_scopes="true"
+            access_type="offline", include_granted_scopes="true", prompt="consent"
         )
     )
 
@@ -802,7 +802,11 @@ def google_xls_export(request, username, id_string):
             google_xls_export, kwargs={"username": username, "id_string": id_string}
         )
         google_flow = create_flow()
-        return HttpResponseRedirect(google_flow.authorization_url())
+        return HttpResponseRedirect(
+            google_flow.authorization_url(
+                access_type="offline", include_granted_scopes="true", prompt="consent"
+            )
+        )
 
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_form({"user": owner, "id_string__iexact": id_string})

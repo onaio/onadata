@@ -604,7 +604,7 @@ def _get_google_credential(request):
     if not credential:
         google_flow = generate_google_web_flow(request)
         authorization_url, state = google_flow.authorization_url(
-            access_type="offline", include_granted_scopes="true"
+            access_type="offline", include_granted_scopes="true", prompt="consent"
         )
         return HttpResponseRedirect(authorization_url)
     return credential
