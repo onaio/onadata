@@ -443,7 +443,7 @@ def set_xform_owner_data(data, xform, request, username, id_string):
     )
     if not xform.allows_sms:
         data["sms_compatible"] = check_form_sms_compatibility(
-            None, json_survey=json.loads(xform.json)
+            None, json_survey=xform.json_dict()
         )
     else:
         url_root = request.build_absolute_uri("/")[:-1]
@@ -819,7 +819,7 @@ def edit(request, username, id_string):  # noqa C901
                 pid = xform.sms_id_string
                 xform.allows_sms = enabled
                 xform.sms_id_string = sms_support_form.cleaned_data.get("sms_id_string")
-                compat = check_form_sms_compatibility(None, json.loads(xform.json))
+                compat = check_form_sms_compatibility(None, xform.json_dict())
                 if compat["type"] == "alert-error":
                     xform.allows_sms = False
                     xform.sms_id_string = pid

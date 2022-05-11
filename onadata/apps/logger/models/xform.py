@@ -202,7 +202,7 @@ def check_version_set(survey):
     """
 
     # get the json and check for the version key
-    survey_json = json.loads(survey.to_json())
+    survey_json = survey.to_json_dict()
     if not survey_json.get("version"):
         # set utc time as the default version
         survey_json["version"] = datetime.utcnow().strftime("%Y%m%d%H%M")
@@ -952,18 +952,25 @@ class XForm(XFormMixin, BaseModel):
 
     def _set_encrypted_field(self):
         if self.json and self.json != "":
-            json_dict = json.loads(self.json)
+            json_dict = self.json_dict()
             self.encrypted = "public_key" in json_dict
 
     def _set_public_key_field(self):
         if self.json and self.json != "":
             if self.num_of_submissions == 0 and self.public_key:
-                json_dict = json.loads(self.json)
+                json_dict = self.json_dict()
                 json_dict["public_key"] = self.public_key
                 survey = create_survey_element_from_dict(json_dict)
-                self.json = survey.to_json()
+                self.json = survey.to_json_dict()
                 self.xml = survey.to_xml()
                 self._set_encrypted_field()
+
+    def json_dict(self):
+        """Returns the `self.json` field data as a dict."""
+        if self.json and isinstance(self.json, dict):
+            return self.json
+
+        return json.loads(self.json)
 
     def update(self, *args, **kwargs):
         """Persists the form to the DB."""
@@ -1017,12 +1024,8 @@ class XForm(XFormMixin, BaseModel):
         if not self.sms_id_string and (
             update_fields is None or "id_string" in update_fields
         ):
-            if isinstance(self.json, str):
-                self.sms_id_string = json.loads(self.json).get(
-                    "sms_keyword", self.id_string
-                )
-            else:
-                self.sms_id_string = self.json.get("sms_keyword", self.id_string)
+            json_dict = self.json_dict()
+            self.sms_id_string = json_dict.get("sms_keyword", self.id_string)
 
         if update_fields is None or "public_key" in update_fields:
             self._set_public_key_field()

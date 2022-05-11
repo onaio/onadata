@@ -121,6 +121,6 @@ class AttachmentSerializer(serializers.HyperlinkedModelSerializer):
             return None
 
         question_name = dict_key_for_value(qa_dict, obj.filename)
-        data = json.loads(obj.instance.xform.json)
+        data = obj.instance.xform.json_dict()
 
         return get_path(data, question_name, [])

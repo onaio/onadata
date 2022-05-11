@@ -187,7 +187,7 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
                 survey["name"] = default_name
             else:
                 survey["id_string"] = self.id_string
-            self.json = survey.to_json()
+            self.json = survey.to_json_dict()
             self.xml = survey.to_xml()
             self.version = survey.get("version")
             self.last_updated_at = timezone.now()

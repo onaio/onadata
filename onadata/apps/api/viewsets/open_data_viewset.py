@@ -33,16 +33,17 @@ from onadata.libs.utils.common_tags import (
     GEOLOCATION,
     MULTIPLE_SELECT_TYPE,
     REPEAT_SELECT_TYPE,
-    NA_REP)
+    NA_REP,
+)
 
 BaseViewset = get_baseviewset_class()
-IGNORED_FIELD_TYPES = ['select one', 'select multiple']
+IGNORED_FIELD_TYPES = ["select one", "select multiple"]
 
 # index tags
-DEFAULT_OPEN_TAG = '['
-DEFAULT_CLOSE_TAG = ']'
+DEFAULT_OPEN_TAG = "["
+DEFAULT_CLOSE_TAG = "]"
 DEFAULT_INDEX_TAGS = (DEFAULT_OPEN_TAG, DEFAULT_CLOSE_TAG)
-DEFAULT_NA_REP = getattr(settings, 'NA_REP', NA_REP)
+DEFAULT_NA_REP = getattr(settings, "NA_REP", NA_REP)
 
 
 def replace_special_characters_with_underscores(data):
@@ -57,9 +58,9 @@ def process_tableau_data(data, xform):
     """
 
     def get_xpath(key, nested_key):
-        val = nested_key.split('/')
-        nested_key_diff = val[len(key.split('/')):]
-        xpaths = key + f'[{index}]/' + '/'.join(nested_key_diff)
+        val = nested_key.split("/")
+        nested_key_diff = val[len(key.split("/")) :]
+        xpaths = key + f"[{index}]/" + "/".join(nested_key_diff)
         return xpaths
 
     def get_updated_data_dict(key, value, data_dict):
@@ -72,7 +73,7 @@ def process_tableau_data(data, xform):
         if isinstance(value, str) and data_dict:
             choices = value.split(" ")
             for choice in choices:
-                xpaths = f'{key}/{choice}'
+                xpaths = f"{key}/{choice}"
                 data_dict[xpaths] = choice
         elif isinstance(value, list):
             try:
@@ -106,11 +107,9 @@ def process_tableau_data(data, xform):
                     qstn_type = xform.get_element(nested_key).type
                     xpaths = get_xpath(key, nested_key)
                     if qstn_type == MULTIPLE_SELECT_TYPE:
-                        data = get_updated_data_dict(
-                            xpaths, nested_val, data)
+                        data = get_updated_data_dict(xpaths, nested_val, data)
                     elif qstn_type == REPEAT_SELECT_TYPE:
-                        data = get_updated_data_dict(
-                            xpaths, nested_val, data)
+                        data = get_updated_data_dict(xpaths, nested_val, data)
                     else:
                         data[xpaths] = nested_val
         return data
@@ -124,7 +123,10 @@ def process_tableau_data(data, xform):
             flat_dict = dict.fromkeys(diff, None)
             for (key, value) in row.items():
                 if isinstance(value, list) and key not in [
-                        ATTACHMENTS, NOTES, GEOLOCATION]:
+                    ATTACHMENTS,
+                    NOTES,
+                    GEOLOCATION,
+                ]:
                     for index, item in enumerate(value, start=1):
                         # order repeat according to xform order
                         item = get_ordered_repeat_value(key, item, index)
@@ -133,15 +135,13 @@ def process_tableau_data(data, xform):
                     try:
                         qstn_type = xform.get_element(key).type
                         if qstn_type == MULTIPLE_SELECT_TYPE:
-                            flat_dict = get_updated_data_dict(
-                                key, value, flat_dict)
-                        if qstn_type == 'geopoint':
-                            parts = value.split(' ')
-                            gps_xpaths = \
-                                DataDictionary.get_additional_geopoint_xpaths(
-                                    key)
-                            gps_parts = dict(
-                                [(xpath, None) for xpath in gps_xpaths])
+                            flat_dict = get_updated_data_dict(key, value, flat_dict)
+                        if qstn_type == "geopoint":
+                            parts = value.split(" ")
+                            gps_xpaths = DataDictionary.get_additional_geopoint_xpaths(
+                                key
+                            )
+                            gps_parts = dict([(xpath, None) for xpath in gps_xpaths])
                             if len(parts) == 4:
                                 gps_parts = dict(zip(gps_xpaths, parts))
                                 flat_dict.update(gps_parts)
@@ -154,58 +154,55 @@ def process_tableau_data(data, xform):
     return result
 
 
-class OpenDataViewSet(ETagsMixin, CacheControlMixin,
-                      BaseViewset, ModelViewSet):
-    permission_classes = (OpenDataViewSetPermissions, )
+class OpenDataViewSet(ETagsMixin, CacheControlMixin, BaseViewset, ModelViewSet):
+    permission_classes = (OpenDataViewSetPermissions,)
     queryset = OpenData.objects.filter()
-    lookup_field = 'uuid'
+    lookup_field = "uuid"
     serializer_class = OpenDataSerializer
     flattened_dict = {}
     MAX_INSTANCES_PER_REQUEST = 1000
     pagination_class = StandardPageNumberPagination
 
     def get_tableau_type(self, xform_type):
-        '''
+        """
         Returns a tableau-supported type based on a xform type.
-        '''
+        """
         tableau_types = {
-            'integer': 'int',
-            'decimal': 'float',
-            'dateTime': 'datetime',
-            'text': 'string'
+            "integer": "int",
+            "decimal": "float",
+            "dateTime": "datetime",
+            "text": "string",
         }
 
-        return tableau_types.get(xform_type, 'string')
+        return tableau_types.get(xform_type, "string")
 
     def flatten_xform_columns(self, json_of_columns_fields):
-        '''
+        """
         Flattens a json of column fields and the result is set to a class
         variable.
-        '''
+        """
         for a in json_of_columns_fields:
-            self.flattened_dict[a.get('name')] = self.get_tableau_type(
-                a.get('type'))
+            self.flattened_dict[a.get("name")] = self.get_tableau_type(a.get("type"))
             # using IGNORED_FIELD_TYPES so that choice values are not included.
-            if a.get('children') and a.get('type') not in IGNORED_FIELD_TYPES:
-                self.flatten_xform_columns(a.get('children'))
+            if a.get("children") and a.get("type") not in IGNORED_FIELD_TYPES:
+                self.flatten_xform_columns(a.get("children"))
 
     def get_tableau_column_headers(self):
-        '''
+        """
         Retrieve columns headers that are valid in tableau.
-        '''
+        """
         tableau_colulmn_headers = []
 
         def append_to_tableau_colulmn_headers(header, question_type=None):
-            quest_type = 'string'
+            quest_type = "string"
             if question_type:
                 quest_type = question_type
 
             # alias can be updated in the future to question labels
-            tableau_colulmn_headers.append({
-                'id': header,
-                'dataType': quest_type,
-                'alias': header
-            })
+            tableau_colulmn_headers.append(
+                {"id": header, "dataType": quest_type, "alias": header}
+            )
+
         # Remove metadata fields from the column headers
         # Calling set to remove duplicates in group data
         xform_headers = set(remove_metadata_fields(self.xform_headers))
@@ -214,30 +211,30 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
         # tableau.
         for header in xform_headers:
             for quest_name, quest_type in self.flattened_dict.items():
-                if header == quest_name or header.endswith('_%s' % quest_name):
+                if header == quest_name or header.endswith("_%s" % quest_name):
                     append_to_tableau_colulmn_headers(header, quest_type)
                     break
             else:
-                if header == '_id':
+                if header == "_id":
                     append_to_tableau_colulmn_headers(header, "int")
                 else:
                     append_to_tableau_colulmn_headers(header)
 
         return tableau_colulmn_headers
 
-    @action(methods=['GET'], detail=True)
+    @action(methods=["GET"], detail=True)
     def data(self, request, **kwargs):
         """
         Streams submission data response matching uuid in the request.
         """
         self.object = self.get_object()
         # get greater than value and cast it to an int
-        gt_id = request.query_params.get('gt_id')
+        gt_id = request.query_params.get("gt_id")
         gt_id = gt_id and parse_int(gt_id)
-        count = request.query_params.get('count')
+        count = request.query_params.get("count")
         pagination_keys = [
             self.paginator.page_query_param,
-            self.paginator.page_size_query_param
+            self.paginator.page_size_query_param,
         ]
         query_param_keys = request.query_params
         should_paginate = any([k in query_param_keys for k in pagination_keys])
@@ -249,25 +246,30 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
 
             xform = self.object.content_object
             if xform.is_merged_dataset:
-                qs_kwargs = {'xform_id__in': list(
-                    xform.mergedxform.xforms.values_list('pk', flat=True))}
+                qs_kwargs = {
+                    "xform_id__in": list(
+                        xform.mergedxform.xforms.values_list("pk", flat=True)
+                    )
+                }
             else:
-                qs_kwargs = {'xform_id': xform.pk}
+                qs_kwargs = {"xform_id": xform.pk}
             if gt_id:
-                qs_kwargs.update({'id__gt': gt_id})
+                qs_kwargs.update({"id__gt": gt_id})
 
             # Filter out deleted submissions
             instances = Instance.objects.filter(
-                **qs_kwargs, deleted_at__isnull=True).order_by('pk')
+                **qs_kwargs, deleted_at__isnull=True
+            ).order_by("pk")
 
             if count:
-                return Response({'count': instances.count()})
+                return Response({"count": instances.count()})
 
             if should_paginate:
                 instances = self.paginate_queryset(instances)
 
             data = process_tableau_data(
-                TableauDataSerializer(instances, many=True).data, xform)
+                TableauDataSerializer(instances, many=True).data, xform
+            )
 
             return self.get_streaming_response(data)
 
@@ -277,12 +279,10 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
         """Get a StreamingHttpResponse response object"""
 
         def get_json_string(item):
-            return json.dumps({
-                re.sub(r"\W", r"_", a): b for a, b in item.items()})
+            return json.dumps({re.sub(r"\W", r"_", a): b for a, b in item.items()})
 
         response = StreamingHttpResponse(
-            json_stream(data, get_json_string),
-            content_type="application/json"
+            json_stream(data, get_json_string), content_type="application/json"
         )
 
         # set headers on streaming response
@@ -295,54 +295,56 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin,
         self.get_object().delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(methods=['GET'], detail=True)
+    @action(methods=["GET"], detail=True)
     def schema(self, request, **kwargs):
         self.object = self.get_object()
         if isinstance(self.object.content_object, XForm):
             xform = self.object.content_object
             headers = xform.get_headers()
-            self.xform_headers = replace_special_characters_with_underscores(
-                headers)
+            self.xform_headers = replace_special_characters_with_underscores(headers)
 
-            xform_json = json.loads(xform.json)
+            xform_json = xform.json_dict()
             self.flatten_xform_columns(
-                json_of_columns_fields=xform_json.get('children'))
+                json_of_columns_fields=xform_json.get("children")
+            )
 
             tableau_column_headers = self.get_tableau_column_headers()
 
             data = {
-                'column_headers': tableau_column_headers,
-                'connection_name': "%s_%s" % (xform.project_id,
-                                              xform.id_string),
-                'table_alias': xform.title
+                "column_headers": tableau_column_headers,
+                "connection_name": "%s_%s" % (xform.project_id, xform.id_string),
+                "table_alias": xform.title,
             }
 
             return Response(data=data, status=status.HTTP_200_OK)
 
         return Response(status=status.HTTP_404_NOT_FOUND)
 
-    @action(methods=['GET'], detail=False)
+    @action(methods=["GET"], detail=False)
     def uuid(self, request, *args, **kwargs):
-        data_type = request.query_params.get('data_type')
-        object_id = request.query_params.get('object_id')
+        data_type = request.query_params.get("data_type")
+        object_id = request.query_params.get("object_id")
 
         if not data_type or not object_id:
             return Response(
                 data="Query params data_type and object_id are required",
-                status=status.HTTP_400_BAD_REQUEST)
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        if data_type == 'xform':
+        if data_type == "xform":
             xform = get_object_or_404(XForm, id=object_id)
             if request.user.has_perm("change_xform", xform):
                 ct = ContentType.objects.get_for_model(xform)
                 _open_data = get_object_or_404(
-                    OpenData, object_id=object_id, content_type=ct)
+                    OpenData, object_id=object_id, content_type=ct
+                )
                 if _open_data:
                     return Response(
-                        data={'uuid': _open_data.uuid},
-                        status=status.HTTP_200_OK)
+                        data={"uuid": _open_data.uuid}, status=status.HTTP_200_OK
+                    )
             else:
                 raise PermissionDenied(
-                    _((u"You do not have permission to perform this action.")))
+                    _(("You do not have permission to perform this action."))
+                )
 
         return Response(status=status.HTTP_404_NOT_FOUND)

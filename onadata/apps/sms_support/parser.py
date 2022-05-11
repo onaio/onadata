@@ -9,11 +9,21 @@ from io import BytesIO
 from django.utils.translation import gettext as _
 
 from onadata.apps.logger.models import XForm
-from onadata.apps.sms_support.tools import SMS_API_ERROR, SMS_PARSING_ERROR,\
-    SMS_SUBMISSION_REFUSED, sms_media_to_file, generate_instance,\
-    DEFAULT_SEPARATOR, NA_VALUE, META_FIELDS, MEDIA_TYPES,\
-    DEFAULT_DATE_FORMAT, DEFAULT_DATETIME_FORMAT, SMS_SUBMISSION_ACCEPTED,\
-    is_last
+from onadata.apps.sms_support.tools import (
+    SMS_API_ERROR,
+    SMS_PARSING_ERROR,
+    SMS_SUBMISSION_REFUSED,
+    sms_media_to_file,
+    generate_instance,
+    DEFAULT_SEPARATOR,
+    NA_VALUE,
+    META_FIELDS,
+    MEDIA_TYPES,
+    DEFAULT_DATE_FORMAT,
+    DEFAULT_DATETIME_FORMAT,
+    SMS_SUBMISSION_ACCEPTED,
+    is_last,
+)
 from onadata.libs.utils.logger_tools import dict2xform
 
 
@@ -22,28 +32,30 @@ class SMSSyntaxError(ValueError):
 
 
 class SMSCastingError(ValueError):
-
     def __init__(self, message, question=None):
         if question:
-            message = _(u"%(question)s: %(message)s") % {'question': question,
-                                                         'message': message}
+            message = _("%(question)s: %(message)s") % {
+                "question": question,
+                "message": message,
+            }
         super(SMSCastingError, self).__init__(message)
 
 
 def parse_sms_text(xform, identity, text):
 
-    json_survey = json.loads(xform.json)
+    json_survey = xform.json_dict()
 
-    separator = json_survey.get('sms_separator', DEFAULT_SEPARATOR) \
-        or DEFAULT_SEPARATOR
+    separator = json_survey.get("sms_separator", DEFAULT_SEPARATOR) or DEFAULT_SEPARATOR
 
-    allow_media = bool(json_survey.get('sms_allow_media', False))
+    allow_media = bool(json_survey.get("sms_allow_media", False))
 
-    xlsf_date_fmt = json_survey.get('sms_date_format', DEFAULT_DATE_FORMAT) \
-        or DEFAULT_DATE_FORMAT
-    xlsf_datetime_fmt = json_survey.get('sms_date_format',
-                                        DEFAULT_DATETIME_FORMAT) \
+    xlsf_date_fmt = (
+        json_survey.get("sms_date_format", DEFAULT_DATE_FORMAT) or DEFAULT_DATE_FORMAT
+    )
+    xlsf_datetime_fmt = (
+        json_survey.get("sms_date_format", DEFAULT_DATETIME_FORMAT)
         or DEFAULT_DATETIME_FORMAT
+    )
 
     # extract SMS data into indexed groups of values
     groups = {}
@@ -52,67 +64,66 @@ def parse_sms_text(xform, identity, text):
         groups.update({group_id: [s.strip() for s in group_text.split(None)]})
 
     def cast_sms_value(value, question, medias=[]):
-        ''' Check data type of value and return cleaned version '''
+        """Check data type of value and return cleaned version"""
 
-        xlsf_type = question.get('type')
-        xlsf_name = question.get('name')
-        xlsf_choices = question.get('children')
-        xlsf_required = bool(question.get('bind', {})
-                             .get('required', '').lower() in ('yes', 'true'))
+        xlsf_type = question.get("type")
+        xlsf_name = question.get("name")
+        xlsf_choices = question.get("children")
+        xlsf_required = bool(
+            question.get("bind", {}).get("required", "").lower() in ("yes", "true")
+        )
 
         # we don't handle constraint for now as it's a little complex and
         # unsafe.
         # xlsf_constraint=question.get('constraint')
 
         if xlsf_required and not len(value):
-            raise SMSCastingError(_(u"Required field missing"), xlsf_name)
+            raise SMSCastingError(_("Required field missing"), xlsf_name)
 
         def safe_wrap(func):
             try:
                 return func()
             except Exception as e:
-                raise SMSCastingError(_(u"%(error)s") % {'error': e},
-                                      xlsf_name)
+                raise SMSCastingError(_("%(error)s") % {"error": e}, xlsf_name)
 
         def media_value(value, medias):
-            ''' handle media values
+            """handle media values
 
-                extract name and base64 data.
-                fills the media holder with (name, data) tuple '''
+            extract name and base64 data.
+            fills the media holder with (name, data) tuple"""
             try:
-                filename, b64content = value.split(';', 1)
-                medias.append((filename,
-                               base64.b64decode(b64content)))
+                filename, b64content = value.split(";", 1)
+                medias.append((filename, base64.b64decode(b64content)))
                 return filename
             except Exception as e:
-                raise SMSCastingError(_(u"Media file format "
-                                      u"incorrect. %(except)r")
-                                      % {'except': e}, xlsf_name)
+                raise SMSCastingError(
+                    _("Media file format " "incorrect. %(except)r") % {"except": e},
+                    xlsf_name,
+                )
 
-        if xlsf_type == 'text':
+        if xlsf_type == "text":
             return safe_wrap(lambda: str(value))
-        elif xlsf_type == 'integer':
+        elif xlsf_type == "integer":
             return safe_wrap(lambda: int(value))
-        elif xlsf_type == 'decimal':
+        elif xlsf_type == "decimal":
             return safe_wrap(lambda: float(value))
-        elif xlsf_type == 'select one':
+        elif xlsf_type == "select one":
             for choice in xlsf_choices:
-                if choice.get('sms_option') == value:
-                    return choice.get('name')
-            raise SMSCastingError(_(u"No matching choice "
-                                    u"for '%(input)s'")
-                                  % {'input': value},
-                                  xlsf_name)
-        elif xlsf_type == 'select all that apply':
+                if choice.get("sms_option") == value:
+                    return choice.get("name")
+            raise SMSCastingError(
+                _("No matching choice " "for '%(input)s'") % {"input": value}, xlsf_name
+            )
+        elif xlsf_type == "select all that apply":
             values = [s.strip() for s in value.split()]
             ret_values = []
             for indiv_value in values:
                 for choice in xlsf_choices:
-                    if choice.get('sms_option') == indiv_value:
-                        ret_values.append(choice.get('name'))
-            return u" ".join(ret_values)
-        elif xlsf_type == 'geopoint':
-            err_msg = _(u"Incorrect geopoint coordinates.")
+                    if choice.get("sms_option") == indiv_value:
+                        ret_values.append(choice.get("name"))
+            return " ".join(ret_values)
+        elif xlsf_type == "geopoint":
+            err_msg = _("Incorrect geopoint coordinates.")
             geodata = [s.strip() for s in value.split()]
             if len(geodata) < 2 and len(geodata) > 4:
                 raise SMSCastingError(err_msg, xlsf_name)
@@ -137,28 +148,27 @@ def parse_sms_text(xform, identity, text):
             # file_name;base64 encodeed content.
             # Example: hello.jpg;dGhpcyBpcyBteSBwaWN0dXJlIQ==
             return media_value(value, medias)
-        elif xlsf_type == 'barcode':
+        elif xlsf_type == "barcode":
             return safe_wrap(lambda: text(value))
-        elif xlsf_type == 'date':
-            return safe_wrap(lambda: datetime.strptime(value,
-                                                       xlsf_date_fmt).date())
-        elif xlsf_type == 'datetime':
-            return safe_wrap(lambda: datetime.strptime(value,
-                                                       xlsf_datetime_fmt))
-        elif xlsf_type == 'note':
-            return safe_wrap(lambda: '')
-        raise SMSCastingError(_(u"Unsuported column '%(type)s'")
-                              % {'type': xlsf_type}, xlsf_name)
+        elif xlsf_type == "date":
+            return safe_wrap(lambda: datetime.strptime(value, xlsf_date_fmt).date())
+        elif xlsf_type == "datetime":
+            return safe_wrap(lambda: datetime.strptime(value, xlsf_datetime_fmt))
+        elif xlsf_type == "note":
+            return safe_wrap(lambda: "")
+        raise SMSCastingError(
+            _("Unsuported column '%(type)s'") % {"type": xlsf_type}, xlsf_name
+        )
 
     def get_meta_value(xlsf_type, identity):
-        ''' XLSForm Meta field value '''
-        if xlsf_type in ('deviceid', 'subscriberid', 'imei'):
+        """XLSForm Meta field value"""
+        if xlsf_type in ("deviceid", "subscriberid", "imei"):
             return NA_VALUE
-        elif xlsf_type in ('start', 'end'):
+        elif xlsf_type in ("start", "end"):
             return datetime.now().isoformat()
-        elif xlsf_type == 'today':
+        elif xlsf_type == "today":
             return date.today().isoformat()
-        elif xlsf_type == 'phonenumber':
+        elif xlsf_type == "phonenumber":
             return identity
         return NA_VALUE
 
@@ -170,24 +180,24 @@ def parse_sms_text(xform, identity, text):
     notes = []
 
     # loop on all XLSForm questions
-    for expected_group in json_survey.get('children', [{}]):
-        if not expected_group.get('type') == 'group':
+    for expected_group in json_survey.get("children", [{}]):
+        if not expected_group.get("type") == "group":
             # non-grouped questions are not valid for SMS
             continue
 
         # retrieve part of SMS text for this group
-        group_id = expected_group.get('sms_field')
+        group_id = expected_group.get("sms_field")
         answers = groups.get(group_id)
-        if not group_id or (not answers and not group_id.startswith('meta')):
+        if not group_id or (not answers and not group_id.startswith("meta")):
             # group is not meant to be filled by SMS
             # or hasn't been filled
             continue
 
         # Add a holder for this group's answers data
-        survey_answers.update({expected_group.get('name'): {}})
+        survey_answers.update({expected_group.get("name"): {}})
 
         # retrieve question definition for each answer
-        egroups = expected_group.get('children', [{}])
+        egroups = expected_group.get("children", [{}])
 
         # number of intermediate, omited questions (medias)
         step_back = 0
@@ -195,15 +205,15 @@ def parse_sms_text(xform, identity, text):
 
             real_value = None
 
-            question_type = question.get('type')
-            if question_type in ('calculate'):
+            question_type = question.get("type")
+            if question_type in ("calculate"):
                 # 'calculate' question are not implemented.
                 # 'note' ones are just meant to be displayed on device
                 continue
 
-            if question_type == 'note':
-                if not question.get('constraint', ''):
-                    notes.append(question.get('label'))
+            if question_type == "note":
+                if not question.get("constraint", ""):
+                    notes.append(question.get("label"))
                 continue
 
             if not allow_media and question_type in MEDIA_TYPES:
@@ -219,40 +229,41 @@ def parse_sms_text(xform, identity, text):
 
             if question_type in META_FIELDS:
                 # some question are not to be fed by users
-                real_value = get_meta_value(xlsf_type=question_type,
-                                            identity=identity)
+                real_value = get_meta_value(xlsf_type=question_type, identity=identity)
             else:
                 # actual SMS-sent answer.
                 # Only last answer/question of each group is allowed
                 # to have multiple spaces
                 if is_last(idx, egroups):
-                    answer = u" ".join(answers[idx:])
+                    answer = " ".join(answers[idx:])
                 else:
                     answer = answers[sidx]
 
             if real_value is None:
                 # retrieve actual value and fail if it doesn't meet reqs.
-                real_value = cast_sms_value(answer,
-                                            question=question, medias=medias)
+                real_value = cast_sms_value(answer, question=question, medias=medias)
 
             # set value to its question name
-            survey_answers[expected_group.get('name')] \
-                .update({question.get('name'): real_value})
+            survey_answers[expected_group.get("name")].update(
+                {question.get("name"): real_value}
+            )
 
     return survey_answers, medias, notes
 
 
-def process_incoming_smses(username, incomings,
-                           id_string=None):
-    ''' Process Incoming (identity, text[, id_string]) SMS '''
+def process_incoming_smses(username, incomings, id_string=None):
+    """Process Incoming (identity, text[, id_string]) SMS"""
 
     xforms = []
     medias = []
     xforms_notes = []
     responses = []
     json_submissions = []
-    resp_str = {'success': _(u"[SUCCESS] Your submission has been accepted. "
-                             u"It's ID is {{ id }}.")}
+    resp_str = {
+        "success": _(
+            "[SUCCESS] Your submission has been accepted. " "It's ID is {{ id }}."
+        )
+    }
 
     def process_incoming(incoming, id_string):
         # assign variables
@@ -263,72 +274,90 @@ def process_incoming_smses(username, incomings,
             if id_string is None and len(incoming) >= 3:
                 id_string = incoming[2]
         else:
-            responses.append({'code': SMS_API_ERROR,
-                              'text': _(u"Missing 'identity' "
-                                        u"or 'text' field.")})
+            responses.append(
+                {
+                    "code": SMS_API_ERROR,
+                    "text": _("Missing 'identity' " "or 'text' field."),
+                }
+            )
             return
 
         if not len(identity.strip()) or not len(text.strip()):
-            responses.append({'code': SMS_API_ERROR,
-                              'text': _(u"'identity' and 'text' fields can "
-                                        u"not be empty.")})
+            responses.append(
+                {
+                    "code": SMS_API_ERROR,
+                    "text": _("'identity' and 'text' fields can " "not be empty."),
+                }
+            )
             return
 
         # if no id_string has been supplied
         # we expect the SMS to be prefixed with the form's sms_id_string
         if id_string is None:
             keyword, text = [s.strip() for s in text.split(None, 1)]
-            xform = XForm.objects.get(user__username=username,
-                                      sms_id_string=keyword)
+            xform = XForm.objects.get(user__username=username, sms_id_string=keyword)
         else:
-            xform = XForm.objects.get(user__username=username,
-                                      id_string=id_string)
+            xform = XForm.objects.get(user__username=username, id_string=id_string)
 
         if not xform.allows_sms:
-            responses.append({'code': SMS_SUBMISSION_REFUSED,
-                              'text': _(u"The form '%(id_string)s' does not "
-                                        u"accept SMS submissions.")
-                             % {'id_string': xform.id_string}})
+            responses.append(
+                {
+                    "code": SMS_SUBMISSION_REFUSED,
+                    "text": _(
+                        "The form '%(id_string)s' does not " "accept SMS submissions."
+                    )
+                    % {"id_string": xform.id_string},
+                }
+            )
             return
 
         # parse text into a dict object of groups with values
-        json_submission, medias_submission, notes = parse_sms_text(xform,
-                                                                   identity,
-                                                                   text)
+        json_submission, medias_submission, notes = parse_sms_text(
+            xform, identity, text
+        )
 
         # retrieve sms_response if exist in the form.
-        json_survey = json.loads(xform.json)
-        if json_survey.get('sms_response'):
-            resp_str.update({'success': json_survey.get('sms_response')})
+        json_survey = xform.json_dict()
+        if json_survey.get("sms_response"):
+            resp_str.update({"success": json_survey.get("sms_response")})
 
         # check that the form contains at least one filled group
-        meta_groups = sum([1 for k in list(json_submission)
-                           if k.startswith('meta')])
+        meta_groups = sum([1 for k in list(json_submission) if k.startswith("meta")])
         if len(list(json_submission)) <= meta_groups:
-            responses.append({'code': SMS_PARSING_ERROR,
-                              'text': _(u"There must be at least one group of "
-                                        u"questions filled.")})
+            responses.append(
+                {
+                    "code": SMS_PARSING_ERROR,
+                    "text": _(
+                        "There must be at least one group of " "questions filled."
+                    ),
+                }
+            )
             return
 
         # check that required fields have been filled
-        required_fields = [f.get('name')
-                           for g in json_survey.get('children', {})
-                           for f in g.get('children', {})
-                           if f.get('bind', {}).get('required', 'no') == 'yes']
+        required_fields = [
+            f.get("name")
+            for g in json_survey.get("children", {})
+            for f in g.get("children", {})
+            if f.get("bind", {}).get("required", "no") == "yes"
+        ]
         submitted_fields = {}
         for group in json_submission.values():
             submitted_fields.update(group)
 
         for field in required_fields:
             if not submitted_fields.get(field):
-                responses.append({'code': SMS_SUBMISSION_REFUSED,
-                                  'text': _(u"Required field `%(field)s` is  "
-                                            u"missing.") % {'field': field}})
+                responses.append(
+                    {
+                        "code": SMS_SUBMISSION_REFUSED,
+                        "text": _("Required field `%(field)s` is  " "missing.")
+                        % {"field": field},
+                    }
+                )
                 return
 
         # convert dict object into an XForm string
-        xml_submission = dict2xform(jsform=json_submission,
-                                    form_id=xform.id_string)
+        xml_submission = dict2xform(jsform=json_submission, form_id=xform.id_string)
 
         # compute notes
         data = {}
@@ -336,13 +365,12 @@ def process_incoming_smses(username, incomings,
             data.update(g)
         for idx, note in enumerate(notes):
             try:
-                notes[idx] = note.replace('${', '{').format(**data)
+                notes[idx] = note.replace("${", "{").format(**data)
             except Exception as e:
-                logging.exception(_(u'Updating note threw exception: %s'
-                                  % text(e)))
+                logging.exception(_("Updating note threw exception: %s" % text(e)))
 
         # process_incoming expectes submission to be a file-like object
-        xforms.append(BytesIO(xml_submission.encode('utf-8')))
+        xforms.append(BytesIO(xml_submission.encode("utf-8")))
         medias.append(medias_submission)
         json_submissions.append(json_submission)
         xforms_notes.append(notes)
@@ -351,29 +379,31 @@ def process_incoming_smses(username, incomings,
         try:
             process_incoming(incoming, id_string)
         except Exception as e:
-            responses.append({'code': SMS_PARSING_ERROR, 'text': text(e)})
+            responses.append({"code": SMS_PARSING_ERROR, "text": text(e)})
 
     for idx, xform in enumerate(xforms):
         # generate_instance expects media as a request.FILES.values() list
         xform_medias = [sms_media_to_file(f, n) for n, f in medias[idx]]
         # create the instance in the data base
-        response = generate_instance(username=username,
-                                     xml_file=xform,
-                                     media_files=xform_medias)
-        if response.get('code') == SMS_SUBMISSION_ACCEPTED:
-            success_response = re.sub(r'{{\s*[i,d,I,D]{2}\s*}}',
-                                      response.get('id'),
-                                      resp_str.get('success'), re.I)
+        response = generate_instance(
+            username=username, xml_file=xform, media_files=xform_medias
+        )
+        if response.get("code") == SMS_SUBMISSION_ACCEPTED:
+            success_response = re.sub(
+                r"{{\s*[i,d,I,D]{2}\s*}}",
+                response.get("id"),
+                resp_str.get("success"),
+                re.I,
+            )
 
             # extend success_response with data from the answers
             data = {}
             for g in json_submissions[idx].values():
                 data.update(g)
-            success_response = success_response.replace('${',
-                                                        '{').format(**data)
-            response.update({'text': success_response})
+            success_response = success_response.replace("${", "{").format(**data)
+            response.update({"text": success_response})
             # add sendouts (notes)
-            response.update({'sendouts': xforms_notes[idx]})
+            response.update({"sendouts": xforms_notes[idx]})
         responses.append(response)
 
     return responses

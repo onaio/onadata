@@ -438,7 +438,7 @@ class ParsedInstance(models.Model):
         representation what the 'name' was for a given
         type_value ('start' or 'end')
         """
-        datadict = json.loads(self.instance.xform.json)
+        datadict = self.instance.xform.json_dict()
         for item in datadict["children"]:
             if isinstance(item, dict) and item.get("type") == type_value:
                 return item["name"]

@@ -16,53 +16,62 @@ from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models import Instance, MergedXForm
 from onadata.libs import filters
 from onadata.libs.renderers import renderers
-from onadata.libs.serializers.merged_xform_serializer import \
-    MergedXFormSerializer
+from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
 
 
 # pylint: disable=too-many-ancestors
-class MergedXFormViewSet(mixins.CreateModelMixin,
-                         mixins.DestroyModelMixin,
-                         mixins.ListModelMixin,
-                         mixins.RetrieveModelMixin,
-                         viewsets.GenericViewSet):
+class MergedXFormViewSet(
+    mixins.CreateModelMixin,
+    mixins.DestroyModelMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
     """
     Merged XForms viewset: create, list, retrieve, destroy
     """
 
-    filter_backends = (filters.AnonDjangoObjectPermissionFilter,
-                       filters.PublicDatasetsFilter)
+    filter_backends = (
+        filters.AnonDjangoObjectPermissionFilter,
+        filters.PublicDatasetsFilter,
+    )
     permission_classes = [XFormPermissions]
-    queryset = MergedXForm.objects.filter(deleted_at__isnull=True).annotate(
-        number_of_submissions=Sum('xforms__num_of_submissions')).all()
+    queryset = (
+        MergedXForm.objects.filter(deleted_at__isnull=True)
+        .annotate(number_of_submissions=Sum("xforms__num_of_submissions"))
+        .all()
+    )
     serializer_class = MergedXFormSerializer
 
-    renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + \
-        [renderers.StaticXMLRenderer]
+    renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
+        renderers.StaticXMLRenderer
+    ]
 
     # pylint: disable=unused-argument
-    @action(methods=['GET'], detail=True)
+    @action(methods=["GET"], detail=True)
     def form(self, *args, **kwargs):
         """Return XForm JSON, XLS or XML representing"""
 
-        fmt = kwargs['format']
-        if fmt not in ['json', 'xml', 'xls']:
+        fmt = kwargs["format"]
+        if fmt not in ["json", "xml", "xls"]:
             return HttpResponseBadRequest(
-                '400 BAD REQUEST', content_type='application/json', status=400)
+                "400 BAD REQUEST", content_type="application/json", status=400
+            )
 
         merged_xform = self.get_object()
         data = getattr(merged_xform, fmt)
-        if fmt == 'json':
-            data = json.loads(data)
+        if fmt == "json":
+            data = json.loads(data) if isinstance(data, str) else data
 
         return Response(data)
 
     # pylint: disable=unused-argument
-    @action(methods=['GET'], detail=True)
+    @action(methods=["GET"], detail=True)
     def data(self, request, *args, **kwargs):
         """Return data from the merged xforms"""
         merged_xform = self.get_object()
         queryset = Instance.objects.filter(
-            xform__in=merged_xform.xforms.all()).order_by('pk')
+            xform__in=merged_xform.xforms.all()
+        ).order_by("pk")
 
-        return Response(queryset.values_list('json', flat=True))
+        return Response(queryset.values_list("json", flat=True))
