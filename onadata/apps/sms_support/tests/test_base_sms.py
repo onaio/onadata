@@ -15,7 +15,7 @@ def random_identity():
     """Returns some random digits and ascii_letters as string of length 8 used as an
     identity."""
     return "".join(
-        [random.choice(string.digits + string.ascii_letters) for x in range(8)]
+        [random.choice(string.digits + string.ascii_letters) for x in range(8)]  # nosec
     )
 
 

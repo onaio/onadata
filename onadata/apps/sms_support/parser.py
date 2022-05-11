@@ -47,7 +47,7 @@ class SMSCastingError(ValueError):
         super().__init__(message)
 
 
-# pylint: disable=too-many-locals,too-many-branches
+# pylint: disable=too-many-locals,too-many-branches,too-many-statements
 def parse_sms_text(xform, identity, sms_text):  # noqa C901
     """Parses an SMS text to return XForm specific answers, media, notes."""
 
@@ -216,7 +216,7 @@ def parse_sms_text(xform, identity, sms_text):  # noqa C901
             real_value = None
 
             question_type = question.get("type")
-            if question_type in ("calculate"):
+            if question_type == "calculate":
                 # 'calculate' question are not implemented.
                 # 'note' ones are just meant to be displayed on device
                 continue
