@@ -1,12 +1,18 @@
+# -*- coding: utf-8 -*-
+"""
+Attachment model.
+"""
+import hashlib
 import mimetypes
 import os
-from hashlib import md5
 
+from django.contrib.auth import get_user_model
 from django.db import models
-from django.contrib.auth.models import User
 
 
 def get_original_filename(filename):
+    """Returns the filename removing the hashed random string added to it when we have
+    file duplicates in some file systems."""
     # https://docs.djangoproject.com/en/1.8/ref/files/storage/
     # #django.core.files.storage.Storage.get_available_name
     # If a file with name already exists, an underscore plus a random
@@ -26,9 +32,9 @@ def get_original_filename(filename):
 
 
 def upload_to(instance, filename):
-    folder = "{}_{}".format(
-        instance.instance.xform.id, instance.instance.xform.id_string
-    )
+    """Returns the attachments folder to upload the file to."""
+    folder = f"{instance.instance.xform.id}_{instance.instance.xform.id_string}"
+
     return os.path.join(
         instance.instance.xform.user.username,
         "attachments",
@@ -58,7 +64,10 @@ class Attachment(models.Model):
     file_size = models.PositiveIntegerField(default=0)
     name = models.CharField(max_length=100, null=True, blank=True)
     deleted_by = models.ForeignKey(
-        User, related_name="deleted_attachments", null=True, on_delete=models.SET_NULL
+        get_user_model(),
+        related_name="deleted_attachments",
+        null=True,
+        on_delete=models.SET_NULL,
     )
 
     class Meta:
@@ -68,7 +77,7 @@ class Attachment(models.Model):
     def save(self, *args, **kwargs):
         if self.media_file and self.mimetype == "":
             # guess mimetype
-            mimetype, encoding = mimetypes.guess_type(self.media_file.name)
+            mimetype, _encoding = mimetypes.guess_type(self.media_file.name)
             if mimetype:
                 self.mimetype = mimetype
         if self.media_file and len(self.media_file.name) > 255:
@@ -81,15 +90,22 @@ class Attachment(models.Model):
         except (OSError, AttributeError):
             pass
 
-        super(Attachment, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     @property
     def file_hash(self):
+        """Returns the MD5 hash of the file."""
+        md5_hash = ""
         if self.media_file.storage.exists(self.media_file.name):
-            return "%s" % md5(self.media_file.read()).hexdigest()
-        return ""
+            md5_hash = hashlib.new(
+                "md5", self.media_file.read(), usedforsecurity=False
+            ).hexdigest()
+        return md5_hash
 
     @property
     def filename(self):
+        """Returns the attachment's filename."""
+        filename = ""
         if self.media_file:
-            return os.path.basename(self.media_file.name)
+            filename = os.path.basename(self.media_file.name)
+        return filename
