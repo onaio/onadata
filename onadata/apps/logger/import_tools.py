@@ -6,9 +6,10 @@ import os
 import shutil
 import tempfile
 import zipfile
-
 from contextlib import ExitStack
+
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.http.response import Http404
 
 from onadata.apps.logger.xform_fs import XFormInstanceFS
 from onadata.celery import app
@@ -121,7 +122,13 @@ def iterate_through_instances(
                     )
                     success_count += 1
                 else:
-                    success_count += callback(xfxs)
+                    try:
+                        count = callback(xfxs)
+                    except Http404:
+                        pass
+                    else:
+                        if count:
+                            success_count += count
                     del xfxs
                 total_file_count += 1
 
