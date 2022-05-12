@@ -174,7 +174,7 @@ def clean_and_parse_xml(xml_string):
 
 
 # pylint: disable=too-many-branches
-def _xml_node_to_dict(node, repeats=None, encrypted=False):
+def _xml_node_to_dict(node, repeats=None, encrypted=False):  # noqa C901
     repeats = [] if repeats is None else repeats
     if len(node.childNodes) == 0:
         # there's no data for this leaf node

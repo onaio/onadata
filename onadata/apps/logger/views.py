@@ -72,7 +72,8 @@ def _bad_request(e):
 
 
 def _extract_uuid(input_string):
-    input_string = input_string[input_string.find("@key=") : -1].replace("@key=", "")
+    key_index = input_string.find("@key=")
+    input_string = input_string[key_index:-1].replace("@key=", "")
     if input_string.startswith("uuid:"):
         input_string = input_string.replace("uuid:", "")
     return input_string
@@ -197,7 +198,7 @@ def bulksubmission_form(request, username=None):
 
 # pylint: disable=invalid-name
 @require_GET
-def formList(request, username):
+def formList(request, username):  # noqa N802
     """
     formList view, /formList OpenRosa Form Discovery API 1.0.
     """
@@ -259,7 +260,7 @@ def formList(request, username):
 
 # pylint: disable=invalid-name
 @require_GET
-def xformsManifest(request, username, id_string):
+def xformsManifest(request, username, id_string):  # noqa N802
     """
     XFormManifest view, part of OpenRosa Form Discovery API 1.0.
     """
@@ -299,7 +300,7 @@ def xformsManifest(request, username, id_string):
 # pylint: disable=too-many-branches
 @require_http_methods(["HEAD", "POST"])
 @csrf_exempt
-def submission(request, username=None):
+def submission(request, username=None):  # noqa C901
     """
     Submission view, /submission of the OpenRosa Form Submission API 1.0.
     """
@@ -715,8 +716,8 @@ def view_download_submission(request, username):
     form_id = request.GET.get("formId", None)
     if not isinstance(form_id, six.string_types):
         return HttpResponseBadRequest()
-
-    id_string = form_id[0 : form_id.find("[")]
+    last_index = form_id.find("[")
+    id_string = form_id[0:last_index]
     form_id_parts = form_id.split("/")
     if form_id_parts.__len__() < 2:
         return HttpResponseBadRequest()
