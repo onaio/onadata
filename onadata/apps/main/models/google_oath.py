@@ -4,12 +4,12 @@ Google auth token storage model class
 """
 import base64
 import pickle
-import jsonpickle
 
-from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils import encoding
 
+import jsonpickle
 from google.oauth2.credentials import Credentials
 
 
@@ -21,13 +21,14 @@ class CredentialsField(models.Field):
     """
 
     def __init__(self, *args, **kwargs):
-        if 'null' not in kwargs:
-            kwargs['null'] = True
-        super(CredentialsField, self).__init__(*args, **kwargs)
+        if "null" not in kwargs:
+            kwargs["null"] = True
+        super().__init__(*args, **kwargs)
 
     def get_internal_type(self):
-        return 'BinaryField'
+        return "BinaryField"
 
+    # pylint: disable=unused-argument
     def from_db_value(self, value, expression, connection, context=None):
         """Overrides ``models.Field`` method. This converts the value
         returned from the database to an instance of this class.
@@ -39,15 +40,14 @@ class CredentialsField(models.Field):
         bytes (from serialization etc) to an instance of this class"""
         if value is None:
             return None
-        elif isinstance(value, Credentials):
+        if isinstance(value, Credentials):
             return value
-        else:
-            try:
-                return jsonpickle.decode(
-                    base64.b64decode(encoding.smart_bytes(value)).decode())
-            except ValueError:
-                return pickle.loads(
-                    base64.b64decode(encoding.smart_bytes(value)))
+        try:
+            return jsonpickle.decode(
+                base64.b64decode(encoding.smart_bytes(value)).decode()
+            )
+        except ValueError:
+            return pickle.loads(base64.b64decode(encoding.smart_bytes(value)))
 
     def get_prep_value(self, value):
         """Overrides ``models.Field`` method. This is used to convert
@@ -56,9 +56,7 @@ class CredentialsField(models.Field):
         """
         if value is None:
             return None
-        else:
-            return encoding.smart_text(
-                base64.b64encode(jsonpickle.encode(value).encode()))
+        return encoding.smart_str(base64.b64encode(jsonpickle.encode(value).encode()))
 
     def value_to_string(self, obj):
         """Convert the field value from the provided model to a string.
@@ -77,10 +75,14 @@ class TokenStorageModel(models.Model):
     Google Auth Token storage model
     """
 
+    # pylint: disable=invalid-name
     id = models.OneToOneField(
-        settings.AUTH_USER_MODEL, primary_key=True, related_name='google_id',
-        on_delete=models.CASCADE)
+        get_user_model(),
+        primary_key=True,
+        related_name="google_id",
+        on_delete=models.CASCADE,
+    )
     credential = CredentialsField()
 
     class Meta:
-        app_label = 'main'
+        app_label = "main"

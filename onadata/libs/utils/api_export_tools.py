@@ -108,7 +108,7 @@ def _get_export_type(export_type):
 
 
 # pylint: disable=too-many-arguments, too-many-locals, too-many-branches
-def custom_response_handler(
+def custom_response_handler(  # noqa: C0901
     request,
     xform,
     query,
@@ -216,7 +216,9 @@ def custom_response_handler(
     return response
 
 
-def _generate_new_export(request, xform, query, export_type, dataview_pk=False):
+def _generate_new_export(  # noqa: C0901
+    request, xform, query, export_type, dataview_pk=False
+):
     query = _set_start_end_params(request, query)
     extension = _get_extension_from_export_type(export_type)
 
@@ -606,7 +608,7 @@ def _get_google_credential(request):
 
     if not credential:
         google_flow = generate_google_web_flow(request)
-        authorization_url, state = google_flow.authorization_url(
+        authorization_url, _state = google_flow.authorization_url(
             access_type="offline", include_granted_scopes="true", prompt="consent"
         )
         return HttpResponseRedirect(authorization_url)
