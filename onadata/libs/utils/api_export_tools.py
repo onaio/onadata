@@ -18,6 +18,7 @@ from kombu.exceptions import OperationalError
 from rest_framework import exceptions, status
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
+from google.oauth2.credentials import Credentials
 
 try:
     from savReaderWriter import SPSSIOError
@@ -600,6 +601,8 @@ def _get_google_credential(request):
             credential = storage.credential
         except TokenStorageModel.DoesNotExist:
             pass
+    elif request.session.get("access_token"):
+        credential = Credentials(token=request.session["access_token"])
 
     if not credential:
         google_flow = generate_google_web_flow(request)
