@@ -1,3 +1,7 @@
+# -*- coding=utf-8 -*-
+"""
+The /api/v1/open-data implementation.
+"""
 import json
 import re
 from collections import OrderedDict
@@ -8,6 +12,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
+
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -20,21 +25,21 @@ from onadata.apps.logger.models.open_data import OpenData
 from onadata.apps.logger.models.xform import XForm, question_types_to_exclude
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.data import parse_int
-from onadata.libs.utils.logger_tools import remove_metadata_fields
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.data_serializer import TableauDataSerializer
 from onadata.libs.serializers.open_data_serializer import OpenDataSerializer
-from onadata.libs.utils.common_tools import json_stream
 from onadata.libs.utils.common_tags import (
     ATTACHMENTS,
-    NOTES,
     GEOLOCATION,
     MULTIPLE_SELECT_TYPE,
-    REPEAT_SELECT_TYPE,
     NA_REP,
+    NOTES,
+    REPEAT_SELECT_TYPE,
 )
+from onadata.libs.utils.common_tools import json_stream
+from onadata.libs.utils.logger_tools import remove_metadata_fields
 
 BaseViewset = get_baseviewset_class()
 IGNORED_FIELD_TYPES = ["select one", "select multiple"]
@@ -46,11 +51,14 @@ DEFAULT_INDEX_TAGS = (DEFAULT_OPEN_TAG, DEFAULT_CLOSE_TAG)
 DEFAULT_NA_REP = getattr(settings, "NA_REP", NA_REP)
 
 
+# pylint: disable=invalid-name
 def replace_special_characters_with_underscores(data):
+    """Replaces special characters with underscores."""
     return [re.sub(r"\W", r"_", a) for a in data]
 
 
-def process_tableau_data(data, xform):
+# pylint: disable=too-many-locals,too-many-statements
+def process_tableau_data(data, xform):  # noqa C901
     """
     Streamlines the row header fields
     with the column header fields for the same form.
@@ -59,7 +67,8 @@ def process_tableau_data(data, xform):
 
     def get_xpath(key, nested_key):
         val = nested_key.split("/")
-        nested_key_diff = val[len(key.split("/")) :]
+        start_index = key.split("/").__len__()
+        nested_key_diff = val[start_index:]
         xpaths = key + f"[{index}]/" + "/".join(nested_key_diff)
         return xpaths
 
@@ -86,7 +95,7 @@ def process_tableau_data(data, xform):
 
         return data_dict
 
-    def get_ordered_repeat_value(key, item, index):
+    def get_ordered_repeat_value(key, item):
         """
         Return Ordered Dict of repeats in the order in which they appear in
         the XForm.
@@ -115,6 +124,7 @@ def process_tableau_data(data, xform):
         return data
 
     result = []
+    # pylint: disable=too-many-nested-blocks
     if data:
         headers = xform.get_headers()
         tableau_headers = remove_metadata_fields(headers)
@@ -129,7 +139,7 @@ def process_tableau_data(data, xform):
                 ]:
                     for index, item in enumerate(value, start=1):
                         # order repeat according to xform order
-                        item = get_ordered_repeat_value(key, item, index)
+                        item = get_ordered_repeat_value(key, item)
                         flat_dict.update(item)
                 else:
                     try:
@@ -141,7 +151,7 @@ def process_tableau_data(data, xform):
                             gps_xpaths = DataDictionary.get_additional_geopoint_xpaths(
                                 key
                             )
-                            gps_parts = dict([(xpath, None) for xpath in gps_xpaths])
+                            gps_parts = {xpath: None for xpath in gps_xpaths}
                             if len(parts) == 4:
                                 gps_parts = dict(zip(gps_xpaths, parts))
                                 flat_dict.update(gps_parts)
@@ -154,7 +164,10 @@ def process_tableau_data(data, xform):
     return result
 
 
+# pylint: disable=too-many-ancestors
 class OpenDataViewSet(ETagsMixin, CacheControlMixin, BaseViewset, ModelViewSet):
+    """The /api/v1/open-data API endpoint."""
+
     permission_classes = (OpenDataViewSetPermissions,)
     queryset = OpenData.objects.filter()
     lookup_field = "uuid"
@@ -163,6 +176,7 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, BaseViewset, ModelViewSet):
     MAX_INSTANCES_PER_REQUEST = 1000
     pagination_class = StandardPageNumberPagination
 
+    # pylint: disable=no-self-use
     def get_tableau_type(self, xform_type):
         """
         Returns a tableau-supported type based on a xform type.
@@ -193,7 +207,7 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, BaseViewset, ModelViewSet):
         """
         tableau_colulmn_headers = []
 
-        def append_to_tableau_colulmn_headers(header, question_type=None):
+        def _append_to_tableau_colulmn_headers(header, question_type=None):
             quest_type = "string"
             if question_type:
                 quest_type = question_type
@@ -211,14 +225,14 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, BaseViewset, ModelViewSet):
         # tableau.
         for header in xform_headers:
             for quest_name, quest_type in self.flattened_dict.items():
-                if header == quest_name or header.endswith("_%s" % quest_name):
-                    append_to_tableau_colulmn_headers(header, quest_type)
+                if header == quest_name or header.endswith(f"_{quest_name}"):
+                    _append_to_tableau_colulmn_headers(header, quest_type)
                     break
             else:
                 if header == "_id":
-                    append_to_tableau_colulmn_headers(header, "int")
+                    _append_to_tableau_colulmn_headers(header, "int")
                 else:
-                    append_to_tableau_colulmn_headers(header)
+                    _append_to_tableau_colulmn_headers(header)
 
         return tableau_colulmn_headers
 
@@ -227,6 +241,7 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, BaseViewset, ModelViewSet):
         """
         Streams submission data response matching uuid in the request.
         """
+        # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
         # get greater than value and cast it to an int
         gt_id = request.query_params.get("gt_id")
@@ -237,7 +252,7 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, BaseViewset, ModelViewSet):
             self.paginator.page_size_query_param,
         ]
         query_param_keys = request.query_params
-        should_paginate = any([k in query_param_keys for k in pagination_keys])
+        should_paginate = any(k in query_param_keys for k in pagination_keys)
 
         data = []
         if isinstance(self.object.content_object, XForm):
@@ -275,12 +290,14 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, BaseViewset, ModelViewSet):
 
         return Response(data)
 
+    # pylint: disable=no-self-use
     def get_streaming_response(self, data):
         """Get a StreamingHttpResponse response object"""
 
         def get_json_string(item):
             return json.dumps({re.sub(r"\W", r"_", a): b for a, b in item.items()})
 
+        # pylint: disable=http-response-with-content-type-json
         response = StreamingHttpResponse(
             json_stream(data, get_json_string), content_type="application/json"
         )
@@ -292,11 +309,14 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, BaseViewset, ModelViewSet):
         return response
 
     def destroy(self, request, *args, **kwargs):
+        """Deletes an OpenData object."""
         self.get_object().delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=["GET"], detail=True)
     def schema(self, request, **kwargs):
+        """Tableau schema - headers and table alias."""
+        # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
         if isinstance(self.object.content_object, XForm):
             xform = self.object.content_object
@@ -312,7 +332,7 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, BaseViewset, ModelViewSet):
 
             data = {
                 "column_headers": tableau_column_headers,
-                "connection_name": "%s_%s" % (xform.project_id, xform.id_string),
+                "connection_name": f"{xform.project_id}_{xform.id_string}",
                 "table_alias": xform.title,
             }
 
@@ -320,8 +340,10 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, BaseViewset, ModelViewSet):
 
         return Response(status=status.HTTP_404_NOT_FOUND)
 
+    # pylint: disable=no-self-use
     @action(methods=["GET"], detail=False)
     def uuid(self, request, *args, **kwargs):
+        """Respond with the OpenData uuid."""
         data_type = request.query_params.get("data_type")
         object_id = request.query_params.get("object_id")
 
@@ -334,9 +356,9 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, BaseViewset, ModelViewSet):
         if data_type == "xform":
             xform = get_object_or_404(XForm, id=object_id)
             if request.user.has_perm("change_xform", xform):
-                ct = ContentType.objects.get_for_model(xform)
+                content_type = ContentType.objects.get_for_model(xform)
                 _open_data = get_object_or_404(
-                    OpenData, object_id=object_id, content_type=ct
+                    OpenData, object_id=object_id, content_type=content_type
                 )
                 if _open_data:
                     return Response(
