@@ -62,17 +62,17 @@ def process_tableau_data(data, xform):  # noqa C901
     """
     Streamlines the row header fields
     with the column header fields for the same form.
-    Handles Flattenning repeat data for tableau
+    Handles Flattening repeat data for tableau
     """
 
-    def get_xpath(key, nested_key):
+    def get_xpath(key, nested_key, index):
         val = nested_key.split("/")
         start_index = key.split("/").__len__()
         nested_key_diff = val[start_index:]
         xpaths = key + f"[{index}]/" + "/".join(nested_key_diff)
         return xpaths
 
-    def get_updated_data_dict(key, value, data_dict):
+    def get_updated_data_dict(key, value, data_dict, index=0):
         """
         Generates key, value pairs for select multiple question types.
         Defining the new xpaths from the
@@ -88,14 +88,14 @@ def process_tableau_data(data, xform):  # noqa C901
             try:
                 for item in value:
                     for (nested_key, nested_val) in item.items():
-                        xpath = get_xpath(key, nested_key)
+                        xpath = get_xpath(key, nested_key, index)
                         data_dict[xpath] = nested_val
             except AttributeError:
                 data_dict[key] = value
 
         return data_dict
 
-    def get_ordered_repeat_value(key, item):
+    def get_ordered_repeat_value(key, item, index):
         """
         Return Ordered Dict of repeats in the order in which they appear in
         the XForm.
@@ -114,11 +114,11 @@ def process_tableau_data(data, xform):  # noqa C901
                 # generate ["children", index, "immunization/polio_1"]
                 for (nested_key, nested_val) in item_list.items():
                     qstn_type = xform.get_element(nested_key).type
-                    xpaths = get_xpath(key, nested_key)
+                    xpaths = get_xpath(key, nested_key, index)
                     if qstn_type == MULTIPLE_SELECT_TYPE:
-                        data = get_updated_data_dict(xpaths, nested_val, data)
+                        data = get_updated_data_dict(xpaths, nested_val, data, index)
                     elif qstn_type == REPEAT_SELECT_TYPE:
-                        data = get_updated_data_dict(xpaths, nested_val, data)
+                        data = get_updated_data_dict(xpaths, nested_val, data, index)
                     else:
                         data[xpaths] = nested_val
         return data
@@ -139,7 +139,7 @@ def process_tableau_data(data, xform):  # noqa C901
                 ]:
                     for index, item in enumerate(value, start=1):
                         # order repeat according to xform order
-                        item = get_ordered_repeat_value(key, item)
+                        item = get_ordered_repeat_value(key, item, index)
                         flat_dict.update(item)
                 else:
                     try:
