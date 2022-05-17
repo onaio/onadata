@@ -173,6 +173,8 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
 
         if data_file:
             allowed_types = settings.SUPPORTED_MEDIA_UPLOAD_TYPES
+            # add geojson mimetype
+            mimetypes.add_type('application/geo+json', '.geojson')
             data_content_type = (
                 data_file.content_type
                 if data_file.content_type in allowed_types

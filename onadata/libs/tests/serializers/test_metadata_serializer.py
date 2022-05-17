@@ -97,3 +97,33 @@ class TestMetaDataViewSerializer(TestAbstractViewSet):
             self.assertEqual(
                 serializer.validated_data["data_file_type"], "image/svg+xml"
             )
+
+    def test_geojson_media_files(self):
+        """
+        Test that an geojson file is uploaded ok
+        """
+        self._login_user_and_profile()
+        self._publish_form_with_hxl_support()
+        data_value = 'sample.geojson'
+        path = os.path.join(os.path.dirname(__file__), 'fixtures',
+                            'sample.geojson')
+        with open(path) as f:
+            f = InMemoryUploadedFile(
+                f, 'media', data_value, None, 2324, None)
+            data = {
+                'data_value': data_value,
+                'data_file': f,
+                'data_type': 'media',
+                'xform': self.xform.pk
+            }
+            serializer = MetaDataSerializer(data=data)
+            self.assertTrue(serializer.is_valid())
+            self.assertEqual(
+                serializer.validated_data['data_file_type'],
+                'application/geo+json')
+            self.assertEqual(
+                serializer.validated_data['data_value'],
+                'sample.geojson')
+            self.assertEqual(
+                serializer.validated_data['data_type'],
+                'media')

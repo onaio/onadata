@@ -512,6 +512,7 @@ SUPPORTED_MEDIA_UPLOAD_TYPES = [
     "video/3gpp",
     "video/mp4",
     "application/json",
+    "application/geo+json",
     "application/pdf",
     "application/msword",
     "application/vnd.ms-excel",
