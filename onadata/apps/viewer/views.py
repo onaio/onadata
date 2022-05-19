@@ -483,7 +483,7 @@ def export_list(request, username, id_string, export_type):  # noqa C901
     """
     credential = None
 
-    if export_type not in Export.EXPORT_TYPE_DICT:
+    if export_type.lower() not in Export.EXPORT_TYPE_DICT:
         return HttpResponseBadRequest(
             _(f'Export type "{export_type}" is not supported.')
         )
