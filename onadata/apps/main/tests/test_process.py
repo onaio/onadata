@@ -142,6 +142,7 @@ class TestProcess(TestBase):
                 )
 
                 mock_requests.get.assert_called_with(xls_url)
+                mock_requests.head.assert_called_with(xls_url, allow_redirects=True)
                 # make sure publishing the survey worked
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(XForm.objects.count(), pre_count + 1)
