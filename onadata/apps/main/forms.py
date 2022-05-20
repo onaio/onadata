@@ -410,7 +410,7 @@ class QuickConverter(
                 name, extension = os.path.splitext(cleaned_xls_file)
 
                 if extension not in VALID_FILE_EXTENSIONS and name:
-                    response = requests.head(cleaned_url)
+                    response = requests.head(cleaned_url, allow_redirects=True)
                     if (
                         response.headers.get("content-type")
                         in VALID_XLSFORM_CONTENT_TYPES
