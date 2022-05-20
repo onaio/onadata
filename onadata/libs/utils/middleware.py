@@ -7,7 +7,7 @@ from django.db import OperationalError
 from django.http import HttpResponseNotAllowed
 from django.template import loader
 from django.middleware.locale import LocaleMiddleware
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django.utils.translation.trans_real import parse_accept_lang_header
 from multidb.pinning import use_master
 
@@ -48,7 +48,7 @@ class LocaleMiddlewareWithTweaks(LocaleMiddleware):
     """
 
     def process_request(self, request):
-        accept = request.META.get('HTTP_ACCEPT_LANGUAGE', '')
+        accept = request.headers.get('Accept-Language', '')
         try:
             codes = [code for code, r in parse_accept_lang_header(accept)]
             if 'km' in codes and 'km-kh' not in codes:

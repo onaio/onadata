@@ -4,7 +4,7 @@ XFormSubmissionViewSet module
 """
 from django.conf import settings
 from django.http import UnreadablePostError
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.authentication import (BasicAuthentication,
@@ -85,8 +85,8 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
         content_type = self.request.content_type.lower()
 
         if 'application/json' in content_type:
-            if 'RapidProMailroom' in self.request.META.get(
-                    'HTTP_USER_AGENT', ''):
+            if 'RapidProMailroom' in self.request.headers.get(
+                    'User-Agent', ''):
                 return RapidProJSONSubmissionSerializer
 
             self.request.accepted_renderer = JSONRenderer()

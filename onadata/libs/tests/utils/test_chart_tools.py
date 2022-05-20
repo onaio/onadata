@@ -85,7 +85,7 @@ class TestChartTools(TestBase):
         count = XForm.objects.count()
         self._publish_xls_file(xls_path)
 
-        self.assertEquals(XForm.objects.count(), count + 1)
+        self.assertEqual(XForm.objects.count(), count + 1)
 
         xform = XForm.objects.get(id_string='sample_accent')
         self.assertEqual(xform.title, "sample_accent")
@@ -113,7 +113,7 @@ class TestChartTools(TestBase):
         count = XForm.objects.count()
         self._publish_xls_file(xls_path)
 
-        self.assertEquals(XForm.objects.count(), count + 1)
+        self.assertEqual(XForm.objects.count(), count + 1)
 
         xform = XForm.objects.get(id_string='sample_accent')
         self.assertEqual(xform.title, "sample_accent")

@@ -9,40 +9,42 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0019_auto_20160307_0256'),
+        ("logger", "0019_auto_20160307_0256"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='dataview',
-            name='columns',
+            model_name="dataview",
+            name="columns",
             field=django.contrib.postgres.fields.jsonb.JSONField(),
         ),
         migrations.AlterField(
-            model_name='dataview',
-            name='query',
-            field=django.contrib.postgres.fields.jsonb.JSONField(blank=True,
-                                                                 default=dict),
+            model_name="dataview",
+            name="query",
+            field=django.contrib.postgres.fields.jsonb.JSONField(
+                blank=True, default=dict
+            ),
         ),
         migrations.AlterField(
-            model_name='instance',
-            name='json',
+            model_name="instance",
+            name="json",
             field=django.contrib.postgres.fields.jsonb.JSONField(default=dict),
         ),
         migrations.AlterField(
-            model_name='osmdata',
-            name='tags',
+            model_name="osmdata",
+            name="tags",
             field=django.contrib.postgres.fields.jsonb.JSONField(default=dict),
         ),
         migrations.AlterField(
-            model_name='project',
-            name='metadata',
+            model_name="project",
+            name="metadata",
             field=django.contrib.postgres.fields.jsonb.JSONField(blank=True),
         ),
         migrations.AlterField(
-            model_name='widget',
-            name='metadata',
-            field=django.contrib.postgres.fields.jsonb.JSONField(blank=True,
-                                                                 default=dict),
+            model_name="widget",
+            name="metadata",
+            field=django.contrib.postgres.fields.jsonb.JSONField(
+                blank=True, default=dict
+            ),
         ),
     ]

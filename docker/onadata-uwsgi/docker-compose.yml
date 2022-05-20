@@ -2,7 +2,7 @@ version: '3'
 
 services:
   db:
-    image: postgis/postgis:9.6-3.0
+    image: postgis/postgis:13-3.0
     environment:
       - POSTGRES_PASSWORD=onadata
       - POSTGRES_USER=onadata

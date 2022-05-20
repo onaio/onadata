@@ -3,7 +3,6 @@
 CSV data import module.
 """
 import functools
-import json
 import logging
 import sys
 import uuid
@@ -24,8 +23,8 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.storage import default_storage
 from django.utils import timezone
-from django.utils.translation import ugettext as _
-from future.utils import iteritems
+from django.utils.translation import gettext as _
+from six import iteritems
 from multidb.pinning import use_master
 
 from onadata.apps.logger.models import Instance, XForm
@@ -101,11 +100,12 @@ def dict2xmlsubmission(submission_dict, xform, instance_id, submission_date):
     :rtype: string
     """
 
+    xform_dict = xform.json_dict()
     return (
         '<?xml version="1.0" ?>'
         '<{0} id="{1}" instanceID="uuid:{2}" submissionDate="{3}">{4}'
         "</{0}>".format(
-            json.loads(xform.json).get("name", xform.id_string),
+            xform_dict.get("name", xform.id_string),
             xform.id_string,
             instance_id,
             submission_date,
@@ -323,7 +323,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):
     csv_file.seek(0)
 
     csv_reader = ucsv.DictReader(csv_file, encoding="utf-8-sig")
-    xform_json = json.loads(xform.json)
+    xform_json = xform.json_dict()
     select_multiples = [
         qstn.name for qstn in xform.get_survey_elements_of_type(MULTIPLE_SELECT_TYPE)
     ]

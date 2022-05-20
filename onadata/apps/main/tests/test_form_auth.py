@@ -11,4 +11,4 @@ class TestFormAuth(TestBase):
 
     def test_login_redirect_redirects(self):
         response = self.client.get(reverse(login_redirect))
-        self.assertEquals(response.status_code, 302)
+        self.assertEqual(response.status_code, 302)

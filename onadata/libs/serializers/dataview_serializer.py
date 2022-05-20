@@ -1,6 +1,6 @@
 import datetime
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django.core.cache import cache
 
 from rest_framework import serializers

@@ -130,7 +130,7 @@ class TestOSMViewSet(TestAbstractViewSet):
         response = view(request, pk=self.xform.pk, format='csv')
         self.assertEqual(response.status_code, 200)
 
-        self.assertEquals(count + 1, Export.objects.all().count())
+        self.assertEqual(count + 1, Export.objects.all().count())
 
         headers = dict(response.items())
         self.assertEqual(headers['Content-Type'], 'application/csv')

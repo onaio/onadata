@@ -105,7 +105,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             'name':
             'Merged Dataset',
             'project':
-            "http://testserver/api/v1/projects/%s" % self.project.pk,
+            f"http://testserver/api/v1/projects/{self.project.pk}",
         }
         # anonymous user
         request = self.factory.post('/', data=data)
@@ -554,14 +554,14 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=post_data, **self.extra)
         response = view(request)
 
-        self.assertEquals(response.status_code, 201)
-        self.assertEquals(count + 3, RestService.objects.count())
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(count + 3, RestService.objects.count())
 
         # deleting the service for a merged xform deletes the same service from
         # the individual forms as well.
         service = RestService.objects.get(xform=xform)
         service.delete()
-        self.assertEquals(count, RestService.objects.count())
+        self.assertEqual(count, RestService.objects.count())
 
     def test_md_has_deleted_xforms(self):
         """
@@ -584,7 +584,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             'name':
             'Merged Dataset',
             'project':
-            "http://testserver/api/v1/projects/%s" % self.project.pk,
+            f"http://testserver/api/v1/projects/{self.project.pk}",
         }
 
         request = self.factory.post('/', data=data, **self.extra)
@@ -614,7 +614,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             'name':
             'Merged Dataset',
             'project':
-            "http://testserver/api/v1/projects/%s" % self.project.pk,
+            f"http://testserver/api/v1/projects/{self.project.pk}",
         }
 
         request = self.factory.post('/', data=data, **self.extra)
@@ -688,7 +688,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             'name':
             'Merged Dataset',
             'project':
-            "http://testserver/api/v1/projects/%s" % self.project.pk,
+            f"http://testserver/api/v1/projects/{self.project.pk}",
         }
 
         request = self.factory.post('/', data=data, **self.extra)

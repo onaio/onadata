@@ -7,12 +7,12 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0008_osmdata_osm_type'),
+        ("logger", "0008_osmdata_osm_type"),
     ]
 
     operations = [
         migrations.AlterUniqueTogether(
-            name='osmdata',
-            unique_together=set([('instance', 'field_name')]),
+            name="osmdata",
+            unique_together=set([("instance", "field_name")]),
         ),
     ]

@@ -8,9 +8,8 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0034_auto_20170814_0432'),
-        ('logger', '0036_xform_is_merged_dataset'),
+        ("logger", "0034_auto_20170814_0432"),
+        ("logger", "0036_xform_is_merged_dataset"),
     ]
 
-    operations = [
-    ]
+    operations = []

@@ -6,8 +6,8 @@ import os
 
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
-from django.utils.translation import ugettext as _
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 from multidb.pinning import use_master
 
 from onadata.apps.logger.models.attachment import get_original_filename
@@ -22,7 +22,8 @@ def update_attachments(instance):
     """
     for attachment in instance.attachments.all():
         attachment.name = os.path.basename(
-            get_original_filename(attachment.media_file.name))
+            get_original_filename(attachment.media_file.name)
+        )
         attachment.save()
     update_attachment_tracking(instance)
 
@@ -31,18 +32,20 @@ class Command(BaseCommand):
     """
     Fix attachments count command.
     """
-    args = 'username'
-    help = ugettext_lazy("Fix attachments count.")
+
+    args = "username"
+    help = gettext_lazy("Fix attachments count.")
 
     def add_arguments(self, parser):
-        parser.add_argument('username')
+        parser.add_argument("username")
 
     def handle(self, *args, **options):
         try:
-            username = options['username']
+            username = options["username"]
         except KeyError:
             raise CommandError(
-                _("You must provide the username to publish the form to."))
+                _("You must provide the username to publish the form to.")
+            )
         # make sure user exists
         try:
             user = User.objects.get(username=username)
@@ -56,16 +59,17 @@ class Command(BaseCommand):
         """
         Process attachments for submissions where media_all_received is False.
         """
-        xforms = XForm.objects.filter(user=user, deleted_at__isnull=True,
-                                      downloadable=True)
+        xforms = XForm.objects.filter(
+            user=user, deleted_at__isnull=True, downloadable=True
+        )
         for xform in queryset_iterator(xforms):
             submissions = xform.instances.filter(media_all_received=False)
             to_process = submissions.count()
             if to_process:
                 for submission in queryset_iterator(submissions):
                     update_attachments(submission)
-                not_processed = xform.instances.filter(
-                    media_all_received=False).count()
-                self.stdout.write("%s to process %s - %s = %s processed" % (
-                    xform, to_process, not_processed,
-                    (to_process - not_processed)))
+                not_processed = xform.instances.filter(media_all_received=False).count()
+                self.stdout.write(
+                    "%s to process %s - %s = %s processed"
+                    % (xform, to_process, not_processed, (to_process - not_processed))
+                )

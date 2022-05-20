@@ -18,23 +18,22 @@ def recover_deleted_attachments(form_id: str, stdout=None):
     :param: (str) form_id: Unique identifier for an XForm object
     :param: (sys.stdout) stdout: Python standard output. Default: None
     """
-    instances = Instance.objects.filter(
-        xform__id=form_id, deleted_at__isnull=True)
+    instances = Instance.objects.filter(xform__id=form_id, deleted_at__isnull=True)
     for instance in instances:
         expected_attachments = instance.get_expected_media()
-        if not instance.attachments.filter(
-                deleted_at__isnull=True).count() == len(expected_attachments):
+        if not instance.attachments.filter(deleted_at__isnull=True).count() == len(
+            expected_attachments
+        ):
             attachments_to_recover = instance.attachments.filter(
-                deleted_at__isnull=False,
-                name__in=expected_attachments)
+                deleted_at__isnull=False, name__in=expected_attachments
+            )
             for attachment in attachments_to_recover:
                 attachment.deleted_at = None
                 attachment.deleted_by = None
                 attachment.save()
 
                 if stdout:
-                    stdout.write(
-                        f'Recovered {attachment.name} ID: {attachment.id}')
+                    stdout.write(f"Recovered {attachment.name} ID: {attachment.id}")
             # Regenerate instance JSON
             instance.json = instance.get_full_dict(load_existing=False)
             instance.save()
@@ -45,11 +44,12 @@ class Command(BaseCommand):
     Management command used to recover wrongfully deleted
     attachments.
     """
-    help = 'Restore wrongly deleted attachments'
+
+    help = "Restore wrongly deleted attachments"
 
     def add_arguments(self, parser):
-        parser.add_argument('-f', '--form', dest='form_id', type=int)
+        parser.add_argument("-f", "--form", dest="form_id", type=int)
 
     def handle(self, *args, **options):
-        form_id = options.get('form_id')
+        form_id = options.get("form_id")
         recover_deleted_attachments(form_id, self.stdout)

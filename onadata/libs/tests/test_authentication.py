@@ -103,8 +103,8 @@ class TestTempTokenAuthentication(TestCase):
             returned_user,
             returned_token,
         ) = self.temp_token_authentication.authenticate_credentials(token.key)
-        self.assertEquals(user, returned_user)
-        self.assertEquals(token, returned_token)
+        self.assertEqual(user, returned_user)
+        self.assertEqual(token, returned_token)
 
 
 class TestTempTokenURLParameterAuthentication(TestCase):
@@ -154,7 +154,10 @@ class TestLockout(TestCase):
 
         # Uses X_REAL_IP if present
         self.assertNotIn("HTTP_X_REAL_IP", request.META)
-        request.META.update({"HTTP_X_REAL_IP": "1.2.3.4"})
+        extra = {"HTTP_X_REAL_IP": "1.2.3.4"}
+        extra.update(self.extra)
+        request = self.factory.get("/", **extra)
+
         self.assertEqual(check_lockout(request), ("1.2.3.4", "bob"))
 
     def test_exception_on_username_with_whitespaces(self):

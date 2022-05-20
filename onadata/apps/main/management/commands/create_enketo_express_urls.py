@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.http import HttpRequest
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext_lazy
 
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.model_tools import queryset_iterator
@@ -9,7 +9,7 @@ from onadata.libs.utils.viewer_tools import (
 
 
 class Command(BaseCommand):
-    help = ugettext_lazy("Create enketo url including preview")
+    help = gettext_lazy("Create enketo url including preview")
 
     def add_arguments(self, parser):
         parser.add_argument(

@@ -1,16 +1,25 @@
+# -*- coding: utf-8 -*-
+"""
+Formhub/Ona Data to DHIS2 service - push submissions to DHIS2 instance.
+"""
 import requests
 
 from onadata.apps.restservice.RestServiceInterface import RestServiceInterface
 
 
 class ServiceDefinition(RestServiceInterface):
-    id = u'f2dhis2'
-    verbose_name = u'Formhub to DHIS2'
+    """Post submission to DHIS2 instance."""
 
-    def send(self, url, submission_instance):
-        info = {
-            "id_string": submission_instance.xform.id_string,
-            "uuid": submission_instance.uuid
-        }
-        valid_url = url % info
-        requests.get(valid_url)
+    # pylint: disable=invalid-name
+    id = "f2dhis2"
+    verbose_name = "Formhub to DHIS2"
+
+    def send(self, url, data=None):
+        """Post submission to DHIS2 instance."""
+        if data:
+            info = {
+                "id_string": data.xform.id_string,
+                "uuid": data.uuid,
+            }
+            valid_url = url % info
+            requests.get(valid_url)

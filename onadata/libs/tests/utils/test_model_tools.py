@@ -14,7 +14,7 @@ class TestsForModelTools(TestCase):
             username='test_2', password='test_2', email='test_2@test.com')
         user_model.objects.create_user(
             username='test_3', password='test_3', email='test@test_3.com')
-        self.assertEquals(
+        self.assertEqual(
             'generator',
             queryset_iterator(
                 user_model.objects.all(), chunksize=1).__class__.__name__

@@ -5,19 +5,26 @@ import re
 from xml.dom import minidom
 
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.logger.xform_instance_parser import XFormInstanceParser,\
-    xpath_from_xml_node
-from onadata.apps.logger.xform_instance_parser import get_uuid_from_xml,\
-    get_meta_from_xml, get_deprecated_uuid_from_xml
+from onadata.apps.logger.xform_instance_parser import (
+    XFormInstanceParser,
+    xpath_from_xml_node,
+)
+from onadata.apps.logger.xform_instance_parser import (
+    get_uuid_from_xml,
+    get_meta_from_xml,
+    get_deprecated_uuid_from_xml,
+)
 from onadata.libs.utils.common_tags import XFORM_ID_STRING
 from onadata.apps.logger.models.xform import XForm
-from onadata.apps.logger.xform_instance_parser import _xml_node_to_dict,\
-    clean_and_parse_xml
+from onadata.apps.logger.xform_instance_parser import (
+    _xml_node_to_dict,
+    clean_and_parse_xml,
+)
 
 
-XML = u"xml"
-DICT = u"dict"
-FLAT_DICT = u"flat_dict"
+XML = "xml"
+DICT = "dict"
+FLAT_DICT = "flat_dict"
 ID = XFORM_ID_STRING
 
 
@@ -27,7 +34,7 @@ class TestXFormInstanceParser(TestBase):
         # publish our form which contains some some repeats
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/new_repeats/new_repeats.xlsx"
+            "../fixtures/new_repeats/new_repeats.xlsx",
         )
         count = XForm.objects.count()
         self._publish_xls_file_and_set_xform(xls_file_path)
@@ -36,8 +43,7 @@ class TestXFormInstanceParser(TestBase):
         # submit an instance
         xml_submission_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/new_repeats/instances/"
-            "new_repeats_2012-07-05-14-33-53.xml"
+            "../fixtures/new_repeats/instances/" "new_repeats_2012-07-05-14-33-53.xml",
         )
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
@@ -52,85 +58,88 @@ class TestXFormInstanceParser(TestBase):
         parser = XFormInstanceParser(self.xml, self.xform)
         dict = parser.to_dict()
         expected_dict = {
-            u'new_repeats': {
-                u'info':
-                {
-                    u'age': u'80',
-                    u'name': u'Adam'
-                },
-                u'kids':
-                {
-                    u'kids_details':
-                    [
-                        {
-                            u'kids_age': u'50',
-                            u'kids_name': u'Abel'
-                        },
+            "new_repeats": {
+                "info": {"age": "80", "name": "Adam"},
+                "kids": {
+                    "kids_details": [
+                        {"kids_age": "50", "kids_name": "Abel"},
                     ],
-                    u'has_kids': u'1'
+                    "has_kids": "1",
                 },
-                u'web_browsers': u'chrome ie',
-                u'gps': u'-1.2627557 36.7926442 0.0 30.0'
+                "web_browsers": "chrome ie",
+                "gps": "-1.2627557 36.7926442 0.0 30.0",
             }
         }
         self.assertEqual(dict, expected_dict)
 
         flat_dict = parser.to_flat_dict()
         expected_flat_dict = {
-            u'gps': u'-1.2627557 36.7926442 0.0 30.0',
-            u'kids/kids_details':
-            [
+            "gps": "-1.2627557 36.7926442 0.0 30.0",
+            "kids/kids_details": [
                 {
-                    u'kids/kids_details/kids_name': u'Abel',
-                    u'kids/kids_details/kids_age': u'50'
+                    "kids/kids_details/kids_name": "Abel",
+                    "kids/kids_details/kids_age": "50",
                 }
             ],
-            u'kids/has_kids': u'1',
-            u'info/age': u'80',
-            u'web_browsers': u'chrome ie',
-            u'info/name': u'Adam'
+            "kids/has_kids": "1",
+            "info/age": "80",
+            "web_browsers": "chrome ie",
+            "info/name": "Adam",
         }
         self.assertEqual(flat_dict, expected_flat_dict)
 
     def test_xpath_from_xml_node(self):
-        xml_str = '<?xml version=\'1.0\' ?><test_item_name_matches_repeat ' \
-                  'id="repeat_child_name_matches_repeat">' \
-                  '<formhub><uuid>c911d71ce1ac48478e5f8bac99addc4e</uuid>' \
-                  '</formhub><gps><gps>-1.2625149 36.7924478 0.0 30.0</gps>' \
-                  '<info>Yo</info></gps><gps>' \
-                  '<gps>-1.2625072 36.7924328 0.0 30.0</gps>' \
-                  '<info>What</info></gps></test_item_name_matches_repeat>'
+        xml_str = (
+            "<?xml version='1.0' ?><test_item_name_matches_repeat "
+            'id="repeat_child_name_matches_repeat">'
+            "<formhub><uuid>c911d71ce1ac48478e5f8bac99addc4e</uuid>"
+            "</formhub><gps><gps>-1.2625149 36.7924478 0.0 30.0</gps>"
+            "<info>Yo</info></gps><gps>"
+            "<gps>-1.2625072 36.7924328 0.0 30.0</gps>"
+            "<info>What</info></gps></test_item_name_matches_repeat>"
+        )
         clean_xml_str = xml_str.strip()
-        clean_xml_str = re.sub(r">\s+<", u"><", clean_xml_str)
+        clean_xml_str = re.sub(r">\s+<", "><", clean_xml_str)
         root_node = minidom.parseString(clean_xml_str).documentElement
         # get the first top-level gps element
         gps_node = root_node.firstChild.nextSibling
-        self.assertEqual(gps_node.nodeName, u'gps')
+        self.assertEqual(gps_node.nodeName, "gps")
         # get the info element within the gps element
-        info_node = gps_node.getElementsByTagName(u'info')[0]
+        info_node = gps_node.getElementsByTagName("info")[0]
         # create an xpath that should look like gps/info
         xpath = xpath_from_xml_node(info_node)
-        self.assertEqual(xpath, u'gps/info')
+        self.assertEqual(xpath, "gps/info")
 
     def test_get_meta_from_xml(self):
         with open(
             os.path.join(
-                os.path.dirname(__file__), "..", "fixtures", "tutorial",
-                "instances", "tutorial_2012-06-27_11-27-53_w_uuid_edited.xml"),
-                "r") as xml_file:
+                os.path.dirname(__file__),
+                "..",
+                "fixtures",
+                "tutorial",
+                "instances",
+                "tutorial_2012-06-27_11-27-53_w_uuid_edited.xml",
+            ),
+            "r",
+        ) as xml_file:
             xml_str = xml_file.read()
         instanceID = get_meta_from_xml(xml_str, "instanceID")
-        self.assertEqual(instanceID,
-                         "uuid:2d8c59eb-94e9-485d-a679-b28ffe2e9b98")
+        self.assertEqual(instanceID, "uuid:2d8c59eb-94e9-485d-a679-b28ffe2e9b98")
         deprecatedID = get_meta_from_xml(xml_str, "deprecatedID")
         self.assertEqual(deprecatedID, "uuid:729f173c688e482486a48661700455ff")
 
     def test_get_meta_from_xml_without_uuid_returns_none(self):
         with open(
             os.path.join(
-                os.path.dirname(__file__), "..", "fixtures", "tutorial",
-                "instances", "tutorial_2012-06-27_11-27-53.xml"),
-                "r") as xml_file:
+                os.path.dirname(__file__),
+                "..",
+                "fixtures",
+                "tutorial",
+                "instances",
+                "tutorial_2012-06-27_11-27-53.xml",
+            ),
+            "r",
+        ) as xml_file:
             xml_str = xml_file.read()
         instanceID = get_meta_from_xml(xml_str, "instanceID")
         self.assertIsNone(instanceID)
@@ -138,9 +147,15 @@ class TestXFormInstanceParser(TestBase):
     def test_get_uuid_from_xml(self):
         with open(
             os.path.join(
-                os.path.dirname(__file__), "..", "fixtures", "tutorial",
-                "instances", "tutorial_2012-06-27_11-27-53_w_uuid.xml"),
-                "r") as xml_file:
+                os.path.dirname(__file__),
+                "..",
+                "fixtures",
+                "tutorial",
+                "instances",
+                "tutorial_2012-06-27_11-27-53_w_uuid.xml",
+            ),
+            "r",
+        ) as xml_file:
             xml_str = xml_file.read()
         instanceID = get_uuid_from_xml(xml_str)
         self.assertEqual(instanceID, "729f173c688e482486a48661700455ff")
@@ -148,9 +163,15 @@ class TestXFormInstanceParser(TestBase):
     def test_get_deprecated_uuid_from_xml(self):
         with open(
             os.path.join(
-                os.path.dirname(__file__), "..", "fixtures", "tutorial",
-                "instances", "tutorial_2012-06-27_11-27-53_w_uuid_edited.xml"),
-                "r") as xml_file:
+                os.path.dirname(__file__),
+                "..",
+                "fixtures",
+                "tutorial",
+                "instances",
+                "tutorial_2012-06-27_11-27-53_w_uuid_edited.xml",
+            ),
+            "r",
+        ) as xml_file:
             xml_str = xml_file.read()
         deprecatedID = get_deprecated_uuid_from_xml(xml_str)
         self.assertEqual(deprecatedID, "729f173c688e482486a48661700455ff")
@@ -160,7 +181,7 @@ class TestXFormInstanceParser(TestBase):
         # publish our form which contains some some repeats
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/new_repeats/new_repeats.xlsx"
+            "../fixtures/new_repeats/new_repeats.xlsx",
         )
         count = XForm.objects.count()
         self._publish_xls_file_and_set_xform(xls_file_path)
@@ -169,18 +190,17 @@ class TestXFormInstanceParser(TestBase):
         # submit an instance
         xml_submission_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/new_repeats/instances/"
-            "multiple_nodes_error.xml"
+            "../fixtures/new_repeats/instances/" "multiple_nodes_error.xml",
         )
         self._make_submission(xml_submission_file_path)
-        self.assertEquals(201, self.response.status_code)
+        self.assertEqual(201, self.response.status_code)
 
     def test_multiple_media_files_on_encrypted_form(self):
         self._create_user_and_login()
         # publish our form which contains some some repeats
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/tutorial_encrypted/tutorial_encrypted.xlsx"
+            "../fixtures/tutorial_encrypted/tutorial_encrypted.xlsx",
         )
         count = XForm.objects.count()
         self._publish_xls_file_and_set_xform(xls_file_path)
@@ -189,12 +209,12 @@ class TestXFormInstanceParser(TestBase):
         # submit an instance
         xml_submission_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/tutorial_encrypted/instances/tutorial_encrypted.xml"
+            "../fixtures/tutorial_encrypted/instances/tutorial_encrypted.xml",
         )
         self._make_submission(xml_submission_file_path)
-        self.assertNotContains(self.response,
-                               "Multiple nodes with the same name",
-                               status_code=201)
+        self.assertNotContains(
+            self.response, "Multiple nodes with the same name", status_code=201
+        )
 
         # load xml file to parse and compare
         xml_file = open(xml_submission_file_path)
@@ -204,28 +224,30 @@ class TestXFormInstanceParser(TestBase):
         parser = XFormInstanceParser(self.xml, self.xform)
         dict = parser.to_dict()
 
-        expected_list = [{u'file': u'1483528430996.jpg.enc'},
-                         {u'file': u'1483528445767.jpg.enc'}]
-        self.assertEqual(dict.get('data').get('media'), expected_list)
+        expected_list = [
+            {"file": "1483528430996.jpg.enc"},
+            {"file": "1483528445767.jpg.enc"},
+        ]
+        self.assertEqual(dict.get("data").get("media"), expected_list)
 
         flat_dict = parser.to_flat_dict()
-        expected_flat_list = [{u'media/file': u'1483528430996.jpg.enc'},
-                              {u'media/file': u'1483528445767.jpg.enc'}]
-        self.assertEqual(flat_dict.get('media'), expected_flat_list)
+        expected_flat_list = [
+            {"media/file": "1483528430996.jpg.enc"},
+            {"media/file": "1483528445767.jpg.enc"},
+        ]
+        self.assertEqual(flat_dict.get("media"), expected_flat_list)
 
     def test_xml_repeated_nodes_to_dict(self):
         xml_file = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/repeated_nodes.xml"
+            os.path.dirname(os.path.abspath(__file__)), "../fixtures/repeated_nodes.xml"
         )
         json_file = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/repeated_nodes_expected_results.json"
+            "../fixtures/repeated_nodes_expected_results.json",
         )
         with open(xml_file) as file:
             xml_dict = _xml_node_to_dict(clean_and_parse_xml(file.read()))
-            self.assertTrue(xml_dict['#document']['RW_OUNIS_2016']['S2A'])
-            self.assertEqual(3, len(
-                xml_dict['#document']['RW_OUNIS_2016']['S2A']))
+            self.assertTrue(xml_dict["#document"]["RW_OUNIS_2016"]["S2A"])
+            self.assertEqual(3, len(xml_dict["#document"]["RW_OUNIS_2016"]["S2A"]))
             with open(json_file) as file:
                 self.assertEqual(json.loads(file.read()), xml_dict)

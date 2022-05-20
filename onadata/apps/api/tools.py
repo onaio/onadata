@@ -8,7 +8,8 @@ from datetime import datetime
 
 from django import forms
 from django.conf import settings
-from django.contrib.auth.models import Permission, User
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.sites.models import Site
 from django.core.files.storage import get_storage_class
@@ -19,19 +20,21 @@ from django.db.models import Q
 from django.db.utils import IntegrityError
 from django.http import HttpResponseNotFound, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
-from django.utils.translation import ugettext as _
 from django.utils.module_loading import import_string
-from future.utils import listitems
-from guardian.shortcuts import assign_perm, get_perms_for_model, remove_perm
-from guardian.shortcuts import get_perms
+from django.utils.translation import gettext as _
+
+from guardian.shortcuts import assign_perm, get_perms, get_perms_for_model, remove_perm
 from kombu.exceptions import OperationalError
+from multidb.pinning import use_master
 from registration.models import RegistrationProfile
 from rest_framework import exceptions
+from six import iteritems
 from taggit.forms import TagField
-from multidb.pinning import use_master
 
 from onadata.apps.api.models.organization_profile import (
-    OrganizationProfile, create_owner_team_and_assign_permissions)
+    OrganizationProfile,
+    create_owner_team_and_assign_permissions,
+)
 from onadata.apps.api.models.team import Team
 from onadata.apps.logger.models import DataView, Instance, Project, XForm
 from onadata.apps.main.forms import QuickConverter
@@ -41,39 +44,66 @@ from onadata.apps.viewer.models.parsed_instance import datetime_from_str
 from onadata.libs.baseviewset import DefaultBaseViewset
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.permissions import (
-    ROLES, DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole,
-    EditorMinorRole, EditorRole, ManagerRole, OwnerRole, get_role,
-    get_role_in_org, is_organization)
+    ROLES,
+    DataEntryMinorRole,
+    DataEntryOnlyRole,
+    DataEntryRole,
+    EditorMinorRole,
+    EditorRole,
+    ManagerRole,
+    OwnerRole,
+    get_role,
+    get_role_in_org,
+    is_organization,
+)
 from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.utils.cache_tools import (
-    PROJ_BASE_FORMS_CACHE, PROJ_FORMS_CACHE, PROJ_NUM_DATASET_CACHE,
-    PROJ_OWNER_CACHE, PROJ_SUB_DATE_CACHE, reset_project_cache, safe_delete)
+    PROJ_BASE_FORMS_CACHE,
+    PROJ_FORMS_CACHE,
+    PROJ_NUM_DATASET_CACHE,
+    PROJ_OWNER_CACHE,
+    PROJ_SUB_DATE_CACHE,
+    reset_project_cache,
+    safe_delete,
+)
 from onadata.libs.utils.common_tags import MEMBERS, XFORM_META_PERMS
-from onadata.libs.utils.logger_tools import (publish_form,
-                                             response_with_mimetype_and_name)
-from onadata.libs.utils.project_utils import (set_project_perms_to_xform,
-                                              set_project_perms_to_xform_async)
-from onadata.libs.utils.user_auth import (check_and_set_form_by_id,
-                                          check_and_set_form_by_id_string)
+from onadata.libs.utils.logger_tools import (
+    publish_form,
+    response_with_mimetype_and_name,
+)
+from onadata.libs.utils.project_utils import (
+    set_project_perms_to_xform,
+    set_project_perms_to_xform_async,
+)
+from onadata.libs.utils.user_auth import (
+    check_and_set_form_by_id,
+    check_and_set_form_by_id_string,
+)
 
 DECIMAL_PRECISION = 2
+
+# pylint: disable=invalid-name
+User = get_user_model()
 
 
 def _get_first_last_names(name):
     name_split = name.split()
     first_name = name_split[0]
-    last_name = u''
+    last_name = ""
     if len(name_split) > 1:
-        last_name = u' '.join(name_split[1:])
+        last_name = " ".join(name_split[1:])
     return first_name, last_name
 
 
 def _get_id_for_type(record, mongo_field):
     date_field = datetime_from_str(record[mongo_field])
-    mongo_str = '$' + mongo_field
+    mongo_str = "$" + mongo_field
 
-    return {"$substr": [mongo_str, 0, 10]} if isinstance(date_field, datetime)\
+    return (
+        {"$substr": [mongo_str, 0, 10]}
+        if isinstance(date_field, datetime)
         else mongo_str
+    )
 
 
 def get_accessible_forms(owner=None, shared_form=False, shared_data=False):
@@ -88,13 +118,14 @@ def get_accessible_forms(owner=None, shared_form=False, shared_data=False):
 
     if shared_form and not shared_data:
         xforms = xforms.filter(shared=True)
-    elif (shared_form and shared_data) or \
-            (owner == 'public' and not shared_form and not shared_data):
+    elif (shared_form and shared_data) or (
+        owner == "public" and not shared_form and not shared_data
+    ):
         xforms = xforms.filter(Q(shared=True) | Q(shared_data=True))
     elif not shared_form and shared_data:
         xforms = xforms.filter(shared_data=True)
 
-    if owner != 'public':
+    if owner != "public":
         xforms = xforms.filter(user__username=owner)
 
     return xforms.distinct()
@@ -109,33 +140,29 @@ def create_organization(name, creator):
     """
     organization, _created = User.objects.get_or_create(username__iexact=name)
     organization_profile = OrganizationProfile.objects.create(
-        user=organization, creator=creator)
+        user=organization, creator=creator
+    )
     return organization_profile
 
 
 def create_organization_object(org_name, creator, attrs=None):
-    '''Creates an OrganizationProfile object without saving to the database'''
+    """Creates an OrganizationProfile object without saving to the database"""
     attrs = attrs if attrs else {}
-    name = attrs.get('name', org_name) if attrs else org_name
+    name = attrs.get("name", org_name) if attrs else org_name
     first_name, last_name = _get_first_last_names(name)
-    email = attrs.get('email', u'') if attrs else u''
+    email = attrs.get("email", "") if attrs else ""
     new_user = User(
         username=org_name,
         first_name=first_name,
         last_name=last_name,
         email=email,
-        is_active=getattr(
-            settings,
-            'ORG_ON_CREATE_IS_ACTIVE',
-            True))
+        is_active=getattr(settings, "ORG_ON_CREATE_IS_ACTIVE", True),
+    )
     new_user.save()
     try:
-        registration_profile = RegistrationProfile.objects.create_profile(
-            new_user)
-    except IntegrityError:
-        raise ValidationError(_(
-                u"%s already exists" % org_name
-            ))
+        registration_profile = RegistrationProfile.objects.create_profile(new_user)
+    except IntegrityError as e:
+        raise ValidationError(_(f"{org_name} already exists")) from e
     if email:
         site = Site.objects.get(pk=settings.SITE_ID)
         registration_profile.send_activation_email(site)
@@ -144,11 +171,12 @@ def create_organization_object(org_name, creator, attrs=None):
         name=name,
         creator=creator,
         created_by=creator,
-        city=attrs.get('city', u''),
-        country=attrs.get('country', u''),
-        organization=attrs.get('organization', u''),
-        home_page=attrs.get('home_page', u''),
-        twitter=attrs.get('twitter', u''))
+        city=attrs.get("city", ""),
+        country=attrs.get("country", ""),
+        organization=attrs.get("organization", ""),
+        home_page=attrs.get("home_page", ""),
+        twitter=attrs.get("twitter", ""),
+    )
     return profile
 
 
@@ -157,15 +185,18 @@ def create_organization_team(organization, name, permission_names=None):
     Creates an organization team with the given permissions as defined in
     permission_names.
     """
-    organization = organization.user \
-        if isinstance(organization, OrganizationProfile) else organization
+    organization = (
+        organization.user
+        if isinstance(organization, OrganizationProfile)
+        else organization
+    )
     team = Team.objects.create(organization=organization, name=name)
-    content_type = ContentType.objects.get(
-        app_label='api', model='organizationprofile')
+    content_type = ContentType.objects.get(app_label="api", model="organizationprofile")
     if permission_names:
         # get permission objects
         perms = Permission.objects.filter(
-            codename__in=permission_names, content_type=content_type)
+            codename__in=permission_names, content_type=content_type
+        )
         if perms:
             team.permissions.add(*tuple(perms))
     return team
@@ -176,8 +207,7 @@ def get_organization_members_team(organization):
     create members team if it does not exist and add organization owner
     to the members team"""
     try:
-        team = Team.objects.get(name=u'%s#%s' % (organization.user.username,
-                                                 MEMBERS))
+        team = Team.objects.get(name=f"{organization.user.username}#{MEMBERS}")
     except Team.DoesNotExist:
         team = create_organization_team(organization, MEMBERS)
         add_user_to_team(team, organization.user)
@@ -192,14 +222,12 @@ def get_or_create_organization_owners_team(org):
     :param org: organization
     :return: Owners team of the organization
     """
-    team_name = f'{org.user.username}#{Team.OWNER_TEAM_NAME}'
+    team_name = f"{org.user.username}#{Team.OWNER_TEAM_NAME}"
     try:
         team = Team.objects.get(name=team_name, organization=org.user)
     except Team.DoesNotExist:
-        from multidb.pinning import use_master  # pylint: disable=import-error
         with use_master:
-            queryset = Team.objects.filter(
-                name=team_name, organization=org.user)
+            queryset = Team.objects.filter(name=team_name, organization=org.user)
             if queryset.count() > 0:
                 return queryset.first()  # pylint: disable=no-member
             return create_owner_team_and_assign_permissions(org)
@@ -234,12 +262,11 @@ def remove_user_from_team(team, user):
     user.groups.remove(team)
 
     # remove the permission
-    remove_perm('view_team', user, team)
+    remove_perm("view_team", user, team)
 
     # if team is owners team remove more perms
     if team.name.find(Team.OWNER_TEAM_NAME) > 0:
-        owners_team = get_or_create_organization_owners_team(
-            team.organization.profile)
+        owners_team = get_or_create_organization_owners_team(team.organization.profile)
         members_team = get_organization_members_team(team.organization.profile)
         for perm in get_perms_for_model(Team):
             remove_perm(perm.codename, user, owners_team)
@@ -260,7 +287,7 @@ def add_user_to_team(team, user):
     user.groups.add(team)
 
     # give the user perms to view the team
-    assign_perm('view_team', user, team)
+    assign_perm("view_team", user, team)
 
     # if team is owners team assign more perms
     if team.name.find(Team.OWNER_TEAM_NAME) > 0:
@@ -293,10 +320,8 @@ def _get_owners(organization):
 
     return [
         user
-        for user in get_or_create_organization_owners_team(
-            organization).user_set.all()
-        if get_role_in_org(user, organization) == 'owner'
-        and organization.user != user
+        for user in get_or_create_organization_owners_team(organization).user_set.all()
+        if get_role_in_org(user, organization) == "owner" and organization.user != user
     ]
 
 
@@ -318,7 +343,8 @@ def create_organization_project(organization, project_name, created_by):
         name=project_name,
         organization=organization,
         created_by=created_by,
-        metadata='{}')
+        metadata="{}",
+    )
 
     return project
 
@@ -343,7 +369,8 @@ def publish_xlsform(request, owner, id_string=None, project=None):
     Publishes XLSForm & creates an XFormVersion object given a request.
     """
     survey = do_publish_xlsform(
-        request.user, request.data, request.FILES, owner, id_string, project)
+        request.user, request.data, request.FILES, owner, id_string, project
+    )
     return survey
 
 
@@ -354,18 +381,19 @@ def do_publish_xlsform(user, post, files, owner, id_string=None, project=None):
     """
     if id_string and project:
         xform = get_object_or_404(
-            XForm, user=owner, id_string=id_string, project=project)
+            XForm, user=owner, id_string=id_string, project=project
+        )
         if not ManagerRole.user_has_role(user, xform):
             raise exceptions.PermissionDenied(
-                _("{} has no manager/owner role to the form {}".format(
-                    user, xform)))
-    elif not user.has_perm('can_add_xform', owner.profile):
+                _(f"{user} has no manager/owner role to the form {xform}")
+            )
+    elif not user.has_perm("can_add_xform", owner.profile):
         raise exceptions.PermissionDenied(
-            detail=_(u"User %(user)s has no permission to add xforms to "
-                     "account %(account)s" % {
-                         'user': user.username,
-                         'account': owner.username
-                     }))
+            detail=_(
+                f"User {user.username} has no permission to add xforms to "
+                f"account {owner.username}"
+            )
+        )
 
     def set_form():
         """
@@ -373,8 +401,8 @@ def do_publish_xlsform(user, post, files, owner, id_string=None, project=None):
         """
 
         if project:
-            args = (post and dict(listitems(post))) or {}
-            args['project'] = project.pk
+            args = dict(list(iteritems(post))) if post else {}
+            args["project"] = project.pk
         else:
             args = post
 
@@ -395,11 +423,11 @@ def publish_project_xform(request, project):
         Instantiates QuickConverter form to publish a form.
         """
         props = {
-            'project': project.pk,
-            'dropbox_xls_url': request.data.get('dropbox_xls_url'),
-            'xls_url': request.data.get('xls_url'),
-            'csv_url': request.data.get('csv_url'),
-            'text_xls_form': request.data.get('text_xls_form')
+            "project": project.pk,
+            "dropbox_xls_url": request.data.get("dropbox_xls_url"),
+            "xls_url": request.data.get("xls_url"),
+            "csv_url": request.data.get("csv_url"),
+            "text_xls_form": request.data.get("text_xls_form"),
         }
 
         form = QuickConverter(props, request.FILES)
@@ -414,30 +442,28 @@ def publish_project_xform(request, project):
         otherwise returns False.
         """
         try:
-            XForm.objects.get(
-                user=project.organization, id_string=xform.id_string)
+            XForm.objects.get(user=project.organization, id_string=xform.id_string)
         except XForm.DoesNotExist:
             return False
         return True
 
-    if 'formid' in request.data:
-        xform = get_object_or_404(XForm, pk=request.data.get('formid'))
-        safe_delete('{}{}'.format(PROJ_OWNER_CACHE, xform.project.pk))
-        safe_delete('{}{}'.format(PROJ_FORMS_CACHE, xform.project.pk))
-        safe_delete('{}{}'.format(PROJ_BASE_FORMS_CACHE, xform.project.pk))
-        safe_delete('{}{}'.format(PROJ_NUM_DATASET_CACHE, xform.project.pk))
-        safe_delete('{}{}'.format(PROJ_SUB_DATE_CACHE, xform.project.pk))
+    if "formid" in request.data:
+        xform = get_object_or_404(XForm, pk=request.data.get("formid"))
+        safe_delete(f"{PROJ_OWNER_CACHE}{xform.project.pk}")
+        safe_delete(f"{PROJ_FORMS_CACHE}{xform.project.pk}")
+        safe_delete(f"{PROJ_BASE_FORMS_CACHE}{xform.project.pk}")
+        safe_delete(f"{PROJ_NUM_DATASET_CACHE}{xform.project.pk}")
+        safe_delete(f"{PROJ_SUB_DATE_CACHE}{xform.project.pk}")
         if not ManagerRole.user_has_role(request.user, xform):
             raise exceptions.PermissionDenied(
-                _("{} has no manager/owner role to the form {}".format(
-                    request.user, xform)))
+                _(f"{request.user} has no manager/owner role to the form {xform}")
+            )
 
-        msg = 'Form with the same id_string already exists in this account'
+        msg = "Form with the same id_string already exists in this account"
         # Without this check, a user can't transfer a form to projects that
         # he/she owns because `id_string_exists_in_account` will always
         # return true
-        if project.organization != xform.user and \
-                id_string_exists_in_account():
+        if project.organization != xform.user and id_string_exists_in_account():
             raise exceptions.ParseError(_(msg))
         xform.user = project.organization
         xform.project = project
@@ -445,8 +471,8 @@ def publish_project_xform(request, project):
         try:
             with transaction.atomic():
                 xform.save()
-        except IntegrityError:
-            raise exceptions.ParseError(_(msg))
+        except IntegrityError as e:
+            raise exceptions.ParseError(_(msg)) from e
         else:
             # First assign permissions to the person who uploaded the form
             OwnerRole.add(request.user, xform)
@@ -483,7 +509,8 @@ def get_xform(formid, request, username=None):
 
     if not xform:
         raise exceptions.PermissionDenied(
-            _("You do not have permission to view data from this form."))
+            _("You do not have permission to view data from this form.")
+        )
 
     return xform
 
@@ -529,12 +556,13 @@ def add_tags_to_instance(request, instance):
         """
         Simple TagForm class to validate tags in a request.
         """
+
         tags = TagField()
 
     form = TagForm(request.data)
 
     if form.is_valid():
-        tags = form.cleaned_data.get('tags', None)
+        tags = form.cleaned_data.get("tags", None)
 
         if tags:
             for tag in tags:
@@ -559,9 +587,9 @@ def get_media_file_response(metadata, request=None):
         Looks for 'dataview 123 fruits.csv' or 'xform 345 fruits.csv'.
         """
         model = None
-        if value.startswith('dataview'):
+        if value.startswith("dataview"):
             model = DataView
-        elif value.startswith('xform'):
+        elif value.startswith("xform"):
             model = XForm
 
         if model:
@@ -575,8 +603,8 @@ def get_media_file_response(metadata, request=None):
 
     if metadata.data_file:
         file_path = metadata.data_file.name
-        filename, extension = os.path.splitext(file_path.split('/')[-1])
-        extension = extension.strip('.')
+        filename, extension = os.path.splitext(file_path.split("/")[-1])
+        extension = extension.strip(".")
         dfs = get_storage_class()()
 
         if dfs.exists(file_path):
@@ -586,7 +614,8 @@ def get_media_file_response(metadata, request=None):
                 extension=extension,
                 show_date=False,
                 file_path=file_path,
-                full_mime=True)
+                full_mime=True,
+            )
 
             return response
         return HttpResponseNotFound()
@@ -600,10 +629,12 @@ def get_media_file_response(metadata, request=None):
 
             return custom_response_handler(
                 request,
-                xform, {},
+                xform,
+                {},
                 Export.CSV_EXPORT,
                 filename=filename,
-                dataview=dataview)
+                dataview=dataview,
+            )
 
     return HttpResponseRedirect(metadata.data_value)
 
@@ -615,7 +646,7 @@ def check_inherit_permission_from_project(xform_id, user):
     if there is a difference applies the project permissions to the user for
     the given xform_id.
     """
-    if xform_id == 'public':
+    if xform_id == "public":
         return
 
     try:
@@ -624,8 +655,12 @@ def check_inherit_permission_from_project(xform_id, user):
         return
 
     # get the project_xform
-    xform = XForm.objects.filter(pk=xform_id).select_related('project').only(
-        'project_id', 'id').first()
+    xform = (
+        XForm.objects.filter(pk=xform_id)
+        .select_related("project")
+        .only("project_id", "id")
+        .first()
+    )
 
     if not xform:
         return
@@ -656,8 +691,11 @@ def get_baseviewset_class():
     the default in onadata
     :return: the default baseviewset
     """
-    return import_string(settings.BASE_VIEWSET) \
-        if settings.BASE_VIEWSET else DefaultBaseViewset
+    return (
+        import_string(settings.BASE_VIEWSET)
+        if settings.BASE_VIEWSET
+        else DefaultBaseViewset
+    )
 
 
 def generate_tmp_path(uploaded_csv_file):
@@ -668,9 +706,9 @@ def generate_tmp_path(uploaded_csv_file):
     """
     if isinstance(uploaded_csv_file, InMemoryUploadedFile):
         uploaded_csv_file.open()
-        tmp_file = tempfile.NamedTemporaryFile(delete=False)
-        tmp_file.write(uploaded_csv_file.read())
-        tmp_path = tmp_file.name
+        with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+            tmp_file.write(uploaded_csv_file.read())
+            tmp_path = tmp_file.name
         uploaded_csv_file.close()
     else:
         tmp_path = uploaded_csv_file.temporary_file_path()
@@ -694,31 +732,31 @@ def get_xform_users(xform):
                 org_members = get_team_members(user.username)
 
             data[user] = {
-                'permissions': [],
-                'is_org': is_organization(user.profile),
-                'metadata': user.profile.metadata,
-                'first_name': user.first_name,
-                'last_name': user.last_name,
-                'user': user.username
+                "permissions": [],
+                "is_org": is_organization(user.profile),
+                "metadata": user.profile.metadata,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "user": user.username,
             }
         if perm.user in data:
-            data[perm.user]['permissions'].append(perm.permission.codename)
+            data[perm.user]["permissions"].append(perm.permission.codename)
 
     for user in org_members:
         if user not in data:
             data[user] = {
-                'permissions': get_perms(user, xform),
-                'is_org': is_organization(user.profile),
-                'metadata': user.profile.metadata,
-                'first_name': user.first_name,
-                'last_name': user.last_name,
-                'user': user.username
+                "permissions": get_perms(user, xform),
+                "is_org": is_organization(user.profile),
+                "metadata": user.profile.metadata,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "user": user.username,
             }
 
-    for k in data:
-        data[k]['permissions'].sort()
-        data[k]['role'] = get_role(data[k]['permissions'], xform)
-        del data[k]['permissions']
+    for value in data.values():
+        value["permissions"].sort()
+        value["role"] = get_role(value["permissions"], xform)
+        del value["permissions"]
 
     return data
 
@@ -731,8 +769,7 @@ def get_team_members(org_username):
     """
     members = []
     try:
-        team = Team.objects.get(
-            name="{}#{}".format(org_username, MEMBERS))
+        team = Team.objects.get(name=f"{org_username}#{MEMBERS}")
     except Team.DoesNotExist:
         pass
     else:
@@ -750,20 +787,18 @@ def update_role_by_meta_xform_perms(xform):
     editor_role_list = [EditorRole, EditorMinorRole]
     editor_role = {role.name: role for role in editor_role_list}
 
-    dataentry_role_list = [
-        DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole
-    ]
+    dataentry_role_list = [DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole]
     dataentry_role = {role.name: role for role in dataentry_role_list}
 
     if metadata:
-        meta_perms = metadata.data_value.split('|')
+        meta_perms = metadata.data_value.split("|")
 
         # update roles
         users = get_xform_users(xform)
 
         for user in users:
 
-            role = users.get(user).get('role')
+            role = users.get(user).get("role")
             if role in editor_role:
                 role = ROLES.get(meta_perms[0])
                 role.add(user, xform)
@@ -774,15 +809,17 @@ def update_role_by_meta_xform_perms(xform):
 
 
 def replace_attachment_name_with_url(data):
+    """Replaces the attachment filename with a URL in ``data`` object."""
     site_url = Site.objects.get_current().domain
 
     for record in data:
-        attachments: dict = record.json.get('_attachments')
+        attachments: dict = record.json.get("_attachments")
         if attachments:
             attachment_details = [
-                (attachment['name'], attachment['download_url'])
+                (attachment["name"], attachment["download_url"])
                 for attachment in attachments
-                if 'download_url' in attachment]
+                if "download_url" in attachment
+            ]
             question_keys = list(record.json.keys())
             question_values = list(record.json.values())
 

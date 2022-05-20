@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+MergedXForm model - stores info on forms to merge.
+"""
 from django.db import models
 from django.db.models.signals import post_save
 
@@ -10,20 +14,24 @@ class MergedXForm(XForm):
     Merged XForms
     """
 
-    xforms = models.ManyToManyField(
-        'logger.XForm', related_name='mergedxform_ptr')
+    xforms = models.ManyToManyField("logger.XForm", related_name="mergedxform_ptr")
 
     class Meta:
-        app_label = 'logger'
+        app_label = "logger"
 
     def save(self, *args, **kwargs):
         set_uuid(self)
-        return super(MergedXForm, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
 
+# pylint: disable=unused-argument
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
+    """Set object permissions when a MergedXForm has been created."""
+
     if created:
+        # pylint: disable=import-outside-toplevel
         from onadata.libs.permissions import OwnerRole
+
         OwnerRole.add(instance.user, instance)
         OwnerRole.add(instance.user, instance.xform_ptr)
 
@@ -32,6 +40,7 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
             OwnerRole.add(instance.created_by, instance.xform_ptr)
 
         from onadata.libs.utils.project_utils import set_project_perms_to_xform
+
         set_project_perms_to_xform(instance, instance.project)
         set_project_perms_to_xform(instance.xform_ptr, instance.project)
 
@@ -39,4 +48,5 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
 post_save.connect(
     set_object_permissions,
     sender=MergedXForm,
-    dispatch_uid='set_project_perms_to_merged_xform')
+    dispatch_uid="set_project_perms_to_merged_xform",
+)

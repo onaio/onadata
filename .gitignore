@@ -82,3 +82,7 @@ tags
 
 .bash_history
 .inputrc
+
+.eggs
+sonar-project.properties
+.scannerwork

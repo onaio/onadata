@@ -19,14 +19,14 @@ class TestUserIdStringUniqueTogether(TestBase):
 
         # first time
         self._publish_xls_file(xls_path)
-        self.assertEquals(XForm.objects.count(), 1)
+        self.assertEqual(XForm.objects.count(), 1)
 
         # second time
         self.assertRaises(IntegrityError, self._publish_xls_file, xls_path)
-        self.assertEquals(XForm.objects.count(), 1)
+        self.assertEqual(XForm.objects.count(), 1)
         self.client.logout()
 
         # first time
         self._create_user_and_login(username="carl", password="carl")
         self._publish_xls_file(xls_path)
-        self.assertEquals(XForm.objects.count(), 2)
+        self.assertEqual(XForm.objects.count(), 2)

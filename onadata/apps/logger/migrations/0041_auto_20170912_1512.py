@@ -8,13 +8,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0040_auto_20170912_1504'),
+        ("logger", "0040_auto_20170912_1504"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='instance',
-            name='uuid',
-            field=models.CharField(db_index=True, default='', max_length=249),
+            model_name="instance",
+            name="uuid",
+            field=models.CharField(db_index=True, default="", max_length=249),
         ),
     ]

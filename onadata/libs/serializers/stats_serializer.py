@@ -1,4 +1,8 @@
-from django.utils.translation import ugettext as _
+# -*- coding: utf-8 -*-
+"""
+Stats API endpoint serializer.
+"""
+from django.utils.translation import gettext as _
 from django.core.cache import cache
 from django.conf import settings
 
@@ -6,108 +10,125 @@ from rest_framework import exceptions
 from rest_framework import serializers
 from rest_framework.utils.serializer_helpers import ReturnList
 
-from onadata.libs.data.statistics import\
-    get_median_for_numeric_fields_in_form,\
-    get_mean_for_numeric_fields_in_form,\
-    get_mode_for_numeric_fields_in_form, get_min_max_range, get_all_stats
+from onadata.libs.data.statistics import (
+    get_median_for_numeric_fields_in_form,
+    get_mean_for_numeric_fields_in_form,
+    get_mode_for_numeric_fields_in_form,
+    get_min_max_range,
+    get_all_stats,
+)
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.data.query import get_form_submissions_grouped_by_field
 
 from onadata.libs.utils.cache_tools import XFORM_SUBMISSION_STAT
 
 
-SELECT_FIELDS = ['select one', 'select multiple']
+SELECT_FIELDS = ["select one", "select multiple"]
 
 STATS_FUNCTIONS = {
-    'mean': get_mean_for_numeric_fields_in_form,
-    'median': get_median_for_numeric_fields_in_form,
-    'mode': get_mode_for_numeric_fields_in_form,
-    'range': get_min_max_range
+    "mean": get_mean_for_numeric_fields_in_form,
+    "median": get_median_for_numeric_fields_in_form,
+    "mode": get_mode_for_numeric_fields_in_form,
+    "range": get_min_max_range,
 }
 
 
 class SubmissionStatsSerializer(serializers.HyperlinkedModelSerializer):
+    """Submission stats serializer for use with the list API endpoint, summary of the
+    submission stats endpoints."""
+
     url = serializers.HyperlinkedIdentityField(
-        view_name='submissionstats-detail', lookup_field='pk')
+        view_name="submissionstats-detail", lookup_field="pk"
+    )
 
     class Meta:
         model = XForm
-        fields = ('id', 'id_string', 'url')
+        fields = ("id", "id_string", "url")
 
 
+# pylint: disable=abstract-method
 class SubmissionStatsInstanceSerializer(serializers.Serializer):
-    def to_representation(self, obj):
-        if obj is None:
-            return super(SubmissionStatsInstanceSerializer, self)\
-                .to_representation(obj)
+    """Submissions stats instance serializer - provides submission summary stats."""
 
-        request = self.context.get('request')
-        field = request.query_params.get('group')
-        name = request.query_params.get('name', field)
+    def to_representation(self, instance):
+        """Returns submissions stats grouped by a specified field."""
+        if instance is None:
+            return super().to_representation(instance)
+
+        request = self.context.get("request")
+        field = request.query_params.get("group")
+        name = request.query_params.get("name", field)
 
         if field is None:
-            raise exceptions.ParseError(_(u"Expecting `group` and `name`"
-                                          u" query parameters."))
+            raise exceptions.ParseError(
+                _("Expecting `group` and `name`" " query parameters.")
+            )
 
-        cache_key = '{}{}{}{}'.format(XFORM_SUBMISSION_STAT, obj.pk,
-                                      field, name)
+        cache_key = f"{XFORM_SUBMISSION_STAT}{instance.pk}{field}{name}"
 
         data = cache.get(cache_key)
         if data:
             return data
 
         try:
-            data = get_form_submissions_grouped_by_field(
-                obj, field, name)
+            data = get_form_submissions_grouped_by_field(instance, field, name)
         except ValueError as e:
             raise exceptions.ParseError(detail=e)
         else:
             if data:
-                element = obj.get_survey_element(field)
+                element = instance.get_survey_element(field)
 
                 if element and element.type in SELECT_FIELDS:
                     for record in data:
-                        label = obj.get_choice_label(element, record[name])
+                        label = instance.get_choice_label(element, record[name])
                         record[name] = label
 
-        cache.set(cache_key, data,
-                  settings.XFORM_SUBMISSION_STAT_CACHE_TIME)
+        cache.set(cache_key, data, settings.XFORM_SUBMISSION_STAT_CACHE_TIME)
 
         return data
 
     @property
     def data(self):
+        """Return the data as a list with ReturnList instead of a python object."""
         ret = super(serializers.Serializer, self).data
 
         return ReturnList(ret, serializer=self)
 
 
 class StatsSerializer(serializers.HyperlinkedModelSerializer):
+    """Stats serializer for use with the list API endpoint, summary of the stats
+    endpoints."""
+
     url = serializers.HyperlinkedIdentityField(
-        view_name='stats-detail', lookup_field='pk')
+        view_name="stats-detail", lookup_field="pk"
+    )
 
     class Meta:
         model = XForm
-        fields = ('id', 'id_string', 'url')
+        fields = ("id", "id_string", "url")
 
 
+# pylint: disable=abstract-method
 class StatsInstanceSerializer(serializers.Serializer):
-    def to_representation(self, obj):
-        if obj is None:
-            return super(StatsInstanceSerializer, self).to_representation(obj)
+    """The stats instance serializer - calls the relevant statistical functions and
+    returns the results against form data submissions."""
 
-        request = self.context.get('request')
-        method = request.query_params.get('method', None)
-        field = request.query_params.get('field', None)
+    def to_representation(self, instance):
+        """Returns the result of the selected stats function."""
+        if instance is None:
+            return super().to_representation(instance)
 
-        if field and field not in obj.get_keys():
+        request = self.context.get("request")
+        method = request.query_params.get("method", None)
+        field = request.query_params.get("field", None)
+
+        if field and field not in instance.get_keys():
             raise exceptions.ParseError(detail=_("Field not in XForm."))
 
-        stats_function = STATS_FUNCTIONS.get(method and method.lower(),
-                                             get_all_stats)
+        stats_function = STATS_FUNCTIONS.get(method and method.lower(), get_all_stats)
 
         try:
-            data = stats_function(obj, field)
+            data = stats_function(instance, field)
         except ValueError as e:
             raise exceptions.ParseError(detail=e)
 

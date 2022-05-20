@@ -2,7 +2,7 @@
 """
 Custom rest_framework Router - MultiLookupRouter.
 """
-from django.conf.urls import url
+from django.urls import re_path
 from django.contrib import admin
 from rest_framework import routers
 from rest_framework.urlpatterns import format_suffix_patterns
@@ -107,7 +107,7 @@ class MultiLookupRouter(routers.DefaultRouter):
                 })
                 view = viewset.as_view(mapping, **initkwargs)
                 name = route.name.format(basename=basename)
-                extra_urls.append(url(regex, view, name=name))
+                extra_urls.append(re_path(regex, view, name=name))
 
         if self.include_format_suffixes:
             extra_urls = format_suffix_patterns(extra_urls)

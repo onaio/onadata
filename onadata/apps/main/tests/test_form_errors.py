@@ -28,7 +28,7 @@ class TestFormErrors(TestBase):
         xls_path = os.path.join(self.this_directory, "fixtures",
                                 "transportation", "transportation.bad_id.xlsx")
         self.assertRaises(XLSFormError, self._publish_xls_file, xls_path)
-        self.assertEquals(XForm.objects.count(), count)
+        self.assertEqual(XForm.objects.count(), count)
 
     @skip
     def test_dl_no_xls(self):
@@ -99,7 +99,7 @@ class TestFormErrors(TestBase):
                " have modified the filename to not contain any spaces.")
         self.assertRaisesMessage(
             XLSFormError, msg, self._publish_xls_file, xls_path)
-        self.assertEquals(XForm.objects.count(), count)
+        self.assertEqual(XForm.objects.count(), count)
 
     def test_choice_duplicate_error(self):
         """
@@ -122,4 +122,4 @@ class TestFormErrors(TestBase):
             "Learn more: https://xlsform.org/#choice-names.")
         self.assertRaisesMessage(
             PyXFormError, msg, self._publish_xls_file, xls_path)
-        self.assertEquals(XForm.objects.count(), count)
+        self.assertEqual(XForm.objects.count(), count)

@@ -9,9 +9,9 @@ def generate_uuid_if_missing(apps, schema_editor):
     """
     Generate uuids for XForms without them
     """
-    XForm = apps.get_model('logger', 'XForm')
+    XForm = apps.get_model("logger", "XForm")
 
-    for xform in XForm.objects.filter(uuid=''):
+    for xform in XForm.objects.filter(uuid=""):
         xform.uuid = get_uuid()
         xform.save()
 
@@ -19,8 +19,7 @@ def generate_uuid_if_missing(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0060_auto_20200305_0357'),
+        ("logger", "0060_auto_20200305_0357"),
     ]
 
-    operations = [
-        migrations.RunPython(generate_uuid_if_missing)]
+    operations = [migrations.RunPython(generate_uuid_if_missing)]

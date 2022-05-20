@@ -1,22 +1,29 @@
 #!/usr/bin/env python
-# vim: ai ts=4 sts=4 et sw=4 coding=utf-8
+# -*- coding: utf-8 -*-
+# vim: ai ts=4 sts=4 et sw=4
+"""
+import_forms - loads XForms from a given path.
+"""
 from __future__ import absolute_import
 
 import glob
 import os
 
 from django.core.management.base import BaseCommand
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext_lazy
 
 from onadata.apps.logger.models import XForm
 
 
 class Command(BaseCommand):
-    help = ugettext_lazy("Import a folder of XForms for ODK.")
+    """Import a folder of XForms for ODK."""
 
+    help = gettext_lazy("Import a folder of XForms for ODK.")
+
+    # pylint: disable=unused-argument
     def handle(self, *args, **kwargs):
+        """Import a folder of XForms for ODK."""
         path = args[0]
         for form in glob.glob(os.path.join(path, "*")):
-            f = open(form)
-            XForm.objects.get_or_create(xml=f.read(), downloadable=False)
-            f.close()
+            with open(form, encoding="utf-8") as f:
+                XForm.objects.get_or_create(xml=f.read(), downloadable=False)

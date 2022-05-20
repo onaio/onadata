@@ -1,11 +1,11 @@
 from django import forms
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext_lazy
 
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 
 
 class QuickConverter(forms.Form):
-    xls_file = forms.FileField(label=ugettext_lazy("XLS File"))
+    xls_file = forms.FileField(label=gettext_lazy("XLS File"))
 
     def publish(self, user):
         if self.is_valid():

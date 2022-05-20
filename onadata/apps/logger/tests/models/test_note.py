@@ -24,5 +24,5 @@ class TestNote(TestBase):
         )
         note.save()
         note_data = note.get_data()
-        self.assertEqual(note_data['owner'], "")
-        self.assertEqual(note_data['created_by'], "")
+        self.assertEqual(note_data["owner"], "")
+        self.assertEqual(note_data["created_by"], "")

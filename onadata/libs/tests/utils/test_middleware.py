@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 
-from django.conf.urls import url
+from django.urls import re_path
 from django.db import OperationalError
 from django.http import HttpResponse
 from django.test import RequestFactory, TestCase
@@ -13,7 +13,7 @@ def normal_view(request):
 
 
 urlpatterns = [
-    url('middleware_exceptions/view/', normal_view, name='normal'),
+    re_path('middleware_exceptions/view/', normal_view, name='normal'),
 ]
 
 

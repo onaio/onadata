@@ -7,13 +7,15 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
 
-    dependencies = [('logger', '0034_mergedxform'), ]
+    dependencies = [
+        ("logger", "0034_mergedxform"),
+    ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='mergedxform',
+            name="mergedxform",
             options={
-                'permissions': (('view_mergedxform', 'Can view associated data'
-                                 ), )
-            }, ),
+                "permissions": (("view_mergedxform", "Can view associated data"),)
+            },
+        ),
     ]

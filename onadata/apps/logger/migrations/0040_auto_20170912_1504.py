@@ -8,13 +8,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0039_auto_20170909_2052'),
+        ("logger", "0039_auto_20170909_2052"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='instance',
-            name='checksum',
-            field=models.CharField(
-                blank=True, db_index=True, max_length=64, null=True), ),
+            model_name="instance",
+            name="checksum",
+            field=models.CharField(blank=True, db_index=True, max_length=64, null=True),
+        ),
     ]

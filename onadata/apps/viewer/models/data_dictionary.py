@@ -6,15 +6,11 @@ import os
 from io import BytesIO, StringIO
 
 import unicodecsv as csv
-import xlrd
 import openpyxl
-from builtins import str as text
-from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
-from django.utils.encoding import python_2_unicode_compatible
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from floip import FloipSurvey
 from kombu.exceptions import OperationalError
 from pyxform.builder import create_survey_element_from_dict
@@ -40,7 +36,7 @@ def is_newline_error(e):
         "new-line character seen in unquoted field - do you need"
         " to open the file in universal-newline mode?"
     )
-    return newline_error == text(e)
+    return newline_error == str(e)
 
 
 def process_xlsform(xls, default_name):
@@ -54,10 +50,10 @@ def process_xlsform(xls, default_name):
     file_object = xls
     if xls.name.endswith("csv"):
         file_object = None
-        if not get_storage_class()().exists(xls.path):
+        if not isinstance(xls.name, InMemoryUploadedFile):
             file_object = StringIO(xls.read().decode("utf-8"))
     try:
-        return parse_file_to_json(xls.path, file_object=file_object)
+        return parse_file_to_json(xls.name, file_object=file_object)
     except csv.Error as e:
         if is_newline_error(e):
             xls.seek(0)
@@ -120,7 +116,7 @@ def sheet_to_csv(xls_content, sheet_name):
                     except ValueError:
                         pass
                 elif sheet.cell(row, index).is_date:
-                    val = xlrd.xldate_as_datetime(val, workbook.datemode).isoformat()
+                    val = val.strftime("%Y-%m-%d").isoformat()
                 row_values.append(val)
             writer.writerow([v for v, m in zip(row_values, mask) if m])
         else:
@@ -138,7 +134,6 @@ def upload_to(instance, filename, username=None):
     return os.path.join(username, "xls", os.path.split(filename)[1])
 
 
-@python_2_unicode_compatible
 class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
     """
     DataDictionary model class.
@@ -192,15 +187,15 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
                 survey["name"] = default_name
             else:
                 survey["id_string"] = self.id_string
-            self.json = survey.to_json()
+            self.json = survey.to_json_dict()
             self.xml = survey.to_xml()
             self.version = survey.get("version")
             self.last_updated_at = timezone.now()
             self.title = survey.get("title")
-            self._mark_start_time_boolean()
+            self.mark_start_time_boolean()
             set_uuid(self)
-            self._set_uuid_in_xml()
-            self._set_hash()
+            self.set_uuid_in_xml()
+            self.set_hash()
 
         if "skip_xls_read" in kwargs:
             del kwargs["skip_xls_read"]

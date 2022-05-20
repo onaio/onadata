@@ -14,17 +14,18 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('logger', '0051_auto_20180522_1118'),
+        ("logger", "0051_auto_20180522_1118"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='instance',
-            name='deleted_by',
+            model_name="instance",
+            name="deleted_by",
             field=models.ForeignKey(
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
-                related_name='deleted_instances',
-                to=settings.AUTH_USER_MODEL),
+                related_name="deleted_instances",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
     ]

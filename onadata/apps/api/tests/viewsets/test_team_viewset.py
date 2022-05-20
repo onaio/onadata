@@ -282,7 +282,7 @@ class TestTeamViewSet(TestAbstractViewSet, TestBase):
         request = self.factory.get('/', data=get_data, **self.extra)
         response = view(request)
         # get the members team
-        self.assertEquals(response.data[1].get('name'), 'members')
+        self.assertEqual(response.data[1].get('name'), 'members')
         teamid = response.data[1].get('teamid')
 
         chuck_data = {'username': 'chuck', 'email': 'chuck@localhost.com'}

@@ -1220,7 +1220,7 @@ class TestCSVDataFrameBuilder(TestBase):
         self._publish_xls_fixture_set_xform(fixture)
 
         # Confirm form has not submissions so far
-        self.assertEquals(self.xform.instances.count(), 0)
+        self.assertEqual(self.xform.instances.count(), 0)
         # Generate csv export for form
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username, self.xform.id_string, include_images=False)
@@ -1253,7 +1253,7 @@ class TestCSVDataFrameBuilder(TestBase):
         self._publish_xls_fixture_set_xform(fixture)
 
         # Confirm form has not submissions so far
-        self.assertEquals(self.xform.instances.count(), 0)
+        self.assertEqual(self.xform.instances.count(), 0)
         # Generate csv export for form
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username, self.xform.id_string, include_images=False)
@@ -1320,7 +1320,7 @@ class TestCSVDataFrameBuilder(TestBase):
         self._publish_xls_fixture_set_xform(fixture)
 
         # Confirm form has not submissions so far
-        self.assertEquals(self.xform.instances.count(), 0)
+        self.assertEqual(self.xform.instances.count(), 0)
         # Generate csv export for form
         csv_df_builder_1 = CSVDataFrameBuilder(
             self.user.username,

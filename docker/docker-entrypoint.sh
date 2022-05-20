@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ ${INITDB} ]; then
+if [ "${INITDB}" ]; then
     RUN_DB_INIT_SCRIPT=$INITDB
 else
     RUN_DB_INIT_SCRIPT=true
@@ -13,8 +13,8 @@ if $RUN_DB_INIT_SCRIPT; then
     psql -h db -U postgres onadata -c "CREATE EXTENSION postgis; CREATE EXTENSION postgis_topology;"
 fi
 
-virtualenv -p `which $SELECTED_PYTHON` /srv/onadata/.virtualenv/${SELECTED_PYTHON}
-. /srv/onadata/.virtualenv/${SELECTED_PYTHON}/bin/activate
+virtualenv -p "$(which "${SELECTED_PYTHON}")" "/srv/onadata/.virtualenv/${SELECTED_PYTHON}"
+. /srv/onadata/.virtualenv/"${SELECTED_PYTHON}"/bin/activate
 
 cd /srv/onadata
 pip install --upgrade pip

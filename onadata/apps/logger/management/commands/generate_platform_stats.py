@@ -16,8 +16,7 @@ from onadata.apps.logger.models import XForm, Instance
 
 
 def _write_stats_to_file(month: int, year: int):
-    out_file = open(
-        f"/tmp/platform_statistics_{month}_{year}.csv", "w")  # nosec
+    out_file = open(f"/tmp/platform_statistics_{month}_{year}.csv", "w")  # nosec
     writer = csv.writer(out_file)
     headers = ["Username", "Project Name", "Form Title", "No. of submissions"]
     writer.writerow(headers)
@@ -26,17 +25,23 @@ def _write_stats_to_file(month: int, year: int):
 
     forms = XForm.objects.filter(
         Q(deleted_at__isnull=True) | Q(deleted_at__gt=date_obj),
-        date_created__lte=date_obj
-    ).values('id', 'project__name', 'project__organization__username', 'title')
+        date_created__lte=date_obj,
+    ).values("id", "project__name", "project__organization__username", "title")
     with use_master:
         for form in forms:
             instance_count = Instance.objects.filter(
                 Q(deleted_at__isnull=True) | Q(deleted_at__gt=date_obj),
-                xform_id=form.get('id'), date_created__lte=date_obj
+                xform_id=form.get("id"),
+                date_created__lte=date_obj,
             ).count()
             writer.writerow(
-                [form.get('project__organization__username'),
-                 form.get('project__name'), form.get('title'), instance_count])
+                [
+                    form.get("project__organization__username"),
+                    form.get("project__name"),
+                    form.get("title"),
+                    instance_count,
+                ]
+            )
 
 
 class Command(BaseCommand):
@@ -45,27 +50,30 @@ class Command(BaseCommand):
     information about the number of organizations, users, projects
     & submissions
     """
+
     help = _("Generates system statistics for the entire platform")
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--month',
-            '-m',
-            dest='month',
-            help=('Month to calculate system statistics for.'
-                  'Defaults to current month.'),
-            default=None
+            "--month",
+            "-m",
+            dest="month",
+            help=(
+                "Month to calculate system statistics for." "Defaults to current month."
+            ),
+            default=None,
         )
         parser.add_argument(
-            '--year',
-            '-y',
-            dest='year',
-            help=('Year to calculate system statistics for.'
-                  ' Defaults to current year'),
+            "--year",
+            "-y",
+            dest="year",
+            help=(
+                "Year to calculate system statistics for." " Defaults to current year"
+            ),
             default=None,
         )
 
     def handle(self, *args, **options):
-        month = int(options.get('month', datetime.now().month))
-        year = int(options.get('year', datetime.now().year))
+        month = int(options.get("month", datetime.now().month))
+        year = int(options.get("year", datetime.now().year))
         _write_stats_to_file(month, year)

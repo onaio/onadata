@@ -91,7 +91,7 @@ class TestUserViewSet(TestAbstractViewSet):
         request = self.factory.get('/', data=get_params)
 
         response = view(request)
-        self.assertEquals(response.status_code, 401)
+        self.assertEqual(response.status_code, 401)
         error = {'detail': 'Authentication credentials were not provided.'}
         self.assertEqual(response.data, error)
 
@@ -99,7 +99,7 @@ class TestUserViewSet(TestAbstractViewSet):
         request = self.factory.get('/', data=get_params, **self.extra)
         response = view(request)
 
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
 
         get_params = {
@@ -109,7 +109,7 @@ class TestUserViewSet(TestAbstractViewSet):
         request = self.factory.get('/', data=get_params, **self.extra)
         response = view(request)
 
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
         # empty results
         self.assertEqual(response.data, [])
 
@@ -120,7 +120,7 @@ class TestUserViewSet(TestAbstractViewSet):
         request = self.factory.get('/', data=get_params, **self.extra)
         response = view(request)
 
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
         # empty results
         self.assertEqual(response.data, [])
 
@@ -134,15 +134,15 @@ class TestUserViewSet(TestAbstractViewSet):
         all_users_request = self.factory.get('/')
         all_users_response = view(all_users_request)
 
-        self.assertEquals(all_users_response.status_code, 200)
-        self.assertEquals(len(
+        self.assertEqual(all_users_response.status_code, 200)
+        self.assertEqual(len(
             [u for u in all_users_response.data if u['username'] == 'denoinc']
         ), 1)
 
         no_orgs_request = self.factory.get('/', data={'orgs': 'false'})
         no_orgs_response = view(no_orgs_request)
 
-        self.assertEquals(no_orgs_response.status_code, 200)
-        self.assertEquals(len(
+        self.assertEqual(no_orgs_response.status_code, 200)
+        self.assertEqual(len(
             [u for u in no_orgs_response.data if u['username'] == 'denoinc']),
             0)

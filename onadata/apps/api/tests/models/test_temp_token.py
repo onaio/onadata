@@ -14,7 +14,7 @@ class TestTempToken(TestAbstractModels):
 
         self.assertEqual(token.key, '456c27c7d59303aed1dffd3b5ffaad36f0676618')
         self.assertTrue(created)
-        self.assertEquals(initial_count + 1, TempToken.objects.count())
+        self.assertEqual(initial_count + 1, TempToken.objects.count())
 
         # update initial count
         initial_count = TempToken.objects.count()
@@ -35,7 +35,7 @@ class TestTempToken(TestAbstractModels):
         TempToken.objects.get(
             user=self.user,
             key='456c27c7d59303aed1dffd3b5ffaad36f0676618').delete()
-        self.assertEquals(initial_count - 1, TempToken.objects.count())
+        self.assertEqual(initial_count - 1, TempToken.objects.count())
         token1, created1 = TempToken.objects.get_or_create(
             user=self.user, key='1b3b82a23063a8a4e64fb4434dc21ab181fbbe7c')
 

@@ -1,12 +1,11 @@
 FROM postgres:9.6
 
-MAINTAINER Ukang'a Dickson <ukanga@gmail.com>
-
-
 RUN apt-get update \
   &&  DEBIAN_FRONTEND=noninteractive \
-    apt-get install -y postgresql-9.6-postgis-2.3 \
-    postgresql-9.6-postgis-script postgis \
+    apt-get install --no-install-recommends -y \
+      postgresql-9.6-postgis-2.3=2.3.1+dfsg-2+deb9u2 \
+      postgresql-9.6-postgis-2.3-scripts=2.3.1+dfsg-2+deb9u2 \
+      postgis=2.3.1+dfsg-2+deb9u2 \
   && rm -rf /var/lib/apt/lists/*
 
 ENTRYPOINT ["docker-entrypoint.sh"]

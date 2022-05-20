@@ -1,12 +1,12 @@
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext_lazy
 
 from onadata.apps.main.models.audit import Audit
 
 
 class Command(BaseCommand):
-    help = ugettext_lazy("migrate audit log from mongo to postgres")
+    help = gettext_lazy("migrate audit log from mongo to postgres")
 
     def handle(self, *args, **kwargs):
         auditlog = settings.MONGO_DB.auditlog

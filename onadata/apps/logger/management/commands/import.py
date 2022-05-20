@@ -4,13 +4,13 @@
 import os
 from django.core.management.base import BaseCommand
 from django.core.management import call_command
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext_lazy
 
 
 class Command(BaseCommand):
-    help = ugettext_lazy("Import ODK forms and instances.")
+    help = gettext_lazy("Import ODK forms and instances.")
 
     def handle(self, *args, **kwargs):
         path = args[0]
-        call_command('import_forms', os.path.join(path, "forms"))
-        call_command('import_instances', os.path.join(path, "instances"))
+        call_command("import_forms", os.path.join(path, "forms"))
+        call_command("import_instances", os.path.join(path, "instances"))

@@ -1,21 +1,28 @@
-from django.utils.translation import ugettext as _
+# -*- coding: utf-8 -*-
+"""
+Tags list serializer module.
+"""
+from django.utils.translation import gettext as _
 
 from rest_framework import serializers
 
 
 class TagListSerializer(serializers.Field):
+    """Tags serializer - represents tags as a list of strings."""
 
     def to_internal_value(self, data):
-        if not isinstance(data, list):
-            raise serializers.ValidationError(_(u"expected a list of data"))
+        """Validates the data is a list."""
+        if isinstance(data, list):
+            return data
 
-        return data
+        raise serializers.ValidationError(_("expected a list of data"))
 
-    def to_representation(self, obj):
-        if obj is None:
-            return super(TagListSerializer, self).to_representation(obj)
+    def to_representation(self, value):
+        """Returns all tags linked to the object ``value`` as a list."""
+        if value is None:
+            return super().to_representation(value)
 
-        if not isinstance(obj, list):
-            return [tag.name for tag in obj.all()]
+        if not isinstance(value, list):
+            return [tag.name for tag in value.all()]
 
-        return obj
+        return value

@@ -8,21 +8,32 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
 
-    dependencies = [('logger', '0033_auto_20170705_0159'), ]
+    dependencies = [
+        ("logger", "0033_auto_20170705_0159"),
+    ]
 
     operations = [
         migrations.CreateModel(
-            name='MergedXForm',
+            name="MergedXForm",
             fields=[
-                ('xform_ptr', models.OneToOneField(
-                    auto_created=True,
-                    on_delete=django.db.models.deletion.CASCADE,
-                    parent_link=True,
-                    primary_key=True,
-                    serialize=False,
-                    to='logger.XForm')),
-                ('xforms', models.ManyToManyField(
-                    related_name='mergedxform_ptr', to='logger.XForm')),
+                (
+                    "xform_ptr",
+                    models.OneToOneField(
+                        auto_created=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        parent_link=True,
+                        primary_key=True,
+                        serialize=False,
+                        to="logger.XForm",
+                    ),
+                ),
+                (
+                    "xforms",
+                    models.ManyToManyField(
+                        related_name="mergedxform_ptr", to="logger.XForm"
+                    ),
+                ),
             ],
-            bases=('logger.xform', ), ),
+            bases=("logger.xform",),
+        ),
     ]

@@ -14,7 +14,7 @@ from actstream.signals import action
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.http import HttpRequest
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import exceptions, serializers
 
 from onadata.apps.messaging.constants import MESSAGE, MESSAGE_VERBS

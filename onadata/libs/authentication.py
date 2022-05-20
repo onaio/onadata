@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Authentication classes.
+"""
+Authentication classes.
 """
 from __future__ import unicode_literals
 
@@ -7,16 +8,19 @@ from datetime import datetime
 from typing import Optional, Tuple
 
 from django.conf import settings
-from django.contrib.auth.models import User, update_last_login
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import update_last_login
 from django.core.signing import BadSignature
 from django.db import DataError
 from django.utils import timezone
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 import jwt
 from django_digest import HttpDigestAuthenticator
 from multidb.pinning import use_master
 from oauth2_provider.models import AccessToken
+from oauth2_provider.oauth2_validators import OAuth2Validator
+from oauth2_provider.settings import oauth2_settings
 from rest_framework import exceptions
 from rest_framework.authentication import (
     BaseAuthentication,
@@ -25,8 +29,6 @@ from rest_framework.authentication import (
 )
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import AuthenticationFailed
-from oauth2_provider.oauth2_validators import OAuth2Validator
-from oauth2_provider.settings import oauth2_settings
 from oidc.utils import authenticate_sso
 
 from onadata.apps.api.models.temp_token import TempToken
@@ -61,6 +63,9 @@ LOCKOUT_EXCLUDED_PATHS = getattr(
     ],
 )
 
+# pylint: disable=invalid-name
+User = get_user_model()
+
 
 def expired(time_token_created):
     """Checks if the time between when time_token_created and current time
@@ -72,7 +77,7 @@ def expired(time_token_created):
     time_diff = (timezone.now() - time_token_created).total_seconds()
     token_expiry_time = TEMP_TOKEN_EXPIRY_TIME
 
-    return True if time_diff > token_expiry_time else False
+    return time_diff > token_expiry_time
 
 
 def get_api_token(cookie_jwt):
@@ -86,11 +91,11 @@ def get_api_token(cookie_jwt):
         api_token = Token.objects.get(key=jwt_payload.get(API_TOKEN))
         return api_token
     except BadSignature as e:
-        raise exceptions.AuthenticationFailed(_("Bad Signature: %s" % e))
+        raise exceptions.AuthenticationFailed(_(f"Bad Signature: {e}")) from e
     except jwt.DecodeError as e:
-        raise exceptions.AuthenticationFailed(_("JWT DecodeError: %s" % e))
-    except Token.DoesNotExist:
-        raise exceptions.AuthenticationFailed(_("Invalid token"))
+        raise exceptions.AuthenticationFailed(_(f"JWT DecodeError: {e}")) from e
+    except Token.DoesNotExist as e:
+        raise exceptions.AuthenticationFailed(_("Invalid token")) from e
 
 
 class DigestAuthentication(BaseAuthentication):
@@ -110,24 +115,20 @@ class DigestAuthentication(BaseAuthentication):
             if self.authenticator.authenticate(request):
                 update_last_login(None, request.user)
                 return request.user, None
-            else:
-                attempts = login_attempts(request)
-                remaining_attempts = (
-                    getattr(settings, "MAX_LOGIN_ATTEMPTS", 10) - attempts
+            attempts = login_attempts(request)
+            remaining_attempts = getattr(settings, "MAX_LOGIN_ATTEMPTS", 10) - attempts
+            # pylint: disable=unused-variable
+            lockout_time = getattr(settings, "LOCKOUT_TIME", 1800) // 60  # noqa
+            raise AuthenticationFailed(
+                _(
+                    "Invalid username/password. "
+                    f"For security reasons, after {remaining_attempts} more failed "
+                    f"login attempts you'll have to wait {lockout_time} minutes "
+                    "before trying again."
                 )
-                raise AuthenticationFailed(
-                    _(
-                        "Invalid username/password. "
-                        "For security reasons, after {} more failed "
-                        "login attempts you'll have to wait {} minutes "
-                        "before trying again.".format(
-                            remaining_attempts,
-                            getattr(settings, "LOCKOUT_TIME", 1800) // 60,
-                        )
-                    )
-                )
+            )
         except (AttributeError, ValueError, DataError) as e:
-            raise AuthenticationFailed(e)
+            raise AuthenticationFailed(e) from e
 
     def authenticate_header(self, request):
         response = self.authenticator.build_challenge_response()
@@ -149,7 +150,7 @@ class TempTokenAuthentication(TokenAuthentication):
         if len(auth) == 1:
             error_msg = _("Invalid token header. No credentials provided.")
             raise exceptions.AuthenticationFailed(error_msg)
-        elif len(auth) > 2:
+        if len(auth) > 2:
             error_msg = _(
                 "Invalid token header. " "Token string should not contain spaces."
             )
@@ -162,7 +163,7 @@ class TempTokenAuthentication(TokenAuthentication):
             if isinstance(key, bytes):
                 key = key.decode("utf-8")
             token = self.model.objects.get(key=key)
-        except self.model.DoesNotExist:
+        except self.model.DoesNotExist as e:
             invalid_token = True
             if getattr(settings, "SLAVE_DATABASES", []):
                 try:
@@ -173,7 +174,7 @@ class TempTokenAuthentication(TokenAuthentication):
                 else:
                     invalid_token = False
             if invalid_token:
-                raise exceptions.AuthenticationFailed(_("Invalid token"))
+                raise exceptions.AuthenticationFailed(_("Invalid token")) from e
 
         if not token.user.is_active:
             raise exceptions.AuthenticationFailed(_("User inactive or deleted"))
@@ -201,11 +202,11 @@ class EnketoTokenAuthentication(TokenAuthentication):
 
             if getattr(api_token, "user"):
                 return api_token.user, api_token
-        except self.model.DoesNotExist:
-            raise exceptions.AuthenticationFailed(_("Invalid token"))
+        except self.model.DoesNotExist as e:
+            raise exceptions.AuthenticationFailed(_("Invalid token")) from e
         except KeyError:
             pass
-        except BadSignature:
+        except BadSignature as e:
             # if the cookie wasn't signed it means zebra might have
             # generated it
             cookie_jwt = request.COOKIES.get(ENKETO_AUTH_COOKIE)
@@ -215,7 +216,7 @@ class EnketoTokenAuthentication(TokenAuthentication):
 
             raise exceptions.ParseError(
                 _("Malformed cookie. Clear your cookies then try again")
-            )
+            ) from e
 
         return None
 
@@ -244,26 +245,29 @@ class SSOHeaderAuthentication(BaseAuthentication):
 
 
 def retrieve_user_identification(request) -> Tuple[Optional[str], Optional[str]]:
-    ip = None
+    """
+    Retrieve user information from a HTTP request.
+    """
+    ip_address = None
 
-    if request.META.get("HTTP_X_REAL_IP"):
-        ip = request.META["HTTP_X_REAL_IP"].split(",")[0]
+    if request.headers.get("X-Real-Ip"):
+        ip_address = request.headers["X-Real-Ip"].split(",")[0]
     else:
-        ip = request.META.get("REMOTE_ADDR")
+        ip_address = request.META.get("REMOTE_ADDR")
 
     try:
-        if isinstance(request.META["HTTP_AUTHORIZATION"], bytes):
+        if isinstance(request.headers["Authorization"], bytes):
             username = (
-                request.META["HTTP_AUTHORIZATION"].decode("utf-8").split('"')[1].strip()
+                request.headers["Authorization"].decode("utf-8").split('"')[1].strip()
             )
         else:
-            username = request.META["HTTP_AUTHORIZATION"].split('"')[1].strip()
+            username = request.headers["Authorization"].split('"')[1].strip()
     except (TypeError, AttributeError, IndexError):
         pass
     else:
         if not username:
             raise AuthenticationFailed(_("Invalid username"))
-        return ip, username
+        return ip_address, username
     return None, None
 
 
@@ -276,10 +280,10 @@ def check_lockout(request) -> Tuple[Optional[str], Optional[str]]:
     """
     uri_path = request.get_full_path()
     if not any(part in LOCKOUT_EXCLUDED_PATHS for part in uri_path.split("/")):
-        ip, username = retrieve_user_identification(request)
+        ip_address, username = retrieve_user_identification(request)
 
-        if ip and username:
-            lockout = cache.get(safe_key("{}{}-{}".format(LOCKOUT_IP, ip, username)))
+        if ip_address and username:
+            lockout = cache.get(safe_key(f"{LOCKOUT_IP}{ip_address}-{username}"))
             if lockout:
                 time_locked_out = datetime.now() - datetime.strptime(
                     lockout, "%Y-%m-%dT%H:%M:%S"
@@ -290,12 +294,11 @@ def check_lockout(request) -> Tuple[Optional[str], Optional[str]]:
                 )
                 raise AuthenticationFailed(
                     _(
-                        "Locked out. Too many wrong username"
-                        "/password attempts. "
-                        "Try again in {} minutes.".format(remaining_time)
+                        "Locked out. Too many wrong username/password attempts. "
+                        f"Try again in {remaining_time} minutes."
                     )
                 )
-            return ip, username
+            return ip_address, username
     return None, None
 
 
@@ -304,18 +307,18 @@ def login_attempts(request):
     Track number of login attempts made by a specific IP within
     a specified amount of time
     """
-    ip, username = check_lockout(request)
-    attempts_key = safe_key("{}{}-{}".format(LOGIN_ATTEMPTS, ip, username))
+    ip_address, username = check_lockout(request)
+    attempts_key = safe_key(f"{LOGIN_ATTEMPTS}{ip_address}-{username}")
     attempts = cache.get(attempts_key)
 
     if attempts:
         cache.incr(attempts_key)
         attempts = cache.get(attempts_key)
         if attempts >= getattr(settings, "MAX_LOGIN_ATTEMPTS", 10):
-            lockout_key = safe_key("{}{}-{}".format(LOCKOUT_IP, ip, username))
+            lockout_key = safe_key(f"{LOCKOUT_IP}{ip_address}-{username}")
             lockout = cache.get(lockout_key)
             if not lockout:
-                send_lockout_email(username, ip)
+                send_lockout_email(username, ip_address)
                 cache.set(
                     lockout_key,
                     datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
@@ -330,14 +333,17 @@ def login_attempts(request):
     return cache.get(attempts_key)
 
 
-def send_lockout_email(username, ip):
+def send_lockout_email(username, ip_address):
+    """
+    Send locked out email
+    """
     try:
         user = User.objects.get(username=username)
     except User.DoesNotExist:
         pass
     else:
-        email_data = get_account_lockout_email_data(username, ip)
-        end_email_data = get_account_lockout_email_data(username, ip, end=True)
+        email_data = get_account_lockout_email_data(username, ip_address)
+        end_email_data = get_account_lockout_email_data(username, ip_address, end=True)
 
         send_account_lockout_email.apply_async(
             args=[
@@ -404,6 +410,7 @@ class MasterReplicaOAuth2Validator(OAuth2Validator):
             request.scopes = scopes
             request.access_token = access_token
             return True
-        else:
-            self._set_oauth2_error_on_request(request, access_token, scopes)
-            return False
+
+        self._set_oauth2_error_on_request(request, access_token, scopes)
+
+        return False

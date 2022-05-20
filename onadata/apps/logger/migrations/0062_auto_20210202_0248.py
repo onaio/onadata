@@ -10,9 +10,10 @@ def regenerate_instance_json(apps, schema_editor):
     Regenerate Instance JSON
     """
     for inst in Instance.objects.filter(
-            deleted_at__isnull=True,
-            xform__downloadable=True,
-            xform__deleted_at__isnull=True):
+        deleted_at__isnull=True,
+        xform__downloadable=True,
+        xform__deleted_at__isnull=True,
+    ):
         inst.json = inst.get_full_dict(load_existing=False)
         inst.save()
 
@@ -20,9 +21,7 @@ def regenerate_instance_json(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0061_auto_20200713_0814'),
+        ("logger", "0061_auto_20200713_0814"),
     ]
 
-    operations = [
-        migrations.RunPython(regenerate_instance_json)
-    ]
+    operations = [migrations.RunPython(regenerate_instance_json)]

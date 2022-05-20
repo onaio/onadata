@@ -9,8 +9,11 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.import_tools import django_file
 from onadata.apps.logger.import_tools import create_instance
-from onadata.libs.utils.backup_tools import _date_created_from_filename,\
-    create_zip_backup, restore_backup_from_zip
+from onadata.libs.utils.backup_tools import (
+    _date_created_from_filename,
+    create_zip_backup,
+    restore_backup_from_zip,
+)
 
 
 class TestBackupTools(TestBase):
@@ -19,8 +22,13 @@ class TestBackupTools(TestBase):
         self._publish_xls_file_and_set_xform(
             os.path.join(
                 settings.PROJECT_ROOT,
-                "apps", "logger", "fixtures", "test_forms",
-                "tutorial.xlsx"))
+                "apps",
+                "logger",
+                "fixtures",
+                "test_forms",
+                "tutorial.xlsx",
+            )
+        )
 
     def test_date_created_override(self):
         """
@@ -28,19 +36,30 @@ class TestBackupTools(TestBase):
         will set our date as the date_created
         """
         xml_file_path = os.path.join(
-            settings.PROJECT_ROOT, "apps", "logger", "fixtures",
-            "tutorial", "instances", "tutorial_2012-06-27_11-27-53.xml")
+            settings.PROJECT_ROOT,
+            "apps",
+            "logger",
+            "fixtures",
+            "tutorial",
+            "instances",
+            "tutorial_2012-06-27_11-27-53.xml",
+        )
         xml_file = django_file(
-            xml_file_path, field_name="xml_file", content_type="text/xml")
+            xml_file_path, field_name="xml_file", content_type="text/xml"
+        )
         media_files = []
-        date_created = datetime.strptime("2013-01-01 12:00:00",
-                                         "%Y-%m-%d %H:%M:%S")
+        date_created = datetime.strptime("2013-01-01 12:00:00", "%Y-%m-%d %H:%M:%S")
         instance = create_instance(
-            self.user.username, xml_file, media_files,
-            date_created_override=date_created)
+            self.user.username,
+            xml_file,
+            media_files,
+            date_created_override=date_created,
+        )
         self.assertIsNotNone(instance)
-        self.assertEqual(instance.date_created.strftime("%Y-%m-%d %H:%M:%S"),
-                         date_created.strftime("%Y-%m-%d %H:%M:%S"))
+        self.assertEqual(
+            instance.date_created.strftime("%Y-%m-%d %H:%M:%S"),
+            date_created.strftime("%Y-%m-%d %H:%M:%S"),
+        )
 
     def test_date_created_from_filename(self):
         date_str = "2012-01-02-12-35-48"
@@ -55,17 +74,14 @@ class TestBackupTools(TestBase):
 
     def test_backup_then_restore_from_zip(self):
         self._publish_transportation_form()
-        initial_instance_count = Instance.objects.filter(
-            xform=self.xform).count()
+        initial_instance_count = Instance.objects.filter(xform=self.xform).count()
 
         # make submissions
         for i in range(len(self.surveys)):
             self._submit_transport_instance(i)
 
-        instance_count = Instance.objects.filter(
-            xform=self.xform).count()
-        self.assertEqual(
-            instance_count, initial_instance_count + len(self.surveys))
+        instance_count = Instance.objects.filter(xform=self.xform).count()
+        self.assertEqual(instance_count, initial_instance_count + len(self.surveys))
 
         # make a backup
         temp_dir = tempfile.mkdtemp()
@@ -77,17 +93,14 @@ class TestBackupTools(TestBase):
         for instance in Instance.objects.filter(xform=self.xform):
             instance.delete()
 
-        instance_count = Instance.objects.filter(
-            xform=self.xform).count()
+        instance_count = Instance.objects.filter(xform=self.xform).count()
         # remove temp dir tree
         self.assertEqual(instance_count, 0)
 
         # restore instances
         self.assertTrue(os.path.exists(zip_file.name))
-        restore_backup_from_zip(
-            zip_file.name, self.user.username)
-        instance_count = Instance.objects.filter(
-            xform=self.xform).count()
+        restore_backup_from_zip(zip_file.name, self.user.username)
+        instance_count = Instance.objects.filter(xform=self.xform).count()
         # remove temp dir tree
         self.assertEqual(instance_count, len(self.surveys))
         shutil.rmtree(temp_dir)

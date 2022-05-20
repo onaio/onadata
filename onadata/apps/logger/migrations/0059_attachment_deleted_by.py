@@ -9,13 +9,18 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('logger', '0058_auto_20191211_0900'),
+        ("logger", "0058_auto_20191211_0900"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='attachment',
-            name='deleted_by',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='deleted_attachments', to=settings.AUTH_USER_MODEL),
+            model_name="attachment",
+            name="deleted_by",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="deleted_attachments",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
     ]

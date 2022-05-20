@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 from builtins import str as text
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 XFORM = text('xform')
 PROJECT = text('project')

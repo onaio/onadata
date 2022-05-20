@@ -7,7 +7,6 @@ from django.core.files.uploadedfile import TemporaryUploadedFile
 from django.core.files.storage import default_storage
 from django.contrib.auth.models import User
 from django.utils.datastructures import MultiValueDict
-from past.builtins import basestring
 
 from onadata.apps.api import tools
 from onadata.libs.utils.email import send_generic_email
@@ -26,7 +25,7 @@ def recreate_tmp_file(name, path, mime_type):
 def publish_xlsform_async(self, user_id, post_data, owner_id, file_data):
     try:
         files = MultiValueDict()
-        files[u'xls_file'] = default_storage.open(file_data.get('path'))
+        files["xls_file"] = default_storage.open(file_data.get("path"))
 
         owner = User.objects.get(id=owner_id)
         if owner_id == user_id:
@@ -34,7 +33,7 @@ def publish_xlsform_async(self, user_id, post_data, owner_id, file_data):
         else:
             user = User.objects.get(id=user_id)
         survey = tools.do_publish_xlsform(user, post_data, files, owner)
-        default_storage.delete(file_data.get('path'))
+        default_storage.delete(file_data.get("path"))
 
         if isinstance(survey, XForm):
             return {"pk": survey.pk}
@@ -46,13 +45,13 @@ def publish_xlsform_async(self, user_id, post_data, owner_id, file_data):
                 self.retry(exc=exc, countdown=1)
             else:
                 error_message = (
-                    u'Service temporarily unavailable, please try to '
-                    'publish the form again'
+                    "Service temporarily unavailable, please try to "
+                    "publish the form again"
                 )
         else:
             error_message = str(sys.exc_info()[1])
 
-        return {u'error': error_message}
+        return {"error": error_message}
 
 
 @app.task()
@@ -66,23 +65,23 @@ def delete_xform_async(xform_id, user_id):
 @app.task()
 def delete_user_async():
     """Delete inactive user accounts"""
-    users = User.objects.filter(active=False,
-                                username__contains="deleted-at",
-                                email__contains="deleted-at")
+    users = User.objects.filter(
+        active=False, username__contains="deleted-at", email__contains="deleted-at"
+    )
     for user in users:
         user.delete()
 
 
 def get_async_status(job_uuid):
-    """ Gets progress status or result """
+    """Gets progress status or result"""
 
     if not job_uuid:
-        return {u'error': u'Empty job uuid'}
+        return {"error": "Empty job uuid"}
 
     job = AsyncResult(job_uuid)
     result = job.result or job.state
-    if isinstance(result, basestring):
-        return {'JOB_STATUS': result}
+    if isinstance(result, str):
+        return {"JOB_STATUS": result}
 
     return result
 

@@ -11,17 +11,16 @@ import time
 import traceback
 import uuid
 from io import BytesIO
-from past.builtins import basestring
 
 from django.conf import settings
 from django.core.mail import mail_admins
 from django.db import OperationalError
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 import six
 from raven.contrib.django.raven_compat.models import client
 
-TRUE_VALUES = ['TRUE', 'T', '1', 1]
+TRUE_VALUES = ["TRUE", "T", "1", 1]
 
 
 def str_to_bool(str_var):
@@ -41,17 +40,16 @@ def get_boolean_value(str_var, default=None):
     """
     Converts a string into boolean
     """
-    if isinstance(str_var, basestring) and \
-            str_var.lower() in ['true', 'false']:
+    if isinstance(str_var, str) and str_var.lower() in ["true", "false"]:
         return str_to_bool(str_var)
 
     return str_var if default else False
 
 
 def get_uuid(hex_only: bool = True):
-    '''
+    """
     Return UUID4 hex value
-    '''
+    """
     return uuid.uuid4().hex if hex_only else str(uuid.uuid4())
 
 
@@ -61,26 +59,24 @@ def report_exception(subject, info, exc_info=None):
     testing sends email to mail_admins.
     """
     # Add hostname to subject mail
-    subject = "{0} - {1}".format(subject, settings.HOSTNAME)
+    subject = f"{subject} - {settings.HOSTNAME}"
 
     if exc_info:
         cls, err = exc_info[:2]
-        message = _(u"Exception in request:"
-                    u" %(class)s: %(error)s")\
-            % {'class': cls.__name__, 'error': err}
-        message += u"".join(traceback.format_exception(*exc_info))
+        message = _(f"Exception in request: {cls.__name__}: {err}")
+        message += "".join(traceback.format_exception(*exc_info))
 
         # send to sentry
         try:
             client.captureException(exc_info)
         except Exception:  # pylint: disable=broad-except
-            logging.exception(_(u'Sending to Sentry failed.'))
+            logging.exception(_("Sending to Sentry failed."))
     else:
-        message = u"%s" % info
+        message = f"{info}"
 
     if settings.DEBUG or settings.TESTING_MODE:
-        sys.stdout.write("Subject: %s\n" % subject)
-        sys.stdout.write("Message: %s\n" % message)
+        sys.stdout.write(f"Subject: {subject}\n")
+        sys.stdout.write(f"Message: {message}\n")
     else:
         mail_admins(subject=subject, message=message)
 
@@ -89,12 +85,12 @@ def filename_from_disposition(content_disposition):
     """
     Gets a filename from the given content disposition header.
     """
-    filename_pos = content_disposition.index('filename=')
+    filename_pos = content_disposition.index("filename=")
 
     if filename_pos == -1:
         raise Exception('"filename=" not found in content disposition file')
 
-    return content_disposition[filename_pos + len('filename='):]
+    return content_disposition[filename_pos + len("filename=") :]
 
 
 def get_response_content(response, decode=True):
@@ -106,7 +102,7 @@ def get_response_content(response, decode=True):
     :param response: The response to extract content from.
     :param decode: If true decode as utf-8, default True.
     """
-    contents = ''
+    contents = ""
     if response.streaming:
         actual_content = BytesIO()
         for content in response.streaming_content:
@@ -117,16 +113,15 @@ def get_response_content(response, decode=True):
         contents = response.content
 
     if decode:
-        return contents.decode('utf-8')
-    else:
-        return contents
+        return contents.decode("utf-8")
+    return contents
 
 
 def json_stream(data, json_string):
     """
     Generator function to stream JSON data
     """
-    yield '['
+    yield "["
     try:
         data = data.__iter__()
         item = next(data)
@@ -134,7 +129,7 @@ def json_stream(data, json_string):
             try:
                 next_item = next(data)
                 yield json_string(item)
-                yield ','
+                yield ","
                 item = next_item
             except StopIteration:
                 yield json_string(item)
@@ -142,7 +137,7 @@ def json_stream(data, json_string):
     except (AttributeError, StopIteration):
         pass
     finally:
-        yield ']'
+        yield "]"
 
 
 def retry(tries, delay=3, backoff=2):
@@ -181,8 +176,10 @@ def retry(tries, delay=3, backoff=2):
                 else:
                     return result
             # Last ditch effort run against master database
-            if len(getattr(settings, 'SLAVE_DATABASES', [])):
+            if len(getattr(settings, "SLAVE_DATABASES", [])):
+                # pylint: disable=import-outside-toplevel
                 from multidb.pinning import use_master
+
                 with use_master:
                     return func(self, *args, **kwargs)
 
@@ -190,11 +187,12 @@ def retry(tries, delay=3, backoff=2):
             return func(self, *args, **kwargs)
 
         return function_retry
+
     return decorator_retry
 
 
 def merge_dicts(*dict_args):
-    """ Given any number of dicts, shallow copy and merge into a new dict,
+    """Given any number of dicts, shallow copy and merge into a new dict,
     precedence goes to key value pairs in latter dicts.
     """
     result = {}
@@ -206,9 +204,11 @@ def merge_dicts(*dict_args):
 
 
 def cmp_to_key(mycmp):
-    """ Convert a cmp= function into a key= function
-    """
-    class K(object):
+    """Convert a cmp= function into a key= function"""
+
+    class ComparatorClass:
+        """A class that implements comparison methods."""
+
         def __init__(self, obj, *args):
             self.obj = obj
 
@@ -229,4 +229,5 @@ def cmp_to_key(mycmp):
 
         def __ne__(self, other):
             return mycmp(self.obj, other.obj) != 0
-    return K
+
+    return ComparatorClass

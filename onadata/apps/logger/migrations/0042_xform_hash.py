@@ -8,14 +8,15 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0041_auto_20170912_1512'),
+        ("logger", "0041_auto_20170912_1512"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='xform',
-            name='hash',
-            field=models.CharField(blank=True, default=None, max_length=32,
-                                   null=True, verbose_name='Hash'),
+            model_name="xform",
+            name="hash",
+            field=models.CharField(
+                blank=True, default=None, max_length=32, null=True, verbose_name="Hash"
+            ),
         ),
     ]

@@ -263,4 +263,4 @@ def is_date_field(xform, field):
 @property
 def using_postgres():
     return settings.DATABASES[
-        'default']['ENGINE'] == 'django.db.backends.postgresql_psycopg2'
+        'default']['ENGINE'] == 'django.db.backends.postgresql'

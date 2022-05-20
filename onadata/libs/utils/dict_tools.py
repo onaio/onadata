@@ -4,8 +4,6 @@ Dict utility functions module.
 """
 import json
 
-from past.builtins import basestring
-
 
 def get_values_matching_key(doc, key):
     """
@@ -37,7 +35,7 @@ def list_to_dict(items, value):
     key = items.pop()
 
     result = {}
-    bracket_index = key.find('[')
+    bracket_index = key.find("[")
     if bracket_index > 0:
         value = [value]
 
@@ -55,18 +53,21 @@ def merge_list_of_dicts(list_of_dicts, override_keys: list = None):
     """
     result = {}
 
+    # pylint: disable=too-many-nested-blocks
     for row in list_of_dicts:
         for k, v in row.items():
             if isinstance(v, list):
-                z = merge_list_of_dicts(result[k] + v if k in result else v,
-                                        override_keys=override_keys)
+                z = merge_list_of_dicts(
+                    result[k] + v if k in result else v, override_keys=override_keys
+                )
                 result[k] = z if isinstance(z, list) else [z]
             else:
                 if k in result:
                     if isinstance(v, dict):
                         try:
                             result[k] = merge_list_of_dicts(
-                                [result[k], v], override_keys=override_keys)
+                                [result[k], v], override_keys=override_keys
+                            )
                         except AttributeError as e:
                             # If the key is within the override_keys
                             # (Is a select_multiple question) We make
@@ -74,12 +75,15 @@ def merge_list_of_dicts(list_of_dicts, override_keys: list = None):
                             # more accurate as they usually mean that
                             # the select_multiple has been split into
                             # separate columns for each choice
-                            if override_keys and isinstance(result[k], str)\
-                                    and k in override_keys:
+                            if (
+                                override_keys
+                                and isinstance(result[k], str)
+                                and k in override_keys
+                            ):
                                 result[k] = {}
                                 result[k] = merge_list_of_dicts(
-                                    [result[k], v],
-                                    override_keys=override_keys)
+                                    [result[k], v], override_keys=override_keys
+                                )
                             else:
                                 raise e
                     else:
@@ -95,11 +99,11 @@ def remove_indices_from_dict(obj):
     Removes indices from a obj dict.
     """
     if not isinstance(obj, dict):
-        raise ValueError(u"Expecting a dict, found: {}".format(type(obj)))
+        raise ValueError(f"Expecting a dict, found: {type(obj)}")
 
     result = {}
     for key, val in obj.items():
-        bracket_index = key.find('[')
+        bracket_index = key.find("[")
         key = key[:bracket_index] if bracket_index > -1 else key
         val = remove_indices_from_dict(val) if isinstance(val, dict) else val
         if isinstance(val, list):
@@ -126,7 +130,7 @@ def csv_dict_to_nested_dict(csv_dict, select_multiples=None):
     for key in list(csv_dict):
         result = {}
         value = csv_dict[key]
-        split_keys = key.split('/')
+        split_keys = key.split("/")
 
         if len(split_keys) == 1:
             result[key] = value
@@ -147,8 +151,8 @@ def dict_lists2strings(adict):
     :param d: The dict to convert.
     :returns: The converted dict."""
     for k, v in adict.items():
-        if isinstance(v, list) and all([isinstance(e, basestring) for e in v]):
-            adict[k] = ' '.join(v)
+        if isinstance(v, list) and all(isinstance(e, str) for e in v):
+            adict[k] = " ".join(v)
         elif isinstance(v, dict):
             adict[k] = dict_lists2strings(v)
 
@@ -162,8 +166,8 @@ def dict_paths2dict(adict):
     result = {}
 
     for k, v in adict.items():
-        if k.find('/') > 0:
-            parts = k.split('/')
+        if k.find("/") > 0:
+            parts = k.split("/")
             if len(parts) > 1:
                 k = parts[0]
                 for part in parts[1:]:
@@ -179,9 +183,9 @@ def query_list_to_dict(query_list_str):
     Returns a 'label' and 'text' from a Rapidpro values JSON string as a dict.
     """
     data_list = json.loads(query_list_str)
-    data_dict = dict()
+    data_dict = {}
     for value in data_list:
-        data_dict[value['label']] = value['text']
+        data_dict[value["label"]] = value["text"]
 
     return data_dict
 
@@ -190,7 +194,7 @@ def floip_response_headers_dict(data, xform_headers):
     """
     Returns a dict from matching xform headers and floip responses.
     """
-    headers = [i.split('/')[-1] for i in xform_headers]
+    headers = [i.split("/")[-1] for i in xform_headers]
     data = [i[4] for i in data]
     flow_dict = dict(zip(headers, data))
 

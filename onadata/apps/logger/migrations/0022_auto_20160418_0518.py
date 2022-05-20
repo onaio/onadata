@@ -8,18 +8,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0021_auto_20160408_0919'),
+        ("logger", "0021_auto_20160408_0919"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='instance',
-            name='last_edited',
+            model_name="instance",
+            name="last_edited",
             field=models.DateTimeField(default=None, null=True),
         ),
         migrations.AddField(
-            model_name='instancehistory',
-            name='submission_date',
+            model_name="instancehistory",
+            name="submission_date",
             field=models.DateTimeField(default=None, null=True),
         ),
     ]

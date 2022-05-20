@@ -1,10 +1,14 @@
+# -*- coding: utf-8 -*-
+"""
+The /forms API endpoint.
+"""
 import json
 import os
 import random
 from datetime import datetime
 
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -17,21 +21,21 @@ from django.http import (
     HttpResponseRedirect,
     StreamingHttpResponse,
 )
-from django.utils import six, timezone
-from django.utils.http import urlencode
-from django.utils.translation import ugettext as _
-from django.views.decorators.cache import never_cache
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django.utils.http import urlencode
+from django.utils.translation import gettext as _
+from django.views.decorators.cache import never_cache
+
+import six
 from django_filters.rest_framework import DjangoFilterBackend
-from future.moves.urllib.parse import urlparse
+from six.moves.urllib.parse import urlparse
 
 try:
     from multidb.pinning import use_master
 except ImportError:
     pass
 
-from onadata.apps.messaging.constants import XFORM, FORM_UPDATED
-from onadata.apps.messaging.serializers import send_message
 from pyxform.builder import create_survey_element_from_dict
 from pyxform.xls2json import parse_file_to_json
 from rest_framework import exceptions, status
@@ -41,15 +45,18 @@ from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 
-from onadata.apps.api import tools as utils
 from onadata.apps.api import tasks
+from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.xform import XForm, XFormUserObjectPermission
 from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.xform_instance_parser import XLSFormError
+from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
+from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer.models.export import Export
 from onadata.libs import authentication, filters
+from onadata.libs.exceptions import EnketoError
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin,
 )
@@ -72,25 +79,24 @@ from onadata.libs.utils.api_export_tools import (
     process_async_export,
     response_for_format,
 )
+from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_delete
 from onadata.libs.utils.common_tools import json_stream
 from onadata.libs.utils.csv_import import (
     get_async_csv_submission_status,
+    submission_xls_to_csv,
     submit_csv,
     submit_csv_async,
-    submission_xls_to_csv,
 )
 from onadata.libs.utils.export_tools import parse_request_export_options
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.string import str2bool
 from onadata.libs.utils.viewer_tools import (
-    get_enketo_urls,
     generate_enketo_form_defaults,
+    get_enketo_urls,
     get_form_url,
 )
-from onadata.libs.exceptions import EnketoError
-from onadata.settings.common import XLS_EXTENSIONS, CSV_EXTENSION
-from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_delete
+from onadata.settings.common import CSV_EXTENSION, XLS_EXTENSIONS
 
 ENKETO_AUTH_COOKIE = getattr(settings, "ENKETO_AUTH_COOKIE", "__enketo")
 ENKETO_META_UID_COOKIE = getattr(
@@ -100,14 +106,18 @@ ENKETO_META_USERNAME_COOKIE = getattr(
     settings, "ENKETO_META_USERNAME_COOKIE", "__enketo_meta_username"
 )
 
+# pylint: disable=invalid-name
 BaseViewset = get_baseviewset_class()
+User = get_user_model()
 
 
 def upload_to_survey_draft(filename, username):
+    """Return the ``filename`` in the ``username`` survey-drafts directory."""
     return os.path.join(username, "survey-drafts", os.path.split(filename)[1])
 
 
 def get_survey_dict(csv_name):
+    """Returns the a CSV XLSForm file into a python object."""
     survey_file = default_storage.open(csv_name, "rb")
 
     survey_dict = parse_file_to_json(survey_file.name, default_name="data")
@@ -118,7 +128,7 @@ def get_survey_dict(csv_name):
 def _get_user(username):
     users = User.objects.filter(username__iexact=username)
 
-    return users.count() and users[0] or None
+    return users[0] if users.count() else None
 
 
 def _get_owner(request):
@@ -128,14 +138,15 @@ def _get_owner(request):
         owner_obj = _get_user(owner)
 
         if owner_obj is None:
-            raise ValidationError("User with username %s does not exist." % owner)
-        else:
-            owner = owner_obj
+            raise ValidationError(f"User with username {owner} does not exist.")
+        owner = owner_obj
 
     return owner
 
 
 def value_for_type(form, field, value):
+    """Returns a boolean value for the ``field`` of type ``BooleanField`` otherwise
+    returns the same ``value`` back."""
     if form._meta.get_field(field).get_internal_type() == "BooleanField":
         return str2bool(value)
 
@@ -163,10 +174,12 @@ def _try_update_xlsform(request, xform, owner):
 
 
 def result_has_error(result):
+    """Returns True if the ``result`` is a dict and has a type."""
     return isinstance(result, dict) and result.get("type")
 
 
 def get_survey_xml(csv_name):
+    """Creates and returns the XForm XML from a CSV XLSform."""
     survey_dict = get_survey_dict(csv_name)
     survey = create_survey_element_from_dict(survey_dict)
     return survey.to_xml()
@@ -175,7 +188,7 @@ def get_survey_xml(csv_name):
 def set_enketo_signed_cookies(resp, username=None, json_web_token=None):
     """Set signed cookies for JWT token in the HTTPResponse resp object."""
     if not username and not json_web_token:
-        return
+        return None
 
     max_age = 30 * 24 * 60 * 60 * 1000
     enketo_meta_uid = {"max_age": max_age, "salt": settings.ENKETO_API_SALT}
@@ -202,6 +215,7 @@ def parse_webform_return_url(return_url, request):
     this data or data in the request. Construct a proper return URL, which has
     stripped the authentication data, to return the user.
     """
+
     jwt_param = None
     url = urlparse(return_url)
     try:
@@ -210,17 +224,17 @@ def parse_webform_return_url(return_url, request):
         jwt_param = jwt_param and jwt_param[0].split("=")[1]
 
         if not jwt_param:
-            return
+            return None
     except IndexError:
         pass
 
     if "/_/" in return_url:  # offline url
-        redirect_url = "%s://%s%s#%s" % (url.scheme, url.netloc, url.path, url.fragment)
+        redirect_url = f"{url.scheme}://{url.netloc}{url.path}#{url.fragment}"
     elif "/::" in return_url:  # non-offline url
-        redirect_url = "%s://%s%s" % (url.scheme, url.netloc, url.path)
+        redirect_url = f"{url.scheme}://{url.netloc}{url.path}"
     else:
         # unexpected format
-        return
+        return None
 
     response_redirect = HttpResponseRedirect(redirect_url)
 
@@ -241,8 +255,10 @@ def parse_webform_return_url(return_url, request):
         )
 
         return response_redirect
+    return None
 
 
+# pylint: disable=too-many-ancestors
 class XFormViewSet(
     AnonymousUserPublicFormsMixin,
     CacheControlMixin,
@@ -339,9 +355,11 @@ class XFormViewSet(
         if self.action == "list":
             return XFormBaseSerializer
 
-        return super(XFormViewSet, self).get_serializer_class()
+        return super().get_serializer_class()
 
+    # pylint: disable=unused-argument
     def create(self, request, *args, **kwargs):
+        """Support XLSForm publishing endpoint `POST /api/v1/forms`."""
         try:
             owner = _get_owner(request)
         except ValidationError as e:
@@ -362,6 +380,7 @@ class XFormViewSet(
 
         return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
+    # pylint: disable=unused-argument
     @action(methods=["POST", "GET"], detail=False)
     def create_async(self, request, *args, **kwargs):
         """Temporary Endpoint for Async form creation"""
@@ -369,7 +388,8 @@ class XFormViewSet(
         resp_code = status.HTTP_400_BAD_REQUEST
 
         if request.method == "GET":
-            self.etag_data = "{}".format(timezone.now())
+            # pylint: disable=attribute-defined-outside-init
+            self.etag_data = f"{timezone.now()}"
             survey = tasks.get_async_status(request.query_params.get("job_uuid"))
 
             if "pk" in survey:
@@ -414,21 +434,27 @@ class XFormViewSet(
 
     @action(methods=["GET", "HEAD"], detail=True)
     @never_cache
-    def form(self, request, format="json", **kwargs):
+    def form(self, request, **kwargs):
+        """Returns the XLSForm in any of JSON, XML, XLS(X), CSV formats."""
         form = self.get_object()
-        if format not in ["json", "xml", "xls", "csv"]:
+        form_format = kwargs.get("format", "json")
+        if form_format not in ["json", "xml", "xls", "xlsx", "csv"]:
             return HttpResponseBadRequest(
                 "400 BAD REQUEST", content_type="application/json", status=400
             )
-        self.etag_data = "{}".format(form.date_modified)
-        filename = form.id_string + "." + format
-        response = response_for_format(form, format=format)
+        # pylint: disable=attribute-defined-outside-init
+        self.etag_data = f"{form.date_modified}"
+        filename = form.id_string + "." + form_format
+        response = response_for_format(form, format=form_format)
         response["Content-Disposition"] = "attachment; filename=" + filename
 
         return response
 
+    # pylint: disable=no-self-use
+    # pylint: disable=unused-argument
     @action(methods=["GET"], detail=False)
     def login(self, request, **kwargs):
+        """Authenticate and redirect to URL in `return` query parameter."""
         return_url = request.query_params.get("return")
 
         if return_url:
@@ -447,10 +473,12 @@ class XFormViewSet(
 
         return HttpResponseForbidden("Authentication failure, cannot redirect")
 
+    # pylint: disable=unused-argument
     @action(methods=["GET"], detail=True)
     def enketo(self, request, **kwargs):
         """Expose enketo urls."""
         survey_type = self.kwargs.get("survey_type") or request.GET.get("survey_type")
+        # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
         form_url = get_form_url(
             request,
@@ -472,7 +500,7 @@ class XFormViewSet(
             preview_url = enketo_urls.get("preview_url")
             single_submit_url = enketo_urls.get("single_url")
         except EnketoError as e:
-            data = {"message": _("Enketo error: %s" % e)}
+            data = {"message": _(f"Enketo error: {e}")}
         else:
             if survey_type == "single":
                 http_status = status.HTTP_200_OK
@@ -487,8 +515,10 @@ class XFormViewSet(
 
         return Response(data, http_status)
 
+    # pylint: disable=unused-argument
     @action(methods=["POST", "GET"], detail=False)
     def survey_preview(self, request, **kwargs):
+        """Handle survey preview XLSForms."""
         username = request.user.username
         if request.method.upper() == "POST":
             if not username:
@@ -496,9 +526,10 @@ class XFormViewSet(
 
             csv_data = request.data.get("body")
             if csv_data:
-                rand_name = "survey_draft_%s.csv" % "".join(
+                random_name = "".join(
                     random.sample("abcdefghijklmnopqrstuvwxyz0123456789", 6)
                 )
+                rand_name = f"survey_draft_{random_name}.csv"
                 csv_file = ContentFile(csv_data)
                 csv_name = default_storage.save(
                     upload_to_survey_draft(rand_name, username), csv_file
@@ -512,34 +543,33 @@ class XFormViewSet(
                 return Response(
                     {"unique_string": rand_name, "username": username}, status=200
                 )
-            else:
-                raise ParseError("Missing body")
+            raise ParseError("Missing body")
 
-        if request.method.upper() == "GET":
-            filename = request.query_params.get("filename")
-            username = request.query_params.get("username")
+        filename = request.query_params.get("filename")
+        username = request.query_params.get("username")
 
-            if not username:
-                raise ParseError("Username not provided")
-            if not filename:
-                raise ParseError("Filename MUST be provided")
+        if not username:
+            raise ParseError("Username not provided")
+        if not filename:
+            raise ParseError("Filename MUST be provided")
 
-            csv_name = upload_to_survey_draft(filename, username)
+        csv_name = upload_to_survey_draft(filename, username)
+        result = publish_form(lambda: get_survey_xml(csv_name))
+        if result_has_error(result):
+            raise ParseError(result.get("text"))
 
-            result = publish_form(lambda: get_survey_xml(csv_name))
+        # pylint: disable=attribute-defined-outside-init
+        self.etag_data = result
 
-            if result_has_error(result):
-                raise ParseError(result.get("text"))
-
-            self.etag_data = result
-
-            return Response(result, status=200)
+        return Response(result, status=200)
 
     def retrieve(self, request, *args, **kwargs):
+        """Returns a forms properties."""
         lookup_field = self.lookup_field
         lookup = self.kwargs.get(lookup_field)
 
         if lookup == self.public_forms_endpoint:
+            # pylint: disable=attribute-defined-outside-init
             self.object_list = self._get_public_forms_queryset()
 
             page = self.paginate_queryset(self.object_list)
@@ -558,12 +588,14 @@ class XFormViewSet(
 
         if export_type is None or export_type in ["json", "debug"]:
             # perform default viewset retrieve, no data export
-            return super(XFormViewSet, self).retrieve(request, *args, **kwargs)
+            return super().retrieve(request, *args, **kwargs)
 
         return custom_response_handler(request, xform, query, export_type, token, meta)
 
     @action(methods=["POST"], detail=True)
     def share(self, request, *args, **kwargs):
+        """Perform form sharing."""
+        # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
 
         usernames_str = request.data.get("usernames", request.data.get("username"))
@@ -589,6 +621,8 @@ class XFormViewSet(
 
     @action(methods=["POST"], detail=True)
     def clone(self, request, *args, **kwargs):
+        """Clone/duplicate an existing form."""
+        # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
         data = {"xform": self.object.pk, "username": request.data.get("username")}
         project = request.data.get("project_id")
@@ -598,19 +632,20 @@ class XFormViewSet(
         if serializer.is_valid():
             clone_to_user = User.objects.get(username=data["username"])
             if not request.user.has_perm("can_add_xform", clone_to_user.profile):
+                user = request.user.username
+                account = data["username"]
                 raise exceptions.PermissionDenied(
                     detail=_(
-                        "User %(user)s has no permission to add "
-                        "xforms to account %(account)s"
-                        % {"user": request.user.username, "account": data["username"]}
+                        f"User {user} has no permission to add "
+                        f"xforms to account {account}"
                     )
                 )
             try:
                 xform = serializer.save()
-            except IntegrityError:
+            except IntegrityError as e:
                 raise ParseError(
                     "A clone with the same id_string has already been created"
-                )
+                ) from e
             serializer = XFormSerializer(
                 xform.cloned_form, context={"request": request}
             )
@@ -632,6 +667,7 @@ class XFormViewSet(
         for POST request passing the `request.FILES.get('xls_file')` upload for
         import if xls_file is provided instead of csv_file
         """
+        # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
         resp = {}
         if request.method == "GET":
@@ -642,14 +678,14 @@ class XFormViewSet(
                     )
                 )
                 self.last_modified_date = timezone.now()
-            except ValueError:
+            except ValueError as e:
                 raise ParseError(
                     (
                         "The instance of the result is not a "
                         "basestring; the job_uuid variable might "
                         "be incorrect"
                     )
-                )
+                ) from e
         else:
             csv_file = request.FILES.get("csv_file", None)
             xls_file = request.FILES.get("xls_file", None)
@@ -667,7 +703,11 @@ class XFormViewSet(
                 if xls_file and xls_file.name.split(".")[-1] in XLS_EXTENSIONS:
                     csv_file = submission_xls_to_csv(xls_file)
                 overwrite = request.query_params.get("overwrite")
-                overwrite = True if overwrite and overwrite.lower() == "true" else False
+                overwrite = (
+                    overwrite.lower() == "true"
+                    if isinstance(overwrite, str)
+                    else overwrite
+                )
                 size_threshold = settings.CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD
                 try:
                     csv_size = csv_file.size
@@ -690,8 +730,7 @@ class XFormViewSet(
                     )
                     if task is None:
                         raise ParseError("Task not found")
-                    else:
-                        resp.update({"task_id": task.task_id})
+                    resp.update({"task_id": task.task_id})
 
         return Response(
             data=resp,
@@ -710,6 +749,7 @@ class XFormViewSet(
         for GET requests passing `job_uuid` query param for job progress
         polling
         """
+        # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
         resp = {}
         if request.method == "GET":
@@ -719,15 +759,16 @@ class XFormViewSet(
                         request.query_params.get("job_uuid")
                     )
                 )
+                # pylint: disable=attribute-defined-outside-init
                 self.last_modified_date = timezone.now()
-            except ValueError:
+            except ValueError as e:
                 raise ParseError(
                     (
                         "The instance of the result is not a "
                         "basestring; the job_uuid variable might "
                         "be incorrect"
                     )
-                )
+                ) from e
         else:
             csv_file = request.FILES.get("csv_file", None)
             if csv_file is None:
@@ -736,7 +777,11 @@ class XFormViewSet(
                 resp.update({"error": "csv_file not a csv file"})
             else:
                 overwrite = request.query_params.get("overwrite")
-                overwrite = True if overwrite and overwrite.lower() == "true" else False
+                overwrite = (
+                    overwrite.lower() == "true"
+                    if isinstance(overwrite, str)
+                    else overwrite
+                )
                 size_threshold = settings.CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD
                 if csv_file.size < size_threshold:
                     resp.update(
@@ -755,8 +800,7 @@ class XFormViewSet(
                     )
                     if task is None:
                         raise ParseError("Task not found")
-                    else:
-                        resp.update({"task_id": task.task_id})
+                    resp.update({"task_id": task.task_id})
 
         return Response(
             data=resp,
@@ -766,6 +810,8 @@ class XFormViewSet(
         )
 
     def partial_update(self, request, *args, **kwargs):
+        """Partial update of a form's properties."""
+        # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
         owner = self.object.user
 
@@ -776,12 +822,13 @@ class XFormViewSet(
             return _try_update_xlsform(request, self.object, owner)
 
         try:
-            return super(XFormViewSet, self).partial_update(request, *args, **kwargs)
+            return super().partial_update(request, *args, **kwargs)
         except XLSFormError as e:
-            raise ParseError(str(e))
+            raise ParseError(str(e)) from e
 
     @action(methods=["DELETE", "GET"], detail=True)
     def delete_async(self, request, *args, **kwargs):
+        """Delete asynchronous endpoint `/api/v1/forms/{pk}/delete_async`."""
         if request.method == "DELETE":
             xform = self.get_object()
             resp = {
@@ -799,11 +846,13 @@ class XFormViewSet(
             job_uuid = request.query_params.get("job_uuid")
             resp = tasks.get_async_status(job_uuid)
             resp_code = status.HTTP_202_ACCEPTED
-            self.etag_data = "{}".format(timezone.now())
+            # pylint: disable=attribute-defined-outside-init
+            self.etag_data = f"{timezone.now()}"
 
         return Response(data=resp, status=resp_code)
 
     def destroy(self, request, *args, **kwargs):
+        """Soft deletes a form - `DELETE /api/v1/forms/{pk}`"""
         xform = self.get_object()
         user = request.user
         xform.soft_delete(user=user)
@@ -812,23 +861,25 @@ class XFormViewSet(
 
     @action(methods=["GET"], detail=True)
     def versions(self, request, *args, **kwargs):
+        """Returns all form versions."""
         xform = self.get_object()
         version_id = kwargs.get("version_id")
         requested_format = kwargs.get("format") or "json"
-
-        if not version_id:
-            queryset = XFormVersion.objects.filter(xform=xform)
-            serializer = XFormVersionListSerializer(
-                queryset, many=True, context={"request": request}
-            )
-            return Response(data=serializer.data, status=status.HTTP_200_OK)
 
         if version_id:
             version = get_object_or_404(XFormVersion, version=version_id, xform=xform)
             return response_for_format(version, format=requested_format)
 
+        queryset = XFormVersion.objects.filter(xform=xform)
+        serializer = XFormVersionListSerializer(
+            queryset, many=True, context={"request": request}
+        )
+
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
+
     @action(methods=["GET"], detail=True)
     def export_async(self, request, *args, **kwargs):
+        """Returns the status of an async export."""
         job_uuid = request.query_params.get("job_uuid")
         export_type = request.query_params.get("format")
         query = request.query_params.get("query")
@@ -878,7 +929,8 @@ class XFormViewSet(
                     content_type="application/json",
                 )
 
-        self.etag_data = "{}".format(timezone.now())
+        # pylint: disable=attribute-defined-outside-init
+        self.etag_data = f"{timezone.now()}"
 
         return Response(
             data=resp, status=status.HTTP_202_ACCEPTED, content_type="application/json"
@@ -900,6 +952,7 @@ class XFormViewSet(
                 ).data
             )
 
+        # pylint: disable=http-response-with-content-type-json
         response = StreamingHttpResponse(
             json_stream(queryset, get_json_string), content_type="application/json"
         )
@@ -917,19 +970,21 @@ class XFormViewSet(
         return response
 
     def list(self, request, *args, **kwargs):
-        STREAM_DATA = getattr(settings, "STREAM_DATA", False)
+        """List forms API endpoint `GET /api/v1/forms`."""
+        stream_data = getattr(settings, "STREAM_DATA", False)
         try:
             queryset = self.filter_queryset(self.get_queryset())
             last_modified = queryset.values_list("date_modified", flat=True).order_by(
                 "-date_modified"
             )
+            # pylint: disable=attribute-defined-outside-init
             if last_modified:
                 self.etag_data = last_modified[0].isoformat()
-            if STREAM_DATA:
+            if stream_data:
                 self.object_list = queryset
                 resp = self._get_streaming_response()
             else:
-                resp = super(XFormViewSet, self).list(request, *args, **kwargs)
+                resp = super().list(request, *args, **kwargs)
         except XLSFormError as e:
             resp = HttpResponseBadRequest(e)
 
