@@ -3,6 +3,29 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.0.1(2022-05-25)
+------------------
+
+- Fix xlsx url upload
+  `PR #2238 <https://github.com/onaio/onadata/pull/2238>`_
+  [@KipSigei]
+- Update reserved usernames list
+  `PR #2239 <https://github.com/onaio/onadata/pull/2239>`_
+  [@DavisRayM]
+
+v3.0.0(2022-05-20)
+------------------
+
+- Upgrade to latest Pyxform version
+  `PR #2227 <https://github.com/onaio/onadata/pull/2227>`_
+  [@KipSigei]
+- Sync dependencies
+  `PR #2233 <https://github.com/onaio/onadata/pull/2233>`_
+  [@KipSigei}
+- Upgrade dependencies for Django 3.x upgrade
+  `PR #2230 <https://github.com/onaio/onadata/pull/2230>`_
+  [@ukanga @KipSigei @DavisRayM]
+
 v2.5.20(2022-04-11)
 -------------------
 
