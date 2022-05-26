@@ -3,6 +3,13 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.0.2(2022-05-26)
+------------------
+
+- Add additional required google sheets scopes
+  `PR #2244 <https://github.com/onaio/onadata/pull/2244>`_
+  [@DavisRayM]
+
 v3.0.1(2022-05-25)
 ------------------
 
