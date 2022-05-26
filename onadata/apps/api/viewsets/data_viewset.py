@@ -348,27 +348,22 @@ class DataViewSet(
             initial_count = self.object.submission_count()
             if delete_all_submissions:
                 # Update timestamp only for active records
-                self.object.instances.filter(deleted_at__isnull=True).update(
-                    deleted_at=timezone.now(),
-                    date_modified=timezone.now(),
-                    deleted_by=request.user,
-                )
+                queryset = self.object.instances.filter(deleted_at__isnull=True)
             else:
                 instance_ids = [x for x in instance_ids.split(",") if x.isdigit()]
                 if not instance_ids:
                     raise ParseError(_("Invalid data ids were provided."))
 
-                self.object.instances.filter(
+                queryset = self.object.instances.filter(
                     id__in=instance_ids,
                     xform=self.object,
                     # do not update this timestamp when the record have
                     # already been deleted.
                     deleted_at__isnull=True,
-                ).update(
-                    deleted_at=timezone.now(),
-                    date_modified=timezone.now(),
-                    deleted_by=request.user,
                 )
+
+            for instance in queryset.iterator():
+                delete_instance(instance, request.user)
 
             # updates the num_of_submissions for the form.
             after_count = self.object.submission_count(force_update=True)
