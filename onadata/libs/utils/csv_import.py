@@ -3,7 +3,6 @@
 CSV data import module.
 """
 import functools
-import logging
 import sys
 import uuid
 from builtins import str as text
@@ -11,38 +10,39 @@ from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
 from io import BytesIO
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.files.storage import default_storage
+from django.utils import timezone
 
 import unicodecsv as ucsv
-from openpyxl import load_workbook
 from celery import current_task
 from celery.backends.rpc import BacklogLimitExceeded
 from celery.result import AsyncResult
 from dateutil.parser import parse
-from django.conf import settings
-from django.contrib.auth.models import User
-from django.core.files.storage import default_storage
-from django.utils import timezone
-from django.utils.translation import gettext as _
-from six import iteritems
 from multidb.pinning import use_master
+from openpyxl import load_workbook
+from six import iteritems
 
 from onadata.apps.logger.models import Instance, XForm
-from onadata.apps.messaging.constants import XFORM, SUBMISSION_DELETED
+from onadata.apps.messaging.constants import SUBMISSION_DELETED, XFORM
 from onadata.apps.messaging.serializers import send_message
 from onadata.celery import app
+from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.utils import analytics
 from onadata.libs.utils.async_status import FAILED, async_status, celery_state_to_status
 from onadata.libs.utils.common_tags import (
-    MULTIPLE_SELECT_TYPE,
     EXCEL_TRUE,
-    XLS_DATE_FIELDS,
-    XLS_DATETIME_FIELDS,
-    UUID,
-    NA_REP,
+    IMPORTED_VIA_CSV_BY,
     INSTANCE_CREATE_EVENT,
     INSTANCE_UPDATE_EVENT,
-    IMPORTED_VIA_CSV_BY,
+    MULTIPLE_SELECT_TYPE,
+    NA_REP,
+    UUID,
+    XLS_DATE_FIELDS,
+    XLS_DATETIME_FIELDS,
 )
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
@@ -51,13 +51,15 @@ from onadata.libs.utils.logger_tools import (
     dict2xml,
     safe_create_instance,
 )
-from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 
 DEFAULT_UPDATE_BATCH = 100
 PROGRESS_BATCH_UPDATE = getattr(
     settings, "EXPORT_TASK_PROGRESS_UPDATE_BATCH", DEFAULT_UPDATE_BATCH
 )
 IGNORED_COLUMNS = ["formhub/uuid", "meta/instanceID"]
+
+# pylint: disable=invalid-name
+User = get_user_model()
 
 
 def get_submission_meta_dict(xform, instance_id):
@@ -73,7 +75,7 @@ def get_submission_meta_dict(xform, instance_id):
     :return: The metadata dict
     :rtype:  dict
     """
-    uuid_arg = instance_id or "uuid:{}".format(uuid.uuid4())
+    uuid_arg = instance_id or f"uuid:{uuid.uuid4()}"
     meta = {"instanceID": uuid_arg}
 
     update = 0
@@ -82,7 +84,7 @@ def get_submission_meta_dict(xform, instance_id):
         instance_id
         and xform.instances.filter(uuid=instance_id.replace("uuid:", "")).count() > 0
     ):
-        uuid_arg = "uuid:{}".format(uuid.uuid4())
+        uuid_arg = f"uuid:{uuid.uuid4()}"
         meta.update({"instanceID": uuid_arg, "deprecatedID": instance_id})
         update += 1
     return [meta, update]
@@ -114,7 +116,7 @@ def dict2xmlsubmission(submission_dict, xform, instance_id, submission_date):
     ).encode("utf-8")
 
 
-def dict_merge(a, b):
+def dict_merge(part_a, part_b):
     """Returns a merger of two dicts a and b
 
     credits: https://www.xormedia.com/recursively-merge-dictionaries-in-python
@@ -124,10 +126,10 @@ def dict_merge(a, b):
     :return: The merger
     :rtype: dict
     """
-    if not isinstance(b, dict):
-        return b
-    result = deepcopy(a)
-    for (k, v) in iteritems(b):
+    if not isinstance(part_b, dict):
+        return part_b
+    result = deepcopy(part_a)
+    for (k, v) in iteritems(part_b):
         if k in result and isinstance(result[k], dict):
             result[k] = dict_merge(result[k], v)
         else:
@@ -178,7 +180,7 @@ def failed_import(rollback_uuids, xform, exception, status_message):
     Instance.objects.filter(uuid__in=rollback_uuids, xform=xform).delete()
     xform.submission_count(True)
     report_exception(
-        "CSV Import Failed : %d - %s - %s" % (xform.pk, xform.id_string, xform.title),
+        f"CSV Import Failed : {xform.pk} - {xform.id_string} - {xform.title}",
         exception,
         sys.exc_info(),
     )
@@ -207,7 +209,7 @@ def validate_csv_file(csv_file, xform):
             "error_msg": (
                 "Invalid param type for csv_file`."
                 "Expected utf-8 encoded file or unicode"
-                " string got {} instead".format(type(csv_file).__name__)
+                f" string got {type(csv_file).__name__} instead"
             ),
             "valid": False,
         }
@@ -259,7 +261,7 @@ def validate_csv_file(csv_file, xform):
             "error_msg": (
                 "Sorry uploaded file does not match the form. "
                 "The file is missing the column(s): "
-                "{0}.".format(", ".join(missing_col))
+                f"{', '.join(missing_col)}."
             ),
             "valid": False,
         }
@@ -296,8 +298,9 @@ def flatten_split_select_multiples(
     return row
 
 
+# pylint: disable=too-many-locals,too-many-branches,too-many-statements
 @use_master
-def submit_csv(username, xform, csv_file, overwrite=False):
+def submit_csv(username, xform, csv_file, overwrite=False):  # noqa
     """Imports CSV data to an existing form
 
     Takes a csv formatted file or string containing rows of submission/instance
@@ -357,7 +360,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):
             message_verb=SUBMISSION_DELETED,
         )
 
-    try:
+    try:  # pylint: disable=too-many-nested-blocks
         for row_no, row in enumerate(csv_reader):
             # Remove additional columns
             for index in additional_col:
@@ -390,13 +393,13 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                 # collect all location K-V pairs into single geopoint field(s)
                 # in location_data dict
                 for location_key in list(location_data):
+                    geo_dict = defaultdict(lambda: "", location_data.get(location_key))
                     location_data.update(
                         {
                             location_key: (
-                                "%(latitude)s %(longitude)s "
-                                "%(altitude)s %(precision)s"
+                                f"{geo_dict['latitude']} {geo_dict['longitude']} "
+                                f"{geo_dict['altitude']} {geo_dict['precision']}"
                             )
-                            % defaultdict(lambda: "", location_data.get(location_key))
                         }
                     )
 
@@ -412,7 +415,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):
 
                 submission_time = datetime.utcnow().isoformat()
                 row_uuid = (
-                    row.get("meta/instanceID") or "uuid:{}".format(row.get(UUID))
+                    row.get("meta/instanceID") or f"uuid:{row.get(UUID)}"
                     if row.get(UUID) and not overwrite
                     else None
                 )
@@ -462,8 +465,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                                 uuid__in=rollback_uuids, xform=xform
                             ).delete()
                             return async_status(FAILED, text(error))
-                        else:
-                            duplicates += 1
+                        duplicates += 1
                     else:
                         additions += 1
 
@@ -503,7 +505,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                         if users:
                             instance.user = users[0]
                             instance.save()
-                except Exception as e:
+                except Exception as e:  # pylint: disable=broad-except
                     return failed_import(rollback_uuids, xform, e, text(e))
     except UnicodeDecodeError as e:
         return failed_import(rollback_uuids, xform, e, "CSV file must be utf-8 encoded")
@@ -515,38 +517,39 @@ def submit_csv(username, xform, csv_file, overwrite=False):
         xform.submission_count(True)
         return async_status(
             FAILED,
-            "Invalid CSV data imported in row(s): {}".format(errors) if errors else "",
+            f"Invalid CSV data imported in row(s): {errors}",
         )
-    else:
-        xform.submission_count(True)
-        added_submissions = additions - inserts
-        event_by = User.objects.get(username=username)
-        event_name = None
-        tracking_properties = {
-            "xform_id": xform.pk,
-            "project_id": xform.project.pk,
-            "submitted_by": event_by,
-            "label": f"csv-import-for-form-{xform.pk}",
-            "from": "CSV Import",
-        }
-        if added_submissions > 0:
-            tracking_properties["value"] = added_submissions
-            event_name = INSTANCE_CREATE_EVENT
-            analytics.track(event_by, event_name, properties=tracking_properties)
 
-        if inserts > 0:
-            tracking_properties["value"] = inserts
-            event_name = INSTANCE_UPDATE_EVENT
-            analytics.track(event_by, event_name, properties=tracking_properties)
+    xform.submission_count(True)
+    added_submissions = additions - inserts
+    event_by = User.objects.get(username=username)
+    event_name = None
+    tracking_properties = {
+        "xform_id": xform.pk,
+        "project_id": xform.project.pk,
+        "submitted_by": event_by,
+        "label": f"csv-import-for-form-{xform.pk}",
+        "from": "CSV Import",
+    }
+    if added_submissions > 0:
+        tracking_properties["value"] = added_submissions
+        event_name = INSTANCE_CREATE_EVENT
+        analytics.track(event_by, event_name, properties=tracking_properties)
 
-        return {
-            "additions": added_submissions,
-            "duplicates": duplicates,
-            "updates": inserts,
-            "info": "Additional column(s) excluded from the upload: '{0}'.".format(
-                ", ".join(list(additional_col))
-            ),
-        }
+    if inserts > 0:
+        tracking_properties["value"] = inserts
+        event_name = INSTANCE_UPDATE_EVENT
+        analytics.track(event_by, event_name, properties=tracking_properties)
+
+    additional_columns = ", ".join(list(additional_col))
+    return {
+        "additions": added_submissions,
+        "duplicates": duplicates,
+        "updates": inserts,
+        "info": (
+            "Additional column(s) excluded from the upload: " f"'{additional_columns}'."
+        ),
+    }
 
 
 def get_async_csv_submission_status(job_uuid):
@@ -578,7 +581,7 @@ def get_async_csv_submission_status(job_uuid):
     return job.get()
 
 
-def submission_xls_to_csv(xls_file):
+def submission_xls_to_csv(xls_file):  # noqa
     """Convert a submission xls file to submissions csv file
 
     :param xls_file: submissions xls file
@@ -664,7 +667,7 @@ def get_columns_by_type(type_list, form_json):
                 prefix = ""  # Reset prefix to blank
             else:
                 if item["type"] in type_list:
-                    name = "%s/%s" % (prefix, item["name"]) if prefix else item["name"]
+                    name = f"{prefix}/{item['name']}" if prefix else item["name"]
                     found.append(name)
 
         return found
@@ -711,7 +714,7 @@ def validate_row(row, columns):
 
             row.update(data)
         else:
-            errors.append("Unknown {} format(s): {}".format(datatype, ", ".join(data)))
+            errors.append(f"Unknown {datatype} format(s): {', '.join(data)}")
 
     return (row, errors)
 
