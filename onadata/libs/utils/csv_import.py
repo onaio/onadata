@@ -477,13 +477,8 @@ def submit_csv(username, xform, csv_file, overwrite=False):
                                         "info": additional_col,
                                     },
                                 )
-                            except Exception:
-                                logging.exception(
-                                    _(
-                                        "Could not update state of "
-                                        "import CSV batch process."
-                                    )
-                                )
+                            except AttributeError:
+                                pass
                             finally:
                                 xform.submission_count(True)
 
