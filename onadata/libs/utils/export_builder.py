@@ -320,7 +320,10 @@ def track_task_progress(additions, total=None):
         meta = {"progress": additions}
         if total:
             meta.update({"total": total})
-        current_task.update_state(state="PROGRESS", meta=meta)
+        try:
+            current_task.update_state(state="PROGRESS", meta=meta)
+        except AttributeError:
+            pass
 
 
 # pylint: disable=invalid-name
