@@ -70,13 +70,7 @@ jobs:
           pip install -r requirements/base.pip
           pip install flake8
           pip install tblib
-
-      - name: Build import_helper package
-        uses: messense/maturin-action@v1
-        with:
-          maturin-version: latest
-          command: develop
-          args: -m onadata/libs/utils/csv-import/Cargo.toml
+          pip install maturin && pip install onadata/libs/utils/csv-import
 
       - name: Run tests
         run: |
