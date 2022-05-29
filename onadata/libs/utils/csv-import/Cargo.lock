@@ -55,7 +55,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "csv-import"
+name = "csv_import"
 version = "0.1.0"
 dependencies = [
  "csv",
