@@ -71,6 +71,13 @@ jobs:
           pip install flake8
           pip install tblib
 
+      - name: Build import_helper package
+        uses: messense/maturin-action@v1
+        with:
+          maturin-version: latest
+          command: develop
+          args: -m onadata/libs/utils/csv-import/Cargo.toml
+
       - name: Run tests
         run: |
           python manage.py test ${{ matrix.testfolder }} --noinput --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4
