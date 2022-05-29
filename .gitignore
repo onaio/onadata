@@ -87,5 +87,3 @@ tags
 sonar-project.properties
 .scannerwork
 
-# Rust
-onadata/libs/utils/csv-import/target
