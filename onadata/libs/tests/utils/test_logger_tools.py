@@ -7,14 +7,17 @@ import re
 from io import BytesIO
 
 from django.conf import settings
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.http.request import HttpRequest
-from mock import patch
 
-from onadata.libs.test_utils.pyxform_test_case import PyxformTestCase
+from defusedxml.ElementTree import ParseError
+from mock import patch
 
 from onadata.apps.logger.import_tools import django_file
 from onadata.apps.logger.models import Instance
+from onadata.apps.logger.xform_instance_parser import AttachmentNameError
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.test_utils.pyxform_test_case import PyxformTestCase
 from onadata.libs.utils.common_tags import MEDIA_ALL_RECEIVED, MEDIA_COUNT, TOTAL_MEDIA
 from onadata.libs.utils.logger_tools import (
     create_instance,
@@ -22,8 +25,6 @@ from onadata.libs.utils.logger_tools import (
     get_first_record,
     safe_create_instance,
 )
-from onadata.apps.logger.xform_instance_parser import AttachmentNameError
-from django.core.files.uploadedfile import InMemoryUploadedFile
 
 
 class TestLoggerTools(PyxformTestCase, TestBase):
@@ -641,3 +642,30 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                 BytesIO(xml_string.strip().encode("utf-8")),
                 media_files=[media_file],
             )
+
+    def test_handle_parse_error(self):
+        """
+        Test that an invalid XML results is handled
+        """
+        self._create_user_and_login()
+
+        xml_string = """
+        <data id="id_string">
+            <meta>
+                <instanceID>uuid:368f423e-6350-43b2-b061-7baae01aacdb
+        """
+
+        req = HttpRequest()
+        req.user = self.user
+        with patch(
+            "onadata.libs.utils.logger_tools.create_instance"
+        ) as create_instance_mock:
+            create_instance_mock.side_effect = [ParseError]
+            ret = safe_create_instance(
+                self.user.username,
+                BytesIO(xml_string.strip().encode("utf-8")),
+                [],
+                None,
+                req,
+            )
+            self.assertContains(ret[0].content.decode(), "Improperly formatted XML.")
