@@ -38,7 +38,7 @@ from django.utils.encoding import DjangoUnicodeDecodeError
 from django.utils.translation import gettext as _
 
 import pytz
-from defusedxml.ElementTree import fromstring
+from defusedxml.ElementTree import ParseError, fromstring
 from dict2xml import dict2xml
 from modilabs.utils.subprocess_timeout import ProcessTimedOut
 from multidb.pinning import use_master
@@ -631,7 +631,7 @@ def safe_create_instance(  # noqa C901
         error = OpenRosaResponseNotAllowed(text(e))
     except XForm.DoesNotExist:
         error = OpenRosaResponseNotFound(_("Form does not exist on this account"))
-    except ExpatError:
+    except (ExpatError, ParseError):
         error = OpenRosaResponseBadRequest(_("Improperly formatted XML."))
     except AttachmentNameError:
         response = OpenRosaResponseBadRequest(
