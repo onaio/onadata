@@ -311,7 +311,7 @@ def log_export(request, xform, export_type):
         log.Actions.EXPORT_DOWNLOADED,
         request.user,
         xform.user,
-        _("Downloaded {export_type.upper()} export on '{id_string}'."),
+        _(f"Downloaded {export_type.upper()} export on '{xform.id_string}'."),
         audit,
         request,
     )
