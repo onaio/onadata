@@ -5,15 +5,18 @@ from io import open
 from django.contrib.auth import authenticate
 from django.core.files.storage import get_storage_class
 from django.urls import reverse
+
 from django_digest.test import DigestAuth
+from flaky import flaky
 from rest_framework.test import APIRequestFactory
 
-from onadata.apps.logger.models import Instance
-from onadata.apps.logger.models import XForm
-from onadata.apps.logger.views import form_upload
-from onadata.apps.logger.views import submission
-from onadata.apps.logger.views import view_download_submission
-from onadata.apps.logger.views import view_submission_list
+from onadata.apps.logger.models import Instance, XForm
+from onadata.apps.logger.views import (
+    form_upload,
+    submission,
+    view_download_submission,
+    view_submission_list,
+)
 from onadata.apps.main.tests.test_base import TestBase
 
 NUM_INSTANCES = 4
@@ -293,6 +296,7 @@ class TestBriefcaseAPI(TestBase):
             self.assertEqual(XForm.objects.count(), count + 1)
         self.xform = XForm.objects.order_by("pk").reverse()[0]
 
+    @flaky
     def test_form_upload(self):
         self._publish_xml_form()
         with open(self.form_def_path, encoding="utf-8") as f:
