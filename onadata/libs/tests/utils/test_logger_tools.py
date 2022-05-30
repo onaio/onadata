@@ -32,17 +32,15 @@ class TestLoggerTools(PyxformTestCase, TestBase):
     Test logger_tools utility functions.
     """
 
+    # pylint: disable=invalid-name
     def test_generate_content_disposition_header(self):
+        """Test generate_content_disposition_header() function."""
         file_name = "export"
         extension = "ext"
 
         date_pattern = "\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}"  # noqa
-        file_name_pattern = "%s.%s" % (file_name, extension)
-        file_name_with_timestamp_pattern = "%s-%s.%s" % (
-            file_name,
-            date_pattern,
-            extension,
-        )
+        file_name_pattern = f"{file_name}.{extension}"
+        file_name_with_timestamp_pattern = f"{file_name}-{date_pattern}.{extension}"
         return_value_with_no_name = generate_content_disposition_header(None, extension)
         self.assertEqual(return_value_with_no_name, "attachment;")
 
@@ -76,23 +74,20 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         |        | image | image2 | Photo |
         """
         self._create_user_and_login()
-        self.xform = self._publish_markdown(md, self.user)
+        xform = self._publish_markdown(md, self.user)
 
-        xml_string = """
-        <data id="{}">
+        xml_string = f"""
+        <data id="{xform.id_string}">
             <meta>
                 <instanceID>uuid:UJ5jSMAJ1Jz4EszdgHy8n851AsKaqBPO5</instanceID>
             </meta>
             <image1>1300221157303.jpg</image1>
             <image2>1300375832136.jpg</image2>
         </data>
-        """.format(
-            self.xform.id_string
-        )
+        """
         file_path = (
-            "{}/apps/logger/tests/Health_2011_03_13."
-            "xml_2011-03-15_20-30-28/1300221157303"
-            ".jpg".format(settings.PROJECT_ROOT)
+            f"{settings.PROJECT_ROOT}/apps/logger/tests/Health_2011_03_13."
+            "xml_2011-03-15_20-30-28/1300221157303.jpg"
         )
         media_file = django_file(
             path=file_path, field_name="image1", content_type="image/jpeg"
@@ -109,8 +104,8 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         self.assertEqual(instance.json[MEDIA_COUNT], instance.media_count)
         self.assertEqual(instance.json[MEDIA_ALL_RECEIVED], instance.media_all_received)
         file2_path = (
-            "{}/apps/logger/tests/Water_2011_03_17_2011-03-17_16-29"
-            "-59/1300375832136.jpg".format(settings.PROJECT_ROOT)
+            f"{settings.PROJECT_ROOT}/apps/logger/tests/"
+            "Water_2011_03_17_2011-03-17_16-29-59/1300375832136.jpg"
         )
         media2_file = django_file(
             path=file2_path, field_name="image2", content_type="image/jpeg"
@@ -161,10 +156,10 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         |        | end repeat   |        |        |
         """
         self._create_user_and_login()
-        self.xform = self._publish_markdown(md, self.user)
+        xform = self._publish_markdown(md, self.user)
 
-        xml_string = """
-        <data id="{}">
+        xml_string = f"""
+        <data id="{xform.id_string}">
             <meta>
                 <instanceID>uuid:UJ5jz4EszdgH8uhy8nss1AsKaqBPO5VN7</instanceID>
             </meta>
@@ -175,13 +170,10 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                 <image1>1300375832136.jpg</image1>
             </images>
         </data>
-        """.format(
-            self.xform.id_string
-        )
+        """
         file_path = (
-            "{}/apps/logger/tests/Health_2011_03_13."
-            "xml_2011-03-15_20-30-28/1300221157303"
-            ".jpg".format(settings.PROJECT_ROOT)
+            f"{settings.PROJECT_ROOT}/apps/logger/tests/Health_2011_03_13."
+            "xml_2011-03-15_20-30-28/1300221157303.jpg"
         )
         media_file = django_file(
             path=file_path, field_name="image1", content_type="image/jpeg"
@@ -198,8 +190,8 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         self.assertEqual(instance.json[MEDIA_COUNT], instance.media_count)
         self.assertEqual(instance.json[MEDIA_ALL_RECEIVED], instance.media_all_received)
         file2_path = (
-            "{}/apps/logger/tests/Water_2011_03_17_2011-03-17_16-29"
-            "-59/1300375832136.jpg".format(settings.PROJECT_ROOT)
+            f"{settings.PROJECT_ROOT}/apps/logger/tests/"
+            "Water_2011_03_17_2011-03-17_16-29-59/1300375832136.jpg"
         )
         media2_file = django_file(
             path=file2_path, field_name="image1", content_type="image/jpeg"
@@ -235,10 +227,10 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         |        | end repeat   |        |        |
         """
         self._create_user_and_login()
-        self.xform = self._publish_markdown(md, self.user)
+        xform = self._publish_markdown(md, self.user)
 
-        xml_string = """
-        <data id="{}">
+        xml_string = f"""
+        <data id="{xform.id_string}">
             <meta>
                 <instanceID>uuid:UJ5jz4EszdgH8uhy8n851AsKaqBPO5VN7</instanceID>
             </meta>
@@ -249,13 +241,10 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                 <g><image1>1300375832136.jpg</image1></g>
             </images>
         </data>
-        """.format(
-            self.xform.id_string
-        )
+        """
         file_path = (
-            "{}/apps/logger/tests/Health_2011_03_13."
-            "xml_2011-03-15_20-30-28/1300221157303"
-            ".jpg".format(settings.PROJECT_ROOT)
+            f"{settings.PROJECT_ROOT}/apps/logger/tests/Health_2011_03_13."
+            "xml_2011-03-15_20-30-28/1300221157303.jpg"
         )
         media_file = django_file(
             path=file_path, field_name="image1", content_type="image/jpeg"
@@ -272,8 +261,8 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         self.assertEqual(instance.json[MEDIA_COUNT], instance.media_count)
         self.assertEqual(instance.json[MEDIA_ALL_RECEIVED], instance.media_all_received)
         file2_path = (
-            "{}/apps/logger/tests/Water_2011_03_17_2011-03-17_16-29"
-            "-59/1300375832136.jpg".format(settings.PROJECT_ROOT)
+            f"{settings.PROJECT_ROOT}/apps/logger/tests/"
+            "Water_2011_03_17_2011-03-17_16-29-59/1300375832136.jpg"
         )
         media2_file = django_file(
             path=file2_path, field_name="image1", content_type="image/jpeg"
@@ -307,19 +296,17 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         |        | image | image  | Image |
         """
         self._create_user_and_login()
-        self.xform = self._publish_markdown(md, self.user)
+        xform = self._publish_markdown(md, self.user)
 
-        xml_string = """
-        <data id="{}">
+        xml_string = f"""
+        <data id="{xform.id_string}">
             <meta>
                 <instanceID>uuid:UJ5jz4EszdgH8uhy8nss1AsKaqBPO5VN7</instanceID>
             </meta>
             <file>Health_2011_03_13.xml_2011-03-15_20-30-28.xml</file>
             <image>1300221157303.jpg</image>
         </data>
-        """.format(
-            self.xform.id_string
-        )
+        """
         media_root = (
             f"{settings.PROJECT_ROOT}/apps/logger/tests/Health"
             "_2011_03_13.xml_2011-03-15_20-30-28/"
@@ -351,8 +338,8 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         patch_value = "onadata.apps.logger.models.Instance.get_expected_media"
         with patch(patch_value) as get_expected_media:
             get_expected_media.return_value = ["1300375832136.jpg"]
-            updated_xml_string = """
-            <data id="{}">
+            updated_xml_string = f"""
+            <data id="{xform.id_string}">
                 <meta>
                     <instanceID>uuid:UJ5jz4EszdgH8uhy8nss1AsKaqBPO5VN7</instanceID>
                 </meta>
@@ -360,12 +347,10 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                     <image1>1300375832136.jpg</image1>
                 </images>
             </data>
-            """.format(
-                self.xform.id_string
-            )
+            """
             file2_path = (
-                "{}/apps/logger/tests/Water_2011_03_17_2011"
-                "-03-17_16-29-59/1300375832136.jpg".format(settings.PROJECT_ROOT)
+                f"{settings.PROJECT_ROOT}/apps/logger/tests/Water_2011_03_17_2011"
+                "-03-17_16-29-59/1300375832136.jpg"
             )
             media2_file = django_file(
                 path=file2_path, field_name="image1", content_type="image/jpeg"
@@ -400,23 +385,20 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         |        | image | image2 | Photo |
         """
         self._create_user_and_login()
-        self.xform = self._publish_markdown(md, self.user)
+        xform = self._publish_markdown(md, self.user)
 
-        xml_string = """
-        <data id="{}">
+        xml_string = f"""
+        <data id="{xform.id_string}">
             <meta>
                 <instanceID>uuid:UJ5jSMAJ1Jz4EszdgHy8n851AsKaqBPO5</instanceID>
             </meta>
             <image1>1300221157303.jpg</image1>
             <image2>1300375832136.jpg</image2>
         </data>
-        """.format(
-            self.xform.id_string
-        )
+        """
         file_path = (
-            "{}/apps/logger/tests/Health_2011_03_13."
-            "xml_2011-03-15_20-30-28/1300221157303"
-            ".jpg".format(settings.PROJECT_ROOT)
+            f"{settings.PROJECT_ROOT}/apps/logger/tests/Health_2011_03_13."
+            "xml_2011-03-15_20-30-28/1300221157303.jpg"
         )
         media_file = django_file(
             path=file_path, field_name="image1", content_type="image/jpeg"
@@ -461,27 +443,24 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         |        | image | image2 | Photo |
         """
         self._create_user_and_login()
-        self.xform = self._publish_markdown(md, self.user)
+        xform = self._publish_markdown(md, self.user)
 
-        xml_string = """
-        <data id="{}">
+        xml_string = f"""
+        <data id="{xform.id_string}">
             <meta>
                 <instanceID>uuid:UJ5jSMAJ1Jz4EszdgHy8n851AsKaqBPO5</instanceID>
             </meta>
             <image1>1300221157303.jpg</image1>
             <image2>1300375832136.jpg</image2>
         </data>
-        """.format(
-            self.xform.id_string
-        )
+        """
         file_path = (
-            "{}/apps/logger/tests/Health_2011_03_13."
-            "xml_2011-03-15_20-30-28/1300221157303"
-            ".jpg".format(settings.PROJECT_ROOT)
+            f"{settings.PROJECT_ROOT}/apps/logger/tests/Health_2011_03_13."
+            "xml_2011-03-15_20-30-28/1300221157303.jpg"
         )
         file2_path = (
-            "{}/libs/tests/utils/fixtures/tutorial/instances/uuid1/"
-            "1442323232322.jpg".format(settings.PROJECT_ROOT)
+            f"{settings.PROJECT_ROOT}/libs/tests/utils/fixtures/"
+            "tutorial/instances/uuid1/1442323232322.jpg"
         )
         media_file = django_file(
             path=file_path, field_name="image1", content_type="image/jpeg"
@@ -515,13 +494,11 @@ class TestLoggerTools(PyxformTestCase, TestBase):
 
         self.assertIsNone(get_first_record(Instance.objects.all().only("id")))
 
-        xml_string = """
-        <data id="{}">
+        xml_string = f"""
+        <data id="{xform.id_string}">
             <name>Alice</name>
         </data>
-        """.format(
-            xform.id_string
-        )
+        """
         instance = create_instance(
             self.user.username,
             BytesIO(xml_string.strip().encode("utf-8")),
@@ -565,9 +542,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
             req,
         )
         response = ret[0]
-        expected_error = (
-            "Unencrypted submissions are not allowed" " for encrypted forms."
-        )
+        expected_error = "Unencrypted submissions are not allowed for encrypted forms."
         self.assertIsNone(ret[1])
         self.assertEqual(response.status_code, 400)
         self.assertIn(expected_error, str(response.content))
@@ -607,41 +582,39 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         |        | image | image2 | Photo |
         """
         self._create_user_and_login()
-        self.xform = self._publish_markdown(md, self.user)
+        xform = self._publish_markdown(md, self.user)
 
-        xml_string = """
-        <data id="{}">
+        xml_string = f"""
+        <data id="{xform.id_string}">
             <meta>
                 <instanceID>uuid:UJ5jSMAJ1Jz4EszdgHy8n851AsKaqBPO5</instanceID>
             </meta>
             <image1>1300221157303.jpg</image1>
             <image2>1300375832136.jpg</image2>
         </data>
-        """.format(
-            self.xform.id_string
-        )
-
+        """
         file_path = (
-            "{}/apps/logger/tests/Health_2011_03_13."
-            "xml_2011-03-15_20-30-28/1300221157303"
-            ".jpg".format(settings.PROJECT_ROOT)
+            f"{settings.PROJECT_ROOT}/apps/logger/tests/Health_2011_03_13."
+            "xml_2011-03-15_20-30-28/1300221157303.jpg"
         )
-        f = open(file_path, "rb")
-        media_file = InMemoryUploadedFile(
-            file=f,
-            field_name="image1",
-            name=f"{f.name} +\
-            test_file_name_test_file_name_test_file_name_test_file_name_test_file_name_test_file_name",  # noqa
-            content_type="image/jpeg",
-            size=os.path.getsize(file_path),
-            charset=None,
-        )
-        with self.assertRaises(AttachmentNameError):
-            create_instance(
-                self.user.username,
-                BytesIO(xml_string.strip().encode("utf-8")),
-                media_files=[media_file],
+        with open(file_path, "rb") as f:
+            media_file = InMemoryUploadedFile(
+                file=f,
+                field_name="image1",
+                name=(
+                    f"{f.name}test_file_name_test_file_name_test_file_name_"
+                    "test_file_name_test_file_name_test_file_name"
+                ),
+                content_type="image/jpeg",
+                size=os.path.getsize(file_path),
+                charset=None,
             )
+            with self.assertRaises(AttachmentNameError):
+                create_instance(
+                    self.user.username,
+                    BytesIO(xml_string.strip().encode("utf-8")),
+                    media_files=[media_file],
+                )
 
     def test_handle_parse_error(self):
         """
