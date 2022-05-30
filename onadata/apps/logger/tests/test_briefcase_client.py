@@ -3,15 +3,17 @@ import shutil
 from builtins import open
 from io import BytesIO
 
-import requests
 from django.contrib.auth import authenticate
 from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import UploadedFile
 from django.test import RequestFactory
 from django.urls import reverse
+
+import requests
 from django_digest.test import Client as DigestClient
-from six.moves.urllib.parse import urljoin
+from flaky import flaky
 from httmock import HTTMock, urlmatch
+from six.moves.urllib.parse import urljoin
 
 from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.logger.views import download_xform, formList, xformsManifest
@@ -108,6 +110,7 @@ class TestBriefcaseClient(TestBase):
             username="bob", password="bob", url=url, user=self.user
         )
 
+    @flaky
     def test_download_xform_xml(self):
         """
         Download xform via briefcase api

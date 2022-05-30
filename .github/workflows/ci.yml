@@ -70,6 +70,10 @@ jobs:
           pip install -r requirements/base.pip
           pip install flake8
           pip install tblib
+          pip install flaky
+          pip install httmock
+          pip install mock
+          pip install requests-mock
 
       - name: Run tests
         run: |
