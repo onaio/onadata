@@ -7,51 +7,54 @@ from __future__ import unicode_literals
 import datetime
 import json
 import os
-import defusedxml.ElementTree as ET
 from builtins import open
 from datetime import timedelta
 from tempfile import NamedTemporaryFile
 
-import geojson
-import requests
 from django.conf import settings
 from django.core.cache import cache
 from django.db.utils import OperationalError
 from django.test import RequestFactory
 from django.test.utils import override_settings
 from django.utils import timezone
+
+import defusedxml.ElementTree as ET
+import geojson
+import requests
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
-from httmock import urlmatch, HTTMock
+from flaky import flaky
+from httmock import HTTMock, urlmatch
 from mock import patch
 
-from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
-from onadata.apps.api.tests.viewsets.test_abstract_viewset import enketo_urls_mock
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
+    TestAbstractViewSet,
+    enketo_urls_mock,
+)
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import (
+    Attachment,
     Instance,
+    SubmissionReview,
     SurveyType,
     XForm,
-    Attachment,
-    SubmissionReview,
 )
-from onadata.apps.logger.models.instance import InstanceHistory
-from onadata.apps.logger.models.instance import get_attachment_url
+from onadata.apps.logger.models.instance import InstanceHistory, get_attachment_url
 from onadata.apps.main import tests as main_tests
 from onadata.apps.main.models import UserProfile
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.messaging.constants import XFORM, SUBMISSION_DELETED
+from onadata.apps.messaging.constants import SUBMISSION_DELETED, XFORM
 from onadata.libs import permissions as role
 from onadata.libs.permissions import (
-    ReadOnlyRole,
-    EditorRole,
-    EditorMinorRole,
-    DataEntryOnlyRole,
     DataEntryMinorRole,
+    DataEntryOnlyRole,
+    EditorMinorRole,
+    EditorRole,
     ManagerRole,
+    ReadOnlyRole,
 )
 from onadata.libs.serializers.submission_review_serializer import (
     SubmissionReviewSerializer,
@@ -111,7 +114,7 @@ class TestDataViewSet(TestBase):
     """
 
     def setUp(self):
-        super(self.__class__, self).setUp()
+        super().setUp()
         self._create_user_and_login()
         self._publish_transportation_form()
         self.factory = RequestFactory()
@@ -2905,6 +2908,7 @@ class TestOSM(TestAbstractViewSet):
         self.factory = RequestFactory()
         self.extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
 
+    @flaky
     def test_data_retrieve_instance_osm_format(self):
         filenames = [
             "OSMWay234134797.osm",
