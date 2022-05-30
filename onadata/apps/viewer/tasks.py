@@ -5,16 +5,20 @@ Export tasks.
 import sys
 from datetime import timedelta
 
-from six import iteritems
-
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
 from kombu.exceptions import OperationalError
-from requests import ConnectionError
+from multidb.pinning import use_master
+from six import iteritems
 
-from onadata.apps.viewer.models.export import Export, ExportTypeError
+from onadata.apps.viewer.models.export import (
+    Export,
+    ExportConnectionError,
+    ExportTypeError,
+)
+from onadata.celery import app
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.common_tools import get_boolean_value, report_exception
 from onadata.libs.utils.export_tools import (
@@ -24,7 +28,6 @@ from onadata.libs.utils.export_tools import (
     generate_kml_export,
     generate_osm_export,
 )
-from onadata.celery import app
 
 EXPORT_QUERY_KEY = "query"
 
@@ -34,7 +37,6 @@ def _get_export_object(export_id):
         return Export.objects.get(id=export_id)
     except Export.DoesNotExist:
         if getattr(settings, "SLAVE_DATABASES", []):
-            from multidb.pinning import use_master
 
             with use_master:
                 return Export.objects.get(id=export_id)
@@ -51,8 +53,8 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
     """
     Starts asynchronous export tasks and returns an export object.
 
-    Throws Export.ExportTypeError if export_type is not in EXPORT_TYPES.
-    Throws Export.ExportConnectionError if rabbitmq broker is down.
+    Throws ExportTypeError if export_type is not in EXPORT_TYPES.
+    Throws ExportConnectionError if rabbitmq broker is down.
     """
     username = xform.user.username
     id_string = xform.id_string
@@ -106,7 +108,7 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
             export.error_message = "Error connecting to broker."
             export.save()
             report_exception(export.error_message, e, sys.exc_info())
-            raise Export.ExportConnectionError
+            raise ExportConnectionError() from e
     else:
         raise ExportTypeError
 
@@ -197,8 +199,7 @@ def create_csv_export(username, id_string, export_id, **options):
             sys.exc_info(),
         )
         raise
-    else:
-        return gen_export.id
+    return gen_export.id
 
 
 @app.task(track_started=True)
