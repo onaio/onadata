@@ -4,6 +4,8 @@ import os
 from django.conf import settings
 from django.urls import reverse
 
+from flaky import flaky
+
 from onadata.apps.logger.import_tools import import_instances_from_zip
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.views import bulksubmission
@@ -47,6 +49,7 @@ class TestImportingDatabase(TestBase):
             for image in images:
                 os.remove(image)
 
+    @flaky
     def test_importing_b1_and_b2(self):
         """
         b1 and b2 are from the *same phone* at different times. (this
