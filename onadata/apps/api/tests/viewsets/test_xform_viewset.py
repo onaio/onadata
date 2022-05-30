@@ -11,14 +11,11 @@ import os
 import re
 from builtins import open
 from collections import OrderedDict
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from http.client import BadStatusLine
 from io import StringIO
-from xml.dom import Node
-from xml.dom import minidom
+from xml.dom import Node, minidom
 
-import jwt
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
@@ -29,7 +26,10 @@ from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
 from django.utils.html import conditional_escape
 from django.utils.timezone import utc
+
+import jwt
 from django_digest.test import DigestAuth
+from flaky import flaky
 from httmock import HTTMock
 from mock import Mock, patch
 from rest_framework import status
@@ -55,14 +55,11 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
 )
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import Attachment
-from onadata.apps.logger.models import Instance
-from onadata.apps.logger.models import Project
-from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models import Attachment, Instance, Project, XForm
 from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.models import MetaData
-from onadata.apps.messaging.constants import XFORM, FORM_UPDATED
+from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
 from onadata.apps.viewer.models import Export
 from onadata.libs.permissions import (
     ROLES_ORDERED,
@@ -91,7 +88,6 @@ from onadata.libs.utils.common_tools import (
     filename_from_disposition,
     get_response_content,
 )
-
 
 ROLES = [ReadOnlyRole, DataEntryRole, EditorRole, ManagerRole, OwnerRole]
 
@@ -3995,6 +3991,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             basename, ext = os.path.splitext(filename)
             self.assertEqual(ext, ".csv")
 
+    @flaky
     def test_csv_export_with_and_without_include_hxl(self):
         with HTTMock(enketo_mock):
             # provide hxl file path

@@ -13,7 +13,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - testfolder: "onadata/libs onadata/apps/main onadata/apps/restservice onadata/apps/sms_support onadata/apps/viewer onadata/apps/messaging"
           - testfolder: "onadata/apps/api onadata/apps/logger"
     services:
       postgres:
