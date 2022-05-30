@@ -5039,6 +5039,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.data, expected_response)
 
+    @flaky
     def test_sav_zip_export_long_variable_length(self):
         self._publish_xls_form_to_project()
         survey = self.surveys[0]
