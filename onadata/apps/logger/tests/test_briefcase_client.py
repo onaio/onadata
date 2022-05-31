@@ -13,9 +13,9 @@ from django.test import RequestFactory
 from django.urls import reverse
 
 import requests
+import requests_mock
 from django_digest.test import Client as DigestClient
 from flaky import flaky
-from httmock import HTTMock, urlmatch
 from six.moves.urllib.parse import urljoin
 
 from onadata.apps.logger.models import Instance, XForm
@@ -28,41 +28,65 @@ from onadata.libs.utils.briefcase_client import BriefcaseClient
 storage = get_storage_class()()
 
 
-@urlmatch(netloc=r"(.*\.)?testserver$")
-def form_list_xml(url, request, **kwargs):
-    """Mock different ODK Aggregate Server API requests."""
-    response = requests.Response()
-    factory = RequestFactory()
-    req = factory.get(url.path)
+def form_list(request, context):
+    """Return the /formList content"""
+    context.status_code = 200
+    req = RequestFactory().get("/bob/formList")
     req.user = authenticate(username="bob", password="bob")
-    req.user.profile.require_auth = False
-    req.user.profile.save()
-    id_string = "transportation_2011_07_25"
-    if url.path.endswith("formList"):
-        res = formList(req, username="bob")
-    elif url.path.endswith("form.xml"):
-        res = download_xform(req, username="bob", id_string=id_string)
-    elif url.path.find("xformsManifest") > -1:
-        res = xformsManifest(req, username="bob", id_string=id_string)
-    elif url.path.find("formid-media") > -1:
-        data_id = url.path[url.path.rfind("/") + 1 :]
-        res = download_media_data(
-            req, username="bob", id_string=id_string, data_id=data_id
-        )
-        ids = list(Instance.objects.values_list("id", flat=True))
-        xids = list(XForm.objects.values_list("id", flat=True))
-        assert (
-            res.status_code == 200
-        ), f"{data_id} - {res.content} {res.status_code} -{ids} {xids} {url}"
-        # pylint: disable=protected-access
-        response._content = get_streaming_content(res)
-    else:
-        res = formList(req, username="bob")
-    response.status_code = 200
-    # pylint: disable=protected-access
-    if not response._content:
-        response._content = res.content
-    return response
+    return formList(req, username="bob").content
+
+
+def form_xml(request, context):
+    """Return the /form.xml content"""
+    context.status_code = 200
+    req = RequestFactory().get("/bob/transportation_2011_07_25/form.xml")
+    req.user = authenticate(username="bob", password="bob")
+    return download_xform(
+        req, username="bob", id_string="transportation_2011_07_25"
+    ).content
+
+
+def form_manifest(request, context):
+    """Return the /xformsManifest/{pk} content"""
+    context.status_code = 200
+    req = RequestFactory().get(request.url)
+    req.user = authenticate(username="bob", password="bob")
+    return xformsManifest(
+        req, username="bob", id_string="transportation_2011_07_25"
+    ).content
+
+
+def form_media(request, context):
+    """Return the /form-media/{pk} content"""
+    context.status_code = 200
+    path = request.path
+    req = RequestFactory().head(request.url)
+    req.user = authenticate(username="bob", password="bob")
+    data_id = path[path.rfind("/") + 1 :]
+    response = download_media_data(
+        req, username="bob", id_string="transportation_2011_07_25", data_id=data_id
+    )
+    ids = list(Instance.objects.values_list("id", flat=True))
+    xids = list(XForm.objects.values_list("id", flat=True))
+    assert (
+        response.status_code == 200
+    ), f"{data_id} - {response.content} {response.status_code} -{ids} {xids} {path}"
+    return get_streaming_content(response)
+
+
+def submission_list(request, context):
+    """Return the /submissionList content"""
+    response = requests.Response()
+    client = DigestClient()
+    client.set_authorization("bob", "bob", "Digest")
+    res = client.get(f"{request.url}")
+    if res.status_code == 302:
+        res = client.get(res["Location"])
+        assert res.status_code == 200, res.content
+        response.encoding = res.get("content-type")
+        return get_streaming_content(res)
+    context.status_code = 200
+    return res.content
 
 
 def get_streaming_content(res):
@@ -73,25 +97,6 @@ def get_streaming_content(res):
     content = tmp.getvalue()
     tmp.close()
     return content
-
-
-@urlmatch(netloc=r"(.*\.)?testserver$")
-def instances_xml(url, request, **kwargs):
-    """Returns a submission XML content for mocked tests."""
-    response = requests.Response()
-    client = DigestClient()
-    client.set_authorization("bob", "bob", "Digest")
-    res = client.get(f"{url.path}?{url.query}")
-    if res.status_code == 302:
-        res = client.get(res["Location"])
-        assert res.status_code == 200, res.content
-        response.encoding = res.get("content-type")
-        # pylint: disable=protected-access
-        response._content = get_streaming_content(res)
-    else:
-        response._content = res.content  # pylint: disable=protected-access
-    response.status_code = 200
-    return response
 
 
 @flaky(max_runs=3)
@@ -108,8 +113,9 @@ class TestBriefcaseClient(TestBase):
         with open(src, "rb") as f:
             media_file = UploadedFile(file=f, content_type="image/png")
             count = MetaData.objects.count()
-            MetaData.media_upload(self.xform, media_file)
+            media = MetaData.media_upload(self.xform, media_file)
             self.assertEqual(MetaData.objects.count(), count + 1)
+            self.media = media[0]
             url = urljoin(
                 self.base_url, reverse(profile, kwargs={"username": self.user.username})
             )
@@ -119,12 +125,70 @@ class TestBriefcaseClient(TestBase):
                 username="bob", password="bob", url=url, user=self.user
             )
 
+    def _download_xforms(self):
+        with requests_mock.Mocker() as mocker:
+            mocker.get("/bob/formList", content=form_list)
+            mocker.get(
+                "/bob/forms/transportation_2011_07_25/form.xml", content=form_xml
+            )
+            mocker.get(f"/bob/xformsManifest/{self.media.pk}", content=form_manifest)
+            mocker.head(
+                f"/bob/forms/transportation_2011_07_25/formid-media/{self.media.pk}",
+                content=form_media,
+            )
+            mocker.get(
+                f"/bob/forms/transportation_2011_07_25/formid-media/{self.media.pk}",
+                content=form_media,
+            )
+            self.briefcase_client.download_xforms()
+
+    def _download_submissions(self):
+        id_string = "transportation_2011_07_25"
+        with requests_mock.Mocker() as mocker:
+            mocker.get(
+                (
+                    "/bob/view/submissionList"
+                    f"?formId={id_string}&numEntries=100&cursor=0"
+                ),
+                content=submission_list,
+            )
+            mocker.get(
+                (
+                    "/bob/view/submissionList"
+                    f"?formId={id_string}&numEntries=100&cursor=1"
+                ),
+                content=submission_list,
+            )
+            mocker.get(
+                (
+                    "/bob/view/downloadSubmission"
+                    f"?formId={id_string}%5B%40version%3Dnull+and+%40uiVersion%3D"
+                    f"null%5D%2F{id_string}"
+                    f"%5B%40key%3Duuid%3A5b2cc313-fc09-437e-8149-fcd32f695d41%5D"
+                ),
+                content=submission_list,
+            )
+            mocker.head(
+                (
+                    "/attachment/original?media_file=bob/attachments/"
+                    f"{self.media.pk}_{id_string}/1335783522563.jpg"
+                ),
+                content=submission_list,
+            )
+            mocker.get(
+                (
+                    "/attachment/original?media_file=bob/attachments/"
+                    f"{self.media.pk}_{id_string}/1335783522563.jpg"
+                ),
+                content=submission_list,
+            )
+            self.briefcase_client.download_instances(self.xform.id_string)
+
     def test_download_xform_xml(self):
         """
         Download xform via briefcase api
         """
-        with HTTMock(form_list_xml):
-            self.briefcase_client.download_xforms()
+        self._download_xforms()
         forms_folder_path = os.path.join(
             "deno", "briefcase", "forms", self.xform.id_string
         )
@@ -136,8 +200,7 @@ class TestBriefcaseClient(TestBase):
         media_path = os.path.join(form_media_path, "screenshot.png")
         self.assertTrue(storage.exists(media_path))
 
-        with HTTMock(instances_xml):
-            self.briefcase_client.download_instances(self.xform.id_string)
+        self._download_submissions()
         instance_folder_path = os.path.join(
             "deno", "briefcase", "forms", self.xform.id_string, "instances"
         )
@@ -155,10 +218,8 @@ class TestBriefcaseClient(TestBase):
 
     def test_push(self):
         """Test ODK briefcase client push function."""
-        with HTTMock(form_list_xml):
-            self.briefcase_client.download_xforms()
-        with HTTMock(instances_xml):
-            self.briefcase_client.download_instances(self.xform.id_string)
+        self._download_xforms()
+        self._download_submissions()
         XForm.objects.all().delete()
         xforms = XForm.objects.filter(user=self.user, id_string=self.xform.id_string)
         self.assertEqual(xforms.count(), 0)
