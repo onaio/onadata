@@ -143,45 +143,9 @@ class TestBriefcaseClient(TestBase):
             self.briefcase_client.download_xforms()
 
     def _download_submissions(self):
-        id_string = "transportation_2011_07_25"
         with requests_mock.Mocker() as mocker:
-            mocker.get(
-                (
-                    "/bob/view/submissionList"
-                    f"?formId={id_string}&numEntries=100&cursor=0"
-                ),
-                content=submission_list,
-            )
-            mocker.get(
-                (
-                    "/bob/view/submissionList"
-                    f"?formId={id_string}&numEntries=100&cursor=1"
-                ),
-                content=submission_list,
-            )
-            mocker.get(
-                (
-                    "/bob/view/downloadSubmission"
-                    f"?formId={id_string}%5B%40version%3Dnull+and+%40uiVersion%3D"
-                    f"null%5D%2F{id_string}"
-                    f"%5B%40key%3Duuid%3A5b2cc313-fc09-437e-8149-fcd32f695d41%5D"
-                ),
-                content=submission_list,
-            )
-            mocker.head(
-                (
-                    "/attachment/original?media_file=bob/attachments/"
-                    f"{self.media.pk}_{id_string}/1335783522563.jpg"
-                ),
-                content=submission_list,
-            )
-            mocker.get(
-                (
-                    "/attachment/original?media_file=bob/attachments/"
-                    f"{self.media.pk}_{id_string}/1335783522563.jpg"
-                ),
-                content=submission_list,
-            )
+            mocker.get(requests_mock.ANY, content=submission_list)
+            mocker.head(requests_mock.ANY, content=submission_list)
             self.briefcase_client.download_instances(self.xform.id_string)
 
     def test_download_xform_xml(self):
@@ -218,6 +182,14 @@ class TestBriefcaseClient(TestBase):
 
     def test_push(self):
         """Test ODK briefcase client push function."""
+        xforms = XForm.objects.filter(
+            user__username="bob", id_string=self.xform.id_string
+        )
+        self.assertEqual(xforms.count(), 1)
+        instances = Instance.objects.filter(
+            xform__user__username="bob", xform__id_string=self.xform.id_string
+        )
+        self.assertEqual(instances.count(), 1)
         self._download_xforms()
         self._download_submissions()
         XForm.objects.all().delete()
