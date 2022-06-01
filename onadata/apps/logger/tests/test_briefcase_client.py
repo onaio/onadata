@@ -74,6 +74,25 @@ def form_media(request, context):
     return get_streaming_content(response)
 
 
+def forms_handler(request, context):
+    """Handle all forms download mock requests"""
+
+    response = b""
+    if request.url.endswith("/bob/formList"):
+        response = form_list(request, context)
+
+    if request.url.endswith("form.xml"):
+        response = form_xml(request, context)
+
+    if request.url.find("xformsManifest") > -1:
+        response = form_manifest(request, context)
+
+    if request.url.find("form-media") > -1:
+        response = form_media(request, context)
+
+    return response
+
+
 def submission_list(request, context):
     """Return the /submissionList content"""
     response = requests.Response()
@@ -82,7 +101,7 @@ def submission_list(request, context):
     res = client.get(f"{request.url}")
     if res.status_code == 302:
         res = client.get(res["Location"])
-        assert res.status_code == 200, res.content
+        assert res.status_code == 200, (res["Location"], request.url, res.content)
         response.encoding = res.get("content-type")
         return get_streaming_content(res)
     context.status_code = 200
@@ -127,19 +146,9 @@ class TestBriefcaseClient(TestBase):
 
     def _download_xforms(self):
         with requests_mock.Mocker() as mocker:
-            mocker.get("/bob/formList", content=form_list)
-            mocker.get(
-                "/bob/forms/transportation_2011_07_25/form.xml", content=form_xml
-            )
-            mocker.get(f"/bob/xformsManifest/{self.media.pk}", content=form_manifest)
-            mocker.head(
-                f"/bob/forms/transportation_2011_07_25/formid-media/{self.media.pk}",
-                content=form_media,
-            )
-            mocker.get(
-                f"/bob/forms/transportation_2011_07_25/formid-media/{self.media.pk}",
-                content=form_media,
-            )
+            mocker.get(requests_mock.ANY, content=forms_handler)
+            mocker.head(requests_mock.ANY, content=forms_handler)
+            self.assertEqual(MetaData.objects.get(pk=self.media.pk).pk, self.media.pk)
             self.briefcase_client.download_xforms()
 
     def _download_submissions(self):
@@ -212,3 +221,6 @@ class TestBriefcaseClient(TestBase):
         for username in ["bob", "deno"]:
             if storage.exists(username):
                 shutil.rmtree(storage.path(username))
+        MetaData.objects.all().delete()
+        Instance.objects.all().delete()
+        XForm.objects.all().delete()
