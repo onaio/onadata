@@ -8,7 +8,6 @@ import tempfile
 import zipfile
 from builtins import open
 from datetime import date, datetime, timedelta
-from unittest import skipIf
 
 from django.conf import settings
 from django.contrib.sites.models import Site
@@ -20,10 +19,7 @@ from pyxform.builder import create_survey_from_xls
 from rest_framework import exceptions
 from rest_framework.authtoken.models import Token
 
-try:
-    from savReaderWriter import SavWriter
-except ImportError:
-    SavWriter = None
+from savReaderWriter import SavWriter
 
 from onadata.apps.api import tests as api_tests
 from onadata.apps.logger.models import Attachment, Instance, XForm
@@ -637,7 +633,6 @@ class TestExportTools(TestBase):
         expected_data = {"fruit": {"orange": "Orange", "mango": "Mango"}}
         self.assertEqual(export_builder._get_sav_value_labels(), expected_data)
 
-    @skipIf(SavWriter is None, "savReaderWriter not supported now.")
     def test_sav_duplicate_columns(self):
         more_than_64_char = (
             "akjasdlsakjdkjsadlsakjgdlsagdgdgdsajdgkjdsdgsj" "adsasdasgdsahdsahdsadgsdf"
@@ -679,7 +674,6 @@ class TestExportTools(TestBase):
             # No exception is raised
             SavWriter(sav_file.name, **sav_options)
 
-    @skipIf(SavWriter is None, "savReaderWriter not supported now.")
     def test_sav_special_char_columns(self):
         survey = create_survey_from_xls(_logger_fixture_path("grains/grains.xlsx"))
         export_builder = ExportBuilder()
