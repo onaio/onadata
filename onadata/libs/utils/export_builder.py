@@ -24,10 +24,7 @@ from pyxform.question import Question
 from pyxform.section import RepeatingSection, Section
 
 
-try:
-    from savReaderWriter import SavWriter
-except ImportError:
-    SavWriter = None
+from savReaderWriter import SavWriter
 
 from onadata.apps.logger.models.osmdata import OsmData
 from onadata.apps.logger.models.xform import (

@@ -3,7 +3,14 @@
 
 django-extensions
 ipdb
-pylint<2
-pylint-django==0.11.1
+pylint
+pylint-django
 yapf
 isort
+prospector
+httmock
+mock
+requests_mock
+tblib
+flake8
+flaky
