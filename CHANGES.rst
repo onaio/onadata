@@ -3,6 +3,25 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.0.3(2022-06-03)
+------------------
+
+- current_task is Instance of task being executed, or None
+  `PR #2246 <https://github.com/onaio/onadata/pull/2246>`_
+  [@ukanga]
+- Revert "Add additional scopes required when refreshing tokens"
+  `PR #2249 <https://github.com/onaio/onadata/pull/2249>`_
+  [@DavisRayM]
+- Use updated savreaderwriter to allow SAV exports
+  `PR #2248 <https://github.com/onaio/onadata/pull/2248>`_
+  [@ukanga]
+- Handle parse error in submissions
+  `PR #2247 <https://github.com/onaio/onadata/pull/2247>`_
+  [@ukanga]
+- Use sentry-sdk
+  `PR #2251 <https://github.com/onaio/onadata/pull/2251>`_
+  [@ukanga]
+
 v3.0.2(2022-05-26)
 ------------------
 
