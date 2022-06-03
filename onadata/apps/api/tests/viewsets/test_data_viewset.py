@@ -2927,7 +2927,7 @@ class TestOSM(TestAbstractViewSet):
         files = [open(path, "rb") for path in paths]
         count = Attachment.objects.filter(extension="osm").count()
         self._make_submission(submission_path, media_file=files)
-        self.assertTrue(Attachment.objects.filter(extension="osm").count() > count)
+        self.assertEqual(Attachment.objects.filter(extension="osm").count(), count + 2)
 
         formid = self.xform.pk
         dataid = self.xform.instances.latest("date_created").pk
