@@ -2903,13 +2903,15 @@ class TestOSM(TestAbstractViewSet):
     """
 
     def setUp(self):
-        super(TestOSM, self).setUp()
+        super().setUp()
         self._login_user_and_profile()
         self.factory = RequestFactory()
         self.extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
 
-    @flaky
+    # pylint: disable=invalid-name,too-many-locals
+    @flaky(max_runs=3)
     def test_data_retrieve_instance_osm_format(self):
+        """Test /data endpoint OSM format."""
         filenames = [
             "OSMWay234134797.osm",
             "OSMWay34298972.osm",
