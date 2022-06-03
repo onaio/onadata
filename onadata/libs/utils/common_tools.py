@@ -17,8 +17,8 @@ from django.core.mail import mail_admins
 from django.db import OperationalError
 from django.utils.translation import gettext as _
 
+import sentry_sdk
 import six
-from raven.contrib.django.raven_compat.models import client
 
 TRUE_VALUES = ["TRUE", "T", "1", 1]
 
@@ -68,7 +68,7 @@ def report_exception(subject, info, exc_info=None):
 
         # send to sentry
         try:
-            client.captureException(exc_info)
+            sentry_sdk.capture_exception(exc_info)
         except Exception:  # pylint: disable=broad-except
             logging.exception(_("Sending to Sentry failed."))
     else:
