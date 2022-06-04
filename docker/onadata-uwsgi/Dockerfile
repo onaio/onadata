@@ -11,7 +11,7 @@ RUN mkdir -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 # Install optional requirements
 # Read more on the ssh argument here: https://docs.docker.com/develop/develop-images/build_enhancements/#using-ssh-to-access-private-data-in-builds
 # hadolint ignore=DL3013
-RUN --mount=type=ssh if [ -n "$optional_packages" ]; then pip install ${optional_packages} -e git+https://github.com/onaio/oauth2client.git@75dfdee77fb640ae30469145c66440571dfeae5c#egg=oauth2client; fi
+RUN --mount=type=ssh if [ -n "$optional_packages" ]; then pip install ${optional_packages} git+https://github.com/onaio/oauth2client.git@75dfdee77fb640ae30469145c66440571dfeae5c#egg=oauth2client; fi
 
 FROM ubuntu:20.04
 COPY --from=intermediate /usr/local/lib/python3.9/site-packages/ /usr/local/lib/python3.9/dist-packages/

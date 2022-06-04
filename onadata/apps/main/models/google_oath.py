@@ -10,6 +10,7 @@ from django.db import models
 from django.utils import encoding
 
 import jsonpickle
+import oauth2client
 from google.oauth2.credentials import Credentials
 
 
@@ -42,12 +43,17 @@ class CredentialsField(models.Field):
             return None
         if isinstance(value, Credentials):
             return value
+
         try:
             return jsonpickle.decode(
                 base64.b64decode(encoding.smart_bytes(value)).decode()
             )
         except ValueError:
-            return pickle.loads(base64.b64decode(encoding.smart_bytes(value)))
+            try:
+                return pickle.loads(base64.b64decode(encoding.smart_bytes(value)))
+            except Exception:
+                print(f"Failed to pickle:\n{value}")
+                return value
 
     def get_prep_value(self, value):
         """Overrides ``models.Field`` method. This is used to convert
