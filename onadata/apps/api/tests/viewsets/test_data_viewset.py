@@ -2903,13 +2903,15 @@ class TestOSM(TestAbstractViewSet):
     """
 
     def setUp(self):
-        super(TestOSM, self).setUp()
+        super().setUp()
         self._login_user_and_profile()
         self.factory = RequestFactory()
         self.extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
 
-    @flaky
+    # pylint: disable=invalid-name,too-many-locals
+    @flaky(max_runs=3)
     def test_data_retrieve_instance_osm_format(self):
+        """Test /data endpoint OSM format."""
         filenames = [
             "OSMWay234134797.osm",
             "OSMWay34298972.osm",
@@ -2925,7 +2927,7 @@ class TestOSM(TestAbstractViewSet):
         files = [open(path, "rb") for path in paths]
         count = Attachment.objects.filter(extension="osm").count()
         self._make_submission(submission_path, media_file=files)
-        self.assertTrue(Attachment.objects.filter(extension="osm").count() > count)
+        self.assertEqual(Attachment.objects.filter(extension="osm").count(), count + 2)
 
         formid = self.xform.pk
         dataid = self.xform.instances.latest("date_created").pk

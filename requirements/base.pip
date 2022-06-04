@@ -53,7 +53,9 @@ cachetools==5.0.0
 celery==5.2.6
     # via onadata
 certifi==2021.10.8
-    # via requests
+    # via
+    #   requests
+    #   sentry-sdk
 cffi==1.15.0
     # via cryptography
 chardet==4.0.0
@@ -304,8 +306,6 @@ pyxform==1.10.0
     # via
     #   onadata
     #   pyfloip
-raven==6.10.0
-    # via onadata
 recaptcha-client==1.0.6
     # via onadata
 redis==4.2.2
@@ -330,6 +330,8 @@ rsa==4.8
     # via google-auth
 s3transfer==0.5.2
     # via boto3
+sentry-sdk==1.5.12
+    # via onadata
 simplejson==3.17.6
     # via onadata
 six==1.16.0
@@ -386,6 +388,7 @@ urllib3==1.26.9
     # via
     #   botocore
     #   requests
+    #   sentry-sdk
 uwsgi==2.0.20
     # via onadata
 vine==5.0.0
