@@ -4,6 +4,7 @@ import json
 from rest_framework_gis import serializers
 
 from onadata.apps.logger.models.instance import Instance
+from onadata.libs.utils.common_tools import str_to_bool
 
 
 def create_feature(instance, geo_field, fields):
@@ -57,8 +58,12 @@ def is_polygon(point_list):
             point_list[0] == point_list[len(point_list)-1])
 
 
-def geometry_from_string(points):
-    """Takes a string, returns a geometry object"""
+def geometry_from_string(points, simple_style):
+    """
+    Takes a string, returns a geometry object.
+    `simple_style` param allows building geojson
+    that adheres to the simplestyle-spec
+    """
 
     points = points.split(';')
     pnt_list = [tuple(map(float, reversed(point.split()[:2])))
