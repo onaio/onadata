@@ -3,7 +3,6 @@
 ParsedInstance model
 """
 import datetime
-import json
 import types
 
 from django.conf import settings
@@ -12,6 +11,7 @@ from django.db.models.query import EmptyQuerySet
 from django.utils.translation import gettext as _
 
 import six
+import ujson as json
 from dateutil import parser
 
 from onadata.apps.logger.models.instance import Instance, _get_attachments_from_instance
@@ -136,7 +136,7 @@ def _query_iterator(sql, fields=None, params=None, count=False):
             yield parse_json(row[0]) if row[0] else None
     else:
         for row in cursor.fetchall():
-            yield dict(zip(fields, row))
+            yield dict(zip(fields, (json.loads(s) for s in row)))
 
 
 def get_etag_hash_from_query(queryset, sql=None, params=None):
@@ -144,9 +144,10 @@ def get_etag_hash_from_query(queryset, sql=None, params=None):
     if not isinstance(queryset, EmptyQuerySet):
         if sql is None:
             sql, params = queryset.query.sql_with_params()
+        from_index = sql.find("FROM ")
         sql = (
             "SELECT md5(string_agg(date_modified::text, ''))"
-            " FROM (SELECT date_modified " + sql[sql.find("FROM ") :] + ") AS A"
+            " FROM (SELECT date_modified " + sql[from_index:] + ") AS A"
         )
         etag_hash = [i for i in _query_iterator(sql, params=params) if i is not None]
 
@@ -181,7 +182,8 @@ def _start_index_limit(records, sql, fields, params, sort, start_index, limit):
         and not fields
         and not has_json_fields
     ):
-        records = records[start_index : start_index + limit]
+        end_index = start_index + limit
+        records = records[start_index:end_index]
     if start_index is not None and limit is None and not fields and not has_json_fields:
         records = records[start_index:]
 
@@ -349,7 +351,6 @@ class ParsedInstance(models.Model):
     )
     start_time = models.DateTimeField(null=True)
     end_time = models.DateTimeField(null=True)
-    # TODO: decide if decimal field is better than float field.
     lat = models.FloatField(null=True)
     lng = models.FloatField(null=True)
 
@@ -444,8 +445,6 @@ class ParsedInstance(models.Model):
                 return item["name"]
         return None
 
-    # TODO: figure out how much of this code should be here versus
-    # data_dictionary.py.
     def _set_geopoint(self):
         if self.instance.point:
             self.lat = self.instance.point.y
@@ -474,6 +473,7 @@ class ParsedInstance(models.Model):
         note.delete()
 
     def get_notes(self):
+        """Returns a list of notes data objects."""
         notes = []
         note_qs = self.instance.notes.values(
             "id", "note", "date_created", "date_modified"

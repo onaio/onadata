@@ -233,6 +233,7 @@ class TestDataViewSet(TestBase):
         self.assertEqual(len(response.data), initial_count - 1)
 
     def test_numeric_types_are_rendered_as_required(self):
+        """Test numeric types are rendered as numeric."""
         tutorial_folder = os.path.join(
             os.path.dirname(__file__), "..", "fixtures", "forms", "tutorial"
         )
@@ -244,10 +245,21 @@ class TestDataViewSet(TestBase):
         create_instance(self.user.username, open(instance_path, "rb"), [])
 
         self.assertEqual(self.xform.instances.count(), 1)
+
         view = DataViewSet.as_view({"get": "list"})
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=self.xform.id)
         self.assertEqual(response.status_code, 200)
+        # check that ONLY values with numeric and decimal types are converted
+        self.assertEqual(response.data[0].get("age"), 35)
+        self.assertEqual(response.data[0].get("net_worth"), 100000.00)
+        self.assertEqual(response.data[0].get("imei"), "351746052009472")
+
+        # test when fields parameter is used.
+        fields_query = {"fields": '["_id", "age", "net_worth", "imei"]'}
+        request = self.factory.get("/", data=fields_query, **self.extra)
+        response = view(request, pk=self.xform.id)
+        self.assertEqual(response.status_code, 200, response.data)
         # check that ONLY values with numeric and decimal types are converted
         self.assertEqual(response.data[0].get("age"), 35)
         self.assertEqual(response.data[0].get("net_worth"), 100000.00)

@@ -377,6 +377,8 @@ tabulator==1.53.5
     # via
     #   datapackage
     #   tableschema
+ujson==5.3.0
+    # via onadata
 unicodecsv==0.14.1
     # via
     #   datapackage
