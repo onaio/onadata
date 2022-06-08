@@ -65,8 +65,10 @@ def geometry_from_string(points):
                 for point in points]
 
     if len(pnt_list) == 1:
-        geometry = geojson.GeometryCollection(
-            [geojson.Point(pnt_list[0])])
+        geometry = geojson.Point(pnt_list[0]) \
+            if str_to_bool(simple_style) else \
+                geojson.GeometryCollection(
+                    [geojson.Point(pnt_list[0])])
     elif is_polygon(pnt_list):
         # First and last point are same -> Polygon
         geometry = geojson.Polygon([pnt_list])
