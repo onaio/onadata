@@ -1108,6 +1108,8 @@ Get a valid geojson value from the submissions
 
 - ``geo_field`` - valid field that can be converted to a geojson (Point, LineString, Polygon).
 - ``fields`` - additional comma separated values that are to be added to the properties section
+- ``simple_style`` - boolean to enable or disable Mapbox Geojson simplestyle spec
+- ``title`` - adds a title field and value to geojson properties section
 
 **List all the geojson values for a submission**
 
@@ -1347,6 +1349,58 @@ Response
         "_last_edited": null
     }
 }
+
+**List all the geojson values for a given form with simplestyle-spec enabled and title prop set**
+
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/<code>{form_pk}</code>.geojson?geo_field=<code>{name_of_field_on_form}</code>&simple_style=true&title=<code>{name_of_title_field_on_form}</code>
+  </pre>
+
+Example
+^^^^^^^^^
+::
+
+      curl -X GET https://api.ona.io/api/v1/data/28058.geojson?geo_field=my_geoshape&style_spec=true
+
+Response
+^^^^^^^^^
+
+    **HTTP 200 OK**
+
+Response
+^^^^^^^^^
+::
+
+    {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [36.787219, -1.294197]
+                },
+                    "properties": {
+                        "id": 6448,
+                        "xform": 65,
+                        "title": "my_field"
+                    }
+            },
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [36.7872606, -1.2942131]
+                },
+                "properties": {
+                    "id": 6447,
+                    "xform": 65,
+                    "title": "my_field"
+                }
+            }]
+    }
 
 OSM
 ----
