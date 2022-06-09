@@ -137,8 +137,7 @@ class GeoJsonListSerializer(GeoJsonSerializer):
     def to_representation(self, obj):
 
         if obj is None:
-            return super(GeoJsonSerializer, self).to_representation(obj)
-
+            return super().to_representation(obj)
         geo_field = None
         fields = None
 
