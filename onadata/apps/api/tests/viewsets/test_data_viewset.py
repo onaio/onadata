@@ -2044,12 +2044,8 @@ class TestDataViewSet(TestBase):
             request, pk=self.xform.pk, dataid=dataid, format="geojson")
 
         self.assertEqual(response.status_code, 200)
-        geo_properties = {
-            "id": 1,
-            "xform": 2,
-            "title": "shape"
-        }
-        self.assertEqual(response.data["properties"], geo_properties)
+        self.assertIn('title', response.data["properties"])
+        self.assertEqual('shape', response.data["properties"]["title"])
 
     def test_geojson_geofield(self):
         self._publish_submit_geojson()
