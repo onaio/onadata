@@ -17,7 +17,7 @@ def create_feature(instance, geo_field, fields):
         # Return an empty feature
         return geojson.Feature()
 
-    points = data.get(geo_field).split(';')
+    points = data.get(geo_field).split(";")
 
     if len(points) == 1:
         # only one set of coordinates -> Point
@@ -30,7 +30,7 @@ def create_feature(instance, geo_field, fields):
             point = pnt.split()
             pnt_list.append((float(point[1]), float(point[0])))
 
-        if pnt_list[0] == pnt_list[len(pnt_list)-1]:
+        if pnt_list[0] == pnt_list[len(pnt_list) - 1]:
             # First and last point are same -> Polygon
             geometry = geojson.Polygon([pnt_list])
         else:
@@ -47,15 +47,12 @@ def create_feature(instance, geo_field, fields):
     else:
         properties.update(data)
 
-    return geojson.Feature(geometry=geometry,
-                           id=instance.pk,
-                           properties=properties)
+    return geojson.Feature(geometry=geometry, id=instance.pk, properties=properties)
 
 
 def is_polygon(point_list):
     """Takes a list of tuples and determines if it is a polygon"""
-    return (len(point_list) > 1 and
-            point_list[0] == point_list[len(point_list)-1])
+    return len(point_list) > 1 and point_list[0] == point_list[len(point_list) - 1]
 
 
 def geometry_from_string(points, simple_style):
@@ -65,15 +62,15 @@ def geometry_from_string(points, simple_style):
     that adheres to the simplestyle-spec
     """
 
-    points = points.split(';')
-    pnt_list = [tuple(map(float, reversed(point.split()[:2])))
-                for point in points]
+    points = points.split(";")
+    pnt_list = [tuple(map(float, reversed(point.split()[:2]))) for point in points]
 
     if len(pnt_list) == 1:
-        geometry = geojson.Point(pnt_list[0]) \
-            if str_to_bool(simple_style) else \
-                geojson.GeometryCollection(
-                    [geojson.Point(pnt_list[0])])
+        geometry = (
+            geojson.Point(pnt_list[0])
+            if str_to_bool(simple_style)
+            else geojson.GeometryCollection([geojson.Point(pnt_list[0])])
+        )
     elif is_polygon(pnt_list):
         # First and last point are same -> Polygon
         geometry = geojson.Polygon([pnt_list])
@@ -99,32 +96,35 @@ class GeoJsonSerializer(serializers.GeoFeatureModelSerializer):
     class Meta:
         model = Instance
         geo_field = "geom"
-        lookup_field = 'pk'
+        lookup_field = "pk"
         id_field = False
-        fields = ('id', 'xform')
+        fields = ("id", "xform")
 
     def to_representation(self, obj):
         ret = super(GeoJsonSerializer, self).to_representation(obj)
-        request = self.context.get('request')
+        request = self.context.get("request")
 
-        if obj and ret and 'properties' in ret and request is not None:
-            fields = request.query_params.get('fields')
+        if obj and ret and "properties" in ret and request is not None:
+            fields = request.query_params.get("fields")
             if fields:
-                for field in fields.split(','):
-                    ret['properties'][field] = obj.json.get(field)
+                for field in fields.split(","):
+                    ret["properties"][field] = obj.json.get(field)
 
         if obj and ret and request:
-            geo_field = request.query_params.get('geo_field')
-            simple_style = request.query_params.get('simple_style')
-            title = request.query_params.get('title')
+            geo_field = request.query_params.get("geo_field")
+            simple_style = request.query_params.get("simple_style")
+            title = request.query_params.get("title")
             if geo_field:
-                if 'properties' in ret and title:
-                    ret['properties']['title'] = title
+                if "properties" in ret and title:
+                    ret["properties"]["title"] = title
                 points = obj.json.get(geo_field)
-                geometry = geometry_from_string(points, simple_style) \
-                    if points else geojson.Feature()
+                geometry = (
+                    geometry_from_string(points, simple_style)
+                    if points
+                    else geojson.Feature()
+                )
 
-                ret['geometry'] = geometry
+                ret["geometry"] = geometry
 
         return ret
 
@@ -142,24 +142,29 @@ class GeoJsonListSerializer(GeoJsonSerializer):
         geo_field = None
         fields = None
 
-        if 'fields' in obj and obj.get('fields'):
-            fields = obj.get('fields').split(',')
+        if "fields" in obj and obj.get("fields"):
+            fields = obj.get("fields").split(",")
 
-        if 'instances' in obj and obj.get('instances'):
-            insts = obj.get('instances')
+        if "instances" in obj and obj.get("instances"):
+            insts = obj.get("instances")
 
-        if 'geo_field' in obj and obj.get('geo_field'):
-            geo_field = obj.get('geo_field')
+        if "geo_field" in obj and obj.get("geo_field"):
+            geo_field = obj.get("geo_field")
 
         # Get the instances from the form
         instances = [inst for inst in insts[0].instances.all()]
 
         if not geo_field:
             return geojson.FeatureCollection(
-                [super(GeoJsonListSerializer, self).to_representation(
-                    {'instance': ret, 'fields': obj.get('fields')})
-                 for ret in instances])
+                [
+                    super(GeoJsonListSerializer, self).to_representation(
+                        {"instance": ret, "fields": obj.get("fields")}
+                    )
+                    for ret in instances
+                ]
+            )
 
         # Use the default serializer
         return geojson.FeatureCollection(
-            [create_feature(ret, geo_field, fields)for ret in instances])
+            [create_feature(ret, geo_field, fields) for ret in instances]
+        )
