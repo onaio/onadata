@@ -136,7 +136,9 @@ def _query_iterator(sql, fields=None, params=None, count=False):
             yield parse_json(row[0]) if row[0] else None
     else:
         for row in cursor.fetchall():
-            yield dict(zip(fields, (json.loads(s) for s in row)))
+            yield dict(
+                zip(fields, (json.loads(s) if isinstance(s, str) else s for s in row))
+            )
 
 
 def get_etag_hash_from_query(queryset, sql=None, params=None):
