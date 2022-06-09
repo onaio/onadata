@@ -1988,6 +1988,65 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(mock_paginate_queryset.call_count, 2)
 
+    def test_geojson_simple_style(self):
+        self._publish_submit_geojson()
+
+        dataid = self.xform.instances.all().order_by("id")[0].pk
+
+        data_get = {"geo_field": "location", "simple_style": "true"}
+
+        view = DataViewSet.as_view({"get": "retrieve"})
+
+        request = self.factory.get("/", data=data_get, **self.extra)
+
+        response = view(
+            request, pk=self.xform.pk, dataid=dataid, format="geojson")
+
+        self.assertEqual(response.status_code, 200)
+        # build out geojson simple style spec
+        test_loc = geojson.Feature(
+            geometry=geojson.Point((36.787219, -1.294197)),
+            properties={"xform": self.xform.pk, "id": dataid},
+        )
+        if "id" in test_loc:
+            test_loc.pop("id")
+
+        self.assertEqual(response.data, test_loc)
+
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", data=data_get, **self.extra)
+        response = view(request, pk=self.xform.pk, format="geojson")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["type"], "FeatureCollection")
+        self.assertEqual(len(response.data["features"]), 4)
+        self.assertEqual(response.data["features"][0]["type"], "Feature")
+        self.assertEqual(
+            response.data["features"][0]["geometry"]["type"], "Point"
+        )
+
+    def test_geojson_simple_style_title_prop(self):
+        self._publish_submit_geojson()
+
+        dataid = self.xform.instances.all().order_by("id")[0].pk
+
+        data_get = {
+            "geo_field": "location",
+            "simple_style": "true",
+            "title": "shape"
+        }
+
+        view = DataViewSet.as_view({"get": "retrieve"})
+
+        request = self.factory.get("/", data=data_get, **self.extra)
+
+        response = view(
+            request, pk=self.xform.pk, dataid=dataid, format="geojson")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('title', response.data["properties"])
+        self.assertEqual('shape', response.data["properties"]["title"])
+
     def test_geojson_geofield(self):
         self._publish_submit_geojson()
 
