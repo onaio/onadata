@@ -71,9 +71,9 @@ def sheet_to_csv(xls_content, sheet_name):
     :param xls_content: Excel file contents
     :param sheet_name: the name of the excel sheet to generate the csv file
 
-    :returns: a (StrionIO) csv file object
+    :returns: a (StringIO) csv file object
     """
-    workbook = openpyxl.load_workbook(xls_content.path)
+    workbook = openpyxl.load_workbook(xls_content)
 
     sheet = workbook.get_sheet_by_name(sheet_name)
 
