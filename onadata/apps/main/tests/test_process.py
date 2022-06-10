@@ -100,6 +100,10 @@ class TestProcess(TestBase):
         """Test publishing an XLSX file."""
         self._publish_xlsx_file()
 
+    def test_publish_xlsx_file_with_external_choices(self):
+        """Test publishing an XLSX file with external choices"""
+        self._publish_xlsx_file_with_external_choices()
+
     @patch("onadata.apps.main.forms.requests")
     def test_google_url_upload(self, mock_requests):
         """Test uploading an XLSForm from a Google Docs SpreadSheet URL."""
