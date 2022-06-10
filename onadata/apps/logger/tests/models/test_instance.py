@@ -195,7 +195,7 @@ class TestInstance(TestBase):
             )
         ]
         self.assertEqual(len(data), 1)
-        self.assertEqual(data, [str(oldest)])
+        self.assertEqual(data, [oldest])
 
         # mongo $gt
         data = [
