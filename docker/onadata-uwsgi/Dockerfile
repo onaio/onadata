@@ -60,6 +60,7 @@ RUN apt-get update -q &&\
         libpcre3 \
         libpcre3-dev \
         locales && \
+        netcat && \
     rm -rf /var/lib/apt/lists/*
 
 # Generate and set en_US.UTF-8 locale
