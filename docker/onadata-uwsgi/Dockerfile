@@ -59,7 +59,7 @@ RUN apt-get update -q &&\
         openjdk-11-jre-headless \
         libpcre3 \
         libpcre3-dev \
-        locales && \
+        locales \
         netcat && \
     rm -rf /var/lib/apt/lists/*
 
