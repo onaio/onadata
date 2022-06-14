@@ -3,6 +3,25 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.0.4(2022-06-14)
+------------------
+
+- Add geojson simplestyle-spec support 
+  `PR #2255 <https://github.com/onaio/onadata/pull/2255>`_
+  [@KipSigei]
+- Fix data type of filtered /data JSON response 
+  `PR #2256 <https://github.com/onaio/onadata/pull/2256>`_
+  [@ukanga]
+- Use xlsx file object instead of absolute path 
+  `PR #2257 <https://github.com/onaio/onadata/pull/2257>`_
+  [@KipSigei]
+- Add netcat to allow liveness/readiness probes that make use of open port checks. 
+  `PR #2259 <https://github.com/onaio/onadata/pull/2259>`_
+  [@ukanga]
+- Fix netcat package include in Dockerfile 
+  `PR #2260 <https://github.com/onaio/onadata/pull/2260>`_
+  [@ukanga]
+
 v3.0.3(2022-06-03)
 ------------------
 
