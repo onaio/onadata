@@ -15,7 +15,7 @@ on:
               default: ''
 
 jobs:
-  main:
+  build:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
@@ -75,3 +75,16 @@ jobs:
 
       - name: Image digest
         run: echo ${{ steps.docker-build.outputs.digest }}
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ github.event.inputs.versionTag || steps.get-version.outputs.VERSION || steps.get-branch-name.outputs.BRANCH }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan result to Github security lab
+        uses: github/codeql-action/upload-sarif@v1
+        with:
+          sarif_file: 'trivy-results.sarif'
+
