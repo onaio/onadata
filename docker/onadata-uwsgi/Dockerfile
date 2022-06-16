@@ -26,7 +26,8 @@ ENV PYTHONUNBUFFERED 1
 ENV DJANGO_SETTINGS_MODULE onadata.settings.docker
 
 # Install service dependencies
-RUN apt-get update -q &&\
+RUN apt-get update -q && \
+     apt-get dist-upgrade -y && \
     apt-get install -y --no-install-recommends software-properties-common \
         binutils \
         libproj-dev \
