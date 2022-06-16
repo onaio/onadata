@@ -1,0 +1,13 @@
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /requirements
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: requirements
+    reviewers:
+      - "ukanga"
+      - "KipSigei"
+      - "DavisRayM"
