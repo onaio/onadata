@@ -6,10 +6,12 @@ from __future__ import unicode_literals
 
 import hashlib
 import json
+from multiprocessing import context
 import os
 import re
 import sys
 from datetime import datetime, timedelta
+from django.http import HttpRequest
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -24,6 +26,7 @@ from django.utils.translation import gettext as _
 import six
 from json2xlsclient.client import Client
 from multidb.pinning import use_master
+
 from rest_framework import exceptions
 from six import iteritems
 from six.moves.urllib.parse import urlparse
@@ -39,6 +42,7 @@ from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.export import Export, get_export_options_query_kwargs
 from onadata.apps.viewer.models.parsed_instance import query_data
 from onadata.libs.exceptions import J2XException, NoRecordsFoundError
+from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.utils.common_tags import DATAVIEW_EXPORT, GROUPNAME_REMOVED_FLAG
 from onadata.libs.utils.common_tools import (
     cmp_to_key,
@@ -137,6 +141,7 @@ def generate_export(export_type, xform, export_id=None, options=None):  # noqa C
         Export.CSV_ZIP_EXPORT: "to_zipped_csv",
         Export.SAV_ZIP_EXPORT: "to_zipped_sav",
         Export.GOOGLE_SHEETS_EXPORT: "to_google_sheets",
+        Export.GEOJSON_EXPORT: "to_flat_csv_export"
     }
 
     if xform is None:
@@ -540,6 +545,55 @@ def generate_kml_export(
     export = get_or_create_export_object(export_id, options, xform, export_type)
 
     export.filedir, export.filename = os.path.split(export_filename)
+    export.internal_status = Export.SUCCESSFUL
+    export.save()
+
+    return export
+
+
+def generate_geojson_export(
+    export_type, username, id_string, export_id=None, options=None, xform=None
+):
+    """
+    Generates Linked Geojson export
+
+    :param export_type: type of export
+    :param username: logged in username
+    :param id_string: xform id_string
+    :param export_id: ID of export object associated with the request
+    :param options: additional parameters required for the lookup.
+    :param ext: File extension of the generated export
+    """
+
+    extension = options.get("extension", export_type)
+    if xform is None:
+        xform = XForm.objects.get(user__username=username, id_string=id_string)
+    metadata = MetaData.objects.get(
+        data_value__contains="geojson",
+        data_type='media',
+        deleted_at__isnull=True)
+    request = HttpRequest()
+    request.query_params = {
+        "geo_field": metadata.data_geo_field,
+        "simple_style": metadata.data_simple_style,
+        "title": metadata.data_title
+    }
+    _context = {}
+    _context['request'] = request
+    content = GeoJsonSerializer(xform.instances.all(), many=True, context=_context)
+    data_to_write = json.dumps(content.data).encode('utf-8')
+    timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+    basename = f"{id_string}_{timestamp}"
+    filename = basename + "." + extension
+    file_path = os.path.join(username, "exports", id_string, export_type, filename)
+
+    export_filename = write_temp_file_to_path(extension, data_to_write, file_path)
+
+    export = get_or_create_export_object(export_id, options, xform, export_type)
+
+    dir_name, basename = os.path.split(export_filename)
+    export.filedir = dir_name
+    export.filename = basename
     export.internal_status = Export.SUCCESSFUL
     export.save()
 

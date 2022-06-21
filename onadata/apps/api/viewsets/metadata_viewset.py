@@ -41,7 +41,6 @@ class MetaDataViewSet(AuthenticateHeaderMixin,
 
     def retrieve(self, request, *args, **kwargs):
         self.object = self.get_object()
-
         if isinstance(request.accepted_renderer, MediaFileRenderer) \
                 and self.object.data_file is not None:
 

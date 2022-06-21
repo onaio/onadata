@@ -71,7 +71,7 @@ def get_linked_object(parts):
     """
     if isinstance(parts, list) and parts:
         obj_type = parts[0]
-        if obj_type in [DATAVIEW_TAG, XFORM_TAG] and len(parts) > 1:
+        if obj_type in [DATAVIEW_TAG, XFORM_TAG, "geojson"] and len(parts) > 1:
             obj_pk = parts[1]
             try:
                 obj_pk = int(obj_pk)
@@ -103,6 +103,9 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
     data_value = serializers.CharField(max_length=255, required=True)
     data_type = serializers.ChoiceField(choices=METADATA_TYPES)
     data_file = serializers.FileField(required=False)
+    data_title = serializers.CharField(max_length=255, required=False)
+    data_geo_field = serializers.CharField(max_length=255, required=False)
+    data_simple_style = serializers.BooleanField(default=False)
     data_file_type = serializers.CharField(
         max_length=255, required=False, allow_blank=True
     )
@@ -122,6 +125,9 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             "data_value",
             "data_type",
             "data_file",
+            "data_title",
+            "data_simple_style",
+            "data_geo_field",
             "data_file_type",
             "media_url",
             "file_hash",
@@ -140,14 +146,15 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         ):
             return obj.data_file.url
         if obj.data_type in [MEDIA_TYPE] and obj.is_linked_dataset:
+            request = self.context.get("request")
             kwargs = {
                 "kwargs": {
                     "pk": obj.content_object.pk,
                     "username": obj.content_object.user.username,
                     "metadata": obj.pk,
                 },
-                "request": self.context.get("request"),
-                "format": "csv",
+                "request": request,
+                "format": "geojson" if obj.data_value.startswith('geojson') else "csv",
             }
 
             return reverse("xform-media", **kwargs)
@@ -262,6 +269,9 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         data_type = validated_data.get("data_type")
         data_file = validated_data.get("data_file")
         data_file_type = validated_data.get("data_file_type")
+        data_title = validated_data.get('data_title')
+        data_simple_style = validated_data.get('data_simple_style')
+        data_geo_field = validated_data.get('data_geo_field')
 
         content_object = self.get_content_object(validated_data)
         data_value = data_file.name if data_file else validated_data.get("data_value")
@@ -303,6 +313,9 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                     data_type=data_type,
                     data_value=data_value,
                     data_file=data_file,
+                    data_title=data_title,
+                    data_geo_field=data_geo_field,
+                    data_simple_style=data_simple_style,
                     data_file_type=data_file_type,
                     object_id=content_object.id,
                 )

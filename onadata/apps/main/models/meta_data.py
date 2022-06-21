@@ -186,6 +186,9 @@ class MetaData(models.Model):
 
     data_type = models.CharField(max_length=255)
     data_value = models.CharField(max_length=255)
+    data_title = models.CharField(max_length=255, blank=True, null=True)
+    data_geo_field = models.CharField(max_length=255, blank=True, null=True)
+    data_simple_style = models.BooleanField(default=False)
     data_file = models.FileField(upload_to=upload_to, blank=True, null=True)
     data_file_type = models.CharField(max_length=255, blank=True, null=True)
     file_hash = models.CharField(max_length=50, blank=True, null=True)
@@ -202,7 +205,7 @@ class MetaData(models.Model):
 
     class Meta:
         app_label = "main"
-        unique_together = ("object_id", "data_type", "data_value", "content_type")
+        unique_together = ("object_id", "data_type", "data_value", "content_type", "data_title")
 
     # pylint: disable=arguments-differ
     def save(self, *args, **kwargs):
@@ -527,6 +530,7 @@ class MetaData(models.Model):
         return isinstance(self.data_value, str) and (
             self.data_value.startswith("xform")
             or self.data_value.startswith("dataview")
+            or self.data_value.startswith("geojson")
         )
 
     @staticmethod
@@ -562,7 +566,8 @@ def clear_cached_metadata_instance_object(
     """
     Clear the cache for the metadata object.
     """
-    safe_delete(f"{XFORM_METADATA_CACHE}{instance.object_id}")
+    if instance:
+        safe_delete(f"{XFORM_METADATA_CACHE}{instance.object_id}")
 
 
 # pylint: disable=unused-argument

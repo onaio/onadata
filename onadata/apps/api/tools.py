@@ -589,7 +589,8 @@ def get_media_file_response(metadata, request=None):
         model = None
         if value.startswith("dataview"):
             model = DataView
-        elif value.startswith("xform"):
+        elif value.startswith("xform")\
+            or value.startswith("geojson"):
             model = XForm
 
         if model:
@@ -626,12 +627,15 @@ def get_media_file_response(metadata, request=None):
         if obj:
             dataview = obj if isinstance(obj, DataView) else False
             xform = obj.xform if isinstance(obj, DataView) else obj
+            export_type = Export.GEOJSON_EXPORT \
+                if metadata.data_value.startswith('geojson') \
+                    else Export.CSV_EXPORT
 
             return custom_response_handler(
                 request,
                 xform,
                 {},
-                Export.CSV_EXPORT,
+                export_type,
                 filename=filename,
                 dataview=dataview,
             )

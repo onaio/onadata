@@ -35,6 +35,7 @@ from onadata.libs.exceptions import (
     ServiceUnavailable,
 )
 from onadata.libs.permissions import filter_queryset_xform_meta_perms_sql
+from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.utils import log
 from onadata.libs.utils.google import create_flow
 from onadata.libs.utils.async_status import (
@@ -58,6 +59,7 @@ from onadata.libs.utils.export_tools import (
     generate_external_export,
     generate_kml_export,
     generate_osm_export,
+    generate_geojson_export,
     newest_export_for,
     parse_request_export_options,
     should_create_new_export,
@@ -79,6 +81,7 @@ EXPORT_EXT = {
     "zip": Export.ZIP_EXPORT,
     OSM: Export.OSM_EXPORT,
     "gsheets": Export.GOOGLE_SHEETS_EXPORT,
+    "geojson": Export.GEOJSON_EXPORT,
 }
 
 
@@ -268,6 +271,15 @@ def _generate_new_export(  # noqa: C0901
             )
         elif export_type == Export.KML_EXPORT:
             export = generate_kml_export(
+                export_type,
+                xform.user.username,
+                xform.id_string,
+                None,
+                options,
+                xform=xform,
+            )
+        elif export_type == Export.GEOJSON_EXPORT:
+            export = generate_geojson_export(
                 export_type,
                 xform.user.username,
                 xform.id_string,
