@@ -636,6 +636,7 @@ def get_media_file_response(metadata, request=None):
                 xform,
                 {},
                 export_type,
+                metadata,
                 filename=filename,
                 dataview=dataview,
             )

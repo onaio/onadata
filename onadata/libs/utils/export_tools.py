@@ -550,7 +550,13 @@ def generate_kml_export(
 
 
 def generate_geojson_export(
-    export_type, username, id_string, export_id=None, options=None, xform=None
+    export_type,
+    username,
+    id_string,
+    metadata,
+    export_id=None,
+    options=None,
+    xform=None
 ):
     """
     Generates Linked Geojson export
@@ -566,37 +572,32 @@ def generate_geojson_export(
     extension = options.get("extension", export_type)
     if xform is None:
         xform = XForm.objects.get(user__username=username, id_string=id_string)
-    metadata = MetaData.objects.filter(
-        data_value__contains="geojson",
-        data_type='media',
-        deleted_at__isnull=True).last()
-    if metadata:
-        request = HttpRequest()
-        request.query_params = {
-            "geo_field": metadata.data_geo_field,
-            "simple_style": metadata.data_simple_style,
-            "title": metadata.data_title
-        }
-        _context = {}
-        _context['request'] = request
-        content = GeoJsonSerializer(xform.instances.all(), many=True, context=_context)
-        data_to_write = json.dumps(content.data).encode('utf-8')
-        timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-        basename = f"{id_string}_{timestamp}"
-        filename = basename + "." + extension
-        file_path = os.path.join(username, "exports", id_string, export_type, filename)
+    request = HttpRequest()
+    request.query_params = {
+        "geo_field": metadata.data_geo_field,
+        "simple_style": metadata.data_simple_style,
+        "title": metadata.data_title
+    }
+    _context = {}
+    _context['request'] = request
+    content = GeoJsonSerializer(xform.instances.all(), many=True, context=_context)
+    data_to_write = json.dumps(content.data).encode('utf-8')
+    timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+    basename = f"{id_string}_{timestamp}"
+    filename = basename + "." + extension
+    file_path = os.path.join(username, "exports", id_string, export_type, filename)
 
-        export_filename = write_temp_file_to_path(extension, data_to_write, file_path)
+    export_filename = write_temp_file_to_path(extension, data_to_write, file_path)
 
-        export = get_or_create_export_object(export_id, options, xform, export_type)
+    export = get_or_create_export_object(export_id, options, xform, export_type)
 
-        dir_name, basename = os.path.split(export_filename)
-        export.filedir = dir_name
-        export.filename = basename
-        export.internal_status = Export.SUCCESSFUL
-        export.save()
+    dir_name, basename = os.path.split(export_filename)
+    export.filedir = dir_name
+    export.filename = basename
+    export.internal_status = Export.SUCCESSFUL
+    export.save()
 
-        return export
+    return export
 
 
 def kml_export_data(id_string, user, xform=None):

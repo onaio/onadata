@@ -55,6 +55,7 @@ METADATA_TYPES = (
 
 DATAVIEW_TAG = "dataview"
 XFORM_TAG = "xform"
+GEOJSON_TAG = "geojson"
 
 PROJECT_METADATA_TYPES = (
     (MEDIA_TYPE, _("Media")),
@@ -71,7 +72,7 @@ def get_linked_object(parts):
     """
     if isinstance(parts, list) and parts:
         obj_type = parts[0]
-        if obj_type in [DATAVIEW_TAG, XFORM_TAG, "geojson"] and len(parts) > 1:
+        if obj_type in [DATAVIEW_TAG, XFORM_TAG, GEOJSON_TAG] and len(parts) > 1:
             obj_pk = parts[1]
             try:
                 obj_pk = int(obj_pk)
