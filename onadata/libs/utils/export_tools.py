@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import hashlib
 import json
-from multiprocessing import context
 import os
 import re
 import sys
@@ -141,7 +140,6 @@ def generate_export(export_type, xform, export_id=None, options=None):  # noqa C
         Export.CSV_ZIP_EXPORT: "to_zipped_csv",
         Export.SAV_ZIP_EXPORT: "to_zipped_sav",
         Export.GOOGLE_SHEETS_EXPORT: "to_google_sheets",
-        Export.GEOJSON_EXPORT: "to_flat_csv_export"
     }
 
     if xform is None:
@@ -568,36 +566,37 @@ def generate_geojson_export(
     extension = options.get("extension", export_type)
     if xform is None:
         xform = XForm.objects.get(user__username=username, id_string=id_string)
-    metadata = MetaData.objects.get(
+    metadata = MetaData.objects.filter(
         data_value__contains="geojson",
         data_type='media',
-        deleted_at__isnull=True)
-    request = HttpRequest()
-    request.query_params = {
-        "geo_field": metadata.data_geo_field,
-        "simple_style": metadata.data_simple_style,
-        "title": metadata.data_title
-    }
-    _context = {}
-    _context['request'] = request
-    content = GeoJsonSerializer(xform.instances.all(), many=True, context=_context)
-    data_to_write = json.dumps(content.data).encode('utf-8')
-    timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-    basename = f"{id_string}_{timestamp}"
-    filename = basename + "." + extension
-    file_path = os.path.join(username, "exports", id_string, export_type, filename)
+        deleted_at__isnull=True).last()
+    if metadata:
+        request = HttpRequest()
+        request.query_params = {
+            "geo_field": metadata.data_geo_field,
+            "simple_style": metadata.data_simple_style,
+            "title": metadata.data_title
+        }
+        _context = {}
+        _context['request'] = request
+        content = GeoJsonSerializer(xform.instances.all(), many=True, context=_context)
+        data_to_write = json.dumps(content.data).encode('utf-8')
+        timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+        basename = f"{id_string}_{timestamp}"
+        filename = basename + "." + extension
+        file_path = os.path.join(username, "exports", id_string, export_type, filename)
 
-    export_filename = write_temp_file_to_path(extension, data_to_write, file_path)
+        export_filename = write_temp_file_to_path(extension, data_to_write, file_path)
 
-    export = get_or_create_export_object(export_id, options, xform, export_type)
+        export = get_or_create_export_object(export_id, options, xform, export_type)
 
-    dir_name, basename = os.path.split(export_filename)
-    export.filedir = dir_name
-    export.filename = basename
-    export.internal_status = Export.SUCCESSFUL
-    export.save()
+        dir_name, basename = os.path.split(export_filename)
+        export.filedir = dir_name
+        export.filename = basename
+        export.internal_status = Export.SUCCESSFUL
+        export.save()
 
-    return export
+        return export
 
 
 def kml_export_data(id_string, user, xform=None):
