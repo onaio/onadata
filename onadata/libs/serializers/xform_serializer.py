@@ -627,16 +627,19 @@ class XFormManifestSerializer(serializers.Serializer):
             "metadata": obj.pk,
         }
         request = self.context.get("request")
+        extension = "geojson" if obj.data_value.startswith('geojson') \
+            else "csv"
         try:
             fmt_index = obj.data_value.rindex(".") + 1
             fmt = obj.data_value[fmt_index:]
         except ValueError:
-            fmt = "csv"
+            fmt = extension
         url = reverse("xform-media", kwargs=kwargs, request=request, format=fmt.lower())
 
         group_delimiter = self.context.get(GROUP_DELIMETER_TAG)
         repeat_index_tags = self.context.get(REPEAT_INDEX_TAGS)
-        if group_delimiter and repeat_index_tags and fmt == "csv":
+        if group_delimiter and repeat_index_tags \
+                and (fmt == "csv" or fmt == "geojson"):
             return url + (
                 f"?{GROUP_DELIMETER_TAG}={group_delimiter}"
                 f"&{REPEAT_INDEX_TAGS}={repeat_index_tags}"
@@ -689,10 +692,12 @@ class XFormManifestSerializer(serializers.Serializer):
         """
         filename = obj.data_value
         parts = filename.split(" ")
+        extension = "geojson" if filename.startswith("geojson") \
+            else "csv"
         # filtered dataset is of the form "xform PK name", filename is the
         # third item
         if len(parts) > 2:
-            filename = f"{parts[2]}.csv"
+            filename = f"{parts[2]}.{extension}"
         else:
             try:
                 URLValidator()(filename)
