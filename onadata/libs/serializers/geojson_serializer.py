@@ -116,7 +116,7 @@ class GeoJsonSerializer(serializers.GeoFeatureModelSerializer):
             title = request.query_params.get("title")
             if geo_field:
                 if "properties" in ret and title:
-                    ret["properties"]["title"] = title
+                    ret["properties"]["title"] = obj.json.get(title)
                 points = obj.json.get(geo_field)
                 geometry = (
                     geometry_from_string(points, simple_style)
