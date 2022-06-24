@@ -186,9 +186,7 @@ class MetaData(models.Model):
 
     data_type = models.CharField(max_length=255)
     data_value = models.CharField(max_length=255)
-    data_title = models.CharField(max_length=255, blank=True, null=True)
-    data_geo_field = models.CharField(max_length=255, blank=True, null=True)
-    data_simple_style = models.BooleanField(default=False)
+    extra_data = models.CharField(max_length=255, blank=True, null=True)
     data_file = models.FileField(upload_to=upload_to, blank=True, null=True)
     data_file_type = models.CharField(max_length=255, blank=True, null=True)
     file_hash = models.CharField(max_length=50, blank=True, null=True)
@@ -205,7 +203,7 @@ class MetaData(models.Model):
 
     class Meta:
         app_label = "main"
-        unique_together = ("object_id", "data_type", "data_value", "content_type", "data_title")
+        unique_together = ("object_id", "data_type", "data_value", "content_type")
 
     # pylint: disable=arguments-differ
     def save(self, *args, **kwargs):

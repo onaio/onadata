@@ -104,9 +104,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
     data_value = serializers.CharField(max_length=255, required=True)
     data_type = serializers.ChoiceField(choices=METADATA_TYPES)
     data_file = serializers.FileField(required=False)
-    data_title = serializers.CharField(max_length=255, required=False)
-    data_geo_field = serializers.CharField(max_length=255, required=False)
-    data_simple_style = serializers.BooleanField(default=False)
+    extra_data = serializers.CharField(max_length=255, required=False)
     data_file_type = serializers.CharField(
         max_length=255, required=False, allow_blank=True
     )
@@ -126,9 +124,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             "data_value",
             "data_type",
             "data_file",
-            "data_title",
-            "data_simple_style",
-            "data_geo_field",
+            "extra_data",
             "data_file_type",
             "media_url",
             "file_hash",
@@ -270,9 +266,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         data_type = validated_data.get("data_type")
         data_file = validated_data.get("data_file")
         data_file_type = validated_data.get("data_file_type")
-        data_title = validated_data.get('data_title')
-        data_simple_style = validated_data.get('data_simple_style')
-        data_geo_field = validated_data.get('data_geo_field')
+        extra_data = validated_data.get('extra_data')
 
         content_object = self.get_content_object(validated_data)
         data_value = data_file.name if data_file else validated_data.get("data_value")
@@ -314,9 +308,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                     data_type=data_type,
                     data_value=data_value,
                     data_file=data_file,
-                    data_title=data_title,
-                    data_geo_field=data_geo_field,
-                    data_simple_style=data_simple_style,
+                    extra_data=extra_data,
                     data_file_type=data_file_type,
                     object_id=content_object.id,
                 )

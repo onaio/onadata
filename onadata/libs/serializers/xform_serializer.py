@@ -638,8 +638,7 @@ class XFormManifestSerializer(serializers.Serializer):
 
         group_delimiter = self.context.get(GROUP_DELIMETER_TAG)
         repeat_index_tags = self.context.get(REPEAT_INDEX_TAGS)
-        if group_delimiter and repeat_index_tags \
-                and (fmt == "csv" or fmt == "geojson"):
+        if group_delimiter and repeat_index_tags and fmt == "csv":
             return url + (
                 f"?{GROUP_DELIMETER_TAG}={group_delimiter}"
                 f"&{REPEAT_INDEX_TAGS}={repeat_index_tags}"

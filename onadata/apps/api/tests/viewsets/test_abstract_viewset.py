@@ -481,7 +481,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
 
         return response
 
-    def _add_form_metadata(self, xform, data_type, data_value, get_geojson, path=None, test=True):
+    def _add_form_metadata(self, xform, data_type, data_value, path=None, test=True):
         data = {"data_type": data_type, "data_value": data_value, "xform": xform.id}
 
         if path and data_value:
