@@ -41,7 +41,7 @@
 <script type="text/javascript" charset="utf-8" src="{{STATIC_URL}}js/sammy-0.7.1.min.js"></script>
 <script type="text/javascript" charset="utf-8" src="{{STATIC_URL}}js/sammy-plugins/sammy.meld-0.7.1.min.js"></script>
 
-<script type="text/javascript">
+<script type="text/javascript" nonce="{{CSP_NONCE}}">
 var formJSONUrl = "{% url 'download_jsonform' username id_string %}";
 var mongoAPIUrl = "{% url 'mongo_view_api' username id_string %}";
 var deleteAPIUrl = "{% url 'delete_data' username id_string %}";
@@ -154,7 +154,7 @@ function _attachment_url(name, size)
 
 <script type="text/javascript" charset="utf-8" src="{{STATIC_URL}}js/instance.js"></script>
 
-<script type="text/javascript">
+<script type="text/javascript" nonce="{{CSP_NONCE}}">
 $(document).ready(function(){
     $('#loading')
         .ajaxStart(function() {

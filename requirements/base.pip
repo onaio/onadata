@@ -101,6 +101,7 @@ dict2xml==1.7.1
 django==3.2.13
     # via
     #   django-cors-headers
+    #   django-csp
     #   django-debug-toolbar
     #   django-filter
     #   django-guardian
@@ -118,6 +119,8 @@ django==3.2.13
 django-activity-stream==1.4.1
     # via onadata
 django-cors-headers==3.13.0
+    # via onadata
+django-csp==3.7
     # via onadata
 django-debug-toolbar==3.5.0
     # via onadata

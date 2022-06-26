@@ -574,7 +574,10 @@ def enter_data(request, username, id_string):
                 )
             )
         return HttpResponseRedirect(url)
-    except EnketoError as e:
+    except (AttributeError, EnketoError) as e:
+        error_msg = e
+        if isinstance(e, AttributeError):
+            error_msg = _("Enketo is not configured for this server!")
         data = {}
         owner = User.objects.get(username__iexact=username)
         data["profile"], __ = UserProfile.objects.get_or_create(user=owner)
@@ -583,12 +586,13 @@ def enter_data(request, username, id_string):
         data["form_view"] = True
         data["message"] = {
             "type": "alert-error",
-            "text": f"Enketo error, reason: {e}",
+            "text": f"Enketo error, reason: {error_msg}",
         }
+        data["num_forms"] = owner.xforms.filter(shared__exact=1).count()
         messages.add_message(
             request,
             messages.WARNING,
-            _(f"Enketo error: enketo replied {e}"),
+            _(f"Enketo error: enketo replied {error_msg}"),
             fail_silently=True,
         )
         return render(request, "profile.html", data)

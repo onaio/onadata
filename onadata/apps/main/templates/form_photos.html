@@ -12,7 +12,7 @@
 
 {% block javascript %}
 {{ block.super }}
-    <style>
+    <style nonce="{{CSP_NONCE}}">
         .previous {
             background-color: #f1f1f1;
             color: black;
@@ -38,7 +38,7 @@
 
     </style>
 
-<script type="text/javascript">
+<script type="text/javascript" nonce="{{CSP_NONCE}}">
     let images = {{ images|safe }};
     let current = 0;
     $(document).ready(function() {

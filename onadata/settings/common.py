@@ -140,6 +140,7 @@ TEMPLATES = [
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
+                "csp.context_processors.nonce",
                 "django.contrib.auth.context_processors.auth",
                 "django.template.context_processors.debug",
                 "django.template.context_processors.i18n",
@@ -166,6 +167,7 @@ MIDDLEWARE = (
     "onadata.libs.utils.middleware.LocaleMiddlewareWithTweaks",
     "django.middleware.csrf.CsrfViewMiddleware",
     "corsheaders.middleware.CorsMiddleware",
+    "csp.middleware.CSPMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "onadata.libs.utils.middleware.HTTPResponseNotAllowedMiddleware",
@@ -173,7 +175,7 @@ MIDDLEWARE = (
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 )
 
-X_FRAME_OPTIONS = "DENY"
+X_FRAME_OPTIONS = "SAMEORIGIN"
 
 LOCALE_PATHS = (os.path.join(PROJECT_ROOT, "onadata.apps.main", "locale"),)
 
@@ -607,3 +609,77 @@ GOOGLE_FLOW = {
         "javascript_origins": [],
     }
 }
+CSP_CONNECT_SRC = ["https://maps.googleapis.com", "http://localhost:8000"]
+CSP_FONT_SRC = [
+    "http://netdna.bootstrapcdn.com",
+    "https://netdna.bootstrapcdn.com",
+    "https://fonts.gstatic.com",
+    "data:",
+]
+CSP_FRAME_SRC = ["http://localhost:8000"]
+CSP_IMG_SRC = [
+    "https://netdna.bootstrapcdn.com",
+    "https://secure.gravatar.com",
+    "https://i1.wp.com",
+    "https://code.jquery.com",
+    "https://www.dropbox.com",
+    "http://localhost:8000",
+]
+CSP_SCRIPT_SRC = [
+    "http://netdna.bootstrapcdn.com",
+    "https://netdna.bootstrapcdn.com",
+    "https://code.jquery.com",
+    "https://www.dropbox.com",
+    "https://maps.google.com",
+    "https://maps.googleapis.com",
+    "http://a.tiles.mapbox.com",
+    "http://localhost:8000",
+    "'unsafe-eval'",
+    "'unsafe-hashes'",
+    "'sha256-FCfJFhLnM7FTKq9fzONrOpi3h5WfmVM7YZD94t/7kJo='",
+]
+CSP_STYLE_SRC = [
+    "http://netdna.bootstrapcdn.com",
+    "https://netdna.bootstrapcdn.com",
+    "http://fonts.googleapis.com/",
+    "https://fonts.googleapis.com/",
+    "https://www.dropbox.com",
+    "http://localhost:8000",
+    "'unsafe-hashes'",
+    "'sha256-2EA12+9d+s6rrc0rkdIjfmjbh6p2o0ZSXs4wbZuk/tA='",
+    "'sha256-SDLD8eJrQqbeuh9+xh0t5VE9P3oV9KP/BhfZq96U2RI='",
+    "'sha256-BSTKIYoPCaklkJ9YS/ZVYuKW8e+DG8jZJCXznBzHjgg='",
+    "'sha256-giUzRe8cXWgbvRZsDFMO4ElBrNJCUKIBBMl1ks7MJkk='",
+    "'sha256-+17AcPK/e5AtiK52Z2vnx3uG3BMzyzRr4Qv5UQsEbDU='",
+    "'sha256-nzHi23DROym7G011m6y0DyDd9mvQL2hSJ0Gy3g2T/5Q='",
+    "'sha256-48t63itaFWU13cRm0yfVJfhH9W643157SmpC3WbnDQc='",
+    "'sha256-0EZqoz+oBhx7gF4nvY2bSqoGyy4zLjNF+SDQXGp/ZrY='",
+    "'sha256-aqNNdDLnnrDOnTNdkJpYlAxKVJtLt9CtFLklmInuUAE='",
+    "'sha256-1d5RrnRwOR2fbv1b5q8P0cFPTvzxiTVvsdM1Ph/PhrU='",
+    "'sha256-pPhsZ7AvE4iZV+LC07MKgTV72ojy2HmGNl+WO1ECv7Q='",
+    "'sha256-ZqhM5xQOj0Og/l+8qEbc5F5YYumTdWvc5mtn7dECFuE='",
+    "'sha256-RjGsQKP6nC+fFonhmcbTW9dtBRAtlBlOvD8Zhc+Zw/M='",
+    "'sha256-h74jMOgFaP1qJMEzRpj+xmoYLGUXUK/Uspo5kFn2CN0='",
+    "'sha256-8oXPQtuG9cVYyk8MyeXPRaAkUJimrP5eUgEqnPNdbt0='",
+    "'sha256-rDHuGvvtanq4kWMPipd6D0I9Nh8rt53loEiI4P49tI8='",
+    "'sha256-D9r+qrbBHq5cfcQoWJY4TmdnhLcji7xqZgud4kXvfAA='",
+    "'sha256-5AbUaZkl33hI/zVKBGpMBZa3aQvyaNjs5CA9ND9MIfg='",
+    "'sha256-GV1HqzN6rwzXrwy8zJIm7Vra5RQyHzNNM/gqEvm5S3k='",
+    "'sha256-wGVBXcVRlwlhnedEI2if7xVXLVzyMb2De9M+DhNvMao='",
+    "'sha256-ZqhM5xQOj0Og/l+8qEbc5F5YYumTdWvc5mtn7dECFuE='",
+    "'sha256-RjGsQKP6nC+fFonhmcbTW9dtBRAtlBlOvD8Zhc+Zw/M='",
+    "'sha256-h74jMOgFaP1qJMEzRpj+xmoYLGUXUK/Uspo5kFn2CN0='",
+    "'sha256-8oXPQtuG9cVYyk8MyeXPRaAkUJimrP5eUgEqnPNdbt0='",
+    "'sha256-rDHuGvvtanq4kWMPipd6D0I9Nh8rt53loEiI4P49tI8='",
+    "'sha256-YFOIjkCvZnAH6R5z1ZjUI/Zgf7uslK5vN80+lsdvYss='",
+    "'sha256-cPZkOFZiciU3Z+6kyM3mPJQjEG34QI4YxweiB7n45DQ='",
+    "'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='",
+    "'sha256-XF40drMRON9Qm0dC4qU9NBiM+fma+ykSbIFIj6R5yb4='",
+    "'sha256-VWkG3rR92tqWKwxTi7FGCwo0s3+n19OMWDS2+QN0eiU='",
+    "'sha256-lN0P8SqX9AfsOHh/CO1C2+xj4daAI1pykwL4hbWmQ0g='",
+    "'sha256-Nb6974zAN1POcePwKBPsyhirac5vQfjPHQ9VvdQ5EMc='",
+    "'sha256-28J4mQEy4Sqd0R+nZ89dOl9euh+Y3XvT+VfXD5pOiOE='",
+    "'sha256-dlVFva77C91S8Wn24REidEasjl4VM1zOkxe/fwc/jy4='",
+    "'sha256-iUo/gR1ZpfvbyyW8pBPaq1LFvqEAnqd/uyPwly6P/SQ='",
+]
+CSP_INCLUDE_NONCE_IN = ["script-src", "style-src"]

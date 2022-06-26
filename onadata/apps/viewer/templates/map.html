@@ -18,7 +18,7 @@
 <body>
   {% include "topbar.html" %}
   {% if mapbox_layer %}
-  <script type="text/javascript">
+  <script type="text/javascript" nonce="{{CSP_NONCE}}">
     var customMapBoxTileLayer = {label: '{{mapbox_layer.map_name}}', url: '{{mapbox_layer.link}}'};
   </script>
   {% endif %}
@@ -56,7 +56,7 @@
 <script type="text/javascript" src="/static/js/TileLayer.Bing.js"></script>
 <script type="text/javascript" src="/static/js/formManagers.js?ts=201303251542"></script>
 <script type="text/javascript" src="/static/js/jquery.ba-bbq.min.js"></script>
-<script type="text/javascript">
+<script type="text/javascript" nonce="{{CSP_NONCE}}">
     var formJSONUrl = "{{ jsonform_url }}";
     var enketoAddUrl = "{{ enketo_add_url }}";
     var enketoEditUrl = "{{ enketo_edit_url }}";

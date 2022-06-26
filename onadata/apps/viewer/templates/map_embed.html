@@ -28,7 +28,7 @@
 <script type="text/javascript" src="{{STATIC_URL}}js/TileLayer.Bing.js"></script>
 
 <script type="text/javascript" src="{{STATIC_URL}}js/formManagers.js?ts=20130730"></script>
-<script type="text/javascript">
+<script type="text/javascript" nonce="{{CSP_NONCE}}">
 var center = {{ center|safe }};
 var formJSONUrl = "{{ jsonform_url }}";
 var enketoAddUrl = "{{ enketo_add_url }}";
@@ -70,6 +70,7 @@ $(document).ready(function() {
 	<div id="map_canvas"></div>
 	<div id="content_modal"></div>
 	<div class="delete_modal"></div>
-	<script type="text/javascript">$(window).resize(setMapHeight);</script>
+<script type="text/javascript" nonce="{{CSP_NONCE}}">
+	$(window).resize(setMapHeight);</script>
 </body>
 {% endblock %}

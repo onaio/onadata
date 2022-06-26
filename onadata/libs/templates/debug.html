@@ -9,7 +9,7 @@
 
 {% block content %}
 <div id='content'>&nbsp;</div>
-<script type="text/javascript">
+<script type="text/javascript" nonce="{{CSP_NONCE}}">
 var data = {{ debug_data|safe }};
 document.getElementById('content').innerHTML = "<pre>" + JSON.stringify(data,null, 4) + "</pre>";
 </script>
