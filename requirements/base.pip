@@ -10,7 +10,7 @@
     # via -r requirements/base.in
 -e git+https://github.com/onaio/oauth2client.git@75dfdee77fb640ae30469145c66440571dfeae5c#egg=oauth2client
     # via -r requirements/base.in
--e git+https://github.com/onaio/ona-oidc.git@v0.0.10#egg=ona-oidc
+-e git+https://github.com/onaio/ona-oidc.git@debug#egg=ona-oidc
     # via -r requirements/base.in
 -e git+https://github.com/onaio/floip-py.git@3c980eb184069ae7c3c9136b18441978237cd41d#egg=pyfloip
     # via -r requirements/base.in
