@@ -35,7 +35,6 @@ from onadata.libs.exceptions import (
     ServiceUnavailable,
 )
 from onadata.libs.permissions import filter_queryset_xform_meta_perms_sql
-from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.utils import log
 from onadata.libs.utils.google import create_flow
 from onadata.libs.utils.async_status import (

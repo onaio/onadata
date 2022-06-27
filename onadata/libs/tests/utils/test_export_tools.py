@@ -561,7 +561,7 @@ class TestExportTools(TestBase, TestAbstractViewSet):
         id_string = self.xform.id_string
         # get metadata instance and pass to geojson export util function
         self.assertEqual(self.xform.metadata_set.count(), 1)
-        metadata = self.xform.metadata_set.get(id=1)
+        metadata = self.xform.metadata_set.all()[0]
         export = generate_geojson_export(export_type, username, id_string, metadata, options=options)
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)
