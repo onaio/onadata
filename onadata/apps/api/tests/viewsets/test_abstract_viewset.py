@@ -481,8 +481,21 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
 
         return response
 
-    def _add_form_metadata(self, xform, data_type, data_value, path=None, test=True):
-        data = {"data_type": data_type, "data_value": data_value, "xform": xform.id}
+    def _add_form_metadata(
+        self,
+        xform,
+        data_type,
+        data_value,
+        extra_data=None,
+        path=None,
+        test=True
+    ):
+        data = {
+            "data_type": data_type,
+            "data_value": data_value,
+            "xform": xform.id,
+            "extra_data": extra_data
+        }
 
         if path and data_value:
             with open(path, "rb") as media_file:

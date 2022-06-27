@@ -553,7 +553,7 @@ def generate_geojson_export(
     export_type,
     username,
     id_string,
-    metadata,
+    metadata=None,
     export_id=None,
     options=None,
     xform=None

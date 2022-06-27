@@ -1,4 +1,5 @@
 import os
+import json
 from builtins import open
 
 from django.conf import settings
@@ -274,7 +275,12 @@ class TestMetaDataViewSet(TestAbstractViewSet):
     def test_add_media_geojson_link(self):
         data_type = 'media'
         data_value = 'geojson {} transportation'.format(self.xform.pk)
-        self._add_form_metadata(self.xform, data_type, data_value, True)
+        extra_data = {
+            "data_title": "test",
+            "data_simple_style": True,
+            "data_geo_field": "test"
+        }
+        self._add_form_metadata(self.xform, data_type, data_value, extra_data=json.dumps(extra_data))
         self.assertIsNotNone(self.metadata_data['media_url'])
         request = self.factory.get('/', **self.extra)
         ext = self.data_value[self.data_value.rindex('.') + 1:]

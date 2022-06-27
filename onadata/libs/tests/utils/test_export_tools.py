@@ -6,6 +6,7 @@ import os
 import shutil
 import tempfile
 import zipfile
+import json
 from builtins import open
 from datetime import date, datetime, timedelta
 
@@ -22,6 +23,8 @@ from rest_framework.authtoken.models import Token
 from savReaderWriter import SavWriter
 
 from onadata.apps.api import tests as api_tests
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
+    TestAbstractViewSet)
 from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
@@ -36,6 +39,7 @@ from onadata.libs.utils.export_tools import (
     generate_export,
     generate_kml_export,
     generate_osm_export,
+    generate_geojson_export,
     get_repeat_index_tags,
     kml_export_data,
     parse_request_export_options,
@@ -48,7 +52,7 @@ def _logger_fixture_path(*args):
     return os.path.join(settings.PROJECT_ROOT, "libs", "tests", "fixtures", *args)
 
 
-class TestExportTools(TestBase):
+class TestExportTools(TestBase, TestAbstractViewSet):
     """
     Test export_tools functions.
     """
@@ -527,6 +531,47 @@ class TestExportTools(TestBase):
 
         export = generate_kml_export(
             export_type, username, id_string, export_id=export_id, options=options
+        )
+
+        self.assertIsNotNone(export)
+        self.assertTrue(export.is_successful)
+
+    def test_geojson_exports(self):
+        """
+        Test generate_geojson_export()
+        """
+        export_type = "geojson"
+        options = {
+            "extension": "geojson",
+        }
+        self._publish_transportation_form_and_submit_instance()
+        # set metadata to xform
+        data_type = "media"
+        data_value = 'geojson {} {}'.format(self.xform.pk, self.xform.id_string)
+        extra_data = {
+            "data_title": "test",
+            "data_geo_field": "test",
+            "data_simple_style": True
+        }
+        self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
+        response = self._add_form_metadata(self.xform, data_type, data_value, extra_data=json.dumps(extra_data))
+        self.assertEqual(response.status_code, 201)
+
+        username = self.xform.user.username
+        id_string = self.xform.id_string
+        # get metadata instance and pass to geojson export util function
+        self.assertEqual(self.xform.metadata_set.count(), 1)
+        metadata = self.xform.metadata_set.get(id=1)
+        export = generate_geojson_export(export_type, username, id_string, metadata, options=options)
+        self.assertIsNotNone(export)
+        self.assertTrue(export.is_successful)
+
+        export_id = export.id
+
+        export.delete()
+
+        export = generate_geojson_export(
+            export_type, username, id_string, metadata, export_id=export_id, options=options
         )
 
         self.assertIsNotNone(export)
