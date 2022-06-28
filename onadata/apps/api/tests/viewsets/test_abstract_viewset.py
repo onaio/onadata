@@ -486,16 +486,18 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         xform,
         data_type,
         data_value,
-        extra_data=None,
         path=None,
-        test=True
+        test=True,
+        extra_data=None,
     ):
         data = {
             "data_type": data_type,
             "data_value": data_value,
-            "xform": xform.id,
-            "extra_data": extra_data
+            "xform": xform.id
         }
+
+        if extra_data:
+            data.update({"extra_data": extra_data})
 
         if path and data_value:
             with open(path, "rb") as media_file:

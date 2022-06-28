@@ -280,7 +280,12 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             "data_simple_style": True,
             "data_geo_field": "test"
         }
-        self._add_form_metadata(self.xform, data_type, data_value, extra_data=json.dumps(extra_data))
+        self._add_form_metadata(
+            self.xform,
+            data_type,
+            data_value,
+            extra_data=json.dumps(extra_data)
+        )
         self.assertIsNotNone(self.metadata_data['media_url'])
         request = self.factory.get('/', **self.extra)
         ext = self.data_value[self.data_value.rindex('.') + 1:]
