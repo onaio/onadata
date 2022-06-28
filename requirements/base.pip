@@ -124,7 +124,7 @@ django-csp==3.7
     # via onadata
 django-debug-toolbar==3.5.0
     # via onadata
-django-filter==22.1
+django-filter==21.1
     # via onadata
 django-guardian==2.4.0
     # via
