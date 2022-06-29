@@ -578,7 +578,8 @@ def generate_geojson_export(
     request.query_params = {
         "geo_field": extra_data.get("data_geo_field"),
         "simple_style": extra_data.get("data_simple_style"),
-        "title": extra_data.get("data_title")
+        "title": extra_data.get("data_title"),
+        "fields": extra_data.get("fields")
     }
     _context = {}
     _context['request'] = request
