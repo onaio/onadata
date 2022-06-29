@@ -564,8 +564,7 @@ def clear_cached_metadata_instance_object(
     """
     Clear the cache for the metadata object.
     """
-    if instance:
-        safe_delete(f"{XFORM_METADATA_CACHE}{instance.object_id}")
+    safe_delete(f"{XFORM_METADATA_CACHE}{instance.object_id}")
 
 
 # pylint: disable=unused-argument

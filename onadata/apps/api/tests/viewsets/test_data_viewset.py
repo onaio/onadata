@@ -2045,7 +2045,7 @@ class TestDataViewSet(TestBase):
         data_get = {
             "geo_field": "location",
             "simple_style": "true",
-            "title": "shape"
+            "title": "location"
         }
 
         view = DataViewSet.as_view({"get": "retrieve"})
@@ -2057,7 +2057,7 @@ class TestDataViewSet(TestBase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('title', response.data["properties"])
-        self.assertEqual('shape', response.data["properties"]["title"])
+        self.assertEqual('-1.294197 36.787219 0 34', response.data["properties"]["title"])
 
     def test_geojson_geofield(self):
         self._publish_submit_geojson()
