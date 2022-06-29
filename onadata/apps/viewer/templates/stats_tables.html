@@ -72,7 +72,7 @@
 <script src="{{STATIC_URL}}bower_components/backgrid/lib/backgrid.js"></script>
 <script src="{{STATIC_URL}}js/xform.js"></script>
 <script src="{{STATIC_URL}}js/stats_tables.js"></script>
-<script type="text/javascript">
+<script type="text/javascript" nonce="{{CSP_NONCE}}">
     var formUrl = "{% url "download_jsonform" xform.user.username xform.id_string %}";
     var statsUrl = "{% url "stats-detail" xform.pk %}";
     var submissionStatsUrl = "{% url "submissionstats-detail" xform.pk %}";

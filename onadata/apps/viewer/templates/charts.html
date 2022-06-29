@@ -27,7 +27,7 @@
 
 {% block javascript %}
 {{ block.super }}
-    <script type="text/javascript">
+    <script type="text/javascript" nonce="{{CSP_NONCE}}">
       var chart_url = "{% url 'form-stats' xform.user.username xform.id_string %}";
       var page = {{ page }};
       $(document).ready(function () {

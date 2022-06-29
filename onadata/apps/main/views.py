@@ -1519,7 +1519,7 @@ def enketo_preview(request, username, id_string):
         enketo_urls = get_enketo_urls(xform.url, xform.id_string)
 
         enketo_preview_url = enketo_urls.get("preview_url")
-    except EnketoError as e:
+    except (AttributeError, EnketoError) as e:
         return HttpResponse(e)
 
     return HttpResponseRedirect(enketo_preview_url)

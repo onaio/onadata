@@ -6,8 +6,7 @@ from __future__ import unicode_literals
 from mock import patch
 from rest_framework.test import APIRequestFactory
 
-from onadata.apps.api.viewsets.submission_review_viewset import \
-    SubmissionReviewViewSet
+from onadata.apps.api.viewsets.submission_review_viewset import SubmissionReviewViewSet
 from onadata.apps.logger.models import SubmissionReview, Instance
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.messaging.constants import XFORM, SUBMISSION_REVIEWED
@@ -26,14 +25,14 @@ class TestSubmissionReviewViewSet(TestBase):
         self._publish_transportation_form()
         self._make_submissions()
         self.factory = APIRequestFactory()
-        self.extra = {'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        self.extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
 
     @property
     def _first_xform_instance(self):
         """
         Retuns the first instance for an xform
         """
-        return self.xform.instances.all().order_by('pk')[0]
+        return self.xform.instances.all().order_by("pk")[0]
 
     def _create_submission_review(self):
         """
@@ -41,38 +40,40 @@ class TestSubmissionReviewViewSet(TestBase):
         """
         instance_id = self._first_xform_instance.id
         # Ensure Managers can create a Submission Review
-        self._create_user_and_login('bob', '1234')
+        self._create_user_and_login("bob", "1234")
         ManagerRole.add(self.user, self._first_xform_instance.xform)
-        submission_data = {
-            'note': "Supreme Overload!",
-            'instance': instance_id
-        }
+        submission_data = {"note": "Supreme Overload!", "instance": instance_id}
 
-        view = SubmissionReviewViewSet.as_view({'post': 'create'})
-        request = self.factory.post('/', data=submission_data, **self.extra)
+        view = SubmissionReviewViewSet.as_view({"post": "create"})
+        request = self.factory.post("/", data=submission_data, **self.extra)
         response = view(request=request)
 
         self.assertEqual(201, response.status_code)
-        self.assertEqual("Supreme Overload!", response.data['note'])
-        self.assertEqual(instance_id, response.data['instance'])
+        self.assertEqual("Supreme Overload!", response.data["note"])
+        self.assertEqual(instance_id, response.data["instance"])
 
         return response.data
 
-    @patch('onadata.apps.api.viewsets.submission_review_viewset.send_message')
+    @patch("onadata.apps.api.viewsets.submission_review_viewset.send_message")
     def test_submission_review_create(self, mock_send_message):
         """
         Test we can create a submission review
         """
         submission_review_data = self._create_submission_review()
         submission_review = SubmissionReview.objects.get(
-            id=submission_review_data['id'])
+            id=submission_review_data["id"]
+        )
         # sends message upon saving the submission review
         self.assertTrue(mock_send_message.called)
         mock_send_message.called_with(
-            submission_review.id, submission_review.instance.xform.id, XFORM,
-            submission_review.created_by, SUBMISSION_REVIEWED)
+            submission_review.id,
+            submission_review.instance.xform.id,
+            XFORM,
+            submission_review.created_by,
+            SUBMISSION_REVIEWED,
+        )
 
-    @patch('onadata.apps.api.viewsets.submission_review_viewset.send_message')
+    @patch("onadata.apps.api.viewsets.submission_review_viewset.send_message")
     def test_bulk_create_submission_review(self, mock_send_message):
         """
         Test that we can bulk create submission reviews
@@ -80,17 +81,18 @@ class TestSubmissionReviewViewSet(TestBase):
         instances = self.xform.instances.all()
         submission_data = [
             {
-                'note': 'This is not very good, is it?',
-                'instance': _.id,
-                'status': SubmissionReview.REJECTED
-            } for _ in instances
+                "note": "This is not very good, is it?",
+                "instance": _.id,
+                "status": SubmissionReview.REJECTED,
+            }
+            for _ in instances
         ]
-        view = SubmissionReviewViewSet.as_view({'post': 'create'})
+        view = SubmissionReviewViewSet.as_view({"post": "create"})
 
         # get DRF to use the JSON renderer as other renderes are likely to fail
-        self.extra['format'] = 'json'
+        self.extra["format"] = "json"
 
-        request = self.factory.post('/', data=submission_data, **self.extra)
+        request = self.factory.post("/", data=submission_data, **self.extra)
         response = view(request=request)
 
         self.assertEqual(201, response.status_code)
@@ -99,25 +101,28 @@ class TestSubmissionReviewViewSet(TestBase):
         # sends message upon saving the submission review
         self.assertTrue(mock_send_message.called)
         mock_send_message.called_with(
-            [s.id for s in self.xform.instances.all()], self.xform.id, XFORM,
-            request.user, SUBMISSION_REVIEWED)
+            [s.id for s in self.xform.instances.all()],
+            self.xform.id,
+            XFORM,
+            request.user,
+            SUBMISSION_REVIEWED,
+        )
         for item in response.data:
             # the note should match what we provided
-            self.assertEqual('This is not very good, is it?', item['note'])
+            self.assertEqual("This is not very good, is it?", item["note"])
             # the status should be rejected
-            self.assertEqual(SubmissionReview.REJECTED, item['status'])
+            self.assertEqual(SubmissionReview.REJECTED, item["status"])
             # the instance id must be valid
-            self.assertTrue(instances.filter(id=item['instance']).exists())
+            self.assertTrue(instances.filter(id=item["instance"]).exists())
             # all the submission reviews must have different instance fields
-            self.assertFalse(item['instance'] in already_seen)
-            already_seen.append(item['instance'])
+            self.assertFalse(item["instance"] in already_seen)
+            already_seen.append(item["instance"])
             # ensure that the instance JSON has the submission fields
-            instance = Instance.objects.get(pk=item['instance'])
+            instance = Instance.objects.get(pk=item["instance"])
             self.assertEqual(
-                'This is not very good, is it?',
-                instance.json[REVIEW_COMMENT])
-            self.assertEqual(
-                SubmissionReview.REJECTED, instance.json[REVIEW_STATUS])
+                "This is not very good, is it?", instance.json[REVIEW_COMMENT]
+            )
+            self.assertEqual(SubmissionReview.REJECTED, instance.json[REVIEW_STATUS])
 
     def test_bulk_create_submission_review_permissions(self):
         """
@@ -126,23 +131,20 @@ class TestSubmissionReviewViewSet(TestBase):
         """
         instances = self.xform.instances.all()
         submission_data = [
-            {
-                'note': 'Nope!!',
-                'instance': _.id,
-                'status': SubmissionReview.REJECTED
-            } for _ in instances
+            {"note": "Nope!!", "instance": _.id, "status": SubmissionReview.REJECTED}
+            for _ in instances
         ]
 
-        self._create_user_and_login('dave', '1234')
+        self._create_user_and_login("dave", "1234")
         extra = {
-            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token,
-            'format': 'json'
+            "HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token,
+            "format": "json",
         }
 
-        view = SubmissionReviewViewSet.as_view({'post': 'create'})
+        view = SubmissionReviewViewSet.as_view({"post": "create"})
 
         # dave should not be able to bulk create submission reviews
-        request = self.factory.post('/', data=submission_data, **extra)
+        request = self.factory.post("/", data=submission_data, **extra)
         response = view(request=request)
 
         self.assertEqual(403, response.status_code)
@@ -154,14 +156,14 @@ class TestSubmissionReviewViewSet(TestBase):
         submission_review_data = self._create_submission_review()
         self._create_submission_review()
 
-        view = SubmissionReviewViewSet.as_view({'get': 'list'})
-        request = self.factory.get('/', **self.extra)
+        view = SubmissionReviewViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", **self.extra)
 
         response = view(request=request)
 
         self.assertEqual(200, response.status_code)
         self.assertEqual(2, len(response.data))
-        self.assertEqual(submission_review_data['id'], response.data[0]['id'])
+        self.assertEqual(submission_review_data["id"], response.data[0]["id"])
 
     def test_retrieve_submission_review(self):
         """
@@ -169,12 +171,12 @@ class TestSubmissionReviewViewSet(TestBase):
         """
         submission_review_data = self._create_submission_review()
 
-        view = SubmissionReviewViewSet.as_view({'get': 'retrieve'})
-        request = self.factory.get('/', **self.extra)
-        response = view(request=request, pk=submission_review_data['id'])
+        view = SubmissionReviewViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request=request, pk=submission_review_data["id"])
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(submission_review_data['id'], response.data['id'])
+        self.assertEqual(submission_review_data["id"], response.data["id"])
 
     def test_submission_review_update(self):
         """
@@ -182,14 +184,11 @@ class TestSubmissionReviewViewSet(TestBase):
         """
         data = self._create_submission_review()
 
-        new_data = {
-            'note': "My name is Davis!",
-            'status': SubmissionReview.APPROVED
-        }
+        new_data = {"note": "My name is Davis!", "status": SubmissionReview.APPROVED}
 
-        view = SubmissionReviewViewSet.as_view({'patch': 'partial_update'})
-        request = self.factory.patch('/', data=new_data, **self.extra)
-        response = view(request=request, pk=data['id'])
+        view = SubmissionReviewViewSet.as_view({"patch": "partial_update"})
+        request = self.factory.patch("/", data=new_data, **self.extra)
+        response = view(request=request, pk=data["id"])
 
         self.assertEqual(200, response.status_code)
 
@@ -198,49 +197,48 @@ class TestSubmissionReviewViewSet(TestBase):
         Test that submission review access to unauthorized users
         """
         data = self._create_submission_review()
-        form = Instance.objects.get(id=data['instance']).xform
-        self._create_user_and_login('dave', '1234')
-        extra = {'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        form = Instance.objects.get(id=data["instance"]).xform
+        self._create_user_and_login("dave", "1234")
+        extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
         # Editors should not be able to create, update, delete
         # reviews. Only Admins and Managers should have these permissions
         EditorRole.add(self.user, form)
 
-        view = SubmissionReviewViewSet.as_view({
-            'post': 'create',
-            'get': 'list',
-            'patch': 'partial_update',
-            'delete': 'destroy'
-        })
+        view = SubmissionReviewViewSet.as_view(
+            {
+                "post": "create",
+                "get": "list",
+                "patch": "partial_update",
+                "delete": "destroy",
+            }
+        )
 
         # `dave` user should not be able to create reviews on
         # an xform where he/she has no Admin privileges
         review = {
-            'note': "Hey there!",
-            'status': SubmissionReview.APPROVED,
-            'instance': data['instance']
+            "note": "Hey there!",
+            "status": SubmissionReview.APPROVED,
+            "instance": data["instance"],
         }
 
-        request = self.factory.post('/', data=review, **extra)
+        request = self.factory.post("/", data=review, **extra)
         response = view(request=request)
 
         self.assertEqual(403, response.status_code)
 
         # `dave` user should not be able to update reviews on
         # an xform where he/she has no Admin privileges
-        new_data = {
-            'note': "Hey there!",
-            'status': SubmissionReview.APPROVED
-        }
+        new_data = {"note": "Hey there!", "status": SubmissionReview.APPROVED}
 
-        request = self.factory.patch('/', data=new_data, **extra)
-        response = view(request=request, pk=data['id'])
+        request = self.factory.patch("/", data=new_data, **extra)
+        response = view(request=request, pk=data["id"])
 
         self.assertEqual(403, response.status_code)
 
         # `dave` user should not be able to delete reviews on
         # an xform they have no Admin Privileges on
-        request = self.factory.delete('/', **extra)
-        response = view(request=request, pk=data['id'])
+        request = self.factory.delete("/", **extra)
+        response = view(request=request, pk=data["id"])
 
         self.assertEqual(403, response.status_code)
 
@@ -254,24 +252,21 @@ class TestSubmissionReviewViewSet(TestBase):
         submission_review_data = self._create_submission_review()
 
         # Shows up on list
-        view = SubmissionReviewViewSet.as_view({
-            'get': 'list',
-            'delete': 'destroy'
-        })
-        request = self.factory.get('/', **self.extra)
+        view = SubmissionReviewViewSet.as_view({"get": "list", "delete": "destroy"})
+        request = self.factory.get("/", **self.extra)
 
         response = view(request=request)
 
         self.assertEqual(200, response.status_code)
         self.assertEqual(1, len(response.data))
 
-        request = self.factory.delete('/', **self.extra)
-        response = view(request=request, pk=submission_review_data['id'])
+        request = self.factory.delete("/", **self.extra)
+        response = view(request=request, pk=submission_review_data["id"])
 
         self.assertEqual(204, response.status_code)
 
         # Doesn't show up on list after deletion
-        request = self.factory.get('/', **self.extra)
+        request = self.factory.get("/", **self.extra)
         response = view(request=request)
 
         self.assertEqual(200, response.status_code)
@@ -284,15 +279,12 @@ class TestSubmissionReviewViewSet(TestBase):
         review_one_data = self._create_submission_review()
 
         review_two_data = {
-            'note': "Sup ?",
-            'instance': self.xform.instances.all().order_by('pk')[1].id
+            "note": "Sup ?",
+            "instance": self.xform.instances.all().order_by("pk")[1].id,
         }
 
-        view = SubmissionReviewViewSet.as_view({
-            'post': 'create',
-            'get': 'list'
-        })
-        request = self.factory.post('/', data=review_two_data, **self.extra)
+        view = SubmissionReviewViewSet.as_view({"post": "create", "get": "list"})
+        request = self.factory.post("/", data=review_two_data, **self.extra)
         response = view(request=request)
 
         self.assertEqual(201, response.status_code)
@@ -300,11 +292,12 @@ class TestSubmissionReviewViewSet(TestBase):
 
         # Can filter submission review list by instance
         request = self.factory.get(
-            '/', {'instance': review_one_data['instance']}, **self.extra)
+            "/", {"instance": review_one_data["instance"]}, **self.extra
+        )
         response = view(request=request)
         self.assertEqual(200, response.status_code)
         self.assertEqual(1, len(response.data))
-        self.assertEqual(review_one_data['id'], response.data[0]['id'])
+        self.assertEqual(review_one_data["id"], response.data[0]["id"])
 
     def test_submission_review_status_filter(self):
         """
@@ -313,53 +306,47 @@ class TestSubmissionReviewViewSet(TestBase):
         review_one_data = self._create_submission_review()
 
         review_two_data = {
-            'note': "Sup ?",
-            'instance': review_one_data['instance'],
-            'status': SubmissionReview.APPROVED
+            "note": "Sup ?",
+            "instance": review_one_data["instance"],
+            "status": SubmissionReview.APPROVED,
         }
 
-        view = SubmissionReviewViewSet.as_view({
-            'post': 'create',
-            'get': 'list'
-        })
-        request = self.factory.post('/', data=review_two_data, **self.extra)
+        view = SubmissionReviewViewSet.as_view({"post": "create", "get": "list"})
+        request = self.factory.post("/", data=review_two_data, **self.extra)
         response = view(request=request)
 
         self.assertEqual(201, response.status_code)
         self.assertEqual(2, len(SubmissionReview.objects.all()))
 
         # Can filter submission review list by instance
-        request = self.factory.get('/', {'status': SubmissionReview.PENDING},
-                                   **self.extra)
+        request = self.factory.get(
+            "/", {"status": SubmissionReview.PENDING}, **self.extra
+        )
         response = view(request=request)
         self.assertEqual(200, response.status_code)
         self.assertEqual(1, len(response.data))
-        self.assertEqual(review_one_data['id'], response.data[0]['id'])
+        self.assertEqual(review_one_data["id"], response.data[0]["id"])
 
     def test_submission_review_created_by_filter(self):
         """
         Test we can filter by created_by
         """
         review_one_data = self._create_submission_review()
-        submission_review = SubmissionReview.objects.get(
-            id=review_one_data['id'])
-        self._create_user_and_login('dave', '1234')
-        extra = {'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        submission_review = SubmissionReview.objects.get(id=review_one_data["id"])
+        self._create_user_and_login("dave", "1234")
+        extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
 
         # Ensure user is an Admin
         OwnerRole.add(self.user, submission_review.instance.xform)
 
         review_two_data = {
-            'note': "Sup ?",
-            'instance': review_one_data['instance'],
-            'status': SubmissionReview.APPROVED
+            "note": "Sup ?",
+            "instance": review_one_data["instance"],
+            "status": SubmissionReview.APPROVED,
         }
 
-        view = SubmissionReviewViewSet.as_view({
-            'post': 'create',
-            'get': 'list'
-        })
-        request = self.factory.post('/', data=review_two_data, **extra)
+        view = SubmissionReviewViewSet.as_view({"post": "create", "get": "list"})
+        request = self.factory.post("/", data=review_two_data, **extra)
         response = view(request=request)
 
         self.assertEqual(201, response.status_code)
@@ -367,12 +354,11 @@ class TestSubmissionReviewViewSet(TestBase):
         self.assertEqual(2, len(SubmissionReview.objects.all()))
 
         # Can filter submission review list by created_by
-        request = self.factory.get('/', {'created_by': self.user.id},
-                                   **self.extra)
+        request = self.factory.get("/", {"created_by": self.user.id}, **self.extra)
         response = view(request=request)
         self.assertEqual(200, response.status_code)
         self.assertEqual(1, len(response.data))
-        self.assertEqual(review_two_data['id'], response.data[0]['id'])
+        self.assertEqual(review_two_data["id"], response.data[0]["id"])
 
     def test_bulk_create_approved_review_missiong_note(self):
         """
@@ -380,32 +366,26 @@ class TestSubmissionReviewViewSet(TestBase):
         """
         instances = self.xform.instances.all()
         submission_data = [
-            {
-                'instance': _.id,
-                'status': SubmissionReview.APPROVED
-            } for _ in instances
+            {"instance": _.id, "status": SubmissionReview.APPROVED} for _ in instances
         ]
-        view = SubmissionReviewViewSet.as_view({'post': 'create'})
+        view = SubmissionReviewViewSet.as_view({"post": "create"})
 
-        self.extra['format'] = 'json'
+        self.extra["format"] = "json"
 
-        request = self.factory.post('/', data=submission_data, **self.extra)
+        request = self.factory.post("/", data=submission_data, **self.extra)
         response = view(request=request)
 
         self.assertEqual(201, response.status_code)
         self.assertEqual(4, len(response.data))
 
         submission_data = [
-            {
-                'instance': _.id,
-                'status': SubmissionReview.PENDING,
-                'note': None
-            } for _ in instances
+            {"instance": _.id, "status": SubmissionReview.PENDING, "note": None}
+            for _ in instances
         ]
 
-        self.extra['format'] = 'json'
+        self.extra["format"] = "json"
 
-        request = self.factory.post('/', data=submission_data, **self.extra)
+        request = self.factory.post("/", data=submission_data, **self.extra)
         response = view(request=request)
 
         self.assertEqual(201, response.status_code)

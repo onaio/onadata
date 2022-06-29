@@ -333,12 +333,11 @@ def data_export(request, username, id_string, export_type):  # noqa C901
         # pylint: disable=broad-except
         try:
             export = generate_export(export_type, xform, None, options)
-            export_type = export_type.upper()
             audit_log(
                 Actions.EXPORT_CREATED,
                 request.user,
                 owner,
-                _(f"Created {export_type} export on '{id_string}'."),
+                _(f"Created {export_type.upper()} export on '{id_string}'."),
                 audit,
                 request,
             )
@@ -348,14 +347,13 @@ def data_export(request, username, id_string, export_type):  # noqa C901
             return HttpResponseBadRequest(str(e))
     else:
         export = newest_export_for(xform, export_type, options)
-    export_type = export_type.upper()
 
     # log download as well
     audit_log(
         Actions.EXPORT_DOWNLOADED,
         request.user,
         owner,
-        _(f"Downloaded {export_type} export on '{id_string}'."),
+        _(f"Downloaded {export_type.upper()} export on '{id_string}'."),
         audit,
         request,
     )
@@ -446,13 +444,12 @@ def create_export(request, username, id_string, export_type):
         return HttpResponseBadRequest(_(f"{export_type} is not a valid export type"))
     else:
         audit = {"xform": xform.id_string, "export_type": export_type}
-        export_type = export_type.upper()
         id_string = xform.id_string
         audit_log(
             Actions.EXPORT_CREATED,
             request.user,
             owner,
-            _(f"Created {export_type} export on '{id_string}'."),
+            _(f"Created {export_type.upper()} export on '{id_string}'."),
             audit,
             request,
         )
@@ -483,7 +480,7 @@ def export_list(request, username, id_string, export_type):  # noqa C901
     """
     credential = None
 
-    if export_type.lower() not in Export.EXPORT_TYPE_DICT:
+    if export_type not in Export.EXPORT_TYPE_DICT:
         return HttpResponseBadRequest(
             _(f'Export type "{export_type}" is not supported.')
         )
@@ -622,7 +619,7 @@ def export_download(request, username, id_string, export_type, filename):
         return HttpResponseRedirect(export.export_url)
 
     ext, mime_type = export_def_from_filename(export.filename)
-    export_type = export.export_type.upper()
+    export_type = export.export_type
     filename = export.filename
     id_string = xform.id_string
 
@@ -631,7 +628,7 @@ def export_download(request, username, id_string, export_type, filename):
         Actions.EXPORT_DOWNLOADED,
         request.user,
         owner,
-        _(f"Downloaded {export_type} export '{filename}' on '{id_string}'."),
+        _(f"Downloaded {export_type.upper()} export '{filename}' on '{id_string}'."),
         audit,
         request,
     )
@@ -668,7 +665,7 @@ def delete_export(request, username, id_string, export_type):
 
     # find the export entry in the db
     export = get_object_or_404(Export, id=export_id)
-    export_type = export.export_type.upper()
+    export_type = export.export_type
     export.delete()
 
     filename = export.filename
@@ -678,7 +675,7 @@ def delete_export(request, username, id_string, export_type):
         Actions.EXPORT_DOWNLOADED,
         request.user,
         owner,
-        _(f"Deleted {export_type} export '{filename}' on '{id_string}'."),
+        _(f"Deleted {export_type.upper()} export '{filename}' on '{id_string}'."),
         audit,
         request,
     )

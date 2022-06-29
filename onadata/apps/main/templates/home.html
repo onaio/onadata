@@ -4,7 +4,7 @@
 
 {% block styles %}
     {{block.super}}
-    <style type="text/css">
+    <style type="text/css" nonce="{{CSP_NONCE}}">
     .container {
         max-width: 960px;
     }
@@ -38,7 +38,7 @@
         text-decoration: none;
     }
     </style>
-    <style>
+    <style nonce="{{CSP_NONCE}}">
         #beta-announcement{
             background: #437783; /* Old browsers */
             /* IE9 SVG, needs conditional override of 'filter' to 'none' */
@@ -49,7 +49,7 @@
             background: -o-linear-gradient(left,  #437783 0%,#ff5d00 100%); /* Opera 11.10+ */
             background: -ms-linear-gradient(left,  #437783 0%,#ff5d00 100%); /* IE10+ */
             background: linear-gradient(to right,  #437783 0%,#ff5d00 100%); /* W3C */
-            filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#437783',    
+            filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#437783',
                     endColorstr='#ff5d00',GradientType=1 ); /* IE6-8 */
             color:#fff;
             padding:0.4em 0.5em 0.5em;
@@ -67,7 +67,7 @@
 
 
     <!--[if gte IE 9]>
-        <style type="text/css">
+        <style type="text/css" nonce="{{CSP_NONCE}}">
             #beta-announcement {
                filter: none;
             }

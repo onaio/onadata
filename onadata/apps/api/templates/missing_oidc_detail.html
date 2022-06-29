@@ -4,7 +4,7 @@
 {% block title %}Missing Authentication Detail{% endblock %}
 
 {% block styles %}
-<style>
+<style nonce="{{CSP_NONCE}}">
     .content {
         display: flex;
         align-items: center;

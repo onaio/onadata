@@ -132,7 +132,7 @@
 <script type="text/javascript" src="{{STATIC_URL}}js/form_actions.js"></script>
 <script type="text/javascript" charset="utf-8" src="{{STATIC_URL}}js/underscore-min.js"></script>
 <script type="text/javascript" charset="utf-8" src="{{STATIC_URL}}js/export_list.js"></script>
-<script type="text/javascript">
+<script type="text/javascript" nonce="{{CSP_NONCE}}">
     var progress_url = '{% url "export-progress" username xform.id_string export_type %}';
 </script>
 {% endblock %}
