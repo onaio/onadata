@@ -6,8 +6,12 @@ Collect, Analyze and Share Data!
 .. image:: https://travis-ci.com/onaio/onadata.svg?branch=master
   :target: https://travis-ci.com/onaio/onadata
 
-.. image:: https://app.codacy.com/project/badge/Grade/82647e2b8f0c43f388fa1a789a130ff7
-  :target: https://www.codacy.com/manual/Ona/onadata
+.. image:: https://app.codacy.com/project/badge/Grade/68c96351c8b24d5c9062a9c8247142f2
+   :target: https://www.codacy.com/gh/onaio/onadata/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=onaio/onadata&amp;utm_campaign=Badge_Grade
+
+.. image:: https://img.shields.io/badge/License-BSD_3--Clause-blue.svg
+   :target: https://opensource.org/licenses/BSD-3-Clause
+
 
 About
 -----
