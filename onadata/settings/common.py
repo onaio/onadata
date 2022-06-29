@@ -618,6 +618,8 @@ CSP_FONT_SRC = [
 ]
 CSP_FRAME_SRC = ["http://localhost:8000"]
 CSP_IMG_SRC = [
+    "'self'",
+    "data:",
     "https://netdna.bootstrapcdn.com",
     "https://secure.gravatar.com",
     "https://i1.wp.com",
@@ -681,5 +683,8 @@ CSP_STYLE_SRC = [
     "'sha256-28J4mQEy4Sqd0R+nZ89dOl9euh+Y3XvT+VfXD5pOiOE='",
     "'sha256-dlVFva77C91S8Wn24REidEasjl4VM1zOkxe/fwc/jy4='",
     "'sha256-iUo/gR1ZpfvbyyW8pBPaq1LFvqEAnqd/uyPwly6P/SQ='",
+    "'sha256-G3Xm3ZS21FJH+2uN2TQz2S2fm1GRbOTSg2Qr3MisSEg='",
+    "'sha256-71Gb4W6A/s78onLpjMXIIFjXMB7YFIRd5Z1NKJ+UwHY='",
+    "'sha256-52i34Zg+qg4/kTYjnNHEmW8jhzGRxjt77FX9aveiXqw='",
 ]
 CSP_INCLUDE_NONCE_IN = ["script-src", "style-src"]
