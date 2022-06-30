@@ -467,7 +467,11 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
     def _post_metadata(self, data, test=True):
         count = MetaData.objects.count()
         view = MetaDataViewSet.as_view({"post": "create"})
-        request = self.factory.post("/", data=data, **self.extra)
+        request = self.factory.post(
+            "/",
+            data=data,
+            **self.extra,
+            format='json' if 'extra_data' in data else None)
 
         response = view(request)
 

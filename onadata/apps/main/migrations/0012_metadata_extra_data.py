@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='metadata',
             name='extra_data',
-            field=models.CharField(blank=True, max_length=255, null=True),
+            field=models.JSONField(default=dict, blank=True, null=True),
         ),
     ]

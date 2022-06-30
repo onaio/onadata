@@ -6,7 +6,6 @@ import os
 import shutil
 import tempfile
 import zipfile
-import json
 from builtins import open
 from datetime import date, datetime, timedelta
 
@@ -554,7 +553,7 @@ class TestExportTools(TestBase, TestAbstractViewSet):
             "data_simple_style": True
         }
         self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
-        response = self._add_form_metadata(self.xform, data_type, data_value, extra_data=json.dumps(extra_data))
+        response = self._add_form_metadata(self.xform, data_type, data_value, extra_data=extra_data)
         self.assertEqual(response.status_code, 201)
 
         username = self.xform.user.username

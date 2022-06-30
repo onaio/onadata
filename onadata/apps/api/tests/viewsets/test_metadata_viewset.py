@@ -1,5 +1,4 @@
 import os
-import json
 from builtins import open
 
 from django.conf import settings
@@ -279,13 +278,14 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         extra_data = {
             "data_title": "test",
             "data_simple_style": True,
-            "data_geo_field": "test"
+            "data_geo_field": "test",
+            "data_fields": "transport/available_transportation_types_to_referral_facility/ambulance" # noqa
         }
         self._add_form_metadata(
             self.xform,
             data_type,
             data_value,
-            extra_data=json.dumps(extra_data)
+            extra_data=extra_data
         )
         self.assertIsNotNone(self.metadata_data['media_url'])
         request = self.factory.get('/', **self.extra)

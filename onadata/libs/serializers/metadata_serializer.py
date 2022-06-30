@@ -17,11 +17,13 @@ from six.moves.urllib.parse import urlparse
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
+
 from onadata.apps.api.tools import (
     update_role_by_meta_xform_perms, get_metadata_format)
 from onadata.apps.logger.models import DataView, Instance, Project, XForm
 from onadata.apps.main.models import MetaData
 from onadata.libs.permissions import ROLES, ManagerRole
+from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.fields.instance_related_field import InstanceRelatedField
 from onadata.libs.serializers.fields.project_related_field import ProjectRelatedField
 from onadata.libs.serializers.fields.xform_related_field import XFormRelatedField
@@ -106,7 +108,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
     data_value = serializers.CharField(max_length=255, required=True)
     data_type = serializers.ChoiceField(choices=METADATA_TYPES)
     data_file = serializers.FileField(required=False)
-    extra_data = serializers.CharField(max_length=255, required=False)
+    extra_data = JsonField(required=False)
     data_file_type = serializers.CharField(
         max_length=255, required=False, allow_blank=True
     )
