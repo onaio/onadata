@@ -547,7 +547,7 @@ class TestExportTools(TestBase, TestAbstractViewSet):
         self._publish_transportation_form_and_submit_instance()
         # set metadata to xform
         data_type = "media"
-        data_value = 'geojson {} {}'.format(self.xform.pk, self.xform.id_string)
+        data_value = 'xform_geojson {} {}'.format(self.xform.pk, self.xform.id_string)
         extra_data = {
             "data_title": "test",
             "data_geo_field": "test",

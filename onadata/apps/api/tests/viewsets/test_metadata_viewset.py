@@ -164,6 +164,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             'xform': self.xform.pk,
             'data_value': u'1335783522563.jpg',
             'data_type': u'media',
+            'extra_data': None,
             'data_file': u'http://localhost:8000/media/%s/formid-media/'
             '1335783522563.jpg' % self.user.username,
             'data_file_type': u'image/jpeg',
