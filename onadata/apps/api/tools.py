@@ -39,7 +39,6 @@ from onadata.apps.api.models.team import Team
 from onadata.apps.logger.models import DataView, Instance, Project, XForm
 from onadata.apps.main.forms import QuickConverter
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import datetime_from_str
 from onadata.libs.baseviewset import DefaultBaseViewset
 from onadata.libs.models.share_project import ShareProject
@@ -589,7 +588,7 @@ def get_media_file_response(metadata, request=None):
         model = None
         if value.startswith("dataview"):
             model = DataView
-        elif value.startswith("xform") or value.startswith("geojson"):
+        elif value.startswith("xform"):
             model = XForm
 
         if model:
@@ -626,9 +625,7 @@ def get_media_file_response(metadata, request=None):
         if obj:
             dataview = obj if isinstance(obj, DataView) else False
             xform = obj.xform if isinstance(obj, DataView) else obj
-            export_type = Export.GEOJSON_EXPORT \
-                if metadata.data_value.startswith('geojson') \
-                else Export.CSV_EXPORT
+            export_type = get_metadata_format(metadata.data_value)
 
             return custom_response_handler(
                 request,
@@ -810,6 +807,17 @@ def update_role_by_meta_xform_perms(xform):
             if role in dataentry_role:
                 role = ROLES.get(meta_perms[1])
                 role.add(user, xform)
+
+
+def get_metadata_format(data_value):
+    """Returns metadata format/extension"""
+    fmt = "csv"
+
+    if data_value.startswith("xform_geojson") or data_value.startswith(
+        "dataview_geojson"
+    ):
+        fmt = "geojson"
+    return fmt
 
 
 def replace_attachment_name_with_url(data):

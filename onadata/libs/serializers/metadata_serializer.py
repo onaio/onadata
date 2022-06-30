@@ -17,7 +17,8 @@ from six.moves.urllib.parse import urlparse
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
-from onadata.apps.api.tools import update_role_by_meta_xform_perms
+from onadata.apps.api.tools import (
+    update_role_by_meta_xform_perms, get_metadata_format)
 from onadata.apps.logger.models import DataView, Instance, Project, XForm
 from onadata.apps.main.models import MetaData
 from onadata.libs.permissions import ROLES, ManagerRole
@@ -55,7 +56,6 @@ METADATA_TYPES = (
 
 DATAVIEW_TAG = "dataview"
 XFORM_TAG = "xform"
-GEOJSON_TAG = "geojson"
 
 PROJECT_METADATA_TYPES = (
     (MEDIA_TYPE, _("Media")),
@@ -72,7 +72,9 @@ def get_linked_object(parts):
     """
     if isinstance(parts, list) and parts:
         obj_type = parts[0]
-        if obj_type in [DATAVIEW_TAG, XFORM_TAG, GEOJSON_TAG] and len(parts) > 1:
+        if "geojson" in obj_type:
+            obj_type = obj_type.split("_")[0]
+        if obj_type in [DATAVIEW_TAG, XFORM_TAG] and len(parts) > 1:
             obj_pk = parts[1]
             try:
                 obj_pk = int(obj_pk)
@@ -151,7 +153,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                     "metadata": obj.pk,
                 },
                 "request": request,
-                "format": "geojson" if obj.data_value.startswith('geojson') else "csv",
+                "format": get_metadata_format(obj.data_value),
             }
 
             return reverse("xform-media", **kwargs)

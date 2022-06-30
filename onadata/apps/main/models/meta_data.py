@@ -528,7 +528,6 @@ class MetaData(models.Model):
         return isinstance(self.data_value, str) and (
             self.data_value.startswith("xform")
             or self.data_value.startswith("dataview")
-            or self.data_value.startswith("geojson")
         )
 
     @staticmethod

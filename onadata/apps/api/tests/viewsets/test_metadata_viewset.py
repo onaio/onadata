@@ -274,7 +274,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
     def test_add_media_geojson_link(self):
         data_type = 'media'
-        data_value = 'geojson {} transportation'.format(self.xform.pk)
+        data_value = 'xform_geojson {} transportation'.format(self.xform.pk)
         extra_data = {
             "data_title": "test",
             "data_simple_style": True,
