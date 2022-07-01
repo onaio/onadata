@@ -3,6 +3,7 @@
 Test export_tools module
 """
 import os
+import json
 import shutil
 import tempfile
 import zipfile
@@ -30,6 +31,7 @@ from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import query_data
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
+from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.utils.export_builder import encode_if_str, get_value_or_attachment_uri
 from onadata.libs.utils.export_tools import (
     ExportBuilder,
@@ -539,6 +541,24 @@ class TestExportTools(TestBase, TestAbstractViewSet):
         """
         Test generate_geojson_export()
         """
+        self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
+        geo_md = """
+        | survey |
+        |        | type              | name  | label |
+        |        | geopoint          | gps   | GPS   |
+        |        | select one fruits | fruit | Fruit |
+
+        | choices |
+        |         | list name | name   | label  |
+        |         | fruits    | orange | Orange |
+        |         | fruits    | mango  | Mango  |
+        """
+        xform1 = self._publish_markdown(geo_md, self.user, id_string="a")
+        xml = '<data id="a"><gps>-1.28 36.83 0 0</gps><fruit>orange</fruit></data>'
+        Instance(xform=xform1, xml=xml).save()
+        request = self.factory.get('/', **self.extra)
+        XFormSerializer(xform1, context={'request': request}).data
+        xform1 = XForm.objects.get(id_string="a")
         export_type = "geojson"
         options = {
             "extension": "geojson",
@@ -546,22 +566,29 @@ class TestExportTools(TestBase, TestAbstractViewSet):
         self._publish_transportation_form_and_submit_instance()
         # set metadata to xform
         data_type = "media"
-        data_value = 'xform_geojson {} {}'.format(self.xform.pk, self.xform.id_string)
+        data_value = 'xform_geojson {} {}'.format(xform1.pk, xform1.id_string)
         extra_data = {
-            "data_title": "test",
-            "data_geo_field": "test",
-            "data_simple_style": True
+            "data_title": "fruit",
+            "data_geo_field": "gps",
+            "data_simple_style": True,
+            "data_fields": "fruit,gps"
         }
-        self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
-        response = self._add_form_metadata(self.xform, data_type, data_value, extra_data=extra_data)
+        response = self._add_form_metadata(
+            self.xform, data_type, data_value, extra_data=extra_data)
         self.assertEqual(response.status_code, 201)
-
         username = self.xform.user.username
         id_string = self.xform.id_string
         # get metadata instance and pass to geojson export util function
         self.assertEqual(self.xform.metadata_set.count(), 1)
         metadata = self.xform.metadata_set.all()[0]
-        export = generate_geojson_export(export_type, username, id_string, metadata, options=options)
+        export = generate_geojson_export(
+            export_type,
+            username,
+            id_string,
+            metadata,
+            options=options,
+            xform=xform1
+        )
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)
 
@@ -570,11 +597,42 @@ class TestExportTools(TestBase, TestAbstractViewSet):
         export.delete()
 
         export = generate_geojson_export(
-            export_type, username, id_string, metadata, export_id=export_id, options=options
+            export_type,
+            username,
+            id_string,
+            metadata,
+            export_id=export_id,
+            options=options,
+            xform=xform1
         )
 
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)
+        with default_storage.open(export.filepath) as f2:
+            content = f2.read().decode('utf-8')
+            geojson = {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [
+                                36.83,
+                                -1.28
+                            ]
+                        },
+                        "properties": {
+                            "id": 1,
+                            "xform": 1,
+                            "fruit": "orange",
+                            "gps": "-1.28 36.83 0 0",
+                            "title": "orange"
+                        }
+                    }
+                ]
+            }
+            self.assertEqual(content, json.dumps(geojson))
 
     def test_str_to_bool(self):
         self.assertTrue(str_to_bool(True))
