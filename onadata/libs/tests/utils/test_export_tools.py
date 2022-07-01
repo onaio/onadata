@@ -591,6 +591,31 @@ class TestExportTools(TestBase, TestAbstractViewSet):
         )
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)
+        with default_storage.open(export.filepath) as f2:
+            content = f2.read().decode('utf-8')
+            geojson = {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [
+                                36.83,
+                                -1.28
+                            ]
+                        },
+                        "properties": {
+                            "id": 5,
+                            "xform": 5,
+                            "fruit": "orange",
+                            "gps": "-1.28 36.83 0 0",
+                            "title": "orange"
+                        }
+                    }
+                ]
+            }
+            self.assertEqual(content, json.dumps(geojson))
 
         export_id = export.id
 
@@ -608,31 +633,6 @@ class TestExportTools(TestBase, TestAbstractViewSet):
 
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)
-        with default_storage.open(export.filepath) as f2:
-            content = f2.read().decode('utf-8')
-            geojson = {
-                "type": "FeatureCollection",
-                "features": [
-                    {
-                        "type": "Feature",
-                        "geometry": {
-                            "type": "Point",
-                            "coordinates": [
-                                36.83,
-                                -1.28
-                            ]
-                        },
-                        "properties": {
-                            "id": 1,
-                            "xform": 1,
-                            "fruit": "orange",
-                            "gps": "-1.28 36.83 0 0",
-                            "title": "orange"
-                        }
-                    }
-                ]
-            }
-            self.assertEqual(content, json.dumps(geojson))
 
     def test_str_to_bool(self):
         self.assertTrue(str_to_bool(True))
