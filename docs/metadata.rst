@@ -230,7 +230,7 @@ Link XForm as a GeoJSON media attachment example:
 ::
 
 
-        curl -X POST -F 'data_type=media' -F 'xform=320' -F 'data_value="geojson 328 places"' -F 'extra_data='{"data_title": "fruits", "data_simple_style": true, "data_geo_field": "geofied_1"}'' https://api.ona.io/api/v1/metadata.json
+        curl -X POST -F 'data_type=media' -F 'xform=320' -F 'data_value="geojson 328 places"' -F 'extra_data='{"data_title": "fruits", "data_simple_style": true, "data_geo_field": "geofied_1", "data_fields": "field_1,field_2"}'' https://api.ona.io/api/v1/metadata.json
 
 ::
 
@@ -241,7 +241,7 @@ Link XForm as a GeoJSON media attachment example:
         "xform": 320,
         "data_value": "geojson 328 places",
         "data_type": "media",
-        "extra_data": '{"data_title": "fruits", "data_simple_style": true, "data_geo_field": "geofied_1"}'
+        "extra_data": '{"data_title": "fruits", "data_simple_style": true, "data_geo_field": "geofied_1", "data_fields": "field_1,field_2"}'
         "url": "https://api.ona.io/api/v1/metadata/7121.json"
         }
 
