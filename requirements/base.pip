@@ -8,7 +8,7 @@
     # via -r requirements/base.in
 -e git+https://github.com/onaio/django-multidb-router.git@f711368180d58eef87eda54fadfd5f8355623d52#egg=django-multidb-router
     # via -r requirements/base.in
--e git+https://github.com/onaio/ona-oidc.git@v0.0.10#egg=ona-oidc
+-e git+https://github.com/onaio/ona-oidc.git@master#egg=ona-oidc
     # via -r requirements/base.in
 -e git+https://github.com/onaio/floip-py.git@3c980eb184069ae7c3c9136b18441978237cd41d#egg=pyfloip
     # via -r requirements/base.in
