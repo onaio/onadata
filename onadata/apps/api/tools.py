@@ -55,7 +55,9 @@ from onadata.libs.permissions import (
     get_role_in_org,
     is_organization,
 )
-from onadata.libs.utils.api_export_tools import custom_response_handler
+from onadata.libs.utils.api_export_tools import (
+    custom_response_handler, get_metadata_format
+)
 from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
@@ -807,17 +809,6 @@ def update_role_by_meta_xform_perms(xform):
             if role in dataentry_role:
                 role = ROLES.get(meta_perms[1])
                 role.add(user, xform)
-
-
-def get_metadata_format(data_value):
-    """Returns metadata format/extension"""
-    fmt = "csv"
-
-    if data_value.startswith("xform_geojson") or data_value.startswith(
-        "dataview_geojson"
-    ):
-        fmt = "geojson"
-    return fmt
 
 
 def replace_attachment_name_with_url(data):

@@ -84,6 +84,17 @@ EXPORT_EXT = {
 }
 
 
+def get_metadata_format(data_value):
+    """Returns metadata format/extension"""
+    fmt = "csv"
+
+    if data_value.startswith("xform_geojson") or data_value.startswith(
+        "dataview_geojson"
+    ):
+        fmt = "geojson"
+    return fmt
+
+
 def include_hxl_row(dv_columns, hxl_columns):
     """
     This function returns a boolean value. If the dataview's columns are not

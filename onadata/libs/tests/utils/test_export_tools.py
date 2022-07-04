@@ -606,8 +606,6 @@ class TestExportTools(TestBase, TestAbstractViewSet):
                             ]
                         },
                         "properties": {
-                            "id": 5,
-                            "xform": 5,
                             "fruit": "orange",
                             "gps": "-1.28 36.83 0 0",
                             "title": "orange"
@@ -615,7 +613,11 @@ class TestExportTools(TestBase, TestAbstractViewSet):
                     }
                 ]
             }
-            self.assertEqual(content, json.dumps(geojson))
+            content = json.loads(content)
+            # remove xform and id from properties because they keep changing
+            del content["features"][0]["properties"]["id"]
+            del content["features"][0]["properties"]["xform"]
+            self.assertEqual(content, geojson)
 
         export_id = export.id
 

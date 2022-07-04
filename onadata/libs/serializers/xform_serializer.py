@@ -22,7 +22,7 @@ from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
-from onadata.apps.api.tools import get_metadata_format
+from onadata.libs.utils.api_export_tools import get_metadata_format
 from onadata.apps.logger.models import DataView, Instance, XForm, XFormVersion
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.exceptions import EnketoError

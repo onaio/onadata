@@ -18,8 +18,8 @@ from rest_framework import serializers
 from rest_framework.reverse import reverse
 
 
-from onadata.apps.api.tools import (
-    update_role_by_meta_xform_perms, get_metadata_format)
+from onadata.apps.api.tools import update_role_by_meta_xform_perms
+from onadata.libs.utils.api_export_tools import get_metadata_format
 from onadata.apps.logger.models import DataView, Instance, Project, XForm
 from onadata.apps.main.models import MetaData
 from onadata.libs.permissions import ROLES, ManagerRole

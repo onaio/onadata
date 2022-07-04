@@ -152,16 +152,18 @@ class TestApiExportTools(TestBase):
         """
         Test metadata export format/ext.
         """
+        self._publish_xlsx_file()
+        xform = XForm.objects.filter().last()
         data_value = "xform_geojson {} {}".format(
-            self.xform.pk, self.xform.id_string)
+            xform.pk, xform.id_string)
         fmt = get_metadata_format(data_value)
         self.assertEqual("geojson", fmt)
         data_value = "dataview_geojson {} {}".format(
-            self.xform.pk, self.xform.id_string)
+            xform.pk, xform.id_string)
         fmt = get_metadata_format(data_value)
         self.assertEqual("geojson", fmt)
         data_value = "xform {} {}".format(
-            self.xform.pk, self.xform.id_string)
+            xform.pk, xform.id_string)
         fmt = get_metadata_format(data_value)
         self.assertEqual(fmt, "csv")
 
