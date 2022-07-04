@@ -39,7 +39,6 @@ from onadata.apps.api.models.team import Team
 from onadata.apps.logger.models import DataView, Instance, Project, XForm
 from onadata.apps.main.forms import QuickConverter
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import datetime_from_str
 from onadata.libs.baseviewset import DefaultBaseViewset
 from onadata.libs.models.share_project import ShareProject
@@ -56,7 +55,9 @@ from onadata.libs.permissions import (
     get_role_in_org,
     is_organization,
 )
-from onadata.libs.utils.api_export_tools import custom_response_handler
+from onadata.libs.utils.api_export_tools import (
+    custom_response_handler, get_metadata_format
+)
 from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
@@ -626,14 +627,16 @@ def get_media_file_response(metadata, request=None):
         if obj:
             dataview = obj if isinstance(obj, DataView) else False
             xform = obj.xform if isinstance(obj, DataView) else obj
+            export_type = get_metadata_format(metadata.data_value)
 
             return custom_response_handler(
                 request,
                 xform,
                 {},
-                Export.CSV_EXPORT,
+                export_type,
                 filename=filename,
                 dataview=dataview,
+                metadata=metadata,
             )
 
     return HttpResponseRedirect(metadata.data_value)

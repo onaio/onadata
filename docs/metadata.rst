@@ -224,6 +224,27 @@ Link XForm or Dataview as a media example:
         "url": "https://api.ona.io/api/v1/metadata/7121.json"
         }
 
+
+Link XForm as a GeoJSON media attachment example:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+::
+
+
+        curl -X POST -F 'data_type=media' -F 'xform=320' -F 'data_value="xform_geojson 328 places"' -F 'extra_data='{"data_title": "fruits", "data_simple_style": true, "data_geo_field": "geofied_1", "data_fields": "field_1,field_2"}'' https://api.ona.io/api/v1/metadata.json
+
+::
+
+        HTTP 201 CREATED
+
+        {
+        "id": 7121,
+        "xform": 320,
+        "data_value": "xform_geojson 328 places",
+        "data_type": "media",
+        "extra_data": '{"data_title": "fruits", "data_simple_style": true, "data_geo_field": "geofied_1", "data_fields": "field_1,field_2"}'
+        "url": "https://api.ona.io/api/v1/metadata/7121.json"
+        }
+
 Create XForm meta permissions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Set meta permissions for a specific form by passing two roles that are pipe delimited.

@@ -22,6 +22,7 @@ from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
+from onadata.libs.utils.api_export_tools import get_metadata_format
 from onadata.apps.logger.models import DataView, Instance, XForm, XFormVersion
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.exceptions import EnketoError
@@ -627,11 +628,12 @@ class XFormManifestSerializer(serializers.Serializer):
             "metadata": obj.pk,
         }
         request = self.context.get("request")
+        extension = get_metadata_format(obj.data_value)
         try:
             fmt_index = obj.data_value.rindex(".") + 1
             fmt = obj.data_value[fmt_index:]
         except ValueError:
-            fmt = "csv"
+            fmt = extension
         url = reverse("xform-media", kwargs=kwargs, request=request, format=fmt.lower())
 
         group_delimiter = self.context.get(GROUP_DELIMETER_TAG)
@@ -689,10 +691,11 @@ class XFormManifestSerializer(serializers.Serializer):
         """
         filename = obj.data_value
         parts = filename.split(" ")
+        extension = get_metadata_format(filename)
         # filtered dataset is of the form "xform PK name", filename is the
         # third item
         if len(parts) > 2:
-            filename = f"{parts[2]}.csv"
+            filename = f"{parts[2]}.{extension}"
         else:
             try:
                 URLValidator()(filename)

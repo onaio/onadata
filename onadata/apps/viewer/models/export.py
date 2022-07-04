@@ -77,6 +77,7 @@ class Export(models.Model):
     EXTERNAL_EXPORT = "external"
     OSM_EXPORT = OSM
     GOOGLE_SHEETS_EXPORT = "gsheets"
+    GEOJSON_EXPORT = "geojson"
 
     EXPORT_MIMES = {
         "xls": "vnd.ms-excel",
@@ -87,6 +88,7 @@ class Export(models.Model):
         "sav_zip": "zip",
         "sav": "sav",
         "kml": "vnd.google-earth.kml+xml",
+        "geojson": "geo+json",
         OSM: OSM,
     }
 
@@ -101,6 +103,7 @@ class Export(models.Model):
         (EXTERNAL_EXPORT, "Excel"),
         (OSM, OSM),
         (GOOGLE_SHEETS_EXPORT, "Google Sheets"),
+        (GEOJSON_EXPORT, "geojson"),
     ]
 
     EXPORT_OPTION_FIELDS = [

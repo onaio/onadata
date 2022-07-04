@@ -58,6 +58,7 @@ from onadata.libs.utils.export_tools import (
     generate_external_export,
     generate_kml_export,
     generate_osm_export,
+    generate_geojson_export,
     newest_export_for,
     parse_request_export_options,
     should_create_new_export,
@@ -79,7 +80,19 @@ EXPORT_EXT = {
     "zip": Export.ZIP_EXPORT,
     OSM: Export.OSM_EXPORT,
     "gsheets": Export.GOOGLE_SHEETS_EXPORT,
+    "geojson": Export.GEOJSON_EXPORT,
 }
+
+
+def get_metadata_format(data_value):
+    """Returns metadata format/extension"""
+    fmt = "csv"
+
+    if data_value.startswith("xform_geojson") or data_value.startswith(
+        "dataview_geojson"
+    ):
+        fmt = "geojson"
+    return fmt
 
 
 def include_hxl_row(dv_columns, hxl_columns):
@@ -117,6 +130,7 @@ def custom_response_handler(  # noqa: C0901
     meta=None,
     dataview=False,
     filename=None,
+    metadata=None,
 ):
     """
     Returns a HTTP response with export file for download.
@@ -174,7 +188,8 @@ def custom_response_handler(  # noqa: C0901
         # we always re-generate if a filter is specified
         def _new_export():
             return _generate_new_export(
-                request, xform, query, export_type, dataview_pk=dataview_pk
+                request, xform, query, export_type,
+                dataview_pk=dataview_pk, metadata=metadata
             )
 
         if should_create_new_export(xform, export_type, options, request=request):
@@ -217,7 +232,7 @@ def custom_response_handler(  # noqa: C0901
 
 
 def _generate_new_export(  # noqa: C0901
-    request, xform, query, export_type, dataview_pk=False
+    request, xform, query, export_type, dataview_pk=False, metadata=None
 ):
     query = _set_start_end_params(request, query)
     extension = _get_extension_from_export_type(export_type)
@@ -271,6 +286,16 @@ def _generate_new_export(  # noqa: C0901
                 export_type,
                 xform.user.username,
                 xform.id_string,
+                None,
+                options,
+                xform=xform,
+            )
+        elif export_type == Export.GEOJSON_EXPORT:
+            export = generate_geojson_export(
+                export_type,
+                xform.user.username,
+                xform.id_string,
+                metadata,
                 None,
                 options,
                 xform=xform,

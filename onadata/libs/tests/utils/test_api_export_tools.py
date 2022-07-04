@@ -16,7 +16,10 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export, ExportConnectionError
 from onadata.libs.exceptions import ServiceUnavailable
 from onadata.libs.utils.api_export_tools import (
-    get_async_response, process_async_export, response_for_format)
+    get_async_response, process_async_export,
+    response_for_format,
+    get_metadata_format
+)
 from onadata.libs.utils.async_status import SUCCESSFUL, status_msg
 
 
@@ -144,6 +147,25 @@ class TestApiExportTools(TestBase):
         xform.xls.storage.delete(xform.xls.name)
         with self.assertRaises(Http404):
             response_for_format(xform, 'xls')
+
+    def test_get_metadata_format(self):
+        """
+        Test metadata export format/ext.
+        """
+        self._publish_xlsx_file()
+        xform = XForm.objects.filter().last()
+        data_value = "xform_geojson {} {}".format(
+            xform.pk, xform.id_string)
+        fmt = get_metadata_format(data_value)
+        self.assertEqual("geojson", fmt)
+        data_value = "dataview_geojson {} {}".format(
+            xform.pk, xform.id_string)
+        fmt = get_metadata_format(data_value)
+        self.assertEqual("geojson", fmt)
+        data_value = "xform {} {}".format(
+            xform.pk, xform.id_string)
+        fmt = get_metadata_format(data_value)
+        self.assertEqual(fmt, "csv")
 
     # pylint: disable=invalid-name
     @mock.patch(

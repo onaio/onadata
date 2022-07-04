@@ -17,10 +17,13 @@ from six.moves.urllib.parse import urlparse
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
+
 from onadata.apps.api.tools import update_role_by_meta_xform_perms
+from onadata.libs.utils.api_export_tools import get_metadata_format
 from onadata.apps.logger.models import DataView, Instance, Project, XForm
 from onadata.apps.main.models import MetaData
 from onadata.libs.permissions import ROLES, ManagerRole
+from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.fields.instance_related_field import InstanceRelatedField
 from onadata.libs.serializers.fields.project_related_field import ProjectRelatedField
 from onadata.libs.serializers.fields.xform_related_field import XFormRelatedField
@@ -71,6 +74,8 @@ def get_linked_object(parts):
     """
     if isinstance(parts, list) and parts:
         obj_type = parts[0]
+        if "geojson" in obj_type:
+            obj_type = obj_type.split("_")[0]
         if obj_type in [DATAVIEW_TAG, XFORM_TAG] and len(parts) > 1:
             obj_pk = parts[1]
             try:
@@ -103,6 +108,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
     data_value = serializers.CharField(max_length=255, required=True)
     data_type = serializers.ChoiceField(choices=METADATA_TYPES)
     data_file = serializers.FileField(required=False)
+    extra_data = JsonField(required=False)
     data_file_type = serializers.CharField(
         max_length=255, required=False, allow_blank=True
     )
@@ -122,6 +128,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             "data_value",
             "data_type",
             "data_file",
+            "extra_data",
             "data_file_type",
             "media_url",
             "file_hash",
@@ -140,14 +147,15 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         ):
             return obj.data_file.url
         if obj.data_type in [MEDIA_TYPE] and obj.is_linked_dataset:
+            request = self.context.get("request")
             kwargs = {
                 "kwargs": {
                     "pk": obj.content_object.pk,
                     "username": obj.content_object.user.username,
                     "metadata": obj.pk,
                 },
-                "request": self.context.get("request"),
-                "format": "csv",
+                "request": request,
+                "format": get_metadata_format(obj.data_value),
             }
 
             return reverse("xform-media", **kwargs)
@@ -262,6 +270,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         data_type = validated_data.get("data_type")
         data_file = validated_data.get("data_file")
         data_file_type = validated_data.get("data_file_type")
+        extra_data = validated_data.get('extra_data')
 
         content_object = self.get_content_object(validated_data)
         data_value = data_file.name if data_file else validated_data.get("data_value")
@@ -303,6 +312,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                     data_type=data_type,
                     data_value=data_value,
                     data_file=data_file,
+                    extra_data=extra_data,
                     data_file_type=data_file_type,
                     object_id=content_object.id,
                 )

@@ -163,6 +163,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             'xform': self.xform.pk,
             'data_value': u'1335783522563.jpg',
             'data_type': u'media',
+            'extra_data': None,
             'data_file': u'http://localhost:8000/media/%s/formid-media/'
             '1335783522563.jpg' % self.user.username,
             'data_file_type': u'image/jpeg',
@@ -270,6 +271,29 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Disposition'],
                          'attachment; filename=transportation.csv')
+
+    def test_add_media_geojson_link(self):
+        data_type = 'media'
+        data_value = 'xform_geojson {} transportation'.format(self.xform.pk)
+        extra_data = {
+            "data_title": "test",
+            "data_simple_style": True,
+            "data_geo_field": "test",
+            "data_fields": "transport/available_transportation_types_to_referral_facility/ambulance" # noqa
+        }
+        self._add_form_metadata(
+            self.xform,
+            data_type,
+            data_value,
+            extra_data=extra_data
+        )
+        self.assertIsNotNone(self.metadata_data['media_url'])
+        request = self.factory.get('/', **self.extra)
+        ext = self.data_value[self.data_value.rindex('.') + 1:]
+        response = self.view(request, pk=self.metadata.pk, format=ext)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Disposition'],
+                         'attachment; filename=transportation.geojson')
 
     def test_add_media_dataview_link(self):
         self._create_dataview()
