@@ -43,6 +43,7 @@ from dict2xml import dict2xml
 from modilabs.utils.subprocess_timeout import ProcessTimedOut
 from multidb.pinning import use_master
 from pyxform.errors import PyXFormError
+from pyxform.validators.odk_validate import ODKValidateError
 from pyxform.xform2json import create_survey_element_from_xml
 from rest_framework.response import Response
 
@@ -737,7 +738,7 @@ def publish_form(callback):
     """
     try:
         return callback()
-    except (PyXFormError, XLSFormError) as e:
+    except (PyXFormError, XLSFormError, ODKValidateError) as e:
         return {"type": "alert-error", "text": text(e)}
     except IntegrityError:
         return {
