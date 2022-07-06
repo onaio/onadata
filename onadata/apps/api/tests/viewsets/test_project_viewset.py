@@ -500,6 +500,25 @@ class TestProjectViewSet(TestAbstractViewSet):
             self.assertEqual(self.user, project.created_by)
             self.assertEqual(self.user, project.organization)
 
+    def test_form_publish_odk_validation_errors(self):
+        self._project_create()
+        path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "transportation",
+                "error_test_form.xlsx",
+            )
+        with open(path, "rb") as xlsx_file:
+            view = ProjectViewSet.as_view({"post": "forms"})
+            post_data = {"xls_file": xlsx_file}
+            request = self.factory.post("/", data=post_data, **self.extra)
+            response = view(request, pk=self.project.pk)
+            self.assertEqual(response.status_code, 400)
+            self.assertIn("ODK Validate Errors:", response.data.get('text'))
+
     # pylint: disable=invalid-name
     def test_publish_xls_form_to_project(self):
         self._publish_xls_form_to_project()
