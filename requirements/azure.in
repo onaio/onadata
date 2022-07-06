@@ -1,2 +1,2 @@
 django-storages[azure]
-django>2.2.20,<3
+django >=3.2.14,<4
