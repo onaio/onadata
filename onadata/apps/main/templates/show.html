@@ -10,7 +10,7 @@
 	<h3>
 	  <div style='vertical-align: middle'>
 	  <img src='{{ content_user.profile.gravatar }}' alt='gravatar' width='20' height='20' />
-	  <a href="{% url "user_profile" content_user.username %}">{{ content_user.username }}</a> ({% trans "Owner" %}) /
+	  <a href="{% url "user_profile" content_user.username %}">{{ content_user.username }}</a> ({% translate "Owner" %}) /
 	  </div>
 	</h3>
         <div class="clearfix">
@@ -19,8 +19,8 @@
                 {% csrf_token %}
                 <input type="text" id="title"class="input-xxlarge present header" disabled="" rows="3" value="{{ xform.title }}" />
                 {% if can_edit %}
-                    <a id="title_edit" data-id="title" href="" class="btn small bind-edit">{% trans "edit" %}</a>
-                    <a id="title_save" data-id="title" style="display:none" href="" class="btn small btn-primary bind-save" data-url="{% url "xform-edit" content_user.username xform.id_string %}">{% trans "save" %}</a>
+                    <a id="title_edit" data-id="title" href="" class="btn small bind-edit">{% translate "edit" %}</a>
+                    <a id="title_save" data-id="title" style="display:none" href="" class="btn small btn-primary bind-save" data-url="{% url "xform-edit" content_user.username xform.id_string %}">{% translate "save" %}</a>
                 {% endif %}
             </form>
             </div>
@@ -29,32 +29,32 @@
     <div class="row">
       <div class="span8">
         {% if can_edit %}
-            <h4>{% trans "Form ID:" %} {{ xform.id_string }}</h4>
+            <h4>{% translate "Form ID:" %} {{ xform.id_string }}</h4>
         {% endif %}
-        <h3>{% trans "Description" %}</h3>
+        <h3>{% translate "Description" %}</h3>
         <div class="clearfix">
             <div class="input">
             <form>
                 {% csrf_token %}
-                <textarea id="description" class="input-xxlarge present" disabled="" rows="3" name="textarea" placeholder="{% trans 'No description' %}">{{ xform.description }}</textarea>
+                <textarea id="description" class="input-xxlarge present" disabled="" rows="3" name="textarea" placeholder="{% translate 'No description' %}">{{ xform.description }}</textarea>
                 {% if can_edit %}
-                    <a id="description_edit" data-id="description" href="" class="btn small bind-edit">{% trans "edit" %}</a>
-                    <a id="description_save" data-id="description" style="display:none" href="" class="btn small btn-primary bind-save" data-url="{% url "xform-edit" content_user.username xform.id_string %}">{% trans "save" %}</a>
+                    <a id="description_edit" data-id="description" href="" class="btn small bind-edit">{% translate "edit" %}</a>
+                    <a id="description_save" data-id="description" style="display:none" href="" class="btn small btn-primary bind-save" data-url="{% url "xform-edit" content_user.username xform.id_string %}">{% translate "save" %}</a>
                 {% endif %}
             </form>
             </div>
         </div>
       <div class="bordered">
         <h3>
-            {% trans "XLSForm" %}
-            <span id="form-shared-public" class="label label-info">{% trans "PUBLIC" %}</span>
-            <span id="form-shared-private" class="label label-warning">{% trans "PRIVATE" %}</span>
-            <span id="form-encrypted" class="label label-important icon-lock label-encrypted">&nbsp;&nbsp;{% trans "ENCRYPTED" %}</span>
+            {% translate "XLSForm" %}
+            <span id="form-shared-public" class="label label-info">{% translate "PUBLIC" %}</span>
+            <span id="form-shared-private" class="label label-warning">{% translate "PRIVATE" %}</span>
+            <span id="form-encrypted" class="label label-important icon-lock label-encrypted">&nbsp;&nbsp;{% translate "ENCRYPTED" %}</span>
         </h3>
         <br/>
         <div class="btn-toolbar" style="margin-bottom: 9px">
           <div class="btn-group">
-            <a class="btn btn-success" href="{% url "download_xlsform" content_user.username xform.id_string %}"><i class="icon-th icon-white"></i><font color=#FFF> {% trans "XLSForm" %}</font></a>
+            <a class="btn btn-success" href="{% url "download_xlsform" content_user.username xform.id_string %}"><i class="icon-th icon-white"></i><font color=#FFF> {% translate "XLSForm" %}</font></a>
             <button class="btn dropdown-toggle btn-success" data-toggle="dropdown">
               <span class="caret"></span>
             </button>
@@ -65,7 +65,7 @@
             </ul>
           </div>
           <div class="btn-group">
-            <a class="btn" href="{% url "download_xform" content_user.username xform.id_string %}"><i class="icon-file"></i><font color=#000> {% trans "XForm" %}</font></a>
+            <a class="btn" href="{% url "download_xform" content_user.username xform.id_string %}"><i class="icon-file"></i><font color=#000> {% translate "XForm" %}</font></a>
             <button class="btn dropdown-toggle" data-toggle="dropdown">
               <span class="caret"></span>
             </button>
@@ -76,7 +76,7 @@
             </ul>
           </div>
           <div class="btn-group">
-            <a class="btn" href="{% url "download_jsonform" content_user.username xform.id_string %}"><i class="icon-file"></i><font color=#000> {% trans "JSONForm" %}</font></a>
+            <a class="btn" href="{% url "download_jsonform" content_user.username xform.id_string %}"><i class="icon-file"></i><font color=#000> {% translate "JSONForm" %}</font></a>
             <button class="btn dropdown-toggle" data-toggle="dropdown">
               <span class="caret"></span>
             </button>
@@ -90,24 +90,24 @@
     <br>
         </ul>
         <p>
-            {% trans "License" %}:
+            {% translate "License" %}:
             {% if can_edit %}
                 {% for field in form_license_form %}
                     {{ field }}
                 {% endfor %}
-                <a id="form-license_edit" data-id="form-license" href="" class="btn btn-small bind-edit">{% trans "edit" %}</a>
-                <a id="form-license_save" data-id="form-license" style="display:none" href="" class="btn btn-small btn-primary bind-save" data-url="{% url "xform-edit" content_user.username xform.id_string %}">{% trans "save" %}</a>
+                <a id="form-license_edit" data-id="form-license" href="" class="btn btn-small bind-edit">{% translate "edit" %}</a>
+                <a id="form-license_save" data-id="form-license" style="display:none" href="" class="btn btn-small btn-primary bind-save" data-url="{% url "xform-edit" content_user.username xform.id_string %}">{% translate "save" %}</a>
             {% else %}
                 {{ form_license|default:'No license' }}
             {% endif %}
         </p>
-        <p><a id="form-license_info" style="display:none" href="">{% trans "License information" %}</a></p>
+        <p><a id="form-license_info" style="display:none" href="">{% translate "License information" %}</a></p>
         <br/>
         <ul class="inline">
         {% if user.is_authenticated and content_user.username != user.username and xform.xls|length > 0 and not cloned %}
             <br/><br/>
             <li>
-                <a href="" data-url="{% url "clone-xlsform" xform.user.username %}" data-username="{{ xform.user.username }}" data-id="{{ xform.id_string }}" class="clonexls btn small">{% trans "Clone" %}</a>
+                <a href="" data-url="{% url "clone-xlsform" xform.user.username %}" data-username="{{ xform.user.username }}" data-id="{{ xform.id_string }}" class="clonexls btn small">{% translate "Clone" %}</a>
             </li>
         {% endif %}
         </ul>
@@ -115,17 +115,17 @@
       <br/>
       <div class="clearfix bordered">
         <h3>
-            {% trans "Form Data" %}
-            <span id="data-shared-public" class="label label-info">{% trans "PUBLIC" %}</span>
-            <span id="data-shared-private" class="label label-warning">{% trans "PRIVATE" %}</span>
-            <span id="data-encrypted" class="label label-important icon-lock label-encrypted">&nbsp;&nbsp;{% trans "ENCRYPTED" %}</span>
+            {% translate "Form Data" %}
+            <span id="data-shared-public" class="label label-info">{% translate "PUBLIC" %}</span>
+            <span id="data-shared-private" class="label label-warning">{% translate "PRIVATE" %}</span>
+            <span id="data-encrypted" class="label label-important icon-lock label-encrypted">&nbsp;&nbsp;{% translate "ENCRYPTED" %}</span>
         </h3>
         {% if xform.shared_data or can_view %}
         {% if not xform.encrypted and xform.submission_count > 0 %}
         <br>
         <div class="btn-toolbar" style="margin-bottom: 9px">
           <div class="btn-group">
-            <a class="btn" href="{% url "export-list" content_user.username xform.id_string 'csv' %}" rel="tooltip" data-original-title="{% trans 'csv exports' %}"><i class="icon-download-alt"></i> <font color=#000>{% trans "csv" %}</font></a>
+            <a class="btn" href="{% url "export-list" content_user.username xform.id_string 'csv' %}" rel="tooltip" data-original-title="{% translate 'csv exports' %}"><i class="icon-download-alt"></i> <font color=#000>{% translate "csv" %}</font></a>
             <button class="btn dropdown-toggle" data-toggle="dropdown">
               <span class="caret"></span>
             </button>
@@ -136,7 +136,7 @@
             </ul>
           </div>
           <div class="btn-group">
-            <a class="btn" href="{% url "export-list" content_user.username xform.id_string 'csv_zip' %}" rel="tooltip" data-original-title="{% trans 'csv zip exports' %}"><i class="icon-download-alt"></i> <font color=#000>{% trans "csv zip" %}</font></a>
+            <a class="btn" href="{% url "export-list" content_user.username xform.id_string 'csv_zip' %}" rel="tooltip" data-original-title="{% translate 'csv zip exports' %}"><i class="icon-download-alt"></i> <font color=#000>{% translate "csv zip" %}</font></a>
             <button class="btn dropdown-toggle" data-toggle="dropdown">
               <span class="caret"></span>
             </button>
@@ -147,7 +147,7 @@
             </ul>
           </div>
           <div class="btn-group">
-            <a class="btn" href="{% url "export-list" content_user.username xform.id_string 'sav_zip' %}" rel="tooltip" data-original-title="{% trans 'SPSS data files zip exports' %}"><i class="icon-download-alt"></i> <font color=#000>{% trans "sav zip" %}</font></a>
+            <a class="btn" href="{% url "export-list" content_user.username xform.id_string 'sav_zip' %}" rel="tooltip" data-original-title="{% translate 'SPSS data files zip exports' %}"><i class="icon-download-alt"></i> <font color=#000>{% translate "sav zip" %}</font></a>
             <button class="btn dropdown-toggle" data-toggle="dropdown">
               <span class="caret"></span>
             </button>
@@ -158,7 +158,7 @@
             </ul>
           </div>
           <div class="btn-group">
-            <a class="btn" href="{% url "export-list" content_user.username xform.id_string 'xls' %}" rel="tooltip" data-original-title="{% trans 'xls exports' %}"><i class="icon-download-alt"></i> <font color=#000>{% trans "xls" %}</font></a>
+            <a class="btn" href="{% url "export-list" content_user.username xform.id_string 'xls' %}" rel="tooltip" data-original-title="{% translate 'xls exports' %}"><i class="icon-download-alt"></i> <font color=#000>{% translate "xls" %}</font></a>
             <button class="btn dropdown-toggle" data-toggle="dropdown">
               <span class="caret"></span>
             </button>
@@ -169,7 +169,7 @@
             </ul>
           </div>
           <div class="btn-group">
-            <a class="btn" href="{% url "export-list" content_user.username xform.id_string 'kml'%}" rel="tooltip" data-original-title="{% trans 'Export to kml File (Google Earth)' %}"><i class="icon-download-alt"></i> <font color=#000>{% trans "kml" %}</font></a>
+            <a class="btn" href="{% url "export-list" content_user.username xform.id_string 'kml'%}" rel="tooltip" data-original-title="{% translate 'Export to kml File (Google Earth)' %}"><i class="icon-download-alt"></i> <font color=#000>{% translate "kml" %}</font></a>
             <button class="btn dropdown-toggle" data-toggle="dropdown">
               <span class="caret"></span>
             </button>
@@ -181,7 +181,7 @@
           </div>
 
           <div class="btn-group">
-            <a class="btn" href="{% url "export-list" content_user.username xform.id_string 'zip' %}" rel="tooltip" data-original-title="{% trans 'Export a zip folder of attachments' %}"><i class="icon-download-alt"></i> <font color=#000>{% trans "zip" %}</font></a>
+            <a class="btn" href="{% url "export-list" content_user.username xform.id_string 'zip' %}" rel="tooltip" data-original-title="{% translate 'Export a zip folder of attachments' %}"><i class="icon-download-alt"></i> <font color=#000>{% translate "zip" %}</font></a>
             <button class="btn dropdown-toggle" data-toggle="dropdown">
               <span class="caret"></span>
             </button>
@@ -192,7 +192,7 @@
             </ul>
           </div>
           <div class="btn-group">
-            <a class="btn" href="{% url "export-list" content_user.username xform.id_string 'gdoc' %}" rel="tooltip" data-original-title="{% trans 'Export to google docs' %}" target="_blank"><i class="icon-download-alt"></i> <font color=#000>{% trans "gdocs" %}</font></a>
+            <a class="btn" href="{% url "export-list" content_user.username xform.id_string 'gdoc' %}" rel="tooltip" data-original-title="{% translate 'Export to google docs' %}" target="_blank"><i class="icon-download-alt"></i> <font color=#000>{% translate "gdocs" %}</font></a>
             <button class="btn dropdown-toggle" data-toggle="dropdown">
                 <span class="caret"></span>
             </button>
@@ -204,7 +204,7 @@
           </div>
           <br/>
           <div class="btn-group">
-            <a class="btn" href="{% url "export-list" content_user.username xform.id_string 'external' %}" rel="tooltip" data-original-title="{% trans 'xls reports' %}" target="_blank"><i class="icon-download-alt"></i> <font color=#000>{% trans "xls reports" %}</font></a>
+            <a class="btn" href="{% url "export-list" content_user.username xform.id_string 'external' %}" rel="tooltip" data-original-title="{% translate 'xls reports' %}" target="_blank"><i class="icon-download-alt"></i> <font color=#000>{% translate "xls reports" %}</font></a>
             <button class="btn dropdown-toggle" data-toggle="dropdown">
                 <span class="caret"></span>
             </button>
@@ -215,7 +215,7 @@
             </ul>
           </div>
           <div class="btn-group">
-            <a class="btn" href="{% url "export-list" content_user.username xform.id_string 'osm' %}" rel="tooltip" data-original-title="{% trans 'OSM' %}" target="_blank"><i class="icon-download-alt"></i> <font color=#000>{% trans "OSM" %}</font></a>
+            <a class="btn" href="{% url "export-list" content_user.username xform.id_string 'osm' %}" rel="tooltip" data-original-title="{% translate 'OSM' %}" target="_blank"><i class="icon-download-alt"></i> <font color=#000>{% translate "OSM" %}</font></a>
             <button class="btn dropdown-toggle" data-toggle="dropdown">
                 <span class="caret"></span>
             </button>
@@ -226,45 +226,45 @@
             </ul>
           </div>
         </div>
-        <h4>{% trans "Submissions:" %} {{ xform.submission_count|intcomma }}</h4>
+        <h4>{% translate "Submissions:" %} {{ xform.submission_count|intcomma }}</h4>
         <br>
         <p>
-            {% trans "License:" %}
+            {% translate "License:" %}
             {% if can_edit %}
                 {% for field in data_license_form %}
                     {{ field }}
                 {% endfor %}
-                <a id="data-license_edit" data-id="data-license" href="" class="btn btn-small bind-edit">{% trans "edit" %}</a>
-                <a id="data-license_save" data-id="data-license" style="display:none" href="" class="btn btn-small btn-primary bind-save" data-url="{% url "xform-edit" content_user.username xform.id_string %}">{% trans "save" %}</a>
+                <a id="data-license_edit" data-id="data-license" href="" class="btn btn-small bind-edit">{% translate "edit" %}</a>
+                <a id="data-license_save" data-id="data-license" style="display:none" href="" class="btn btn-small btn-primary bind-save" data-url="{% url "xform-edit" content_user.username xform.id_string %}">{% translate "save" %}</a>
             {% else %}
                 {{ data_license|default:'No license' }}
             {% endif %}
         </p>
-        <p><a id="data-license_info" style="display:none" href="">{% trans "License information" %}</a></p>
+        <p><a id="data-license_info" style="display:none" href="">{% translate "License information" %}</a></p>
 	    <div class="btn-group" style="margin-bottom: 9px">
 				{% if xform.has_instances_with_geopoints %}
-			<a class="btn btn-info" rel="tooltip" title="{% trans 'View Map' %}" href="{% url "map-view" content_user.username xform.id_string %}">
-				<i class="icon-map-marker icon-white"></i> {% trans "Map" %}
+			<a class="btn btn-info" rel="tooltip" title="{% translate 'View Map' %}" href="{% url "map-view" content_user.username xform.id_string %}">
+				<i class="icon-map-marker icon-white"></i> {% translate "Map" %}
 			</a>
 		        {% endif %}
-            <a class="btn btn-info" btn-info  rel="tooltip" title="{% trans "View Photos" %}" href="{% url "form-photos" content_user.username xform.id_string %}">
-              <i class="icon-camera icon-white"></i> {% trans "Photos" %}
+            <a class="btn btn-info" btn-info  rel="tooltip" title="{% translate "View Photos" %}" href="{% url "form-photos" content_user.username xform.id_string %}">
+              <i class="icon-camera icon-white"></i> {% translate "Photos" %}
             </a>
-            <a class="btn btn-info" btn-info  rel="tooltip" title="{% trans "View Submitted Data" %}" href="{% url "data-view" content_user.username xform.id_string %}">
-                <i class="icon-th-list icon-white"></i> {% trans "View Data" %}
+            <a class="btn btn-info" btn-info  rel="tooltip" title="{% translate "View Submitted Data" %}" href="{% url "data-view" content_user.username xform.id_string %}">
+                <i class="icon-th-list icon-white"></i> {% translate "View Data" %}
             </a>
-            <a class="btn btn-info" btn-info  rel="tooltip" title="{% trans "Browse Data (One by One)" %}" href="{% url "submission-instance" content_user.username xform.id_string %}">
-                <i class="icon-list-alt icon-white"></i> {% trans "Browse Data" %}
+            <a class="btn btn-info" btn-info  rel="tooltip" title="{% translate "Browse Data (One by One)" %}" href="{% url "submission-instance" content_user.username xform.id_string %}">
+                <i class="icon-list-alt icon-white"></i> {% translate "Browse Data" %}
             </a>
-            <a class="btn btn-info" btn-info  rel="tooltip" title="{% trans "View Statistics" %}" href="{% url "form-stats" content_user.username xform.id_string %}">
-                <i class="icon-bar-chart icon-white"></i> {% trans "Statistics" %}
+            <a class="btn btn-info" btn-info  rel="tooltip" title="{% translate "View Statistics" %}" href="{% url "form-stats" content_user.username xform.id_string %}">
+                <i class="icon-bar-chart icon-white"></i> {% translate "Statistics" %}
             </a>
         </div>
         {% else %}
             {% if can_edit %}
 
             {% else %}
-                <span class="label label-warning">{% trans "NO DATA" %}</span>
+                <span class="label label-warning">{% translate "NO DATA" %}</span>
             {% endif %}
 		{% endif %}
 		{% endif %}
@@ -274,16 +274,16 @@
 
               <div class="btn-group" style="margin-bottom: 9px">
                   {% if can_edit %}
-                  <a class="btn btn-info" rel="tooltip" title="{% trans 'Webform' %}"
+                  <a class="btn btn-info" rel="tooltip" title="{% translate 'Webform' %}"
                      href="{% url "enter_data" content_user.username xform.id_string %}">
-                      <i class="icon-edit icon-white"></i> {% trans "Enter Web Form" %}
+                      <i class="icon-edit icon-white"></i> {% translate "Enter Web Form" %}
                   </a>
-                  <a data-toggle="modal" data-target="#popupmodal" class="showqr btn btn-info" href="{% url "get_qrcode" xform.user.username xform.id_string %}"><i class="icon-tablet"></i> {% trans "Mobile" %}</a>
+                  <a data-toggle="modal" data-target="#popupmodal" class="showqr btn btn-info" href="{% url "get_qrcode" xform.user.username xform.id_string %}"><i class="icon-tablet"></i> {% translate "Mobile" %}</a>
                   {% endif %}
                   {% if can_edit or xform.shared %}
-                  <a class="btn btn-info" rel="tooltip" title="{% trans 'Preview Form' %}" href="#preview-modal"
+                  <a class="btn btn-info" rel="tooltip" title="{% translate 'Preview Form' %}" href="#preview-modal"
                      data-toggle="modal">
-                      <i class="icon-check icon-white"></i> {% trans "Preview Form" %}
+                      <i class="icon-check icon-white"></i> {% translate "Preview Form" %}
                   </a>
                   {% endif %}
 
@@ -292,7 +292,7 @@
               <div id="preview-modal" class="modal hide fade">
                   <div class="modal-header">
                       <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                      <h3>{{ xform.title }} - {% trans "Preview" %}</h3>
+                      <h3>{{ xform.title }} - {% translate "Preview" %}</h3>
                   </div>
                   <div class="modal-body">
                       <iframe src="{% url "enketo-preview" content_user.username xform.id_string %}"></iframe>
@@ -307,7 +307,7 @@
     </div>
       <br/>
         <div class="clearfix bordered">
-                <h3 data-toggle="collapse" class="toggler" data-target="#source_tab">{% trans "Source" %}</h3>
+                <h3 data-toggle="collapse" class="toggler" data-target="#source_tab">{% translate "Source" %}</h3>
                 <div id='source_tab' class="collapse">
                 <form action="{% url "xform-edit" content_user.username xform.id_string %}" method="post" enctype="multipart/form-data">
 
@@ -317,8 +317,8 @@
                 {% csrf_token %}
                 <input type="text" id="source" class="input-xxlarge present" disabled="" rows="3" value="{{ source.data_value|default:"None provided" }}" />
                 {% if can_edit %}
-                    <a id="source_edit" data-id="source" href="" class="btn small bind-edit">{% trans "edit" %}</a>
-                    <a id="source_save" data-id="source" style="display:none" href="" class="btn small btn-primary bind-save" data-url="{% url "xform-edit" content_user.username xform.id_string %}">{% trans "save" %}</a>
+                    <a id="source_edit" data-id="source" href="" class="btn small bind-edit">{% translate "edit" %}</a>
+                    <a id="source_save" data-id="source" style="display:none" href="" class="btn small btn-primary bind-save" data-url="{% url "xform-edit" content_user.username xform.id_string %}">{% translate "save" %}</a>
                 {% endif %}
 
 
@@ -327,19 +327,19 @@
                     <table>
                     {{ source_form.as_table }}
                     </table>
-                    <input type="submit" class="btn" value="{% trans 'Upload' %}" />
+                    <input type="submit" class="btn" value="{% translate 'Upload' %}" />
                 {% endif %}
             </form>
             </div>
         </div>
         <br/>
         <div class="clearfix bordered">
-                <h3 data-toggle="collapse" class="toggler" data-target="#docs_tab">{% trans "Methodology" %}</h3>
+                <h3 data-toggle="collapse" class="toggler" data-target="#docs_tab">{% translate "Methodology" %}</h3>
                 <div id='docs_tab' class="collapse">
                 {% for doc in supporting_docs %}
                     <p><a href="{% url "download-metadata" content_user.username xform.id_string doc.id %}">{{ doc.data_value }}</a>
                     {% if can_edit %}
-                    || <a href="{% url "delete-metadata" content_user.username xform.id_string doc.id %}?del=true"> {% trans "remove" %} </a>
+                    || <a href="{% url "delete-metadata" content_user.username xform.id_string doc.id %}?del=true"> {% translate "remove" %} </a>
                     {% endif %}
                     </p>
                 {% endfor %}
@@ -349,7 +349,7 @@
                         <table>
                             {{ doc_form.as_table }}
                         </table>
-                        <input type="submit" class="btn" value="{% trans 'Upload' %}" />
+                        <input type="submit" class="btn" value="{% translate 'Upload' %}" />
                     </form>
                 {% endif %}
             </div>
@@ -357,19 +357,19 @@
         {% if is_owner %}
         <br/>
         <div class="clearfix bordered">
-            <h3 data-toggle="collapse" class="toggler" data-target="#restservice_tab">{% trans "Rest Services" %}</h3>
+            <h3 data-toggle="collapse" class="toggler" data-target="#restservice_tab">{% translate "Rest Services" %}</h3>
             <div id='restservice_tab' class="collapse">
             </div>
         </div>
         {% endif %}
         <br/>
         <div class="clearfix bordered">
-            <h3 data-toggle="collapse" class="toggler" data-target="#media_tab">{% blocktrans %}Media &nbsp;<small>jpeg/png/mp3/mp4/wav/3gp/csv/zip allowed</small>{% endblocktrans %}</h3>
+            <h3 data-toggle="collapse" class="toggler" data-target="#media_tab">{% blocktranslate %}Media &nbsp;<small>jpeg/png/mp3/mp4/wav/3gp/csv/zip allowed</small>{% endblocktranslate %}</h3>
             <div id='media_tab' class="collapse">
             {% for media in media_upload %}
               <p><a href="{% url "download-media-data" content_user.username xform.id_string media.id %}">{{ media.data_value }}</a>
               {% if can_edit %}
-              &ndash;<a href="{% url "download-media-data" content_user.username xform.id_string media.id %}?del=true"> {% trans "remove" %} </a>
+              &ndash;<a href="{% url "download-media-data" content_user.username xform.id_string media.id %}?del=true"> {% translate "remove" %} </a>
               {% endif %}
               </p>
             {% endfor %}
@@ -390,7 +390,7 @@
                             </tr>
                         </tbody>
                         </table>
-                        <input type="submit" class="btn" value="{% trans 'Upload' %}" />
+                        <input type="submit" class="btn" value="{% translate 'Upload' %}" />
                     </div>
                     <div class="tab-pane" id="media_url_add">
                         <table>
@@ -401,7 +401,7 @@
                                 </tr>
                         </tbody>
                         </table>
-                        <input type="submit" class="btn" value="{% trans 'Save Media URL' %}" />
+                        <input type="submit" class="btn" value="{% translate 'Save Media URL' %}" />
                     </div>
                 </div>
             </form>
@@ -410,13 +410,13 @@
         </div>
         <br/>
         <div class="clearfix bordered">
-            <h3 data-toggle="collapse" class="toggler" data-target="#map_tab">{% trans "Mapbox Layer" %}</h3>
+            <h3 data-toggle="collapse" class="toggler" data-target="#map_tab">{% translate "Mapbox Layer" %}</h3>
             <div id='map_tab' class="collapse">
             {% if mapbox_layer %}
             <p><a href="{{ mapbox_layer.link }}" target="_blank">{{ mapbox_layer.map_name }}</a> &ndash;
-            {% trans "Attribution:" %} {{ mapbox_layer.attribution }}
+            {% translate "Attribution:" %} {{ mapbox_layer.attribution }}
             {% if can_edit %}
-            &ndash;<a href="{% url "delete-metadata" content_user.username xform.id_string mapbox_layer.id %}?map_name_del=true"> {% trans "remove" %} </a></p>
+            &ndash;<a href="{% url "delete-metadata" content_user.username xform.id_string mapbox_layer.id %}?map_name_del=true"> {% translate "remove" %} </a></p>
             {% endif %}
             {% endif %}
             {% if can_edit %}
@@ -425,48 +425,48 @@
                 <table>
                 {{ mapbox_layer_form.as_table }}
                 </table>
-                <input type="submit" class="btn" value="{% trans 'Upload' %}" />
+                <input type="submit" class="btn" value="{% translate 'Upload' %}" />
             </form>
             {% endif %}
             </div>
         </div>
         <br/>
         <div class="clearfix bordered">
-            <h3 data-toggle="collapse" class="toggler" data-target="#external_tab">{% trans "XLS Reports (beta)" %}</h3>
+            <h3 data-toggle="collapse" class="toggler" data-target="#external_tab">{% translate "XLS Reports (beta)" %}</h3>
             <div id='external_tab' class="collapse">
             {% if can_edit %}
             <form action="{% url "xform-edit" content_user.username xform.id_string %}" method="post" enctype="multipart/form-data">
                 {% csrf_token %}
                 <ul class="nav nav-tabs">
-                    <li class="active"><a href="#add_external" data-toggle="tab">{% trans "Add Template" %}</a></li>
-                    <li><a href="#template_upload" data-toggle="tab">{% trans "Template Upload" %}</a></li>
-                    <li><a href="#template_list" data-toggle="tab">{% trans "Uploaded Templates" %}</a></li>
+                    <li class="active"><a href="#add_external" data-toggle="tab">{% translate "Add Template" %}</a></li>
+                    <li><a href="#template_upload" data-toggle="tab">{% translate "Template Upload" %}</a></li>
+                    <li><a href="#template_list" data-toggle="tab">{% translate "Uploaded Templates" %}</a></li>
                 </ul>
                 <div class="tab-content">
                     <div class="tab-pane active" id="add_external">
                         <table>
                 		    {{ external_export_form.as_table }}
                 	    </table>
-                	    <input type="submit" class="btn" value="{% trans 'Add Template URL' %}" />
+                	    <input type="submit" class="btn" value="{% translate 'Add Template URL' %}" />
                     </div>
                     <div class="tab-pane" id="template_upload">
                         <table>
                             <tbody>
 				                <tr>
-                                    <th><label for="id_template_name">{% trans "Template Name:" %}</label></th>
+                                    <th><label for="id_template_name">{% translate "Template Name:" %}</label></th>
                                     <td><input type="text" name="template_upload_name" id="id_template_name"></td>
                                 </tr>
                                 <tr>
-                                    <th><label for="id_external_url">{% trans "Template Server:" %}</label></th>
+                                    <th><label for="id_external_url">{% translate "Template Server:" %}</label></th>
                                     <td><input type="text" name="external_url" id="id_external_url"></td>
                                 </tr>
                                 <tr>
-                                    <th><label for="id_xls_template">{% trans "Template File:" %}</label></th>
+                                    <th><label for="id_xls_template">{% translate "Template File:" %}</label></th>
                                     <td><input type="file" multiple="" name="xls_template" id="id_xls_template"></td>
                                 </tr>
                         </tbody>
                         </table>
-                        <input type="submit" class="btn" value="{% trans 'Upload template' %}" />
+                        <input type="submit" class="btn" value="{% translate 'Upload template' %}" />
                     </div>
                     <div class="tab-pane" id="template_list">
                              <table>
@@ -474,7 +474,7 @@
                                         <tr>
                                         <td><a href="{{ meta.external_export_template }}">{{ meta.external_export_name }}</a></td>
                                         {% if can_edit %}
-                                            <td><a href="{% url "delete-metadata" content_user.username xform.id_string meta.id %}?external_del=false" class="btn btn-mini btn-danger"> {% trans "Delete" %} </a></td>
+                                            <td><a href="{% url "delete-metadata" content_user.username xform.id_string meta.id %}?external_del=false" class="btn btn-mini btn-danger"> {% translate "Delete" %} </a></td>
                                         {% endif %}
                                         </tr>
                                 {% endfor %}
@@ -487,12 +487,12 @@
         </div>
         <br/>
         <div class="clearfix bordered">
-                <h3 data-toggle="collapse" class="toggler" data-target="#sms_tab">{% trans "SMS Support" %} (<acronym title="SMS Support is in beta stage now. Please use carefully as API and IDs might change.">beta</acronym>)</h3>
+                <h3 data-toggle="collapse" class="toggler" data-target="#sms_tab">{% translate "SMS Support" %} (<acronym title="SMS Support is in beta stage now. Please use carefully as API and IDs might change.">beta</acronym>)</h3>
                 <div id='sms_tab' class="collapse">
                 <form action="{% url "xform-edit" content_user.username xform.id_string %}" method="post" enctype="multipart/form-data">
 
                 {% if xform.allows_sms %}
-                    <p>{% blocktrans %}This form has enabled SMS submissions.{% endblocktrans %} {% blocktrans with id_string=xform.sms_id_string %}Submit to this form using the “<em>{{ id_string }}</em>” identifier.{% endblocktrans %}</p>
+                    <p>{% blocktranslate %}This form has enabled SMS submissions.{% endblocktranslate %} {% blocktranslate with id_string=xform.sms_id_string %}Submit to this form using the “<em>{{ id_string }}</em>” identifier.{% endblocktranslate %}</p>
                 {% endif %}
                 {% if can_edit %}
                     {% csrf_token %}
@@ -500,44 +500,44 @@
                     <table>
                     {{ sms_support_form.as_table }}
                     </table>
-                    <input type="submit" class="btn btn-primary" value="{% trans "Save Changes" %}" />
+                    <input type="submit" class="btn btn-primary" value="{% translate "Save Changes" %}" />
                 {% endif %}
             	</form>
             	{% autoescape off %}
             	<div class="sms_autodoc">
             	{% if xform.allows_sms %}
-            	<h4>{% trans "Expected Format:" %}</h4>
+            	<h4>{% translate "Expected Format:" %}</h4>
             	<p class="sms_autodoc_line_names alert alert-info">{{ sms_support_doc.line_names }}</p>
             	<ul class="sms_autodoc_helpers">
             	{% for helper in sms_support_doc.helpers %}
             		<li class="sms_autodoc_helper"><sup class="sms_autodoc_helper_indice">{{ forloop.counter0 }}</sup> <span class="sms_autodoc_helper_name">{{ helper.0 }}:</span> <span class="sms_autodoc_helper_text">{{helper.1}}</span></li>
             	{% endfor %}
             	</ul>
-            	<h4>{% trans "Example" %}</h4>
+            	<h4>{% translate "Example" %}</h4>
         		<p class="sms_autodoc_line_example alert alert-success">{{ sms_support_doc.line_values }}</p>
             	{% else %}
             		<p class="alert {{ sms_compatible.type }}">{{ sms_compatible.text }}</p>
             	{% endif %}
-            	<h4>{% trans "Usage" %}</h4>
+            	<h4>{% translate "Usage" %}</h4>
             	<p>Note that for each case, you can select either the simplest form of the URL (containing only your username) or the one including the <em>id_string</em> of the form.</p>
             	<p>The latter works without specifyin the <em>SMS Keyword</em> in front of every message.</p>
             	<p>You would use it when your SMS Setup/Provider is used for only one form.</p>
-            	<select id="sms_support_api"><option>{% trans "Select an SMS API" %}</option>{% for provider in sms_providers_doc %}<option value="{{ provider.id }}">{{ provider.name }}</option>{% endfor %}<option value="generic">{% trans "Generic SMS API" %}</option></select>
+            	<select id="sms_support_api"><option>{% translate "Select an SMS API" %}</option>{% for provider in sms_providers_doc %}<option value="{{ provider.id }}">{{ provider.name }}</option>{% endfor %}<option value="generic">{% translate "Generic SMS API" %}</option></select>
             	<div style="display:none;" class="sms_support_api_doc" id="sms_support_api_doc_generic">
-            		<p>{% trans "Use the Generic SMS API to write your own wrapper around Formhub." %}</p>
+            		<p>{% translate "Use the Generic SMS API to write your own wrapper around Formhub." %}</p>
             		<ul>
-            			<p>{% trans "Single SMS Submission" %}<br />[<strong>GET</strong>] <span class="sms_autodoc_example">{{ url_root }}{% url "sms_submission" username=content_user.username %}</span><br />
+            			<p>{% translate "Single SMS Submission" %}<br />[<strong>GET</strong>] <span class="sms_autodoc_example">{{ url_root }}{% url "sms_submission" username=content_user.username %}</span><br />
 							[<strong>GET</strong>] <span class="sms_autodoc_example">{{ url_root }}{% url "sms_submission_form" username=content_user.username id_string=xform.id_string %}</span><br />
-            				{% trans "Params:" %} <span class="sms_autodoc_params">{"identity": "SENDER PHONE NUMBER", "text": "TEXT MESSAGE"}<br />
-            				{% trans "Returns:" %} <span class="sms_autodoc_params">{"status": "STATUS", "message": "MESSAGE", "id": "ID"}</p>
-            			<p>{% trans "Multiple SMS Submissions at once" %}<br />[<strong>POST</strong>] <span class="sms_autodoc_example">{{ url_root }}{% url "sms_submissions" username=content_user.username %}</span><br/>
+            				{% translate "Params:" %} <span class="sms_autodoc_params">{"identity": "SENDER PHONE NUMBER", "text": "TEXT MESSAGE"}<br />
+            				{% translate "Returns:" %} <span class="sms_autodoc_params">{"status": "STATUS", "message": "MESSAGE", "id": "ID"}</p>
+            			<p>{% translate "Multiple SMS Submissions at once" %}<br />[<strong>POST</strong>] <span class="sms_autodoc_example">{{ url_root }}{% url "sms_submissions" username=content_user.username %}</span><br/>
             				[<strong>POST</strong>] <span class="sms_autodoc_example">{{ url_root }}{% url "sms_submissions_form" username=content_user.username id_string=xform.id_string %}</span><br />
-            				{% trans "Params:" %} <span class="sms_autodoc_params">{"messages": [{"identity": "SENDER PHONE NUMBER", "text": "TEXT MESSAGE"}, ]<br />
-            				{% trans "Returns:" %} <span class="sms_autodoc_params">[{"status": "STATUS", "message": "MESSAGE", "id": "ID"}, ]</p>
+            				{% translate "Params:" %} <span class="sms_autodoc_params">{"messages": [{"identity": "SENDER PHONE NUMBER", "text": "TEXT MESSAGE"}, ]<br />
+            				{% translate "Returns:" %} <span class="sms_autodoc_params">[{"status": "STATUS", "message": "MESSAGE", "id": "ID"}, ]</p>
             		</ul>
-            		<p><span class="sms_autodoc_params">STATUS</span>: {% trans "One of" %} <span class="sms_autodoc_params">ACCEPTED, REJECTED, PARSING_FAILED</span><br />
-            		   <span class="sms_autodoc_params">MESSAGE</span>: {% trans "Either an error or success message. Suitable for end user." %}<br />
-            		   <span class="sms_autodoc_params">ID</span>: {% trans "Only if successful. A unique ID of the submission." %}</p>
+            		<p><span class="sms_autodoc_params">STATUS</span>: {% translate "One of" %} <span class="sms_autodoc_params">ACCEPTED, REJECTED, PARSING_FAILED</span><br />
+            		   <span class="sms_autodoc_params">MESSAGE</span>: {% translate "Either an error or success message. Suitable for end user." %}<br />
+            		   <span class="sms_autodoc_params">ID</span>: {% translate "Only if successful. A unique ID of the submission." %}</p>
             	</div>
             	{% for provider in sms_providers_doc %}<div style="display:none;" class="sms_support_api_doc" id="sms_support_api_doc_{{ provider.id }}">{{ provider.doc }}</div>{% endfor %}
             	{% endautoescape %}
@@ -547,24 +547,24 @@
       </div>
       <div class="span4">
         {% if is_owner %}
-        <h3>{% trans "Settings" %}</h3>
+        <h3>{% translate "Settings" %}</h3>
         <div class="clearfix">
           <div class="input">
-          <label>{% trans "Form Shared" %}&nbsp;</label>
+          <label>{% translate "Form Shared" %}&nbsp;</label>
             <input id="form-shared" type="checkbox"{% if xform.shared %} checked=""{% endif %} data-url="{% url "xform-edit" content_user.username xform.id_string %}" />
           </div>
           <br/>
-          <label>{% trans "Data Shared" %}&nbsp;</label>
+          <label>{% translate "Data Shared" %}&nbsp;</label>
           <div class="input">
             <input id="data-shared" type="checkbox"{% if xform.shared_data %} checked=""{% endif %} data-url="{% url "xform-edit" content_user.username xform.id_string %}" />
           </div>
           <br/>
-          <label>{% trans "Form Active" %}&nbsp;</label>
+          <label>{% translate "Form Active" %}&nbsp;</label>
           <div class="input">
             <input id="active-form" type="checkbox"{% if xform.downloadable %} checked=""{% endif %} data-url="{% url "xform-edit" content_user.username xform.id_string %}" />
           </div>
           <br/>
-          <label>{% trans "Delete Form" %}&nbsp;</label>
+          <label>{% translate "Delete Form" %}&nbsp;</label>
         <div class="input">
           <!-- DELETE -->
           <div id="delete-{{ xform.id_string }}" class="modal hide fade">
@@ -572,30 +572,30 @@
               {% csrf_token %}
                   <div class="modal-header">
                       <a data-dismiss="modal" class="close">&times;</a>
-                      <h3>{% trans "Delete Confirmation" %}</h3>
+                      <h3>{% translate "Delete Confirmation" %}</h3>
                   </div>
                   <div class="modal-body">
-                      <p>{% blocktrans with title=xform.title nb_sub=xform.submission_count|intcomma %}Are you sure you want to delete the form '{{ title }}'? This form has <strong>{{ nb_sub }}</strong> submissions associated with it that will also be deleted. If you are unsure about deleting this form press 'Cancel' and consider 'Archiving' the form instead.{% endblocktrans %}</p>
+                      <p>{% blocktranslate with title=xform.title nb_sub=xform.submission_count|intcomma %}Are you sure you want to delete the form '{{ title }}'? This form has <strong>{{ nb_sub }}</strong> submissions associated with it that will also be deleted. If you are unsure about deleting this form press 'Cancel' and consider 'Archiving' the form instead.{% endblocktranslate %}</p>
                   </div>
                   <div class="modal-footer">
                       <button class="btn btn-primary form-submit">Delete</button>
-                      <a href="#" onclick="$('#delete-{{ xform.id_string }}').modal('hide');" class="btn secondary">{% trans "Cancel" %}</a>
+                      <a href="#" onclick="$('#delete-{{ xform.id_string }}').modal('hide');" class="btn secondary">{% translate "Cancel" %}</a>
                   </div>
               </form>
           </div>
           <a data-toggle="modal" href="#delete-{{ xform.id_string }}" data-backdrop="true" data-keyboard="true" class="btn btn-small btn-danger">
-              {% trans "Delete" %}
+              {% translate "Delete" %}
           </a>
         </div>
         </div>
         <br />
         <div>
-            <h3>{% trans "Sharing" %}</h3>
+            <h3>{% translate "Sharing" %}</h3>
             {% if public_link %}
             {% url "form-show" xform.uuid as form_url %}
-            {% blocktrans %}Sharing by link is <strong>on with URL <a href="{{ form_url }}">{{ base_url }}{{ form_url }}</a></strong>{% endblocktrans %}
+            {% blocktranslate %}Sharing by link is <strong>on with URL <a href="{{ form_url }}">{{ base_url }}{{ form_url }}</a></strong>{% endblocktranslate %}
             {% else %}
-            {% blocktrans %}Sharing by link is <strong>off</strong>{% endblocktrans %}
+            {% blocktranslate %}Sharing by link is <strong>off</strong>{% endblocktranslate %}
             {% endif %}
             </strong>
             <br/>
@@ -604,7 +604,7 @@
                 {% csrf_token %}
                 <input type="hidden" name="perm_type" value="link"/>
                 <input type="hidden" name="for_user" value="toggle"/>
-                <input type="submit" class="btn" value="{% if public_link %}{% trans "Turn off" %}{% else %}{% trans "Turn on" %}{% endif %}" />
+                <input type="submit" class="btn" value="{% if public_link %}{% translate "Turn off" %}{% else %}{% translate "Turn on" %}{% endif %}" />
             </form>
             {% if users_with_perms|length %}
             <ul>
@@ -618,7 +618,7 @@
                 <table class="narrow-labels">
                 {{ permission_form.as_table }}
                 </table>
-                <input type="submit" class="btn" value="{% trans 'Submit' %}" />
+                <input type="submit" class="btn" value="{% translate 'Submit' %}" />
             </form>
         </div>
         {% endif %}

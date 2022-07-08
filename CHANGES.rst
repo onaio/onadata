@@ -3,6 +3,38 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.1.1(2022-07-08)
+------------------
+
+- Update translate template tag
+  `PR #2289 <https://github.com/onaio/onadata/pull/2289>`_
+  [@DavisRayM]
+- Update Azure dependencies
+  `PR #2267 <https://github.com/onaio/onadata/pull/2267>`_
+  [@DavisRayM]
+
+v3.1.0(2022-07-08)
+------------------
+
+- Add dependabot configuration and trivy scans PR
+  `PR #2262 <https://github.com/onaio/onadata/pull/2262>`_
+  [@DavisRayM]
+- Add CSP Support
+  `PR #2270 <https://github.com/onaio/onadata/pull/2270>`_
+  [@ukanga]
+- Link a dataset as GeoJSON
+  `PR #2272 <https://github.com/onaio/onadata/pull/2272>`_
+  [@KipSigei]
+- Run Docker build workflows on main branch
+  `PR #2275 <https://github.com/onaio/onadata/pull/2275>`_
+  [@DavisRayM]
+- Show correct form validation errors
+  `PR #2278 <https://github.com/onaio/onadata/pull/2278>`_
+  [@KipSigei]
+- Upgrade Django to v3.2.14
+  `PR #2278 <https://github.com/onaio/onadata/pull/2278>`_
+  [@KipSigei]
+
 v3.0.4(2022-06-14)
 ------------------
 

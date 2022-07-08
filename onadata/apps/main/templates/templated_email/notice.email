@@ -1,6 +1,6 @@
-{% block subject %}{% blocktrans with username=username %}Ona notification for {{username}}{% endblocktrans %}{% endblock %}
+{% block subject %}{% blocktranslate with username=username %}Ona notification for {{username}}{% endblocktranslate %}{% endblock %}
 {% block plain %}
-{% blocktrans with full_name=full_name message=message %}
+{% blocktranslate with full_name=full_name message=message %}
   Hi {{full_name}},
 
   {{message}}
@@ -9,10 +9,10 @@
   The Formhub Dev Team
 
   P.S. Please consider joining the ona-support group, https://groups.google.com/forum/#!forum/ona-support
-{% endblocktrans %}
+{% endblocktranslate %}
 {% endblock %}
 {% block html %}
-{% blocktrans with full_name=full_name message=message %}
+{% blocktranslate with full_name=full_name message=message %}
   <p>Hi {{full_name}},</p>
 
   <p>
@@ -27,5 +27,5 @@
       P.S. Please consider joining the <a
       href="https://groups.google.com/forum/#!forum/ona-support">ona-support group</a>.
   </p>
-{% endblocktrans %}
+{% endblocktranslate %}
 {% endblock %}

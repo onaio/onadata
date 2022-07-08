@@ -85,7 +85,7 @@ function deleteData(idToDelete){
             console.log("successfully deleted.")
         })
         .error(function(){
-           alert("{% trans 'BAD REQUEST' %}");
+           alert("{% translate 'BAD REQUEST' %}");
         });
     $('.delete_modal').trigger("closeModal");
 }

@@ -4,14 +4,14 @@
 {% block content %}
 <section id="register">
   <div class="page-header">
-    <h1>{% trans "Register" %}</h1>
+    <h1>{% translate "Register" %}</h1>
   </div>
 
   <div class="row">
     <div class="span8">
       <form class="well" method="post" action=".">
         {% csrf_token %}
-        <p>{% trans "Fields marked wth an asterisk (*) are required." %}</p>
+        <p>{% translate "Fields marked wth an asterisk (*) are required." %}</p>
         <table>
         {% for field in form %}
             <tr>
@@ -26,8 +26,8 @@
             </tr>
         {% endfor %}
         </table>
-                <p>{% blocktrans %}By clicking the button, you agree to our <a href="/privacy">privacy policy</a> and <a href="/tos">terms of service</a>.{% endblocktrans %}</p>
-        <input type="submit" class="btn large btn-primary" value="{% trans 'Register' %}" />
+                <p>{% blocktranslate %}By clicking the button, you agree to our <a href="/privacy">privacy policy</a> and <a href="/tos">terms of service</a>.{% endblocktranslate %}</p>
+        <input type="submit" class="btn large btn-primary" value="{% translate 'Register' %}" />
       </form>
     </div>
   </div>

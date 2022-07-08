@@ -10,11 +10,11 @@
      <div class="page-header">
        <h1>
          {% if is_owner and not profile.gravatar_exists %}
-             <a style="display: inline-block;" title="{% trans 'Click to change your avatar' %}" href="https://secure.gravatar.com/site/login" id="gravatar">
+             <a style="display: inline-block;" title="{% translate 'Click to change your avatar' %}" href="https://secure.gravatar.com/site/login" id="gravatar">
          {% endif %}
          <img src='{{ profile.gravatar }}' alt='gravatar' width='60' height='60' />
          {% if is_owner and not profile.gravatar_exists %}
-            <span class="small-link">{% trans "change" %}</span>
+            <span class="small-link">{% translate "change" %}</span>
             </a>
          {% endif %}
          {{ content_user.username }}
@@ -23,7 +23,7 @@
           {% endif %}
           {% if is_owner %}
             <span class='right'>
-            <a href="{% url "profile-settings" content_user.username %}" class="btn btn-small">{% trans "Edit Your Profile" %}</a>
+            <a href="{% url "profile-settings" content_user.username %}" class="btn btn-small">{% translate "Edit Your Profile" %}</a>
             </span>
           {% endif %}
        </h1>
@@ -32,25 +32,25 @@
      <div class="row">
        <div class="span8">
 	 {% if profile.organization %}
-         <p><strong>{% trans "Organization:" %} </strong>{{ profile.organization}}</p>
+         <p><strong>{% translate "Organization:" %} </strong>{{ profile.organization}}</p>
 	 {% endif %}
 	 {% if location  %}
-         <p><strong>{% trans "Location:" %} </strong>{{ location }}</p>
+         <p><strong>{% translate "Location:" %} </strong>{{ location }}</p>
 	 {% endif %}
 	 {% if profile.home_page %}
-         <p><strong>{% trans "Website:" %}</strong><a href="{{ home_page }}">{{ profile.home_page }}</a></p>
+         <p><strong>{% translate "Website:" %}</strong><a href="{{ home_page }}">{{ profile.home_page }}</a></p>
 	 {% endif %}
      {% with twitter=profile.twitter_clean %}
 	   {% if twitter %}
-         <p><strong>{% trans "Twitter:" %}</strong><a href="http://www.twitter.com/{{ twitter }}">@{{ twitter }}</a></p>
+         <p><strong>{% translate "Twitter:" %}</strong><a href="http://www.twitter.com/{{ twitter }}">@{{ twitter }}</a></p>
 	   {% endif %}
      {% endwith %}
-         <p><strong>{% trans "Member since:" %} </strong>{{ content_user.date_joined|date:"F j, Y" }}</p>
+         <p><strong>{% translate "Member since:" %} </strong>{{ content_user.date_joined|date:"F j, Y" }}</p>
        </div>
        <div class="span4">
          <h2>
             <span class='right'>
-              {% blocktrans count num_forms=num_forms %}{{ num_forms }} <small>Shared form</small>{% plural %}{{ num_forms }} <small>Shared forms</small>{% endblocktrans %}
+              {% blocktranslate count num_forms=num_forms %}{{ num_forms }} <small>Shared form</small>{% plural %}{{ num_forms }} <small>Shared forms</small>{% endblocktranslate %}
             </span>
          </h2>
        </div>
@@ -59,16 +59,16 @@
 
      <div class="row">
        <div class="span12">
-	 <h3>{% blocktrans %}Shared Forms & Public Data <small>({{ num_forms }})</small>{% endblocktrans %}</h3>
+	 <h3>{% blocktranslate %}Shared Forms & Public Data <small>({{ num_forms }})</small>{% endblocktranslate %}</h3>
 	 {% if forms %}
 	 <table id="sharedforms-table" class="table table-bordered table-striped">
 	   <thead>
 	    <tr>
-              <th>{% trans "Name" %}</th>
-              <th>{% trans "Create Date" %}</th>
-              <th>{% trans "XLSForm" %}</th>
-              <th>{% trans "Public Data" %}</th>
-              <th>{% trans "View" %}</th>
+              <th>{% translate "Name" %}</th>
+              <th>{% translate "Create Date" %}</th>
+              <th>{% translate "XLSForm" %}</th>
+              <th>{% translate "Public Data" %}</th>
+              <th>{% translate "View" %}</th>
 	    </tr>
 	  </thead>
 	  <tbody>
@@ -83,10 +83,10 @@
                 <td>
                     {% if form.shared %}
                     <a href="{% url "download_xlsform" content_user.username form.id_string %}">
-                        <button class="btn btn-small btn-success"><i class="icon-th icon-white"></i> {% trans "XLS" %}</button>
+                        <button class="btn btn-small btn-success"><i class="icon-th icon-white"></i> {% translate "XLS" %}</button>
                     </a>
                     {% else %}
-                        <span class="label label-warning">{% trans "PRIVATE" %}</span>
+                        <span class="label label-warning">{% translate "PRIVATE" %}</span>
                     {% endif %}
                 </td>
                 <td>
@@ -97,7 +97,7 @@
                     <i class="icon-download icon-large"></i>
                   </span>
                   <span class="vertical-middle">
-                    <span class="download">{% trans "Download" %}</span>
+                    <span class="download">{% translate "Download" %}</span>
                       {% if xform.shared_data %}
                           <span class="label label-info">{%  trans "PUBLIC" %}</span>
                       {% endif %}
@@ -113,21 +113,21 @@
                   </span>
                 </div>
                 {% else %}
-                    <span class="label label-warning">{% trans "NO DATA" %}</span>
+                    <span class="label label-warning">{% translate "NO DATA" %}</span>
                 {% endif %}
             {% else %}
-                <span class="label label-warning">{% trans "PRIVATE" %}</span>
+                <span class="label label-warning">{% translate "PRIVATE" %}</span>
             {% endif %}
                 </td>
                 <td>
                     {% if form.shared_data %}
 		    {% if form.data_dictionary.has_instances_with_geopoints %}
-                <a class="btn btn-flat" href="{% url "map-view" content_user.username form.id_string %}" data-original-title="{% trans 'View Map' %}" rel="tooltip">
+                <a class="btn btn-flat" href="{% url "map-view" content_user.username form.id_string %}" data-original-title="{% translate 'View Map' %}" rel="tooltip">
                     <i class="icon-map-marker icon-large"></i>
                 </a>
 		    {% endif %}
                     {% else %}
-                        <span class="label label-warning">{% trans "PRIVATE" %}</span>
+                        <span class="label label-warning">{% translate "PRIVATE" %}</span>
                     {% endif %}
                 </td>
             </tr>
@@ -135,7 +135,7 @@
 	  </tbody>
 	</table>
     {% else %}
-        <h4>{% trans "None public" %}</h4>
+        <h4>{% translate "None public" %}</h4>
     {% endif %}
     </div>
   </section>
@@ -170,7 +170,7 @@
         "bPaginate": false,
         "sPaginationType": "bootstrap",
         "bSort": true,
-        "oLanguage": {"sSearch": "{% trans 'Search:' %}"},
+        "oLanguage": {"sSearch": "{% translate 'Search:' %}"},
         "oSearch": {"sSearch": ""},
         "aoColumnDefs": [
             { "bVisible": false, "aTargets": [ 6 ] }
@@ -179,7 +179,7 @@
       tbl.fnFilter( 'true', 6, true);
       var tblFilter = $('#published-table_filter');
       tblFilter.addClass('row');
-      tblFilter.prepend('{% trans "Show inactive:" %} <input id="active-select" type="checkbox" />&nbsp;&nbsp;');
+      tblFilter.prepend('{% translate "Show inactive:" %} <input id="active-select" type="checkbox" />&nbsp;&nbsp;');
       $('#active-select').change(function() {
           tbl.fnFilter('(true' + ($(this).is(':checked') ? '|false)' : ')'), 6, true);
       });

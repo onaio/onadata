@@ -29,11 +29,11 @@
             <li class="lead">
               <a href="{% url "form-show" content_user.username xform.id_string %}">{{ xform.title }}</a>
             </li>
-            <li><a href="#"><span id="submission_count" class="inverted" title="{% blocktrans with nb_sub=xform.submission_count %} <%= geocoded_submission_count %> submissions with geo data out of {{ nb_sub}} total.{% endblocktrans %}">{% blocktrans with nb_sub=xform.submission_count %}{{ nb_sub}} submissions{% endblocktrans %}</span></a></li>
+            <li><a href="#"><span id="submission_count" class="inverted" title="{% blocktranslate with nb_sub=xform.submission_count %} <%= geocoded_submission_count %> submissions with geo data out of {{ nb_sub}} total.{% endblocktranslate %}">{% blocktranslate with nb_sub=xform.submission_count %}{{ nb_sub}} submissions{% endblocktranslate %}</span></a></li>
             <li class="lead"><button class="refresh-map btn btn-small"><i class="icon icon-refresh"></i> Refresh Map Data</button></li>
           </ul>
           <ul class="nav pull-right">
-            <li><a href="#" class="dropdown-toggle">{% trans "Data" %}</a></li>
+            <li><a href="#" class="dropdown-toggle">{% translate "Data" %}</a></li>
             <li class="dropdown">
               <a href="#" class="dropdown-toggle" data-toggle="dropdown">
                 <b class="caret"></b>
@@ -41,17 +41,17 @@
               <ul class="dropdown-menu">
                 <li>
                     <a href="{% url "csv_export" content_user.username xform.id_string %}">
-                        {% trans "csv" %}
+                        {% translate "csv" %}
                     </a>
                 </li>
                 <li>
                     <a href="{% url "xls_export" content_user.username xform.id_string %}">
-                        {% trans "xls" %}
+                        {% translate "xls" %}
                     </a>
                 </li>
                 <li>
                     <a href="{% url "kml-export" content_user.username xform.id_string %}">
-                         {% trans "kml" %}
+                         {% translate "kml" %}
                     </a>
                 </li>
               </ul>
@@ -60,34 +60,34 @@
           {% else %}
           <ul class="nav">
             <!-- <li class="active"><a href="#overview">Overview</a></li> -->
-            <li><a href="{% url "forms_list" %}">{% trans "Forms" %}</a></li>
+            <li><a href="{% url "forms_list" %}">{% translate "Forms" %}</a></li>
               {% if user.is_superuser or user.is_staff %}
-            <li><a href="{% url "members-list" %}">{% trans "People" %}</a></li>
+            <li><a href="{% url "members-list" %}">{% translate "People" %}</a></li>
               {% endif %}
-            <!-- <li><a href="/resources/">{% trans "Resources" %}</a></li> -->
-            <li><a href="{% url "syntax" %}">{% trans "Syntax" %}</a></li>
-            <li><a href="{% url "support" %}">{% trans "Support" %}</a></li>
+            <!-- <li><a href="/resources/">{% translate "Resources" %}</a></li> -->
+            <li><a href="{% url "syntax" %}">{% translate "Syntax" %}</a></li>
+            <li><a href="{% url "support" %}">{% translate "Support" %}</a></li>
           </ul>
           <ul class="nav pull-right">
             {% if user.is_authenticated %}
-            <!-- <li><a id="new-form" href="#" rel="tooltip" title="{% trans "New Form" %}"><img src="{{ STATIC_URL }}images/upload-icon.png"></a></li> -->
+            <!-- <li><a id="new-form" href="#" rel="tooltip" title="{% translate "New Form" %}"><img src="{{ STATIC_URL }}images/upload-icon.png"></a></li> -->
             <li><a href="/{{user.username}}">{{user.username}}</a></li>
             <li class="dropdown">
               <a href="#" class="dropdown-toggle" data-toggle="dropdown">
                 <b class="caret"></b>
               </a>
               <ul class="dropdown-menu">
-                <li><a href="{% url "public_profile" user.username %}"><i class="icon-user"></i> {% trans "Public profile" %}</a></li>
-                <li><a href="{% url "profile-settings" user.username %}"><i class="icon-cog"></i> {% trans "Settings" %}</a></li>
-                <li><a href="{% url "activity" user.username %}"><i class="icon-eye-open"></i> {% trans "Account Activity" %}</a></li>
-                <li><a href="{% url "api-token" user.username %}"><i class="icon-cog"></i> {% trans "API Token" %}</a></li>
+                <li><a href="{% url "public_profile" user.username %}"><i class="icon-user"></i> {% translate "Public profile" %}</a></li>
+                <li><a href="{% url "profile-settings" user.username %}"><i class="icon-cog"></i> {% translate "Settings" %}</a></li>
+                <li><a href="{% url "activity" user.username %}"><i class="icon-eye-open"></i> {% translate "Account Activity" %}</a></li>
+                <li><a href="{% url "api-token" user.username %}"><i class="icon-cog"></i> {% translate "API Token" %}</a></li>
                 <!--<li><a href="{% url "auth_password_change" %}">Change password</a></li>-->
             <li class="divider"></li>
-                <li><a href="{% url "auth_logout" %}"><i class="icon-signout"></i> {% trans "Sign out" %}</a></li>
+                <li><a href="{% url "auth_logout" %}"><i class="icon-signout"></i> {% translate "Sign out" %}</a></li>
               </ul>
             </li>
             {% else %}
-            <li><a href="{% url "auth_login" %}">{% trans "Sign in" %}</a></li>
+            <li><a href="{% url "auth_login" %}">{% translate "Sign in" %}</a></li>
             {% endif %}
           </ul>
           {% endif %}
