@@ -6,6 +6,9 @@ Changelog for Onadata
 v3.1.1(2022-07-08)
 ------------------
 
+- Update translate template tag
+  `PR #2289 <https://github.com/onaio/onadata/pull/2289>`_
+  [@DavisRayM]
 - Update Azure dependencies
   `PR #2267 <https://github.com/onaio/onadata/pull/2267>`_
   [@DavisRayM]
