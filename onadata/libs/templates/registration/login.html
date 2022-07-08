@@ -4,7 +4,7 @@
 
 <section id="login">
   <div class="page-header">
-    <h1>{% trans "Sign in" %}</h1>
+    <h1>{% translate "Sign in" %}</h1>
   </div>
 
   <div class="row">
@@ -15,7 +15,7 @@
           <tfoot>
             <tr>
               <td>&nbsp;</td>
-              <td><input type="submit" class="btn btn-large btn-primary" value="{% trans 'Sign in' %}" /></td>
+              <td><input type="submit" class="btn btn-large btn-primary" value="{% translate 'Sign in' %}" /></td>
             </tr>
           </tfoot>
         </table>
@@ -23,9 +23,9 @@
         <input type="hidden" name="next" value="{{ next }}" />
       </form>
       {% url "auth_password_reset" as reset_url %}
-      <p>{% blocktrans %}Can't access your account? <a href="{{ reset_url }}">Reset your password.</a>{% endblocktrans %}</p>
+      <p>{% blocktranslate %}Can't access your account? <a href="{{ reset_url }}">Reset your password.</a>{% endblocktranslate %}</p>
       {% url "registration_register" as registration_url %}
-      <p>{% blocktrans %}New to ona.io? <a href="{{ registration_url }}">Create an account.</a>{% endblocktrans %}</p>
+      <p>{% blocktranslate %}New to ona.io? <a href="{{ registration_url }}">Create an account.</a>{% endblocktranslate %}</p>
     </div>
   </div>
 </section>

@@ -6,7 +6,7 @@
     <div id="preview-modal" class="modal hide fade">
         <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-            <h3>{{ message.published_survey.title }} - {% trans "Preview" %}</h3>
+            <h3>{{ message.published_survey.title }} - {% translate "Preview" %}</h3>
         </div>
         <div class="modal-body">
             <iframe src="{{message.preview_url}}"></iframe>
@@ -39,7 +39,7 @@
           {% with submission_count=xform.num_of_submissions time_of_last_submission=xform.time_of_last_submission has_instances_with_geopoints=xform.has_instances_with_geopoints %}
       <tr>
         <td>
-            <a href="{% url "form-show" xform.user.username xform.id_string %}">{{ xform.title }}</a> {% if xform_list.id == 'shared'%}<span class="label label-shared">{% trans "Shared by" %} {{ xform.user.username }}</span>
+            <a href="{% url "form-show" xform.user.username xform.id_string %}">{{ xform.title }}</a> {% if xform_list.id == 'shared'%}<span class="label label-shared">{% translate "Shared by" %} {{ xform.user.username }}</span>
             {% endif %}
             {% if xform.shared %}
                 <span class="label label-info label-public">{%  trans "PUBLIC" %}</span>
@@ -51,26 +51,26 @@
         </td>
         <td class="centered">{{ submission_count|intcomma }}</td>
         <td class="centered">
-                <a class="btn" href="{% url "enter_data" xform.user.username xform.id_string %}"><i class="icon-edit"></i> {% trans "Web" %}</a>
+                <a class="btn" href="{% url "enter_data" xform.user.username xform.id_string %}"><i class="icon-edit"></i> {% translate "Web" %}</a>
         </td>
         <td class="centered">
                 {% if not xform.encrypted and has_instances_with_geopoints %}
-                    <a href="{% url "map-view" xform.user.username xform.id_string %}" data-original-title="{% trans 'View Map' %}" rel="tooltip">
+                    <a href="{% url "map-view" xform.user.username xform.id_string %}" data-original-title="{% translate 'View Map' %}" rel="tooltip">
                         <i class="icon-map-marker icon-large"></i>
                     </a>
                 {% else %}
                     <span><i class="icon-map-marker icon-large inactive"></i></span>
                 {% endif %}
                 {% if  not xform.encrypted and submission_count > 0 %}
-                    <a href="{% url "form-photos" xform.user.username xform.id_string %}" data-original-title="{% trans 'View Photo' %}" rel="tooltip" >
+                    <a href="{% url "form-photos" xform.user.username xform.id_string %}" data-original-title="{% translate 'View Photo' %}" rel="tooltip" >
                     <i class="icon-camera icon-large"></i>
-                    <a href="{% url "data-view" xform.user.username xform.id_string %}" data-original-title="{% trans 'View Submitted Data' %}" rel="tooltip">
+                    <a href="{% url "data-view" xform.user.username xform.id_string %}" data-original-title="{% translate 'View Submitted Data' %}" rel="tooltip">
                         <i class="icon-list icon-large inactive"></i>
                     </a>
-                    <a href="{% url "stats-tables" xform.user.username xform.id_string %}" data-original-title="{% trans 'View Table Maker' %}" rel="tooltip">
+                    <a href="{% url "stats-tables" xform.user.username xform.id_string %}" data-original-title="{% translate 'View Table Maker' %}" rel="tooltip">
                         <i class="icon-book icon-large inactive"></i>
                     </a>
-                    <a href="{% url "form-stats" xform.user.username xform.id_string %}" data-original-title="{% trans 'View Statistics' %}" rel="tooltip">
+                    <a href="{% url "form-stats" xform.user.username xform.id_string %}" data-original-title="{% translate 'View Statistics' %}" rel="tooltip">
                     <i class="icon-bar-chart icon-large inactive"></i>
                     </a>
                 {% else %}
@@ -103,12 +103,12 @@
         <td>
             {% if submission_count <= 0 %}
             <div class="dropdown">
-                <a class="btn btn-flat dropdown-toggle" data-toggle="dropdown" href="#" data-original-title="{% trans 'Options' %}" rel="tooltip">
+                <a class="btn btn-flat dropdown-toggle" data-toggle="dropdown" href="#" data-original-title="{% translate 'Options' %}" rel="tooltip">
                     <i class="icon-cog"></i>
                 </a>
                     <ul class="dropdown-menu form-options left-arrow" role="menu" aria-labelledby="dropdownMenu">
-                        <li><a tabindex="-1" href="#delete-{{ xform.id_string }}" class="confirm" role="button" data-toggle="modal">{% trans 'Delete' %}</a></li>
-                        <li><a tabindex="-1" href="#replace-{{ xform.id_string }}" class="confirm" role="button" data-toggle="modal">{% trans 'Replace' %}</a></li>
+                        <li><a tabindex="-1" href="#delete-{{ xform.id_string }}" class="confirm" role="button" data-toggle="modal">{% translate 'Delete' %}</a></li>
+                        <li><a tabindex="-1" href="#replace-{{ xform.id_string }}" class="confirm" role="button" data-toggle="modal">{% translate 'Replace' %}</a></li>
                     </ul>
 
                     </div>
@@ -119,10 +119,10 @@
                         {% csrf_token %}
                       <div class="modal-header">
                           <a data-dismiss="modal" class="close">&times;</a>
-                          <h3>{% trans "Delete Confirmation" %}</h3>
+                          <h3>{% translate "Delete Confirmation" %}</h3>
                       </div>
                       <div class="modal-body">
-                        <p>{% blocktrans with title=xform.title nb_sub=submission_count|intcomma %}Are you sure you want to delete the form '{{ title }}'? This form has <strong>{{ nb_sub }}</strong> submissions associated with it that will also be deleted. If you are unsure about deleting this form press 'Cancel' and consider 'Archiving' the form instead.{% endblocktrans %}</p>
+                        <p>{% blocktranslate with title=xform.title nb_sub=submission_count|intcomma %}Are you sure you want to delete the form '{{ title }}'? This form has <strong>{{ nb_sub }}</strong> submissions associated with it that will also be deleted. If you are unsure about deleting this form press 'Cancel' and consider 'Archiving' the form instead.{% endblocktranslate %}</p>
                       </div>
                       <div class="modal-footer">
                           <button class="btn btn-primary form-submit">Delete</button>
@@ -138,11 +138,11 @@
                               {% csrf_token %}
                               <div class="modal-header">
                                   <a data-dismiss="modal" class="close">&times;</a>
-                                  <h3>{% trans "Update XLS" %}</h3>
+                                  <h3>{% translate "Update XLS" %}</h3>
                               </div>
                               <div class="modal-body">
                                   <input type="file" name="xls_file" id="id_xls_file" />
-                                  <input type="submit" class="btn large btn-primary" value="{% trans "Update" %}" data-original-title="" />
+                                  <input type="submit" class="btn large btn-primary" value="{% translate "Update" %}" data-original-title="" />
                               </div>
                           </form>
                       </div>
