@@ -77,7 +77,7 @@
 
 {% block content %}
 {% if SITE_READ_ONLY%}
-<h1>{% blocktrans %}We're down for maintenance. We will be back shortly.{% endblocktrans %}</h1>
+<h1>{% blocktranslate %}We're down for maintenance. We will be back shortly.{% endblocktranslate %}</h1>
 {% endif %}
 <div id="ona-tagline">
     <h1>Collect, Analyze and Share Data.
@@ -95,18 +95,18 @@
                         <br/>
                         <input type="password" class="form-control" autocomplete="off" name="password" placeholder="Password">
                         <br/>
-                        <button type="submit" class="btn btn-primary btn-lg btn-block">{% trans 'Sign in' %}</button>
+                        <button type="submit" class="btn btn-primary btn-lg btn-block">{% translate 'Sign in' %}</button>
                         <br/>
                         <p> Or if you want to create an account, please </p>
                         {% url "registration_register" as registration_url %}
-                        {% blocktrans %}
+                        {% blocktranslate %}
                         <a class="btn btn-info btn-lg btn-block" href="{{ registration_url }}">Sign up</a>
-                        {% endblocktrans %}
+                        {% endblocktranslate %}
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{{ next }}" />
             </form>
             {% url "auth_password_reset" as reset_url %}
-            <p>{% blocktrans %}Can't access your account? <a href="{{ reset_url }}">Reset your password.</a>{% endblocktrans %}</p>
+            <p>{% blocktranslate %}Can't access your account? <a href="{{ reset_url }}">Reset your password.</a>{% endblocktranslate %}</p>
         </div>
         </div>
         {% endblock %}

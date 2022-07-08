@@ -3,11 +3,11 @@
 <table class="pretty padded fullw">
   <thead>
     <tr>
-      <th>{% trans "Downloadable by Phone" %}</th>
-      <th>{% trans "Form ID" %}</th>
-      <th>{% trans "Number of Submissions" %}</th>
-      <th>{% trans "Time of Last Submission" %}</th>
-      <th>{% trans "CSV" %}</th>
+      <th>{% translate "Downloadable by Phone" %}</th>
+      <th>{% translate "Form ID" %}</th>
+      <th>{% translate "Number of Submissions" %}</th>
+      <th>{% translate "Time of Last Submission" %}</th>
+      <th>{% translate "CSV" %}</th>
     </tr>
   </thead>
   <tbody>
@@ -16,9 +16,9 @@
       <td>
 	<a href={% url "toggle-downloadable" id_string=xform.id_string %} class="delete">
 	  {% if xform.downloadable %}
-	  [ {% trans 'yes' %} ]
+	  [ {% translate 'yes' %} ]
 	  {% else %}
-	  [ {% trans 'no' %} ]
+	  [ {% translate 'no' %} ]
 	  {% endif %}
 	</a>
       </td>
@@ -29,7 +29,7 @@
 	{{ xform.time_of_last_submission }}
 	{% endif %}
       </td>
-      <td><a href="#" class="button">{% trans "Download CSV" %}</a></td>
+      <td><a href="#" class="button">{% translate "Download CSV" %}</a></td>
     </tr>
     {% endfor %}
   </tbody>

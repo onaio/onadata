@@ -5,7 +5,7 @@
     <div class="block-center">
         {% if not error %}
             <form id="authorizationForm" method="post">
-                <h3 class="block-center-heading">{% trans "Authorize" %} {{ application.name }}?</h3>
+                <h3 class="block-center-heading">{% translate "Authorize" %} {{ application.name }}?</h3>
                 {% csrf_token %}
 
                 {% for field in form %}
@@ -15,11 +15,11 @@
                 {% endfor %}
 
                 <p>
-                    {% trans "You are signed in as:" %} <strong>{{user.get_full_name}} ({{user.username}})</strong>.
-                    <a href="{% url "auth_logout" %}?next={{ request_path|urlencode }}">{% trans "Sign in as another user" %}.</a>
+                    {% translate "You are signed in as:" %} <strong>{{user.get_full_name}} ({{user.username}})</strong>.
+                    <a href="{% url "auth_logout" %}?next={{ request_path|urlencode }}">{% translate "Sign in as another user" %}.</a>
                 </p>
 
-                <p>{% trans "Application requires following permissions" %}</p>
+                <p>{% translate "Application requires following permissions" %}</p>
                 <ul>
                     {% for scope in scopes_descriptions %}
                         <li>{{ scope }}</li>

@@ -3,10 +3,10 @@
 
 {% block content %}
 <div class="page-header">
-    <h1>{% trans "Browse Form Data" %}
+    <h1>{% translate "Browse Form Data" %}
         <small><a href="{% url "form-show" username id_string %}">{{ xform.title }}</a></small>
         <small> | </small>
-        <small><a href="{% url "data-view" username id_string %}">{% trans "Data View" %}</a></small>
+        <small><a href="{% url "data-view" username id_string %}">{% translate "Data View" %}</a></small>
     </h1>
 </div>
 
@@ -22,14 +22,14 @@
  <div id="delete-modal" class="modal hide fade">
             <div class="modal-header">
               <a data-dismiss="modal" class="close">&times;</a>
-              <h3>{% trans "Delete Confirmation" %}</h3>
+              <h3>{% translate "Delete Confirmation" %}</h3>
             </div>
             <div class="modal-body">
-              <p>{% trans "Are you sure you want to delete this record. If you are unsure about deleting this record press 'Cancel'." %}</p>
+              <p>{% translate "Are you sure you want to delete this record. If you are unsure about deleting this record press 'Cancel'." %}</p>
             </div>
             <div class="modal-footer">
-              <a href="#" onclick="$('#delete-modal').modal('hide');" class="btn btn-primary">{% trans "Delete" %}</a>
-              <a href="#" onclick="$('#delete-modal').modal('hide');" class="btn secondary">{% trans "Cancel" %}</a>
+              <a href="#" onclick="$('#delete-modal').modal('hide');" class="btn btn-primary">{% translate "Delete" %}</a>
+              <a href="#" onclick="$('#delete-modal').modal('hide');" class="btn secondary">{% translate "Cancel" %}</a>
             </div>
           </div>
 {% endblock %}
@@ -51,7 +51,7 @@ var languages = [];
 // TODO: this re should only accept valid js variable names so numbers/letter/underscore
 var cleanRe = /[\[\]( |\/)]/g; // regular expression used to clean names with slashes
 var cleanReplacement = '_';
-var positionTpl = "{% trans 'Record {pos} of {total}' %}";
+var positionTpl = "{% translate 'Record {pos} of {total}' %}";
 var numRecords = null;
 var browsePos = null;
 

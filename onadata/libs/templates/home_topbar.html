@@ -11,12 +11,12 @@
 			<div class = "navigation">
 				<ul id = "navlist">
 					<li> <a href="/accounts/register/"> Sign Up </a> </li>
-					<li> <a href="{% url "forms_list" %}">{% trans "Forms" %}</a></li>
+					<li> <a href="{% url "forms_list" %}">{% translate "Forms" %}</a></li>
                     {% if user.is_superuser or user.is_staff %}
-					<li> <a href="{% url "members-list" %}">{% trans "People" %}</a></li>
+					<li> <a href="{% url "members-list" %}">{% translate "People" %}</a></li>
                     {% endif %}
-					<li> <a href="{% url "faq" %}"> {% trans "FAQ" %} </a> </li>
-					<li> <a href="{% url "support" %}">{% trans "Support" %}</a></li>
+					<li> <a href="{% url "faq" %}"> {% translate "FAQ" %} </a> </li>
+					<li> <a href="{% url "support" %}">{% translate "Support" %}</a></li>
 				</ul>
 			</div>
 		</div>
