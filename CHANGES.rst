@@ -3,6 +3,13 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.2.0(2022-07-13)
+------------------
+
+- Fix an issue when trying to access azure attachments with the suffix query param
+  `PR #2289 <https://github.com/onaio/onadata/pull/2289>`_
+  [@DavisRayM]
+
 v3.1.1(2022-07-08)
 ------------------
 
