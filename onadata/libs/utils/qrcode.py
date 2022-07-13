@@ -46,7 +46,7 @@ def generate_qrcode(message):
     return datauri
 
 
-def generate_odk_qrcode(request, view=None, id=None):
+def generate_odk_qrcode(request, view=None, pk=None):
     """Generate ODK settings QRCode image uri"""
     server_url = f"{request.scheme}://{request.get_host()}"
     token = None
@@ -54,11 +54,11 @@ def generate_odk_qrcode(request, view=None, id=None):
         queryset = ODKToken.objects.filter(
             user=request.user, status=ODKToken.ACTIVE)
         if queryset.count() > 0:
-            q = queryset.first()
-            token = q.raw_key.decode('utf-8')
+            query = queryset.first()
+            token = query.raw_key.decode('utf-8')
 
-    if view and id:
-        server_url = f"{request.scheme}://{request.get_host()}/{view}/{id}",
+    if view and pk:
+        server_url = f"{request.scheme}://{request.get_host()}/{view}/{pk}"
 
     odk_settings_obj = {
             "general": {

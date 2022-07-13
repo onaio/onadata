@@ -103,7 +103,8 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
         queryset = super(XFormListViewSet, self).filter_queryset(queryset)
         if not self.request.user.is_anonymous:
             xform_pk = self.kwargs.get('xform_pk')
-            if self.action == 'list' and profile and xform_pk is None:
+            if self.action == 'list' and profile and xform_pk is None\
+                    and project_pk is None:
                 forms_shared_with_user = get_forms_shared_with_user(
                     profile.user)
                 id_string = self.request.query_params.get('formID')

@@ -182,7 +182,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                 for field in getattr(self.Meta, "owner_only_fields"):
                     self.fields.pop(field)
 
-    def get_user_qrcode(self, obj):  # pylint: disable=no-self-use
+    def get_user_qrcode(self, obj):  # pylint: disable=unused-argument
         """
         Return the user settings QR Code data uri.
         """
@@ -431,7 +431,7 @@ class UserProfileWithTokenSerializer(serializers.HyperlinkedModelSerializer):
         """
         return obj.user.auth_token.key
 
-    def get_user_qrcode(self, obj):  # pylint: disable=no-self-use
+    def get_user_qrcode(self, obj):  # pylint: disable=unused-argument
         """
         Return the user settings QR Code data uri.
         """

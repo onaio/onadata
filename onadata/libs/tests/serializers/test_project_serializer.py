@@ -69,6 +69,9 @@ class TestProjectSerializer(TestAbstractViewSet):
         self.assertEqual(perms, None)
 
     def test_get_project_qrcode(self):
+        """
+        Test project settings qrcode
+        """
         self._publish_xls_form_to_project()
 
         project = Project.objects.last()

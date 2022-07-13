@@ -7,6 +7,10 @@ from onadata.libs.utils.qrcode import (
 
 
 class TestGenerateQrCode(TestBase, unittest.TestCase):
+    """
+    Test QR Code Generation
+    """
+
     def setUp(self):
         self.user = self._create_user('bob', 'bob', create_profile=True)
 
@@ -17,6 +21,7 @@ class TestGenerateQrCode(TestBase, unittest.TestCase):
         )
 
     def test_generate_qrcode_json(self):
+        """Test qr code util generator"""
         request = APIRequestFactory().get('/')
         request.user = self.user
         self.assertTrue(

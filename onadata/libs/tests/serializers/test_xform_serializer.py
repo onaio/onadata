@@ -72,6 +72,9 @@ class TestXFormSerializer(TestAbstractViewSet, TestBase):
     Test XFormSerializer
     """
     def test_get_form_qrcode(self):
+        """
+        Test get form level odk settings QR Code
+        """
         self._publish_xls_form_to_project()
         request = self.factory.get('/')
         request.user = self.user
