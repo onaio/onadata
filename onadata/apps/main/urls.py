@@ -351,7 +351,17 @@ urlpatterns = [
         name="form-list",
     ),
     re_path(
+        r"^projects/(?P<project_pk>\d+)/formList$",
+        XFormListViewSet.as_view({"get": "list", "head": "list"}),
+        name="form-list",
+    ),
+    re_path(
         r"^enketo/(?P<xform_pk>\w+)/formList$",
+        XFormListViewSet.as_view({"get": "list", "head": "list"}),
+        name="form-list",
+    ),
+    re_path(
+        r"^forms/(?P<xform_pk>\w+)/formList$",
         XFormListViewSet.as_view({"get": "list", "head": "list"}),
         name="form-list",
     ),
