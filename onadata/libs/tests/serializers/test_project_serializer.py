@@ -68,6 +68,23 @@ class TestProjectSerializer(TestAbstractViewSet):
         perms = self.serializer.get_users(None)
         self.assertEqual(perms, None)
 
+    def test_get_project_qrcode(self):
+        self._publish_xls_form_to_project()
+
+        project = Project.objects.last()
+
+        request = self.factory.get('/', **self.extra)
+        request.user = self.user
+
+        serializer = ProjectSerializer(project, context={'request': request})
+        data = serializer.data
+        self.assertTrue(
+            serializer.get_project_qrcode(project).find(
+                "data:image/png;base64,") > -1)
+        self.assertIn('project_qrcode', data.keys())
+        self.assertTrue(
+            data.get("project_qrcode").find("data:image/png;base64,") > -1)
+
     def test_get_project_forms(self):
         # create a project with a form
         self._publish_xls_form_to_project()

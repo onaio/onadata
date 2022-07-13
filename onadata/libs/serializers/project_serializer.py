@@ -310,7 +310,7 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
             "date_created",
             "date_modified",
             "deleted_at",
-            "project_qrcode"
+            "project_qrcode",
         ]
 
     def get_starred(self, obj):

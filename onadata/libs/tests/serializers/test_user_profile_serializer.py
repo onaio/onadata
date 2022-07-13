@@ -51,8 +51,10 @@ def create_user_profile(profile_data):
 class TestUserProfileWithTokenSerializer(TransactionTestCase):
 
     def setUp(self):
+        self.factory = APIRequestFactory()
         self.serializer = UserProfileWithTokenSerializer()
         self.user_profile = create_user_profile(PROFILE_DATA)
+        self.user = self.user_profile.user
 
     def test_get_temp_token(self):
         temp_token_key = self.serializer.get_temp_token(self.user_profile)
@@ -61,6 +63,21 @@ class TestUserProfileWithTokenSerializer(TransactionTestCase):
         is_expired = expired(temp_token.created)
 
         self.assertFalse(is_expired)
+
+    def test_get_user_qrcode(self):
+        """
+        Test user level qr code settings
+        """
+        self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
+        request = self.factory.get('/', **self.extra)
+        request.user = self.user
+        serializer = UserProfileWithTokenSerializer(
+            instance=self.user_profile,
+            context={'request': request})
+        data = serializer.data
+        self.assertIn('user_qrcode', data.keys())
+        self.assertTrue(
+            data.get("user_qrcode").find("data:image/png;base64,") > -1)
 
     def test_get_temp_token_recreates_if_expired(self):
         temp_token, created = TempToken.objects.get_or_create(
@@ -86,8 +103,8 @@ class TestUserProfileSerializer(TestAbstractViewSet):
         """
         Test owner only views metadata field
         """
-        request = APIRequestFactory().get('/')
-        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        request = self.factory.get('/')
+        alice_data = {'username': '[alice', 'email': 'alice@localhost.com'}
         bob_profile = self._create_user_profile()
         alice_profile = self._create_user_profile(extra_post_data=alice_data)
         request.user = bob_profile.user
@@ -103,3 +120,19 @@ class TestUserProfileSerializer(TestAbstractViewSet):
                          bob_serializer.data['username'])
         self.assertEqual(alice_profile.user.username,
                          alice_serializer.data['username'])
+
+    def test_get_user_qrcode(self):
+        """
+        Test user level qr code settings
+        """
+        self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
+        self.user_profile = self._create_user_profile()
+        request = self.factory.get('/', **self.extra)
+        request.user = self.user
+        serializer = UserProfileSerializer(
+            instance=self.user_profile,
+            context={'request': request})
+        data = serializer.data
+        self.assertIn('user_qrcode', data.keys())
+        self.assertTrue(
+            data.get("user_qrcode").find("data:image/png;base64,") > -1)

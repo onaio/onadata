@@ -6,7 +6,10 @@ from django.test import TestCase
 from mock import MagicMock
 
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.serializers.xform_serializer import XFormManifestSerializer
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
+    TestAbstractViewSet
+from onadata.libs.serializers.xform_serializer import (
+    XFormManifestSerializer, XFormSerializer)
 
 
 class TestXFormManifestSerializer(TestCase, TestBase):
@@ -62,3 +65,19 @@ class TestXFormManifestSerializer(TestCase, TestBase):
         obj.data_value = "an image upload.png"
         obj.data_file = "data file"
         self.assertEqual(serializer.get_hash(obj), obj.file_hash)
+
+
+class TestXFormSerializer(TestAbstractViewSet, TestBase):
+    """
+    Test XFormSerializer
+    """
+    def test_get_form_qrcode(self):
+        self._publish_xls_form_to_project()
+        request = self.factory.get('/')
+        request.user = self.user
+        serializer = XFormSerializer(
+            instance=self.xform, context={'request': request})
+        data = serializer.data
+        self.assertIn('form_qrcode', data.keys())
+        self.assertTrue(
+            data.get("form_qrcode").find("data:image/png;base64,") > -1)
