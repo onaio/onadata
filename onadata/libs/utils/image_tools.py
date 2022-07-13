@@ -52,7 +52,7 @@ def generate_media_download_url(obj, expiration: int = 3600):
         else:
             return HttpResponseRedirect(url)
     elif isinstance(default_storage, type(azure)):
-        media_url = generate_media_url_with_sas(file_path)
+        media_url = generate_media_url_with_sas(file_path, expiration)
         return HttpResponseRedirect(media_url)
     else:
         file_obj = open(settings.MEDIA_ROOT + file_path, "rb")
