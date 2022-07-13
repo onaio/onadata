@@ -3,7 +3,7 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
-v3.1.2(2022-07-13)
+v3.2.0(2022-07-13)
 ------------------
 
 - Fix an issue when trying to access azure attachments with the suffix query param
