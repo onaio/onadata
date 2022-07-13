@@ -45,25 +45,12 @@ def generate_media_download_url(obj, expiration: int = 3600):
     content_disposition = urllib.parse.quote(f"attachment; filename={filename}")
     if isinstance(default_storage, type(s3)):
         try:
-            bucket_name = s3.bucket.name
-            s3_client = boto3.client("s3")
-
-            # Generate a presigned URL for the S3 object
-            response = s3_client.generate_presigned_url(
-                "get_object",
-                Params={
-                    "Bucket": bucket_name,
-                    "Key": file_path,
-                    "ResponseContentDisposition": content_disposition,
-                    "ResponseContentType": "application/octet-stream",
-                },
-                ExpiresIn=expiration,
-            )
+            url = generate_aws_media_url(file_path, content_disposition, expiration)
         except ClientError as e:
             logging.error(e)
             return None
-
-        return HttpResponseRedirect(response)
+        else:
+            return HttpResponseRedirect(url)
     elif isinstance(default_storage, type(azure)):
         media_url = generate_media_url_with_sas(file_path)
         return HttpResponseRedirect(media_url)
@@ -75,8 +62,29 @@ def generate_media_download_url(obj, expiration: int = 3600):
         return response
 
 
-def generate_media_url_with_sas(file_path, expiration: int = 3600):
+def generate_aws_media_url(
+    file_path: str, content_disposition: str, expiration: int = 3600
+):
+    s3 = get_storage_class("storage.backends.s3boto3.S3Boto3Storage")()
+    bucket_name = s3.bucket.name
+    s3_client = boto3.client("s3")
+
+    # Generate a presigned URL for the S3 object
+    return s3_client.generate_presigned_url(
+        "get_object",
+        Params={
+            "Bucket": bucket_name,
+            "Key": file_path,
+            "ResponseContentDisposition": content_disposition,
+            "ResponseContentType": "application/octet-stream",
+        },
+        ExpiresIn=expiration,
+    )
+
+
+def generate_media_url_with_sas(file_path: str, expiration: int = 3600):
     from azure.storage.blob import generate_blob_sas, AccountSasPermissions
+
     account_name = getattr(settings, "AZURE_ACCOUNT_NAME", "")
     container_name = getattr(settings, "AZURE_CONTAINER", "")
     media_url = f"https://{account_name}.blob.core.windows.net/{container_name}/{file_path}"  # noqa
