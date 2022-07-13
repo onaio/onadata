@@ -13,9 +13,8 @@ from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
-from onadata.libs.utils.presigned_download_url import \
-    generate_media_download_url
-from onadata.libs.utils.image_tools import image_url
+from onadata.libs.utils.image_tools import \
+        image_url, generate_media_download_url
 from onadata.apps.api.tools import get_baseviewset_class
 
 BaseViewset = get_baseviewset_class()
