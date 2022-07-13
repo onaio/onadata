@@ -337,6 +337,8 @@ rsa==4.8
     # via google-auth
 s3transfer==0.6.0
     # via boto3
+segno==1.5.2
+    # via onadata
 sentry-sdk==1.6.0
     # via onadata
 simplejson==3.17.6
