@@ -10,6 +10,8 @@ from io import BytesIO
 from base64 import b64encode
 from elaphe import barcode
 
+from onadata.apps.api.models.odk_token import ODKToken
+
 
 # pylint: disable=too-many-arguments
 def generate_qrcode(message):
@@ -44,16 +46,25 @@ def generate_qrcode(message):
     return datauri
 
 
-def generate_odk_qrcode(request, odk_token, view=None, id=None):
+def generate_odk_qrcode(request, view=None, id=None):
     """Generate ODK settings QRCode image uri"""
     server_url = f"{request.scheme}://{request.get_host()}"
+    token = None
+    if request.user:
+        queryset = ODKToken.objects.filter(
+            user=request.user, status=ODKToken.ACTIVE)
+        if queryset.count() > 0:
+            q = queryset.first()
+            token = q.raw_key.decode('utf-8')
+
     if view and id:
         server_url = f"{request.scheme}://{request.get_host()}/{view}/{id}",
+
     odk_settings_obj = {
             "general": {
                 "server_url": server_url,
                 "username": f"{request.user.username}",
-                "password": odk_token,
+                "password": token,
                 "constraint_behavior": "on_finalize",
                 "autosend": "wifi_and_cellular"
             },

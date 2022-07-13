@@ -187,7 +187,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         Return the user settings QR Code data uri.
         """
         request = self.context.get("request")
-        return generate_odk_qrcode(request, None)
+        return generate_odk_qrcode(request)
 
     def get_is_org(self, obj):  # pylint: disable=no-self-use
         """
@@ -436,7 +436,7 @@ class UserProfileWithTokenSerializer(serializers.HyperlinkedModelSerializer):
         Return the user settings QR Code data uri.
         """
         request = self.context.get("request")
-        return generate_odk_qrcode(request, None)
+        return generate_odk_qrcode(request)
 
     # pylint: disable=no-self-use
     def get_temp_token(self, obj):

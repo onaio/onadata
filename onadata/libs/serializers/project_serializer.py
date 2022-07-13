@@ -360,7 +360,7 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
         Return the project settings QR Code data uri.
         """
         request = self.context.get("request")
-        return generate_odk_qrcode(request, None, 'projects', obj.pk)
+        return generate_odk_qrcode(request, 'projects', obj.pk)
 
     def get_last_submission_date(self, obj):  # pylint: disable=no-self-use
         """
@@ -605,7 +605,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         Return the project settings QR Code data uri.
         """
         request = self.context["request"]
-        return generate_odk_qrcode(request, None, 'projects', obj.pk)
+        return generate_odk_qrcode(request, 'projects', obj.pk)
 
     def get_last_submission_date(self, obj):  # pylint: disable=no-self-use
         """

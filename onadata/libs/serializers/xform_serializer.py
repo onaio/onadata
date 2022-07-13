@@ -505,7 +505,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
         Return the form settings QR Code data uri.
         """
         request = self.context.get("request")
-        return generate_odk_qrcode(request, None, 'forms', obj.pk)
+        return generate_odk_qrcode(request, 'forms', obj.pk)
 
     def validate_public_key(self, value):  # pylint: disable=no-self-use
         """

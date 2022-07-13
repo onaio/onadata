@@ -21,5 +21,5 @@ class TestGenerateQrCode(TestBase, unittest.TestCase):
         request.user = self.user
         self.assertTrue(
             generate_odk_qrcode(
-                request, None).find("data:image/png;base64,") > -1
+                request).find("data:image/png;base64,") > -1
         )

@@ -557,6 +557,7 @@ class TestExportTools(TestBase, TestAbstractViewSet):
         xml = '<data id="a"><gps>-1.28 36.83 0 0</gps><fruit>orange</fruit></data>'
         Instance(xform=xform1, xml=xml).save()
         request = self.factory.get('/', **self.extra)
+        request.user = self.user
         XFormSerializer(xform1, context={'request': request}).data
         xform1 = XForm.objects.get(id_string="a")
         export_type = "geojson"
