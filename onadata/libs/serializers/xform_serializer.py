@@ -30,6 +30,7 @@ from onadata.libs.permissions import get_role, is_organization
 from onadata.libs.serializers.dataview_serializer import DataViewMinimalSerializer
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
+from onadata.libs.utils.qrcode import generate_odk_qrcode
 from onadata.libs.utils.cache_tools import (
     ENKETO_PREVIEW_URL_CACHE,
     ENKETO_SINGLE_SUBMIT_URL_CACHE,
@@ -374,6 +375,7 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
         view_name="xform-detail", lookup_field="pk"
     )
     users = serializers.SerializerMethodField()
+    form_qrcode = serializers.SerializerMethodField()
     enketo_url = serializers.SerializerMethodField()
     enketo_preview_url = serializers.SerializerMethodField()
     enketo_single_submit_url = serializers.SerializerMethodField()
@@ -395,6 +397,7 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             "last_submission_time",
             "is_merged_dataset",
             "xls_available",
+            "form_qrcode"
         )
         exclude = (
             "json",
@@ -442,6 +445,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
         view_name="xform-detail", lookup_field="pk"
     )
     users = serializers.SerializerMethodField()
+    form_qrcode = serializers.SerializerMethodField()
     enketo_url = serializers.SerializerMethodField()
     enketo_preview_url = serializers.SerializerMethodField()
     enketo_single_submit_url = serializers.SerializerMethodField()
@@ -495,6 +499,13 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             cache.set(f"{XFORM_METADATA_CACHE}{obj.pk}", xform_metadata)
 
         return xform_metadata
+
+    def get_form_qrcode(self, obj):  # pylint: disable=no-self-use
+        """
+        Return the form settings QR Code data uri.
+        """
+        request = self.context.get("request")
+        return generate_odk_qrcode(request, None, 'forms', obj.pk)
 
     def validate_public_key(self, value):  # pylint: disable=no-self-use
         """

@@ -28,6 +28,7 @@ from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.analytics import track_object_event
 from onadata.libs.utils.cache_tools import IS_ORG
+from onadata.libs.utils.qrcode import generate_odk_qrcode
 from onadata.libs.utils.email import get_verification_email_data, get_verification_url
 
 RESERVED_NAMES = RegistrationFormUserProfile.RESERVED_USERNAMES
@@ -140,6 +141,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
     # pylint: disable=invalid-name
     id = serializers.ReadOnlyField(source="user.id")
     joined_on = serializers.ReadOnlyField(source="user.date_joined")
+    user_qrcode = serializers.SerializerMethodField()
 
     # pylint: disable=too-few-public-methods,missing-class-docstring
     class Meta:
@@ -164,6 +166,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             "metadata",
             "joined_on",
             "name",
+            "user_qrcode",
         )
         owner_only_fields = ("metadata",)
 
@@ -178,6 +181,13 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             ):
                 for field in getattr(self.Meta, "owner_only_fields"):
                     self.fields.pop(field)
+
+    def get_user_qrcode(self, obj):  # pylint: disable=no-self-use
+        """
+        Return the user settings QR Code data uri.
+        """
+        request = self.context.get("request")
+        return generate_odk_qrcode(request, None)
 
     def get_is_org(self, obj):  # pylint: disable=no-self-use
         """
@@ -392,6 +402,7 @@ class UserProfileWithTokenSerializer(serializers.HyperlinkedModelSerializer):
     )
     api_token = serializers.SerializerMethodField()
     temp_token = serializers.SerializerMethodField()
+    user_qrcode = serializers.SerializerMethodField()
 
     class Meta:
         model = UserProfile
@@ -410,6 +421,7 @@ class UserProfileWithTokenSerializer(serializers.HyperlinkedModelSerializer):
             "user",
             "api_token",
             "temp_token",
+            "user_qrcode",
         )
 
     # pylint: disable=no-self-use
@@ -418,6 +430,13 @@ class UserProfileWithTokenSerializer(serializers.HyperlinkedModelSerializer):
         Returns user's API Token.
         """
         return obj.user.auth_token.key
+
+    def get_user_qrcode(self, obj):  # pylint: disable=no-self-use
+        """
+        Return the user settings QR Code data uri.
+        """
+        request = self.context.get("request")
+        return generate_odk_qrcode(request, None)
 
     # pylint: disable=no-self-use
     def get_temp_token(self, obj):
