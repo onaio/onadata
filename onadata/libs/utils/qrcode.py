@@ -2,6 +2,10 @@
 """
 QR code utility function.
 """
+import json
+import zlib
+import segno
+
 from io import BytesIO
 from base64 import b64encode
 from elaphe import barcode
@@ -37,4 +41,33 @@ def generate_qrcode(message):
     datauri = f"data:image/png;base64,{b64encode(stream.getvalue()).decode('utf-8')}"
     stream.close()
 
+    return datauri
+
+
+def generate_odk_qrcode(request, odk_token, view=None, id=None):
+    """Generate ODK settings QRCode image uri"""
+    server_url = f"{request.scheme}://{request.get_host()}"
+    if view and id:
+        server_url = f"{request.scheme}://{request.get_host()}/{view}/{id}",
+    odk_settings_obj = {
+            "general": {
+                "server_url": server_url,
+                "username": f"{request.user.username}",
+                "password": odk_token,
+                "constraint_behavior": "on_finalize",
+                "autosend": "wifi_and_cellular"
+            },
+            "admin": {
+                "send_finalized": True,
+                "get_blank": True
+            }
+    }
+    stream = BytesIO()
+    qr_data = b64encode(
+        zlib.compress(json.dumps(odk_settings_obj).encode("utf-8")))
+    code = segno.make(qr_data, micro=False)
+    code.save(stream, scale=5, kind='png')
+    base46_str = b64encode(stream.getvalue()).decode('utf-8')
+    datauri = f"data:image/png;base64,{base46_str}"
+    stream.close()
     return datauri
