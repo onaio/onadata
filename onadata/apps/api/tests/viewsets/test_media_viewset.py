@@ -35,8 +35,8 @@ class TestMediaViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(type(response.content), bytes)
 
-    @patch('onadata.libs.utils.presigned_download_url.get_storage_class')
-    @patch('onadata.libs.utils.presigned_download_url.boto3.client')
+    @patch('onadata.libs.utils.image_tools.get_storage_class')
+    @patch('onadata.libs.utils.image_tools.boto3.client')
     def test_retrieve_view_from_s3(
             self, mock_presigned_urls, mock_get_storage_class):
 
