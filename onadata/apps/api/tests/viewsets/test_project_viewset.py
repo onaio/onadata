@@ -1551,6 +1551,11 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
+        # check if qr code exists in profile response
+        self.assertIn('user_qrcode', response.data[0].keys())
+        # remove qrcode from dict
+        response.data[0].pop('user_qrcode')
+        response.data[1].pop('user_qrcode')
 
         alice_profile, bob_profile = sorted(response.data, key=itemgetter("username"))
         self.assertEqual(sorted(bob_profile.items()), sorted(user_profile_data.items()))

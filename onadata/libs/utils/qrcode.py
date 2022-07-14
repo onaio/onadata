@@ -46,24 +46,24 @@ def generate_qrcode(message):
     return datauri
 
 
-def generate_odk_qrcode(request, view=None, pk=None):
+def generate_odk_qrcode(request, obj, view=None, _id=None):
     """Generate ODK settings QRCode image uri"""
     server_url = f"{request.scheme}://{request.get_host()}"
     token = None
-    if request.user:
+    if obj.user:
         queryset = ODKToken.objects.filter(
-            user=request.user, status=ODKToken.ACTIVE)
+            user=obj.user, status=ODKToken.ACTIVE)
         if queryset.count() > 0:
             query = queryset.first()
             token = query.raw_key.decode('utf-8')
 
-    if view and pk:
-        server_url = f"{request.scheme}://{request.get_host()}/{view}/{pk}"
+    if view and _id:
+        server_url = f"{request.scheme}://{request.get_host()}/{view}/{_id}"
 
     odk_settings_obj = {
             "general": {
                 "server_url": server_url,
-                "username": f"{request.user.username}",
+                "username": f"{obj.user.username}",
                 "password": token,
                 "constraint_behavior": "on_finalize",
                 "autosend": "wifi_and_cellular"

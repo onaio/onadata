@@ -13,6 +13,7 @@ class TestGenerateQrCode(TestBase, unittest.TestCase):
 
     def setUp(self):
         self.user = self._create_user('bob', 'bob', create_profile=True)
+        self._publish_transportation_form()
 
     def test_generate_qrcode(self):
         url = "https://hmh2a.enketo.formhub.org"
@@ -26,5 +27,5 @@ class TestGenerateQrCode(TestBase, unittest.TestCase):
         request.user = self.user
         self.assertTrue(
             generate_odk_qrcode(
-                request).find("data:image/png;base64,") > -1
+                request, self.xform).find("data:image/png;base64,") > -1
         )

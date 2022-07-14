@@ -55,6 +55,7 @@ class TestUserProfileWithTokenSerializer(TransactionTestCase):
         self.serializer = UserProfileWithTokenSerializer()
         self.user_profile = create_user_profile(PROFILE_DATA)
         self.user = self.user_profile.user
+        self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
 
     def test_get_temp_token(self):
         temp_token_key = self.serializer.get_temp_token(self.user_profile)
@@ -68,7 +69,6 @@ class TestUserProfileWithTokenSerializer(TransactionTestCase):
         """
         Test user level qr code settings
         """
-        self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
         request = self.factory.get('/', **self.extra)
         request.user = self.user
         serializer = UserProfileWithTokenSerializer(
@@ -100,8 +100,11 @@ class TestUserProfileWithTokenSerializer(TransactionTestCase):
 class TestUserProfileSerializer(TestAbstractViewSet):
 
     def setUp(self):
-        self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
+        super().setUp()
+        self.factory = APIRequestFactory()
         self.user_profile = self._create_user_profile()
+        self.user = self.user_profile.user
+        self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"} # noqa
 
     def test_metadata_view_for_owner_only(self):
         """

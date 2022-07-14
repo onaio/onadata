@@ -67,7 +67,7 @@ class TestXFormManifestSerializer(TestCase, TestBase):
         self.assertEqual(serializer.get_hash(obj), obj.file_hash)
 
 
-class TestXFormSerializer(TestAbstractViewSet, TestBase):
+class TestXFormSerializer(TestAbstractViewSet):
     """
     Test XFormSerializer
     """

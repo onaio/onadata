@@ -103,6 +103,10 @@ class TestConnectViewSet(TestAbstractViewSet):
         temp_token = TempToken.objects.get(user__username="bob")
         self.data["temp_token"] = temp_token.key
         self.assertEqual(response.status_code, 200)
+        # check if qr code exists in profile response
+        self.assertIn('user_qrcode', response.data.keys())
+        # remove qrcode from dict
+        del response.data['user_qrcode']
         self.assertEqual(dict(response.data), self.data)
 
     def test_using_valid_temp_token(self):
@@ -241,6 +245,10 @@ class TestConnectViewSet(TestAbstractViewSet):
         temp_token = TempToken.objects.get(user__username="bob")
         self.data["temp_token"] = temp_token.key
         self.assertEqual(response.status_code, 200)
+        # check if qr code exists in profile response
+        self.assertIn('user_qrcode', response.data.keys())
+        # remove qrcode from dict
+        del response.data['user_qrcode']
         self.assertEqual(response.data, self.data)
 
     def test_user_list_with_basic_and_digest(self):
@@ -267,6 +275,10 @@ class TestConnectViewSet(TestAbstractViewSet):
         temp_token = TempToken.objects.get(user__username="bob")
         self.data["temp_token"] = temp_token.key
         self.assertEqual(response.status_code, 200)
+        # check if qr code exists in profile response
+        self.assertIn('user_qrcode', response.data.keys())
+        # remove qrcode from dict
+        del response.data['user_qrcode']
         self.assertEqual(response.data, self.data)
 
     @patch("onadata.libs.serializers.password_reset_serializer.send_mail")
@@ -393,6 +405,10 @@ class TestConnectViewSet(TestAbstractViewSet):
         temp_token = TempToken.objects.get(user__username="bob")
         self.data["temp_token"] = temp_token.key
         self.assertEqual(response.status_code, 200)
+        # check if qr code exists in profile response
+        self.assertIn('user_qrcode', response.data.keys())
+        # remove qrcode from response dict
+        del response.data['user_qrcode']
         self.assertEqual(response.data, self.data)
 
         self.user.email = "bob2@columbia.edu"

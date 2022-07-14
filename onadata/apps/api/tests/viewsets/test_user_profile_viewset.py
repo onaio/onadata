@@ -82,6 +82,10 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
 
         data = self.user_profile_data()
+        # check if qr code exists in profile response
+        self.assertIn('user_qrcode', response.data[0].keys())
+        # remove qrcode from dict
+        response.data[0].pop('user_qrcode')
         del data["metadata"]
 
         self.assertEqual(response.data, [data])
@@ -114,6 +118,11 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         )
 
         self.assertEqual(response.status_code, 200)
+        # check if qr code exists in profile response
+        self.assertIn('user_qrcode', response.data[0].keys())
+        # remove qrcode from dict
+        response.data[0].pop('user_qrcode')
+        response.data[1].pop('user_qrcode')
 
         user_profile_data = self.user_profile_data()
         del user_profile_data["metadata"]
@@ -153,8 +162,13 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
+        # check if qr code exists in profile response
+        self.assertIn('user_qrcode', response.data[0].keys())
+        # remove qrcode from dict
+        response.data[0].pop('user_qrcode')
 
         user_profile_data = self.user_profile_data()
+
         del user_profile_data["metadata"]
 
         self.assertDictEqual(user_profile_data, response.data[0])
@@ -166,6 +180,10 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
+        # check if qr code exists in profile response
+        self.assertIn('user_qrcode', response.data[0].keys())
+        # remove qrcode from dict
+        response.data[0].pop('user_qrcode')
         self.assertDictEqual(user_profile_data, response.data[0])
 
         # authenicated user with comma separated usernames as users query param
@@ -187,6 +205,11 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         )
 
         self.assertEqual(response.status_code, 200)
+        # check if qr code exists in profile response
+        self.assertIn('user_qrcode', response.data[0].keys())
+        # remove qrcode from dict
+        response.data[0].pop('user_qrcode')
+        response.data[1].pop('user_qrcode')
         self.assertEqual(len(response.data), 2)
         self.assertEqual(
             [dict(i) for i in response.data], [user_profile_data, deno_profile_data]
@@ -206,11 +229,19 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = view(request, user="bob")
         self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertEqual(response.status_code, 200)
+        # check if qr code exists in profile response
+        self.assertIn('user_qrcode', response.data.keys())
+        # remove qrcode from dict
+        del response.data['user_qrcode']
         self.assertEqual(response.data, self.user_profile_data())
 
         # by username mixed case
         response = view(request, user="BoB")
         self.assertEqual(response.status_code, 200)
+        # check if qr code exists in profile response
+        self.assertIn('user_qrcode', response.data.keys())
+        # remove qrcode from dict
+        del response.data['user_qrcode']
         self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertEqual(response.data, self.user_profile_data())
 
@@ -218,6 +249,10 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = view(request, user=self.user.pk)
         self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertEqual(response.status_code, 200)
+        # check if qr code exists in profile response
+        self.assertIn('user_qrcode', response.data.keys())
+        # remove qrcode from dict
+        del response.data['user_qrcode']
         self.assertEqual(response.data, self.user_profile_data())
 
     def test_profiles_get_anon(self):
@@ -235,6 +270,10 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         del data["metadata"]
 
         self.assertEqual(response.status_code, 200)
+        # check if qr code exists in profile response
+        self.assertIn('user_qrcode', response.data.keys())
+        # remove qrcode from dict
+        del response.data['user_qrcode']
         self.assertEqual(response.data, data)
         self.assertNotIn("email", response.data)
 
@@ -282,6 +321,10 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data["metadata"]["last_password_edit"] = profile.metadata["last_password_edit"]
         data["joined_on"] = profile.user.date_joined
         data["name"] = "%s %s" % ("Dennis", "erama")
+        # check if qr code exists in profile response
+        self.assertIn('user_qrcode', response.data.keys())
+        # remove qrcode from dict
+        del response.data['user_qrcode']
         self.assertEqual(response.data, data)
 
         self.assertTrue(mock_send_verification_email.called)
@@ -485,6 +528,10 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         )
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
+        # check if qr code exists in profile response
+        self.assertIn('user_qrcode', response.data.keys())
+        # remove qrcode from dict
+        del response.data['user_qrcode']
         password = data["password"]
         del data["password"]
 
@@ -540,6 +587,10 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data["metadata"] = {}
         data["metadata"]["last_password_edit"] = profile.metadata["last_password_edit"]
         data["joined_on"] = profile.user.date_joined
+        # check if qr code exists in profile response
+        self.assertIn('user_qrcode', response.data.keys())
+        # remove qrcode from dict
+        del response.data['user_qrcode']
         self.assertEqual(response.data, data)
         self.assertNotIn("email", response.data)
 
@@ -728,6 +779,10 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         )
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
+        # check if qr code exists in profile response
+        self.assertIn('user_qrcode', response.data.keys())
+        # remove qrcode from dict
+        del response.data['user_qrcode']
         del data["password"]
         profile = UserProfile.objects.get(user__username=data["username"].lower())
         data["id"] = profile.user.pk
@@ -819,6 +874,10 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = self.view(request)
 
         self.assertEqual(response.status_code, 201)
+        # check if qr code exists in profile response
+        self.assertIn('user_qrcode', response.data.keys())
+        # remove qrcode from dict
+        del response.data['user_qrcode']
         del data["password"]
         profile = UserProfile.objects.get(user__username=data["username"])
         data["id"] = profile.user.pk
