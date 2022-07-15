@@ -75,7 +75,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset,
         username = self.kwargs.get('username')
         form_pk = self.kwargs.get('xform_pk')
         project_pk = self.kwargs.get('project_pk')
-        if (not username and not form_pk) and \
+        if (not username and not form_pk and not project_pk) and \
                 self.request.user.is_anonymous:
             # raises a permission denied exception, forces authentication
             self.permission_denied(self.request)

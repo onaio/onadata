@@ -302,6 +302,43 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]['formID'], 'good_eats_multilang')
 
+    def test_get_xform_list_project_pk_filter(self):
+        """
+        Test formList project_pk filter for authenticated user.
+        """
+        self.user.profile.require_auth = True
+        self.user.profile.save()
+        request = self.factory.get('/')
+        response = self.view(request, project_pk=self.project.pk)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth('bob', 'bobbob')
+        request.META.update(auth(request.META, response))
+
+        request = self.factory.get('/')
+        response = self.view(request, project_pk=self.project.pk)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth('bob', 'bobbob')
+        request.META.update(auth(request.META, response))
+        # existing form is in result when xform_pk filter is in use.
+        response = self.view(request, project_pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+        path = os.path.join(
+            os.path.dirname(__file__), '..', 'fixtures', 'formList.xml')
+
+        with open(path, encoding='utf-8') as f:
+            form_list_xml = f.read().strip()
+            data = {"hash": self.xform.hash, "pk": self.xform.pk}
+            content = response.render().content.decode('utf-8')
+            self.assertEqual(content, form_list_xml % data)
+            self.assertTrue(response.has_header('X-OpenRosa-Version'))
+            self.assertTrue(
+                response.has_header('X-OpenRosa-Accept-Content-Length'))
+            self.assertTrue(response.has_header('Date'))
+            self.assertEqual(response['Content-Type'],
+                             'text/xml; charset=utf-8')
+
     def test_get_xform_list_xform_pk_filter(self):
         """
         Test formList xform_pk filter for authenticated user.
@@ -1070,3 +1107,125 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(len(response.data), 1)
         self.assertEqual(
             response.data[0]['formID'], self.xform.id_string)
+
+    def test_retrieve_form_in_forms_formlist_endpoint(self):
+        """
+        Test formList `/forms` endpoint utilizing primary key is able to retrieve
+        a form properly
+        """
+        # Bob submit forms
+        xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main", "tests",
+                                "fixtures", "tutorial.xlsx")
+        self._publish_xls_form_to_project(xlsform_path=xls_path)
+
+        xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "logger",
+                                     "fixtures",
+                                     "external_choice_form_v1.xlsx")
+        self._publish_xls_form_to_project(xlsform_path=xls_file_path)
+
+        # Set require auth to true for form owner
+        self.user.profile.require_auth = True
+        self.user.profile.save()
+
+        # Ensure that anonymous users do not have access to private forms
+        self.xform.shared = False
+        self.xform.save()
+        request = self.factory.get(
+            f'/enketo/{self.xform.pk}/formList')
+        response = self.view(
+            request, xform_pk=self.xform.pk)
+        self.assertEqual(response.status_code, 401)
+
+        # Set require auth to false for form owner
+        self.user.profile.require_auth = False
+        self.user.profile.save()
+
+        # make form public
+        self.xform.shared = True
+        self.xform.save()
+
+        # Ensure logged in users have access to the form
+        alice_data = {
+            'username': 'alice',
+            'email': 'alice@localhost.com',
+            'password1': 'alice',
+            'password2': 'alice'
+        }
+        self._create_user_profile(alice_data)
+
+        auth = DigestAuth('alice', 'alice')
+        request = self.factory.get(
+            f'/forms/{self.xform.pk}/formList')
+        request.META.update(auth(request.META, response))
+        response = self.view(
+            request, xform_pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(
+            response.data[0]['formID'], self.xform.id_string)
+
+        # Ensure anonymous users have access to public forms
+        # when require_auth is False
+        request = self.factory.get(
+            f'/forms/{self.xform.pk}/formList')
+        response = self.view(
+            request, xform_pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(
+            response.data[0]['formID'], self.xform.id_string)
+
+    def test_retrieve_forms_in_project(self):
+        """
+        Test formList endpoint utilizing project primary key is able to
+        retrieve forms in a project properly
+        """
+        # Bob submit forms
+        xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main", "tests",
+                                "fixtures", "tutorial.xlsx")
+        self._publish_xls_form_to_project(xlsform_path=xls_path)
+
+        xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "logger",
+                                     "fixtures",
+                                     "external_choice_form_v1.xlsx")
+        self._publish_xls_form_to_project(xlsform_path=xls_file_path)
+
+        # Set require auth to true for form owner
+        self.user.profile.require_auth = True
+        self.user.profile.save()
+
+        # Ensure that anonymous users do not have access to private forms
+        self.xform.shared = False
+        self.xform.save()
+        request = self.factory.get(
+            f'/projects/{self.project.pk}/formList')
+        response = self.view(
+            request, project_pk=self.project.pk)
+        self.assertEqual(response.status_code, 401)
+
+        # Set require auth to false for form owner
+        self.user.profile.require_auth = False
+        self.user.profile.save()
+
+        # make form public
+        self.xform.shared = True
+        self.xform.save()
+        # check that logged in user (bob) has access to forms
+        auth = DigestAuth('bob', 'bobbob')
+        request = self.factory.get(
+            f'/projects/{self.project.pk}/formList')
+        request.META.update(auth(request.META, response))
+        response = self.view(
+            request, project_pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        # check number of forms returned in project are 3
+        self.assertEqual(len(response.data), 3)
+
+        # Ensure anonymous users have access to public forms
+        # when require_auth is False
+        request = self.factory.get(
+            f'/projects/{self.project.pk}/formList')
+        response = self.view(
+            request, project_pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 3)
