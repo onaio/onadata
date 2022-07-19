@@ -12,6 +12,10 @@ CACHE_CONTROL_VALUE = "max-age=60"
 
 
 def set_cache_control(response, cache_control_value=CACHE_CONTROL_VALUE):
+    """
+    Sets the legacy `Pragma` and `Cache-Control` headers on a `Response`
+    Object
+    """
     pragma = None
     if hasattr(settings, "CACHE_CONTROL_VALUE"):
         cache_control_value = settings.CACHE_CONTROL_VALUE
@@ -38,6 +42,10 @@ class CacheControlMixin(object):
 
 
 class CacheControlMiddleware:
+    """
+    Django Middleware used to set `Cache-Control` and `Pragma`
+    headers for every response
+    """
     def __init__(self, get_response):
         self.get_response = get_response
 
