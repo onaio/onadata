@@ -4,19 +4,22 @@ Implements the CacheControlMixin class
 
 Adds Cache headers to a viewsets response.
 """
+from typing import Optional
+
 from django.conf import settings
 from django.utils.cache import patch_cache_control
 
 
-CACHE_CONTROL_VALUE = {"max_age": 60}
-
-
-def set_cache_control(response, cache_control_value=CACHE_CONTROL_VALUE):
+def set_cache_control(response, cache_control_directives: Optional[dict] = None):
     """
     Sets the `Cache-Control` headers on a `Response`
     Object
     """
-    patch_cache_control(response, **CACHE_CONTROL_VALUE)
+    cache_control_directives = {"max_age": 60}
+    if hasattr(settings, 'CACHE_CONTROL_DIRECTIVES'):
+        cache_control_directives = settings.CACHE_CONTROL_DIRECTIVES
+
+    patch_cache_control(response, **cache_control_directives)
     return response
 
 
@@ -36,9 +39,10 @@ class CacheControlMixin(object):
 
 class CacheControlMiddleware:
     """
-    Django Middleware used to set `Cache-Control` and `Pragma`
-    headers for every response
+    Django Middleware used to set `Cache-Control`
+    header for every response
     """
+
     def __init__(self, get_response):
         self.get_response = get_response
 
