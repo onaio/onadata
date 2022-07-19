@@ -13,24 +13,28 @@ CACHE_CONTROL_VALUE = "max-age=60"
 
 def set_cache_control(response, cache_control_value=CACHE_CONTROL_VALUE):
     pragma = None
-    if hasattr(settings, 'CACHE_CONTROL_VALUE'):
+    if hasattr(settings, "CACHE_CONTROL_VALUE"):
         cache_control_value = settings.CACHE_CONTROL_VALUE
-    if hasattr(settings, 'PRAGMA_VALUE'):
+    if hasattr(settings, "PRAGMA_VALUE"):
         pragma = settings.PRAGMA_VALUE
-    response['Cache-Control'] = cache_control_value
+    response["Cache-Control"] = cache_control_value
     if pragma:
-        response['Pragma'] = pragma
+        response["Pragma"] = pragma
     return response
 
 
 class CacheControlMixin(object):
     def finalize_response(self, request, response, *args, **kwargs):
-        if request.method == 'GET' and not response.streaming and \
-                response.status_code in [200, 201, 202]:
+        if (
+            request.method == "GET"
+            and not response.streaming
+            and response.status_code in [200, 201, 202]
+        ):
             response = set_cache_control(response)
 
         return super(CacheControlMixin, self).finalize_response(
-            request, response, *args, **kwargs)
+            request, response, *args, **kwargs
+        )
 
 
 class CacheControlMiddleware:
