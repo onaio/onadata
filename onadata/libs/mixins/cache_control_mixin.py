@@ -1,8 +1,5 @@
-# -*- coding: utf-8 -*-
 """
-Implements the CacheControlMixin class
-
-Adds Cache headers to a viewsets response.
+Cache control mixin
 """
 from typing import Optional
 
