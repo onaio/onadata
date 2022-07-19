@@ -559,8 +559,6 @@ STATIC_DOC = "/static/docs/index.html"
 
 HOSTNAME = socket.gethostname()
 
-CACHE_MIXIN_SECONDS = 60
-
 TAGGIT_CASE_INSENSITIVE = True
 
 DEFAULT_CELERY_MAX_RETIRES = 3
