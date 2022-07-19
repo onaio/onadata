@@ -8,22 +8,15 @@ from django.conf import settings
 from django.utils.cache import patch_cache_control
 
 
-CACHE_CONTROL_VALUE = "max-age=60"
+CACHE_CONTROL_VALUE = {"max_age": 60}
 
 
 def set_cache_control(response, cache_control_value=CACHE_CONTROL_VALUE):
     """
-    Sets the legacy `Pragma` and `Cache-Control` headers on a `Response`
+    Sets the `Cache-Control` headers on a `Response`
     Object
     """
-    pragma = None
-    if hasattr(settings, "CACHE_CONTROL_VALUE"):
-        cache_control_value = settings.CACHE_CONTROL_VALUE
-    if hasattr(settings, "PRAGMA_VALUE"):
-        pragma = settings.PRAGMA_VALUE
-    response["Cache-Control"] = cache_control_value
-    if pragma:
-        response["Pragma"] = pragma
+    patch_cache_control(response, **CACHE_CONTROL_VALUE)
     return response
 
 
