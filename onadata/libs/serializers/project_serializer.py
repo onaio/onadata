@@ -29,7 +29,6 @@ from onadata.libs.serializers.dataview_serializer import DataViewMinimalSerializ
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.utils.analytics import track_object_event
-from onadata.libs.utils.qrcode import generate_odk_qrcode
 from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
@@ -283,7 +282,6 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
     starred = serializers.SerializerMethodField()
     users = serializers.SerializerMethodField()
     forms = serializers.SerializerMethodField()
-    project_qrcode = serializers.SerializerMethodField()
     public = serializers.BooleanField(source="shared")
     tags = TagListSerializer(read_only=True)
     num_datasets = serializers.SerializerMethodField()
@@ -310,7 +308,6 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
             "date_created",
             "date_modified",
             "deleted_at",
-            "project_qrcode",
         ]
 
     def get_starred(self, obj):
@@ -354,13 +351,6 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
         Return the number of datasets attached to the project.
         """
         return get_num_datasets(obj)
-
-    def get_project_qrcode(self, obj):  # pylint: disable=no-self-use
-        """
-        Return the project settings QR Code data uri.
-        """
-        request = self.context.get("request")
-        return generate_odk_qrcode(request, obj, 'projects', obj.pk)
 
     def get_last_submission_date(self, obj):  # pylint: disable=no-self-use
         """
@@ -417,7 +407,6 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     public = serializers.BooleanField(source="shared")
     tags = TagListSerializer(read_only=True)
     num_datasets = serializers.SerializerMethodField()
-    project_qrcode = serializers.SerializerMethodField()
     last_submission_date = serializers.SerializerMethodField()
     teams = serializers.SerializerMethodField()
     data_views = serializers.SerializerMethodField()
@@ -599,13 +588,6 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         Return the number of datasets attached to the project.
         """
         return get_num_datasets(obj)
-
-    def get_project_qrcode(self, obj):  # pylint: disable=no-self-use
-        """
-        Return the project settings QR Code data uri.
-        """
-        request = self.context["request"]
-        return generate_odk_qrcode(request, obj, 'projects', obj.pk)
 
     def get_last_submission_date(self, obj):  # pylint: disable=no-self-use
         """

@@ -1,31 +1,11 @@
 import unittest
 
-from rest_framework.test import APIRequestFactory
-from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.utils.qrcode import (
-    generate_qrcode, generate_odk_qrcode)
+from onadata.libs.utils.qrcode import generate_qrcode
 
 
-class TestGenerateQrCode(TestBase, unittest.TestCase):
-    """
-    Test QR Code Generation
-    """
-
-    def setUp(self):
-        self.user = self._create_user('bob', 'bob', create_profile=True)
-        self._publish_transportation_form()
-
+class TestGenerateQrCode(unittest.TestCase):
     def test_generate_qrcode(self):
         url = "https://hmh2a.enketo.formhub.org"
         self.assertTrue(
             generate_qrcode(url).find("data:image/png;base64,") > -1
-        )
-
-    def test_generate_qrcode_json(self):
-        """Test qr code util generator"""
-        request = APIRequestFactory().get('/')
-        request.user = self.user
-        self.assertTrue(
-            generate_odk_qrcode(
-                request, self.xform).find("data:image/png;base64,") > -1
         )

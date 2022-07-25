@@ -91,7 +91,6 @@ class TestCacheTools(TestCase):
         project_cache = cache.get(f'{PROJ_OWNER_CACHE}{project.pk}')
         project_cache.pop('date_created')
         project_cache.pop('date_modified')
-        project_cache.pop('project_qrcode')
         self.assertEqual(
             project_cache,
             expected_project_cache)

@@ -1131,7 +1131,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.xform.shared = False
         self.xform.save()
         request = self.factory.get(
-            f'/enketo/{self.xform.pk}/formList')
+            f'/forms/{self.xform.pk}/formList')
         response = self.view(
             request, xform_pk=self.xform.pk)
         self.assertEqual(response.status_code, 401)
