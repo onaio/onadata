@@ -1402,6 +1402,67 @@ Response
             }]
     }
 
+**Paginate geojson data for a given form**
+Returns a list of geojson features for a specific form using page number and the number of items per page.
+Use the ``page`` parameter to specify page number and ``page_size`` parameter to set the custom page size.
+
+- ``page`` - Integer representing the page.
+- ``page_size`` - Integer representing the number of features that should be returned in a single page.
+
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/<code>{form_pk}</code>.geojson?page={page_number}&page_size={page_size_number}
+  </pre>
+
+Example
+^^^^^^^^^
+::
+
+      curl -X GET https://api.ona.io/api/v1/data/28058.geojson?page=1&page_size=2
+
+Response
+^^^^^^^^^
+
+    **HTTP 200 OK**
+
+Response
+^^^^^^^^^
+::
+
+    {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "GeometryCollection",
+                    "geometries": [{
+                        "type": "Point",
+                        "coordinates": [36.787219, -1.294197]
+                    }]
+                },
+                    "properties": {
+                        "id": 6448,
+                        "xform": 65
+                    }
+            },
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "GeometryCollection",
+                    "geometries": [{
+                        "type": "Point",
+                        "coordinates": [36.7872606, -1.2942131]
+                    }]
+                },
+                "properties": {
+                    "id": 6447,
+                    "xform": 65
+                }
+            }]
+    }
+
 OSM
 ----
 
