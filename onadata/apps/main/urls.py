@@ -432,6 +432,16 @@ urlpatterns = [
         XFormSubmissionViewSet.as_view({"post": "create", "head": "create"}),
         name="submissions",
     ),
+    re_path(
+        r"^projects/(?P<project_pk>\w+)/submission$",
+        XFormSubmissionViewSet.as_view({"post": "create", "head": "create"}),
+        name="submissions",
+    ),
+    re_path(
+        r"^forms/(?P<xform_pk>\w+)/submission$",
+        XFormSubmissionViewSet.as_view({"post": "create", "head": "create"}),
+        name="submissions",
+    ),
     re_path(r"^(?P<username>\w+)/bulk-submission$", logger_views.bulksubmission),
     re_path(
         r"^(?P<username>\w+)/bulk-submission-form$", logger_views.bulksubmission_form
