@@ -11,7 +11,7 @@ from rest_framework import exceptions, serializers
 from rest_framework.reverse import reverse
 
 from onadata.apps.logger.models.instance import Instance, InstanceHistory
-from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.models import Project, XForm
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.common_tags import (
     METADATA_FIELDS, NOTES, TAGS, DATE_MODIFIED, VERSION, GEOLOCATION,
@@ -35,12 +35,15 @@ def get_request_and_username(context):
     view = context['view']
     username = view.kwargs.get('username')
     form_pk = view.kwargs.get('xform_pk')
+    project_pk = view.kwargs.get('project_pk')
 
     if not username:
         # get the username from the XForm object if form_id is
         # present else utilize the request users username
         if form_pk:
             username = XForm.objects.get(pk=form_pk).user.username
+        elif project_pk:
+            username = Project.objects.get(pk=project_pk).user.username
         else:
             username = (request.user and request.user.username)
 
