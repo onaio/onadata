@@ -3,16 +3,19 @@ Management command used to generate platform statistics containing
 information about the number of organizations, users, projects
 & submissions
 """
-import csv
 import calendar
-from datetime import datetime, date
+import csv
+from datetime import date, datetime
 
+from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
-from django.utils.translation import gettext as _
 from django.db.models import Q
+from django.utils.translation import gettext as _
 
 from multidb.pinning import use_master
-from onadata.apps.logger.models import XForm, Instance
+
+from onadata.apps.api.models import OrganizationProfile
+from onadata.apps.logger.models import Instance, XForm
 from onadata.libs.permissions import is_organization
 
 
