@@ -1889,6 +1889,134 @@ class TestDataViewSet(TestBase):
         self.assertEqual(len(response.data), 3)
         self.assertTrue(send_message_mock.called)
 
+    def test_geojson_pagination(self):
+        self._publish_submit_geojson()
+
+        # test geojson response before pagination
+
+        data_get = {
+            "fields": "today",
+        }
+
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", data=data_get, **self.extra)
+        response = view(request, pk=self.xform.pk, format="geojson")
+        instances = self.xform.instances.all().order_by("id")
+        data = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "GeometryCollection",
+                        "geometries": [
+                            {"type": "Point", "coordinates": [36.787219, -1.294197]}
+                        ],
+                    },
+                    "properties": {
+                        "id": instances[0].pk,
+                        "xform": self.xform.pk,
+                        "today": "2015-01-15",
+                    },
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "GeometryCollection",
+                        "geometries": [
+                            {"type": "Point", "coordinates": [36.787219, -1.294197]}
+                        ],
+                    },
+                    "properties": {
+                        "id": instances[1].pk,
+                        "xform": self.xform.pk,
+                        "today": "2015-01-15",
+                    },
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "GeometryCollection",
+                        "geometries": [
+                            {"type": "Point", "coordinates": [36.787219, -1.294197]}
+                        ],
+                    },
+                    "properties": {
+                        "id": instances[2].pk,
+                        "xform": self.xform.pk,
+                        "today": "2015-01-15",
+                    },
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "GeometryCollection",
+                        "geometries": [
+                            {"type": "Point", "coordinates": [36.787219, -1.294197]}
+                        ],
+                    },
+                    "properties": {
+                        "id": instances[3].pk,
+                        "xform": self.xform.pk,
+                        "today": "2015-01-15",
+                    },
+                },
+            ],
+        }
+        self.assertEqual(response.status_code, 200)
+        # test that all 4 geojson features are returned
+        self.assertEqual(len(response.data.get('features')), 4)
+        self.assertEqual(response.data, data)
+
+        # test geojson response when pagination params are applied
+        data_get = {
+            "fields": "today",
+            "page": 1,
+            "page_size": 2
+        }
+
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", data=data_get, **self.extra)
+        response = view(request, pk=self.xform.pk, format="geojson")
+        instances = self.xform.instances.all().order_by("id")
+        data = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "GeometryCollection",
+                        "geometries": [
+                            {"type": "Point", "coordinates": [36.787219, -1.294197]}
+                        ],
+                    },
+                    "properties": {
+                        "id": instances[0].pk,
+                        "xform": self.xform.pk,
+                        "today": "2015-01-15",
+                    },
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "GeometryCollection",
+                        "geometries": [
+                            {"type": "Point", "coordinates": [36.787219, -1.294197]}
+                        ],
+                    },
+                    "properties": {
+                        "id": instances[1].pk,
+                        "xform": self.xform.pk,
+                        "today": "2015-01-15",
+                    },
+                },
+            ],
+        }
+        self.assertEqual(response.status_code, 200)
+        # test that only 2 features are returned based on page size
+        self.assertEqual(len(response.data.get('features')), 2)
+        self.assertEqual(response.data, data)
+
     def test_geojson_format(self):
         self._publish_submit_geojson()
 

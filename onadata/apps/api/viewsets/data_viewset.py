@@ -602,7 +602,9 @@ class DataViewSet(
             return super().list(request, *args, **kwargs)
 
         if export_type == "geojson":
-            serializer = self.get_serializer(self.object_list, many=True)
+            # add pagination when fetching geojson features
+            page = self.paginate_queryset(self.object_list)
+            serializer = self.get_serializer(page, many=True)
 
             return Response(serializer.data)
 

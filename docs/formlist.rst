@@ -53,6 +53,47 @@ Response:
 </xforms>
 
 
+Retreive forms within a project
+-------------------------------
+
+This is an endpoint that implements the ability to retrieve forms within a specific project.
+The forms are filtered based on the project id.
+
+GET /projects/<project_pk>/formList
+
+**Pass project pk**
+
+Example
+^^^^^^^
+::
+
+    curl -X GET https://api.ona.io/projects/<project_pk>/formList
+
+Filter formlist by ``project_pk``
+
+Response:
+::
+
+<xforms>
+<xform>
+<formID>form_id</formID>
+<name>name</name>
+<version>202006121145</version>
+<hash>md5:965fad0dbad4bb708d18abe77fcfe358</hash>
+<descriptionText/>
+<downloadUrl>https://api.ona.io/user_name/forms/form_pk/form.xml</downloadUrl>
+</xform>
+<xform>
+<formID>testerform</formID>
+<name>testerform</name>
+<version>201904231241</version>
+<hash>md5:a023b3535b7b593de1e9ad075e9e21e6</hash>
+<descriptionText/>
+<downloadUrl>https://api.ona.io/user_name/forms/form_pk/form.xml</downloadUrl>
+<manifestUrl>https://api.ona.io/user_name/xformsManifest/1620</manifestUrl>
+</xform>
+</xforms>
+
 
 Retreive a single form
 ----------------------
@@ -116,6 +157,35 @@ Response:
 </xform>
 </xforms>
 
+
+GET /forms/<xform_pk>/formList
+
+
+**Use forms/<xform_pk> endpoint**
+
+Example
+^^^^^^^
+
+::
+
+    curl -X GET https://api.ona.io/forms/<form_pk>/formList
+
+Filter formlist by ``form_pk``, allowing retrival of a single XForm
+
+
+Response:
+::
+
+<xforms>
+<xform>
+<formID>form_id</formID>
+<name>name</name>
+<version>202006121145</version>
+<hash>md5:965fad0dbad4bb708d18abe77fcfe358</hash>
+<descriptionText/>
+<downloadUrl>https://api.ona.io/user_name/forms/form_pk/form.xml</downloadUrl>
+</xform>
+</xforms>
 
 
 GET /enketo-preview/<xform_pk>/formList

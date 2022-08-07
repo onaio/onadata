@@ -1031,3 +1031,197 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                 self.assertEqual(
                     Instance.objects.filter(xform=self.xform).count(), count + 1
                 )
+
+    def test_post_submission_using_form_pk_while_anonymous(self):
+        """
+        Test that one is able to submit data using the project submission
+        endpoint built for a particular form through it's primary key
+        while anonymous
+        """
+        s = self.surveys[0]
+        media_file = "1335783522563.jpg"
+        path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "transportation",
+            "instances",
+            s,
+            media_file,
+        )
+        with open(path, "rb") as f:
+            f = InMemoryUploadedFile(
+                f, "media_file", media_file, "image/jpg", os.path.getsize(path), None
+            )
+            submission_path = os.path.join(
+                self.main_directory,
+                "fixtures",
+                "transportation",
+                "instances",
+                s,
+                s + ".xml",
+            )
+            with open(submission_path, "rb") as sf:
+                data = {"xml_submission_file": sf, "media_file": f}
+                request = self.factory.post(f"/forms/{self.xform.pk}/submission", data)
+                count = Instance.objects.filter(xform=self.xform).count()
+                request.user = AnonymousUser()
+                response = self.view(request, xform_pk=self.xform.pk)
+                self.assertContains(response, "Successful submission", status_code=201)
+                self.assertTrue(response.has_header("X-OpenRosa-Version"))
+                self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+                self.assertTrue(response.has_header("Date"))
+                self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+                self.assertEqual(
+                    response["Location"],
+                    f"http://testserver/forms/{self.xform.pk}/submission",
+                )
+                self.assertEqual(
+                    Instance.objects.filter(xform=self.xform).count(), count + 1
+                )
+
+    def test_post_submission_using_form_pk_while_authenticated(self):
+        """
+        Test that one is able to submit data using the forms
+        submission endpoint built for a particular form through
+        it's primary key while authenticated
+        """
+        s = self.surveys[0]
+        media_file = "1335783522563.jpg"
+        path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "transportation",
+            "instances",
+            s,
+            media_file,
+        )
+        with open(path, "rb") as f:
+            f = InMemoryUploadedFile(
+                f, "media_file", media_file, "image/jpg", os.path.getsize(path), None
+            )
+            submission_path = os.path.join(
+                self.main_directory,
+                "fixtures",
+                "transportation",
+                "instances",
+                s,
+                s + ".xml",
+            )
+            with open(submission_path, "rb") as sf:
+                data = {"xml_submission_file": sf, "media_file": f}
+                count = Instance.objects.filter(xform=self.xform).count()
+                request = self.factory.post(f"/forms/{self.xform.pk}/submission", data)
+                response = self.view(request)
+                self.assertEqual(response.status_code, 401)
+                auth = DigestAuth("bob", "bobbob")
+                request.META.update(auth(request.META, response))
+                response = self.view(request, form_pk=self.xform.pk)
+                self.assertContains(response, "Successful submission", status_code=201)
+                self.assertTrue(response.has_header("X-OpenRosa-Version"))
+                self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+                self.assertTrue(response.has_header("Date"))
+                self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+                self.assertEqual(
+                    response["Location"],
+                    f"http://testserver/forms/{self.xform.pk}/submission",
+                )
+                self.assertEqual(
+                    Instance.objects.filter(xform=self.xform).count(), count + 1
+                )
+
+    def test_post_submission_using_project_pk_while_anonymous(self):
+        """
+        Test that one is able to submit data using the project submission
+        endpoint built for a particular form through it's primary key
+        while anonymous
+        """
+        s = self.surveys[0]
+        media_file = "1335783522563.jpg"
+        path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "transportation",
+            "instances",
+            s,
+            media_file,
+        )
+        with open(path, "rb") as f:
+            f = InMemoryUploadedFile(
+                f, "media_file", media_file, "image/jpg", os.path.getsize(path), None
+            )
+            submission_path = os.path.join(
+                self.main_directory,
+                "fixtures",
+                "transportation",
+                "instances",
+                s,
+                s + ".xml",
+            )
+            with open(submission_path, "rb") as sf:
+                data = {"xml_submission_file": sf, "media_file": f}
+                request = self.factory.post(f"/projects/{self.xform.project.pk}/submission", data)
+                count = Instance.objects.filter(xform=self.xform).count()
+                request.user = AnonymousUser()
+                response = self.view(request, xform_pk=self.xform.pk)
+                self.assertContains(response, "Successful submission", status_code=201)
+                self.assertTrue(response.has_header("X-OpenRosa-Version"))
+                self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+                self.assertTrue(response.has_header("Date"))
+                self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+                self.assertEqual(
+                    response["Location"],
+                    f"http://testserver/projects/{self.xform.project.pk}/submission",
+                )
+                self.assertEqual(
+                    Instance.objects.filter(xform=self.xform).count(), count + 1
+                )
+
+    def test_post_submission_using_project_pk_while_authenticated(self):
+        """
+        Test that one is able to submit data using the project
+        submission endpoint built for a particular form through
+        it's primary key while authenticated
+        """
+        s = self.surveys[0]
+        media_file = "1335783522563.jpg"
+        path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "transportation",
+            "instances",
+            s,
+            media_file,
+        )
+        with open(path, "rb") as f:
+            f = InMemoryUploadedFile(
+                f, "media_file", media_file, "image/jpg", os.path.getsize(path), None
+            )
+            submission_path = os.path.join(
+                self.main_directory,
+                "fixtures",
+                "transportation",
+                "instances",
+                s,
+                s + ".xml",
+            )
+            with open(submission_path, "rb") as sf:
+                data = {"xml_submission_file": sf, "media_file": f}
+                count = Instance.objects.filter(xform=self.xform).count()
+                request = self.factory.post(f"/projects/{self.xform.project.pk}/submission", data)
+                response = self.view(request)
+                self.assertEqual(response.status_code, 401)
+                auth = DigestAuth("bob", "bobbob")
+                request.META.update(auth(request.META, response))
+                response = self.view(request, project_pk=self.project.pk)
+                self.assertContains(response, "Successful submission", status_code=201)
+                self.assertTrue(response.has_header("X-OpenRosa-Version"))
+                self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+                self.assertTrue(response.has_header("Date"))
+                self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+                self.assertEqual(
+                    response["Location"],
+                    f"http://testserver/projects/{self.xform.project.pk}/submission",
+                )
+                self.assertEqual(
+                    Instance.objects.filter(xform=self.xform).count(), count + 1
+                )
