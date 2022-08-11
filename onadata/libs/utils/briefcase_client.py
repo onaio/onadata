@@ -40,9 +40,12 @@ def node_value(node, tag_name):
     Returns the first nodeValue of of an elementin the node with the matching
     tag_name otherwise returns empty list [].
     """
-    child_nodes = node.getElementsByTagName(tag_name)[0].childNodes
+    node_by_tag_name = node.getElementsByTagName(tag_name)
+    if node_by_tag_name:
+        child_nodes = node_by_tag_name[0].childNodes
+        return child_nodes and child_nodes[0].nodeValue
 
-    return child_nodes and child_nodes[0].nodeValue
+    return False
 
 
 def _get_form_list(xml_text):
