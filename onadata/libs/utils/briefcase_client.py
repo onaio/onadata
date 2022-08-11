@@ -178,6 +178,10 @@ class BriefcaseClient:
             url = head_response.headers.get("location")
 
         response = requests.get(url)
+        if response.status_code == 401:
+            # try with authentication
+            response = requests.get(url, auth=self.auth)
+
         success = response.status_code == 200
         setattr(self, "_current_response", response)
 
