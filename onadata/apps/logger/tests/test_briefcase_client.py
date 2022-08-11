@@ -135,27 +135,33 @@ class TestBriefcaseClient(TestBase):
             media = MetaData.media_upload(self.xform, media_file)
             self.assertEqual(MetaData.objects.count(), count + 1)
             self.media = media[0]
-            url = urljoin(
+            self.url = urljoin(
                 self.base_url, reverse(profile, kwargs={"username": self.user.username})
             )
             self._logout()
             self._create_user_and_login("deno", "deno")
             self.briefcase_client = BriefcaseClient(
-                username="bob", password="bob", url=url, user=self.user
+                username="bob", password="bob", url=self.url, user=self.user
             )
 
-    def _download_xforms(self):
+    def _download_xforms(self, briefcase_client=None):
         with requests_mock.Mocker() as mocker:
             mocker.get(requests_mock.ANY, content=forms_handler)
             mocker.head(requests_mock.ANY, content=forms_handler)
             self.assertEqual(MetaData.objects.get(pk=self.media.pk).pk, self.media.pk)
-            self.briefcase_client.download_xforms()
+            briefcase = (
+                self.briefcase_client if briefcase_client is None else briefcase_client
+            )
+            briefcase.download_xforms()
 
-    def _download_submissions(self):
+    def _download_submissions(self, briefcase_client=None):
         with requests_mock.Mocker() as mocker:
             mocker.get(requests_mock.ANY, content=submission_list)
             mocker.head(requests_mock.ANY, content=submission_list)
-            self.briefcase_client.download_instances(self.xform.id_string)
+            briefcase = (
+                self.briefcase_client if briefcase_client is None else briefcase_client
+            )
+            briefcase.download_instances(self.xform.id_string)
 
     def test_download_xform_xml(self):
         """
@@ -188,6 +194,23 @@ class TestBriefcaseClient(TestBase):
             instance_folder_path, f"uuid{instance.uuid}", media_file
         )
         self.assertTrue(storage.exists(media_path))
+
+    def test_download_formid_filter(self):
+        """
+        Download xform via briefcase api
+        """
+        briefcase_client = BriefcaseClient(
+            username="bob",
+            password="bob",
+            url=self.url,
+            user=self.user,
+            id_string="demo",
+        )
+        self._download_xforms(briefcase_client=briefcase_client)
+        forms_folder_path = os.path.join(
+            "deno", "briefcase", "forms", self.xform.id_string
+        )
+        self.assertFalse(storage.exists(forms_folder_path))
 
     def test_push(self):
         """Test ODK briefcase client push function."""

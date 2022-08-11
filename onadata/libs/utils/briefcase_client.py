@@ -48,7 +48,7 @@ def node_value(node, tag_name):
     return False
 
 
-def _get_form_list(xml_text):
+def _get_form_list(xml_text, id_string=None):
     xml_doc = clean_and_parse_xml(xml_text)
     forms = []
 
@@ -56,10 +56,14 @@ def _get_form_list(xml_text):
         if child_node.nodeName == "xforms":
             for xform_node in child_node.childNodes:
                 if xform_node.nodeName == "xform":
-                    id_string = node_value(xform_node, "formID")
+                    form_id = node_value(xform_node, "formID")
+
+                    if id_string and form_id != id_string:
+                        continue
+
                     download_url = node_value(xform_node, "downloadUrl")
                     manifest_url = node_value(xform_node, "manifestUrl")
-                    forms.append((id_string, download_url, manifest_url))
+                    forms.append((form_id, download_url, manifest_url))
 
     return forms
 
@@ -81,9 +85,10 @@ def _get_instances_uuids(xml_doc):
 class BriefcaseClient:
     """ODK BriefcaseClient class"""
 
-    def __init__(self, url, username, password, user):
+    def __init__(self, url, username, password, user, id_string=None):
         self.url = url
         self.user = user
+        self.id_string = id_string
         self.auth = HTTPDigestAuth(username, password)
         self.form_list_url = urljoin(self.url, "formList")
         self.submission_list_url = urljoin(self.url, "view/submissionList")
@@ -120,7 +125,7 @@ class BriefcaseClient:
             return
 
         response = getattr(self, "_current_response")
-        forms = _get_form_list(response.content)
+        forms = _get_form_list(response.content, self.id_string)
 
         self.logger.debug("Successfull fetched %s.", self.form_list_url)
 
