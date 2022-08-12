@@ -65,7 +65,7 @@ def generate_media_download_url(obj, expiration: int = 3600):
 def generate_aws_media_url(
     file_path: str, content_disposition: str, expiration: int = 3600
 ):
-    s3 = get_storage_class("storage.backends.s3boto3.S3Boto3Storage")()
+    s3 = get_storage_class("storages.backends.s3boto3.S3Boto3Storage")()
     bucket_name = s3.bucket.name
     s3_client = boto3.client("s3")
 
