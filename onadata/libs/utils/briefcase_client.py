@@ -3,10 +3,9 @@
 import logging
 import mimetypes
 import os
+import posixpath
 from io import StringIO
 from xml.parsers.expat import ExpatError
-
-from six.moves.urllib.parse import urljoin
 
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -90,9 +89,11 @@ class BriefcaseClient:
         self.user = user
         self.id_string = id_string
         self.auth = HTTPDigestAuth(username, password)
-        self.form_list_url = urljoin(self.url, "formList")
-        self.submission_list_url = urljoin(self.url, "view/submissionList")
-        self.download_submission_url = urljoin(self.url, "view/downloadSubmission")
+        self.form_list_url = posixpath.join(self.url, "formList")
+        self.submission_list_url = posixpath.join(self.url, "view/submissionList")
+        self.download_submission_url = posixpath.join(
+            self.url, "view/downloadSubmission"
+        )
         self.forms_path = os.path.join(self.user.username, "briefcase", "forms")
         self.resumption_cursor = 0
         self.logger = logging.getLogger("console_logger")
@@ -216,7 +217,7 @@ class BriefcaseClient:
         )
         if not downloaded:
             self.logger.error(
-                "Fetching %s formId: %s, cursor: %s",
+                "Failed fetching %s formId: %s, cursor: %s",
                 self.submission_list_url,
                 form_id,
                 cursor,
