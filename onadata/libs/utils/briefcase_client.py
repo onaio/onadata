@@ -84,16 +84,22 @@ def _get_instances_uuids(xml_doc):
 class BriefcaseClient:
     """ODK BriefcaseClient class"""
 
+    # pylint: disable=too-many-arguments
     def __init__(self, url, username, password, user, id_string=None):
         self.url = url
         self.user = user
         self.id_string = id_string
-        self.auth = HTTPDigestAuth(username, password)
-        self.form_list_url = posixpath.join(self.url, "formList")
-        self.submission_list_url = posixpath.join(self.url, "view/submissionList")
-        self.download_submission_url = posixpath.join(
-            self.url, "view/downloadSubmission"
-        )
+
+        if username and password:
+            self.auth = HTTPDigestAuth(username, password)
+
+        if self.url:
+            self.form_list_url = posixpath.join(self.url, "formList")
+            self.submission_list_url = posixpath.join(self.url, "view/submissionList")
+            self.download_submission_url = posixpath.join(
+                self.url, "view/downloadSubmission"
+            )
+
         self.forms_path = os.path.join(self.user.username, "briefcase", "forms")
         self.resumption_cursor = 0
         self.logger = logging.getLogger("console_logger")
@@ -353,6 +359,8 @@ class BriefcaseClient:
         """Publishes XForms and XForm submissions."""
         dirs, _files = default_storage.listdir(self.forms_path)
         for form_dir in dirs:
+            if self.id_string and self.id_string != form_dir:
+                continue
             dir_path = os.path.join(self.forms_path, form_dir)
             form_dirs, form_files = default_storage.listdir(dir_path)
             form_xml = f"{form_dir}.xml"
