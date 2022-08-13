@@ -628,9 +628,16 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 # this dict
                 if isinstance(item, dict):
                     # order repeat according to xform order
-                    item = get_ordered_repeat_value(key, item)
+                    _item = get_ordered_repeat_value(key, item)
+                    if key in _item and _item[key] == "n/a":
+                        # See https://github.com/onaio/zebra/issues/6830
+                        # handles the case of a repeat construct in the data but the
+                        # form has no repeat construct defined using begin repeat for
+                        # example when you have a hidden value that has a repeat_count
+                        # set within a group.
+                        _item = item
 
-                    for (nested_key, nested_val) in iteritems(item):
+                    for (nested_key, nested_val) in iteritems(_item):
                         # given the key "children/details" and nested_key/
                         # abbreviated xpath
                         # "children/details/immunization/polio_1",
@@ -672,8 +679,11 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                             new_xpath = "/".join(xpaths)
                             # check if this key exists in our ordered columns
                             if key in list(ordered_columns):
-                                if new_xpath not in ordered_columns[key]:
-                                    ordered_columns[key].append(new_xpath)
+                                try:
+                                    if new_xpath not in ordered_columns[key]:
+                                        ordered_columns[key].append(new_xpath)
+                                except TypeError:
+                                    ordered_columns[key] = [new_xpath]
                             record[new_xpath] = get_value_or_attachment_uri(
                                 nested_key,
                                 nested_val,
