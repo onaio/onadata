@@ -77,4 +77,5 @@ jobs:
 
       - name: Run tests
         run: |
+          flake8 --exclude=migrations,src,settings onadata
           python manage.py test ${{ matrix.testfolder }} --noinput --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4
