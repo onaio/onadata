@@ -97,6 +97,7 @@ from onadata.libs.utils.viewer_tools import (
     get_form_url,
 )
 from onadata.settings.common import CSV_EXTENSION, XLS_EXTENSIONS
+from onadata.libs.utils.async_status import get_active_tasks
 
 ENKETO_AUTH_COOKIE = getattr(settings, "ENKETO_AUTH_COOKIE", "__enketo")
 ENKETO_META_UID_COOKIE = getattr(
@@ -876,6 +877,17 @@ class XFormViewSet(
         )
 
         return Response(data=serializer.data, status=status.HTTP_200_OK)
+
+    @action(methods=["GET"], detail=True)
+    def active_imports(self, request, *args, **kwargs):
+        """Returns csv import async tasks that belong to this form"""
+        xform = self.get_object()
+        task_names = ["onadata.libs.utils.csv_import.submit_csv_async"]
+        return Response(
+            data=get_active_tasks(task_names, xform),
+            status=status.HTTP_200_OK,
+            content_type="application/json",
+        )
 
     @action(methods=["GET"], detail=True)
     def export_async(self, request, *args, **kwargs):
