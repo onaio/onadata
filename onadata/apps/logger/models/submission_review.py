@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 
+# pylint: disable=unused-argument
 def update_instance_json_on_save(sender, instance, **kwargs):
     """
     Signal handler to update Instance Json with the submission review on save

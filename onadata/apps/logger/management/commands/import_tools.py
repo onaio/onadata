@@ -26,7 +26,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         """Import ODK forms and instances."""
-        if args.__len__() < 2:
+        if len(args) < 2:
             raise CommandError(_("path(xform instances) username"))
         path = args[0]
         username = args[1]

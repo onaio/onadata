@@ -110,6 +110,7 @@ def iterate_through_instances(
     success_count = 0
     errors = []
 
+    # pylint: disable=too-many-nested-blocks
     for directory, _subdirs, subfiles in os.walk(dirpath):
         for filename in subfiles:
             filepath = os.path.join(directory, filename)

@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # vim: ai ts=4 sts=4 et sw=4 fileencoding=utf-8
-
+"""
+Import a folder of XForms for ODK.
+"""
 from django.core.management.base import BaseCommand
 from django.utils.translation import gettext_lazy
 
@@ -9,6 +11,8 @@ from onadata.libs.utils.model_tools import queryset_iterator
 
 
 class Command(BaseCommand):
+    """Import a folder of XForms for ODK."""
+
     help = gettext_lazy("Import a folder of XForms for ODK.")
 
     def handle(self, *args, **kwargs):
@@ -20,8 +24,9 @@ class Command(BaseCommand):
             try:
                 xform.instances_with_geopoints = has_geo
                 xform.save()
+            # pylint: disable=broad-except
             except Exception as e:
                 self.stderr.write(e)
             else:
                 count += 1
-        self.stdout.write("%d of %d forms processed." % (count, total))
+        self.stdout.write(f"{count} of {total} forms processed.")

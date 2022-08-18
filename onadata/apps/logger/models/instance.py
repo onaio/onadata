@@ -447,7 +447,8 @@ class InstanceBaseClass:
                     if review.get_note_text():
                         doc[REVIEW_COMMENT] = review.get_note_text()
 
-            # pylint: disable=attribute-defined-outside-init,access-member-before-definition
+            # pylint: disable=attribute-defined-outside-init
+            # pylint: disable=access-member-before-definition
             if not self.date_created:
                 self.date_created = submission_time()
 
@@ -487,7 +488,8 @@ class InstanceBaseClass:
         )
 
     def _set_uuid(self):
-        # pylint: disable=no-member,attribute-defined-outside-init,access-member-before-definition
+        # pylint: disable=no-member,attribute-defined-outside-init
+        # pylint: disable=access-member-before-definition
         if self.xml and not self.uuid:
             # pylint: disable=no-member
             uuid = get_uuid_from_xml(self.xml)

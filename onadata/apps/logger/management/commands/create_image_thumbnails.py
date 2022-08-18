@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 create_image_thumbnails - creates thumbnails for all form images and stores them.
@@ -17,6 +16,8 @@ from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.viewer_tools import get_path
 
 THUMB_CONF = settings.THUMB_CONF
+
+User = get_user_model()
 
 
 class Command(BaseCommand):
@@ -43,8 +44,6 @@ class Command(BaseCommand):
         attachments_qs = Attachment.objects.select_related(
             "instance", "instance__xform"
         )
-        # pylint: disable=invalid-name
-        User = get_user_model()
         if options.get("username"):
             username = options.get("username")
             try:
@@ -61,19 +60,23 @@ class Command(BaseCommand):
                     f"Error: Form with id_string {id_string} does not exist"
                 ) from e
             attachments_qs = attachments_qs.filter(instance__xform=xform)
-        fs = get_storage_class("django.core.files.storage.FileSystemStorage")()
+        file_storage = get_storage_class(
+            "django.core.files.storage.FileSystemStorage"
+        )()
         for att in queryset_iterator(attachments_qs):
             filename = att.media_file.name
             default_storage = get_storage_class()()
             full_path = get_path(filename, settings.THUMB_CONF["small"]["suffix"])
             if options.get("force") is not None:
-                for s in ["small", "medium", "large"]:
-                    fp = get_path(filename, settings.THUMB_CONF[s]["suffix"])
-                    if default_storage.exists(fp):
-                        default_storage.delete(fp)
+                for suffix in ["small", "medium", "large"]:
+                    file_path = get_path(
+                        filename, settings.THUMB_CONF[suffix]["suffix"]
+                    )
+                    if default_storage.exists(file_path):
+                        default_storage.delete(file_path)
             if not default_storage.exists(full_path):
                 try:
-                    if default_storage.__class__ != fs.__class__:
+                    if default_storage.__class__ != file_storage.__class__:
                         resize(filename, att.extension)
                     else:
                         resize_local_env(filename, att.extension)

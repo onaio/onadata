@@ -137,7 +137,9 @@ class Project(BaseModel):
         return f"{self.organization}|{self.name}"
 
     def clean(self):
-        """Raises a validation error if a project with same name and organization exists."""
+        """
+        Raises a validation error if a project with same name and organization exists.
+        """
         query_set = Project.objects.exclude(pk=self.pk).filter(
             name__iexact=self.name, organization=self.organization
         )
