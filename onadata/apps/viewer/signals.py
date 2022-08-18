@@ -11,14 +11,15 @@ from onadata.apps.restservice.signals import trigger_webhook
 from onadata.apps.viewer.models import ParsedInstance
 from onadata.libs.utils.osm import save_osm_data_async
 
-ASYNC_POST_SUBMISSION_PROCESSING_ENABLED = \
-    getattr(settings, 'ASYNC_POST_SUBMISSION_PROCESSING_ENABLED', False)
+ASYNC_POST_SUBMISSION_PROCESSING_ENABLED = getattr(
+    settings, "ASYNC_POST_SUBMISSION_PROCESSING_ENABLED", False
+)
 
-# pylint: disable=C0103
-process_submission = django.dispatch.Signal(providing_args=['instance'])
+# pylint: disable=invalid-name
+process_submission = django.dispatch.Signal(providing_args=["instance"])
 
 
-def post_save_osm_data(instance_id):  # pylint: disable=W0613
+def post_save_osm_data(instance_id):  # pylint: disable=unused-argument
     """
     Process OSM data post submission.
     """
@@ -34,31 +35,31 @@ def _post_process_submissions(instance):
         post_save_osm_data(instance.pk)
 
 
-def post_save_submission(sender, **kwargs):  # pylint: disable=W0613
+def post_save_submission(sender, **kwargs):  # pylint: disable=unused-argument
     """
     Calls webhooks and OSM data processing for ParsedInstance model.
     """
-    parsed_instance = kwargs.get('instance')
-    created = kwargs.get('created')
+    parsed_instance = kwargs.get("instance")
+    created = kwargs.get("created")
 
     if created:
         _post_process_submissions(parsed_instance.instance)
 
 
 post_save.connect(
-    post_save_submission,
-    sender=ParsedInstance,
-    dispatch_uid='post_save_submission')
+    post_save_submission, sender=ParsedInstance, dispatch_uid="post_save_submission"
+)
 
 
-def process_saved_submission(sender, **kwargs):  # pylint: disable=W0613
+def process_saved_submission(sender, **kwargs):  # pylint: disable=unused-argument
     """
     Calls webhooks and OSM data processing for Instance model.
     """
-    instance = kwargs.get('instance')
+    instance = kwargs.get("instance")
     if instance:
         _post_process_submissions(instance)
 
 
-process_submission.connect(process_saved_submission, sender=Instance,
-                           dispatch_uid='process_saved_submission')
+process_submission.connect(
+    process_saved_submission, sender=Instance, dispatch_uid="process_saved_submission"
+)

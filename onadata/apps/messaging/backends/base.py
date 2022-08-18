@@ -23,7 +23,7 @@ def call_backend(backend, instance_id, backend_options=None):
         backend_class(options=backend_options).send(instance)
 
 
-class BaseBackend(object):  # pylint: disable=too-few-public-methods
+class BaseBackend:  # pylint: disable=too-few-public-methods
     """
     Base class for notification backends
     """

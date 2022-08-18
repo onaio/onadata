@@ -65,6 +65,7 @@ def process_xlsform(xls, default_name):
 
 
 # adopted from pyxform.utils.sheet_to_csv
+# pylint: disable=too-many-branches
 def sheet_to_csv(xls_content, sheet_name):
     """Writes a csv file of a specified sheet from a an excel file
 
@@ -78,9 +79,7 @@ def sheet_to_csv(xls_content, sheet_name):
     sheet = workbook.get_sheet_by_name(sheet_name)
 
     if not sheet or sheet.max_column < 2:
-        raise Exception(
-            _("Sheet <'%(sheet_name)s'> has no data." % {"sheet_name": sheet_name})
-        )
+        raise Exception(_(f"Sheet <'{sheet_name}'> has no data."))
 
     csv_file = BytesIO()
 
@@ -143,7 +142,7 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
         self.instances_for_export = lambda d: d.instances.all()
         self.has_external_choices = False
         self._id_string_changed = False
-        super(DataDictionary, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def __str__(self):
         return getattr(self, "id_string", "")
@@ -200,7 +199,7 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
         if "skip_xls_read" in kwargs:
             del kwargs["skip_xls_read"]
 
-        super(DataDictionary, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def file_name(self):
         return os.path.split(self.xls.name)[-1]
@@ -214,13 +213,14 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
     """
     if instance.project:
         # clear cache
-        safe_delete("{}{}".format(PROJ_FORMS_CACHE, instance.project.pk))
-        safe_delete("{}{}".format(PROJ_BASE_FORMS_CACHE, instance.project.pk))
+        safe_delete(f"{PROJ_FORMS_CACHE}{instance.project.pk}")
+        safe_delete(f"{PROJ_BASE_FORMS_CACHE}{instance.project.pk}")
 
     # seems the super is not called, have to get xform from here
     xform = XForm.objects.get(pk=instance.pk)
 
     if created:
+        # pylint: disable=import-outside-toplevel
         from onadata.libs.permissions import OwnerRole
 
         OwnerRole.add(instance.user, xform)
@@ -228,6 +228,7 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
         if instance.created_by and instance.user != instance.created_by:
             OwnerRole.add(instance.created_by, xform)
 
+        # pylint: disable=import-outside-toplevel
         from onadata.libs.utils.project_utils import (
             set_project_perms_to_xform_async,
         )  # noqa
@@ -235,6 +236,7 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
         try:
             set_project_perms_to_xform_async.delay(xform.pk, instance.project.pk)
         except OperationalError:
+            # pylint: disable=import-outside-toplevel
             from onadata.libs.utils.project_utils import (
                 set_project_perms_to_xform,
             )  # noqa
@@ -248,6 +250,7 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
         size = f.tell()
         f.seek(0)
 
+        # pylint: disable=import-outside-toplevel
         from onadata.apps.main.models.meta_data import MetaData
 
         data_file = InMemoryUploadedFile(
