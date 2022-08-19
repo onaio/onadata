@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Custom date utility functions.
+"""
 import datetime
 import six
 
@@ -5,11 +9,16 @@ from django.utils import timezone
 
 
 def get_header_date_format(date_modified):
-    format = "%a, %d %b %Y %H:%M:%S GMT"
-    return date_modified.strftime(format)
+    """
+    Returns ``date_modified`` as a string with the format %a, %d %b %Y %H:%M:%S GMT
+    """
+    return date_modified.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
 
 def get_date(_object=None):
+    """
+    Returns a date formatted string of the date_modified of the given ``_object``.
+    """
     if hasattr(_object, "date_modified"):
         _date = _object.date_modified
     elif hasattr(_object, "instance"):
@@ -20,9 +29,9 @@ def get_date(_object=None):
         _date = _object.profile.date_modified
     elif isinstance(_object, dict):
         # most likely an instance json, use _submission_time
-        _date = _object.get('_submission_time')
+        _date = _object.get("_submission_time")
         if isinstance(_date, six.string_types):
-            _date = datetime.datetime.strptime(_date[:19], '%Y-%m-%dT%H:%M:%S')
+            _date = datetime.datetime.strptime(_date[:19], "%Y-%m-%dT%H:%M:%S")
     else:
         # default value to avoid the UnboundLocalError
         _date = timezone.now()
@@ -31,7 +40,8 @@ def get_date(_object=None):
 
 
 def last_modified_header(last_modified_date):
-    return {'Last-Modified': last_modified_date}
+    """Returns a dictionary with the 'Last-Modified' key and value."""
+    return {"Last-Modified": last_modified_date}
 
 
 def calculate_duration(start_time, end_time):
@@ -45,7 +55,7 @@ def calculate_duration(start_time, end_time):
         _start = datetime.datetime.strptime(start_time[:19], _format)
         _end = datetime.datetime.strptime(end_time[:19], _format)
     except (TypeError, ValueError):
-        return ''
+        return ""
 
     duration = (_end - _start).total_seconds()
 

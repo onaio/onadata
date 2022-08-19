@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Set object permissions for all objects.
+"""
 from django.core.management.base import BaseCommand
 from django.utils.translation import gettext as _
 
@@ -11,7 +15,9 @@ from onadata.libs.utils.user_auth import set_api_permissions_for_user
 
 
 class Command(BaseCommand):
-    help = _(u"Set object permissions for all objects.")
+    """Set object permissions for all objects."""
+
+    help = _("Set object permissions for all objects.")
 
     def handle(self, *args, **options):
         # XForms
@@ -29,18 +35,15 @@ class Command(BaseCommand):
         # OrganizationProfile
         for profile in queryset_iterator(OrganizationProfile.objects.all()):
             OwnerRole.add(profile.user, profile)
-            OwnerRole.add(
-                profile.user, profile.userprofile_ptr)
+            OwnerRole.add(profile.user, profile.userprofile_ptr)
 
             if profile.created_by is not None:
                 OwnerRole.add(profile.created_by, profile)
-                OwnerRole.add(
-                    profile.created_by, profile.userprofile_ptr)
+                OwnerRole.add(profile.created_by, profile.userprofile_ptr)
 
             if profile.creator is not None:
                 OwnerRole.add(profile.creator, profile)
-                OwnerRole.add(
-                    profile.creator, profile.userprofile_ptr)
+                OwnerRole.add(profile.creator, profile.userprofile_ptr)
 
         # Project
         for project in queryset_iterator(Project.objects.all()):

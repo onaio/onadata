@@ -7,8 +7,7 @@ from django.http import UnreadablePostError
 from django.utils.translation import gettext as _
 
 from rest_framework import mixins, permissions, status, viewsets
-from rest_framework.authentication import (BasicAuthentication,
-                                           TokenAuthentication)
+from rest_framework.authentication import BasicAuthentication, TokenAuthentication
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer
 from rest_framework.response import Response
@@ -17,51 +16,67 @@ from onadata.apps.api.permissions import IsAuthenticatedSubmission
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import Instance
 from onadata.libs import filters
-from onadata.libs.authentication import (DigestAuthentication,
-                                         EnketoTokenAuthentication)
-from onadata.libs.mixins.authenticate_header_mixin import \
-    AuthenticateHeaderMixin
+from onadata.libs.authentication import DigestAuthentication, EnketoTokenAuthentication
+from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.openrosa_headers_mixin import OpenRosaHeadersMixin
 from onadata.libs.renderers.renderers import FLOIPRenderer, TemplateXMLRenderer
 from onadata.libs.serializers.data_serializer import (
-    FLOIPSubmissionSerializer, JSONSubmissionSerializer,
-    RapidProSubmissionSerializer, SubmissionSerializer,
-    RapidProJSONSubmissionSerializer)
-from onadata.libs.utils.logger_tools import (OpenRosaResponseBadRequest,
-                                             OpenRosaNotAuthenticated)
+    FLOIPSubmissionSerializer,
+    JSONSubmissionSerializer,
+    RapidProSubmissionSerializer,
+    SubmissionSerializer,
+    RapidProJSONSubmissionSerializer,
+)
+from onadata.libs.utils.logger_tools import (
+    OpenRosaResponseBadRequest,
+    OpenRosaNotAuthenticated,
+)
 
-BaseViewset = get_baseviewset_class()  # pylint: disable=C0103
+BaseViewset = get_baseviewset_class()  # pylint: disable=invalid-name
 
 # 10,000,000 bytes
-DEFAULT_CONTENT_LENGTH = getattr(settings, 'DEFAULT_CONTENT_LENGTH', 10000000)
-FLOIP_RESULTS_CONTENT_TYPE = 'application/vnd.org.flowinterop.results+json'
+DEFAULT_CONTENT_LENGTH = getattr(settings, "DEFAULT_CONTENT_LENGTH", 10000000)
+FLOIP_RESULTS_CONTENT_TYPE = "application/vnd.org.flowinterop.results+json"
 
 
 class FLOIPParser(JSONParser):  # pylint: disable=too-few-public-methods
     """
     Flow Results JSON parser.
     """
+
     media_type = FLOIP_RESULTS_CONTENT_TYPE
     renderer_classes = FLOIPRenderer
 
 
-class XFormSubmissionViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
-                             OpenRosaHeadersMixin,
-                             mixins.CreateModelMixin,
-                             BaseViewset,
-                             viewsets.GenericViewSet):
+# pylint: disable=too-many-ancestors
+class XFormSubmissionViewSet(
+    AuthenticateHeaderMixin,  # pylint: disable=too-many-ancestors
+    OpenRosaHeadersMixin,
+    mixins.CreateModelMixin,
+    BaseViewset,
+    viewsets.GenericViewSet,
+):
     """
     XFormSubmissionViewSet class
     """
-    authentication_classes = (DigestAuthentication, BasicAuthentication,
-                              TokenAuthentication, EnketoTokenAuthentication)
-    filter_backends = (filters.AnonDjangoObjectPermissionFilter, )
+
+    authentication_classes = (
+        DigestAuthentication,
+        BasicAuthentication,
+        TokenAuthentication,
+        EnketoTokenAuthentication,
+    )
+    filter_backends = (filters.AnonDjangoObjectPermissionFilter,)
     model = Instance
     permission_classes = (permissions.AllowAny, IsAuthenticatedSubmission)
-    renderer_classes = (TemplateXMLRenderer, JSONRenderer,
-                        BrowsableAPIRenderer, FLOIPRenderer)
+    renderer_classes = (
+        TemplateXMLRenderer,
+        JSONRenderer,
+        BrowsableAPIRenderer,
+        FLOIPRenderer,
+    )
     serializer_class = SubmissionSerializer
-    template_name = 'submission.xml'
+    template_name = "submission.xml"
     parser_classes = (FLOIPParser, JSONParser, FormParser, MultiPartParser)
 
     def get_serializer(self, *args, **kwargs):
@@ -71,12 +86,10 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
         data = kwargs.get("data")
         content_type = self.request.content_type.lower()
 
-        if (isinstance(data, list)
-                and FLOIP_RESULTS_CONTENT_TYPE in content_type):
+        if isinstance(data, list) and FLOIP_RESULTS_CONTENT_TYPE in content_type:
             kwargs["many"] = True
 
-        return super(XFormSubmissionViewSet, self).get_serializer(
-            *args, **kwargs)
+        return super().get_serializer(*args, **kwargs)
 
     def get_serializer_class(self):
         """
@@ -84,16 +97,15 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
         """
         content_type = self.request.content_type.lower()
 
-        if 'application/json' in content_type:
-            if 'RapidProMailroom' in self.request.headers.get(
-                    'User-Agent', ''):
+        if "application/json" in content_type:
+            if "RapidProMailroom" in self.request.headers.get("User-Agent", ""):
                 return RapidProJSONSubmissionSerializer
 
             self.request.accepted_renderer = JSONRenderer()
-            self.request.accepted_media_type = 'application/json'
+            self.request.accepted_media_type = "application/json"
             return JSONSubmissionSerializer
 
-        if 'application/x-www-form-urlencoded' in content_type:
+        if "application/x-www-form-urlencoded" in content_type:
             return RapidProSubmissionSerializer
 
         if FLOIP_RESULTS_CONTENT_TYPE in content_type:
@@ -104,32 +116,32 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
         return SubmissionSerializer
 
     def create(self, request, *args, **kwargs):
-        if request.method.upper() == 'HEAD':
+        if request.method.upper() == "HEAD":
             return Response(
-                status=status.HTTP_204_NO_CONTENT,
-                template_name=self.template_name)
+                status=status.HTTP_204_NO_CONTENT, template_name=self.template_name
+            )
 
-        return super(XFormSubmissionViewSet, self).create(
-            request, *args, **kwargs)
+        return super().create(request, *args, **kwargs)
 
     def handle_exception(self, exc):
         """
         Handles exceptions thrown by handler method and
         returns appropriate error response.
         """
-        if hasattr(exc, 'response'):
+        if hasattr(exc, "response"):
             return exc.response
 
         if isinstance(exc, UnreadablePostError):
             return OpenRosaResponseBadRequest(
-                _(u"Unable to read submitted file, please try re-submitting."))
+                _("Unable to read submitted file, please try re-submitting.")
+            )
 
         try:
             if exc.status_code == 401:
                 auth_header = self.get_authenticate_header(self.request)
                 response = OpenRosaNotAuthenticated(
                     data=exc.detail,
-                    headers={'WWW-Authenticate': auth_header},
+                    headers={"WWW-Authenticate": auth_header},
                 )
                 response.exception = True
                 return response
@@ -137,4 +149,4 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,  # pylint: disable=R0901
             # 'Http404' object has no attribute 'status_code'
             pass
 
-        return super(XFormSubmissionViewSet, self).handle_exception(exc)
+        return super().handle_exception(exc)

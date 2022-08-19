@@ -2,7 +2,8 @@
 """
 OrganizationProfile module.
 """
-from django.contrib.auth.models import Permission, User
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models.signals import post_delete, post_save
@@ -14,6 +15,8 @@ from onadata.apps.api.models.team import Team
 from onadata.apps.main.models import UserProfile
 from onadata.libs.utils.cache_tools import IS_ORG, safe_delete
 
+User = get_user_model()
+
 
 # pylint: disable=invalid-name,unused-argument
 def org_profile_post_delete_callback(sender, instance, **kwargs):
@@ -22,7 +25,7 @@ def org_profile_post_delete_callback(sender, instance, **kwargs):
     """
     # delete the org_user too
     instance.user.delete()
-    safe_delete("{}{}".format(IS_ORG, instance.pk))
+    safe_delete(f"{IS_ORG}{instance.pk}")
 
 
 def create_owner_team_and_assign_permissions(org):
@@ -37,7 +40,7 @@ def create_owner_team_and_assign_permissions(org):
     # pylint: disable=unpacking-non-sequence
     permission, _ = Permission.objects.get_or_create(
         codename="is_org_owner", name="Organization Owner", content_type=content_type
-    )  # pylint: disable=
+    )
     team.permissions.add(permission)
     org.creator.groups.add(team)
 
@@ -97,17 +100,17 @@ class OrganizationProfile(UserProfile):
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
 
     def __str__(self):
-        return "%s[%s]" % (self.name, self.user.username)
+        return f"{self.name}[{self.user.username}]"
 
     def save(self, *args, **kwargs):  # pylint: disable=arguments-differ
-        super(OrganizationProfile, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def remove_user_from_organization(self, user):
         """Removes a user from all teams/groups in the organization.
 
         :param user: The user to remove from this organization.
         """
-        for group in user.groups.filter("%s#" % self.user.username):
+        for group in user.groups.filter(name=f"{self.user.username}#"):
             user.groups.remove(group)
 
     def is_organization_owner(self, user):
@@ -118,9 +121,9 @@ class OrganizationProfile(UserProfile):
         :returns: Boolean whether user has organization level permissions.
         """
         has_owner_group = user.groups.filter(
-            name="%s#%s" % (self.user.username, Team.OWNER_TEAM_NAME)
+            name=f"{self.user.username}#{Team.OWNER_TEAM_NAME}"
         )
-        return True if has_owner_group else False
+        return has_owner_group.count() > 0
 
 
 post_save.connect(

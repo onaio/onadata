@@ -1,3 +1,4 @@
+# -*- coding=utf-8 -*-
 """
 Storage module for the api app
 """
@@ -16,7 +17,7 @@ from onadata.apps.api.models.odk_token import ODKToken
 _l = logging.getLogger(__name__)
 _l.setLevel(logging.WARNING)
 
-ODK_KEY_LIFETIME_IN_SEC = getattr(settings, 'ODK_KEY_LIFETIME', 7) * 86400
+ODK_KEY_LIFETIME_IN_SEC = getattr(settings, "ODK_KEY_LIFETIME", 7) * 86400
 
 
 class ODKTokenAccountStorage(AccountStorage):
@@ -27,6 +28,7 @@ class ODKTokenAccountStorage(AccountStorage):
     Digest Authentication set the DIGEST_ACCOUNT_BACKEND variable in
     your local_settings to 'onadata.apps.api.storage.ODKTokenAccountStorage'
     """
+
     GET_PARTIAL_DIGEST_QUERY = f"""
     SELECT django_digest_partialdigest.login,
      django_digest_partialdigest.partial_digest
@@ -41,7 +43,7 @@ class ODKTokenAccountStorage(AccountStorage):
         AND api_odktoken.status='{ODKToken.ACTIVE}'
     """
 
-    def get_partial_digest(self, login):
+    def get_partial_digest(self, username):
         """
         Checks that the returned partial digest is associated with a
         Token that isn't past it's expire date.
@@ -50,23 +52,23 @@ class ODKTokenAccountStorage(AccountStorage):
         its expiry date
         """
         cursor = connection.cursor()
-        cursor.execute(self.GET_PARTIAL_DIGEST_QUERY, [login])
+        cursor.execute(self.GET_PARTIAL_DIGEST_QUERY, [username])
         # In MySQL, string comparison is case-insensitive by default.
         # Therefore a second round of filtering is required.
-        partial_digest = [(row[1]) for row in cursor.fetchall()
-                          if row[0] == login]
+        partial_digest = [(row[1]) for row in cursor.fetchall() if row[0] == username]
         if not partial_digest:
             return None
 
         try:
-            token = ODKToken.objects.get(Q(user__username=login)
-                                         | Q(user__email=login),
-                                         status=ODKToken.ACTIVE)
+            token = ODKToken.objects.get(
+                Q(user__username=username) | Q(user__email=username),
+                status=ODKToken.ACTIVE,
+            )
         except MultipleObjectsReturned:
-            _l.warn(f'User {login} has multiple ODK Tokens')
+            _l.error("User %s has multiple ODK Tokens", username)
             return None
         except ODKToken.DoesNotExist:
-            _l.warn(f'User {login} has no active ODK Token')
+            _l.error("User %s has no active ODK Token", username)
             return None
         else:
             if timezone.now() > token.expires:

@@ -119,7 +119,6 @@ class Command(BaseCommand):
                     role_class.add(user, obj)
                     break
 
-    # pylint: disable=no-self-use
     def check_role(self, role_class, user, obj, new_perm=None):
         """
         Test if the user has the role for the object provided

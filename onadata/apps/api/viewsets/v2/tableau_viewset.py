@@ -3,33 +3,33 @@
 Implements the /api/v2/tableau endpoint
 """
 import re
+from collections import defaultdict
 from typing import List
 
 from rest_framework import status
-from collections import defaultdict
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from onadata.libs.data import parse_int
-from onadata.libs.renderers.renderers import pairing
-from onadata.apps.logger.models import Instance
-from onadata.apps.logger.models.xform import XForm
 from onadata.apps.api.tools import replace_attachment_name_with_url
 from onadata.apps.api.viewsets.open_data_viewset import OpenDataViewSet
+from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models.xform import XForm
+from onadata.libs.data import parse_int
+from onadata.libs.renderers.renderers import pairing
 from onadata.libs.serializers.data_serializer import TableauDataSerializer
 from onadata.libs.utils.common_tags import (
     ID,
     MULTIPLE_SELECT_TYPE,
-    REPEAT_SELECT_TYPE,
-    PARENT_TABLE,
     PARENT_ID,
+    PARENT_TABLE,
+    REPEAT_SELECT_TYPE,
 )
-
 
 DEFAULT_TABLE_NAME = "data"
 GPS_PARTS = ["latitude", "longitude", "altitude", "precision"]
 
 
+# pylint: disable=too-many-locals
 def process_tableau_data(
     data,
     xform,
@@ -37,7 +37,9 @@ def process_tableau_data(
     parent_id: int = None,
     current_table: str = DEFAULT_TABLE_NAME,
 ):
+    """Returns data formatted for Tableau."""
     result = []
+    # pylint: disable=too-many-nested-blocks
     if data:
         for idx, row in enumerate(data, start=1):
             flat_dict = defaultdict(list)
@@ -96,6 +98,7 @@ def process_tableau_data(
 
 
 def unpack_select_multiple_data(picked_choices, list_name, choice_names, prefix):
+    """Unpacks select multiple data and returns a dictionary of selected choices."""
     unpacked_data = {}
     for choice in choice_names:
         qstn_name = f"{list_name}_{choice}"
@@ -111,6 +114,7 @@ def unpack_select_multiple_data(picked_choices, list_name, choice_names, prefix)
 
 
 def unpack_repeat_data(repeat_data, flat_dict):
+    """Prepares repeat data."""
     # Pop any list within the returned repeat data.
     # Lists represent a repeat group which should be in a
     # separate field.
@@ -128,6 +132,7 @@ def unpack_repeat_data(repeat_data, flat_dict):
 
 
 def unpack_gps_data(value, qstn_name, prefix):
+    """Prepares GPS data."""
     value_parts = value.split(" ")
     gps_xpath_parts = []
     for part in GPS_PARTS:
@@ -138,9 +143,11 @@ def unpack_gps_data(value, qstn_name, prefix):
     if len(value_parts) == 4:
         gps_parts = dict(zip(dict(gps_xpath_parts), value_parts))
         return gps_parts
+    return {}
 
 
 def clean_xform_headers(headers: list) -> list:
+    """Prepare valid headers for Tableau."""
     ret = []
     for header in headers:
         if re.search(r"\[+\d+\]", header):
@@ -154,9 +161,15 @@ def clean_xform_headers(headers: list) -> list:
     return ret
 
 
+# pylint: disable=too-many-ancestors
 class TableauViewSet(OpenDataViewSet):
+    """
+    TableauViewSet - the /api/v2/tableau API endpoin implementation.
+    """
+
     @action(methods=["GET"], detail=True)
     def data(self, request, **kwargs):
+        # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
         # get greater than value and cast it to an int
         gt_id = request.query_params.get("gt_id")
@@ -167,7 +180,7 @@ class TableauViewSet(OpenDataViewSet):
             self.paginator.page_size_query_param,
         ]
         query_param_keys = request.query_params
-        should_paginate = any([k in query_param_keys for k in pagination_keys])
+        should_paginate = any(k in query_param_keys for k in pagination_keys)
 
         data = []
         if isinstance(self.object.content_object, XForm):
@@ -207,7 +220,7 @@ class TableauViewSet(OpenDataViewSet):
 
         return Response(data)
 
-    # pylint: disable=arguments-differ
+    # pylint: disable=arguments-differ,too-many-locals
     def flatten_xform_columns(
         self, json_of_columns_fields, table: str = None, field_prefix: str = None
     ):
@@ -230,8 +243,8 @@ class TableauViewSet(OpenDataViewSet):
                 columns = self.flatten_xform_columns(
                     field.get("children"), table=table_name, field_prefix=prefix
                 )
-                for key in columns.keys():
-                    ret[key].extend(columns[key])
+                for key, val in columns.items():
+                    ret[key].extend(val)
             elif field_type == MULTIPLE_SELECT_TYPE:
                 for option in field.get("children"):
                     list_name = field.get("list_name")
@@ -288,6 +301,7 @@ class TableauViewSet(OpenDataViewSet):
         return tableau_column_headers
 
     def get_tableau_table_schemas(self) -> List[dict]:
+        """Return a list of Tableau table schemas."""
         ret = []
         project = self.xform.project_id
         id_str = self.xform.id_string
@@ -304,6 +318,7 @@ class TableauViewSet(OpenDataViewSet):
 
     @action(methods=["GET"], detail=True)
     def schema(self, request, **kwargs):
+        # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
         if isinstance(self.object.content_object, XForm):
             self.xform = self.object.content_object

@@ -45,7 +45,7 @@ def _extract_uuid(text):
     if isinstance(text, six.string_types):
         form_id_parts = text.split("/")
 
-        if form_id_parts.__len__() < 2:
+        if len(form_id_parts) < 2:
             raise ValidationError(_(f"Invalid formId {text}."))
 
         text = form_id_parts[1]
@@ -111,7 +111,9 @@ class BriefcaseViewset(
 
     # pylint: disable=too-many-branches
     def filter_queryset(self, queryset):
-        """Filters an XForm submission instances using ODK Aggregate query parameters."""
+        """
+        Filters an XForm submission instances using ODK Aggregate query parameters.
+        """
         username = self.kwargs.get("username")
         if username is None and self.request.user.is_anonymous:
             # raises a permission denied exception, forces authentication

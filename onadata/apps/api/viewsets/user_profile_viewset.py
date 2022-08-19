@@ -15,8 +15,6 @@ from django.utils import timezone
 from django.utils.module_loading import import_string
 from django.utils.translation import gettext as _
 
-from six.moves.urllib.parse import urlencode
-
 from multidb.pinning import use_master
 from registration.models import RegistrationProfile
 from rest_framework import serializers, status
@@ -26,6 +24,7 @@ from rest_framework.filters import OrderingFilter
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
+from six.moves.urllib.parse import urlencode
 
 from onadata.apps.api.permissions import UserProfilePermissions
 from onadata.apps.api.tasks import send_verification_email
@@ -328,7 +327,6 @@ class UserProfileViewSet(
         serializer = MonthlySubmissionsSerializer(instance_count, many=True)
         return Response(serializer.data[0])
 
-    # pylint: disable=no-self-use
     @action(detail=False)
     def verify_email(self, request, *args, **kwargs):
         """Accpet's email verification token and marks the profile as verified."""
@@ -378,7 +376,6 @@ class UserProfileViewSet(
 
         return HttpResponseBadRequest(response_message)
 
-    # pylint: disable=no-self-use
     @action(methods=["POST"], detail=False)
     def send_verification_email(self, request, *args, **kwargs):
         """Sends verification email on user profile registration."""
@@ -398,12 +395,13 @@ class UserProfileViewSet(
             except RegistrationProfile.DoesNotExist:
                 pass
             else:
-                set_is_email_verified(registration_profile.user.profile, False)
+                user = registration_profile.user
+                set_is_email_verified(user.profile, False)
 
                 verification_key = registration_profile.activation_key
                 if verification_key == verified_key_text:
                     verification_key = (
-                        registration_profile.user.registrationprofile.create_new_activation_key()
+                        user.registrationprofile.create_new_activation_key()
                     )
 
                 verification_url = get_verification_url(
@@ -411,8 +409,8 @@ class UserProfileViewSet(
                 )
 
                 email_data = get_verification_email_data(
-                    registration_profile.user.email,
-                    registration_profile.user.username,
+                    user.email,
+                    user.username,
                     verification_url,
                     request,
                 )
