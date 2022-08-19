@@ -105,11 +105,11 @@ def sheet_to_csv(xls_content, sheet_name):
             elif sheet.cell(index, name_column).is_date:
                 date_fields = True
 
-    for row in range(1, sheet.max_row):
+    for row, value in enumerate(sheet.iter_rows()):
         if integer_fields or date_fields:
             # convert integers to string/datetime if name has numbers/dates
             row_values = []
-            for index, val in enumerate(list(sheet.values)[row]):
+            for index, val in enumerate(value):
                 if sheet.cell(row, index).data_type == "n":
                     try:
                         val = str(float(val) if (float(val) > int(val)) else int(val))
@@ -120,8 +120,8 @@ def sheet_to_csv(xls_content, sheet_name):
                 row_values.append(val)
             writer.writerow([v for v, m in zip(row_values, mask) if m])
         else:
-            writer.writerow([v for v, m in zip(list(sheet.values)[row], mask) if m])
-
+            single_row = [cell.value for cell in value]
+            writer.writerow([v for v, m in zip(single_row, mask) if m])
     return csv_file
 
 
