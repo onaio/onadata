@@ -137,6 +137,16 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         # make sure publishing the survey worked
         self.assertEqual(XForm.objects.count(), pre_count + 1)
 
+    def _publish_xlsx_file_with_large_external_choices(self):
+        # test with form that has > 5k external choices
+        path = os.path.join(
+            self.this_directory, "fixtures", "Registration_of_fac.xlsx"
+        )
+        pre_count = XForm.objects.count()
+        TestBase._publish_xls_file(self, path)
+        # make sure publishing the survey worked
+        self.assertEqual(XForm.objects.count(), pre_count + 1)
+
     def _publish_xls_file_and_set_xform(self, path):
         count = XForm.objects.count()
         self._publish_xls_file(path)
