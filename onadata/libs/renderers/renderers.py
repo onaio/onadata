@@ -8,14 +8,13 @@ import math
 from io import BytesIO, StringIO
 from typing import Tuple
 
-import pytz
-import six
-
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-from django.utils.encoding import smart_str, force_str
+from django.utils.encoding import force_str, smart_str
 from django.utils.xmlutils import SimplerXMLGenerator
-from six import iteritems
+
+import pytz
+import six
 from rest_framework import negotiation
 from rest_framework.renderers import (
     BaseRenderer,
@@ -25,6 +24,7 @@ from rest_framework.renderers import (
 )
 from rest_framework.utils.encoders import JSONEncoder
 from rest_framework_xml.renderers import XMLRenderer
+from six import iteritems
 
 from onadata.libs.utils.osm import get_combined_osm
 
@@ -122,7 +122,6 @@ class XLSRenderer(BaseRenderer):
     format = "xls"
     charset = None
 
-    # pylint: disable=no-self-use,unused-argument
     def render(self, data, accepted_media_type=None, renderer_context=None):
         """
         Encode ``data`` string to 'utf-8'.
@@ -226,8 +225,7 @@ class MediaFileContentNegotiation(negotiation.DefaultContentNegotiation):
                                   matching format.
     """
 
-    # pylint: disable=redefined-builtin,no-self-use
-    def filter_renderers(self, renderers, format):
+    def filter_renderers(self, renderers, format):  # pylint: disable=redefined-builtin
         """
         If there is a '.json' style format suffix, filter the renderers
         so that we only negotiation against those that accept that format.
@@ -360,6 +358,7 @@ class InstanceXMLRenderer(XMLRenderer):
         return None
 
     def stream_data(self, data, serializer):
+        """Returns a streaming response."""
         if data is None:
             yield ""
 
@@ -372,7 +371,7 @@ class InstanceXMLRenderer(XMLRenderer):
 
         yield self._get_current_buffer_data()
 
-        data = data.__iter__()
+        data = iter(data)
 
         try:
             out = next(data)
