@@ -11,12 +11,13 @@ from django.utils.translation import gettext as _
 from rest_framework import serializers
 from six import itervalues
 
-from onadata.apps.api.models import OrganizationProfile
-from onadata.apps.api.tools import (
+from onadata.apps.api.models.organization_profile import (
+    OrganizationProfile,
     get_or_create_organization_owners_team,
     get_organization_members_team,
 )
-from onadata.apps.logger.models import Project, XForm
+from onadata.apps.logger.models.project import Project
+from onadata.apps.logger.models.xform import XForm
 from onadata.libs.permissions import (
     ManagerRole,
     OwnerRole,

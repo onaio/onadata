@@ -5,24 +5,24 @@ Permissions module.
 import json
 from collections import defaultdict
 
+from django.apps import apps
 from django.db.models import Q
 from django.db.models.base import ModelBase
 
 import six
 from guardian.shortcuts import assign_perm, get_perms, get_users_with_perms, remove_perm
 
-from onadata.apps.api.models import OrganizationProfile
-from onadata.apps.logger.models import Attachment, MergedXForm, Project, XForm
+from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.project import (
+    Project,
     ProjectGroupObjectPermission,
     ProjectUserObjectPermission,
 )
 from onadata.apps.logger.models.xform import (
+    XForm,
     XFormGroupObjectPermission,
     XFormUserObjectPermission,
 )
-from onadata.apps.main.models.user_profile import UserProfile
-from onadata.apps.viewer.models import DataDictionary
 from onadata.libs.exceptions import NoRecordsPermission
 from onadata.libs.utils.common_tags import XFORM_META_PERMS
 from onadata.libs.utils.model_tools import queryset_iterator
@@ -44,7 +44,7 @@ CAN_CHANGE_ORGANIZATION_PROFILE = "change_organizationprofile"
 CAN_DELETE_ORGANIZATION_PROFILE = "delete_organizationprofile"
 IS_ORGANIZATION_OWNER = "is_org_owner"
 
-# Xform Permissions
+# XForm Permissions
 CAN_CHANGE_XFORM = "change_xform"
 CAN_ADD_XFORM = "add_xform"
 CAN_DELETE_XFORM = "delete_xform"
@@ -76,6 +76,11 @@ CAN_EXPORT_PROJECT = "can_export_project_data"
 CAN_ADD_DATADICTIONARY = "add_datadictionary"
 CAN_CHANGE_DATADICTIONARY = "change_datadictionary"
 CAN_DELETE_DATADICTIONARY = "delete_datadictionary"
+
+DataDictionary = apps.get_model("viewer", "DataDictionary")
+MergedXForm = apps.get_model("logger", "MergedXForm")
+OrganizationProfile = apps.get_model("api", "OrganizationProfile")
+UserProfile = apps.get_model("main", "UserProfile")
 
 
 class Role:

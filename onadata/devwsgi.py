@@ -21,7 +21,7 @@ application = get_wsgi_application()
 
 
 @timer(3)
-def change_code_gracefull_reload(sig):
+def change_code_gracefull_reload(sig):  # pylint: disable=unused-argument
     """Reload uWSGI whenever the code changes"""
     if autoreload.file_changed:
         uwsgi.reload()

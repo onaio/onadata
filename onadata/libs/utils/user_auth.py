@@ -6,6 +6,7 @@ import base64
 import re
 from functools import wraps
 
+from django.apps import apps
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.sites.models import Site
 from django.http import HttpResponse
@@ -14,13 +15,18 @@ from django.shortcuts import get_object_or_404
 from guardian.shortcuts import assign_perm, get_perms_for_model
 from rest_framework.authtoken.models import Token
 
-from onadata.apps.api.models import OrganizationProfile, Team, TempToken
-from onadata.apps.logger.models import MergedXForm, Note, Project, XForm
-from onadata.apps.main.models import UserProfile
+from onadata.apps.api.models.team import Team
+from onadata.apps.api.models.temp_token import TempToken
+from onadata.apps.logger.models.note import Note
+from onadata.apps.logger.models.project import Project
+from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.viewer_tools import get_form
 
 # pylint: disable=invalid-name
 User = get_user_model()
+UserProfile = apps.get_model("main", "UserProfile")
+OrganizationProfile = apps.get_model("api", "OrganizationProfile")
+MergedXForm = apps.get_model("logger", "MergedXForm")
 
 
 class HttpResponseNotAuthorized(HttpResponse):
