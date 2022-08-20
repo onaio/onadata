@@ -5,7 +5,7 @@ BulkCreateMixin module
 from __future__ import unicode_literals
 
 
-class BulkCreateMixin(object):
+class BulkCreateMixin:
     """
     Bulk Create Mixin
     Allows the bulk creation of resources
@@ -16,7 +16,7 @@ class BulkCreateMixin(object):
         Gets the appropriate serializer depending on if you are creating a
         single resource or many resources
         """
-        if isinstance(kwargs.get('data', {}), list):
-            kwargs['many'] = True
+        if isinstance(kwargs.get("data", {}), list):
+            kwargs["many"] = True
 
-        return super(BulkCreateMixin, self).get_serializer(*args, **kwargs)
+        return super().get_serializer(*args, **kwargs)

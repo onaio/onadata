@@ -1,7 +1,18 @@
+# -*- coding: utf-8 -*-
+"""
+Implements the AnonymousUserPublicFormsMixin class
+
+Filters only public forms.
+"""
 from onadata.apps.logger.models.xform import XForm
 
 
-class AnonymousUserPublicFormsMixin(object):
+class AnonymousUserPublicFormsMixin:
+    """
+    Implements the AnonymousUserPublicFormsMixin class
+
+    Filters only public forms.
+    """
 
     def _get_public_forms_queryset(self):
         return XForm.objects.filter(shared=True)
@@ -11,4 +22,4 @@ class AnonymousUserPublicFormsMixin(object):
         if self.request and self.request.user.is_anonymous:
             return self._get_public_forms_queryset()
 
-        return super(AnonymousUserPublicFormsMixin, self).get_queryset()
+        return super().get_queryset()
