@@ -28,7 +28,7 @@ from onadata.libs.permissions import (
 from onadata.libs.serializers.dataview_serializer import DataViewMinimalSerializer
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
-from onadata.libs.utils.analytics import track_object_event
+from onadata.libs.utils.analytics import TrackObjectEvent
 from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
@@ -520,7 +520,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
         return instance
 
-    @track_object_event(
+    @TrackObjectEvent(
         user_field="created_by",
         properties={
             "created_by": "created_by",

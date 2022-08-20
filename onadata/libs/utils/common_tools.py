@@ -19,7 +19,11 @@ from django.utils.translation import gettext as _
 
 import sentry_sdk
 import six
+from celery import current_task
 
+from onadata.libs.utils.common_tags import ATTACHMENTS
+
+DEFAULT_UPDATE_BATCH = 100
 TRUE_VALUES = ["TRUE", "T", "1", 1]
 
 
@@ -123,7 +127,7 @@ def json_stream(data, json_string):
     """
     yield "["
     try:
-        data = data.__iter__()
+        data = iter(data)
         item = next(data)
         while item:
             try:
@@ -231,3 +235,132 @@ def cmp_to_key(mycmp):
             return mycmp(self.obj, other.obj) != 0
 
     return ComparatorClass
+
+
+def current_site_url(path):
+    """
+    Returns fully qualified URL (no trailing slash) for the current site.
+    :param path
+    :return: complete url
+    """
+    # pylint: disable=import-outside-toplevel
+    from django.contrib.sites.models import Site
+
+    current_site = Site.objects.get_current()
+    protocol = getattr(settings, "ONA_SITE_PROTOCOL", "http")
+    port = getattr(settings, "ONA_SITE_PORT", "")
+    url = f"{protocol}://{current_site.domain}"
+    if port:
+        url += f":{port}"
+    if path:
+        url += f"{path}"
+
+    return url
+
+
+def get_choice_label(label, data_dictionary, language=None):
+    """
+    Return the label matching selected language or simply just the label.
+    """
+    if isinstance(label, dict):
+        languages = list(label.keys())
+        _language = (
+            language
+            if language in languages
+            else data_dictionary.get_language(languages)
+        )
+
+        return label[_language]
+
+    return label
+
+
+def get_choice_label_value(key, value, data_dictionary, language=None):
+    """
+    Return the label of a choice matching the value if the key xpath is a
+    SELECT_ONE otherwise it returns the value unchanged.
+    """
+
+    def _get_choice_label_value(lookup):
+        _label = None
+        for choice in data_dictionary.get_survey_element(key).children:
+            if choice.name == lookup:
+                _label = get_choice_label(choice.label, data_dictionary, language)
+                break
+
+        return _label
+
+    label = None
+    if key in data_dictionary.get_select_one_xpaths():
+        label = _get_choice_label_value(value)
+
+    if key in data_dictionary.get_select_multiple_xpaths():
+        answers = []
+        for item in value.split(" "):
+            answer = _get_choice_label_value(item)
+            answers.append(answer or item)
+        if [_i for _i in answers if _i is not None]:
+            label = " ".join(answers)
+
+    return label or value
+
+
+# pylint: disable=too-many-arguments
+def get_value_or_attachment_uri(
+    key,
+    value,
+    row,
+    data_dictionary,
+    media_xpaths,
+    attachment_list=None,
+    show_choice_labels=False,
+    language=None,
+):
+    """
+    Gets either the attachment value or the attachment url
+    :param key: used to retrieve survey element
+    :param value: filename
+    :param row: current records row
+    :param data_dictionary: form structure
+    :param include_images: boolean value to either inlcude images or not
+    :param attachment_list: to be used incase row doesn't have ATTACHMENTS key
+    :return: value
+    """
+    if show_choice_labels:
+        value = get_choice_label_value(key, value, data_dictionary, language)
+
+    if not media_xpaths:
+        return value
+
+    if key in media_xpaths:
+        attachments = [
+            a
+            for a in row.get(ATTACHMENTS, attachment_list or [])
+            if a.get("name") == value
+        ]
+        if attachments:
+            value = current_site_url(attachments[0].get("download_url", ""))
+
+    return value
+
+
+def track_task_progress(additions, total=None):
+    """
+    Updates the current export task with number of submission processed.
+    Updates in batches of settings EXPORT_TASK_PROGRESS_UPDATE_BATCH defaults
+    to 100.
+    :param additions:
+    :param total:
+    :return:
+    """
+    batch_size = getattr(
+        settings, "EXPORT_TASK_PROGRESS_UPDATE_BATCH", DEFAULT_UPDATE_BATCH
+    )
+    if additions % batch_size == 0:
+        meta = {"progress": additions}
+        if total:
+            meta.update({"total": total})
+        try:
+            current_task.update_state(state="PROGRESS", meta=meta)
+        except AttributeError:
+            pass

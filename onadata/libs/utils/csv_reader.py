@@ -1,9 +1,11 @@
-# vim: ai ts=4 sts=4 et sw=4 encoding=utf-8
-
+# vim: ai ts=4 sts=4 et sw=4 fileencoding=utf-8
+"""
+CsvReader class module.
+"""
 import csv
 
 
-class CsvReader(object):
+class CsvReader:
     """
     Typical usage::
 
@@ -17,16 +19,19 @@ class CsvReader(object):
         self.open(path)
 
     def open(self, path):
-        self._file = open(path, 'rU')  # universal new-line mode
+        """Opens a file handle sets a CSV reader."""
+        # pylint: disable=consider-using-with,unspecified-encoding
+        self._file = open(path, "rU")  # universal new-line mode
         # http://stackoverflow.com/questions/904041/reading-a-utf8-csv-file-wit
         # h-python/904085#904085
         self._csv_reader = csv.reader(self._file)
 
     def close(self):
+        """Closes the file handle."""
         self._file.close()
 
     def __iter__(self):
-        return self
+        return iter(self)
 
     def next(self):
         """
@@ -35,12 +40,14 @@ class CsvReader(object):
         of data.
         """
         row = self._csv_reader.next()
-        return [cell for cell in row]
+        return list(row)
 
     def _set_headers(self):
+        # pylint: disable=attribute-defined-outside-init
         self._headers = self.next()
 
     def iter_dicts(self):
+        """Iterate over CSV rows as dict items."""
         self._set_headers()
         for row in self:
             result = {}

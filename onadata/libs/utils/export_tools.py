@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=too-many-lines
 """
 Export tools
 """
@@ -49,7 +50,6 @@ from onadata.libs.utils.common_tools import (
     retry,
     str_to_bool,
 )
-from onadata.libs.utils.export_builder import ExportBuilder
 from onadata.libs.utils.model_tools import get_columns_with_hxl, queryset_iterator
 from onadata.libs.utils.osm import get_combined_osm
 from onadata.libs.utils.viewer_tools import create_attachments_zipfile, image_urls
@@ -167,40 +167,49 @@ def generate_export(export_type, xform, export_id=None, options=None):  # noqa C
     if isinstance(records, QuerySet):
         records = records.iterator()
 
+    # pylint: disable=import-outside-toplevel
+    from onadata.libs.utils.export_builder import ExportBuilder
+
     export_builder = ExportBuilder()
-    export_builder.TRUNCATE_GROUP_TITLE = (
+    export_builder.TRUNCATE_GROUP_TITLE = (  # noqa
         True if export_type == Export.SAV_ZIP_EXPORT else remove_group_name
     )
-    export_builder.GROUP_DELIMITER = options.get(
+    export_builder.GROUP_DELIMITER = options.get(  # noqa
         "group_delimiter", DEFAULT_GROUP_DELIMITER
     )
-    export_builder.SPLIT_SELECT_MULTIPLES = options.get("split_select_multiples", True)
-    export_builder.BINARY_SELECT_MULTIPLES = options.get(
+    export_builder.SPLIT_SELECT_MULTIPLES = options.get(  # noqa
+        "split_select_multiples", True
+    )
+    export_builder.BINARY_SELECT_MULTIPLES = options.get(  # noqa
         "binary_select_multiples", False
     )
-    export_builder.INCLUDE_LABELS = options.get("include_labels", False)
+    export_builder.INCLUDE_LABELS = options.get("include_labels", False)  # noqa
     include_reviews = options.get("include_reviews", False)
-    export_builder.INCLUDE_LABELS_ONLY = options.get("include_labels_only", False)
-    export_builder.INCLUDE_HXL = options.get("include_hxl", False)
+    export_builder.INCLUDE_LABELS_ONLY = options.get(  # noqa
+        "include_labels_only", False
+    )
+    export_builder.INCLUDE_HXL = options.get("include_hxl", False)  # noqa
 
-    export_builder.INCLUDE_IMAGES = options.get(
+    export_builder.INCLUDE_IMAGES = options.get(  # noqa
         "include_images", settings.EXPORT_WITH_IMAGE_DEFAULT
     )
 
-    export_builder.VALUE_SELECT_MULTIPLES = options.get("value_select_multiples", False)
+    export_builder.VALUE_SELECT_MULTIPLES = options.get(  # noqa
+        "value_select_multiples", False
+    )
 
-    export_builder.REPEAT_INDEX_TAGS = options.get(
+    export_builder.REPEAT_INDEX_TAGS = options.get(  # noqa
         "repeat_index_tags", DEFAULT_INDEX_TAGS
     )
 
-    export_builder.SHOW_CHOICE_LABELS = options.get("show_choice_labels", False)
+    export_builder.SHOW_CHOICE_LABELS = options.get("show_choice_labels", False)  # noqa
 
     export_builder.language = options.get("language")
 
     # 'win_excel_utf8' is only relevant for CSV exports
     if "win_excel_utf8" in options and export_type != Export.CSV_EXPORT:
         del options["win_excel_utf8"]
-    export_builder.INCLUDE_REVIEWS = include_reviews
+    export_builder.INCLUDE_REVIEWS = include_reviews  # noqa
     export_builder.set_survey(xform.survey, xform, include_reviews=include_reviews)
 
     temp_file = NamedTemporaryFile(suffix=("." + extension))
@@ -213,7 +222,7 @@ def generate_export(export_type, xform, export_id=None, options=None):  # noqa C
     func = getattr(export_builder, export_type_func_map[export_type])
     # pylint: disable=broad-except
     try:
-        func.__call__(
+        func(
             temp_file.name,
             records,
             username,
@@ -556,7 +565,7 @@ def generate_geojson_export(
     metadata=None,
     export_id=None,
     options=None,
-    xform=None
+    xform=None,
 ):
     """
     Generates Linked Geojson export
@@ -579,12 +588,12 @@ def generate_geojson_export(
         "geo_field": extra_data.get("data_geo_field"),
         "simple_style": extra_data.get("data_simple_style"),
         "title": extra_data.get("data_title"),
-        "fields": extra_data.get("data_fields")
+        "fields": extra_data.get("data_fields"),
     }
     _context = {}
-    _context['request'] = request
+    _context["request"] = request
     content = GeoJsonSerializer(xform.instances.all(), many=True, context=_context)
-    data_to_write = json.dumps(content.data).encode('utf-8')
+    data_to_write = json.dumps(content.data).encode("utf-8")
     timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
     basename = f"{id_string}_{timestamp}"
     filename = basename + "." + extension

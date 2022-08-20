@@ -1,24 +1,25 @@
 # -*- coding=utf-8 -*-
 """
-API export util functions.
+API export utility functions.
 """
 import json
 import os
 import sys
 from datetime import datetime
-import six
 
-from celery.backends.rpc import BacklogLimitExceeded
-from celery.result import AsyncResult
 from django.conf import settings
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
+
+import six
+from celery.backends.rpc import BacklogLimitExceeded
+from celery.result import AsyncResult
+from google.oauth2.credentials import Credentials  # noqa
 from kombu.exceptions import OperationalError
 from rest_framework import exceptions, status
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
-from google.oauth2.credentials import Credentials
 
 try:
     from savReaderWriter import SPSSIOError
@@ -36,7 +37,6 @@ from onadata.libs.exceptions import (
 )
 from onadata.libs.permissions import filter_queryset_xform_meta_perms_sql
 from onadata.libs.utils import log
-from onadata.libs.utils.google import create_flow
 from onadata.libs.utils.async_status import (
     FAILED,
     PENDING,
@@ -56,13 +56,14 @@ from onadata.libs.utils.export_tools import (
     generate_attachments_zip_export,
     generate_export,
     generate_external_export,
+    generate_geojson_export,
     generate_kml_export,
     generate_osm_export,
-    generate_geojson_export,
     newest_export_for,
     parse_request_export_options,
     should_create_new_export,
 )
+from onadata.libs.utils.google import create_flow
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.model_tools import get_columns_with_hxl
 
@@ -188,8 +189,12 @@ def custom_response_handler(  # noqa: C0901
         # we always re-generate if a filter is specified
         def _new_export():
             return _generate_new_export(
-                request, xform, query, export_type,
-                dataview_pk=dataview_pk, metadata=metadata
+                request,
+                xform,
+                query,
+                export_type,
+                dataview_pk=dataview_pk,
+                metadata=metadata,
             )
 
         if should_create_new_export(xform, export_type, options, request=request):

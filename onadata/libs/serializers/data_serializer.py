@@ -21,7 +21,7 @@ from onadata.libs.utils.dict_tools import (dict_lists2strings, dict_paths2dict,
                                            query_list_to_dict,
                                            floip_response_headers_dict)
 from onadata.libs.utils.logger_tools import dict2xform, safe_create_instance
-from onadata.libs.utils.analytics import track_object_event
+from onadata.libs.utils.analytics import TrackObjectEvent
 
 
 NUM_FLOIP_COLUMNS = 6
@@ -264,7 +264,7 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
 
         return super(SubmissionSerializer, self).validate(attrs)
 
-    @track_object_event(
+    @TrackObjectEvent(
         user_field='xform__user',
         properties={
             'submitted_by': 'user',
@@ -380,7 +380,7 @@ class JSONSubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
 
         return super(JSONSubmissionSerializer, self).validate(attrs)
 
-    @track_object_event(
+    @TrackObjectEvent(
         user_field='xform__user',
         properties={
             'submitted_by': 'user',
@@ -413,7 +413,7 @@ class RapidProSubmissionSerializer(BaseRapidProSubmissionSerializer):
     """
     Rapidpro SubmissionSerializer - handles Rapidpro webhook post.
     """
-    @track_object_event(
+    @TrackObjectEvent(
         user_field='xform__user',
         properties={
             'submitted_by': 'user',
@@ -439,7 +439,7 @@ class RapidProJSONSubmissionSerializer(BaseRapidProSubmissionSerializer):
     """
     Rapidpro SubmissionSerializer - handles RapidPro JSON webhook posts
     """
-    @track_object_event(
+    @TrackObjectEvent(
         user_field='xform__user',
         properties={
             'submitted_by': 'user',
@@ -466,7 +466,7 @@ class FLOIPListSerializer(serializers.ListSerializer):
     """
     Custom ListSerializer for a FLOIP submission.
     """
-    @track_object_event(
+    @TrackObjectEvent(
         user_field='xform__user',
         properties={
             'submitted_by': 'user',

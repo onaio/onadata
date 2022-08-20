@@ -1,12 +1,16 @@
+# -*- coding=utf-8 -*-
+"""
+Log utility functions and classes.
+"""
 import logging
 from datetime import datetime
-
-from django.utils.translation import gettext as _
 
 from onadata.libs.utils.viewer_tools import get_client_ip
 
 
-class Enum(object):
+class Enum:
+    """Enum class - dict-like class"""
+
     __name__ = "Enum"
 
     def __init__(self, **enums):
@@ -19,7 +23,7 @@ class Enum(object):
         return self.__getattr__(item)
 
     def __iter__(self):
-        return self.enums.itervalues()
+        return iter(self.enums.values())
 
 
 Actions = Enum(
@@ -60,43 +64,44 @@ Actions = Enum(
 
 
 class AuditLogHandler(logging.Handler):
+    """Audit logging handler class."""
 
     def __init__(self, model=""):
-        super(AuditLogHandler, self).__init__()
+        super().__init__()
         self.model_name = model
 
     def _format(self, record):
         created_on = datetime.utcfromtimestamp(record.created).isoformat()
         created_on = created_on[:23] + created_on[26:]
         data = {
-            'action': record.formhub_action,
-            'user': record.request_username,
-            'account': record.account_username,
-            'audit': {},
-            'msg': record.msg,
+            "action": record.formhub_action,
+            "user": record.request_username,
+            "account": record.account_username,
+            "audit": {},
+            "msg": record.msg,
             # save as python datetime object
             # to have mongo convert to ISO date and allow queries
-            'created_on': created_on,
-            'levelno': record.levelno,
-            'levelname': record.levelname,
-            'args': record.args,
-            'funcName': record.funcName,
-            'msecs': record.msecs,
-            'relativeCreated': record.relativeCreated,
-            'thread': record.thread,
-            'name': record.name,
-            'threadName': record.threadName,
-            'exc_info': record.exc_info,
-            'pathname': record.pathname,
-            'exc_text': record.exc_text,
-            'lineno': record.lineno,
-            'process': record.process,
-            'filename': record.filename,
-            'module': record.module,
-            'processName': record.processName
+            "created_on": created_on,
+            "levelno": record.levelno,
+            "levelname": record.levelname,
+            "args": record.args,
+            "funcName": record.funcName,
+            "msecs": record.msecs,
+            "relativeCreated": record.relativeCreated,
+            "thread": record.thread,
+            "name": record.name,
+            "threadName": record.threadName,
+            "exc_info": record.exc_info,
+            "pathname": record.pathname,
+            "exc_text": record.exc_text,
+            "lineno": record.lineno,
+            "process": record.process,
+            "filename": record.filename,
+            "module": record.module,
+            "processName": record.processName,
         }
-        if hasattr(record, 'audit') and isinstance(record.audit, dict):
-            data['audit'] = record.audit
+        if hasattr(record, "audit") and isinstance(record.audit, dict):
+            data["audit"] = record.audit
 
         return data
 
@@ -105,21 +110,24 @@ class AuditLogHandler(logging.Handler):
         # save to mongodb audit_log
         try:
             model = self.get_model(self.model_name)
-        except Exception as e:
-            logging.exception(_(u'Get model threw exception: %s' % str(e)))
+        except Exception as e:  # pylint: disable=broad-except
+            logging.exception("Get model threw exception: %s", str(e))
         else:
             log_entry = model(data)
             log_entry.save()
 
     def get_model(self, name):
-        names = name.split('.')
-        mod = __import__('.'.join(names[:-1]), fromlist=names[-1:])
+        """Import and return the model under the given ``name``."""
+        names = name.split(".")
+        mod = __import__(".".join(names[:-1]), fromlist=names[-1:])
 
         return getattr(mod, names[-1])
 
 
-def audit_log(action, request_user, account_user, message, audit, request,
-              level=logging.DEBUG):
+# pylint: disable=too-many-arguments
+def audit_log(
+    action, request_user, account_user, message, audit, request, level=logging.DEBUG
+):
     """
     Create a log message based on these params
 
@@ -135,12 +143,14 @@ def audit_log(action, request_user, account_user, message, audit, request,
     """
     logger = logging.getLogger("audit_logger")
     extra = {
-        'formhub_action': action,
-        'request_username':
-        request_user.username if request_user.username else str(request_user),
-        'account_username':
-        account_user.username if account_user.username else str(account_user),
-        'client_ip': get_client_ip(request),
-        'audit': audit
+        "formhub_action": action,
+        "request_username": request_user.username
+        if request_user.username
+        else str(request_user),
+        "account_username": account_user.username
+        if account_user.username
+        else str(account_user),
+        "client_ip": get_client_ip(request),
+        "audit": audit,
     }
     logger.log(level, message, extra=extra)
