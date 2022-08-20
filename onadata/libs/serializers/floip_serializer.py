@@ -5,12 +5,12 @@ FloipSerializer module.
 """
 import json
 import os
-from uuid import UUID
 from copy import deepcopy
 from io import BytesIO
+from uuid import UUID
 
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models import Q
@@ -31,6 +31,8 @@ SESSION_ID_INDEX = getattr(settings, "FLOW_RESULTS_SESSION_ID_INDEX", 3)
 QUESTION_INDEX = getattr(settings, "FLOW_RESULTS_QUESTION_INDEX", 4)
 ANSWER_INDEX = getattr(settings, "FLOW_RESULTS_ANSWER_INDEX", 5)
 
+User = get_user_model()
+
 
 def _get_user(username):
     users = User.objects.filter(username__iexact=username)
@@ -45,7 +47,7 @@ def _get_owner(request):
         owner_obj = _get_user(owner)
 
         if owner_obj is None:
-            raise ValidationError(_("User with username %s does not exist." % owner))
+            raise ValidationError(_(f"User with username {owner} does not exist."))
         return owner_obj
     return owner
 
@@ -70,7 +72,7 @@ def parse_responses(
             current_key = row[session_id_index]
         if "meta" not in submission:
             submission["meta"] = {
-                "instanceID": "uuid:%s" % current_key,
+                "instanceID": "uuid:{current_key}",
                 "sessionID": current_key,
                 "contactID": row[contact_id_index],
             }
@@ -88,8 +90,11 @@ class ReadOnlyUUIDField(serializers.ReadOnlyField):
     Custom ReadOnlyField for UUID
     """
 
-    def to_representation(self, obj):  # pylint: disable=no-self-use
-        return str(UUID(obj))
+    def to_internal_value(self, data):
+        pass
+
+    def to_representation(self, value):
+        return str(UUID(value))
 
 
 # pylint: disable=too-many-ancestors
@@ -101,12 +106,12 @@ class FloipListSerializer(serializers.HyperlinkedModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name="flow-results-detail", lookup_field="uuid"
     )
-    id = ReadOnlyUUIDField(source="uuid")  # pylint: disable=C0103
+    id = ReadOnlyUUIDField(source="uuid")  # pylint: disable=invalid-name
     name = serializers.ReadOnlyField(source="id_string")
     created = serializers.ReadOnlyField(source="date_created")
     modified = serializers.ReadOnlyField(source="date_modified")
 
-    class JSONAPIMeta:  # pylint: disable=old-style-class,no-init,R0903
+    class JSONAPIMeta:
         """
         JSON API metaclass.
         """
@@ -133,7 +138,7 @@ class FloipSerializer(serializers.HyperlinkedModelSerializer):
     flow_results_specification_version = serializers.SerializerMethodField()
     resources = serializers.SerializerMethodField()
 
-    class JSONAPIMeta:  # pylint: disable=old-style-class,no-init,R0903
+    class JSONAPIMeta:
         """
         JSON API metaclass.
         """
@@ -154,20 +159,20 @@ class FloipSerializer(serializers.HyperlinkedModelSerializer):
             "resources",
         )
 
-    def get_profile(self, value):  # pylint: disable=no-self-use,W0613
+    def get_profile(self, value):  # pylint: disable=unused-argument
         """
         Returns the data-package profile.
         """
         return "data-package"
 
-    # pylint: disable=no-self-use,unused-argument
+    # pylint: disable=unused-argument
     def get_flow_results_specification_version(self, value):
         """
         Returns the flow results specification version.
         """
         return "1.0.0-rc1"
 
-    def get_resources(self, value):  # pylint: disable=no-self-use,W0613
+    def get_resources(self, value):  # pylint: disable=unused-argument
         """
         Returns empty dict, a dummy holder for the eventually generated data
         package resources.
@@ -234,7 +239,7 @@ class FloipSerializer(serializers.HyperlinkedModelSerializer):
         return data
 
 
-class FlowResultsResponse(object):  # pylint: disable=too-few-public-methods
+class FlowResultsResponse:  # pylint: disable=too-few-public-methods
     """
     FLowResultsResponse class to hold a list of submission ids.
     """
@@ -259,7 +264,7 @@ class FlowResultsResponseSerializer(serializers.Serializer):
     responses = serializers.ListField()
     duplicates = serializers.IntegerField(read_only=True)
 
-    class JSONAPIMeta:  # pylint: disable=old-style-class,no-init,R0903
+    class JSONAPIMeta:
         """
         JSON API metaclass.
         """

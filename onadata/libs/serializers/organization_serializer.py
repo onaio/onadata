@@ -92,7 +92,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
 
         return profile
 
-    def validate_org(self, value):  # pylint: disable=no-self-use
+    def validate_org(self, value):
         """
         Validate organization name.
         """
@@ -116,7 +116,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
 
         raise serializers.ValidationError(_(f"Organization {org} already exists."))
 
-    def get_users(self, obj):  # pylint: disable=no-self-use
+    def get_users(self, obj):
         """
         Return organization members.
         """

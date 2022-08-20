@@ -63,8 +63,7 @@ class GenericRelatedField(serializers.HyperlinkedRelatedField):
 
         self._setup_field(self.view_name)
 
-        # pylint: disable=bad-super-call
-        return super(GenericRelatedField, self).to_representation(value)
+        return super().to_representation(value)
 
     def to_internal_value(self, data):
         """Verifies that ``data`` is a valid URL."""

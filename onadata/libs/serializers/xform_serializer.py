@@ -166,7 +166,6 @@ class XFormMixin:
     XForm mixins
     """
 
-    # pylint: disable=no-self-use
     def get_xls_available(self, obj):
         """
         Returns True if ``obj.xls.url`` is not None, indicates XLS is present.
@@ -187,7 +186,6 @@ class XFormMixin:
 
         return None
 
-    # pylint: disable=no-self-use
     def get_users(self, obj):
         """
         Returns a list of users based on XForm permissions.
@@ -305,7 +303,6 @@ class XFormMixin:
             return data_views
         return []
 
-    # pylint: disable=no-self-use
     def get_num_of_submissions(self, obj):
         """
         Returns number of submissions.
@@ -476,7 +473,6 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             "deleted_by",
         )
 
-    # pylint: disable=no-self-use
     def get_metadata(self, obj):
         """
         Returns XForn ``obj`` metadata.
@@ -496,7 +492,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
 
         return xform_metadata
 
-    def validate_public_key(self, value):  # pylint: disable=no-self-use
+    def validate_public_key(self, value):
         """
         Checks that the given RSA public key is a valid key by trying
         to use the key data to create an RSA key object using the cryptography
@@ -510,7 +506,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             ) from e
         return clean_public_key(value)
 
-    def _check_if_allowed_public(self, value):  # pylint: disable=no-self-use
+    def _check_if_allowed_public(self, value):
         """
         Verify that users are allowed to create public
         forms
@@ -531,7 +527,6 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
         """
         return self._check_if_allowed_public(value)
 
-    # pylint: disable=no-self-use
     def get_form_versions(self, obj):
         """
         Returns all form versions.
@@ -565,7 +560,6 @@ class XFormCreateSerializer(XFormSerializer):
 
     has_id_string_changed = serializers.SerializerMethodField()
 
-    # pylint: disable=no-self-use
     def get_has_id_string_changed(self, obj):
         """
         Returns the value of ``obj.has_id_string_changed``
@@ -646,7 +640,6 @@ class XFormManifestSerializer(serializers.Serializer):
 
         return url
 
-    # pylint: disable=no-self-use
     @check_obj
     def get_hash(self, obj):
         """
@@ -683,7 +676,6 @@ class XFormManifestSerializer(serializers.Serializer):
 
         return f"{hsh or 'md5:'}"
 
-    # pylint: disable=no-self-use
     @check_obj
     def get_filename(self, obj):
         """

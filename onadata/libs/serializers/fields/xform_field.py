@@ -1,14 +1,23 @@
+# -*- coding: utf-8 -*-
+"""
+The XFormField class
+"""
 from rest_framework import serializers
+
 from onadata.apps.logger.models import XForm
 
 
 class XFormField(serializers.Field):
-    def to_representation(self, obj):
-        return obj.pk
+    """
+    The XFormField class
+    """
+
+    def to_representation(self, value):
+        return value.pk
 
     def to_internal_value(self, data):
         try:
             int(data)
-        except ValueError:
-            raise serializers.ValidationError(u"Invalid form id")
+        except ValueError as exc:
+            raise serializers.ValidationError("Invalid form id") from exc
         return XForm.objects.get(pk=data)

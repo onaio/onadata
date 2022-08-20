@@ -3,13 +3,11 @@
 Attachments serializer.
 """
 
+from rest_framework import serializers
 from six import itervalues
 
-from rest_framework import serializers
-
 from onadata.apps.logger.models.attachment import Attachment
-from onadata.apps.logger.models.instance import get_attachment_url
-from onadata.apps.logger.models.instance import Instance
+from onadata.apps.logger.models.instance import Instance, get_attachment_url
 from onadata.libs.utils.decorators import check_obj
 
 
@@ -110,7 +108,6 @@ class AttachmentSerializer(serializers.HyperlinkedModelSerializer):
             return request.build_absolute_uri(path) if request else path
         return ""
 
-    # pylint: disable=no-self-use
     def get_field_xpath(self, obj):
         """
         Return question xpath
