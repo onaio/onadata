@@ -24,7 +24,6 @@ from onadata.libs.permissions import (
     get_role,
     is_organization,
 )
-from onadata.libs.serializers.dataview_serializer import DataViewMinimalSerializer
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.utils.analytics import TrackObjectEvent
@@ -620,6 +619,11 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             obj.dataview_prefetch
             if hasattr(obj, "dataview_prefetch")
             else obj.dataview_set.filter(deleted_at__isnull=True)
+        )
+
+        # pylint: disable=import-outside-toplevel
+        from onadata.libs.serializers.dataview_serializer import (
+            DataViewMinimalSerializer,
         )
 
         serializer = DataViewMinimalSerializer(

@@ -26,7 +26,7 @@ def _get_xml_obj(xml):
     try:
         return fromstring(xml)
     except _etree.XMLSyntaxError as e:  # pylint: disable=c-extension-no-member
-        if "Attribute action redefined" in e.msg:
+        if "Attribute action redefined" in str(e):
             xml = xml.replace(b'action="modify" ', b"")
 
             return _get_xml_obj(xml)

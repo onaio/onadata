@@ -21,6 +21,7 @@ from multidb.pinning import use_master
 from oauth2_provider.models import AccessToken
 from oauth2_provider.oauth2_validators import OAuth2Validator
 from oauth2_provider.settings import oauth2_settings
+from oidc.utils import authenticate_sso
 from rest_framework import exceptions
 from rest_framework.authentication import (
     BaseAuthentication,
@@ -29,16 +30,10 @@ from rest_framework.authentication import (
 )
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import AuthenticationFailed
-from oidc.utils import authenticate_sso
 
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.tasks import send_account_lockout_email
-from onadata.libs.utils.cache_tools import (
-    LOCKOUT_IP,
-    LOGIN_ATTEMPTS,
-    cache,
-    safe_key,
-)
+from onadata.libs.utils.cache_tools import LOCKOUT_IP, LOGIN_ATTEMPTS, cache, safe_key
 from onadata.libs.utils.common_tags import API_TOKEN
 from onadata.libs.utils.email import get_account_lockout_email_data
 
@@ -152,7 +147,7 @@ class TempTokenAuthentication(TokenAuthentication):
             raise exceptions.AuthenticationFailed(error_msg)
         if len(auth) > 2:
             error_msg = _(
-                "Invalid token header. " "Token string should not contain spaces."
+                "Invalid token header. Token string should not contain spaces."
             )
             raise exceptions.AuthenticationFailed(error_msg)
 
@@ -240,7 +235,7 @@ class SSOHeaderAuthentication(BaseAuthentication):
     cookie or HTTP_SSO header.
     """
 
-    def authenticate(self, request):  # pylint: disable=no-self-use
+    def authenticate(self, request):
         return authenticate_sso(request)
 
 
@@ -367,8 +362,18 @@ class MasterReplicaOAuth2Validator(OAuth2Validator):
     """
     Custom OAuth2Validator class that takes into account replication lag
     between Master & Replica databases
-    https://github.com/jazzband/django-oauth-toolkit/blob/3bde632d5722f1f85ffcd8277504955321f00fff/oauth2_provider/oauth2_validators.py#L49
+    https://github.com/jazzband/django-oauth-toolkit/blob/
+    3bde632d5722f1f85ffcd8277504955321f00fff/oauth2_provider/oauth2_validators.py#L49
     """
+
+    def introspect_token(self, token, token_type_hint, request, *args, **kwargs):
+        pass
+
+    def validate_silent_authorization(self, request):
+        pass
+
+    def validate_silent_login(self, request):
+        pass
 
     def validate_bearer_token(self, token, scopes, request):
         if not token:

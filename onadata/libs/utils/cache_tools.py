@@ -67,12 +67,10 @@ def safe_key(key):
     return hashlib.sha256(force_bytes(key)).hexdigest()
 
 
-def reset_project_cache(project, request):
+def reset_project_cache(project, request, project_serializer_class):
     """
     Clears and sets project cache
     """
-    # pylint: disable=import-outside-toplevel
-    from onadata.libs.serializers.project_serializer import ProjectSerializer
 
     # Clear all project cache entries
     for prefix in project_cache_prefixes:
@@ -80,5 +78,7 @@ def reset_project_cache(project, request):
 
     # Reserialize project and cache value
     # Note: The ProjectSerializer sets all the other cache entries
-    project_cache_data = ProjectSerializer(project, context={"request": request}).data
+    project_cache_data = project_serializer_class(
+        project, context={"request": request}
+    ).data
     cache.set(f"{PROJ_OWNER_CACHE}{project.pk}", project_cache_data)

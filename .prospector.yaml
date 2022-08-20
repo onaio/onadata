@@ -12,6 +12,7 @@ pylint:
   options:
     extension-pkg-allow-list:
       - ujson
+      - lxml.etree
 
 mccabe:
   run: false

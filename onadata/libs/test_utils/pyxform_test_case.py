@@ -13,19 +13,20 @@ from unittest import TestCase
 
 from lxml import etree
 
-# noinspection PyProtectedMember
-from lxml.etree import _Element
-
 from pyxform.builder import create_survey_element_from_dict
 from pyxform.errors import PyXFormError
 from pyxform.utils import NSMAP
 from pyxform.validators.odk_validate import ODKValidateError, check_xform
 from pyxform.xls2json import workbook_to_json
+
 from onadata.libs.test_utils.md_table import md_table_to_ss_structure
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.DEBUG)
+
+# noinspection PyProtectedMember
+_Element = etree._Element  # pylint: disable=protected-access
 
 
 if TYPE_CHECKING:
@@ -35,11 +36,13 @@ if TYPE_CHECKING:
 
 
 class PyxformTestError(Exception):
-    pass
+    """Pyxform test errors exception class."""
 
 
 @dataclass
 class MatcherContext:
+    """Data class to store assertion context information."""
+
     debug: bool
     nsmap_xpath: "Dict[str, str]"
     nsmap_subs: "NSMAPSubs"
@@ -47,9 +50,10 @@ class MatcherContext:
 
 
 class PyxformMarkdown:
-    """Transform markdown formatted xlsform to a pyxform survey object"""
+    """Transform markdown formatted XLSForm to a pyxform survey object"""
 
     def md_to_pyxform_survey(self, md_raw, kwargs=None, autoname=True, warnings=None):
+        """Transform markdown formatted XLSForm to pyxform survey object."""
         if kwargs is None:
             kwargs = {}
         if autoname:
@@ -59,13 +63,13 @@ class PyxformMarkdown:
             if re.match(r"^\s+#", line):
                 # ignore lines which start with pound sign
                 continue
-            elif re.match(r"^(.*)(#[^|]+)$", line):
+            if re.match(r"^(.*)(#[^|]+)$", line):
                 # keep everything before the # outside of the last occurrence
                 # of |
                 _md.append(re.match(r"^(.*)(#[^|]+)$", line).groups()[0].strip())
             else:
                 _md.append(line.strip())
-        md = "\n".join(_md)
+        md = "\n".join(_md)  # pylint: disable=invalid-name
 
         if kwargs.get("debug"):
             logger.debug(md)
@@ -75,8 +79,7 @@ class PyxformMarkdown:
 
             def _row_to_dict(row):
                 out_dict = {}
-                for i in range(0, len(row)):
-                    col = row[i]
+                for i, col in enumerate(row):
                     if col not in [None, ""]:
                         out_dict[headers[i]] = col
                 return out_dict
@@ -106,12 +109,13 @@ class PyxformMarkdown:
     def _run_odk_validate(xml):
         # On Windows, NamedTemporaryFile must be opened exclusively.
         # So it must be explicitly created, opened, closed, and removed
+        # pylint: disable=consider-using-with
         tmp = tempfile.NamedTemporaryFile(suffix=".xml", delete=False)
         tmp.close()
         try:
-            with codecs.open(tmp.name, mode="w", encoding="utf-8") as fp:
-                fp.write(xml)
-                fp.close()
+            with codecs.open(tmp.name, mode="w", encoding="utf-8") as file_handle:
+                file_handle.write(xml)
+                file_handle.close()
             check_xform(tmp.name)
         finally:
             # Clean up the temporary file
@@ -137,9 +141,12 @@ class PyxformMarkdown:
 
 
 class PyxformTestCase(PyxformMarkdown, TestCase):
+    """The pyxform markdown TestCase class"""
+
     maxDiff = None
 
-    def assertPyxformXform(self, **kwargs):
+    # pylint: disable=invalid-name,too-many-locals,too-many-branches,too-many-statements
+    def assertPyxformXform(self, **kwargs):  # noqa
         """
         PyxformTestCase.assertPyxformXform() named arguments:
         -----------------------------------------------------
@@ -213,12 +220,12 @@ class PyxformTestCase(PyxformMarkdown, TestCase):
         survey_valid = True
 
         try:
-            if "md" in kwargs.keys():
+            if "md" in kwargs:
                 kwargs = self._autoname_inputs(kwargs)
                 survey = self.md_to_pyxform_survey(
                     kwargs.get("md"), kwargs, warnings=warnings
                 )
-            elif "ss_structure" in kwargs.keys():
+            elif "ss_structure" in kwargs:
                 kwargs = self._autoname_inputs(kwargs)
                 survey = self._ss_structure_to_pyxform_survey(
                     kwargs.get("ss_structure"),
@@ -228,7 +235,7 @@ class PyxformTestCase(PyxformMarkdown, TestCase):
             else:
                 survey = kwargs.get("survey")
 
-            xml = survey._to_pretty_xml()
+            xml = survey._to_pretty_xml()  # pylint: disable=protected-access
             root = etree.fromstring(xml.encode("utf-8"))
 
             # Ensure all namespaces are present, even if unused
@@ -249,7 +256,7 @@ class PyxformTestCase(PyxformMarkdown, TestCase):
 
             def _pull_xml_node_from_root(element_selector):
                 _r = root.findall(
-                    ".//n:%s" % element_selector,
+                    f".//n:{element_selector}",
                     namespaces={"n": "http://www.w3.org/2002/xforms"},
                 )
                 if _r:
@@ -279,7 +286,7 @@ class PyxformTestCase(PyxformMarkdown, TestCase):
                     + "'odk_validate_error__contains'"
                     + " was empty:"
                     + str(e)
-                )
+                ) from e
             for v_err in odk_validate_error__contains:
                 self.assertContains(
                     e.args[0], v_err, msg_prefix="odk_validate_error__contains"
@@ -288,22 +295,21 @@ class PyxformTestCase(PyxformMarkdown, TestCase):
         if survey_valid:
 
             def _check(keyword, verb):
-                verb_str = "%s__%s" % (keyword, verb)
+                verb_str = f"{keyword}__{verb}"
 
-                bad_kwarg = "%s_%s" % (code, verb)
+                bad_kwarg = f"{code}_{verb}"
                 if bad_kwarg in kwargs:
-                    good_kwarg = "%s__%s" % (code, verb)
+                    good_kwarg = f"{code}__{verb}"
                     raise SyntaxError(
                         (
-                            "'%s' is not a valid parameter. "
-                            "Use double underscores: '%s'"
+                            f"'{bad_kwarg}' is not a valid parameter. "
+                            f"Use double underscores: '{good_kwarg}'"
                         )
-                        % (bad_kwarg, good_kwarg)
                     )
 
                 def check_content(content, expected):
                     if content is None:
-                        self.fail(msg="No '{}' found in document.".format(keyword))
+                        self.fail(msg=f"No '{keyword}' found in document.")
                     cstr = etree.tostring(content, encoding=str, pretty_print=True)
                     matcher_context = MatcherContext(
                         debug=debug,
@@ -342,7 +348,7 @@ class PyxformTestCase(PyxformMarkdown, TestCase):
 
             if "body_contains" in kwargs or "body__contains" in kwargs:
                 raise SyntaxError(
-                    "Invalid parameter: 'body__contains'." "Use 'xml__contains' instead"
+                    "Invalid parameter: 'body__contains'.Use 'xml__contains' instead"
                 )
 
             for code in ["xml", "instance", "model", "itext"]:
@@ -364,7 +370,7 @@ class PyxformTestCase(PyxformMarkdown, TestCase):
                 "and or optionally 'error__contains=[...]'"
                 "\nError(s): " + "\n".join(errors)
             )
-        elif survey_valid and expecting_invalid_survey:
+        if survey_valid and expecting_invalid_survey:
             raise PyxformTestError("Expected survey to be invalid.")
 
         search_test_kwargs = (
@@ -381,13 +387,13 @@ class PyxformTestCase(PyxformMarkdown, TestCase):
             elif k.endswith("__not_contains"):
                 assertion = self.assertNotContains
             else:
-                raise PyxformTestError("Unexpected search test kwarg: {}".format(k))
+                raise PyxformTestError(f"Unexpected search test kwarg: {k}")
             if k.startswith("error"):
                 joined = "\n".join(errors)
             elif k.startswith("warnings"):
                 joined = "\n".join(warnings)
             else:
-                raise PyxformTestError("Unexpected search test kwarg: {}".format(k))
+                raise PyxformTestError(f"Unexpected search test kwarg: {k}")
             for text in kwargs[k]:
                 assertion(joined, text, msg_prefix=k)
         if "warnings_count" in kwargs:
@@ -408,7 +414,7 @@ class PyxformTestCase(PyxformMarkdown, TestCase):
 
         return text_repr, real_count, msg_prefix
 
-    def assertContains(self, content, text, count=None, msg_prefix=""):
+    def assertContains(self, content, text, count=None, msg_prefix=""):  # noqa
         """
         FROM: django source- testcases.py
 
@@ -424,16 +430,16 @@ class PyxformTestCase(PyxformMarkdown, TestCase):
             self.assertEqual(
                 real_count,
                 count,
-                msg_prefix + "Found %d instances of %s in content"
-                " (expected %d)" % (real_count, text_repr, count),
+                msg_prefix + f"Found {real_count} instances of {text_repr} in content"
+                f" (expected {count})",
             )
         else:
             self.assertTrue(
                 real_count != 0,
-                msg_prefix + "Couldn't find %s in content:\n" % text_repr + content,
+                msg_prefix + f"Couldn't find {text_repr + content} in content:\n",
             )
 
-    def assertNotContains(self, content, text, msg_prefix=""):
+    def assertNotContains(self, content, text, msg_prefix=""):  # noqa
         """
         Asserts that a content indicates that some content was retrieved
         successfully, (i.e., the HTTP status code was as expected), and that
@@ -446,7 +452,7 @@ class PyxformTestCase(PyxformMarkdown, TestCase):
         self.assertEqual(
             real_count,
             0,
-            msg_prefix + "Response should not contain %s" % text_repr,
+            msg_prefix + f"Response should not contain {text_repr}",
         )
 
     def assert_xpath_exact(
@@ -459,9 +465,10 @@ class PyxformTestCase(PyxformMarkdown, TestCase):
         """
         Process an assertion for xml__xpath_exact.
 
-        Compares result strings since expected strings may contain xml namespace prefixes.
-        To allow parsing required to compare as ETrees would require injecting namespace
-        declarations into the expected match strings.
+        Compares result strings since expected strings may contain xml namespace
+        prefixes.
+        To allow parsing required to compare as ETrees would require injecting
+        namespace declarations into the expected match strings.
 
         :param matcher_context: A MatcherContext dataclass.
         :param content: XML to be examined.
@@ -502,7 +509,10 @@ class PyxformTestCase(PyxformMarkdown, TestCase):
             content=content,
             xpath=xpath,
         )
-        msg = f"XPath found no matches:\n{xpath}\n\nXForm content:\n{matcher_context.content_str}"
+        msg = (
+            f"XPath found no matches:\n{xpath}\n\n"
+            f"XForm content:\n{matcher_context.content_str}"
+        )
         self.assertEqual(expected, len(observed), msg=msg)
 
 
@@ -523,8 +533,8 @@ def reorder_attributes(root):
     In utils.node, it is based on xml.dom.minidom.Element objects.
     See https://github.com/XLSForm/pyxform/issues/414.
     """
-    for el in root.iter():
-        attrib = el.attrib
+    for elem in root.iter():
+        attrib = elem.attrib
         if len(attrib) > 1:
             # Sort attributes. Attributes are represented as {namespace}name
             # so attributes with explicit namespaces will always sort after
@@ -540,20 +550,21 @@ def xpath_clean_result_strings(
     """
     Clean XPath results: stringify, remove namespace declarations, clean up whitespace.
 
-    :param nsmap_subs: namespace replacements e.g. [('x="http://www.w3.org/2002/xforms", "")]
+    :param nsmap_subs: namespace replacements e.g.
+                            [('x="http://www.w3.org/2002/xforms", "")]
     :param results: XPath results to clean.
     """
     xmlex = [(" >", ">"), (" />", "/>")]
     subs = nsmap_subs + xmlex
     cleaned = set()
-    for x in results:
-        if isinstance(x, _Element):
-            reorder_attributes(x)
-            x = etree.tostring(x, encoding=str, pretty_print=True)
-            x = x.strip()
-            for s in subs:
-                x = x.replace(*s)
-        cleaned.add(x)
+    for result in results:
+        if isinstance(result, _Element):
+            reorder_attributes(result)
+            result = etree.tostring(result, encoding=str, pretty_print=True)
+            result = result.strip()
+            for sub in subs:
+                result = result.replace(*sub)
+        cleaned.add(result)
     return cleaned
 
 
@@ -580,15 +591,14 @@ def xpath_evaluate(
         raise PyxformTestError(msg) from e
     if matcher_context.debug:
         if 0 == len(results):
-            logger.debug(f"Results for XPath: {xpath}\n" + "(No matches)" + "\n")
+            logger.debug("Results for XPath: %s\n(No matches)\n", xpath)
         else:
             cleaned = xpath_clean_result_strings(
                 nsmap_subs=matcher_context.nsmap_subs, results=results
             )
-            logger.debug(f"Results for XPath: {xpath}\n" + "\n".join(cleaned) + "\n")
+            logger.debug("Results for XPath: %s\n%s\n", xpath, "\n".join(cleaned))
     if for_exact:
         return xpath_clean_result_strings(
             nsmap_subs=matcher_context.nsmap_subs, results=results
         )
-    else:
-        return set(results)
+    return set(results)

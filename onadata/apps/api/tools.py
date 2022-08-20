@@ -55,8 +55,10 @@ from onadata.libs.permissions import (
     get_role_in_org,
     is_organization,
 )
+from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.utils.api_export_tools import (
-    custom_response_handler, get_metadata_format
+    custom_response_handler,
+    get_metadata_format,
 )
 from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE,
@@ -491,7 +493,7 @@ def publish_project_xform(request, project):
             # Ensure the cached project is the updated version.
             # Django lazy loads related objects as such we need to
             # ensure the project retrieved is up to date.
-            reset_project_cache(xform.project, request)
+            reset_project_cache(xform.project, request, ProjectSerializer)
     return xform
 
 
