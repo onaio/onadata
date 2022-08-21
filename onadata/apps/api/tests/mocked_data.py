@@ -1,4 +1,4 @@
-# -*- coding=utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Contians mock functions used in some tests for example enketo urls and exports
 urls.

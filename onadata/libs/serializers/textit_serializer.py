@@ -1,4 +1,4 @@
-# -*- coding=utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 The TextItSerializer - supports creating TextIt integration service.
 """

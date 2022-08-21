@@ -1,4 +1,4 @@
-# -*- coding=utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 The OpenDataSerializer class - create/list OpenData model data.
 """

@@ -1,4 +1,4 @@
-# -*- coding=utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 OpenRosa Form List API - https://docs.getodk.org/openrosa-form-list/
 """

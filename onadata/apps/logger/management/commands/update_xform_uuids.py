@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # vim: ai ts=4 sts=4 et sw=4 fileencoding=utf-8
-# -*- coding=utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 update_xform_uuids command - Set uuid from a CSV file
 """

@@ -1,4 +1,4 @@
-# -*- coding=utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 The OrganizationMemberSerializer - manages a users access in an organization
 """
