@@ -78,3 +78,6 @@ jobs:
       - name: Run tests
         run: |
           python manage.py test ${{ matrix.testfolder }} --noinput --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4
+
+      - name: Python Static Analysis
+        uses: jpetrucciani/prospector-check@master
