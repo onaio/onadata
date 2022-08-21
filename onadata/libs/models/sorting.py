@@ -31,12 +31,14 @@ def sort_from_mongo_sort_str(sort_str):
 def json_order_by(sort_list, none_json_fields: Dict = None, model_name: str = ""):
     """Returns SQL ORDER BY string portion based on JSON input."""
     _list = []
+    if none_json_fields is None:
+        none_json_fields = {}
 
     for field in sort_list:
         field_key = field.lstrip("-")
         _str = (
             " json->>%s"
-            if none_json_fields and field_key not in none_json_fields.keys()
+            if field_key not in none_json_fields
             else f'"{model_name}"."{none_json_fields.get(field_key)}"'
         )
 
@@ -47,7 +49,7 @@ def json_order_by(sort_list, none_json_fields: Dict = None, model_name: str = ""
         _list.append(_str)
 
     if len(_list) > 0:
-        return f'ORDER BY {"".join(_list)}'
+        return f'ORDER BY {",".join(_list)}'
 
     return ""
 

@@ -292,4 +292,7 @@ def is_date_field(xform, field):
 
 def using_postgres():
     """Returns True if django.db.backends.postgresql is the DB engine in use"""
-    return settings.DATABASES["default"]["ENGINE"] == "django.db.backends.postgresql"
+    return settings.DATABASES["default"]["ENGINE"] in [
+        "django.db.backends.postgresql",
+        "django.contrib.gis.db.backends.postgis",
+    ]

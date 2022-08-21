@@ -5,6 +5,7 @@ Pagination classes.
 from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import QuerySet
+from django.utils.functional import cached_property
 
 from rest_framework.pagination import (
     InvalidPage,
@@ -95,6 +96,7 @@ class CountOverridablePaginator(Paginator):
             allow_empty_first_page=allow_empty_first_page,
         )
 
+    @cached_property
     def count(self):
         if self.count_override:
             return self.count_override

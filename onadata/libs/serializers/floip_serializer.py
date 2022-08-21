@@ -72,7 +72,7 @@ def parse_responses(
             current_key = row[session_id_index]
         if "meta" not in submission:
             submission["meta"] = {
-                "instanceID": "uuid:{current_key}",
+                "instanceID": f"uuid:{current_key}",
                 "sessionID": current_key,
                 "contactID": row[contact_id_index],
             }

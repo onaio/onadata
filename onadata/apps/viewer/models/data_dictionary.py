@@ -74,7 +74,6 @@ def sheet_to_csv(xls_content, sheet_name):
 
     :returns: a (StringIO) csv file object
     """
-    __import__("ipdb").set_trace()
     workbook = openpyxl.load_workbook(xls_content)
 
     sheet = workbook.get_sheet_by_name(sheet_name)
