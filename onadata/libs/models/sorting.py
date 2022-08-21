@@ -55,11 +55,12 @@ def json_order_by(sort_list, none_json_fields: Dict = None, model_name: str = ""
 def json_order_by_params(sort_list, none_json_fields: Dict = None):
     """Creates the ORDER BY parameters list from JSON input."""
     params = []
+    if none_json_fields is None:
+        none_json_fields = {}
 
     for field in sort_list:
         field = field.lstrip("-")
-        if none_json_fields is not None:
-            if field not in none_json_fields.keys():
-                params.append(field.lstrip("-"))
+        if field not in none_json_fields:
+            params.append(field.lstrip("-"))
 
     return params
