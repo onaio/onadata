@@ -3,6 +3,24 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.3.0(2022-08-22)
+------------------
+- Correctly configure S3 client when generating presigned URLs
+  `PR #2301 <https://github.com/onaio/onadata/pull/2301>`_
+  [@DavisRayM]
+- Fix external choices form uploads
+  `PR #2300 <https://github.com/onaio/onadata/pull/2300>`_
+  [@KipSigei]
+- Fix AWS storage class typo
+  `PR #2298 <https://github.com/onaio/onadata/pull/2298>`_
+  [@KipSigei]
+- Update `generate_platform_stats` management command with extra columns
+  `PR #2297 <https://github.com/onaio/onadata/pull/2297>`_
+  [@DavisRayM]
+- Add ability to paginate geojson responses
+  `PR #2295 <https://github.com/onaio/onadata/pull/2295>`_
+  [@KipSigei]
+
 v3.2.0(2022-07-13)
 ------------------
 
