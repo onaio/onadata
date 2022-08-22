@@ -162,7 +162,7 @@ def restore_backup_from_path(dir_path, username):
     for _dir_path, _dir_names, file_names in os.walk(dir_path):
         for file_name in file_names:
             # check if its a valid xml instance
-            xml_instance_path = os.path.join(dir_path, file_name)
+            xml_instance_path = os.path.join(_dir_path, file_name)
             num_instances += 1
             num_restored += restore_backup_from_xml_file(xml_instance_path, username)
     return num_instances, num_restored

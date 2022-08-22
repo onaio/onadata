@@ -2,12 +2,11 @@
 """
 Test export_tools module
 """
-import os
 import json
+import os
 import shutil
 import tempfile
 import zipfile
-from builtins import open
 from datetime import date, datetime, timedelta
 
 from django.conf import settings
@@ -16,31 +15,33 @@ from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
 from django.test.utils import override_settings
 from django.utils import timezone
+
 from pyxform.builder import create_survey_from_xls
 from rest_framework import exceptions
 from rest_framework.authtoken.models import Token
-
 from savReaderWriter import SavWriter
 
 from onadata.apps.api import tests as api_tests
-from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
-    TestAbstractViewSet)
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
+from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import query_data
-from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
-from onadata.libs.utils.export_builder import encode_if_str, get_value_or_attachment_uri
-from onadata.libs.utils.export_tools import (
+from onadata.libs.utils.export_builder import (
     ExportBuilder,
+    encode_if_str,
+    get_value_or_attachment_uri,
+)
+from onadata.libs.utils.export_tools import (
     check_pending_export,
     generate_attachments_zip_export,
     generate_export,
+    generate_geojson_export,
     generate_kml_export,
     generate_osm_export,
-    generate_geojson_export,
     get_repeat_index_tags,
     kml_export_data,
     parse_request_export_options,
@@ -556,8 +557,8 @@ class TestExportTools(TestBase, TestAbstractViewSet):
         xform1 = self._publish_markdown(geo_md, self.user, id_string="a")
         xml = '<data id="a"><gps>-1.28 36.83 0 0</gps><fruit>orange</fruit></data>'
         Instance(xform=xform1, xml=xml).save()
-        request = self.factory.get('/', **self.extra)
-        XFormSerializer(xform1, context={'request': request}).data
+        request = self.factory.get("/", **self.extra)
+        XFormSerializer(xform1, context={"request": request}).data
         xform1 = XForm.objects.get(id_string="a")
         export_type = "geojson"
         options = {
@@ -566,15 +567,16 @@ class TestExportTools(TestBase, TestAbstractViewSet):
         self._publish_transportation_form_and_submit_instance()
         # set metadata to xform
         data_type = "media"
-        data_value = 'xform_geojson {} {}'.format(xform1.pk, xform1.id_string)
+        data_value = "xform_geojson {} {}".format(xform1.pk, xform1.id_string)
         extra_data = {
             "data_title": "fruit",
             "data_geo_field": "gps",
             "data_simple_style": True,
-            "data_fields": "fruit,gps"
+            "data_fields": "fruit,gps",
         }
         response = self._add_form_metadata(
-            self.xform, data_type, data_value, extra_data=extra_data)
+            self.xform, data_type, data_value, extra_data=extra_data
+        )
         self.assertEqual(response.status_code, 201)
         username = self.xform.user.username
         id_string = self.xform.id_string
@@ -582,36 +584,25 @@ class TestExportTools(TestBase, TestAbstractViewSet):
         self.assertEqual(self.xform.metadata_set.count(), 1)
         metadata = self.xform.metadata_set.all()[0]
         export = generate_geojson_export(
-            export_type,
-            username,
-            id_string,
-            metadata,
-            options=options,
-            xform=xform1
+            export_type, username, id_string, metadata, options=options, xform=xform1
         )
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)
         with default_storage.open(export.filepath) as f2:
-            content = f2.read().decode('utf-8')
+            content = f2.read().decode("utf-8")
             geojson = {
                 "type": "FeatureCollection",
                 "features": [
                     {
                         "type": "Feature",
-                        "geometry": {
-                            "type": "Point",
-                            "coordinates": [
-                                36.83,
-                                -1.28
-                            ]
-                        },
+                        "geometry": {"type": "Point", "coordinates": [36.83, -1.28]},
                         "properties": {
                             "fruit": "orange",
                             "gps": "-1.28 36.83 0 0",
-                            "title": "orange"
-                        }
+                            "title": "orange",
+                        },
                     }
-                ]
+                ],
             }
             content = json.loads(content)
             # remove xform and id from properties because they keep changing
@@ -630,7 +621,7 @@ class TestExportTools(TestBase, TestAbstractViewSet):
             metadata,
             export_id=export_id,
             options=options,
-            xform=xform1
+            xform=xform1,
         )
 
         self.assertIsNotNone(export)

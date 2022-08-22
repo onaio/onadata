@@ -100,7 +100,7 @@ class CountOverridablePaginator(Paginator):
     def count(self):
         if self.count_override:
             return self.count_override
-        return super().count()
+        return super().count
 
 
 class CountOverridablePageNumberPagination(StandardPageNumberPagination):
