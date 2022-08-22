@@ -3,6 +3,12 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.3.1(2022-08-22)
+------------------
+- Fix boto3 configs typo
+  `PR #2305 <https://github.com/onaio/onadata/pull/2305>`_
+  [@DavisRayM]
+
 v3.3.0(2022-08-22)
 ------------------
 - Correctly configure S3 client when generating presigned URLs
