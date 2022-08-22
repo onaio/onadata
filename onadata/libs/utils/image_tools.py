@@ -10,6 +10,7 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import get_storage_class
 from django.http import HttpResponse, HttpResponseRedirect
 from botocore.exceptions import ClientError
+from botocore.client import Config
 from wsgiref.util import FileWrapper
 
 from onadata.libs.utils.viewer_tools import get_path
@@ -67,7 +68,11 @@ def generate_aws_media_url(
 ):
     s3 = get_storage_class("storages.backends.s3boto3.S3Boto3Storage")()
     bucket_name = s3.bucket.name
-    s3_client = boto3.client("s3")
+    s3_config = Config(
+        signature_version=getattr("AWS_S3_SIGNATURE_VERSION", "s3v4"),
+        region_name=getattr("AWS_S3_REGION_NAME", ""),
+    )
+    s3_client = boto3.client("s3", config=s3_config)
 
     # Generate a presigned URL for the S3 object
     return s3_client.generate_presigned_url(
