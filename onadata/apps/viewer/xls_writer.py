@@ -123,11 +123,11 @@ class XlsWriter(object):
         else:
             i = 1
             unique_name = sheet_name
-            while(unique_name in self._sheets):
+            while (unique_name in self._sheets):
                 number_len = len(text(i))
                 allowed_name_len = self.sheet_name_limit - number_len
                 # make name required len
-                if(len(unique_name) > allowed_name_len):
+                if (len(unique_name) > allowed_name_len):
                     unique_name = unique_name[0:allowed_name_len]
                 unique_name = "{0}{1}".format(unique_name, i)
                 i = i + 1
