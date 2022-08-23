@@ -5,7 +5,7 @@ Messaging tasks
 from __future__ import unicode_literals
 
 from onadata.apps.messaging.backends.base import call_backend
-from onadata.celery import app
+from onadata.celeryapp import app
 
 
 @app.task(ignore_result=True)

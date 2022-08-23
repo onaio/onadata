@@ -11,7 +11,7 @@ from multidb.pinning import use_master
 
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
-from onadata.celery import app
+from onadata.celeryapp import app
 from onadata.libs.permissions import (
     ROLES,
     OwnerRole,

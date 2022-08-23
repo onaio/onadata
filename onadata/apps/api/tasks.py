@@ -14,7 +14,7 @@ from django.utils.datastructures import MultiValueDict
 from onadata.apps.api import tools
 from onadata.libs.utils.email import send_generic_email
 from onadata.apps.logger.models.xform import XForm
-from onadata.celery import app
+from onadata.celeryapp import app
 
 User = get_user_model()
 

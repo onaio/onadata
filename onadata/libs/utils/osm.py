@@ -17,7 +17,7 @@ from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.osmdata import OsmData
 from onadata.apps.restservice.signals import trigger_webhook
-from onadata.celery import app
+from onadata.celeryapp import app
 
 
 def _get_xml_obj(xml):

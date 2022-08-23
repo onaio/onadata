@@ -29,7 +29,7 @@ from onadata.apps.logger.xform_instance_parser import (
     clean_and_parse_xml,
     get_uuid_from_xml,
 )
-from onadata.celery import app
+from onadata.celeryapp import app
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import (
     DATAVIEW_COUNT,
