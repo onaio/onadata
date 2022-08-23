@@ -98,7 +98,7 @@ deprecated==1.2.13
     #   redis
 dict2xml==1.7.1
     # via onadata
-django==3.2.14
+django==3.2.15
     # via
     #   django-cors-headers
     #   django-csp
@@ -230,7 +230,7 @@ kombu==5.2.4
     # via celery
 linear-tsv==1.1.0
     # via tabulator
-lxml==4.9.0
+lxml==4.9.1
     # via onadata
 markdown==3.3.7
     # via onadata
@@ -384,7 +384,7 @@ tabulator==1.53.5
     # via
     #   datapackage
     #   tableschema
-ujson==5.3.0
+ujson==5.4.0
     # via onadata
 unicodecsv==0.14.1
     # via
