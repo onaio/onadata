@@ -65,7 +65,7 @@ def process_xlsform(xls, default_name):
 
 
 # adopted from pyxform.utils.sheet_to_csv
-# pylint: disable=too-many-branches
+# pylint: disable=too-many-branches,too-many-locals
 def sheet_to_csv(xls_content, sheet_name):
     """Writes a csv file of a specified sheet from a an excel file
 
