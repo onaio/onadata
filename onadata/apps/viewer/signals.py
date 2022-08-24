@@ -16,7 +16,7 @@ ASYNC_POST_SUBMISSION_PROCESSING_ENABLED = getattr(
 )
 
 # pylint: disable=invalid-name
-process_submission = django.dispatch.Signal(providing_args=["instance"])
+process_submission = django.dispatch.Signal()
 
 
 def post_save_osm_data(instance_id):  # pylint: disable=unused-argument

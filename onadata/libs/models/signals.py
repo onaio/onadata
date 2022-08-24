@@ -4,9 +4,9 @@ import django.dispatch
 
 from onadata.apps.logger.models import XForm
 
-# pylint: disable=unexpected-keyword-arg
-xform_tags_add = django.dispatch.Signal(providing_args=["xform", "tags"])
-xform_tags_delete = django.dispatch.Signal(providing_args=["xform", "tag"])
+# pylint: disable=invalid-name
+xform_tags_add = django.dispatch.Signal()
+xform_tags_delete = django.dispatch.Signal()
 
 
 # pylint: disable=unused-argument
