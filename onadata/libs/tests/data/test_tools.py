@@ -69,7 +69,7 @@ class TestTools(TestBase):
         self._publish_xls_file(os.path.join("fixtures", "gps", "gps.xlsx"))
 
         first_xform = self.xform
-        self.xform = self.user.xforms.all().order_by("-pk")[0]
+        xform = self.user.xforms.all().order_by("-pk")[0]
 
         self._make_submission(
             os.path.join(
@@ -87,10 +87,10 @@ class TestTools(TestBase):
         count_key = "count"
         fields = ["_submission_time", "_xform_id_string"]
 
-        count = len(self.xform.instances.all())
+        count = len(xform.instances.all())
 
         for field in fields:
-            result = get_form_submissions_grouped_by_field(self.xform, field)[0]
+            result = get_form_submissions_grouped_by_field(xform, field)[0]
 
             self.assertEqual([field, count_key], sorted(list(result)))
             self.assertEqual(result[count_key], count)
@@ -109,14 +109,14 @@ class TestTools(TestBase):
         self._make_submissions()
         self._publish_xls_file(os.path.join("fixtures", "gps", "gps.xlsx"))
 
-        self.xform = self.user.xforms.all().order_by("-pk")[0]
+        xform = self.user.xforms.all().order_by("-pk")[0]
 
         fields = ["_submission_time", "_xform_id_string"]
 
-        count = len(self.xform.instances.all())
+        count = len(xform.instances.all())
         self.assertEqual(count, 0)
         for field in fields:
-            result = get_form_submissions_grouped_by_field(self.xform, field)
+            result = get_form_submissions_grouped_by_field(xform, field)
             self.assertEqual(result, [])
 
     @patch("django.utils.timezone.now")
@@ -207,7 +207,7 @@ class TestTools(TestBase):
                     "forms",
                     "tutorial",
                     "instances",
-                    "{}.xml".format(i),
+                    f"{i}.xml",
                 )
             )
 

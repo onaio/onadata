@@ -367,13 +367,16 @@ class MasterReplicaOAuth2Validator(OAuth2Validator):
     """
 
     def introspect_token(self, token, token_type_hint, request, *args, **kwargs):
-        pass
+        """See oauthlib.oauth2.rfc6749.request_validator"""
+        raise NotImplementedError("Subclasses must implement this method.")
 
     def validate_silent_authorization(self, request):
-        pass
+        """See oauthlib.oauth2.rfc6749.request_validator"""
+        raise NotImplementedError("Subclasses must implement this method.")
 
     def validate_silent_login(self, request):
-        pass
+        """See oauthlib.oauth2.rfc6749.request_validator"""
+        raise NotImplementedError("Subclasses must implement this method.")
 
     def validate_bearer_token(self, token, scopes, request):
         if not token:

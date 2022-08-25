@@ -6,11 +6,13 @@ information about the number of organizations, users, projects
 """
 import calendar
 import csv
-from datetime import date, datetime
+import os.path
+from datetime import datetime
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.db.models import Q
+from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from multidb.pinning import use_master
@@ -19,15 +21,12 @@ from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.logger.models import Instance, XForm
 from onadata.libs.permissions import is_organization
 
-
 User = get_user_model()
 
 
 # pylint: disable=too-many-locals
-def _write_stats_to_file(month: int, year: int, include_extra: bool):
-    with open(
-        f"/tmp/platform_statistics_{month}_{year}.csv", "w", encoding="utf-8"
-    ) as out_file:
+def _write_stats_to_file(month: int, year: int, include_extra: bool, filename: str):
+    with open(filename, "w", encoding="utf-8") as out_file:
         writer = csv.writer(out_file)
         headers = ["Username", "Project Name", "Form Title", "No. of submissions"]
         form_fields = [
@@ -42,7 +41,7 @@ def _write_stats_to_file(month: int, year: int, include_extra: bool):
 
         writer.writerow(headers)
         _, last_day = calendar.monthrange(year, month)
-        date_obj = date(year, month, last_day)
+        date_obj = timezone.make_aware(datetime(year, month, last_day), timezone.utc)
 
         forms = XForm.objects.filter(
             Q(deleted_at__isnull=True) | Q(deleted_at__gt=date_obj),
@@ -119,7 +118,10 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        month = int(options.get("month", datetime.now().month))
-        year = int(options.get("year", datetime.now().year))
-        include_extra = bool(options.get("extra_info", False))
-        _write_stats_to_file(month, year, include_extra)
+        month = int(options.get("month") or datetime.now().month)
+        year = int(options.get("year") or datetime.now().year)
+        include_extra = bool(options.get("extra_info"))
+        filename = f"platform_statistics_{month}_{year}.csv"
+        _write_stats_to_file(month, year, include_extra, filename)
+        if os.path.exists(filename):
+            self.stdout.write(f"File '{filename}' successfully created.")
