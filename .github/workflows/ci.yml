@@ -79,7 +79,7 @@ jobs:
         env:
           DJANGO_SETTINGS_MODULE: onadata.settings.github_actions_test
         run: |
-          pip install prospector
+          pip install prospector==1.7.7 pylint==2.14.5
           pip install -r requirements/azure.pip
           prospector -X -s veryhigh onadata
 
