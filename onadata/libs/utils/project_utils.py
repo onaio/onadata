@@ -1,4 +1,4 @@
-# -*- coding=utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 project_utils module - apply project permissions to a form.
 """
@@ -7,16 +7,24 @@ import sys
 from django.conf import settings
 from django.db import IntegrityError
 
-from onadata.apps.logger.models import Project, XForm
-from onadata.celery import app
+from multidb.pinning import use_master
+
+from onadata.apps.logger.models.project import Project
+from onadata.apps.logger.models.xform import XForm
+from onadata.celeryapp import app
 from onadata.libs.permissions import (
-    ROLES, OwnerRole, get_object_users_with_permissions,
-    is_organization, get_role)
+    ROLES,
+    OwnerRole,
+    get_object_users_with_permissions,
+    get_role,
+    is_organization,
+)
 from onadata.libs.utils.common_tags import OWNER_TEAM_NAME
 from onadata.libs.utils.common_tools import report_exception
 
 
 def get_project_users(project):
+    """Return project users with the role assigned to them."""
     ret = {}
 
     for perm in project.projectuserobjectpermission_set.all():
@@ -24,17 +32,17 @@ def get_project_users(project):
             user = perm.user
 
             ret[user.username] = {
-                'permissions': [],
-                'is_org': is_organization(user.profile),
-                'first_name': user.first_name,
-                'last_name': user.last_name,
+                "permissions": [],
+                "is_org": is_organization(user.profile),
+                "first_name": user.first_name,
+                "last_name": user.last_name,
             }
 
-        ret[perm.user.username]['permissions'].append(perm.permission.codename)
+        ret[perm.user.username]["permissions"].append(perm.permission.codename)
 
-    for user in ret.keys():
-        ret[user]['role'] = get_role(ret[user]['permissions'], project)
-        del ret[user]['permissions']
+    for user, val in ret.items():
+        val["role"] = get_role(val["permissions"], project)
+        del val["permissions"]
 
     return ret
 
@@ -53,26 +61,24 @@ def set_project_perms_to_xform(xform, project):
         xform.save()
 
     # clear existing permissions
-    for perm in get_object_users_with_permissions(
-            xform, with_group_users=True):
-        user = perm['user']
-        role_name = perm['role']
+    for perm in get_object_users_with_permissions(xform, with_group_users=True):
+        user = perm["user"]
+        role_name = perm["role"]
         role = ROLES.get(role_name)
-        if role and (user != xform.user and project.user != user and
-                     project.created_by != user):
+        if role and (user not in (xform.user, project.user, project.created_by)):
             role.remove_obj_permissions(user, xform)
 
     owners = project.organization.team_set.filter(
-        name="{}#{}".format(project.organization.username, OWNER_TEAM_NAME),
-        organization=project.organization)
+        name=f"{project.organization.username}#{OWNER_TEAM_NAME}",
+        organization=project.organization,
+    )
 
     if owners:
         OwnerRole.add(owners[0], xform)
 
-    for perm in get_object_users_with_permissions(
-            project, with_group_users=True):
-        user = perm['user']
-        role_name = perm['role']
+    for perm in get_object_users_with_permissions(project, with_group_users=True):
+        user = perm["user"]
+        role_name = perm["role"]
         role = ROLES.get(role_name)
 
         if user == xform.created_by:
@@ -88,13 +94,16 @@ def set_project_perms_to_xform_async(self, xform_id, project_id):
     """
     Apply project permissions for ``project_id`` to a form ``xform_id`` task.
     """
+
     def _set_project_perms():
         try:
             xform = XForm.objects.get(id=xform_id)
             project = Project.objects.get(id=project_id)
         except (Project.DoesNotExist, XForm.DoesNotExist) as e:
-            msg = '%s: Setting project %d permissions to form %d failed.' % (
-                type(e), project_id, xform_id)
+            msg = (
+                f"{type(e)}: Setting project {project_id} permissions to "
+                f"form {xform_id} failed."
+            )
             # make a report only on the 3rd try.
             if self.request.retries > 2:
                 report_exception(msg, e, sys.exc_info())
@@ -103,8 +112,8 @@ def set_project_perms_to_xform_async(self, xform_id, project_id):
             set_project_perms_to_xform(xform, project)
 
     try:
-        if getattr(settings, 'SLAVE_DATABASES', []):
-            from multidb.pinning import use_master
+        if getattr(settings, "SLAVE_DATABASES", []):
+
             with use_master:
                 _set_project_perms()
         else:
@@ -112,8 +121,10 @@ def set_project_perms_to_xform_async(self, xform_id, project_id):
     except (Project.DoesNotExist, XForm.DoesNotExist) as e:
         # make a report only on the 3rd try.
         if self.request.retries > 2:
-            msg = '%s: Setting project %d permissions to form %d failed.' % (
-                type(e), project_id, xform_id)
+            msg = (
+                f"{type(e)}: Setting project {project_id} permissions to "
+                f"form {xform_id} failed."
+            )
             report_exception(msg, e, sys.exc_info())
         # let's retry if the record may still not be available in read replica.
         self.retry(countdown=60 * self.request.retries)
@@ -122,6 +133,8 @@ def set_project_perms_to_xform_async(self, xform_id, project_id):
         # already.
         pass
     except Exception as e:  # pylint: disable=broad-except
-        msg = '%s: Setting project %d permissions to form %d failed.' % (
-            type(e), project_id, xform_id)
+        msg = (
+            f"{type(e)}: Setting project {project_id} permissions to "
+            f"form {xform_id} failed."
+        )
         report_exception(msg, e, sys.exc_info())

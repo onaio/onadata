@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Functionality to transfer a project from one owner to another."""
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
@@ -52,13 +53,14 @@ class Command(BaseCommand):
             " transferred. If not, do not include the argument",
         )
 
-    def get_user(self, username):  # pylint: disable=C0111
+    def get_user(self, username):
+        """Return user object with the given username."""
         user_model = get_user_model()
         user = None
         try:
             user = user_model.objects.get(username=username)
         except user_model.DoesNotExist:
-            self.errors.append("User {0} does not exist".format(username))
+            self.errors.append(f"User {username} does not exist")
         return user
 
     def update_xform_with_new_user(self, project, user):

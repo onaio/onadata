@@ -22,8 +22,7 @@ def _extract_array(mdtablerow):
         mtchstr = match.groups()[0]
         if re.match(r"^[\|-]+$", mtchstr):
             return False
-        else:
-            return [_strp_cell(c) for c in mtchstr.split("|")]
+        return [_strp_cell(c) for c in mtchstr.split("|")]
 
     return False
 
@@ -37,6 +36,7 @@ def _is_null_row(r_arr):
 
 
 def md_table_to_ss_structure(mdstr: str) -> List[Tuple[str, List[List[str]]]]:
+    """Transform markdown to an ss structure"""
     ss_arr = []
     for item in mdstr.split("\n"):
         arr = _extract_array(item)
@@ -61,12 +61,13 @@ def md_table_to_ss_structure(mdstr: str) -> List[Tuple[str, List[List[str]]]]:
 
 def md_table_to_workbook(mdstr: str) -> Workbook:
     """
-    Convert Markdown table string to an openpyxl.Workbook. Call wb.save() to persist.
+    Convert Markdown table string to an openpyxl.Workbook. Call workbook.save() to
+    persist.
     """
     md_data = md_table_to_ss_structure(mdstr=mdstr)
-    wb = Workbook(write_only=True)
+    workbook = Workbook(write_only=True)
     for key, rows in md_data:
-        sheet = wb.create_sheet(title=key)
-        for r in rows:
-            sheet.append(r)
-    return wb
+        sheet = workbook.create_sheet(title=key)
+        for row in rows:
+            sheet.append(row)
+    return workbook

@@ -9,10 +9,10 @@ import uuid
 
 from django.db import transaction
 from django.utils.translation import gettext as _
-from rest_framework import serializers
 
 from pyxform.builder import create_survey_element_from_dict
 from pyxform.errors import PyXFormError
+from rest_framework import serializers
 
 from onadata.apps.logger.models import MergedXForm, XForm
 from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
@@ -50,6 +50,11 @@ def _get_elements(elements, intersect, parent_prefix=None):
     return new_elements
 
 
+def _list_with_name(name, children):
+    """Returns all children where the name is the same value as ``name``"""
+    return list(filter(lambda x: x["name"] == name, children))
+
+
 def get_merged_xform_survey(xforms):
     """
     Genertates a new pyxform survey object from the intersection of fields of
@@ -67,7 +72,7 @@ def get_merged_xform_survey(xforms):
     merged_xform_dict["children"] = []
 
     intersect = set(xform_sets[0]).intersection(*xform_sets[1:])
-    intersect = set([__ for (__, ___) in intersect])
+    intersect = set(__ for (__, ___) in intersect)
 
     merged_xform_dict["children"] = _get_elements(children, intersect)
 
@@ -87,10 +92,7 @@ def get_merged_xform_survey(xforms):
         if "children" in child and child["type"] in SELECTS:
             children = []
             for xform_dict in xform_dicts:
-                element_name = child["name"]
-                element_list = list(
-                    filter(lambda x: x["name"] == element_name, xform_dict["children"])
-                )
+                element_list = _list_with_name(child["name"], xform_dict["children"])
                 if element_list and element_list[0]:
                     children += element_list[0]["children"]
             # remove duplicates
@@ -194,7 +196,6 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
         )
         write_only_fields = ("uuid",)
 
-    # pylint: disable=no-self-use
     def get_num_of_submissions(self, obj):
         """Return number of submissions either from the aggregate
         'number_of_submissions' in the queryset or from the xform field
@@ -214,6 +215,7 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
         ]
         if values:
             return sorted(values, reverse=True)[0]
+        return None
 
     def create(self, validated_data):
         request = self.context["request"]
@@ -230,20 +232,20 @@ class MergedXFormSerializer(serializers.HyperlinkedModelSerializer):
             validated_data["xml"] = survey.to_xml()
         except PyXFormError as error:
             raise serializers.ValidationError(
-                {"xforms": _("Problem Merging the Form: {}".format(error))}
+                {"xforms": _(f"Problem Merging the Form: {error}")}
             )
         validated_data["user"] = validated_data["project"].user
         validated_data["created_by"] = request.user
         validated_data["is_merged_dataset"] = True
         validated_data["num_of_submissions"] = sum(
-            [__.num_of_submissions for __ in validated_data.get("xforms")]
+            __.num_of_submissions for __ in validated_data.get("xforms")
         )
         validated_data["instances_with_geopoints"] = any(
-            [__.instances_with_geopoints for __ in validated_data.get("xforms")]
+            __.instances_with_geopoints for __ in validated_data.get("xforms")
         )
 
         with transaction.atomic():
-            instance = super(MergedXFormSerializer, self).create(validated_data)
+            instance = super().create(validated_data)
 
             if instance.xforms.all().count() == 0 and xforms:
                 for xform in xforms:

@@ -5,12 +5,15 @@ Messaging viewset filters module.
 from __future__ import unicode_literals
 from actstream.models import Action
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.utils.translation import gettext as _
 from rest_framework import exceptions, filters
 from django_filters import rest_framework as rest_filters
 
 from onadata.apps.messaging.utils import TargetDoesNotExist, get_target
+
+
+User = get_user_model()
 
 
 DATETIME_LOOKUPS = [
@@ -50,10 +53,7 @@ DATETIME_LOOKUPS = [
 class ActionFilterSet(rest_filters.FilterSet):
     class Meta:
         model = Action
-        fields = {
-            "verb": ["exact"],
-            "timestamp": DATETIME_LOOKUPS
-        }
+        fields = {"verb": ["exact"], "timestamp": DATETIME_LOOKUPS}
 
 
 class TargetTypeFilterBackend(filters.BaseFilterBackend):
@@ -61,26 +61,25 @@ class TargetTypeFilterBackend(filters.BaseFilterBackend):
     A filter backend that filters by target type.
     """
 
-    # pylint: disable=no-self-use
     def filter_queryset(self, request, queryset, view):
         """
         Return a filtered queryset.
         """
 
-        if view.action == 'list':
-            target_type = request.query_params.get('target_type')
+        if view.action == "list":
+            target_type = request.query_params.get("target_type")
 
             if target_type:
                 try:
                     target = get_target(target_type)
-                except TargetDoesNotExist:
+                except TargetDoesNotExist as exc:
                     raise exceptions.ParseError(
-                        "Unknown target_type {}".format(target_type))
+                        f"Unknown target_type {target_type}"
+                    ) from exc
 
                 return queryset.filter(target_content_type=target)
 
-            raise exceptions.ParseError(
-                _("Parameter 'target_type' is missing."))
+            raise exceptions.ParseError(_("Parameter 'target_type' is missing."))
 
         return queryset
 
@@ -90,14 +89,13 @@ class TargetIDFilterBackend(filters.BaseFilterBackend):
     A filter backend that filters by target id.
     """
 
-    # pylint: disable=no-self-use
     def filter_queryset(self, request, queryset, view):
         """
         Return a filtered queryset.
         """
 
-        if view.action == 'list':
-            target_id = request.query_params.get('target_id')
+        if view.action == "list":
+            target_id = request.query_params.get("target_id")
 
             if target_id:
                 return queryset.filter(target_object_id=target_id)
@@ -113,14 +111,13 @@ class UserFilterBackend(filters.BaseFilterBackend):
     A filter backend that filters by username.
     """
 
-    # pylint: disable=no-self-use
     def filter_queryset(self, request, queryset, view):
         """
         Return a filtered queryset.
         """
 
-        if view.action == 'list':
-            username = request.query_params.get('user')
+        if view.action == "list":
+            username = request.query_params.get("user")
             try:
                 user = User.objects.get(username=username)
                 return queryset.filter(actor_object_id=user.id)

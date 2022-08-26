@@ -176,7 +176,6 @@ class PasswordResetSerializer(serializers.Serializer):
         label=_("Email Subject"), required=False, max_length=78, allow_blank=True
     )
 
-    # pylint: disable=no-self-use
     def validate_email(self, value):
         """
         Validates the email.
@@ -214,7 +213,6 @@ class PasswordResetChangeSerializer(serializers.Serializer):
     new_password = serializers.CharField(min_length=4, max_length=128)
     token = serializers.CharField(max_length=128)
 
-    # pylint: disable=no-self-use
     def validate_uid(self, value):
         """
         Validate the user uid.

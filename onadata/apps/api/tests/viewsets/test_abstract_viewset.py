@@ -5,15 +5,15 @@ Test base class for API viewset tests.
 import json
 import os
 import re
+import warnings
 from tempfile import NamedTemporaryFile
-
-import requests
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import Permission
 from django.test import TestCase
 
+import requests
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from httmock import HTTMock
@@ -41,9 +41,10 @@ from onadata.libs.test_utils.pyxform_test_case import PyxformMarkdown
 from onadata.libs.utils.common_tools import merge_dicts
 from onadata.libs.utils.user_auth import get_user_default_project
 
-
 # pylint: disable=invalid-name
 User = get_user_model()
+
+warnings.simplefilter("ignore")
 
 
 def _set_api_permissions(user):
@@ -471,7 +472,8 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
             "/",
             data=data,
             **self.extra,
-            format='json' if 'extra_data' in data else None)
+            format="json" if "extra_data" in data else None,
+        )
 
         response = view(request)
 
@@ -494,11 +496,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         test=True,
         extra_data=None,
     ):
-        data = {
-            "data_type": data_type,
-            "data_value": data_value,
-            "xform": xform.id
-        }
+        data = {"data_type": data_type, "data_value": data_value, "xform": xform.id}
 
         if extra_data:
             data.update({"extra_data": extra_data})

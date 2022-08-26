@@ -14,6 +14,7 @@ class TargetDoesNotExist(Exception):
     """
     Target does not Exist exception class.
     """
+
     message = UNKNOWN_TARGET
 
 
@@ -26,5 +27,5 @@ def get_target(target_type):
         app_label = APP_LABEL_MAPPING[target_type]
 
         return ContentType.objects.get(app_label=app_label, model=target_type)
-    except (KeyError, ContentType.DoesNotExist):
-        raise TargetDoesNotExist()
+    except (KeyError, ContentType.DoesNotExist) as exc:
+        raise TargetDoesNotExist() from exc

@@ -5,10 +5,14 @@ autodetect: true
 member-warnings: false
 max-line-length: 88
 
+pycodestyle:
+  disable:
+    - E203  # Whitespace before ':'
 pylint:
   options:
     extension-pkg-allow-list:
       - ujson
+      - lxml.etree
 
 mccabe:
   run: false

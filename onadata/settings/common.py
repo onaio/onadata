@@ -242,9 +242,10 @@ OPENID_CONNECT_VIEWSET_CONFIG = {
     "USE_RAPIDPRO_VIEWSET": False,
 }
 
+MSFT_OAUTH_ENDPOINT = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
 OPENID_CONNECT_AUTH_SERVERS = {
     "microsoft": {
-        "AUTHORIZATION_ENDPOINT": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+        "AUTHORIZATION_ENDPOINT": MSFT_OAUTH_ENDPOINT,
         "CLIENT_ID": "client_id",
         "JWKS_ENDPOINT": "https://login.microsoftonline.com/common/discovery/v2.0/keys",
         "SCOPE": "openid profile",
@@ -257,10 +258,11 @@ OPENID_CONNECT_AUTH_SERVERS = {
     }
 }
 
+DEFAULT_MODEL_SERIALIZER_CLASS = "rest_framework.serializers.HyperlinkedModelSerializer"
 REST_FRAMEWORK = {
     # Use hyperlinked styles by default.
     # Only used if the `serializer_class` attribute is not set on a view.
-    "DEFAULT_MODEL_SERIALIZER_CLASS": "rest_framework.serializers.HyperlinkedModelSerializer",
+    "DEFAULT_MODEL_SERIALIZER_CLASS": DEFAULT_MODEL_SERIALIZER_CLASS,
     # Use Django's standard `django.contrib.auth` permissions,
     # or allow read-only access for unauthenticated users.
     "DEFAULT_PERMISSION_CLASSES": [
@@ -439,7 +441,7 @@ after_setup_logger.connect(configure_logging)
 
 GOOGLE_STEP2_URI = "http://ona.io/gwelcome"
 GOOGLE_OAUTH2_CLIENT_ID = "REPLACE ME"
-GOOGLE_OAUTH2_CLIENT_SECRET = "REPLACE ME"
+GOOGLE_OAUTH2_CLIENT_SECRET = "REPLACE ME"  # noqa
 
 THUMB_CONF = {
     "large": {"size": 1280, "suffix": "-large"},
@@ -578,7 +580,7 @@ PROJECT_QUERY_CHUNK_SIZE = 5000
 
 # Prevents "The number of GET/POST parameters exceeded" exception
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000000
-SECRET_KEY = "mlfs33^s1l4xf6a36$0#j%dd*sisfoi&)&4s-v=91#^l01v)*j"
+SECRET_KEY = "mlfs33^s1l4xf6a36$0#j%dd*sisfoi&)&4s-v=91#^l01v)*j"  # noqa
 
 # Time in minutes to lock out user from account
 LOCKOUT_TIME = 30 * 60

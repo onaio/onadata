@@ -45,7 +45,7 @@ class Team(Group):
     @property
     def team_name(self):
         """Return the team name."""
-        return self.__str__()
+        return str(self)
 
     def save(self, *args, **kwargs):
         # allow use of same name in different organizations/users

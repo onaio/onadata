@@ -58,7 +58,7 @@ class TestAnalytics(TestAbstractViewSet):
         onadata.libs.utils.analytics.init_analytics()
         self.assertEqual(segment_mock.write_key, '123')
 
-        # Test out that the track_object_event decorator
+        # Test out that the TrackObjectEvent decorator
         # Tracks created submissions, XForms and Projects
         view = XFormSubmissionViewSet.as_view({
             'post': 'create',

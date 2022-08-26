@@ -29,7 +29,7 @@ class TempToken(models.Model):
             self.key = self.generate_key()
         return super().save(*args, **kwargs)
 
-    def generate_key(self):  # pylint: disable=no-self-use
+    def generate_key(self):
         """Generates a token key."""
         return binascii.hexlify(os.urandom(20)).decode()
 

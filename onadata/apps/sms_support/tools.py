@@ -248,7 +248,7 @@ def check_form_sms_compatibility(form, json_survey=None):  # noqa C901
         sensitive_fields += ("datetime",)
 
     # must not contain out-of-group questions
-    if sum([1 for e in groups if e.get("type") != "group"]):
+    if sum(1 for e in groups if e.get("type") != "group"):
         return prep_return(_("All your questions must be in groups."))
     # all groups must have an sms_field
     bad_groups = [
@@ -333,7 +333,7 @@ def check_form_sms_compatibility(form, json_survey=None):  # noqa C901
     # has date field with no sms_date_format
     if not json_survey.get("sms_date_format", ""):
         for group in groups:
-            if sum([1 for e in group.get("children", [{}]) if e.get("type") == "date"]):
+            if sum(1 for e in group.get("children", [{}]) if e.get("type") == "date"):
                 warnings.append(
                     "<li>You have 'date' fields without "
                     "explicitly setting a date format. "
@@ -344,7 +344,7 @@ def check_form_sms_compatibility(form, json_survey=None):  # noqa C901
     if not json_survey.get("sms_date_format", ""):
         for group in groups:
             if sum(
-                [1 for e in group.get("children", [{}]) if e.get("type") == "datetime"]
+                1 for e in group.get("children", [{}]) if e.get("type") == "datetime"
             ):
                 warnings.append(
                     "<li>You have 'datetime' fields without "

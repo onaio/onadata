@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # vim: ai ts=4 sts=4 et sw=4 fileencoding=utf-8
+"""
+Fix num of submissions
+"""
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -11,6 +14,8 @@ from onadata.apps.main.models import UserProfile
 
 
 class Command(BaseCommand):
+    """Fix num of submissions"""
+
     help = gettext_lazy("Fix num of submissions")
 
     def handle(self, *args, **kwargs):
@@ -23,9 +28,7 @@ class Command(BaseCommand):
                 xform.save(update_fields=["num_of_submissions"])
             i += 1
             self.stdout.write(
-                "Processing {} of {}: {} ({})".format(
-                    i, xform_count, xform.id_string, instance_count
-                )
+                f"Processing {i} of {xform_count}: {xform.id_string} ({instance_count})"
             )
 
         i = 0
@@ -39,7 +42,6 @@ class Command(BaseCommand):
                 profile.save(update_fields=["num_of_submissions"])
             i += 1
             self.stdout.write(
-                "Processing {} of {}: {} ({})".format(
-                    i, profile_count, profile.user.username, instance_count
-                )
+                f"Processing {i} of {profile_count}: {profile.user.username} "
+                f"({instance_count})"
             )

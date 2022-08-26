@@ -31,4 +31,4 @@ DATABASE_ROUTERS = []  # turn off second database
 SLAVE_DATABASES = []
 
 # Make a unique unique key just for testing, and don't share it with anybody.
-SECRET_KEY = "mlfs33^s1l4xf6a36$0#j%dd*sisfoi&)&4s-v=91#^l01v)*j"
+SECRET_KEY = "mlfs33^s1l4xf6a36$0#j%dd*sisfoi&)&4s-v=91#^l01v)*j"  # noqa

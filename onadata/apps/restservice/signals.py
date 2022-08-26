@@ -12,7 +12,7 @@ ASYNC_POST_SUBMISSION_PROCESSING_ENABLED = getattr(
 )
 
 # pylint: disable=invalid-name
-trigger_webhook = django.dispatch.Signal(providing_args=["instance"])
+trigger_webhook = django.dispatch.Signal()
 
 
 def call_webhooks(sender, **kwargs):  # pylint: disable=unused-argument

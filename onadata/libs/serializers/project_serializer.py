@@ -2,8 +2,6 @@
 """
 Project Serializer module.
 """
-from six import itervalues
-
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
@@ -11,13 +9,15 @@ from django.db.utils import IntegrityError
 from django.utils.translation import gettext as _
 
 from rest_framework import serializers
+from six import itervalues
 
-from onadata.apps.api.models import OrganizationProfile
-from onadata.apps.api.tools import (
+from onadata.apps.api.models.organization_profile import (
+    OrganizationProfile,
     get_or_create_organization_owners_team,
     get_organization_members_team,
 )
-from onadata.apps.logger.models import Project, XForm
+from onadata.apps.logger.models.project import Project
+from onadata.apps.logger.models.xform import XForm
 from onadata.libs.permissions import (
     ManagerRole,
     OwnerRole,
@@ -25,10 +25,9 @@ from onadata.libs.permissions import (
     get_role,
     is_organization,
 )
-from onadata.libs.serializers.dataview_serializer import DataViewMinimalSerializer
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
-from onadata.libs.utils.analytics import track_object_event
+from onadata.libs.utils.analytics import TrackObjectEvent
 from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
@@ -250,7 +249,7 @@ class ProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
             "is_merged_dataset",
         )
 
-    def get_published_by_formbuilder(self, obj):  # pylint: disable=no-self-use
+    def get_published_by_formbuilder(self, obj):
         """
         Returns true if the form was published by formbuilder.
         """
@@ -346,19 +345,19 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
 
         return forms
 
-    def get_num_datasets(self, obj):  # pylint: disable=no-self-use
+    def get_num_datasets(self, obj):
         """
         Return the number of datasets attached to the project.
         """
         return get_num_datasets(obj)
 
-    def get_last_submission_date(self, obj):  # pylint: disable=no-self-use
+    def get_last_submission_date(self, obj):
         """
         Return the most recent submission date to any of the projects datasets.
         """
         return get_last_submission_date(obj)
 
-    def get_teams(self, obj):  # pylint: disable=no-self-use
+    def get_teams(self, obj):
         """
         Return the teams with access to the project.
         """
@@ -448,7 +447,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             )
         return attrs
 
-    def validate_public(self, value):  # pylint: disable=no-self-use
+    def validate_public(self, value):
         """
         Validate the public field
         """
@@ -458,7 +457,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             )
         return value
 
-    def validate_metadata(self, value):  # pylint: disable=no-self-use
+    def validate_metadata(self, value):
         """
         Validate metadaata is a valid JSON value.
         """
@@ -520,7 +519,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
         return instance
 
-    @track_object_event(
+    @TrackObjectEvent(
         user_field="created_by",
         properties={
             "created_by": "created_by",
@@ -557,7 +556,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             cache.set(f"{PROJ_OWNER_CACHE}{project.pk}", response)
             return project
 
-    def get_users(self, obj):  # pylint: disable=no-self-use
+    def get_users(self, obj):
         """
         Return a list of users and organizations that have access to the
         project.
@@ -565,7 +564,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         return get_users(obj, self.context)
 
     @check_obj
-    def get_forms(self, obj):  # pylint: disable=no-self-use
+    def get_forms(self, obj):
         """
         Return list of xforms in the project.
         """
@@ -583,25 +582,25 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
         return forms
 
-    def get_num_datasets(self, obj):  # pylint: disable=no-self-use
+    def get_num_datasets(self, obj):
         """
         Return the number of datasets attached to the project.
         """
         return get_num_datasets(obj)
 
-    def get_last_submission_date(self, obj):  # pylint: disable=no-self-use
+    def get_last_submission_date(self, obj):
         """
         Return the most recent submission date to any of the projects datasets.
         """
         return get_last_submission_date(obj)
 
-    def get_starred(self, obj):  # pylint: disable=no-self-use
+    def get_starred(self, obj):
         """
         Return True if request user has starred this project.
         """
         return is_starred(obj, self.context["request"])
 
-    def get_teams(self, obj):  # pylint: disable=no-self-use
+    def get_teams(self, obj):
         """
         Return the teams with access to the project.
         """
@@ -621,6 +620,11 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             obj.dataview_prefetch
             if hasattr(obj, "dataview_prefetch")
             else obj.dataview_set.filter(deleted_at__isnull=True)
+        )
+
+        # pylint: disable=import-outside-toplevel
+        from onadata.libs.serializers.dataview_serializer import (
+            DataViewMinimalSerializer,
         )
 
         serializer = DataViewMinimalSerializer(

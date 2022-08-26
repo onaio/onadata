@@ -1,4 +1,8 @@
-from django.contrib.auth.models import User
+# -*- coding: utf-8 -*-
+"""
+Sync account with '_id'
+"""
+from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy
 from django.core.management.base import BaseCommand
 from django.conf import settings
@@ -7,7 +11,12 @@ from onadata.apps.logger.models import Instance, XForm
 from onadata.libs.utils.model_tools import queryset_iterator
 
 
+User = get_user_model()
+
+
 class Command(BaseCommand):
+    """Sync account with '_id'"""
+
     args = "<username>"
     help = gettext_lazy("Sync account with '_id'")
 
@@ -18,7 +27,7 @@ class Command(BaseCommand):
             users = User.objects.filter(username__contains=args[0])
         else:
             # All the accounts
-            self.stdout.write("Fetching all the account {}", ending="\n")
+            self.stdout.write("Fetching all the accounts.", ending="\n")
             users = User.objects.exclude(
                 username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
             )
@@ -27,7 +36,8 @@ class Command(BaseCommand):
             self.add_id(user)
 
     def add_id(self, user):
-        self.stdout.write("Syncing for account {}".format(user.username), ending="\n")
+        """Append _id in submissions for the specifing ``user``."""
+        self.stdout.write(f"Syncing for account {user.username}", ending="\n")
         xforms = XForm.objects.filter(user=user)
 
         count = 0
@@ -40,14 +50,13 @@ class Command(BaseCommand):
             try:
                 instance.save()
                 count += 1
+            # pylint: disable=broad-except
             except Exception as e:
                 failed += 1
                 self.stdout.write(str(e), ending="\n")
-                pass
 
         self.stdout.write(
-            "Syncing for account {}. Done. Success {}, Fail {}".format(
-                user.username, count, failed
-            ),
+            f"Syncing for account {user.username}. Done. "
+            f"Success {count}, Fail {failed}",
             ending="\n",
         )

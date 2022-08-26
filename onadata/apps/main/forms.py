@@ -1,13 +1,11 @@
-# -*- coding=utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 forms module.
 """
 import os
 import random
 import re
-from six.moves.urllib.parse import urlparse
 
-import requests
 from django import forms
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -17,7 +15,10 @@ from django.core.validators import URLValidator
 from django.forms import ModelForm
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
+
+import requests
 from registration.forms import RegistrationFormUniqueEmail
+from six.moves.urllib.parse import urlparse
 
 # pylint: disable=ungrouped-imports
 from onadata.apps.logger.models import Project
@@ -475,7 +476,7 @@ class ActivateSMSSupportForm(forms.Form):
 
         if not re.match(r"^[a-z0-9\_\-]+$", sms_id_string):
             raise forms.ValidationError(
-                "id_string can only contain alphanum" " characters"
+                "id_string can only contain alphanum characters"
             )
 
         return sms_id_string

@@ -6,7 +6,7 @@ from django.core.cache import cache
 
 def get_object_id_by_content_type(instance, model_class):
     """Return instance.object_id from a cached model's content type"""
-    key = "{}-content_type_id".format(model_class.__name__)
+    key = f"{model_class.__name__}-content_type_id"
     content_type_id = cache.get(key)
     if not content_type_id:
         try:

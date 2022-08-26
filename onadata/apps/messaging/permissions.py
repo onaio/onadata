@@ -4,22 +4,26 @@ Tests Messaging app implementation.
 """
 from __future__ import unicode_literals
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from rest_framework import exceptions, permissions
+
+
+User = get_user_model()
 
 
 class TargetObjectPermissions(permissions.BasePermission):
     """
     Check target object permissions
     """
+
     perms_map = {
-        'GET': ['%(app_label)s.view_%(model_name)s'],
-        'OPTIONS': ['%(app_label)s.view_%(model_name)s'],
-        'HEAD': ['%(app_label)s.view_%(model_name)s'],
-        'POST': ['%(app_label)s.change_%(model_name)s'],
-        'PUT': ['%(app_label)s.change_%(model_name)s'],
-        'PATCH': ['%(app_label)s.change_%(model_name)s'],
-        'DELETE': ['%(app_label)s.delete_%(model_name)s'],
+        "GET": ["%(app_label)s.view_%(model_name)s"],
+        "OPTIONS": ["%(app_label)s.view_%(model_name)s"],
+        "HEAD": ["%(app_label)s.view_%(model_name)s"],
+        "POST": ["%(app_label)s.change_%(model_name)s"],
+        "PUT": ["%(app_label)s.change_%(model_name)s"],
+        "PATCH": ["%(app_label)s.change_%(model_name)s"],
+        "DELETE": ["%(app_label)s.delete_%(model_name)s"],
     }
 
     def get_required_object_permissions(self, method, model_cls):
@@ -28,8 +32,8 @@ class TargetObjectPermissions(permissions.BasePermission):
         """
 
         kwargs = {
-            'app_label': model_cls._meta.app_label,
-            'model_name': model_cls._meta.model_name
+            "app_label": model_cls._meta.app_label,
+            "model_name": model_cls._meta.model_name,
         }
 
         if method not in self.perms_map:

@@ -171,7 +171,7 @@ urlpatterns = [
     ),
     re_path(
         # pylint: disable=line-too-long
-        r"^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/formid-media/(?P<data_id>\d+)",
+        r"^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/formid-media/(?P<data_id>\d+)",  # noqa
         main_views.download_media_data,  # noqa
         name="download-media-data",
     ),

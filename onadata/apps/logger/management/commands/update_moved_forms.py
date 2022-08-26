@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Ensures all the forms are owned by the project owner
+"""
 from django.core.management import BaseCommand
 from django.utils.translation import gettext_lazy
 
@@ -6,7 +10,11 @@ from onadata.libs.utils.model_tools import queryset_iterator
 
 
 class Command(BaseCommand):
-    help = gettext_lazy("Ensures all the forms are owned by the project" " owner")
+    """
+    Ensures all the forms are owned by the project owner
+    """
+
+    help = gettext_lazy("Ensures all the forms are owned by the project owner")
 
     def handle(self, *args, **kwargs):
         self.stdout.write("Updating forms owner", ending="\n")
@@ -16,16 +24,12 @@ class Command(BaseCommand):
                 try:
                     if xform.user != project.organization:
                         self.stdout.write(
-                            "Processing: {} - {}".format(
-                                xform.id_string, xform.user.username
-                            )
+                            f"Processing: {xform.id_string} - {xform.user.username}"
                         )
                         xform.user = project.organization
                         xform.save()
+                # pylint: disable=broad-except
                 except Exception:
                     self.stdout.write(
-                        "Error processing: {} - {}".format(
-                            xform.id_string, xform.user.username
-                        )
+                        f"Error processing: {xform.id_string} - {xform.user.username}"
                     )
-                    pass

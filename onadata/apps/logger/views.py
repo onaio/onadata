@@ -460,7 +460,7 @@ def download_xlsform(request, username, id_string):
     messages.add_message(
         request,
         messages.WARNING,
-        _("No XLS file for your form " "<strong>%(id)s</strong>") % {"id": id_string},
+        _("No XLS file for your form <strong>%(id)s</strong>") % {"id": id_string},
     )
 
     return HttpResponseRedirect(f"/{username}")
@@ -723,7 +723,7 @@ def view_download_submission(request, username):
     last_index = form_id.find("[")
     id_string = form_id[0:last_index]
     form_id_parts = form_id.split("/")
-    if form_id_parts.__len__() < 2:
+    if len(form_id_parts) < 2:
         return HttpResponseBadRequest()
 
     uuid = _extract_uuid(form_id_parts[1])

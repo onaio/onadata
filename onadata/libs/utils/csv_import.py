@@ -29,7 +29,7 @@ from six import iteritems
 from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.messaging.constants import SUBMISSION_DELETED, XFORM
 from onadata.apps.messaging.serializers import send_message
-from onadata.celery import app
+from onadata.celeryapp import app
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.utils import analytics
 from onadata.libs.utils.async_status import FAILED, async_status, celery_state_to_status

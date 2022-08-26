@@ -95,7 +95,6 @@ class XFormManagerFactory:
 
         return xform
 
-    # pylint: disable=no-self-use
     def get_registration_xform(self):
         """
         Gets a registration xform. (currently loaded in from fixture)

@@ -450,7 +450,6 @@ class XFormViewSet(
 
         return response
 
-    # pylint: disable=no-self-use
     # pylint: disable=unused-argument
     @action(methods=["GET"], detail=False)
     def login(self, request, **kwargs):

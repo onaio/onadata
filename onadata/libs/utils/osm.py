@@ -1,4 +1,4 @@
-# -*- coding=utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 OSM utility module.
 """
@@ -17,7 +17,7 @@ from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.osmdata import OsmData
 from onadata.apps.restservice.signals import trigger_webhook
-from onadata.celery import app
+from onadata.celeryapp import app
 
 
 def _get_xml_obj(xml):
@@ -25,8 +25,8 @@ def _get_xml_obj(xml):
         xml = xml.strip().encode()
     try:
         return fromstring(xml)
-    except _etree.XMLSyntaxError as e:  # pylint: disable=no-member
-        if "Attribute action redefined" in e.msg:
+    except _etree.XMLSyntaxError as e:  # pylint: disable=c-extension-no-member
+        if "Attribute action redefined" in str(e):
             xml = xml.replace(b'action="modify" ', b"")
 
             return _get_xml_obj(xml)

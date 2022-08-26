@@ -1,4 +1,7 @@
-#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Export all gps points with their timestamps
+"""
 import csv
 
 from django.core.management.base import BaseCommand
@@ -9,10 +12,12 @@ from onadata.libs.utils.model_tools import queryset_iterator
 
 
 class Command(BaseCommand):
+    """Export all gps points with their timestamps"""
+
     help = gettext_lazy("Export all gps points with their timestamps")
 
     def handle(self, *args, **kwargs):
-        with open("gps_points_export.csv", "w") as csvfile:
+        with open("gps_points_export.csv", "w", encoding="utf-8") as csvfile:
             fieldnames = ["longitude", "latitude", "date_created"]
             writer = csv.writer(csvfile)
             writer.writerow(fieldnames)

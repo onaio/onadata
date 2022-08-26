@@ -1,11 +1,13 @@
-from builtins import str as text
-
+# -*- coding: utf-8 -*-
+"""
+The /api/v1/attachments API implementation.
+"""
+from django.conf import settings
+from django.core.files.storage import default_storage
 from django.http import Http404
 from django.utils.translation import gettext as _
-from django.core.files.storage import default_storage
-from django.conf import settings
-from rest_framework import renderers
-from rest_framework import viewsets
+
+from rest_framework import renderers, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
@@ -14,41 +16,47 @@ from onadata.apps.api.permissions import AttachmentObjectPermissions
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs import filters
-from onadata.libs.mixins.authenticate_header_mixin import \
-    AuthenticateHeaderMixin
+from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.pagination import StandardPageNumberPagination
+from onadata.libs.renderers.renderers import (
+    MediaFileContentNegotiation,
+    MediaFileRenderer,
+)
 from onadata.libs.serializers.attachment_serializer import AttachmentSerializer
-from onadata.libs.renderers.renderers import MediaFileContentNegotiation, \
-    MediaFileRenderer
 from onadata.libs.utils.image_tools import image_url
 from onadata.libs.utils.viewer_tools import get_path
 
 
 def get_attachment_data(attachment, suffix):
+    """Returns attachment file contents."""
     if suffix in list(settings.THUMB_CONF):
         image_url(attachment, suffix)
-        suffix = settings.THUMB_CONF.get(suffix).get('suffix')
-        f = default_storage.open(
-            get_path(attachment.media_file.name, suffix))
-        data = f.read()
-    else:
-        data = attachment.media_file.read()
+        suffix = settings.THUMB_CONF.get(suffix).get("suffix")
+        f = default_storage.open(get_path(attachment.media_file.name, suffix))
+        return f.read()
 
-    return data
+    return attachment.media_file.read()
 
 
-class AttachmentViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
-                        viewsets.ReadOnlyModelViewSet):
+# pylint: disable=too-many-ancestors
+class AttachmentViewSet(
+    AuthenticateHeaderMixin,
+    CacheControlMixin,
+    ETagsMixin,
+    viewsets.ReadOnlyModelViewSet,
+):
     """
-    List attachments of viewsets.
+    GET, List attachments implementation.
     """
+
     content_negotiation_class = MediaFileContentNegotiation
     filter_backends = (filters.AttachmentFilter, filters.AttachmentTypeFilter)
-    lookup_field = 'pk'
+    lookup_field = "pk"
     queryset = Attachment.objects.filter(
-        instance__deleted_at__isnull=True, deleted_at__isnull=True)
+        instance__deleted_at__isnull=True, deleted_at__isnull=True
+    )
     permission_classes = (AttachmentObjectPermissions,)
     serializer_class = AttachmentSerializer
     pagination_class = StandardPageNumberPagination
@@ -59,48 +67,51 @@ class AttachmentViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
     )
 
     def retrieve(self, request, *args, **kwargs):
+        # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
 
-        if isinstance(request.accepted_renderer, MediaFileRenderer) \
-                and self.object.media_file is not None:
-            suffix = request.query_params.get('suffix')
+        if (
+            isinstance(request.accepted_renderer, MediaFileRenderer)
+            and self.object.media_file is not None
+        ):
+            suffix = request.query_params.get("suffix")
             try:
                 data = get_attachment_data(self.object, suffix)
             except IOError as e:
-                if text(e).startswith('File does not exist'):
-                    raise Http404()
+                if str(e).startswith("File does not exist"):
+                    raise Http404() from e
 
-                raise ParseError(e)
+                raise ParseError(e) from e
             else:
                 return Response(data, content_type=self.object.mimetype)
 
-        filename = request.query_params.get('filename')
+        filename = request.query_params.get("filename")
         serializer = self.get_serializer(self.object)
 
         if filename:
             if filename == self.object.media_file.name:
                 return Response(serializer.get_download_url(self.object))
-            else:
-                raise Http404(_("Filename '%s' not found." % filename))
+
+            raise Http404(_(f"Filename '{filename}' not found."))
 
         return Response(serializer.data)
 
-    @action(methods=['GET'], detail=False)
+    @action(methods=["GET"], detail=False)
     def count(self, request, *args, **kwargs):
-        data = {
-            "count":  self.filter_queryset(self.get_queryset()).count()
-            }
+        """Returns the number of attachments the user has access to."""
+        data = {"count": self.filter_queryset(self.get_queryset()).count()}
 
         return Response(data=data)
 
     def list(self, request, *args, **kwargs):
         if request.user.is_anonymous:
-            xform = request.query_params.get('xform')
+            xform = request.query_params.get("xform")
             if xform:
                 xform = XForm.objects.get(id=xform)
                 if not xform.shared_data:
                     raise Http404(_("Not Found"))
 
+        # pylint: disable=attribute-defined-outside-init
         self.object_list = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(self.object_list)
         if page is not None:
@@ -108,4 +119,4 @@ class AttachmentViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
 
             return Response(serializer.data)
 
-        return super(AttachmentViewSet, self).list(request, *args, **kwargs)
+        return super().list(request, *args, **kwargs)

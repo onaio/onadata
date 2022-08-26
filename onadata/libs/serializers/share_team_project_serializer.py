@@ -19,7 +19,6 @@ class ShareTeamProjectSerializer(serializers.Serializer):
     project = ProjectField()
     role = serializers.CharField(max_length=50)
 
-    # pylint: disable=no-self-use
     def update(self, instance, validated_data):
         """Update project sharing properties."""
         instance.team = validated_data.get("team", instance.team)
@@ -29,7 +28,6 @@ class ShareTeamProjectSerializer(serializers.Serializer):
 
         return instance
 
-    # pylint: disable=no-self-use
     def create(self, validated_data):
         """Shares a project to a team."""
         instance = ShareTeamProject(**validated_data)
@@ -37,7 +35,6 @@ class ShareTeamProjectSerializer(serializers.Serializer):
 
         return instance
 
-    # pylint: disable=no-self-use
     def validate_role(self, value):
         """check that the role exists"""
 
@@ -52,7 +49,6 @@ class RemoveTeamFromProjectSerializer(ShareTeamProjectSerializer):
 
     remove = serializers.BooleanField()
 
-    # pylint: disable=no-self-use
     def update(self, instance, validated_data):
         """Remove a team from a project"""
         instance.remove = validated_data.get("remove", instance.remove)
@@ -60,7 +56,6 @@ class RemoveTeamFromProjectSerializer(ShareTeamProjectSerializer):
 
         return instance
 
-    # pylint: disable=no-self-use
     def create(self, validated_data):
         """Remove a team from a project"""
         instance = ShareTeamProject(**validated_data)

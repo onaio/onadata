@@ -4,14 +4,14 @@ Django rest_framework ViewSet filters.
 """
 from uuid import UUID
 
-import six
-
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
+
+import six
 from django_filters import rest_framework as django_filter_filters
 from rest_framework import filters
 from rest_framework_guardian.filters import ObjectPermissionsFilter
@@ -19,10 +19,9 @@ from rest_framework_guardian.filters import ObjectPermissionsFilter
 from onadata.apps.api.models import OrganizationProfile, Team
 from onadata.apps.logger.models import Instance, Project, XForm
 from onadata.apps.viewer.models import Export
-from onadata.libs.utils.numeric import int_or_parse_error
-from onadata.libs.utils.common_tags import MEDIA_FILE_TYPES
 from onadata.libs.permissions import exclude_items_from_queryset_using_xform_meta_perms
-
+from onadata.libs.utils.common_tags import MEDIA_FILE_TYPES
+from onadata.libs.utils.numeric import int_or_parse_error
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -55,7 +54,7 @@ class AnonDjangoObjectPermissionFilter(ObjectPermissionsFilter):
         if form_id:
             if lookup_field == "pk":
                 int_or_parse_error(
-                    form_id, "Invalid form ID. It must be a positive" " integer"
+                    form_id, "Invalid form ID. It must be a positive integer"
                 )
 
             try:
@@ -104,7 +103,6 @@ class XFormListObjectPermissionFilter(AnonDjangoObjectPermissionFilter):
 class XFormListXFormPKFilter:
     """Filter forms via 'xform_pk' param."""
 
-    # pylint: disable=no-self-use
     def filter_queryset(self, request, queryset, view):
         """Returns an XForm queryset filtered by the 1xform_pk' param."""
         xform_pk = view.kwargs.get("xform_pk")
@@ -393,7 +391,7 @@ class InstancePermissionFilterMixin:
             for object_id in [instance_id, project_id]:
                 int_or_parse_error(
                     object_id,
-                    "Invalid value for instanceid. It must be" " a positive integer.",
+                    "Invalid value for instanceid. It must be a positive integer.",
                 )
 
             instance = get_object_or_404(Instance, pk=instance_id)
@@ -506,7 +504,7 @@ class AttachmentFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
         if instance_id:
             int_or_parse_error(
                 instance_id,
-                "Invalid value for instance_id. It must be" " a positive integer.",
+                "Invalid value for instance_id. It must be a positive integer.",
             )
             instance = get_object_or_404(Instance, pk=instance_id)
             queryset = queryset.filter(instance=instance)
@@ -615,8 +613,8 @@ class UserProfileFilter(filters.BaseFilterBackend):
     """Filter by the ``users`` query parameter."""
 
     def filter_queryset(self, request, queryset, view):
-        """Filter by the ``users`` query parameter - returns a queryset of only the users
-        in the users parameter when `view.action == "list"`"""
+        """Filter by the ``users`` query parameter - returns a queryset of only the
+        users in the users parameter when `view.action == "list"`"""
         if view.action == "list":
             users = request.GET.get("users")
             if users:
@@ -641,7 +639,7 @@ class NoteFilter(filters.BaseFilterBackend):
         if instance_id:
             int_or_parse_error(
                 instance_id,
-                "Invalid value for instance_id. It must be" " a positive integer",
+                "Invalid value for instance_id. It must be a positive integer",
             )
 
             instance = get_object_or_404(Instance, pk=instance_id)
@@ -692,7 +690,7 @@ class ExportFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
 class PublicDatasetsFilter:
     """Public data set filter where the share attribute is True"""
 
-    # pylint: disable=unused-argument,no-self-use
+    # pylint: disable=unused-argument
     def filter_queryset(self, request, queryset, view):
         """Return a queryset of shared=True data if the user is anonymous."""
         if request and request.user.is_anonymous:
