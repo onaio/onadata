@@ -1965,15 +1965,11 @@ class TestDataViewSet(TestBase):
         }
         self.assertEqual(response.status_code, 200)
         # test that all 4 geojson features are returned
-        self.assertEqual(len(response.data.get('features')), 4)
+        self.assertEqual(len(response.data.get("features")), 4)
         self.assertEqual(response.data, data)
 
         # test geojson response when pagination params are applied
-        data_get = {
-            "fields": "today",
-            "page": 1,
-            "page_size": 2
-        }
+        data_get = {"fields": "today", "page": 1, "page_size": 2}
 
         view = DataViewSet.as_view({"get": "list"})
         request = self.factory.get("/", data=data_get, **self.extra)
@@ -2014,7 +2010,7 @@ class TestDataViewSet(TestBase):
         }
         self.assertEqual(response.status_code, 200)
         # test that only 2 features are returned based on page size
-        self.assertEqual(len(response.data.get('features')), 2)
+        self.assertEqual(len(response.data.get("features")), 2)
         self.assertEqual(response.data, data)
 
     def test_geojson_format(self):
@@ -2139,8 +2135,7 @@ class TestDataViewSet(TestBase):
 
         request = self.factory.get("/", data=data_get, **self.extra)
 
-        response = view(
-            request, pk=self.xform.pk, dataid=dataid, format="geojson")
+        response = view(request, pk=self.xform.pk, dataid=dataid, format="geojson")
 
         self.assertEqual(response.status_code, 200)
         # build out geojson simple style spec
@@ -2161,9 +2156,7 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.data["type"], "FeatureCollection")
         self.assertEqual(len(response.data["features"]), 4)
         self.assertEqual(response.data["features"][0]["type"], "Feature")
-        self.assertEqual(
-            response.data["features"][0]["geometry"]["type"], "Point"
-        )
+        self.assertEqual(response.data["features"][0]["geometry"]["type"], "Point")
 
     def test_geojson_simple_style_title_prop(self):
         self._publish_submit_geojson()
@@ -2173,19 +2166,20 @@ class TestDataViewSet(TestBase):
         data_get = {
             "geo_field": "location",
             "simple_style": "true",
-            "title": "location"
+            "title": "location",
         }
 
         view = DataViewSet.as_view({"get": "retrieve"})
 
         request = self.factory.get("/", data=data_get, **self.extra)
 
-        response = view(
-            request, pk=self.xform.pk, dataid=dataid, format="geojson")
+        response = view(request, pk=self.xform.pk, dataid=dataid, format="geojson")
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn('title', response.data["properties"])
-        self.assertEqual('-1.294197 36.787219 0 34', response.data["properties"]["title"])
+        self.assertIn("title", response.data["properties"])
+        self.assertEqual(
+            "-1.294197 36.787219 0 34", response.data["properties"]["title"]
+        )
 
     def test_geojson_geofield(self):
         self._publish_submit_geojson()
@@ -3108,7 +3102,7 @@ class TestOSM(TestAbstractViewSet):
         self.extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
 
     # pylint: disable=invalid-name,too-many-locals
-    @flaky(max_runs=3)
+    @flaky(max_runs=5)
     def test_data_retrieve_instance_osm_format(self):
         """Test /data endpoint OSM format."""
         filenames = [
