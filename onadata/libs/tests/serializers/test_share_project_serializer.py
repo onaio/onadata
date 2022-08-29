@@ -193,3 +193,38 @@ class TestShareProjectSerializer(TestAbstractViewSet, TestBase):
         self.assertFalse(serializer.is_valid())
         self.assertEqual(str(serializer.errors['username'][0]),
                          "The following user(s) is/are not active: dave, john")
+
+    def test_no_username_char_limit(self):
+        """
+        Test that the 255 char max_length constraint validation error is not
+        raised when trying to share a project with multiple users
+        """
+        self._publish_xls_form_to_project()
+        project = Project.objects.last()
+
+        # Test that it can share to multiple users
+        users_list = [
+            "cowmirowlanchaharmonicabrownbreadokratea",
+            "harmonicaantlambchopdoggoatgarlicbread",
+            "pureenchantingjunopancakeshoagsobjectbat",
+            "toystoryshrimprhythmzebraaceventuraran",
+            "riversandwichnovaowlhighnoonstyxgiraffe",
+            "mayonnaiseearthyinceptionbatplanetarlog",
+            "fitnessleoiantgollumnotesmelodypinecone"
+        ]
+        for user in users_list:
+            # create users
+            _user = self._create_user(user, user)
+            self.assertFalse(ReadOnlyRole.user_has_role(_user, project))
+        # check usernames length is > 255 chars
+        usernames = ','.join(users_list)
+        self.assertTrue(len(usernames) > 255)
+        data = {
+            'project': project.id,
+            'username': usernames,
+            'role': ReadOnlyRole.name
+        }
+
+        serializer = ShareProjectSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+        self.assertFalse(len(serializer.errors) > 0)
