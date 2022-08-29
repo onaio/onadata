@@ -30,7 +30,7 @@ class ShareProjectSerializer(serializers.Serializer):
     """
 
     project = ProjectField()
-    username = serializers.CharField(max_length=255)
+    username = serializers.CharField(required=True)
     role = serializers.CharField(max_length=50)
 
     def create(self, validated_data):
