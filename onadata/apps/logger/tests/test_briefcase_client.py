@@ -100,8 +100,8 @@ def submission_list(request, context):
     client.set_authorization("bob", "bob", "Digest")
     res = client.get(f"{request.url}")
     if res.status_code == 302:
-        res = client.get(res["Location"])
-        assert res.status_code == 200, (res["Location"], request.url, res.content)
+        res = client.get(res.get("Location"))
+        assert res.status_code == 200, (res.get("Location"), request.url, res.content)
         response.encoding = res.get("content-type")
         return get_streaming_content(res)
     context.status_code = 200
