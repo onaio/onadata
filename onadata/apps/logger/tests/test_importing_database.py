@@ -3,7 +3,7 @@ import os
 
 from django.conf import settings
 from django.urls import reverse
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 
 from onadata.apps.logger.import_tools import import_instances_from_zip
 from onadata.apps.logger.models import Instance
@@ -62,14 +62,14 @@ class TestImportingDatabase(TestBase):
         1 simple survey (marked as complete)
         """
         # Create new user to import data
-        user = User.objects.create(username="import_test")
+        user = get_user_model().objects.create(username="import_test")
 
         # import from sd card
         initial_instance_count = Instance.objects.count()
         initial_image_count = images_count(username=user.username)
 
         import_instances_from_zip(
-            os.path.join(DB_FIXTURES_PATH, "bulk_submission.zip"), self.user
+            os.path.join(DB_FIXTURES_PATH, "bulk_submission.zip"), user
         )
 
         instance_count = Instance.objects.count()
