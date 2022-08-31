@@ -3,6 +3,27 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.3.2(2022-08-31)
+------------------
+- Remove username max_length constraint in ShareProjectSerializer
+  `PR #2311 <https://github.com/onaio/onadata/pull/2311>`_
+  [@KipSigei]
+- Switch to prospector to do static analysis
+  `PR #2310 <https://github.com/onaio/onadata/pull/2310>`_
+  [@ukanga]
+- Send Trivy summary to Slack
+  `PR #2306 <https://github.com/onaio/onadata/pull/2306>`_
+  [@DavisRayM]
+- Fix typo while retrieving configurations
+  `PR #2305 <https://github.com/onaio/onadata/pull/2305>`_
+  [@DavisRayM]
+- Handle data only repeat structure
+  `PR #2304 <https://github.com/onaio/onadata/pull/2304>`_
+  [@ukanga]
+- Ensure the default ignored flake8 errors are actually ignored
+  `PR #2302 <https://github.com/onaio/onadata/pull/2302>`_
+  [@DavisRayM]
+
 v3.3.1(2022-08-22)
 ------------------
 - Fix boto3 configs typo
