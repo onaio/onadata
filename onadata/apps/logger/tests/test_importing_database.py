@@ -61,8 +61,19 @@ class TestImportingDatabase(TestBase):
         1 photo survey (duplicate, completed)
         1 simple survey (marked as complete)
         """
-        # Create new user to import data
+        # Create new user to import data and publish test form
         user = get_user_model().objects.create(username="import_test")
+        self._publish_xls_file(
+            os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "logger",
+                "fixtures",
+                "test_forms",
+                "tutorial.xlsx",
+            ),
+            user=user
+        )
 
         # import from sd card
         initial_instance_count = Instance.objects.count()
