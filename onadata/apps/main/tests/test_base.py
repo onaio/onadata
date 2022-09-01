@@ -103,8 +103,9 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             self.client = self._login(username, password)
             self.anon = Client()
 
-    def _publish_xls_file(self, path):
-        if not path.startswith(f"/{self.user.username}/"):
+    def _publish_xls_file(self, path, user=None):
+        user = user or self.user
+        if not path.startswith(f"/{user.username}/"):
             path = os.path.join(self.this_directory, path)
         with open(path, "rb") as f:
             xls_file = InMemoryUploadedFile(
@@ -117,10 +118,10 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             )
             if not hasattr(self, "project"):
                 # pylint: disable=attribute-defined-outside-init
-                self.project = get_user_default_project(self.user)
+                self.project = get_user_default_project(user)
 
             DataDictionary.objects.create(
-                created_by=self.user, user=self.user, xls=xls_file, project=self.project
+                    created_by=user, user=user, xls=xls_file, project=self.project
             )
 
     def _publish_xlsx_file(self):
