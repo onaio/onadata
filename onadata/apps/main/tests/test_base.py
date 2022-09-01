@@ -29,6 +29,7 @@ from six.moves.urllib.request import urlopen
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.logger.views import submission
+from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.main.models import UserProfile
 from onadata.apps.viewer.models import DataDictionary
 from onadata.libs.test_utils.pyxform_test_case import PyxformMarkdown
@@ -208,8 +209,14 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
                 media_file,
             ),
         )
+        success_xml = clean_and_parse_xml(self.response.content)
+        submission_metadata = success_xml.getElementsByTagName("submissionMetadata")
+        self.assertEqual(len(submission_metadata), 1)
+        uuid = submission_metadata[0].getAttribute("instanceID").replace("uuid:", "")
+        instance = Instance.objects.get(uuid=uuid)
+
         # pylint: disable=attribute-defined-outside-init
-        self.attachment = Attachment.objects.all().reverse()[0]
+        self.attachment = instance.attachments.all()[0]
         self.attachment_media_file = self.attachment.media_file
 
     def _publish_transportation_form_and_submit_instance(self):
