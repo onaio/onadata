@@ -4028,8 +4028,8 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertTrue(self.xform.has_hxl_support)
             instance = self.xform.instances.first()
             data_id, date_modified = (
-                instance.pk,
-                instance.date_modified.strftime(MONGO_STRFTIME),
+                instance.json["_id"],
+                instance.json["_date_modified"],
             )
 
             view = XFormViewSet.as_view({"get": "retrieve"})
@@ -4051,8 +4051,8 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 "_date_modified,_tags,_notes,_version,_duration,_submitted_by,"
                 "_total_media,_media_count,_media_all_received\n"
                 "29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,"
-                "%s,74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01,"
-                "%s,,,201604121155,,bob,0,0,True\n" % (data_id, date_modified)
+                f"{data_id},74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01,"
+                f"{date_modified},,,201604121155,,bob,0,0,True\n"
             )
             self.assertEqual(expected_content, content)
             headers = dict(response.items())
