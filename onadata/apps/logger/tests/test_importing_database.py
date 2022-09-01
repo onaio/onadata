@@ -3,8 +3,7 @@ import os
 
 from django.conf import settings
 from django.urls import reverse
-
-from flaky import flaky
+from django.contrib.auth import get_user_model
 
 from onadata.apps.logger.import_tools import import_instances_from_zip
 from onadata.apps.logger.models import Instance
@@ -49,7 +48,6 @@ class TestImportingDatabase(TestBase):
             for image in images:
                 os.remove(image)
 
-    @flaky
     def test_importing_b1_and_b2(self):
         """
         b1 and b2 are from the *same phone* at different times. (this
@@ -63,18 +61,31 @@ class TestImportingDatabase(TestBase):
         1 photo survey (duplicate, completed)
         1 simple survey (marked as complete)
         """
+        # Create new user to import data and publish test form
+        user = get_user_model().objects.create(username="import_test")
+        self._publish_xls_file(
+            os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "logger",
+                "fixtures",
+                "test_forms",
+                "tutorial.xlsx",
+            ),
+            user=user
+        )
+
         # import from sd card
         initial_instance_count = Instance.objects.count()
-        initial_image_count = images_count()
+        initial_image_count = images_count(username=user.username)
 
         import_instances_from_zip(
-            os.path.join(DB_FIXTURES_PATH, "bulk_submission.zip"), self.user
+            os.path.join(DB_FIXTURES_PATH, "bulk_submission.zip"), user
         )
 
         instance_count = Instance.objects.count()
-        image_count = images_count()
+        image_count = images_count(username=user.username)
         # Images are not duplicated
-        # TODO: Figure out how to get this test passing.
         self.assertEqual(image_count, initial_image_count + 2)
 
         # Instance count should have incremented

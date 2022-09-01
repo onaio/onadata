@@ -114,7 +114,7 @@ dict2xml==1.7.1
     # via onadata
 dill==0.3.5.1
     # via pylint
-django==3.2.14
+django==3.2.15
     # via
     #   django-cors-headers
     #   django-csp
@@ -275,7 +275,7 @@ lazy-object-proxy==1.7.1
     # via astroid
 linear-tsv==1.1.0
     # via tabulator
-lxml==4.9.0
+lxml==4.9.1
     # via onadata
 markdown==3.3.7
     # via onadata
@@ -524,7 +524,7 @@ typing-extensions==4.3.0
     # via
     #   astroid
     #   pylint
-ujson==5.3.0
+ujson==5.4.0
     # via onadata
 unicodecsv==0.14.1
     # via
