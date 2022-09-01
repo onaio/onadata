@@ -5,6 +5,9 @@ Changelog for Onadata
 
 v3.3.2(2022-08-31)
 ------------------
+- Update application dependencies to address security vulnerabilities
+  `PR #2309 <https://github.com/onaio/onadata/pull/2309>`_
+  [@DavisRayM]
 - Remove username max_length constraint in ShareProjectSerializer
   `PR #2311 <https://github.com/onaio/onadata/pull/2311>`_
   [@KipSigei]
