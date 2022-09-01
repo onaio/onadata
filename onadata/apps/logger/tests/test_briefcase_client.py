@@ -19,6 +19,7 @@ from flaky import flaky
 from six.moves.urllib.parse import urljoin
 
 from onadata.apps.logger.models import Instance, XForm
+from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.views import download_xform, formList, xformsManifest
 from onadata.apps.main.models import MetaData
 from onadata.apps.main.tests.test_base import TestBase
@@ -101,7 +102,16 @@ def submission_list(request, context):
     res = client.get(f"{request.url}")
     if res.status_code == 302:
         res = client.get(res.get("Location"))
-        assert res.status_code == 200, (res.status_code, request.url, res.content)
+        media = []
+        if res.status_code == 404:
+            for attachment in Attachment.objects.all():
+                media.append(attachment.media_file.name)
+        assert res.status_code == 200, (
+            res.status_code,
+            ";".join(media),
+            request.url,
+            res.content,
+        )
         response.encoding = res.get("content-type")
         return get_streaming_content(res)
     context.status_code = 200

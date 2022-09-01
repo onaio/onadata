@@ -33,6 +33,7 @@ from onadata.apps.logger.models import Attachment, Instance, Project, XForm
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.widget import Widget
 from onadata.apps.logger.views import submission
+from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.main import tests as main_tests
 from onadata.apps.main.models import MetaData, UserProfile
 from onadata.apps.viewer.models import DataDictionary
@@ -360,6 +361,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
                 self.profile_data["username"], self.profile_data["password1"]
             )
 
+        media_count = 0
         tmp_file = None
 
         if add_uuid:
@@ -371,8 +373,10 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
                 if isinstance(media_file, list):
                     for position, _value in enumerate(media_file):
                         post_data[f"media_file_{position}"] = media_file[position]
+                        media_count += 1
                 else:
                     post_data["media_file"] = media_file
+                    media_count += 1
 
             if username is None:
                 username = self.user.username
@@ -388,6 +392,26 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
             if auth and self.response.status_code == 401:
                 request.META.update(auth(request.META, self.response))
                 self.response = submission(request, username=username)
+            if media_file and media_count > 0 and self.response.status_code == 201:
+                success_xml = clean_and_parse_xml(self.response.content)
+                submission_metadata = success_xml.getElementsByTagName(
+                    "submissionMetadata"
+                )
+                self.assertEqual(len(submission_metadata), 1)
+                uuid = (
+                    submission_metadata[0]
+                    .getAttribute("instanceID")
+                    .replace("uuid:", "")
+                )
+                self.instance = Instance.objects.get(uuid=uuid)
+                self.assertEqual(self.instance.attachments.all().count(), media_count)
+            else:
+                if hasattr(self, "logger"):
+                    self.logger.debug(
+                        "Auth/Submission request: %s, media: %s",
+                        self.response.status_code,
+                        media_count,
+                    )
 
         if forced_submission_time:
             instance = Instance.objects.order_by("-pk").all()[0]

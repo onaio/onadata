@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 import datetime
 import json
+import logging
 import os
 from builtins import open
 from datetime import timedelta
@@ -3100,6 +3101,7 @@ class TestOSM(TestAbstractViewSet):
         self._login_user_and_profile()
         self.factory = RequestFactory()
         self.extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
+        self.logger = logging.getLogger("console_logger")
 
     # pylint: disable=invalid-name,too-many-locals
     @flaky(max_runs=5)
@@ -3118,12 +3120,12 @@ class TestOSM(TestAbstractViewSet):
         self._publish_xls_form_to_project(xlsform_path=xlsform_path)
         submission_path = os.path.join(osm_fixtures_dir, "instance_a.xml")
         files = [open(path, "rb") for path in paths]
-        count = Attachment.objects.filter(extension="osm").count()
         self._make_submission(submission_path, media_file=files)
-        self.assertEqual(Attachment.objects.filter(extension="osm").count(), count + 2)
+        self.assertTrue(hasattr(self, "instance"))
+        self.assertEqual(self.instance.attachments.all().count(), len(files))
 
-        formid = self.xform.pk
-        dataid = self.xform.instances.latest("date_created").pk
+        formid = self.instance.xform.pk
+        dataid = self.instance.pk
         request = self.factory.get("/", **self.extra)
 
         # look at the data/[pk]/[dataid].osm endpoint

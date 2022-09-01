@@ -122,7 +122,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
                 self.project = get_user_default_project(user)
 
             DataDictionary.objects.create(
-                    created_by=user, user=user, xls=xls_file, project=self.project
+                created_by=user, user=user, xls=xls_file, project=self.project
             )
 
     def _publish_xlsx_file(self):
