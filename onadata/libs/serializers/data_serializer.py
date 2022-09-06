@@ -56,9 +56,11 @@ def get_request_and_username(context):
         # get the username from the XForm object if form_id is
         # present else utilize the request users username
         if form_pk:
-            username = XForm.objects.get(pk=form_pk).user.username
+            form = get_object_or_404(XForm, pk=form_pk)
+            username = form.user.username
         elif project_pk:
-            username = Project.objects.get(pk=project_pk).user.username
+            project = get_object_or_404(Project, pk=project_pk)
+            username = project.user.username
         else:
             username = request.user and request.user.username
 

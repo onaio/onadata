@@ -534,12 +534,16 @@ class IsAuthenticatedSubmission(BasePermission):
     def has_permission(self, request, view):
         username = view.kwargs.get("username")
         form_pk = view.kwargs.get("xform_pk")
+        project_pk = view.kwargs.get("project_pk")
         if request.method in ["HEAD", "POST"] and request.user.is_anonymous:
             if username:
                 user = get_object_or_404(User, username__iexact=username)
             elif form_pk:
                 form = get_object_or_404(XForm, pk=form_pk)
                 user = form.user
+            elif project_pk:
+                project = get_object_or_404(Project, pk=project_pk)
+                user = project.user
             else:
                 # Raises a permission denied exception, forces authentication
                 return False
