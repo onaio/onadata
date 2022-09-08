@@ -1,16 +1,24 @@
 from django.contrib.auth.models import User
+from django.http import Http404
 from mock import MagicMock, patch
-from onadata.apps.main.tests.test_base import TestBase
 
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.api.permissions import (
+    IsAuthenticatedSubmission,
     MetaDataObjectPermissions,
     AlternateHasObjectPermissionMixin
 )
+from onadata.libs.permissions import UserProfile
 
 
-class TestPermissions(TestBase):
+class TestPermissions(TestAbstractViewSet):
+    """
+    Test permission classes
+    """
+
     def setUp(self):
+        super().setUp()
         self.view = MagicMock()
         self.permissions = MetaDataObjectPermissions()
         self.instance = MagicMock(Instance)
@@ -38,3 +46,42 @@ class TestPermissions(TestBase):
         self.assertFalse(
             self.permissions.has_object_permission(
                 request, self.view, obj))
+
+    def test_is_authenticated_submission_permissions(self):
+        """
+        Tests that permissions for submissions are applied correctly
+        """
+        self._publish_xls_form_to_project()
+        user = self.xform.user
+        project = self.xform.project
+        submission_permission = IsAuthenticatedSubmission()
+
+        request = MagicMock(method='GET')
+        view = MagicMock(username=user.username)
+        self.assertTrue(submission_permission.has_permission(request, self.view))
+
+        request = MagicMock(method='POST')
+        view = MagicMock(kwargs={"username": user.username})
+        self.assertTrue(submission_permission.has_permission(request, view))
+
+        view = MagicMock(kwargs={"username": "test_user"})
+        with self.assertRaises(Http404):
+            submission_permission.has_permission(request, view)
+
+        view = MagicMock(kwargs={"xform_pk": self.xform.pk})
+        self.assertTrue(submission_permission.has_permission(request, view))
+
+        view = MagicMock(kwargs={"project_pk": project.pk})
+        self.assertTrue(submission_permission.has_permission(request, view))
+
+        profile = UserProfile.objects.get(user=user)
+        profile.require_auth = True
+        profile.save()
+        view = MagicMock(kwargs={"username": user.username})
+        self.assertFalse(submission_permission.has_permission(request, view))
+
+        view = MagicMock(kwargs={"xform_pk": self.xform.pk})
+        self.assertFalse(submission_permission.has_permission(request, view))
+
+        view = MagicMock(kwargs={"project_pk": project.pk})
+        self.assertFalse(submission_permission.has_permission(request, view))
