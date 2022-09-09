@@ -428,17 +428,17 @@ urlpatterns = [
         name="submissions",
     ),
     re_path(
-        r"^(?P<username>\w+)/(?P<xform_pk>\d+)/submission$",
-        XFormSubmissionViewSet.as_view({"post": "create", "head": "create"}),
-        name="submissions",
-    ),
-    re_path(
         r"^projects/(?P<project_pk>\w+)/submission$",
         XFormSubmissionViewSet.as_view({"post": "create", "head": "create"}),
         name="submissions",
     ),
     re_path(
         r"^forms/(?P<xform_pk>\w+)/submission$",
+        XFormSubmissionViewSet.as_view({"post": "create", "head": "create"}),
+        name="submissions",
+    ),
+    re_path(
+        r"^(?P<username>\w+)/(?P<xform_pk>\d+)/submission$",
         XFormSubmissionViewSet.as_view({"post": "create", "head": "create"}),
         name="submissions",
     ),
