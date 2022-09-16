@@ -15,7 +15,6 @@ def create_flow(redirect_uri: Optional[str] = None) -> Flow:
         settings.GOOGLE_FLOW,
         scopes=[
             "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/docs",
             "https://www.googleapis.com/auth/drive.file",
         ],
         redirect_uri=redirect_uri or settings.GOOGLE_STEP2_URI,
