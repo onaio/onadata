@@ -593,7 +593,7 @@ class TestCSVDataFrameBuilder(TestBase):
         csv_file.close()
         os.unlink(temp_file.name)
 
-    def test_geopoints_csv_export_remove_group_name(self):
+    def test_remove_group_name_for_gps_within_groups(self):
         """
         Test gps CSV export with remove_group_name option.
         """
