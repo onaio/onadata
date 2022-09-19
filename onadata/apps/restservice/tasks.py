@@ -4,7 +4,7 @@ restservice async functions.
 """
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.restservice.utils import call_service
-from onadata.celery import app
+from onadata.celeryapp import app
 
 
 @app.task()

@@ -1,4 +1,4 @@
-# -*- coding=utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Export model.
 """
@@ -38,7 +38,7 @@ def get_export_options_query_kwargs(options):
         if field in options:
             field_value = options.get(field)
 
-            key = "options__{}".format(field)
+            key = f"options__{field}"
             options_kwargs[key] = field_value
 
     return options_kwargs
@@ -162,7 +162,7 @@ class Export(models.Model):
         unique_together = (("xform", "filename"),)
 
     def __str__(self):
-        return "%s - %s (%s)" % (self.export_type, self.xform, self.filename)
+        return f"{self.export_type} - {self.xform} ({self.filename})"
 
     def save(self, *args, **kwargs):  # pylint: disable=arguments-differ
         if not self.pk and self.xform:
@@ -177,11 +177,11 @@ class Export(models.Model):
 
             # update time_of_last_submission with
             # xform.time_of_last_submission_update
-            # pylint: disable=E1101
+            # pylint: disable=no-member
             self.time_of_last_submission = self.xform.time_of_last_submission_update()
         if self.filename:
             self.internal_status = Export.SUCCESSFUL
-        super(Export, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     @classmethod
     def _delete_oldest_export(cls, xform, export_type):
@@ -213,7 +213,7 @@ class Export(models.Model):
             # need to have this since existing models will have their
             # internal_status set to PENDING - the default
             return Export.SUCCESSFUL
-        elif self.internal_status == Export.FAILED:
+        if self.internal_status == Export.FAILED:
             return Export.FAILED
 
         return Export.PENDING
@@ -230,7 +230,7 @@ class Export(models.Model):
     def _update_filedir(self):
         if not self.filename:
             raise AssertionError()
-        # pylint: disable=E1101
+        # pylint: disable=no-member
         self.filedir = os.path.join(
             self.xform.user.username, "exports", self.xform.id_string, self.export_type
         )
@@ -258,6 +258,7 @@ class Export(models.Model):
             except NotImplementedError:
                 # read file from s3
                 _name, ext = os.path.splitext(self.filepath)
+                # pylint: disable=consider-using-with
                 tmp = NamedTemporaryFile(suffix=ext, delete=False)
                 f = default_storage.open(self.filepath)
                 tmp.write(f.read())
@@ -280,7 +281,7 @@ class Export(models.Model):
                 xform=xform,
                 export_type=export_type,
                 internal_status__in=[Export.SUCCESSFUL, Export.PENDING],
-                **export_options
+                **export_options,
             ).latest("created_on")
         except cls.DoesNotExist:
             return True

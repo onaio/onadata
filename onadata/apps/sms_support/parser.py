@@ -107,7 +107,7 @@ def parse_sms_text(xform, identity, sms_text):  # noqa C901
                 return filename
             except (AttributeError, TypeError, binascii.Error) as e:
                 raise SMSCastingError(
-                    _("Media file format " "incorrect. %(except)r") % {"except": e},
+                    _("Media file format incorrect. %(except)r") % {"except": e},
                     xlsf_name,
                 ) from e
 
@@ -122,7 +122,7 @@ def parse_sms_text(xform, identity, sms_text):  # noqa C901
                 if choice.get("sms_option") == value:
                     return choice.get("name")
             raise SMSCastingError(
-                _("No matching choice " "for '%(input)s'") % {"input": value}, xlsf_name
+                _("No matching choice for '%(input)s'") % {"input": value}, xlsf_name
             )
         if xlsf_type == "select all that apply":
             values = [s.strip() for s in value.split()]
@@ -272,7 +272,7 @@ def process_incoming_smses(username, incomings, id_string=None):  # noqa C901
     json_submissions = []
     resp_str = {
         "success": _(
-            "[SUCCESS] Your submission has been accepted. " "It's ID is {{ id }}."
+            "[SUCCESS] Your submission has been accepted. It's ID is {{ id }}."
         )
     }
 
@@ -289,7 +289,7 @@ def process_incoming_smses(username, incomings, id_string=None):  # noqa C901
             responses.append(
                 {
                     "code": SMS_API_ERROR,
-                    "text": _("Missing 'identity' " "or 'text' field."),
+                    "text": _("Missing 'identity' or 'text' field."),
                 }
             )
             return
@@ -298,7 +298,7 @@ def process_incoming_smses(username, incomings, id_string=None):  # noqa C901
             responses.append(
                 {
                     "code": SMS_API_ERROR,
-                    "text": _("'identity' and 'text' fields can " "not be empty."),
+                    "text": _("'identity' and 'text' fields can not be empty."),
                 }
             )
             return
@@ -316,7 +316,7 @@ def process_incoming_smses(username, incomings, id_string=None):  # noqa C901
                 {
                     "code": SMS_SUBMISSION_REFUSED,
                     "text": _(
-                        "The form '%(id_string)s' does not " "accept SMS submissions."
+                        "The form '%(id_string)s' does not accept SMS submissions."
                     )
                     % {"id_string": xform.id_string},
                 }
@@ -334,14 +334,12 @@ def process_incoming_smses(username, incomings, id_string=None):  # noqa C901
             resp_str.update({"success": json_survey.get("sms_response")})
 
         # check that the form contains at least one filled group
-        meta_groups = sum([1 for k in list(json_submission) if k.startswith("meta")])
+        meta_groups = sum(1 for k in list(json_submission) if k.startswith("meta"))
         if len(list(json_submission)) <= meta_groups:
             responses.append(
                 {
                     "code": SMS_PARSING_ERROR,
-                    "text": _(
-                        "There must be at least one group of " "questions filled."
-                    ),
+                    "text": _("There must be at least one group of questions filled."),
                 }
             )
             return
@@ -362,7 +360,7 @@ def process_incoming_smses(username, incomings, id_string=None):  # noqa C901
                 responses.append(
                     {
                         "code": SMS_SUBMISSION_REFUSED,
-                        "text": _(f"Required field `{field}` is  " "missing."),
+                        "text": _(f"Required field `{field}` is  missing."),
                     }
                 )
                 return

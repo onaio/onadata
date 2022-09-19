@@ -1,4 +1,4 @@
-# -*- coding=utf-8 -*-
+# -*- coding: utf-8 -*-
 # pylint: disable=too-many-lines
 """
 Main views.
@@ -326,7 +326,7 @@ def profile(request, username):
     try:
         resp = render(request, "profile.html", data)
     except XLSFormError as e:
-        resp = HttpResponseBadRequest(e.__str__())
+        resp = HttpResponseBadRequest(str(e))
 
     return resp
 
@@ -514,7 +514,7 @@ def show(request, username=None, id_string=None, uuid=None):
         data["mapbox_layer"] = MetaData.mapbox_layer_upload(xform)
         data["external_export"] = MetaData.external_export(xform)
     except XLSFormError as e:
-        return HttpResponseBadRequest(e.__str__())
+        return HttpResponseBadRequest(str(e))
 
     if is_xform_owner:
         set_xform_owner_data(data, xform, request, username, id_string)
@@ -611,7 +611,7 @@ def api(request, username=None, id_string=None):  # noqa C901
 
         cursor = query_data(**args)
     except (ValueError, TypeError) as e:
-        return HttpResponseBadRequest(conditional_escape(e.__str__()))
+        return HttpResponseBadRequest(conditional_escape(str(e)))
 
     if "callback" in request.GET and request.GET.get("callback") != "":
         callback = request.GET.get("callback")
@@ -1456,7 +1456,7 @@ def activity_api(request, username):
             query_args["count"] = int(request.GET.get("count")) > 0
         cursor = AuditLog.query_data(**query_args)
     except ValueError as e:
-        return HttpResponseBadRequest(e.__str__())
+        return HttpResponseBadRequest(str(e))
 
     records = list(record for record in cursor)
     if "callback" in request.GET and request.GET.get("callback") != "":

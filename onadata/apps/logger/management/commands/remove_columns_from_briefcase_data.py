@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Delete specific columns from submission XMLs pulled by ODK Briefcase.
+"""
 import os
 from typing import List
 
@@ -8,8 +12,8 @@ from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 
 
 def _traverse_child_nodes_and_delete_column(xml_obj, column: str) -> None:
-    childNodes = xml_obj.childNodes
-    for elem in childNodes:
+    child_nodes = xml_obj.childNodes
+    for elem in child_nodes:
         if elem.nodeName in column:
             xml_obj.removeChild(elem)
         if hasattr(elem, "childNodes"):
@@ -17,6 +21,7 @@ def _traverse_child_nodes_and_delete_column(xml_obj, column: str) -> None:
 
 
 def remove_columns_from_xml(xml: str, columns: List[str]) -> str:
+    """Returns the ``xml`` with columns/tags removed."""
     xml_obj = clean_and_parse_xml(xml).documentElement
     for column in columns:
         _traverse_child_nodes_and_delete_column(xml_obj, column)
@@ -24,7 +29,11 @@ def remove_columns_from_xml(xml: str, columns: List[str]) -> str:
 
 
 class Command(BaseCommand):
-    help = _("Delete specific columns from submission " "XMLs pulled by ODK Briefcase.")
+    """
+    Delete specific columns from submission XMLs pulled by ODK Briefcase.
+    """
+
+    help = _("Delete specific columns from submission XMLs pulled by ODK Briefcase.")
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -76,7 +85,9 @@ class Command(BaseCommand):
             )
             data = None
 
-            with open(f"{in_dir}/{submission_folder}/submission.xml", "r") as in_file:
+            with open(
+                f"{in_dir}/{submission_folder}/submission.xml", "r", encoding="utf-8"
+            ) as in_file:
                 data = in_file.read().replace("\n", "")
                 data = remove_columns_from_xml(data, columns)
                 in_file.close()
@@ -87,13 +98,17 @@ class Command(BaseCommand):
                 os.makedirs(f"{out_dir}/{submission_folder}")
 
                 with open(
-                    f"{out_dir}/{submission_folder}/submission.xml", "w"
+                    f"{out_dir}/{submission_folder}/submission.xml",
+                    "w",
+                    encoding="utf-8",
                 ) as out_file:
                     out_file.write(data)
                     out_file.close()
             else:
                 with open(
-                    f"{in_dir}/{submission_folder}/submission.xml", "r+"
+                    f"{in_dir}/{submission_folder}/submission.xml",
+                    "r+",
+                    encoding="utf-8",
                 ) as out_file:
                     out_file.truncate(0)
                     out_file.write(data)

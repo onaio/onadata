@@ -2,6 +2,7 @@
 """
 Project model class
 """
+from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -28,9 +29,9 @@ class PrefetchManager(models.Manager):
     def get_queryset(self):
         """Return a queryset with the XForm, Team, tags, and other related relations
         prefetched."""
-        # pylint: disable=import-outside-toplevel
-        from onadata.apps.api.models.team import Team
-        from onadata.apps.logger.models.xform import XForm
+        # pylint: disable=invalid-name
+        Team = apps.get_model("api", "Team")  # noqa N806
+        XForm = apps.get_model("logger", "XForm")  # noqa N806
 
         # pylint: disable=no-member
         return (
@@ -137,7 +138,9 @@ class Project(BaseModel):
         return f"{self.organization}|{self.name}"
 
     def clean(self):
-        """Raises a validation error if a project with same name and organization exists."""
+        """
+        Raises a validation error if a project with same name and organization exists.
+        """
         query_set = Project.objects.exclude(pk=self.pk).filter(
             name__iexact=self.name, organization=self.organization
         )

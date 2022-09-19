@@ -16,4 +16,4 @@ class SurveyType(models.Model):
         app_label = "logger"
 
     def __str__(self):
-        return "SurveyType: %s" % self.slug
+        return f"SurveyType: {self.slug}"

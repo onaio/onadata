@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+The int_or_parse_error utility function.
+"""
 from rest_framework.exceptions import ParseError
 
 
@@ -8,5 +12,5 @@ def int_or_parse_error(value, error_string):
     """
     try:
         int(value)
-    except ValueError:
-        raise ParseError(error_string)
+    except ValueError as exc:
+        raise ParseError(error_string) from exc

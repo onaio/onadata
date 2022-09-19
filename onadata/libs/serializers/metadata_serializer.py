@@ -13,24 +13,24 @@ from django.core.validators import URLValidator
 from django.db.utils import IntegrityError
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
-from six.moves.urllib.parse import urlparse
+
 from rest_framework import serializers
 from rest_framework.reverse import reverse
-
+from six.moves.urllib.parse import urlparse
 
 from onadata.apps.api.tools import update_role_by_meta_xform_perms
-from onadata.libs.utils.api_export_tools import get_metadata_format
 from onadata.apps.logger.models import DataView, Instance, Project, XForm
 from onadata.apps.main.models import MetaData
 from onadata.libs.permissions import ROLES, ManagerRole
-from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.fields.instance_related_field import InstanceRelatedField
+from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.fields.project_related_field import ProjectRelatedField
 from onadata.libs.serializers.fields.xform_related_field import XFormRelatedField
+from onadata.libs.utils.api_export_tools import get_metadata_format
 from onadata.libs.utils.common_tags import (
-    XFORM_META_PERMS,
-    SUBMISSION_REVIEW,
     IMPORTED_VIA_CSV_BY,
+    SUBMISSION_REVIEW,
+    XFORM_META_PERMS,
 )
 
 UNIQUE_TOGETHER_ERROR = "Object already exists"
@@ -174,7 +174,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             raise serializers.ValidationError(
                 {
                     "missing_field": _(
-                        "`xform` or `project` or `instance`" "field is required."
+                        "`xform` or `project` or `instance` field is required."
                     )
                 }
             )
@@ -182,7 +182,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         if data_file:
             allowed_types = settings.SUPPORTED_MEDIA_UPLOAD_TYPES
             # add geojson mimetype
-            mimetypes.add_type('application/geo+json', '.geojson')
+            mimetypes.add_type("application/geo+json", ".geojson")
             data_content_type = (
                 data_file.content_type
                 if data_file.content_type in allowed_types
@@ -219,11 +219,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                     )
                     if not has_perm:
                         raise serializers.ValidationError(
-                            {
-                                "data_value": _(
-                                    "User has no permission to " "the dataview."
-                                )
-                            }
+                            {"data_value": _("User has no permission to the dataview.")}
                         ) from e
                 else:
                     raise serializers.ValidationError(
@@ -251,7 +247,6 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
 
         return attrs
 
-    # pylint: disable=no-self-use
     def get_content_object(self, validated_data):
         """
         Returns the validated 'xform' or 'project' or 'instance' ids being
@@ -270,7 +265,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         data_type = validated_data.get("data_type")
         data_file = validated_data.get("data_file")
         data_file_type = validated_data.get("data_file_type")
-        extra_data = validated_data.get('extra_data')
+        extra_data = validated_data.get("extra_data")
 
         content_object = self.get_content_object(validated_data)
         data_value = data_file.name if data_file else validated_data.get("data_value")

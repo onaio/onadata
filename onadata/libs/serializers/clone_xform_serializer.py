@@ -19,7 +19,6 @@ class CloneXFormSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=255)
     project = ProjectField(required=False)
 
-    # pylint: disable=no-self-use
     def create(self, validated_data):
         """Uses  the CloneXForm class to clone/copy an XForm.
 
@@ -29,7 +28,6 @@ class CloneXFormSerializer(serializers.Serializer):
 
         return instance
 
-    # pylint: disable=no-self-use
     def update(self, instance, validated_data):
         instance.xform = validated_data.get("xform", instance.xform)
         instance.username = validated_data.get("username", instance.username)
@@ -38,7 +36,6 @@ class CloneXFormSerializer(serializers.Serializer):
 
         return instance
 
-    # pylint: disable=no-self-use
     def validate_username(self, value):
         """Check that the username exists"""
         # pylint: disable=invalid-name

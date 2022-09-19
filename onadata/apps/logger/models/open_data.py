@@ -28,7 +28,7 @@ class OpenData(models.Model):
     date_modified = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return getattr(self, "name", "")
+        return str(getattr(self, "name", ""))
 
     class Meta:
         app_label = "logger"

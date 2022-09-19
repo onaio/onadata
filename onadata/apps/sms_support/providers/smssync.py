@@ -36,14 +36,14 @@ def autodoc(url_root, username, id_string):
             "Ushaidi's SMS Sync</a>"
         }
         + "</p><ol><li>"
-        + _("Download the SMS Sync App on your phone serving " "as a gateway.")
+        + _("Download the SMS Sync App on your phone serving as a gateway.")
         + "</li><li>"
         + _("Configure the app to point to one of the following URLs")
         + '<br /><span class="sms_autodoc_example">%(urla)s'
         + "<br />%(urlb)s</span><br />"
-        + _("Optionnaly set a keyword to prevent non-formhub " "messages to be sent.")
+        + _("Optionnaly set a keyword to prevent non-formhub messages to be sent.")
         + "</li><li>"
-        + _("In the preferences, tick the box to allow " "replies from the server.")
+        + _("In the preferences, tick the box to allow replies from the server.")
         + "</li></ol><p>"
         + _(
             "That's it. Now Send an SMS Formhub submission to the number "

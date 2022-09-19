@@ -12,7 +12,7 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.http.response import Http404
 
 from onadata.apps.logger.xform_fs import XFormInstanceFS
-from onadata.celery import app
+from onadata.celeryapp import app
 from onadata.libs.utils.logger_tools import create_instance
 
 # odk
@@ -110,6 +110,7 @@ def iterate_through_instances(
     success_count = 0
     errors = []
 
+    # pylint: disable=too-many-nested-blocks
     for directory, _subdirs, subfiles in os.walk(dirpath):
         for filename in subfiles:
             filepath = os.path.join(directory, filename)

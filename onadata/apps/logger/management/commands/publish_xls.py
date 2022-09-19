@@ -23,7 +23,7 @@ class Command(BaseCommand):
 
     args = "xls_file username project"
     help = gettext_lazy(
-        "Publish an XLS file with the option of replacing an" "existing one"
+        "Publish an XLSForm file with the option of replacing an existing one"
     )
 
     def add_arguments(self, parser):

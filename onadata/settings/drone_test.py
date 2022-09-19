@@ -1,4 +1,4 @@
-# -*- coding:utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Example local_settings.py for use with DroneCI.
 """

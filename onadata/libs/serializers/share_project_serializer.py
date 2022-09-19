@@ -1,33 +1,43 @@
-from django.contrib.auth.models import User
+# -*- coding: utf-8 -*-
+"""
+The ShareProjectSerializer class - support sharing a project.
+"""
+from django.contrib.auth import get_user_model
 from django.utils.translation import gettext as _
 
 from rest_framework import serializers
+
 from onadata.libs.models.share_project import ShareProject
-from onadata.libs.permissions import get_object_users_with_permissions
-from onadata.libs.permissions import ROLES
-from onadata.libs.permissions import OwnerRole
+from onadata.libs.permissions import ROLES, OwnerRole, get_object_users_with_permissions
 from onadata.libs.serializers.fields.project_field import ProjectField
+
+User = get_user_model()
 
 
 def attrs_to_instance(attrs, instance):
-    instance.project = attrs.get('project', instance.project)
-    instance.username = attrs.get('username', instance.username)
-    instance.role = attrs.get('role', instance.role)
-    instance.remove = attrs.get('remove', instance.remove)
+    """Apply attributes into a class object from a dict."""
+    instance.project = attrs.get("project", instance.project)
+    instance.username = attrs.get("username", instance.username)
+    instance.role = attrs.get("role", instance.role)
+    instance.remove = attrs.get("remove", instance.remove)
 
     return instance
 
 
 class ShareProjectSerializer(serializers.Serializer):
+    """
+    The ShareProjectSerializer class - support sharing a project.
+    """
+
     project = ProjectField()
-    username = serializers.CharField(max_length=255)
+    username = serializers.CharField(required=True)
     role = serializers.CharField(max_length=50)
 
     def create(self, validated_data):
         created_instances = []
 
-        for username in validated_data.pop('username').split(','):
-            validated_data['username'] = username
+        for username in validated_data.pop("username").split(","):
+            validated_data["username"] = username
             instance = ShareProject(**validated_data)
             instance.save()
             created_instances.append(instance)
@@ -41,24 +51,26 @@ class ShareProjectSerializer(serializers.Serializer):
         return instance
 
     def validate(self, attrs):
-        for username in attrs.get('username').split(','):
+        for username in attrs.get("username").split(","):
             user = User.objects.get(username=username)
-            project = attrs.get('project')
+            project = attrs.get("project")
 
             # check if the user is the owner of the project
             if user and project:
                 if user == project.organization:
-                    raise serializers.ValidationError({
-                        'username':
-                        _(u"Cannot share project with the owner (%(value)s)" %
-                          {"value": user.username})
-                    })
+                    raise serializers.ValidationError(
+                        {
+                            "username": _(
+                                f"Cannot share project with the owner ({user.username})"
+                            )
+                        }
+                    )
 
         return attrs
 
     def validate_username(self, value):
         """Check that the username exists"""
-        usernames = [u.strip() for u in value.split(',')]
+        usernames = [u.strip() for u in value.split(",")]
         user = None
         non_existent_users = []
         inactive_users = []
@@ -73,31 +85,30 @@ class ShareProjectSerializer(serializers.Serializer):
                     inactive_users.append(username)
 
         if non_existent_users:
-            non_existent_users = ', '.join(non_existent_users)
+            non_existent_users = ", ".join(non_existent_users)
             raise serializers.ValidationError(
-                _('The following user(s) does/do not exist:'
-                    f' {non_existent_users}'
-                  ))
-
-        if inactive_users:
-            inactive_users = ', '.join(inactive_users)
-            raise serializers.ValidationError(
-                _(f'The following user(s) is/are not active: {inactive_users}')
+                _(f"The following user(s) does/do not exist: {non_existent_users}")
             )
 
-        return (',').join(usernames)
+        if inactive_users:
+            inactive_users = ", ".join(inactive_users)
+            raise serializers.ValidationError(
+                _(f"The following user(s) is/are not active: {inactive_users}")
+            )
+
+        return (",").join(usernames)
 
     def validate_role(self, value):
         """check that the role exists"""
         if value not in ROLES:
-            raise serializers.ValidationError(_(
-                u"Unknown role '%(role)s'." % {"role": value}
-            ))
+            raise serializers.ValidationError(_(f"Unknown role '{value}'."))
 
         return value
 
 
 class RemoveUserFromProjectSerializer(ShareProjectSerializer):
+    """RemoveUserFromProjectSerializer class - removes a user's access to a project."""
+
     remove = serializers.BooleanField()
 
     def update(self, instance, validated_data):
@@ -113,20 +124,18 @@ class RemoveUserFromProjectSerializer(ShareProjectSerializer):
         return instance
 
     def validate(self, attrs):
-        """ Check and confirm that the project will be left with at least one
-         owner. Raises a validation error if only one owner found"""
+        """Check and confirm that the project will be left with at least one
+        owner. Raises a validation error if only one owner found"""
 
-        if attrs.get('role') == OwnerRole.name:
-            results = get_object_users_with_permissions(attrs.get('project'))
+        if attrs.get("role") == OwnerRole.name:
+            results = get_object_users_with_permissions(attrs.get("project"))
 
             # count all the owners
-            count = len(
-                [res for res in results if res.get('role') == OwnerRole.name]
-            )
+            count = len([res for res in results if res.get("role") == OwnerRole.name])
 
             if count <= 1:
-                raise serializers.ValidationError({
-                    'remove': _(u"Project requires at least one owner")
-                })
+                raise serializers.ValidationError(
+                    {"remove": _("Project requires at least one owner")}
+                )
 
         return attrs

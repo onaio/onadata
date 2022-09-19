@@ -3,6 +3,54 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.3.2(2022-08-31)
+------------------
+- Update application dependencies to address security vulnerabilities
+  `PR #2309 <https://github.com/onaio/onadata/pull/2309>`_
+  [@DavisRayM]
+- Remove username max_length constraint in ShareProjectSerializer
+  `PR #2311 <https://github.com/onaio/onadata/pull/2311>`_
+  [@KipSigei]
+- Switch to prospector to do static analysis
+  `PR #2310 <https://github.com/onaio/onadata/pull/2310>`_
+  [@ukanga]
+- Send Trivy summary to Slack
+  `PR #2306 <https://github.com/onaio/onadata/pull/2306>`_
+  [@DavisRayM]
+- Fix typo while retrieving configurations
+  `PR #2305 <https://github.com/onaio/onadata/pull/2305>`_
+  [@DavisRayM]
+- Handle data only repeat structure
+  `PR #2304 <https://github.com/onaio/onadata/pull/2304>`_
+  [@ukanga]
+- Ensure the default ignored flake8 errors are actually ignored
+  `PR #2302 <https://github.com/onaio/onadata/pull/2302>`_
+  [@DavisRayM]
+
+v3.3.1(2022-08-22)
+------------------
+- Fix boto3 configs typo
+  `PR #2305 <https://github.com/onaio/onadata/pull/2305>`_
+  [@DavisRayM]
+
+v3.3.0(2022-08-22)
+------------------
+- Correctly configure S3 client when generating presigned URLs
+  `PR #2301 <https://github.com/onaio/onadata/pull/2301>`_
+  [@DavisRayM]
+- Fix external choices form uploads
+  `PR #2300 <https://github.com/onaio/onadata/pull/2300>`_
+  [@KipSigei]
+- Fix AWS storage class typo
+  `PR #2298 <https://github.com/onaio/onadata/pull/2298>`_
+  [@KipSigei]
+- Update `generate_platform_stats` management command with extra columns
+  `PR #2297 <https://github.com/onaio/onadata/pull/2297>`_
+  [@DavisRayM]
+- Add ability to paginate geojson responses
+  `PR #2295 <https://github.com/onaio/onadata/pull/2295>`_
+  [@KipSigei]
+
 v3.2.0(2022-07-13)
 ------------------
 

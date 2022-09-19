@@ -1,4 +1,4 @@
-# -*- coding=utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 UserProfile Serializers.
 """
@@ -26,7 +26,7 @@ from onadata.apps.main.models import UserProfile
 from onadata.libs.authentication import expired
 from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
 from onadata.libs.serializers.fields.json_field import JsonField
-from onadata.libs.utils.analytics import track_object_event
+from onadata.libs.utils.analytics import TrackObjectEvent
 from onadata.libs.utils.cache_tools import IS_ORG
 from onadata.libs.utils.email import get_verification_email_data, get_verification_url
 
@@ -42,7 +42,7 @@ def _get_first_last_names(name, limit=30):
     if not isinstance(name, six.string_types):
         return name, name
 
-    if name.__len__() > (limit * 2):
+    if len(name) > (limit * 2):
         # since we are using the default django User Model, there is an
         # imposition of 30 characters on both first_name and last_name hence
         # ensure we only have 30 characters for either field
@@ -179,7 +179,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                 for field in getattr(self.Meta, "owner_only_fields"):
                     self.fields.pop(field)
 
-    def get_is_org(self, obj):  # pylint: disable=no-self-use
+    def get_is_org(self, obj):
         """
         Returns True if it is an organization profile.
         """
@@ -255,7 +255,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
         return super().update(instance, params)
 
-    @track_object_event(
+    @TrackObjectEvent(
         user_field="user", properties={"name": "name", "country": "country"}
     )
     def create(self, validated_data):
@@ -348,7 +348,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
         return value
 
-    def validate_twitter(self, value):  # pylint: disable=no-self-use
+    def validate_twitter(self, value):
         """
         Checks if the twitter handle is valid.
         """
@@ -412,14 +412,12 @@ class UserProfileWithTokenSerializer(serializers.HyperlinkedModelSerializer):
             "temp_token",
         )
 
-    # pylint: disable=no-self-use
     def get_api_token(self, obj):
         """
         Returns user's API Token.
         """
         return obj.user.auth_token.key
 
-    # pylint: disable=no-self-use
     def get_temp_token(self, obj):
         """
         This should return a valid temp token for this user profile.

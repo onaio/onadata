@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # vim: ai ts=4 sts=4 et sw=4 fileencoding=utf-8
-
+"""
+Fix duplicate instances by merging the attachments.
+"""
 from django.core.management.base import BaseCommand
 from django.db import connection
 from django.utils.translation import gettext_lazy
@@ -9,14 +11,18 @@ from onadata.apps.logger.models import Instance
 
 
 class Command(BaseCommand):
+    """Fix duplicate instances by merging the attachments."""
+
     help = gettext_lazy("Fix duplicate instances by merging the attachments.")
 
     def query_data(self, sql):
+        """Return results of given ``sql`` query."""
         cursor = connection.cursor()
         cursor.execute(sql)
         for row in cursor.fetchall():
             yield row
 
+    # pylint: disable=too-many-locals
     def handle(self, *args, **kwargs):
         sql = (
             "select xform_id, uuid, COUNT(xform_id || uuid) "
@@ -42,8 +48,8 @@ class Command(BaseCommand):
             # is a match, let's maintain the submission with the
             # correct xform.uuid.
             if is_mspray_form and not all_matches:
-                first = instances.filter(xml__contains=i.xform.uuid).first()
-                to_delete = instances.exclude(xml__contains=i.xform.uuid)
+                first = instances.filter(xml__contains=xform.uuid).first()
+                to_delete = instances.exclude(xml__contains=xform.uuid)
             else:
                 to_delete = instances.exclude(pk=first.pk)
 
@@ -58,14 +64,14 @@ class Command(BaseCommand):
 
             if delete_count >= dupes_count:
                 raise AssertionError(
-                    "# of records to delete %d should be less than total # of "
-                    "duplicates %d." % (delete_count, dupes_count)
+                    f"# of records to delete {delete_count} should be less than"
+                    f" total # of duplicates {dupes_count}."
                 )
             to_delete.delete()
             total_count += dupes_count
             total_deleted += delete_count
             self.stdout.write(
-                "deleted %d: %s (%d of %d)." % (xform, uuid, delete_count, dupes_count)
+                f"deleted {xform}: {uuid} ({delete_count} of {dupes_count})."
             )
 
-        self.stdout.write("done: deleted %d of %d" % (total_deleted, total_count))
+        self.stdout.write(f"done: deleted {total_deleted} of {total_count}")

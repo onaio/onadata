@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Widget class module.
+"""
 from builtins import str as text
 
 from django.db.models import JSONField
@@ -24,6 +28,10 @@ from onadata.libs.utils.common_tools import get_uuid
 
 
 class Widget(OrderedModel):
+    """
+    Widget class - used for storing chart visual information.
+    """
+
     CHARTS = "charts"
 
     # Other widgets types to be added later
@@ -57,10 +65,12 @@ class Widget(OrderedModel):
         if not self.key:
             self.key = get_uuid()
 
-        super(Widget, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
+    # pylint: disable=too-many-locals,too-many-branches
     @classmethod
     def query_data(cls, widget):
+        """Queries and returns chart information with the data for the chart."""
         # get the columns needed
         column = widget.column
         group_by = widget.group_by if widget.group_by else None
@@ -84,24 +94,24 @@ class Widget(OrderedModel):
             field_label = get_field_label(field)
 
         columns = [
-            SimpleField(field="json->>'%s'" % text(column), alias="{}".format(column)),
-            CountField(field="json->>'%s'" % text(column), alias="count"),
+            SimpleField(field=f"json->>'{text(column)}'", alias=f"{column}"),
+            CountField(field=f"json->>'{text(column)}'", alias="count"),
         ]
 
         if group_by:
             if field_type in NUMERIC_LIST:
                 column_field = SimpleField(
-                    field="json->>'%s'" % text(column), cast="float", alias=column
+                    field=f"json->>'{text(column)}'", cast="float", alias=column
                 )
             else:
                 column_field = SimpleField(
-                    field="json->>'%s'" % text(column), alias=column
+                    field=f"json->>'{text(column)}'", alias=column
                 )
 
             # build inner query
             inner_query_columns = [
                 column_field,
-                SimpleField(field="json->>'%s'" % text(group_by), alias=group_by),
+                SimpleField(field=f"json->>'{text(group_by)}'", alias=group_by),
                 SimpleField(field="xform_id"),
                 SimpleField(field="deleted_at"),
             ]
@@ -110,14 +120,14 @@ class Widget(OrderedModel):
             # build group-by query
             if field_type in NUMERIC_LIST:
                 columns = [
-                    SimpleField(field=group_by, alias="%s" % group_by),
+                    SimpleField(field=group_by, alias=f"{group_by}"),
                     SumField(field=column, alias="sum"),
                     AvgField(field=column, alias="mean"),
                 ]
             elif field_type == SELECT_ONE:
                 columns = [
-                    SimpleField(field=column, alias="%s" % column),
-                    SimpleField(field=group_by, alias="%s" % group_by),
+                    SimpleField(field=column, alias=f"{column}"),
+                    SimpleField(field=group_by, alias=f"{group_by}"),
                     CountField(field="*", alias="count"),
                 ]
 
@@ -138,7 +148,7 @@ class Widget(OrderedModel):
                 .from_table(Instance, columns)
                 .where(xform_id=xform.pk, deleted_at=None)
             )
-            query.group_by("json->>'%s'" % text(column))
+            query.group_by(f"json->>'{text(column)}'")
 
         # run query
         records = query.select()

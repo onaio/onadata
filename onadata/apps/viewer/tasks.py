@@ -1,4 +1,4 @@
-# -*- coding=utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Export tasks.
 """
@@ -18,7 +18,7 @@ from onadata.apps.viewer.models.export import (
     ExportConnectionError,
     ExportTypeError,
 )
-from onadata.celery import app
+from onadata.celeryapp import app
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.common_tools import get_boolean_value, report_exception
 from onadata.libs.utils.export_tools import (

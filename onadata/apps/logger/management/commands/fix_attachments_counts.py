@@ -1,10 +1,10 @@
-# -*- coding=utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Fix submission media count command.
 """
 import os
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
@@ -14,6 +14,9 @@ from onadata.apps.logger.models.attachment import get_original_filename
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.logger_tools import update_attachment_tracking
 from onadata.libs.utils.model_tools import queryset_iterator
+
+
+User = get_user_model()
 
 
 def update_attachments(instance):
@@ -42,15 +45,15 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         try:
             username = options["username"]
-        except KeyError:
+        except KeyError as exc:
             raise CommandError(
                 _("You must provide the username to publish the form to.")
-            )
+            ) from exc
         # make sure user exists
         try:
             user = User.objects.get(username=username)
-        except User.DoesNotExist:
-            raise CommandError(_("The user '%s' does not exist.") % username)
+        except User.DoesNotExist as exc:
+            raise CommandError(_(f"The user '{username}' does not exist.")) from exc
 
         self.process_attachments(user)
 
@@ -70,6 +73,6 @@ class Command(BaseCommand):
                     update_attachments(submission)
                 not_processed = xform.instances.filter(media_all_received=False).count()
                 self.stdout.write(
-                    "%s to process %s - %s = %s processed"
-                    % (xform, to_process, not_processed, (to_process - not_processed))
+                    f"{xform} to process {to_process} - {not_processed} "
+                    f"= {to_process - not_processed} processed"
                 )

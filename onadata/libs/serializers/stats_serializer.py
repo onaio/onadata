@@ -2,26 +2,23 @@
 """
 Stats API endpoint serializer.
 """
-from django.utils.translation import gettext as _
-from django.core.cache import cache
 from django.conf import settings
+from django.core.cache import cache
+from django.utils.translation import gettext as _
 
-from rest_framework import exceptions
-from rest_framework import serializers
+from rest_framework import exceptions, serializers
 from rest_framework.utils.serializer_helpers import ReturnList
 
-from onadata.libs.data.statistics import (
-    get_median_for_numeric_fields_in_form,
-    get_mean_for_numeric_fields_in_form,
-    get_mode_for_numeric_fields_in_form,
-    get_min_max_range,
-    get_all_stats,
-)
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.data.query import get_form_submissions_grouped_by_field
-
+from onadata.libs.data.statistics import (
+    get_all_stats,
+    get_mean_for_numeric_fields_in_form,
+    get_median_for_numeric_fields_in_form,
+    get_min_max_range,
+    get_mode_for_numeric_fields_in_form,
+)
 from onadata.libs.utils.cache_tools import XFORM_SUBMISSION_STAT
-
 
 SELECT_FIELDS = ["select one", "select multiple"]
 
@@ -61,7 +58,7 @@ class SubmissionStatsInstanceSerializer(serializers.Serializer):
 
         if field is None:
             raise exceptions.ParseError(
-                _("Expecting `group` and `name`" " query parameters.")
+                _("Expecting `group` and `name` query parameters.")
             )
 
         cache_key = f"{XFORM_SUBMISSION_STAT}{instance.pk}{field}{name}"

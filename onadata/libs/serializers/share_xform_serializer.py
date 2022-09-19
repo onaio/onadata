@@ -19,7 +19,7 @@ class ShareXFormSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=255)
     role = serializers.CharField(max_length=50)
 
-    # pylint: disable=unused-argument,no-self-use
+    # pylint: disable=unused-argument
     def update(self, instance, validated_data):
         """Make changes to form share to a user."""
         instance.xform = validated_data.get("xform", instance.xform)
@@ -29,7 +29,7 @@ class ShareXFormSerializer(serializers.Serializer):
 
         return instance
 
-    # pylint: disable=unused-argument,no-self-use
+    # pylint: disable=unused-argument
     def create(self, validated_data):
         """Assign role permission for a form to a user."""
         instance = ShareXForm(**validated_data)
@@ -37,7 +37,6 @@ class ShareXFormSerializer(serializers.Serializer):
 
         return instance
 
-    # pylint: disable=no-self-use
     def validate_username(self, value):
         """Check that the username exists"""
         # pylint: disable=invalid-name
@@ -51,7 +50,6 @@ class ShareXFormSerializer(serializers.Serializer):
 
         return value
 
-    # pylint: disable=no-self-use
     def validate_role(self, value):
         """check that the role exists"""
         if value not in ROLES:

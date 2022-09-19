@@ -5,15 +5,15 @@ Test base class for API viewset tests.
 import json
 import os
 import re
+import warnings
 from tempfile import NamedTemporaryFile
-
-import requests
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import Permission
 from django.test import TestCase
 
+import requests
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from httmock import HTTMock
@@ -33,6 +33,7 @@ from onadata.apps.logger.models import Attachment, Instance, Project, XForm
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.widget import Widget
 from onadata.apps.logger.views import submission
+from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.main import tests as main_tests
 from onadata.apps.main.models import MetaData, UserProfile
 from onadata.apps.viewer.models import DataDictionary
@@ -41,9 +42,10 @@ from onadata.libs.test_utils.pyxform_test_case import PyxformMarkdown
 from onadata.libs.utils.common_tools import merge_dicts
 from onadata.libs.utils.user_auth import get_user_default_project
 
-
 # pylint: disable=invalid-name
 User = get_user_model()
+
+warnings.simplefilter("ignore")
 
 
 def _set_api_permissions(user):
@@ -359,6 +361,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
                 self.profile_data["username"], self.profile_data["password1"]
             )
 
+        media_count = 0
         tmp_file = None
 
         if add_uuid:
@@ -370,8 +373,10 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
                 if isinstance(media_file, list):
                     for position, _value in enumerate(media_file):
                         post_data[f"media_file_{position}"] = media_file[position]
+                        media_count += 1
                 else:
                     post_data["media_file"] = media_file
+                    media_count += 1
 
             if username is None:
                 username = self.user.username
@@ -387,6 +392,26 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
             if auth and self.response.status_code == 401:
                 request.META.update(auth(request.META, self.response))
                 self.response = submission(request, username=username)
+            if media_file and media_count > 0 and self.response.status_code == 201:
+                success_xml = clean_and_parse_xml(self.response.content)
+                submission_metadata = success_xml.getElementsByTagName(
+                    "submissionMetadata"
+                )
+                self.assertEqual(len(submission_metadata), 1)
+                uuid = (
+                    submission_metadata[0]
+                    .getAttribute("instanceID")
+                    .replace("uuid:", "")
+                )
+                self.instance = Instance.objects.get(uuid=uuid)
+                self.assertEqual(self.instance.attachments.all().count(), media_count)
+            else:
+                if hasattr(self, "logger"):
+                    self.logger.debug(
+                        "Auth/Submission request: %s, media: %s",
+                        self.response.status_code,
+                        media_count,
+                    )
 
         if forced_submission_time:
             instance = Instance.objects.order_by("-pk").all()[0]
@@ -471,7 +496,8 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
             "/",
             data=data,
             **self.extra,
-            format='json' if 'extra_data' in data else None)
+            format="json" if "extra_data" in data else None,
+        )
 
         response = view(request)
 
@@ -494,11 +520,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         test=True,
         extra_data=None,
     ):
-        data = {
-            "data_type": data_type,
-            "data_value": data_value,
-            "xform": xform.id
-        }
+        data = {"data_type": data_type, "data_value": data_value, "xform": xform.id}
 
         if extra_data:
             data.update({"extra_data": extra_data})

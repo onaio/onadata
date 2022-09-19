@@ -1,6 +1,10 @@
-import geojson
+# -*- coding: utf-8 -*-
+"""
+The GeoJsonSerializer class - uses the GeoJSON structure for submission data.
+"""
 import json
 
+import geojson
 from rest_framework_gis import serializers
 
 from onadata.apps.logger.models.instance import Instance
@@ -82,6 +86,10 @@ def geometry_from_string(points, simple_style):
 
 
 class GeometryField(serializers.GeometryField):
+    """
+    The GeometryField class - representation for single GeometryField.
+    """
+
     def to_representation(self, value):
         if isinstance(value, dict) or value is None:
             return None
@@ -90,6 +98,9 @@ class GeometryField(serializers.GeometryField):
 
 
 class GeoJsonSerializer(serializers.GeoFeatureModelSerializer):
+    """
+    The GeoJsonSerializer class - uses the GeoJSON structure for submission data.
+    """
 
     geom = GeometryField()
 
@@ -100,17 +111,17 @@ class GeoJsonSerializer(serializers.GeoFeatureModelSerializer):
         id_field = False
         fields = ("id", "xform")
 
-    def to_representation(self, obj):
-        ret = super().to_representation(obj)
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
         request = self.context.get("request")
 
-        if obj and ret and "properties" in ret and request is not None:
+        if instance and ret and "properties" in ret and request is not None:
             fields = request.query_params.get("fields")
             if fields:
                 for field in fields.split(","):
-                    ret["properties"][field] = obj.json.get(field)
+                    ret["properties"][field] = instance.json.get(field)
 
-        if obj and ret and request:
+        if instance and ret and request:
             fields = request.query_params.get("fields")
             geo_field = request.query_params.get("geo_field")
             simple_style = request.query_params.get("simple_style")
@@ -118,11 +129,11 @@ class GeoJsonSerializer(serializers.GeoFeatureModelSerializer):
             if geo_field:
                 if "properties" in ret:
                     if title:
-                        ret["properties"]["title"] = obj.json.get(title)
+                        ret["properties"]["title"] = instance.json.get(title)
                     if fields:
                         for field in fields.split(","):
-                            ret["properties"][field] = obj.json.get(field)
-                points = obj.json.get(geo_field)
+                            ret["properties"][field] = instance.json.get(field)
+                points = instance.json.get(geo_field)
                 geometry = (
                     geometry_from_string(points, simple_style)
                     if points
@@ -139,30 +150,30 @@ class GeoJsonListSerializer(GeoJsonSerializer):
     Creates a FeatureCollections
     """
 
-    def to_representation(self, obj):
+    def to_representation(self, instance):
 
-        if obj is None:
-            return super().to_representation(obj)
+        if instance is None:
+            return super().to_representation(instance)
         geo_field = None
         fields = None
 
-        if "fields" in obj and obj.get("fields"):
-            fields = obj.get("fields").split(",")
+        if "fields" in instance and instance.get("fields"):
+            fields = instance.get("fields").split(",")
 
-        if "instances" in obj and obj.get("instances"):
-            insts = obj.get("instances")
+        if "instances" in instance and instance.get("instances"):
+            insts = instance.get("instances")
 
-        if "geo_field" in obj and obj.get("geo_field"):
-            geo_field = obj.get("geo_field")
+        if "geo_field" in instance and instance.get("geo_field"):
+            geo_field = instance.get("geo_field")
 
         # Get the instances from the form
-        instances = [inst for inst in insts[0].instances.all()]
+        instances = insts[0].instances.all()
 
         if not geo_field:
             return geojson.FeatureCollection(
                 [
                     super().to_representation(
-                        {"instance": ret, "fields": obj.get("fields")}
+                        {"instance": ret, "fields": instance.get("fields")}
                     )
                     for ret in instances
                 ]

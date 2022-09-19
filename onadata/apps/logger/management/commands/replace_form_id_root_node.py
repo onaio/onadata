@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Management command used to replace the root node of an Instance when
 the root node is the XForm ID
@@ -15,9 +16,11 @@ from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models.instance import InstanceHistory
 
 
+# pylint: disable=invalid-name
 def replace_form_id_with_correct_root_node(
     inst_id: int, root: str = None, commit: bool = False
 ) -> str:
+    """Returns the submission XML with updated root node tag name."""
     inst: Instance = Instance.objects.get(id=inst_id, deleted_at__isnull=True)
     initial_xml = inst.xml
     form_id = re.escape(inst.xform.id_string)
@@ -41,11 +44,13 @@ def replace_form_id_with_correct_root_node(
         inst.xml = edited_xml
         inst.save()
         return f"Modified Instance ID {inst.id} - History object {history.id}"
-    else:
-        return edited_xml
+
+    return edited_xml
 
 
 class Command(BaseCommand):
+    """Replaces form ID String with 'data' for an instances root node"""
+
     help = _("Replaces form ID String with 'data' for an instances root node")
 
     def add_arguments(self, parser):

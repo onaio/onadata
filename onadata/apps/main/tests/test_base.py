@@ -9,6 +9,7 @@ import csv
 import os
 import re
 import socket
+import warnings
 from io import StringIO
 from tempfile import NamedTemporaryFile
 
@@ -19,16 +20,16 @@ from django.test import RequestFactory, TransactionTestCase
 from django.test.client import Client
 from django.utils import timezone
 
-from six.moves.urllib.error import URLError
-from six.moves.urllib.request import urlopen
-
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from rest_framework.test import APIRequestFactory
+from six.moves.urllib.error import URLError
+from six.moves.urllib.request import urlopen
 
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.logger.views import submission
+from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.main.models import UserProfile
 from onadata.apps.viewer.models import DataDictionary
 from onadata.libs.test_utils.pyxform_test_case import PyxformMarkdown
@@ -40,6 +41,8 @@ from onadata.libs.utils.user_auth import get_user_default_project
 
 # pylint: disable=invalid-name
 User = get_user_model()
+
+warnings.simplefilter("ignore")
 
 
 # pylint: disable=too-many-instance-attributes
@@ -101,8 +104,9 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             self.client = self._login(username, password)
             self.anon = Client()
 
-    def _publish_xls_file(self, path):
-        if not path.startswith(f"/{self.user.username}/"):
+    def _publish_xls_file(self, path, user=None):
+        user = user or self.user
+        if not path.startswith(f"/{user.username}/"):
             path = os.path.join(self.this_directory, path)
         with open(path, "rb") as f:
             xls_file = InMemoryUploadedFile(
@@ -115,10 +119,10 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             )
             if not hasattr(self, "project"):
                 # pylint: disable=attribute-defined-outside-init
-                self.project = get_user_default_project(self.user)
+                self.project = get_user_default_project(user)
 
             DataDictionary.objects.create(
-                created_by=self.user, user=self.user, xls=xls_file, project=self.project
+                created_by=user, user=user, xls=xls_file, project=self.project
             )
 
     def _publish_xlsx_file(self):
@@ -205,8 +209,14 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
                 media_file,
             ),
         )
+        success_xml = clean_and_parse_xml(self.response.content)
+        submission_metadata = success_xml.getElementsByTagName("submissionMetadata")
+        self.assertEqual(len(submission_metadata), 1)
+        uuid = submission_metadata[0].getAttribute("instanceID").replace("uuid:", "")
+        instance = Instance.objects.get(uuid=uuid)
+
         # pylint: disable=attribute-defined-outside-init
-        self.attachment = Attachment.objects.all().reverse()[0]
+        self.attachment = instance.attachments.all()[0]
         self.attachment_media_file = self.attachment.media_file
 
     def _publish_transportation_form_and_submit_instance(self):

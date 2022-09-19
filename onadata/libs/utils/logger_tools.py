@@ -78,7 +78,7 @@ from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
-from onadata.libs.utils.analytics import track_object_event
+from onadata.libs.utils.analytics import TrackObjectEvent
 from onadata.libs.utils.common_tags import METADATA_FIELDS
 from onadata.libs.utils.common_tools import get_uuid, report_exception
 from onadata.libs.utils.model_tools import set_uuid
@@ -654,11 +654,11 @@ def safe_create_instance(  # noqa C901
         error = OpenRosaResponseBadRequest(e)
     except DjangoUnicodeDecodeError:
         error = OpenRosaResponseBadRequest(
-            _("File likely corrupted during " "transmission, please try later.")
+            _("File likely corrupted during transmission, please try later.")
         )
     except NonUniqueFormIdError:
         error = OpenRosaResponseBadRequest(
-            _("Unable to submit because there are multiple forms with" " this formID.")
+            _("Unable to submit because there are multiple forms with this formID.")
         )
     except DataError as e:
         error = OpenRosaResponseBadRequest((str(e)))
@@ -755,7 +755,7 @@ def publish_form(callback):
         return {
             "type": "alert-error",
             "text": _(
-                ("An error occurred while publishing the form. " "Please try again.")
+                ("An error occurred while publishing the form. Please try again.")
             ),
         }
     except (AttributeError, DuplicateUUIDError, ValidationError) as e:
@@ -763,7 +763,7 @@ def publish_form(callback):
         return {"type": "alert-error", "text": text(e)}
 
 
-@track_object_event(
+@TrackObjectEvent(
     user_field="user",
     properties={"created_by": "user", "xform_id": "pk", "xform_name": "title"},
     additional_context={"from": "Publish XLS Form"},
@@ -788,7 +788,7 @@ def publish_xls_form(xls_file, user, project, id_string=None, created_by=None):
     return dd
 
 
-@track_object_event(
+@TrackObjectEvent(
     user_field="user",
     properties={"created_by": "user", "xform_id": "pk", "xform_name": "title"},
     additional_context={"from": "Publish XML Form"},

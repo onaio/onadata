@@ -436,7 +436,6 @@ class XFormMixin:
 
         return flatten(element)
 
-    # pylint: disable=no-self-use
     def get_choice_label(self, field, choice_value, lang="English"):
         """Returns a choice's label for the given ``field`` and ``choice_value``."""
         choices = [choice for choice in field.children if choice.name == choice_value]
@@ -938,14 +937,14 @@ class XForm(XFormMixin, BaseModel):
             self.set_hash()
         if contains_xml_invalid_char(title_xml):
             raise XLSFormError(
-                _("Title shouldn't have any invalid xml " "characters ('>' '&' '<')")
+                _("Title shouldn't have any invalid xml characters ('>' '&' '<')")
             )
 
         # Capture urls within form title
         if re.search(
-            r"^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$",
+            r"^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$",  # noqa
             self.title,
-        ):  # noqa
+        ):
             raise XLSFormError(_("Invalid title value; value shouldn't match a URL"))
 
         self.title = title_xml
@@ -1049,8 +1048,8 @@ class XForm(XFormMixin, BaseModel):
         ):
             raise XLSFormError(
                 _(
-                    f"The XForm id_string provided exceeds {self.MAX_ID_LENGTH} characters."
-                    f' Please change the "id_string" or "form_id" values'
+                    f"The XForm id_string provided exceeds {self.MAX_ID_LENGTH}"
+                    f' characters. Please change the "id_string" or "form_id" values'
                     f"in settings sheet or reduce the file name if you do"
                     f" not have a settings sheets."
                 )
@@ -1059,7 +1058,7 @@ class XForm(XFormMixin, BaseModel):
         is_version_available = self.version is not None
         if is_version_available and contains_xml_invalid_char(self.version):
             raise XLSFormError(
-                _("Version shouldn't have any invalid " "characters ('>' '&' '<')")
+                _("Version shouldn't have any invalid characters ('>' '&' '<')")
             )
 
         self.description = conditional_escape(self.description)

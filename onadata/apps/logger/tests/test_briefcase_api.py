@@ -336,4 +336,4 @@ class TestBriefcaseAPI(TestBase):
         # remove media files
         if self.user:
             if storage.exists(self.user.username):
-                shutil.rmtree(storage.path(self.user.username))
+                shutil.rmtree(storage.path(self.user.username), ignore_errors=True)

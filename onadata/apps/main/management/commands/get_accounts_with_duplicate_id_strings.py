@@ -1,4 +1,4 @@
-# -*- coding=utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 get_accounts_with_duplicate_id_strings - Retrieves accounts with duplicate id_strings
 """

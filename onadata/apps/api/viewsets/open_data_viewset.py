@@ -1,4 +1,4 @@
-# -*- coding=utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 The /api/v1/open-data implementation.
 """
@@ -67,7 +67,7 @@ def process_tableau_data(data, xform):  # noqa C901
 
     def get_xpath(key, nested_key, index):
         val = nested_key.split("/")
-        start_index = key.split("/").__len__()
+        start_index = len(key.split("/"))
         nested_key_diff = val[start_index:]
         xpaths = key + f"[{index}]/" + "/".join(nested_key_diff)
         return xpaths
@@ -176,7 +176,6 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, BaseViewset, ModelViewSet):
     MAX_INSTANCES_PER_REQUEST = 1000
     pagination_class = StandardPageNumberPagination
 
-    # pylint: disable=no-self-use
     def get_tableau_type(self, xform_type):
         """
         Returns a tableau-supported type based on a xform type.
@@ -290,7 +289,6 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, BaseViewset, ModelViewSet):
 
         return Response(data)
 
-    # pylint: disable=no-self-use
     def get_streaming_response(self, data):
         """Get a StreamingHttpResponse response object"""
 
@@ -340,7 +338,6 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, BaseViewset, ModelViewSet):
 
         return Response(status=status.HTTP_404_NOT_FOUND)
 
-    # pylint: disable=no-self-use
     @action(methods=["GET"], detail=False)
     def uuid(self, request, *args, **kwargs):
         """Respond with the OpenData uuid."""

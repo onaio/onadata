@@ -102,6 +102,7 @@ def delete_instance(instance, user):
         raise ParseError(str(e)) from e
 
 
+# pylint: disable=http-response-with-content-type-json
 # pylint: disable=too-many-ancestors
 class DataViewSet(
     AnonymousUserPublicFormsMixin,
@@ -401,7 +402,7 @@ class DataViewSet(
                     message_verb=SUBMISSION_DELETED,
                 )
             else:
-                raise PermissionDenied(_("You do not have delete " "permissions."))
+                raise PermissionDenied(_("You do not have delete permissions."))
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -757,7 +758,6 @@ class DataViewSet(
                 content_type="application/xml",
             )
         else:
-            # pylint: disable=http-response-with-content-type-json
             response = StreamingHttpResponse(
                 json_stream(self.object_list, get_json_string),
                 content_type="application/json",

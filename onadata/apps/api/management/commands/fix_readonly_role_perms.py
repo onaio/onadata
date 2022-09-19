@@ -2,28 +2,26 @@
 """
 fix_readonly_role_perms - Reassign permission to the model when permissions are changed
 """
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.management.base import BaseCommand, CommandError
+from django.utils.translation import gettext as _
+
 from guardian.shortcuts import get_perms
 
-from django.core.management.base import BaseCommand, CommandError
-from django.contrib.auth import get_user_model
-from django.utils.translation import gettext as _
-from django.conf import settings
 from onadata.apps.api.models import Team
-
-
 from onadata.libs.permissions import (
-    ReadOnlyRole,
+    DataEntryMinorRole,
+    DataEntryOnlyRole,
     DataEntryRole,
+    EditorMinorRole,
     EditorRole,
     ManagerRole,
     OwnerRole,
+    ReadOnlyRole,
     ReadOnlyRoleNoDownload,
-    DataEntryOnlyRole,
-    DataEntryMinorRole,
-    EditorMinorRole,
 )
 from onadata.libs.utils.model_tools import queryset_iterator
-
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -83,7 +81,7 @@ def reassign_perms(user, model, new_perm):
 
     for perm_obj in objects:
         obj = perm_obj.content_object
-        ROLES = [
+        roles = [
             ReadOnlyRoleNoDownload,
             ReadOnlyRole,
             DataEntryOnlyRole,
@@ -96,7 +94,7 @@ def reassign_perms(user, model, new_perm):
         ]
 
         # For each role reassign the perms
-        for role_class in reversed(ROLES):
+        for role_class in reversed(roles):
             not_readonly = role_class.user_has_role(user, obj) or role_class not in [
                 ReadOnlyRoleNoDownload,
                 ReadOnlyRole,

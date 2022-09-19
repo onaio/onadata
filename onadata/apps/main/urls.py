@@ -171,7 +171,7 @@ urlpatterns = [
     ),
     re_path(
         # pylint: disable=line-too-long
-        r"^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/formid-media/(?P<data_id>\d+)",
+        r"^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/formid-media/(?P<data_id>\d+)",  # noqa
         main_views.download_media_data,  # noqa
         name="download-media-data",
     ),
@@ -428,17 +428,17 @@ urlpatterns = [
         name="submissions",
     ),
     re_path(
-        r"^(?P<username>\w+)/(?P<xform_pk>\d+)/submission$",
-        XFormSubmissionViewSet.as_view({"post": "create", "head": "create"}),
-        name="submissions",
-    ),
-    re_path(
         r"^projects/(?P<project_pk>\w+)/submission$",
         XFormSubmissionViewSet.as_view({"post": "create", "head": "create"}),
         name="submissions",
     ),
     re_path(
         r"^forms/(?P<xform_pk>\w+)/submission$",
+        XFormSubmissionViewSet.as_view({"post": "create", "head": "create"}),
+        name="submissions",
+    ),
+    re_path(
+        r"^(?P<username>\w+)/(?P<xform_pk>\d+)/submission$",
         XFormSubmissionViewSet.as_view({"post": "create", "head": "create"}),
         name="submissions",
     ),

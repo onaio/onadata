@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # vim: ai ts=4 sts=4 et sw=4 fileencoding=utf-8
+"""
+Fixes deleted instances by syncing deleted items from mongo.
+"""
 import json
 
 from django.conf import settings
@@ -12,9 +15,11 @@ from onadata.apps.logger.models import Instance
 
 
 class Command(BaseCommand):
-    help = gettext_lazy(
-        "Fixes deleted instances by syncing " "deleted items from mongo."
-    )
+    """
+    Fixes deleted instances by syncing deleted items from mongo.
+    """
+
+    help = gettext_lazy("Fixes deleted instances by syncing deleted items from mongo.")
 
     def handle(self, *args, **kwargs):
         # Reset all sql deletes to None

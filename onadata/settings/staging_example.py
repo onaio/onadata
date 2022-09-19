@@ -27,7 +27,7 @@ DATABASES = {
 
 # TIME_ZONE = 'UTC'
 
-SECRET_KEY = "please replace this text"
+SECRET_KEY = "please replace this text"  # noqa
 
 # This trick works only when we run tests from the command line.
 TESTING_MODE = len(sys.argv) >= 2 and (

@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Cache utilities.
+"""
 import hashlib
 
 from django.core.cache import cache
@@ -10,9 +14,14 @@ PROJ_SUB_DATE_CACHE = "ps-last_submission_date-"
 PROJ_FORMS_CACHE = "ps-project_forms-"
 PROJ_BASE_FORMS_CACHE = "ps-project_base_forms-"
 PROJ_OWNER_CACHE = "ps-project_owner-"
-project_cache_prefixes = [PROJ_PERM_CACHE, PROJ_NUM_DATASET_CACHE,
-                          PROJ_SUB_DATE_CACHE, PROJ_FORMS_CACHE,
-                          PROJ_BASE_FORMS_CACHE, PROJ_OWNER_CACHE]
+project_cache_prefixes = [
+    PROJ_PERM_CACHE,
+    PROJ_NUM_DATASET_CACHE,
+    PROJ_SUB_DATE_CACHE,
+    PROJ_FORMS_CACHE,
+    PROJ_BASE_FORMS_CACHE,
+    PROJ_OWNER_CACHE,
+]
 
 # Cache names used in user_profile_serializer
 IS_ORG = "ups-is_org-"
@@ -33,13 +42,13 @@ XFORM_LINKED_DATAVIEWS = "xfs-linked_dataviews"
 PROJECT_LINKED_DATAVIEWS = "ps-project-linked_dataviews"
 
 # Cache names used in organization profile viewset
-ORG_PROFILE_CACHE = 'org-profile-'
+ORG_PROFILE_CACHE = "org-profile-"
 
 # cache login attempts
 LOCKOUT_IP = "lockout_ip-"
 LOGIN_ATTEMPTS = "login_attempts-"
-LOCKOUT_CHANGE_PASSWORD_USER = 'lockout_change_password_user-'
-CHANGE_PASSWORD_ATTEMPTS = 'change_password_attempts-'
+LOCKOUT_CHANGE_PASSWORD_USER = "lockout_change_password_user-"  # noqa
+CHANGE_PASSWORD_ATTEMPTS = "change_password_attempts-"  # noqa
 
 # Cache names used in XForm Model
 XFORM_SUBMISSION_COUNT_FOR_DAY = "xfm-get_submission_count-"
@@ -58,18 +67,18 @@ def safe_key(key):
     return hashlib.sha256(force_bytes(key)).hexdigest()
 
 
-def reset_project_cache(project, request):
+def reset_project_cache(project, request, project_serializer_class):
     """
     Clears and sets project cache
     """
-    from onadata.libs.serializers.project_serializer import ProjectSerializer
 
     # Clear all project cache entries
     for prefix in project_cache_prefixes:
-        safe_delete(f'{prefix}{project.pk}')
+        safe_delete(f"{prefix}{project.pk}")
 
     # Reserialize project and cache value
     # Note: The ProjectSerializer sets all the other cache entries
-    project_cache_data = ProjectSerializer(
-        project, context={'request': request}).data
-    cache.set(f'{PROJ_OWNER_CACHE}{project.pk}', project_cache_data)
+    project_cache_data = project_serializer_class(
+        project, context={"request": request}
+    ).data
+    cache.set(f"{PROJ_OWNER_CACHE}{project.pk}", project_cache_data)

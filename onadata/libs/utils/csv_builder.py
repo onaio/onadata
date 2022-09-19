@@ -1,4 +1,4 @@
-# -*- coding=utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 CSV export utility functions.
 """
@@ -9,11 +9,10 @@ from django.conf import settings
 from django.db.models.query import QuerySet
 from django.utils.translation import gettext as _
 
-from six import iteritems
-
 import unicodecsv as csv
 from pyxform.question import Question
 from pyxform.section import RepeatingSection, Section
+from six import iteritems
 
 from onadata.apps.logger.models import OsmData
 from onadata.apps.logger.models.xform import XForm, question_types_to_exclude
@@ -47,12 +46,12 @@ from onadata.libs.utils.common_tags import (
     VERSION,
     XFORM_ID_STRING,
 )
-from onadata.libs.utils.export_builder import (
+from onadata.libs.utils.common_tools import (
     get_choice_label,
     get_value_or_attachment_uri,
+    str_to_bool,
     track_task_progress,
 )
-from onadata.libs.utils.export_tools import str_to_bool
 from onadata.libs.utils.model_tools import get_columns_with_hxl
 
 # the bind type of select multiples that we use to compare
@@ -465,9 +464,6 @@ class AbstractDataFrameBuilder:
                 gps_parts = {xpath: None for xpath in gps_xpaths}
                 # hack, check if its a list and grab the object within that
                 parts = value.split(" ")
-                # TODO: check whether or not we can have a gps recording
-                # from ODKCollect that has less than four components,
-                # for now we are assuming that this is not the case.
                 if len(parts) == 4:
                     gps_parts = dict(zip(gps_xpaths, parts))
                 updated_gps_fields.update(gps_parts)
@@ -512,8 +508,6 @@ class AbstractDataFrameBuilder:
             "fields": fields,
             "start": self.start,
             "end": self.end,
-            # TODO: we might want to add this in for the user
-            # to sepcify a sort order
             "sort": "id",
             "start_index": start,
             "limit": limit,
@@ -634,9 +628,16 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 # this dict
                 if isinstance(item, dict):
                     # order repeat according to xform order
-                    item = get_ordered_repeat_value(key, item)
+                    _item = get_ordered_repeat_value(key, item)
+                    if key in _item and _item[key] == "n/a":
+                        # See https://github.com/onaio/zebra/issues/6830
+                        # handles the case of a repeat construct in the data but the
+                        # form has no repeat construct defined using begin repeat for
+                        # example when you have a hidden value that has a repeat_count
+                        # set within a group.
+                        _item = item
 
-                    for (nested_key, nested_val) in iteritems(item):
+                    for (nested_key, nested_val) in iteritems(_item):
                         # given the key "children/details" and nested_key/
                         # abbreviated xpath
                         # "children/details/immunization/polio_1",
@@ -678,8 +679,11 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                             new_xpath = "/".join(xpaths)
                             # check if this key exists in our ordered columns
                             if key in list(ordered_columns):
-                                if new_xpath not in ordered_columns[key]:
-                                    ordered_columns[key].append(new_xpath)
+                                try:
+                                    if new_xpath not in ordered_columns[key]:
+                                        ordered_columns[key].append(new_xpath)
+                                except TypeError:
+                                    ordered_columns[key] = [new_xpath]
                             record[new_xpath] = get_value_or_attachment_uri(
                                 nested_key,
                                 nested_val,

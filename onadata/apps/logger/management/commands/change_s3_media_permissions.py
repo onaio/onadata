@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # vim: ai ts=4 sts=4 et sw=4
-# -*- coding=utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 change_s3_media_permissions - makes all s3 files private.
 """
