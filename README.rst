@@ -3,8 +3,8 @@ Ona Platform
 
 Collect, Analyze and Share Data!
 
-.. image:: https://travis-ci.com/onaio/onadata.svg?branch=master
-  :target: https://travis-ci.com/onaio/onadata
+.. image:: https://github.com/onaio/onadata/actions/workflows/ci.yml/badge.svg
+  :target: https://github.com/onaio/onadata/actions/workflows/ci.yml
 
 .. image:: https://app.codacy.com/project/badge/Grade/68c96351c8b24d5c9062a9c8247142f2
    :target: https://www.codacy.com/gh/onaio/onadata/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=onaio/onadata&amp;utm_campaign=Badge_Grade
