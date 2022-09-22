@@ -12,10 +12,10 @@ v3.3.3(2022-09-22)
   `PR #2314 <https://github.com/onaio/onadata/pull/2314>`_
   [@ukanga]
 - Remove group name prefix for grouped gps fields
-  `PR #2314 <https://github.com/onaio/onadata/pull/2314>`_
+  `PR #2316 <https://github.com/onaio/onadata/pull/2316>`_
   [@KipSigei]
 - Update CI Badge
-  `PR #2314 <https://github.com/onaio/onadata/pull/2314>`_
+  `PR #2317 <https://github.com/onaio/onadata/pull/2317>`_
   [@DavisRayM]
 
 v3.3.2(2022-08-31)
