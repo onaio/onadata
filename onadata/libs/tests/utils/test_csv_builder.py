@@ -593,6 +593,63 @@ class TestCSVDataFrameBuilder(TestBase):
         csv_file.close()
         os.unlink(temp_file.name)
 
+    def test_remove_group_name_for_gps_within_groups(self):
+        """
+        Test gps CSV export with remove_group_name option.
+        """
+        self._publish_grouped_gps_form()
+        self._submit_fixture_instance("grouped_gps", "01")
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username,
+            self.xform.id_string,
+            remove_group_name=True,
+            include_images=False,
+            include_reviews=True)
+        # pylint: disable=protected-access
+        record_count = csv_df_builder._query_data(count=True)
+        self.assertEqual(record_count, 1)
+        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
+        csv_df_builder.export_to(temp_file.name)
+        csv_file = open(temp_file.name, 'r')
+        csv_reader = csv.reader(csv_file)
+        header = next(csv_reader)
+        self.assertEqual(len(header), 10 + len(csv_df_builder.extra_columns))
+        expected_header = [
+            'gps',
+            '_gps_latitude',
+            '_gps_longitude',
+            '_gps_altitude',
+            '_gps_precision',
+            'web_browsers/firefox',
+            'web_browsers/chrome',
+            'web_browsers/ie',
+            'web_browsers/safari',
+            'instanceID',
+            '_id',
+            '_uuid',
+            '_submission_time',
+            '_date_modified',
+            '_tags',
+            '_notes',
+            '_version',
+            '_duration',
+            '_submitted_by',
+            '_total_media',
+            '_media_count',
+            '_media_all_received',
+            '_review_status',
+            '_review_comment',
+            '_review_date'
+        ]
+        self.assertEqual(expected_header, header)
+        rows = []
+        for row in csv_reader:
+            rows.append(row)
+        self.assertEqual(len(rows), 1)
+        # close and delete file
+        csv_file.close()
+        os.unlink(temp_file.name)
+
     def test_csv_export_with_labels(self):
         """
         Test CSV export with labels.

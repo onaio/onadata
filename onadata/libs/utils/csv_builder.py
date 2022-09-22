@@ -771,7 +771,9 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
         # add ordered columns for gps fields
         for key in self.gps_fields:
-            gps_xpaths = self.data_dictionary.get_additional_geopoint_xpaths(key)
+            gps_xpaths = self.data_dictionary.get_additional_geopoint_xpaths(
+                key, self.remove_group_name
+            )
             self.ordered_columns[key] = [key] + gps_xpaths
 
         # add ordered columns for nested repeat data
