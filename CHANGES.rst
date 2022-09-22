@@ -3,7 +3,7 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
-v3.3.3(2022-09-22)
+v3.4.0(2022-09-22)
 ------------------
 - Order submission URLs correctly
   `PR #2313 <https://github.com/onaio/onadata/pull/2313>`_
