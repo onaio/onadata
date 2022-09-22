@@ -3,6 +3,21 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.4.0(2022-09-22)
+------------------
+- Order submission URLs correctly
+  `PR #2313 <https://github.com/onaio/onadata/pull/2313>`_
+  [@ciremusyoka]
+- Check number of media files in test
+  `PR #2314 <https://github.com/onaio/onadata/pull/2314>`_
+  [@ukanga]
+- Remove group name prefix for grouped gps fields
+  `PR #2316 <https://github.com/onaio/onadata/pull/2316>`_
+  [@KipSigei]
+- Update CI Badge
+  `PR #2317 <https://github.com/onaio/onadata/pull/2317>`_
+  [@DavisRayM]
+
 v3.3.2(2022-08-31)
 ------------------
 - Update application dependencies to address security vulnerabilities
