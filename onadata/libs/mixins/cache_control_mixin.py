@@ -51,6 +51,10 @@ class CacheControlMixin(CacheControlBase):
     """
 
     def finalize_response(self, request, response, *args, **kwargs):
+        """
+        Finalize respone function; called before the response is returned
+        to the client
+        """
         if (
             request.method == "GET"
             and not response.streaming
