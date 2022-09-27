@@ -6,6 +6,7 @@ import json
 import os
 import random
 from datetime import datetime
+from wsgiref import headers
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -64,6 +65,7 @@ from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixi
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.labels_mixin import LabelsMixin
+from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.clone_xform_serializer import CloneXFormSerializer
 from onadata.libs.serializers.share_xform_serializer import ShareXFormSerializer
@@ -281,6 +283,7 @@ class XFormViewSet(
         renderers.SurveyRenderer,
         renderers.OSMExportRenderer,
         renderers.ZipRenderer,
+        renderers.JSONRenderer,
         renderers.GoogleSheetsRenderer,
     ]
     queryset = (
@@ -326,6 +329,7 @@ class XFormViewSet(
         )
     )
     serializer_class = XFormSerializer
+    pagination_class = StandardPageNumberPagination
     lookup_field = "pk"
     extra_lookup_fields = None
     permission_classes = [
@@ -942,8 +946,7 @@ class XFormViewSet(
         # use queryset_iterator.  Will need to change this to the Django
         # native .iterator() method when we upgrade to django version 2
         # because in Django 2 .iterator() has support for chunk size
-        queryset = queryset_iterator(self.object_list, chunksize=2000)
-
+        queryset = self.object_list.instance
         def get_json_string(item):
             return json.dumps(
                 XFormBaseSerializer(
@@ -976,14 +979,17 @@ class XFormViewSet(
             last_modified = queryset.values_list("date_modified", flat=True).order_by(
                 "-date_modified"
             )
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
             # pylint: disable=attribute-defined-outside-init
             if last_modified:
                 self.etag_data = last_modified[0].isoformat()
             if stream_data:
-                self.object_list = queryset
+                self.object_list = serializer
                 resp = self._get_streaming_response()
             else:
-                resp = super().list(request, *args, **kwargs)
+                resp = Response(serializer.data, headers=self.headers)
         except XLSFormError as e:
             resp = HttpResponseBadRequest(e)
 
