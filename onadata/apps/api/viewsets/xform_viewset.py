@@ -975,20 +975,20 @@ class XFormViewSet(
         """List forms API endpoint `GET /api/v1/forms`."""
         stream_data = getattr(settings, "STREAM_DATA", False)
         try:
-            queryset = self.filter_queryset(self.get_queryset())
-            last_modified = queryset.values_list("date_modified", flat=True).order_by(
+            self.object_list = self.filter_queryset(self.get_queryset())
+            last_modified = self.object_list.values_list("date_modified", flat=True).order_by(
                 "-date_modified"
             )
-            page = self.paginate_queryset(queryset)
+            page = self.paginate_queryset(self.object_list)
             if page is not None:
-                serializer = self.get_serializer(page, many=True)
+                self.object_list = self.get_serializer(page, many=True)
             # pylint: disable=attribute-defined-outside-init
             if last_modified:
                 self.etag_data = last_modified[0].isoformat()
             if stream_data:
-                self.object_list = serializer
                 resp = self._get_streaming_response()
             else:
+                serializer = self.object_list
                 resp = Response(serializer.data, headers=self.headers)
         except XLSFormError as e:
             resp = HttpResponseBadRequest(e)
