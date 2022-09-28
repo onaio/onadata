@@ -6,7 +6,6 @@ import json
 import os
 import random
 from datetime import datetime
-from wsgiref import headers
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -91,7 +90,6 @@ from onadata.libs.utils.csv_import import (
 )
 from onadata.libs.utils.export_tools import parse_request_export_options
 from onadata.libs.utils.logger_tools import publish_form
-from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.string import str2bool
 from onadata.libs.utils.viewer_tools import (
     generate_enketo_form_defaults,
@@ -947,6 +945,7 @@ class XFormViewSet(
         # native .iterator() method when we upgrade to django version 2
         # because in Django 2 .iterator() has support for chunk size
         queryset = self.object_list.instance
+
         def get_json_string(item):
             return json.dumps(
                 XFormBaseSerializer(
@@ -974,22 +973,22 @@ class XFormViewSet(
     def list(self, request, *args, **kwargs):
         """List forms API endpoint `GET /api/v1/forms`."""
         stream_data = getattr(settings, "STREAM_DATA", False)
+        # pylint: disable=attribute-defined-outside-init
         try:
             self.object_list = self.filter_queryset(self.get_queryset())
-            last_modified = self.object_list.values_list("date_modified", flat=True).order_by(
-                "-date_modified"
-            )
+            last_modified = self.object_list.values_list(
+                "date_modified", flat=True
+            ).order_by("-date_modified")
             page = self.paginate_queryset(self.object_list)
             if page is not None:
                 self.object_list = self.get_serializer(page, many=True)
-            # pylint: disable=attribute-defined-outside-init
             if last_modified:
                 self.etag_data = last_modified[0].isoformat()
             if stream_data:
                 resp = self._get_streaming_response()
             else:
                 serializer = self.object_list
-                resp = Response(serializer.data, headers=self.headers)
+                resp = Response(serializer.data, status=status.HTTP_200_OK)
         except XLSFormError as e:
             resp = HttpResponseBadRequest(e)
 
