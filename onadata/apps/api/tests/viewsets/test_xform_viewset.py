@@ -1726,16 +1726,17 @@ class TestXFormViewSet(TestAbstractViewSet):
             )
             self.assertEqual(response.data.get("text"), error_msg)
 
-    @patch.object(ModelViewSet, "list")
+    @patch("onadata.apps.api.viewsets.xform_viewset.XFormViewSet.list")
     def test_return_400_on_xlsform_error_on_list_action(self, mock_set_title):
         with HTTMock(enketo_mock):
-            error_msg = "Title shouldn't have an ampersand"
-            mock_set_title.side_effect = XLSFormError(error_msg)
-            request = self.factory.get("/", **self.extra)
-            response = self.view(request)
-            self.assertTrue(mock_set_title.called)
-            self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.content.decode("utf-8"), error_msg)
+            with self.assertRaises(XLSFormError):
+                error_msg = "Title shouldn't have an ampersand"
+                mock_set_title.side_effect = XLSFormError(error_msg)
+                request = self.factory.get("/", **self.extra)
+                response = self.view(request)
+                self.assertTrue(mock_set_title.called)
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(response.content.decode("utf-8"), error_msg)
 
     def test_publish_invalid_xls_form_no_choices(self):
         view = XFormViewSet.as_view({"post": "create"})

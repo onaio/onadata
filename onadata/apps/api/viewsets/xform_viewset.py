@@ -281,7 +281,6 @@ class XFormViewSet(
         renderers.SurveyRenderer,
         renderers.OSMExportRenderer,
         renderers.ZipRenderer,
-        renderers.JSONRenderer,
         renderers.GoogleSheetsRenderer,
     ]
     queryset = (
@@ -575,7 +574,7 @@ class XFormViewSet(
 
             page = self.paginate_queryset(self.object_list)
             if page is not None:
-                serializer = self.get_pagination_serializer(page)
+                serializer = self.get_serializer(page, many=True)
             else:
                 serializer = self.get_serializer(self.object_list, many=True)
 
@@ -980,10 +979,12 @@ class XFormViewSet(
                 "date_modified", flat=True
             ).order_by("-date_modified")
             page = self.paginate_queryset(self.object_list)
-            if page is not None:
-                self.object_list = self.get_serializer(page, many=True)
             if last_modified:
                 self.etag_data = last_modified[0].isoformat()
+            if page:
+                self.object_list = self.get_serializer(page, many=True)
+            else:
+                self.object_list = self.get_serializer(self.object_list, many=True)
             if stream_data:
                 resp = self._get_streaming_response()
             else:
