@@ -24,6 +24,7 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.mixins.profiler_mixin import ProfilerMixin
+from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.project_serializer import (
     BaseProjectSerializer,
     ProjectSerializer,
@@ -68,6 +69,7 @@ class ProjectViewSet(
     extra_lookup_fields = None
     permission_classes = [ProjectPermissions]
     filter_backends = (AnonUserProjectFilter, ProjectOwnerFilter, TagFilter)
+    pagination_class = StandardPageNumberPagination
 
     def get_serializer_class(self):
         """Return BaseProjectSerializer class when listing projects."""
@@ -100,6 +102,17 @@ class ProjectViewSet(
         # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
         serializer = ProjectSerializer(self.object, context={"request": request})
+        return Response(serializer.data)
+
+    def list(self, request, *args, **kwargs):
+        """Returns a list of projects"""
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page:
+            serializer = self.get_serializer(page, many=True)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
+
         return Response(serializer.data)
 
     @action(methods=["POST", "GET"], detail=True)
