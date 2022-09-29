@@ -1628,3 +1628,29 @@ If the upload is still running:
        {
            "job_status": "PENDING"
        }
+
+
+Check active imports
+--------------------
+
+.. raw:: html
+
+    <pre class="prettyprint"><b>GET</b> /api/v1/forms/{form_id}/active_imports</pre>
+
+Example
+^^^^^^^
+::
+
+       curl -X GET https://api.ona.io/api/v1/forms/{form_id}/active_imports
+
+Response
+^^^^^^^^
+
+::
+
+      [
+        {
+            "job_uuid": "256dcef5-1baa-48ee-83a3-f7100123f5d2",
+            "time_start": 1664372983.8631873
+        }
+    ]
