@@ -1,6 +1,7 @@
 """
 tests for celery asyncronous task utilities
 """
+from datetime import datetime
 from unittest.mock import MagicMock
 
 from celery import states
@@ -44,6 +45,7 @@ class TestAsyncStatus(TestBase):
     def test_get_active_tasks(self):
         """test get_active_tasks"""
         xform = XForm()
+        time_start = 1664372983.8631873
         self.assertEqual(
             async_status.get_active_tasks(
                 ['onadata.libs.utils.csv_import.submit_csv_async'], xform
@@ -57,7 +59,7 @@ class TestAsyncStatus(TestBase):
                     {
                         'args': [None, xform.pk],
                         'id': '11',
-                        'time_start': '2021-02-26T03:28:19.512875-05:00',
+                        'time_start': time_start,
                         'name': 'onadata.libs.utils.csv_import.submit_csv_async',
                     }
                 ]
@@ -70,5 +72,7 @@ class TestAsyncStatus(TestBase):
                 ['onadata.libs.utils.csv_import.submit_csv_async'], xform
             ),
             '[{"job_uuid": "11", "time_start"'
-            + ': "2021-02-26T03:28:19.512875-05:00"}]',
+            + ": \""
+            + datetime.fromtimestamp(time_start).strftime("%Y-%m-%dT%H:%M:%S")
+            + "\"}]",
         )

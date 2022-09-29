@@ -2,6 +2,7 @@
 Utilities for celery asyncronous tasks
 """
 import json
+from datetime import datetime
 
 from typing import List
 from celery import states
@@ -65,7 +66,9 @@ def get_active_tasks(task_names: List[str], xform: XForm):
             map(
                 lambda i: {
                     'job_uuid': gettext(i['id']),
-                    'time_start': i['time_start'],
+                    'time_start': datetime.fromtimestamp(i["time_start"]).strftime(
+                        "%Y-%m-%dT%H:%M:%S"
+                    ),
                 },
                 data,
             )
