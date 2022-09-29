@@ -149,6 +149,42 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.data, [serializer.data])
         self.assertIn("created_by", list(response.data[0]))
 
+    def test_projects_list_with_pagination(self):
+        view = ProjectViewSet.as_view(
+            {
+                "get": "list",
+            }
+        )
+        self._project_create()
+        # create second project
+        username = self.user.username
+        self._project_create(
+            {
+                "name": "proj one",
+                "owner": f"http://testserver/api/v1/users/{username}",
+                "public": False,
+            }
+        )
+        # test without pagination
+        request = self.factory.get("/", **self.extra)
+        request.user = self.user
+        response = view(request)
+        self.assertNotEqual(response.get("Cache-Control"), None)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+        # test with pagination enabled
+        params = {
+            "page": 1,
+            "page_size": 1
+        }
+        request = self.factory.get("/", data=params, **self.extra)
+        request.user = self.user
+        response = view(request)
+        self.assertNotEqual(response.get("Cache-Control"), None)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
     # pylint: disable=invalid-name
     def test_project_list_returns_projects_for_active_users_only(self):
         """Test project list returns projects of active users only."""
