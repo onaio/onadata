@@ -67,7 +67,7 @@ Get a paginated list of Projects
 Returns a list of projects using page number and the number of items per page. Use the ``page`` parameter to specify page number and ``page_size`` parameter is used to set the custom page size.
 
 - ``page`` - Integer representing the page.
-- ``page_size`` - Integer representing the number of records that should be returned in a single page.
+- ``page_size`` - Integer representing the number of records that should be returned in a single page. The maximum number of items that can be requested in a page via the ``page_size`` query param is 10,000
 
 .. raw:: html
 
