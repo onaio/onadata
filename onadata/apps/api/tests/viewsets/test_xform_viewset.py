@@ -328,6 +328,83 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertNotEqual(response.get("Cache-Control"), None)
             self.assertEqual(response.status_code, 200)
 
+    def test_form_list_with_pagination(self):
+        view = XFormViewSet.as_view(
+            {
+                "get": "list",
+            }
+        )
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            form_path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "transportation",
+                "transportation_different_id_string.xlsx",
+            )
+            self._publish_xls_form_to_project(xlsform_path=form_path)
+            # no page param no pagination
+            request = self.factory.get("/", **self.extra)
+            response = view(request)
+            self.assertNotEqual(response.get("Cache-Control"), None)
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(len(response.data), 2)
+
+            # test pagination
+            request = self.factory.get(
+                "/", data={"page": 1, "page_size": 1}, **self.extra
+            )
+            response = view(request)
+            self.assertEqual(response.status_code, 200)
+            # check that only one form is returned
+            self.assertEqual(len(response.data), 1)
+
+    @override_settings(STREAM_DATA=True)
+    def test_form_list_stream_with_pagination(self):
+        view = XFormViewSet.as_view(
+            {
+                "get": "list",
+            }
+        )
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            form_path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "transportation",
+                "transportation_different_id_string.xlsx",
+            )
+            self._publish_xls_form_to_project(xlsform_path=form_path)
+            # no page param no pagination
+            request = self.factory.get("/", **self.extra)
+            response = view(request)
+            self.assertTrue(response.streaming)
+            streaming_data = json.loads(
+                "".join([i.decode("utf-8") for i in response.streaming_content])
+            )
+            self.assertNotEqual(response.get("Cache-Control"), None)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(len(streaming_data), 2)
+
+            # test pagination
+            request = self.factory.get(
+                "/", data={"page": 1, "page_size": 1}, **self.extra
+            )
+            response = view(request)
+            self.assertTrue(response.streaming)
+            streaming_data = json.loads(
+                "".join([i.decode("utf-8") for i in response.streaming_content])
+            )
+            self.assertEqual(response.status_code, 200)
+            # check that only one form is returned
+            self.assertEqual(len(streaming_data), 1)
+
     def test_form_list_without_enketo_connection(self):
         self._publish_xls_form_to_project()
         request = self.factory.get("/", **self.extra)
@@ -1649,16 +1726,17 @@ class TestXFormViewSet(TestAbstractViewSet):
             )
             self.assertEqual(response.data.get("text"), error_msg)
 
-    @patch.object(ModelViewSet, "list")
+    @patch("onadata.apps.api.viewsets.xform_viewset.XFormViewSet.list")
     def test_return_400_on_xlsform_error_on_list_action(self, mock_set_title):
         with HTTMock(enketo_mock):
-            error_msg = "Title shouldn't have an ampersand"
-            mock_set_title.side_effect = XLSFormError(error_msg)
-            request = self.factory.get("/", **self.extra)
-            response = self.view(request)
-            self.assertTrue(mock_set_title.called)
-            self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.content.decode("utf-8"), error_msg)
+            with self.assertRaises(XLSFormError):
+                error_msg = "Title shouldn't have an ampersand"
+                mock_set_title.side_effect = XLSFormError(error_msg)
+                request = self.factory.get("/", **self.extra)
+                response = self.view(request)
+                self.assertTrue(mock_set_title.called)
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(response.content.decode("utf-8"), error_msg)
 
     def test_publish_invalid_xls_form_no_choices(self):
         view = XFormViewSet.as_view({"post": "create"})

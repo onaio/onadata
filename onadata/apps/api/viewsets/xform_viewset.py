@@ -64,6 +64,7 @@ from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixi
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.labels_mixin import LabelsMixin
+from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.clone_xform_serializer import CloneXFormSerializer
 from onadata.libs.serializers.share_xform_serializer import ShareXFormSerializer
@@ -89,7 +90,6 @@ from onadata.libs.utils.csv_import import (
 )
 from onadata.libs.utils.export_tools import parse_request_export_options
 from onadata.libs.utils.logger_tools import publish_form
-from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.string import str2bool
 from onadata.libs.utils.viewer_tools import (
     generate_enketo_form_defaults,
@@ -326,6 +326,7 @@ class XFormViewSet(
         )
     )
     serializer_class = XFormSerializer
+    pagination_class = StandardPageNumberPagination
     lookup_field = "pk"
     extra_lookup_fields = None
     permission_classes = [
@@ -573,7 +574,7 @@ class XFormViewSet(
 
             page = self.paginate_queryset(self.object_list)
             if page is not None:
-                serializer = self.get_pagination_serializer(page)
+                serializer = self.get_serializer(page, many=True)
             else:
                 serializer = self.get_serializer(self.object_list, many=True)
 
@@ -942,7 +943,7 @@ class XFormViewSet(
         # use queryset_iterator.  Will need to change this to the Django
         # native .iterator() method when we upgrade to django version 2
         # because in Django 2 .iterator() has support for chunk size
-        queryset = queryset_iterator(self.object_list, chunksize=2000)
+        queryset = self.object_list.instance
 
         def get_json_string(item):
             return json.dumps(
@@ -971,19 +972,24 @@ class XFormViewSet(
     def list(self, request, *args, **kwargs):
         """List forms API endpoint `GET /api/v1/forms`."""
         stream_data = getattr(settings, "STREAM_DATA", False)
+        # pylint: disable=attribute-defined-outside-init
         try:
-            queryset = self.filter_queryset(self.get_queryset())
-            last_modified = queryset.values_list("date_modified", flat=True).order_by(
-                "-date_modified"
-            )
-            # pylint: disable=attribute-defined-outside-init
+            self.object_list = self.filter_queryset(self.get_queryset())
+            last_modified = self.object_list.values_list(
+                "date_modified", flat=True
+            ).order_by("-date_modified")
+            page = self.paginate_queryset(self.object_list)
             if last_modified:
                 self.etag_data = last_modified[0].isoformat()
+            if page:
+                self.object_list = self.get_serializer(page, many=True)
+            else:
+                self.object_list = self.get_serializer(self.object_list, many=True)
             if stream_data:
-                self.object_list = queryset
                 resp = self._get_streaming_response()
             else:
-                resp = super().list(request, *args, **kwargs)
+                serializer = self.object_list
+                resp = Response(serializer.data, status=status.HTTP_200_OK)
         except XLSFormError as e:
             resp = HttpResponseBadRequest(e)
 
