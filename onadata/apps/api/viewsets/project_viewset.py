@@ -105,6 +105,7 @@ class ProjectViewSet(
         return Response(serializer.data)
 
     def list(self, request, *args, **kwargs):
+        """Returns a list of projects"""
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
         if page:
