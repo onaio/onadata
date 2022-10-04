@@ -20,7 +20,8 @@ from onadata.apps.main.models import UserProfile
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.messaging.constants import (
     USER, PROJECT, PROJECT_EDITED, XFORM, FORM_CREATED,
-    USER_ADDED_TO_PROJECT, USER_REMOVED_FROM_PROJECT, PROJECT_DELETED
+    USER_ADDED_TO_PROJECT, USER_REMOVED_FROM_PROJECT, PROJECT_DELETED,
+    PROJECT_CREATED
 )
 from onadata.apps.messaging.serializers import send_message
 from onadata.libs.data import strtobool
@@ -92,12 +93,31 @@ class ProjectViewSet(
             )
 
         return super().get_queryset()
+    
+    def create(self, request, *args, **kwargs):
+        """Creates new project"""
+        response = super().create(request, *args, **kwargs)
+        project = response.data
+        project_id = project.get("projectid")
+        cache.set(f"{PROJ_OWNER_CACHE}{project_id}", response.data)
+
+        # send notification upon creating new project
+        send_message(
+            instance_id=project_id,
+            target_id=project_id,
+            target_type=PROJECT,
+            user=request.user,
+            message_verb=PROJECT_CREATED,
+        )
+
+        return response
 
     def update(self, request, *args, **kwargs):
         """Updates project properties and set's cache with the updated records."""
         project_id = kwargs.get("pk")
         response = super().update(request, *args, **kwargs)
         cache.set(f"{PROJ_OWNER_CACHE}{project_id}", response.data)
+
         # send notification upon updating project details
         send_message(
             instance_id=project_id,

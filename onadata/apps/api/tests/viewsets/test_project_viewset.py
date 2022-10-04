@@ -33,6 +33,10 @@ from onadata.apps.api.viewsets.team_viewset import TeamViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Project, XForm, XFormVersion
 from onadata.apps.main.models import MetaData
+from onadata.apps.messaging.constants import (
+    XFORM, PROJECT, USER, PROJECT_CREATED,
+    FORM_CREATED, PROJECT_DELETED
+)
 from onadata.libs import permissions as role
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_key
@@ -96,8 +100,10 @@ class TestProjectViewSet(TestAbstractViewSet):
         super().tearDown()
 
     # pylint: disable=invalid-name
+    @patch("onadata.apps.api.viewsets.project_viewset.send_message")
     @patch("onadata.apps.main.forms.requests")
-    def test_publish_xlsform_using_url_upload(self, mock_requests):
+    def test_publish_xlsform_using_url_upload(
+            self, mock_requests, mock_send_message):
         with HTTMock(enketo_mock):
             self._project_create()
             view = ProjectViewSet.as_view({"post": "forms"})
@@ -125,6 +131,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                 post_data = {"xls_url": xls_url}
                 request = self.factory.post("/", data=post_data, **self.extra)
                 response = view(request, pk=project_id)
+                xform = self.user.xforms.get(id_string="transportation_2015_01_07")
 
                 mock_requests.get.assert_called_with(xls_url)
                 xls_file.close()
@@ -135,6 +142,16 @@ class TestProjectViewSet(TestAbstractViewSet):
                         xform__pk=response.data.get("formid")
                     ).count(),
                     1,
+                )
+
+                # send message upon form deletion
+                self.assertTrue(mock_send_message.called)
+                mock_send_message.assert_called_with(
+                    instance_id=xform.id,
+                    target_id=xform.id,
+                    target_type=XFORM,
+                    user=request.user,
+                    message_verb=FORM_CREATED
                 )
 
     def test_projects_list(self):
@@ -407,7 +424,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.data, [])
         self.assertEqual(get_latest_tags(self.project), [])
 
-    def test_projects_create(self):
+    @patch("onadata.apps.api.viewsets.project_viewset.send_message")
+    def test_projects_create(self, mock_send_message):
         self._project_create()
         self.assertIsNotNone(self.project_data)
 
@@ -417,6 +435,16 @@ class TestProjectViewSet(TestAbstractViewSet):
         for project in projects:
             self.assertEqual(self.user, project.created_by)
             self.assertEqual(self.user, project.organization)
+
+        # send message upon project creation
+        self.assertTrue(mock_send_message.called)
+        mock_send_message.assert_called_with(
+            instance_id=self.project.id,
+            target_id=self.project.id,
+            target_type=PROJECT,
+            user=self.user,
+            message_verb=PROJECT_CREATED
+        )
 
     def test_project_create_other_account(self):  # pylint: disable=invalid-name
         """
@@ -2516,7 +2544,8 @@ class TestProjectViewSet(TestAbstractViewSet):
             users,
         )
 
-    def test_projects_soft_delete(self):
+    @patch("onadata.apps.api.viewsets.project_viewset.send_message")
+    def test_projects_soft_delete(self, mock_send_message):
         self._project_create()
 
         view = ProjectViewSet.as_view({"get": "list", "delete": "destroy"})
@@ -2537,6 +2566,17 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.delete("/", **self.extra)
         request.user = self.user
         response = view(request, pk=project_id)
+
+        # send message upon project creation
+        self.assertTrue(mock_send_message.called)
+        mock_send_message.assert_called_with(
+            instance_id=self.project.id,
+            target_id=self.user.id,
+            target_type=USER,
+            user=self.user,
+            message_verb=PROJECT_DELETED
+        )
+
         self.assertEqual(response.status_code, 204)
 
         self.project = Project.objects.get(pk=project_id)
