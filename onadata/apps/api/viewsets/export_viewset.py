@@ -6,11 +6,15 @@ List, Create, Update, Destroy Export model objects.
 """
 import os
 
+from rest_framework import status
 from rest_framework.mixins import DestroyModelMixin
+from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from onadata.apps.api.permissions import ExportDjangoObjectPermission
+from onadata.apps.messaging.constants import EXPORT, EXPORT_DELETED, XFORM
+from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer.models.export import Export
 from onadata.libs import filters
 from onadata.libs.authentication import TempTokenURLParameterAuthentication
@@ -57,3 +61,16 @@ class ExportViewSet(DestroyModelMixin, ReadOnlyModelViewSet):
             file_path=export.filepath,
             show_date=False,
         )
+
+    def destroy(self, request, *args, **kwargs):
+        export = self.get_object()
+        export_id = export.id
+        export.delete()
+        send_message(
+            instance_id=export_id,
+            target_id=export.xform.id,
+            target_type=XFORM,
+            user=request.user,
+            message_verb=EXPORT_DELETED,
+        )
+        return Response(status=status.HTTP_204_NO_CONTENT)

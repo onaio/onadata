@@ -52,7 +52,10 @@ from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.xform import XForm, XFormUserObjectPermission
 from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.xform_instance_parser import XLSFormError
-from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
+from onadata.apps.messaging.constants import (
+    FORM_UPDATED, EXPORT_CREATED, EXPORT_DELETED,
+    XFORM, FORM_DELETED, FORM_CREATED, PROJECT
+)
 from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer.models.export import Export
 from onadata.libs import authentication, filters
@@ -376,6 +379,15 @@ class XFormViewSet(
             serializer = XFormCreateSerializer(survey, context={"request": request})
             headers = self.get_success_headers(serializer.data)
 
+            # send form creation notification
+            send_message(
+                instance_id=survey.id,
+                target_id=survey.id,
+                target_type=XFORM,
+                user=request.user or owner,
+                message_verb=FORM_CREATED,
+            )
+
             return Response(
                 serializer.data, status=status.HTTP_201_CREATED, headers=headers
             )
@@ -419,18 +431,27 @@ class XFormViewSet(
                 )
             else:
                 xls_file_path = request.FILES.get("xls_file").temporary_file_path()
-
+            survey = tasks.publish_xlsform_async.delay(
+                request.user.id,
+                request.POST,
+                owner.id,
+                {"name": fname, "path": xls_file_path},
+            )
             resp.update(
                 {
-                    "job_uuid": tasks.publish_xlsform_async.delay(
-                        request.user.id,
-                        request.POST,
-                        owner.id,
-                        {"name": fname, "path": xls_file_path},
-                    ).task_id
+                    "job_uuid": survey.task_id
                 }
             )
             resp_code = status.HTTP_202_ACCEPTED
+
+            # send form creation notification
+            send_message(
+                instance_id=survey.id,
+                target_id=survey.id,
+                target_type=XFORM,
+                user=request.user or owner,
+                message_verb=FORM_CREATED,
+            )
 
         return Response(data=resp, status=resp_code, headers=headers)
 
@@ -846,6 +867,15 @@ class XFormViewSet(
             safe_delete(f"{PROJ_OWNER_CACHE}{xform.project.pk}")
             resp_code = status.HTTP_202_ACCEPTED
 
+            # send form deletion notification to project target
+            send_message(
+                instance_id=xform.id,
+                target_id=xform.project.id,
+                target_type=XFORM,
+                user=request.user,
+                message_verb=FORM_DELETED,
+            )
+
         elif request.method == "GET":
             job_uuid = request.query_params.get("job_uuid")
             resp = tasks.get_async_status(job_uuid)
@@ -860,6 +890,15 @@ class XFormViewSet(
         xform = self.get_object()
         user = request.user
         xform.soft_delete(user=user)
+
+        # send form deletion notification to project target
+        send_message(
+            instance_id=xform.id,
+            target_id=xform.project.pk,
+            target_type=PROJECT,
+            user=user,
+            message_verb=FORM_DELETED,
+        )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -935,6 +974,14 @@ class XFormViewSet(
 
         # pylint: disable=attribute-defined-outside-init
         self.etag_data = f"{timezone.now()}"
+
+        send_message(
+            instance_id=xform.id,
+            target_id=xform.id,
+            target_type=XFORM,
+            user=request.user,
+            message_verb=EXPORT_CREATED,
+        )
 
         return Response(
             data=resp, status=status.HTTP_202_ACCEPTED, content_type="application/json"
