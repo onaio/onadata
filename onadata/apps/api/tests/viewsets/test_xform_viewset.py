@@ -1518,7 +1518,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 post_data = {"xls_url": xls_url}
                 request = self.factory.post("/", data=post_data, **self.extra)
                 response = view(request)
-                xform = xform = self.user.xforms.get(id_string="transportation_2015_01_07")
+                xform = self.user.xforms.get(id_string="transportation_2015_01_07")
 
                 mock_requests.get.assert_called_with(xls_url)
                 xls_file.close()
