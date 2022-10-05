@@ -92,14 +92,14 @@ class ImportsViewSet(ETagsMixin, CacheControlMixin, viewsets.ViewSet):
                 overwrite.lower() == "true" if isinstance(overwrite, str) else overwrite
             )
 
-            # Block overwrite imports from running in parallel
-            active_tasks = json.load(self._get_active_tasks(xform))
+            # Block imports from running when an overwrite is ongoing
+            active_tasks = json.loads(self._get_active_tasks(xform))
             for task in active_tasks:
                 if task.get("overwrite", False):
-                    task_id = task.get("id")
+                    task_id = task.get("job_uuid")
                     resp.update(
                         {
-                            "reason": "An ongoing overwrite request with the ID {task_id} is being processed"
+                            "reason": f"An ongoing overwrite request with the ID {task_id} is being processed"
                         }
                     )
                     status_code = status.HTTP_403_FORBIDDEN
