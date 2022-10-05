@@ -50,8 +50,6 @@ class ImportsViewSet(ETagsMixin, CacheControlMixin, viewsets.ViewSet):
         Starts a new Import task for a given form; The route processes imports asynchronously
         unless the `DISABLE_ASYNCHRONOUS_IMPORTS` setting is set to false.
 
-        Route:
-
         Curl example:
 
         $ curl -X POST "http://<domain>/api/v2/imports/<xform_id>"
