@@ -57,7 +57,7 @@ class TestAsyncStatus(TestBase):
             return_value={
                 'celery-worker@onadata-id-1': [
                     {
-                        'args': [None, xform.pk],
+                        'args': [None, xform.pk, "/home/ona/import.csv", True],
                         'id': '11',
                         'time_start': time_start,
                         'name': 'onadata.libs.utils.csv_import.submit_csv_async',
@@ -74,5 +74,5 @@ class TestAsyncStatus(TestBase):
             '[{"job_uuid": "11", "time_start"'
             + ": \""
             + datetime.fromtimestamp(time_start).strftime("%Y-%m-%dT%H:%M:%S")
-            + "\"}]",
+            + '", "file": "/home/ona/import.csv", "overwrite": true}]',
         )

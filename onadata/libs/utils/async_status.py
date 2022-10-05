@@ -70,7 +70,7 @@ def get_active_tasks(task_names: List[str], xform: XForm):
                         "%Y-%m-%dT%H:%M:%S"
                     ),
                     "file": gettext(i["args"][2]),
-                    "overwrite": gettext(i["args"][3]),
+                    "overwrite": i["args"][3],
                 },
                 data,
             )
