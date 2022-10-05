@@ -6,13 +6,15 @@ from django.shortcuts import get_object_or_404
 from django.core.files.storage import default_storage
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import ParseError, ErrorDetail
 from rest_framework.decorators import action
 
+from onadata.celeryapp import app
 from onadata.apps.api.tools import get_baseviewset_class
-from onadata.apps.api.permissions import XFormPermissions
+from onadata.apps.api.permissions import ImportPermissions
 from onadata.apps.logger.models import XForm
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
+from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.utils.async_status import get_active_tasks
 from onadata.libs.utils.csv_import import (
@@ -25,8 +27,18 @@ from onadata.settings.common import CSV_EXTENSION, XLS_EXTENSIONS
 BaseViewset = get_baseviewset_class()
 
 
-class ImportsViewSet(ETagsMixin, CacheControlMixin, viewsets.ViewSet):
-    permission_classes = [XFormPermissions]
+def terminate_import_task(task_uuid: str, xform_pk: int) -> bool:
+    task_details = app.control.inspect().query_task(task_uuid)
+    if task_details and task_details["args"][1] == xform_pk:
+        app.control.terminate(task_uuid)
+        return True
+    return False
+
+
+class ImportsViewSet(
+    AuthenticateHeaderMixin, ETagsMixin, CacheControlMixin, viewsets.ViewSet
+):
+    permission_classes = [ImportPermissions]
     queryset = XForm.objects.filter(deleted_at__isnull=True)
     task_names = ["onadata.libs.utils.csv_import.submit_csv_async"]
 
@@ -56,7 +68,7 @@ class ImportsViewSet(ETagsMixin, CacheControlMixin, viewsets.ViewSet):
 
         Supported Query Parameters:
 
-        - overwrite: bool = Whether the server should permanently delete the data currently available on
+        - [Optional] overwrite: bool = Whether the server should permanently delete the data currently available on
           the form then reimport the data using the csv_file/xls_file sent with the request.
 
         Required Request Arguements:
@@ -70,6 +82,7 @@ class ImportsViewSet(ETagsMixin, CacheControlMixin, viewsets.ViewSet):
         - 200 Ok: Server has successfully imported your data to the form; Only returned when asynchronous imports are disabled
         - 400 Bad Request: Request has been refused due to incorrect/missing csv_file or xls_file file
         - 403 Forbidden: The request was valid but the server refused to process it. An explanation on why it was refused can be found in the JSON Response
+        - 401 Unauthorized: The request has been refused due to missing authentication
         """
         xform = self.get_object(pk)
         resp = {}
@@ -99,7 +112,9 @@ class ImportsViewSet(ETagsMixin, CacheControlMixin, viewsets.ViewSet):
                     task_id = task.get("job_uuid")
                     resp.update(
                         {
-                            "reason": f"An ongoing overwrite request with the ID {task_id} is being processed"
+                            "detail": ErrorDetail(
+                                f"An ongoing overwrite request with the ID {task_id} is being processed"
+                            )
                         }
                     )
                     status_code = status.HTTP_403_FORBIDDEN
@@ -139,3 +154,35 @@ class ImportsViewSet(ETagsMixin, CacheControlMixin, viewsets.ViewSet):
             status=status.HTTP_200_OK,
             content_type="application/json",
         )
+
+    def destroy(self, request, pk: int = None) -> Response:
+        """
+        Stops a queued/on-going import task
+
+        Supported Query Parameters:
+
+        - [Required] task_uuid: str = The unique task uuid for the form
+
+        Possible Response status codes:
+
+        - 204 No Content: Request was successfully processed. Task was terminated.
+        - 400 Bad Request: Request was rejected either due to a missing `task_uuid` query parameter or because the `task_uuid` does not exist for the XForm
+        """
+        xform = self.get_object(pk)
+        task_uuid = request.query_params.get("task_uuid")
+
+        if not task_uuid:
+            return Response(
+                data={"error": "The task_uuid query parameter is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+                content_type="application/json",
+            )
+
+        successful = terminate_import_task(task_uuid, xform.pk)
+        if not successful:
+            return Response(
+                data={"error": f"Queued task with ID {task_uuid} does not exist"},
+                status=status.HTTP_400_BAD_REQUEST,
+                content_type="application/json",
+            )
+        return Response(status=status.HTTP_204_NO_CONTENT)
