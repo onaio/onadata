@@ -17,9 +17,12 @@ from onadata.apps.api.tools import (
     remove_user_from_organization,
     remove_user_from_team,
 )
-from onadata.libs.models.share_project import ShareProject
+from onadata.apps.api.models.organization_profile import (
+    get_organization_members_team,
+)
 from onadata.libs.permissions import ROLES, OwnerRole, is_organization
 from onadata.libs.serializers.fields.organization_field import OrganizationField
+from onadata.libs.serializers.share_project_serializer import ShareProjectSerializer
 from onadata.settings.common import DEFAULT_FROM_EMAIL, SHARE_ORG_SUBJECT
 
 User = get_user_model()
@@ -39,17 +42,22 @@ def _set_organization_role_to_user(organization, user, role):
     role_cls.add(user, organization)
 
     owners_team = get_or_create_organization_owners_team(organization)
+    members_team = get_organization_members_team(organization)
+    current_team = owners_team if role == OwnerRole.name else members_team
 
-    # add the owner to owners team
-    if role == OwnerRole.name:
-        role_cls.add(user, organization.userprofile_ptr)
-        add_user_to_team(owners_team, user)
-        # add user to org projects
-        for project in organization.user.project_org.all():
-            ShareProject(project, user.username, role).save()
-
-    if role != OwnerRole.name:
-        remove_user_from_team(owners_team, user)
+    # add user to their respective team
+    role_cls.add(user, organization.userprofile_ptr)
+    add_user_to_team(current_team, user)
+    # add user to org projects
+    for project in organization.user.project_org.all():
+        data = {
+            "project": project.pk,
+            "username": user.username,
+            "role": role
+        }
+        serializer = ShareProjectSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
 
 
 class OrganizationMemberSerializer(serializers.Serializer):
