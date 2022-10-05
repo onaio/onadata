@@ -299,6 +299,10 @@ class TestImportsViewSet(TestAbstractViewSet):
 
     @patch("onadata.apps.api.viewsets.v2.imports_viewset.terminate_import_task")
     def test_delete_expected_response(self, mocked_terminate_import_task):
+        """
+        Test that the `api/v2/imports/<xself.xform.pk>` DELETE route returns the
+        expected successful response
+        """
         with HTTMock(enketo_mock):
             xls_path = os.path.join(
                 settings.PROJECT_ROOT,
@@ -319,6 +323,13 @@ class TestImportsViewSet(TestAbstractViewSet):
 
     @patch("onadata.apps.api.viewsets.v2.imports_viewset.app")
     def test_delete_validation(self, mocked_celery_app):
+        """
+        Test that the `api/v2/imports/<xself.xform.pk>` DELETE route validates requests.
+
+        Expected validation checks:
+          - Checks that `task_uuid` is sent
+          - Checks that the task_uuid actually exists and is tied to the form
+        """
         with HTTMock(enketo_mock):
             xls_path = os.path.join(
                 settings.PROJECT_ROOT,
