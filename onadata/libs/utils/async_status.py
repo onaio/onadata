@@ -19,12 +19,12 @@ RETRY = 4
 STARTED = 5
 
 status_msg = {
-    PENDING: 'PENDING',
-    SUCCESSFUL: 'SUCCESS',
-    FAILED: 'FAILURE',
-    PROGRESS: 'PROGRESS',
-    RETRY: 'RETRY',
-    STARTED: 'STARTED',
+    PENDING: "PENDING",
+    SUCCESSFUL: "SUCCESS",
+    FAILED: "FAILURE",
+    PROGRESS: "PROGRESS",
+    RETRY: "RETRY",
+    STARTED: "STARTED",
 }
 
 
@@ -35,15 +35,15 @@ def celery_state_to_status(state):
         states.RETRY: RETRY,
         states.SUCCESS: SUCCESSFUL,
         states.FAILURE: FAILED,
-        'PROGRESS': PROGRESS,
+        "PROGRESS": PROGRESS,
     }
     return status_map[state] if state in status_map else FAILED
 
 
 def async_status(status, error=None):
-    status = {'job_status': status_msg[status]}
+    status = {"job_status": status_msg[status]}
     if error:
-        status['error'] = error
+        status["error"] = error
     return status
 
 
@@ -56,7 +56,7 @@ def get_active_tasks(task_names: List[str], xform: XForm):
         task_list = list(inspect_active.values())
         data = list(
             filter(
-                lambda task: xform.pk == task['args'][1] and task['name'] in task_names,
+                lambda task: xform.pk == task["args"][1] and task["name"] in task_names,
                 task_list[0],
             )
         )
@@ -65,10 +65,12 @@ def get_active_tasks(task_names: List[str], xform: XForm):
         list(
             map(
                 lambda i: {
-                    'job_uuid': gettext(i['id']),
-                    'time_start': datetime.fromtimestamp(i["time_start"]).strftime(
+                    "job_uuid": gettext(i["id"]),
+                    "time_start": datetime.fromtimestamp(i["time_start"]).strftime(
                         "%Y-%m-%dT%H:%M:%S"
                     ),
+                    "file": gettext(i["args"][2]),
+                    "overwrite": gettext(i["args"][3]),
                 },
                 data,
             )
