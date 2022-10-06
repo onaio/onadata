@@ -23,7 +23,7 @@ from onadata.apps.api.viewsets.organization_profile_viewset import (
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.main.models import UserProfile
-from onadata.libs.permissions import OwnerRole
+from onadata.libs.permissions import OwnerRole, EditorRole
 
 
 # pylint: disable=too-many-public-methods
@@ -283,7 +283,6 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         request = self.factory.post(
             "/", data=json.dumps(data), content_type="application/json", **self.extra
         )
-
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 201)
         self.assertEqual(set(response.data), set(["denoinc", "aboy"]))
@@ -811,6 +810,37 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertIn("denoinc", users_in_users)
         self.assertIn("aboy", users_in_users)
         self.assertIn("alice", users_in_users)
+
+    def test_member_added_to_org_with_correct_perms(self):
+        # create org
+        self._org_create()
+        project_data = {"owner": self.company_data["user"]}
+
+        # create project under org
+        self._project_create(project_data)
+        self._publish_xls_form_to_project()
+
+        # add member to org
+        view = OrganizationProfileViewSet.as_view({"post": "members"})
+
+        # create new user
+        self.profile_data["username"] = "aboy"
+        self.profile_data["email"] = "aboy@org.com"
+        self._create_user_profile()
+        data = {"username": "aboy", "role": "editor"}
+
+        # add new user as member to org with editor permissions
+        request = self.factory.post(
+            "/", data=json.dumps(data), content_type="application/json", **self.extra
+        )
+        response = view(request, user="denoinc")
+        self.assertEqual(response.status_code, 201)
+
+        member = User.objects.get(username="aboy")
+
+        # Assert that user has xform and project permissions
+        self.assertTrue(EditorRole.user_has_role(member, self.xform))
+        self.assertTrue(EditorRole.user_has_role(member, self.project))
 
     def test_put_role_user_none_existent(self):
         self._org_create()
