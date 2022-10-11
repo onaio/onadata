@@ -56,6 +56,8 @@ from onadata.apps.main.forms import (
     UserProfileForm,
 )
 from onadata.apps.main.models import AuditLog, MetaData, UserProfile
+from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
+from onadata.apps.messaging.serializers import send_message
 from onadata.apps.sms_support.autodoc import get_autodoc_for
 from onadata.apps.sms_support.providers import providers_doc
 from onadata.apps.sms_support.tools import check_form_sms_compatibility, is_sms_related
@@ -681,6 +683,16 @@ def edit(request, username, id_string):  # noqa C901
                 audit,
                 request,
             )
+
+            # send form update notification
+            send_message(
+                instance_id=xform.id,
+                target_id=xform.id,
+                target_type=XFORM,
+                user=request.user or owner,
+                message_verb=FORM_UPDATED,
+            )
+
             xform.description = request.POST["description"]
         elif request.POST.get("title"):
             audit = {"xform": xform.id_string}
@@ -700,6 +712,16 @@ def edit(request, username, id_string):  # noqa C901
                 audit,
                 request,
             )
+
+            # send form update notification
+            send_message(
+                instance_id=xform.id,
+                target_id=xform.id,
+                target_type=XFORM,
+                user=request.user or owner,
+                message_verb=FORM_UPDATED,
+            )
+
             xform.title = request.POST["title"]
         elif request.POST.get("toggle_shared"):
             if request.POST["toggle_shared"] == "data":
@@ -717,6 +739,16 @@ def edit(request, username, id_string):  # noqa C901
                     audit,
                     request,
                 )
+
+                # send form update notification
+                send_message(
+                    instance_id=xform.id,
+                    target_id=xform.id,
+                    target_type=XFORM,
+                    user=request.user or owner,
+                    message_verb=FORM_UPDATED,
+                )
+
                 xform.shared_data = not xform.shared_data
             elif request.POST["toggle_shared"] == "form":
                 audit = {"xform": xform.id_string}
@@ -733,6 +765,16 @@ def edit(request, username, id_string):  # noqa C901
                     audit,
                     request,
                 )
+
+                # send form update notification
+                send_message(
+                    instance_id=xform.id,
+                    target_id=xform.id,
+                    target_type=XFORM,
+                    user=request.user or owner,
+                    message_verb=FORM_UPDATED,
+                )
+
                 xform.shared = not xform.shared
             elif request.POST["toggle_shared"] == "active":
                 audit = {"xform": xform.id_string}
@@ -749,6 +791,16 @@ def edit(request, username, id_string):  # noqa C901
                     audit,
                     request,
                 )
+
+                # send form update notification
+                send_message(
+                    instance_id=xform.id,
+                    target_id=xform.id,
+                    target_type=XFORM,
+                    user=request.user or owner,
+                    message_verb=FORM_UPDATED,
+                )
+
                 xform.downloadable = not xform.downloadable
         elif request.POST.get("form-license"):
             audit = {"xform": xform.id_string}
@@ -763,6 +815,14 @@ def edit(request, username, id_string):  # noqa C901
                 ),
                 audit,
                 request,
+            )
+            # send form update notification
+            send_message(
+                instance_id=xform.id,
+                target_id=xform.id,
+                target_type=XFORM,
+                user=request.user or owner,
+                message_verb=FORM_UPDATED,
             )
             MetaData.form_license(xform, request.POST["form-license"])
         elif request.POST.get("data-license"):
@@ -779,6 +839,16 @@ def edit(request, username, id_string):  # noqa C901
                 audit,
                 request,
             )
+
+            # send form update notification
+            send_message(
+                instance_id=xform.id,
+                target_id=xform.id,
+                target_type=XFORM,
+                user=request.user or owner,
+                message_verb=FORM_UPDATED,
+            )
+
             MetaData.data_license(xform, request.POST["data-license"])
         elif request.POST.get("source") or request.FILES.get("source"):
             audit = {"xform": xform.id_string}
@@ -791,6 +861,16 @@ def edit(request, username, id_string):  # noqa C901
                 audit,
                 request,
             )
+
+            # send form update notification
+            send_message(
+                instance_id=xform.id,
+                target_id=xform.id,
+                target_type=XFORM,
+                user=request.user or owner,
+                message_verb=FORM_UPDATED,
+            )
+
             MetaData.source(
                 xform, request.POST.get("source"), request.FILES.get("source")
             )
@@ -812,6 +892,14 @@ def edit(request, username, id_string):  # noqa C901
                     audit_message,
                     audit,
                     request,
+                )
+                # send form update notification
+                send_message(
+                    instance_id=xform.id,
+                    target_id=xform.id,
+                    target_type=XFORM,
+                    user=request.user or owner,
+                    message_verb=FORM_UPDATED,
                 )
                 # stored previous states to be able to rollback form status
                 # in case we can't save.
@@ -843,6 +931,16 @@ def edit(request, username, id_string):  # noqa C901
                 audit,
                 request,
             )
+
+            # send form update notification
+            send_message(
+                instance_id=xform.id,
+                target_id=xform.id,
+                target_type=XFORM,
+                user=request.user or owner,
+                message_verb=FORM_UPDATED,
+            )
+
             for media_file in request.FILES.getlist("media"):
                 MetaData.media_upload(xform, media_file)
         elif request.POST.get("map_name"):
@@ -868,6 +966,16 @@ def edit(request, username, id_string):  # noqa C901
                 audit,
                 request,
             )
+
+            # send form update notification
+            send_message(
+                instance_id=xform.id,
+                target_id=xform.id,
+                target_type=XFORM,
+                user=request.user or owner,
+                message_verb=FORM_UPDATED,
+            )
+
             MetaData.supporting_docs(xform, request.FILES.get("doc"))
         elif request.POST.get("template_token") and request.POST.get("template_token"):
             template_name = request.POST.get("template_name")
@@ -881,6 +989,16 @@ def edit(request, username, id_string):  # noqa C901
                 audit,
                 request,
             )
+
+            # send form update notification
+            send_message(
+                instance_id=xform.id,
+                target_id=xform.id,
+                target_type=XFORM,
+                user=request.user or owner,
+                message_verb=FORM_UPDATED,
+            )
+
             merged = template_name + "|" + template_token
             MetaData.external_export(xform, merged)
         elif request.POST.get("external_url") and request.FILES.get("xls_template"):
