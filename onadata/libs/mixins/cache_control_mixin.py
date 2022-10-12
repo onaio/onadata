@@ -1,38 +1,65 @@
-# -*- coding: utf-8 -*-
 """
-Implements the CacheControlMixin class
+Cache control mixin
+"""
+from typing import Optional
 
-Adds Cache headers to a viewsets response.
-"""
 from django.conf import settings
 from django.utils.cache import patch_cache_control
 
-CACHE_MIXIN_SECONDS = 60
 
-
-class CacheControlMixin:
+class CacheControlBase:
     """
-    Implements the CacheControlMixin class
-
-    Adds Cache headers to a viewsets response.
+    Base class for Cache Control header handlers
     """
 
-    def set_cache_control(self, response, max_age=CACHE_MIXIN_SECONDS):
-        """Adds Cache headers to a response"""
-        if hasattr(settings, "CACHE_MIXIN_SECONDS"):
-            max_age = settings.CACHE_MIXIN_SECONDS
+    CACHE_CONTROL_DIRECTIVES = {"max_age": 60}
 
-        patch_cache_control(response, max_age=max_age)
+    def set_cache_control(
+        self, response, cache_control_directives: Optional[dict] = None
+    ):
+        """
+        Sets the `Cache-Control` headers on a `Response` object. The Optional
+        `cache_control_directives` arguement is used to override the directives set
+        in settings as well as the classes own `CACHE_CONTROL_DIRECTIVES` value
+        """
+        if not cache_control_directives:
+            if hasattr(settings, "CACHE_CONTROL_DIRECTIVES"):
+                cache_control_directives = settings.CACHE_CONTROL_DIRECTIVES
+            else:
+                cache_control_directives = self.CACHE_CONTROL_DIRECTIVES
+
+        patch_cache_control(response, **cache_control_directives)
+        return response
+
+
+class CacheControlMiddleware(CacheControlBase):
+    """
+    Django Middleware used to set `Cache-Control` header for every response
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        return self.set_cache_control(response)
+
+
+class CacheControlMixin(CacheControlBase):
+    """
+    Django Rest Framework ViewSet mixin for Cache-Control
+    """
 
     def finalize_response(self, request, response, *args, **kwargs):
-        """Overrides the finalize_response method
-
-        Adds Cache headers to a response."""
+        """
+        Finalize respone function; called before the response is returned
+        to the client
+        """
         if (
             request.method == "GET"
             and not response.streaming
             and response.status_code in [200, 201, 202]
         ):
-            self.set_cache_control(response)
+            response = self.set_cache_control(response)
 
         return super().finalize_response(request, response, *args, **kwargs)
