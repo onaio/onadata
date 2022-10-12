@@ -611,6 +611,7 @@ GOOGLE_FLOW = {
         "javascript_origins": [],
     }
 }
+GOOGLE_FLOW_SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 CSP_CONNECT_SRC = ["https://maps.googleapis.com", "http://localhost:8000"]
 CSP_FONT_SRC = [
     "http://netdna.bootstrapcdn.com",
