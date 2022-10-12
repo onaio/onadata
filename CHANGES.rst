@@ -3,6 +3,18 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.5.0(2022-10-06)
+------------------
+- Fix org members permissions 
+  `PR #2323 <https://github.com/onaio/onadata/pull/2323>`_
+  [@KipSigei]
+- Add pagination to projects endpoint
+  `PR #2320 <https://github.com/onaio/onadata/pull/2320>`_
+  [@KipSigei]
+- Add pagination to forms endpoint
+  `PR #2319 <https://github.com/onaio/onadata/pull/2319>`_
+  [@KipSigei]
+
 v3.4.0(2022-09-22)
 ------------------
 - Order submission URLs correctly

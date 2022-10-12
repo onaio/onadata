@@ -173,6 +173,23 @@ Request
 
     curl -X GET https://api.ona.io/api/v1/forms?owner=ona
 
+Get a paginated list of forms
+------------------------------
+Returns a list of JSON forms using page number and the number of items per page. Use the ``page`` parameter to specify page number and ``page_size`` parameter is used to set the custom page size.
+
+- ``page`` - Integer representing the page.
+- ``page_size`` - Integer representing the number of records that should be returned in a single page. The maximum number of items that can be requested in a page via the ``page_size`` query param is 10,000
+
+.. raw:: html
+
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/forms.json?<code>page</code>=<code>1</code><code>page_size</code>=<code>10</code></pre>
+
+Request
+^^^^^^^
+::
+
+    curl -X GET https://api.ona.io/api/v1/forms.json?page=1&page_size=10
 
 Get Form Information
 ---------------------

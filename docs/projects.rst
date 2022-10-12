@@ -62,6 +62,44 @@ Response
            }, ...
        ]
 
+Get a paginated list of Projects
+---------------------------------
+Returns a list of projects using page number and the number of items per page. Use the ``page`` parameter to specify page number and ``page_size`` parameter is used to set the custom page size.
+
+- ``page`` - Integer representing the page.
+- ``page_size`` - Integer representing the number of records that should be returned in a single page. The maximum number of items that can be requested in a page via the ``page_size`` query param is 10,000
+
+.. raw:: html
+
+	<pre class="prettyprint"><b>GET</b> /api/v1/projects?<code>page</code>=<code>1</code><code>page_size</code>=<code>2</code></pre>
+
+Example
+^^^^^^^^
+::
+
+       curl -X GET https://api.ona.io/api/v1/projects?page=1&page_size=2
+
+Response
+^^^^^^^^^
+::
+
+       [
+           {
+               "url": "https://api.ona.io/api/v1/projects/1",
+               "owner": "https://api.ona.io/api/v1/users/ona",
+               "name": "project 1",
+               "date_created": "2013-07-24T13:37:39Z",
+               "date_modified": "2013-07-24T13:37:39Z"
+           },
+           {
+               "url": "https://api.ona.io/api/v1/projects/4",
+               "owner": "https://api.ona.io/api/v1/users/ona",
+               "name": "project 2",
+               "date_created": "2013-07-24T13:59:10Z",
+               "date_modified": "2013-07-24T13:59:10Z"
+           }, ...
+       ]
+
 List of Projects filter by owner/organization
 ----------------------------------------------
 .. raw:: html
