@@ -211,6 +211,18 @@ jobs:
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
+        if: github.event_name == 'pull_request'
+        with:
+          image-ref: onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
+          format: sarif
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          output: 'trivy_results.sarif'
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        if: github.event_name == 'push'
         with:
           image-ref: onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
           format: sarif
@@ -219,6 +231,7 @@ jobs:
 
       - name: Upload vulnerability scan results
         uses: github/codeql-action/upload-sarif@v2
+        if: github.event_name == 'push'
         with:
           sarif_file: 'trivy_results.sarif'
 
