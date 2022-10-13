@@ -55,19 +55,12 @@ jobs:
 
       - name: Run Prospector
         run: prospector -X -s veryhigh onadata
-  unit-tests:
-    name: Django Unit Tests
+  unit-tests-1:
+    name: Django Unit Tests (Libraries, Main, RestServices, SMS Support, Viewer, Messagin)
     runs-on: ubuntu-20.04
     needs: static-analysis
     env:
       DJANGO_SETTINGS_MODULE: onadata.settings.github_actions_test
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      matrix:
-        include:
-          - testfolder: "onadata/libs onadata/apps/main onadata/apps/restservice onadata/apps/sms_support onadata/apps/viewer onadata/apps/messaging"
-          - testfolder: "onadata/apps/api onadata/apps/logger"
     services:
       postgres:
         image: postgis/postgis:13-3.0
@@ -125,7 +118,71 @@ jobs:
 
       - name: Run tests
         run: |
-          python manage.py test ${{ matrix.testfolder }} --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4
+          python manage.py test onadata/libs onadata/apps/main onadata/apps/restservice onadata/apps/sms_support onadata/apps/viewer onadata/apps/messaging --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4
+  unit-tests-2:
+    name: Django Unit Tests (API, Logger)
+    runs-on: ubuntu-20.04
+    needs: static-analysis
+    env:
+      DJANGO_SETTINGS_MODULE: onadata.settings.github_actions_test
+    services:
+      postgres:
+        image: postgis/postgis:13-3.0
+        env:
+          POSTGRES_PASSWORD: onadata
+          POSTGRES_DB: onadata
+          POSTGRES_USER: onadata
+        ports:
+          - 5432:5432
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: "adopt"
+          java-version: "8"
+
+      - name: Setup python
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.9
+          architecture: "x64"
+
+      - name: Get pip cache dir
+        id: pip-cache
+        run: |
+          echo "pip_cache_dir=$(pip cache dir)" >> $GITHUB_ENV
+
+      - name: Cache pip
+        uses: actions/cache@v3
+        id: cache-pip
+        with:
+          path: ${{ env.pip_cache_dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/base.pip') }}-${{ hashFiles('requirements/dev.pip') }}-${{ hashFiles('requirements/azure.pip') }}
+
+      - name: Install APT requirements
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev libxml2-dev libxslt-dev
+          sudo rm -rf /var/lib/apt/lists/*
+
+      - name: Install Pip requirements
+        run: |
+          pip install -U pip
+          pip install -r requirements/base.pip
+          pip install -r requirements/dev.pip
+
+      - name: Run tests
+        run: |
+          python manage.py test onadata/apps/api onadata/apps/logger --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4
   security-check:
     name: Trivy Security Checks
     runs-on: ubuntu-20.04
