@@ -221,3 +221,47 @@ jobs:
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: 'trivy_results.sarif'
+
+      - name: Run Trivy vulnerability for Slack summary
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
+          format: json
+          ignore-unfixed: true
+          output: 'trivy_results.json'
+
+      - name: Create summary of trivy issues
+        run: |
+          summary=$(jq -r '.Results[] | select(.Vulnerabilities) | .Vulnerabilities | group_by(.Severity) | map({Severity: .[0].Severity, Count: length}) | .[] | [.Severity, .Count] | join(": ")' trivy_results.json | awk 'NR > 1 { printf(" | ") } {printf "%s",$0}')
+          if [ -z $summary ]
+          then
+            summary="0 Issues"
+          fi
+          echo "SUMMARY=$summary" >> $GITHUB_ENV
+
+      - name: Send Slack Notification
+        uses: slackapi/slack-github-action@v1.19.0
+        with:
+          payload: |
+            {
+              "text": "Trivy scan results for ${{ github.head_ref || github.base_ref || env.version }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "[Ona Data] Trivy scan results for ${{ github.head_ref || github.base_ref || env.version }}: ${{ env.SUMMARY }}"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "View scan results: https://github.com/${{ github.repository }}/security/code-scanning?query=branch:${{ github.head_ref || github.base_ref || env.version }}+is:open++"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
