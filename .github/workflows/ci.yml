@@ -3,7 +3,7 @@ on:
   - push
   - pull_request
 concurrency:
-  group: ci-${{ github.ref }}-${{ github.sha }}-${{ github.event_name }}
+  group: ci-${{ github.workflow }}-${{ github.actor }}-${{ github.sha }}
   cancel-in-progress: true
 
 jobs:
@@ -32,7 +32,7 @@ jobs:
           --health-retries 5
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Setup Java
         uses: actions/setup-java@v2
@@ -52,7 +52,7 @@ jobs:
           echo "pip_cache_dir=$(pip cache dir)" >> $GITHUB_ENV
 
       - name: Cache pip
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: cache-pip
         with:
           path: ${{ env.pip_cache_dir }}
@@ -85,4 +85,4 @@ jobs:
 
       - name: Run tests
         run: |
-          python manage.py test ${{ matrix.testfolder }} --noinput --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4
+          python manage.py test ${{ matrix.testfolder }} --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4
