@@ -16,6 +16,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.db.utils import OperationalError
 from django.test import RequestFactory
+from django.test.testcases import SerializeMixin
 from django.test.utils import override_settings
 from django.utils import timezone
 
@@ -109,10 +110,11 @@ def _data_instance(dataid):
 
 
 # pylint: disable=too-many-public-methods
-class TestDataViewSet(TestBase):
+class TestDataViewSet(SerializeMixin, TestBase):
     """
     Test /data API endpoint implementation.
     """
+    lockfile = __file__
 
     def setUp(self):
         super().setUp()

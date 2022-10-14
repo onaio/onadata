@@ -18,6 +18,9 @@ def attachment_url(attachment, suffix=None):
 
 
 class TestMediaViewSet(TestAbstractViewSet):
+    """
+    Test the /api/v1/files endpoint
+    """
     def setUp(self):
         super(TestMediaViewSet, self).setUp()
         self.retrieve_view = MediaViewSet.as_view({"get": "retrieve"})
@@ -30,7 +33,7 @@ class TestMediaViewSet(TestAbstractViewSet):
             "/", {"filename": self.attachment.media_file.name}, **self.extra
         )
         response = self.retrieve_view(request, self.attachment.pk)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 200, response)
         self.assertEqual(type(response.content), bytes)
 
     @patch("onadata.libs.utils.image_tools.get_storage_class")

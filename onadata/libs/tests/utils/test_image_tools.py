@@ -22,6 +22,9 @@ def image_url_mock(url, request):
 
 
 class TestImageTools(SerializeMixin, TestBase):
+    """
+    Test class for image utility functions
+    """
     lockfile = __file__
 
     def test_resize_exception_is_handled(self):
