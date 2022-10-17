@@ -627,6 +627,7 @@ def generate_google_web_flow(request):
 
 def _get_google_credential(request):
     credential = None
+    storage = None
     if request.user.is_authenticated:
         try:
             storage = TokenStorageModel.objects.get(id=request.user)
@@ -635,6 +636,11 @@ def _get_google_credential(request):
             pass
     elif request.session.get("access_token"):
         credential = Credentials(token=request.session["access_token"])
+
+    if credential and not credential.valid:
+        # We need the user to provide a new crential
+        storage.delete()
+        credential = None
 
     if not credential:
         google_flow = generate_google_web_flow(request)
