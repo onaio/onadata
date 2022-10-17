@@ -3,18 +3,64 @@ on:
   - push
   - pull_request
 concurrency:
-  group: ci-${{ github.ref }}-${{ github.sha }}-${{ github.event_name }}
+  group: ci-${{ github.workflow }}-${{ github.actor }}-${{ github.sha }}
   cancel-in-progress: true
 
 jobs:
-  github-action-ci:
+  static-analysis:
+    name: Prospector Static Analysis
     runs-on: ubuntu-20.04
+    env:
+      DJANGO_SETTINGS_MODULE: onadata.settings.github_actions_test
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - testfolder: "onadata/libs onadata/apps/main onadata/apps/restservice onadata/apps/sms_support onadata/apps/viewer onadata/apps/messaging"
-          - testfolder: "onadata/apps/api onadata/apps/logger"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup python
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.9
+          architecture: "x64"
+
+      - name: Get pip cache dir
+        id: pip-cache
+        run: |
+          echo "pip_cache_dir=$(pip cache dir)" >> $GITHUB_ENV
+
+      - name: Cache pip
+        uses: actions/cache@v3
+        id: cache-pip
+        with:
+          path: ${{ env.pip_cache_dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/base.pip') }}-${{ hashFiles('requirements/dev.pip') }}-${{ hashFiles('requirements/azure.pip') }}
+
+      - name: Install APT requirements
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev libxml2-dev libxslt-dev
+          sudo rm -rf /var/lib/apt/lists/*
+
+      - name: Install Pip requirements
+        run: |
+          pip install -U pip
+          pip install -r requirements/base.pip
+          pip install -r requirements/dev.pip
+          pip install -r requirements/azure.pip
+
+      - name: Install linting tools
+        run:
+          pip install prospector==1.7.7 pylint==2.14.5
+
+      - name: Run Prospector
+        run: prospector -X -s veryhigh onadata
+  unit-tests-1:
+    name: Django Unit Tests (Libraries, Main, RestServices, SMS Support, Viewer, Messagin)
+    runs-on: ubuntu-20.04
+    needs: static-analysis
+    env:
+      DJANGO_SETTINGS_MODULE: onadata.settings.github_actions_test
     services:
       postgres:
         image: postgis/postgis:13-3.0
@@ -32,7 +78,7 @@ jobs:
           --health-retries 5
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Setup Java
         uses: actions/setup-java@v2
@@ -49,14 +95,14 @@ jobs:
       - name: Get pip cache dir
         id: pip-cache
         run: |
-          echo "::set-output name=dir::$(pip cache dir)"
+          echo "pip_cache_dir=$(pip cache dir)" >> $GITHUB_ENV
 
       - name: Cache pip
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: cache-pip
         with:
-          path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/base.pip') }}
+          path: ${{ env.pip_cache_dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/base.pip') }}-${{ hashFiles('requirements/dev.pip') }}-${{ hashFiles('requirements/azure.pip') }}
 
       - name: Install APT requirements
         run: |
@@ -68,21 +114,170 @@ jobs:
         run: |
           pip install -U pip
           pip install -r requirements/base.pip
-          pip install flake8
-          pip install tblib
-          pip install flaky
-          pip install httmock
-          pip install mock
-          pip install requests-mock
-
-      - name: Python Static Analysis
-        env:
-          DJANGO_SETTINGS_MODULE: onadata.settings.github_actions_test
-        run: |
-          pip install prospector==1.7.7 pylint==2.14.5
-          pip install -r requirements/azure.pip
-          prospector -X -s veryhigh onadata
+          pip install -r requirements/dev.pip
 
       - name: Run tests
         run: |
-          python manage.py test ${{ matrix.testfolder }} --noinput --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4
+          python manage.py test onadata/libs onadata/apps/main onadata/apps/restservice onadata/apps/sms_support onadata/apps/viewer onadata/apps/messaging --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4
+  unit-tests-2:
+    name: Django Unit Tests (API, Logger)
+    runs-on: ubuntu-20.04
+    needs: static-analysis
+    env:
+      DJANGO_SETTINGS_MODULE: onadata.settings.github_actions_test
+    services:
+      postgres:
+        image: postgis/postgis:13-3.0
+        env:
+          POSTGRES_PASSWORD: onadata
+          POSTGRES_DB: onadata
+          POSTGRES_USER: onadata
+        ports:
+          - 5432:5432
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: "adopt"
+          java-version: "8"
+
+      - name: Setup python
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.9
+          architecture: "x64"
+
+      - name: Get pip cache dir
+        id: pip-cache
+        run: |
+          echo "pip_cache_dir=$(pip cache dir)" >> $GITHUB_ENV
+
+      - name: Cache pip
+        uses: actions/cache@v3
+        id: cache-pip
+        with:
+          path: ${{ env.pip_cache_dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/base.pip') }}-${{ hashFiles('requirements/dev.pip') }}-${{ hashFiles('requirements/azure.pip') }}
+
+      - name: Install APT requirements
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev libxml2-dev libxslt-dev
+          sudo rm -rf /var/lib/apt/lists/*
+
+      - name: Install Pip requirements
+        run: |
+          pip install -U pip
+          pip install -r requirements/base.pip
+          pip install -r requirements/dev.pip
+
+      - name: Run tests
+        run: |
+          python manage.py test onadata/apps/api onadata/apps/logger --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4
+  security-check:
+    name: Trivy Security Checks
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Get the branch name
+        id: get-branch-name
+        if: github.event_name == 'push'
+        run: echo "version=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: ./docker/onadata-uwsgi
+          file: ./docker/onadata-uwsgi/Dockerfile
+          platforms: linux/amd64
+          build-args: |
+            release_version=${{ github.head_ref || github.base_ref || env.version }}
+          push: false
+          tags: |
+            onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
+          cache-from: type=registry,ref=onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
+          cache-to: type=inline
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        if: github.event_name == 'pull_request'
+        with:
+          image-ref: onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
+          format: sarif
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          output: 'trivy_results.sarif'
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        if: github.event_name == 'push'
+        with:
+          image-ref: onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
+          format: sarif
+          ignore-unfixed: true
+          output: 'trivy_results.sarif'
+
+      - name: Upload vulnerability scan results
+        uses: github/codeql-action/upload-sarif@v2
+        if: github.event_name == 'push'
+        with:
+          sarif_file: 'trivy_results.sarif'
+
+      - name: Run Trivy vulnerability for Slack summary
+        uses: aquasecurity/trivy-action@master
+        if: github.event_name == 'push'
+        with:
+          image-ref: onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
+          format: json
+          ignore-unfixed: true
+          output: 'trivy_results.json'
+
+      - name: Create summary of trivy issues
+        if: github.event_name == 'push'
+        run: |
+          summary=$(jq -r '.Results[] | select(.Vulnerabilities) | .Vulnerabilities | group_by(.Severity) | map({Severity: .[0].Severity, Count: length}) | .[] | [.Severity, .Count] | join(": ")' trivy_results.json | awk 'NR > 1 { printf(" | ") } {printf "%s",$0}')
+          if [ -z $summary ]
+          then
+            summary="0 Issues"
+          fi
+          echo "SUMMARY=$summary" >> $GITHUB_ENV
+
+      - name: Send Slack Notification
+        uses: slackapi/slack-github-action@v1.19.0
+        if: github.event_name == 'push'
+        with:
+          payload: |
+            {
+              "text": "Trivy scan results for ${{ github.head_ref || github.base_ref || env.version }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "[Ona Data] Trivy scan results for ${{ github.head_ref || github.base_ref || env.version }}: ${{ env.SUMMARY }}"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "View scan results: https://github.com/${{ github.repository }}/security/code-scanning?query=branch:${{ github.head_ref || github.base_ref || env.version }}+is:open++"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

@@ -3,6 +3,7 @@ import shutil
 
 import requests
 from django.core.files.storage import get_storage_class
+from django.test.testcases import SerializeMixin
 from httmock import urlmatch, HTTMock
 
 from onadata.apps.logger.models.attachment import Attachment
@@ -20,7 +21,12 @@ def image_url_mock(url, request):
     return response
 
 
-class TestImageTools(TestBase):
+class TestImageTools(SerializeMixin, TestBase):
+    """
+    Test class for image utility functions
+    """
+    lockfile = __file__
+
     def test_resize_exception_is_handled(self):
         with HTTMock(image_url_mock):
             with self.assertRaises(Exception) as io_error:

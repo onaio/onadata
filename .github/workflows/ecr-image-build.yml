@@ -30,12 +30,12 @@ jobs:
       - name: Get the version
         id: get-version
         if: github.event.inputs.versionTag == '' && github.event_name != 'push'
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
       - name: Get the branch name
         id: get-branch-name
         if: github.event_name == 'push'
-        run: echo "##[set-output name=BRANCH;]$(echo ${GITHUB_REF#refs/heads/})"
+        run: echo "version=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -67,11 +67,11 @@ jobs:
           ssh: |
             default=/tmp/ssh-agent.sock
           build-args: |
-            release_version=${{ github.event.inputs.versionTag || steps.get-version.outputs.VERSION || steps.get-branch-name.outputs.BRANCH }}
+            release_version=${{ github.event.inputs.versionTag || env.version }}
             optional_packages=PyYAML django-redis ${{ secrets.ECR_OPTIONAL_PACKAGES }}
           push: true
           tags: |
-            ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ github.event.inputs.versionTag || steps.get-version.outputs.VERSION || steps.get-branch-name.outputs.BRANCH }}
+            ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ github.event.inputs.versionTag || env.version }}
 
       - name: Image digest
         run: echo ${{ steps.docker-build.outputs.digest }}
@@ -79,7 +79,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ github.event.inputs.versionTag || steps.get-version.outputs.VERSION || steps.get-branch-name.outputs.BRANCH }}
+          image-ref: ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ github.event.inputs.versionTag || env.version }}
           format: 'sarif'
           output: 'trivy-results.sarif'
 
@@ -91,7 +91,7 @@ jobs:
       - name: Run Trivy vulnerability scanner for Slack
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ github.event.inputs.versionTag || steps.get-version.outputs.VERSION || steps.get-branch-name.outputs.BRANCH }}
+          image-ref: ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ github.event.inputs.versionTag || env.version }}
           format: json
           output: 'trivy-results.json'
 
