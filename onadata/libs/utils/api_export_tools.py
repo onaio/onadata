@@ -7,6 +7,10 @@ import os
 import sys
 from datetime import datetime
 
+from google.auth.transport.requests import Request
+from google.auth.exceptions import RefreshError
+from google.oauth2.credentials import Credentials  # noqa
+
 from django.conf import settings
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
@@ -15,7 +19,6 @@ from django.utils.translation import gettext as _
 import six
 from celery.backends.rpc import BacklogLimitExceeded
 from celery.result import AsyncResult
-from google.oauth2.credentials import Credentials  # noqa
 from kombu.exceptions import OperationalError
 from rest_framework import exceptions, status
 from rest_framework.response import Response
@@ -638,9 +641,13 @@ def _get_google_credential(request):
         credential = Credentials(token=request.session["access_token"])
 
     if credential and not credential.valid:
-        # We need the user to provide a new crential
-        storage.delete()
-        credential = None
+        try:
+            credential.refresh(Request())
+            storage.credential = credential
+            storage.save()
+        except RefreshError:
+            storage.delete()
+            credential = None
 
     if not credential:
         google_flow = generate_google_web_flow(request)

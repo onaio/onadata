@@ -32,6 +32,15 @@ class TestApiExportTools(TestBase):
     Test api_export_tools.
     """
 
+    google_credential = {
+        "refresh_token": "refresh-token",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "client_id": "client-id",
+        "client_secret": "client-secret",
+        "scopes": ["https://www.googleapis.com/auth/drive.file"],
+        "expiry": datetime.datetime(2016, 8, 18, 12, 43, 30, 316792)
+    }
+
     def _create_old_export(self, xform, export_type, options, filename=None):
         options = OrderedDict(sorted(options.items()))
         Export(
@@ -52,17 +61,11 @@ class TestApiExportTools(TestBase):
         request.user = self.user
         request.query_params = {}
         request.data = {}
-        credential = {
-            "refresh_token": "refresh-token",
-            "token_uri": "https://oauth2.googleapis.com/token",
-            "client_id": "client-id",
-            "client_secret": "client-secret",
-            "scopes": ["https://www.googleapis.com/auth/drive.file"],
-            "expiry": datetime.datetime(2016, 8, 18, 12, 43, 30, 316792)
-        }
+        credential = self.google_credential
         t = TokenStorageModel(id=self.user,
                               credential=Credentials(**credential, token=None))
         t.save()
+        self.assertFalse(t.credential.valid)
         response = _get_google_credential(request)
 
         self.assertEqual(response.status_code, 302)
@@ -72,6 +75,26 @@ class TestApiExportTools(TestBase):
         )
         with self.assertRaises(TokenStorageModel.DoesNotExist):
             TokenStorageModel.objects.get(id=self.user)
+
+    def test_get_google_credentials_valid(self):
+        """
+        Test create_async_export does not get rid of valid credential
+        """
+
+        request = self.factory.get('/')
+        request.user = self.user
+        request.query_params = {}
+        request.data = {}
+        self.google_credential['expiry'] = \
+            datetime.datetime.utcnow() + datetime.timedelta(seconds=300)
+        credential = self.google_credential
+        t = TokenStorageModel(id=self.user,
+                              credential=Credentials(**credential, token="token"))
+        t.save()
+        self.assertTrue(t.credential.valid)
+        credential = _get_google_credential(request)
+
+        self.assertEqual(credential.to_json(), t.credential.to_json())
 
     # pylint: disable=invalid-name
     def test_process_async_export_creates_new_export(self):
