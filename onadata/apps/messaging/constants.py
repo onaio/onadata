@@ -51,5 +51,15 @@ VERB_TOPIC_DICT = {
     SUBMISSION_EDITED: "submission/edited",
     SUBMISSION_DELETED: "submission/deleted",
     SUBMISSION_REVIEWED: "submission/reviewed",
-    FORM_UPDATED: "form/updated"
+    FORM_UPDATED: "form/updated",
+    FORM_CREATED: "form/created",
+    FORM_DELETED: "form/deleted",
+    EXPORT_CREATED: "export/created",
+    EXPORT_DELETED: "export/deleted",
+    PROJECT_CREATED: "project/created",
+    PROJECT_EDITED: "project/edited",
+    PROJECT_SHARED: "project/shared",
+    PROJECT_DELETED: "project/deleted",
+    USER_ADDED_TO_PROJECT: "user/added",
+    USER_REMOVED_FROM_PROJECT: "user/removed",
 }
