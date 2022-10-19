@@ -2,7 +2,6 @@
 """
 The /projects API endpoint implementation.
 """
-from email import message
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
@@ -93,7 +92,7 @@ class ProjectViewSet(
             )
 
         return super().get_queryset()
-    
+
     def create(self, request, *args, **kwargs):
         """Creates new project"""
         response = super().create(request, *args, **kwargs)

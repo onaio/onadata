@@ -53,8 +53,8 @@ from onadata.apps.logger.models.xform import XForm, XFormUserObjectPermission
 from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.messaging.constants import (
-    FORM_UPDATED, EXPORT_CREATED, EXPORT_DELETED,
-    XFORM, FORM_DELETED, FORM_CREATED, PROJECT
+    FORM_UPDATED, EXPORT_CREATED, XFORM,
+    FORM_DELETED, FORM_CREATED, PROJECT
 )
 from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer.models.export import Export
@@ -262,7 +262,7 @@ def parse_webform_return_url(return_url, request):
     return None
 
 
-# pylint: disable=too-many-ancestors
+# pylint: disable=too-many-ancestors, too-many-lines
 class XFormViewSet(
     AnonymousUserPublicFormsMixin,
     CacheControlMixin,
@@ -847,6 +847,16 @@ class XFormViewSet(
             return _try_update_xlsform(request, self.object, owner)
 
         try:
+            # send notification for each form activity
+            if request.POST.get("title") or request.POST.get("title"):
+                # send form update notification
+                send_message(
+                    instance_id=self.object.pk,
+                    target_id=self.object.pk,
+                    target_type=XFORM,
+                    user=request.user or owner,
+                    message_verb=FORM_UPDATED,
+                )
             return super().partial_update(request, *args, **kwargs)
         except XLSFormError as e:
             raise ParseError(str(e)) from e

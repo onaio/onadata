@@ -13,7 +13,7 @@ from rest_framework.settings import api_settings
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from onadata.apps.api.permissions import ExportDjangoObjectPermission
-from onadata.apps.messaging.constants import EXPORT, EXPORT_DELETED, XFORM
+from onadata.apps.messaging.constants import EXPORT_DELETED, XFORM
 from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer.models.export import Export
 from onadata.libs import filters
@@ -63,6 +63,7 @@ class ExportViewSet(DestroyModelMixin, ReadOnlyModelViewSet):
         )
 
     def destroy(self, request, *args, **kwargs):
+        """Deletes Export Object"""
         export = self.get_object()
         export_id = export.id
         export.delete()
