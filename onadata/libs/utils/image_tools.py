@@ -50,8 +50,7 @@ def generate_media_download_url(obj, expiration: int = 3600):
     try:
         azure = get_storage_class("storages.backends.azure_storage.AzureStorage")()
     except ModuleNotFoundError:
-        if s3_class is None:
-            return HttpResponseRedirect(obj.media_file.url)
+        pass
 
     if isinstance(default_storage, type(s3_class)):
         try:
