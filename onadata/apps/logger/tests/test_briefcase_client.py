@@ -6,10 +6,11 @@ import os.path
 import shutil
 from io import BytesIO
 
+from django.conf import settings
 from django.contrib.auth import authenticate
 from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import UploadedFile
-from django.test import RequestFactory
+from django.test import RequestFactory, override_settings
 from django.test.testcases import SerializeMixin
 from django.urls import reverse
 
@@ -129,6 +130,7 @@ def get_streaming_content(res):
     return content
 
 
+@override_settings(MEDIA_ROOT=os.path.join(settings.PROJECT_ROOT, "test_briefcase_media/"))
 class TestBriefcaseClient(SerializeMixin, TestBase):
     """Test briefcase_client module."""
     lockfile = __file__
