@@ -34,7 +34,7 @@ isodate==0.6.1
     # via msrest
 msrest==0.7.1
     # via azure-storage-blob
-oauthlib==3.2.0
+oauthlib==3.2.1
     # via requests-oauthlib
 pycparser==2.21
     # via cffi
