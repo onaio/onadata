@@ -110,6 +110,7 @@ def _data_instance(dataid):
 
 
 # pylint: disable=too-many-public-methods
+@override_settings(MEDIA_ROOT=os.path.join(settings.PROJECT_ROOT, "test_data_media/"))
 class TestDataViewSet(SerializeMixin, TestBase):
     """
     Test /data API endpoint implementation.
