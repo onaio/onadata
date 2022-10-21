@@ -269,7 +269,7 @@ jsonschema==4.6.1
     # via
     #   datapackage
     #   tableschema
-jwcrypto==1.3.1
+jwcrypto==1.4.2
     # via django-oauth-toolkit
 kombu==5.2.4
     # via celery
