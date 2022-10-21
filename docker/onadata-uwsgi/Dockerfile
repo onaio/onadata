@@ -61,6 +61,7 @@ RUN apt-get update -q &&\
         libpcre3-dev \
         locales \
         netcat && \
+    apt-get -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' dist-upgrade &&\
     rm -rf /var/lib/apt/lists/*
 
 # Generate and set en_US.UTF-8 locale
