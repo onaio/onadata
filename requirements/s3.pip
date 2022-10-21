@@ -12,7 +12,7 @@ botocore==1.27.21
     # via
     #   boto3
     #   s3transfer
-django==3.2.15
+django==3.2.16
     # via
     #   -r requirements/s3.in
     #   django-storages
