@@ -10,6 +10,7 @@ from django.contrib.auth import authenticate
 from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import UploadedFile
 from django.test import RequestFactory
+from django.test.testcases import SerializeMixin
 from django.urls import reverse
 
 import requests
@@ -128,9 +129,9 @@ def get_streaming_content(res):
     return content
 
 
-@flaky(max_runs=3)
-class TestBriefcaseClient(TestBase):
+class TestBriefcaseClient(SerializeMixin, TestBase):
     """Test briefcase_client module."""
+    lockfile = __file__
 
     def setUp(self):
         TestBase.setUp(self)
