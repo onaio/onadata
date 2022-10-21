@@ -112,7 +112,7 @@ def submission_list(request, context):
             res.status_code,
             ";".join(media),
             request.url,
-            res.content,
+            storage.exists(os.path.join(settings.PROJECT_ROOT, "test_briefcase_media/", media[0])),
         )
         response.encoding = res.get("content-type")
         return get_streaming_content(res)
@@ -131,9 +131,8 @@ def get_streaming_content(res):
 
 
 @override_settings(MEDIA_ROOT=os.path.join(settings.PROJECT_ROOT, "test_briefcase_media/"))
-class TestBriefcaseClient(SerializeMixin, TestBase):
+class TestBriefcaseClient(TestBase):
     """Test briefcase_client module."""
-    lockfile = __file__
 
     def setUp(self):
         TestBase.setUp(self)
