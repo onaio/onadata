@@ -24,7 +24,10 @@ jobs:
           python-version: 3.9
           architecture: "x64"
           cache: "pip"
-          cache-dependency-path: ${{ runner.os }}-pip-${{ hashFiles('requirements/base.pip') }}-${{ hashFiles('requirements/dev.pip') }}-${{ hashFiles('requirements/azure.pip') }}
+          cache-dependency-path: |
+            requirements/base.pip
+            requirements/dev.pip
+            requirements/azure.pip
 
       - name: Install APT requirements
         run: |
@@ -82,7 +85,10 @@ jobs:
           python-version: 3.9
           architecture: "x64"
           cache: "pip"
-          cache-dependency-path: ${{ runner.os }}-pip-${{ hashFiles('requirements/base.pip') }}-${{ hashFiles('requirements/dev.pip') }}-${{ hashFiles('requirements/azure.pip') }}
+          cache-dependency-path: |
+            requirements/base.pip
+            requirements/dev.pip
+            requirements/azure.pip
 
       - name: Install APT requirements
         run: |
@@ -136,7 +142,10 @@ jobs:
           python-version: 3.9
           architecture: "x64"
           cache: "pip"
-          cache-dependency-path: ${{ runner.os }}-pip-${{ hashFiles('requirements/base.pip') }}-${{ hashFiles('requirements/dev.pip') }}-${{ hashFiles('requirements/azure.pip') }}
+          cache-dependency-path: |
+            requirements/base.pip
+            requirements/dev.pip
+            requirements/azure.pip
 
       - name: Install APT requirements
         run: |
