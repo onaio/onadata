@@ -19,22 +19,15 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Setup python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: 3.9
           architecture: "x64"
-
-      - name: Get pip cache dir
-        id: pip-cache
-        run: |
-          echo "pip_cache_dir=$(pip cache dir)" >> $GITHUB_ENV
-
-      - name: Cache pip
-        uses: actions/cache@v3
-        id: cache-pip
-        with:
-          path: ${{ env.pip_cache_dir }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/base.pip') }}-${{ hashFiles('requirements/dev.pip') }}-${{ hashFiles('requirements/azure.pip') }}
+          cache: "pip"
+          cache-dependency-path: |
+            requirements/base.pip
+            requirements/dev.pip
+            requirements/azure.pip
 
       - name: Install APT requirements
         run: |
@@ -56,7 +49,7 @@ jobs:
       - name: Run Prospector
         run: prospector -X -s veryhigh onadata
   unit-tests-1:
-    name: Django Unit Tests (Libraries, Main, RestServices, SMS Support, Viewer, Messagin)
+    name: Django Unit Tests (Libraries, Main, RestServices, SMS Support, Viewer, Messaging)
     runs-on: ubuntu-20.04
     needs: static-analysis
     env:
@@ -81,28 +74,21 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Setup Java
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v3
         with:
           distribution: "adopt"
           java-version: "8"
 
       - name: Setup python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: 3.9
           architecture: "x64"
-
-      - name: Get pip cache dir
-        id: pip-cache
-        run: |
-          echo "pip_cache_dir=$(pip cache dir)" >> $GITHUB_ENV
-
-      - name: Cache pip
-        uses: actions/cache@v3
-        id: cache-pip
-        with:
-          path: ${{ env.pip_cache_dir }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/base.pip') }}-${{ hashFiles('requirements/dev.pip') }}-${{ hashFiles('requirements/azure.pip') }}
+          cache: "pip"
+          cache-dependency-path: |
+            requirements/base.pip
+            requirements/dev.pip
+            requirements/azure.pip
 
       - name: Install APT requirements
         run: |
@@ -145,28 +131,21 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Setup Java
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v3
         with:
           distribution: "adopt"
           java-version: "8"
 
       - name: Setup python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: 3.9
           architecture: "x64"
-
-      - name: Get pip cache dir
-        id: pip-cache
-        run: |
-          echo "pip_cache_dir=$(pip cache dir)" >> $GITHUB_ENV
-
-      - name: Cache pip
-        uses: actions/cache@v3
-        id: cache-pip
-        with:
-          path: ${{ env.pip_cache_dir }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/base.pip') }}-${{ hashFiles('requirements/dev.pip') }}-${{ hashFiles('requirements/azure.pip') }}
+          cache: "pip"
+          cache-dependency-path: |
+            requirements/base.pip
+            requirements/dev.pip
+            requirements/azure.pip
 
       - name: Install APT requirements
         run: |

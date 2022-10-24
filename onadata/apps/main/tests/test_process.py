@@ -14,6 +14,7 @@ from xml.dom import Node, minidom
 
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
+from django.test.testcases import SerializeMixin
 from django.urls import reverse
 
 import openpyxl
@@ -35,10 +36,11 @@ from onadata.libs.utils.common_tools import get_response_content
 uuid_regex = re.compile(r'(</instance>.*uuid[^//]+="\')([^\']+)(\'".*)', re.DOTALL)
 
 
-class TestProcess(TestBase):
+class TestProcess(TestBase, SerializeMixin):
     """
     Test form publishing processes.
     """
+    lockfile = __file__
 
     loop_str = "loop_over_transport_types_frequency"
     frequency_str = "frequency_to_referral_facility"

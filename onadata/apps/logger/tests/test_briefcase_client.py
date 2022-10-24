@@ -6,10 +6,11 @@ import os.path
 import shutil
 from io import BytesIO
 
+from django.conf import settings
 from django.contrib.auth import authenticate
 from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import UploadedFile
-from django.test import RequestFactory
+from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
 import requests
@@ -110,7 +111,7 @@ def submission_list(request, context):
             res.status_code,
             ";".join(media),
             request.url,
-            res.content,
+            storage.exists(os.path.join(settings.PROJECT_ROOT, "test_media/", media[0])),
         )
         response.encoding = res.get("content-type")
         return get_streaming_content(res)

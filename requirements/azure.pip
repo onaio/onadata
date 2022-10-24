@@ -22,7 +22,7 @@ charset-normalizer==2.1.0
     # via requests
 cryptography==37.0.4
     # via azure-storage-blob
-django==3.2.15
+django==3.2.16
     # via
     #   -r requirements/azure.in
     #   django-storages
@@ -34,7 +34,7 @@ isodate==0.6.1
     # via msrest
 msrest==0.7.1
     # via azure-storage-blob
-oauthlib==3.2.0
+oauthlib==3.2.1
     # via requests-oauthlib
 pycparser==2.21
     # via cffi
