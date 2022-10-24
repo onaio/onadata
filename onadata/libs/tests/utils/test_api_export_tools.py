@@ -5,6 +5,8 @@ Test api_export_tools module.
 from collections import OrderedDict, defaultdict
 
 import mock
+import datetime
+from google.oauth2.credentials import Credentials
 from celery.backends.rpc import BacklogLimitExceeded
 from django.http import Http404
 from django.test.utils import override_settings
@@ -13,12 +15,14 @@ from rest_framework.request import Request
 
 from onadata.apps.logger.models import XForm
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.main.models import TokenStorageModel
 from onadata.apps.viewer.models.export import Export, ExportConnectionError
 from onadata.libs.exceptions import ServiceUnavailable
 from onadata.libs.utils.api_export_tools import (
     get_async_response, process_async_export,
     response_for_format,
-    get_metadata_format
+    get_metadata_format,
+    _get_google_credential
 )
 from onadata.libs.utils.async_status import SUCCESSFUL, status_msg
 
@@ -27,6 +31,15 @@ class TestApiExportTools(TestBase):
     """
     Test api_export_tools.
     """
+
+    google_credential = {
+        "refresh_token": "refresh-token",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "client_id": "client-id",
+        "client_secret": "client-secret",
+        "scopes": ["https://www.googleapis.com/auth/drive.file"],
+        "expiry": datetime.datetime(2016, 8, 18, 12, 43, 30, 316792)
+    }
 
     def _create_old_export(self, xform, export_type, options, filename=None):
         options = OrderedDict(sorted(options.items()))
@@ -39,6 +52,49 @@ class TestApiExportTools(TestBase):
         # pylint: disable=attribute-defined-outside-init
         self.export = Export.objects.filter(
             xform=xform, export_type=export_type)[0]
+
+    def test_get_google_credentials(self):
+        """
+        Test create_async_export deletes credential when invalid
+        """
+        request = self.factory.get('/')
+        request.user = self.user
+        request.query_params = {}
+        request.data = {}
+        credential = self.google_credential
+        t = TokenStorageModel(id=self.user,
+                              credential=Credentials(**credential, token=None))
+        t.save()
+        self.assertFalse(t.credential.valid)
+        response = _get_google_credential(request)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response.url[:71],
+            'https://accounts.google.com/o/oauth2/auth?response_type=code&client_id='
+        )
+        with self.assertRaises(TokenStorageModel.DoesNotExist):
+            TokenStorageModel.objects.get(id=self.user)
+
+    def test_get_google_credentials_valid(self):
+        """
+        Test create_async_export does not get rid of valid credential
+        """
+
+        request = self.factory.get('/')
+        request.user = self.user
+        request.query_params = {}
+        request.data = {}
+        self.google_credential['expiry'] = \
+            datetime.datetime.utcnow() + datetime.timedelta(seconds=300)
+        credential = self.google_credential
+        t = TokenStorageModel(id=self.user,
+                              credential=Credentials(**credential, token="token"))
+        t.save()
+        self.assertTrue(t.credential.valid)
+        credential = _get_google_credential(request)
+
+        self.assertEqual(credential.to_json(), t.credential.to_json())
 
     # pylint: disable=invalid-name
     def test_process_async_export_creates_new_export(self):
