@@ -245,7 +245,6 @@ def update_xform_submission_count(instance_id, created):
                 # Retry if run asynchrounously
                 if current_task.request.id:
                     raise e
-                pass
             else:
                 # update xform.num_of_submissions
                 cursor = connection.cursor()
@@ -338,7 +337,6 @@ def save_full_json(instance_id, created):
             # Retry if run asynchrounously
             if current_task.request.id:
                 raise e
-            pass
         else:
             instance.json = instance.get_full_dict()
             instance.save(update_fields=["json"])
@@ -372,7 +370,6 @@ def update_project_date_modified(instance_id, _):
         # Retry if run asynchrounously
         if current_task.request.id:
             raise e
-        pass
     else:
         instance.xform.project.save(update_fields=["date_modified"])
 
