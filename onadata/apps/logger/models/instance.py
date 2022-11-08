@@ -221,9 +221,7 @@ def update_xform_submission_count_async(self, instance_id, created):
         update_xform_submission_count(instance_id, created)
     except Instance.DoesNotExist as e:
         if self.request.retries > 2:
-            msg = (
-                f"Failed to update XForm submission count for Instance {instance_id}"
-            )
+            msg = f"Failed to update XForm submission count for Instance {instance_id}"
             report_exception(msg, e, sys.exc_info())
         self.retry(exc=e, countdown=60 * self.request.retries)
 
@@ -247,8 +245,7 @@ def update_xform_submission_count(instance_id, created):
                 # Retry if run asynchrounously
                 if current_task.request.id:
                     raise e
-                else:
-                    pass
+                pass
             else:
                 # update xform.num_of_submissions
                 cursor = connection.cursor()
@@ -327,9 +324,7 @@ def save_full_json_async(self, instance_id, created):
         save_full_json(instance_id, created)
     except Instance.DoesNotExist as e:
         if self.request.retries > 2:
-            msg = (
-                f"Failed to save full JSON for Instance {instance_id}"
-            )
+            msg = f"Failed to save full JSON for Instance {instance_id}"
             report_exception(msg, e, sys.exc_info())
         self.retry(exc=e, countdown=60 * self.request.retries)
 
@@ -343,8 +338,7 @@ def save_full_json(instance_id, created):
             # Retry if run asynchrounously
             if current_task.request.id:
                 raise e
-            else:
-                pass
+            pass
         else:
             instance.json = instance.get_full_dict()
             instance.save(update_fields=["json"])
@@ -354,11 +348,9 @@ def save_full_json(instance_id, created):
 def update_project_date_modified_async(self, instance_id, created):
     try:
         update_project_date_modified(instance_id, created)
-    except Instance.DoesNotExist:
+    except Instance.DoesNotExist as e:
         if self.request.retries > 2:
-            msg = (
-                f"Failed to update project date modified for Instance {instance_id}"
-            )
+            msg = f"Failed to update project date modified for Instance {instance_id}"
             report_exception(msg, e, sys.exc_info())
         self.retry(exc=e, countdown=60 * self.request.retries)
 
@@ -380,8 +372,7 @@ def update_project_date_modified(instance_id, _):
         # Retry if run asynchrounously
         if current_task.request.id:
             raise e
-        else:
-            pass
+        pass
     else:
         instance.xform.project.save(update_fields=["date_modified"])
 
