@@ -239,7 +239,7 @@ def update_xform_submission_count(instance_id, created):
                     "last_submission_time = %s "
                     "WHERE id = %s"
                 )
-                params = [instance.date_created, instance.xform_id]
+                params = [instance.date_modified, instance.xform_id]
 
                 # update user profile.num_of_submissions
                 cursor.execute(sql, params)
