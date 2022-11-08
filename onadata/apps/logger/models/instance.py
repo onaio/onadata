@@ -214,8 +214,15 @@ def _update_submission_count_for_today(
 
 
 @app.task(bind=True, max_retries=3)
+def update_xform_submission_count_async(self, instance_id, created):
+    try:
+        update_xform_submission_count(instance_id, created)
+    except Instance.DoesNotExist as e:
+        self.retry(exc=e, countdown=60 * self.request.retries)
+
+
 @transaction.atomic()
-def update_xform_submission_count(self, instance_id, created):
+def update_xform_submission_count(instance_id, created):
     """Updates the XForm submissions count on a new submission being created."""
     if created:
 
@@ -232,7 +239,7 @@ def update_xform_submission_count(self, instance_id, created):
             except Instance.DoesNotExist as e:
                 # Retry if run asynchrounously
                 if current_task.request.id:
-                    self.retry(exc=e, countdown=60 * self.request.retries)
+                    raise e
                 else:
                     pass
             else:
@@ -308,7 +315,14 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
 
 
 @app.task(bind=True, max_retries=3)
-def save_full_json(self, instance_id, created):
+def save_full_json_async(self, instance_id, created):
+    try:
+        save_full_json(instance_id, created)
+    except Instance.DoesNotExist as e:
+        self.retry(exc=e, countdown=60 * self.request.retries)
+
+
+def save_full_json(instance_id, created):
     """set json data, ensure the primary key is part of the json data"""
     if created:
         try:
@@ -316,7 +330,7 @@ def save_full_json(self, instance_id, created):
         except Instance.DoesNotExist as e:
             # Retry if run asynchrounously
             if current_task.request.id:
-                self.retry(exc=e, countdown=60 * self.request.retries)
+                raise e
             else:
                 pass
         else:
@@ -324,9 +338,15 @@ def save_full_json(self, instance_id, created):
             instance.save(update_fields=["json"])
 
 
-# pylint: disable=unused-argument
 @app.task(bind=True, max_retries=3)
-def update_project_date_modified(self, instance_id, created):
+def update_project_date_modified_async(self, instance_id, created):
+    try:
+        update_project_date_modified(instance_id, created)
+    except Instance.DoesNotExist:
+        self.retry(exc=e, countdown=60 * self.request.retries)
+
+
+def update_project_date_modified(instance_id, _):
     """Update the project's date_modified
 
     Changes the etag value of the projects endpoint.
@@ -342,7 +362,7 @@ def update_project_date_modified(self, instance_id, created):
     except Instance.DoesNotExist as e:
         # Retry if run asynchrounously
         if current_task.request.id:
-            self.retry(exc=e, countdown=60 * self.request.retries)
+            raise e
         else:
             pass
     else:
@@ -630,7 +650,7 @@ class Instance(models.Model, InstanceBaseClass):
         _("Received Media Attachments"), null=True, default=0
     )
     checksum = models.CharField(max_length=64, null=True, blank=True, db_index=True)
-    # Keep track of submission reviews, only query reviews if true
+    # Keep track of submission reviews, only query reviews if True
     has_a_review = models.BooleanField(_("has_a_review"), default=False)
 
     tags = TaggableManager()
@@ -767,9 +787,9 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
         )
 
     if ASYNC_POST_SUBMISSION_PROCESSING_ENABLED:
-        update_xform_submission_count.apply_async(args=[instance.pk, created])
-        save_full_json.apply_async(args=[instance.pk, created])
-        update_project_date_modified.apply_async(args=[instance.pk, created])
+        update_xform_submission_count_async.apply_async(args=[instance.pk, created])
+        save_full_json_async.apply_async(args=[instance.pk, created])
+        update_project_date_modified_async.apply_async(args=[instance.pk, created])
 
     else:
         update_xform_submission_count(instance.pk, created)
