@@ -3,6 +3,7 @@
 Instance model class
 """
 import math
+from celery import current_task
 from datetime import datetime
 
 from django.conf import settings
@@ -212,9 +213,9 @@ def _update_submission_count_for_today(
         cache.decr(count_cache_key)
 
 
-@app.task
+@app.task(bind=True, max_retries=3)
 @transaction.atomic()
-def update_xform_submission_count(instance_id, created):
+def update_xform_submission_count(self, instance_id, created):
     """Updates the XForm submissions count on a new submission being created."""
     if created:
 
@@ -228,8 +229,12 @@ def update_xform_submission_count(instance_id, created):
                     .only("xform__user_id", "date_created")
                     .get(pk=instance_id)
                 )
-            except Instance.DoesNotExist:
-                pass
+            except Instance.DoesNotExist as e:
+                # Retry if run asynchrounously
+                if current_task.request.id:
+                    self.retry(exc=e, countdown=60 * self.request.retries)
+                else:
+                    pass
             else:
                 # update xform.num_of_submissions
                 cursor = connection.cursor()
@@ -302,22 +307,26 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
             xform.save()
 
 
-@app.task
-def save_full_json(instance_id, created):
+@app.task(bind=True, max_retries=3)
+def save_full_json(self, instance_id, created):
     """set json data, ensure the primary key is part of the json data"""
     if created:
         try:
             instance = Instance.objects.get(pk=instance_id)
-        except Instance.DoesNotExist:
-            pass
+        except Instance.DoesNotExist as e:
+            # Retry if run asynchrounously
+            if current_task.request.id:
+                self.retry(exc=e, countdown=60 * self.request.retries)
+            else:
+                pass
         else:
             instance.json = instance.get_full_dict()
             instance.save(update_fields=["json"])
 
 
 # pylint: disable=unused-argument
-@app.task
-def update_project_date_modified(instance_id, created):
+@app.task(bind=True, max_retries=3)
+def update_project_date_modified(self, instance_id, created):
     """Update the project's date_modified
 
     Changes the etag value of the projects endpoint.
@@ -330,8 +339,12 @@ def update_project_date_modified(instance_id, created):
             .only("xform__project__date_modified")
             .get(pk=instance_id)
         )
-    except Instance.DoesNotExist:
-        pass
+    except Instance.DoesNotExist as e:
+        # Retry if run asynchrounously
+        if current_task.request.id:
+            self.retry(exc=e, countdown=60 * self.request.retries)
+        else:
+            pass
     else:
         instance.xform.project.save(update_fields=["date_modified"])
 
