@@ -3,6 +3,7 @@
 Instance model class
 """
 import math
+import sys
 from datetime import datetime
 
 from celery import current_task
@@ -31,6 +32,7 @@ from onadata.apps.logger.xform_instance_parser import (
     get_uuid_from_xml,
 )
 from onadata.celeryapp import app
+from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import (
     DATAVIEW_COUNT,
@@ -218,6 +220,11 @@ def update_xform_submission_count_async(self, instance_id, created):
     try:
         update_xform_submission_count(instance_id, created)
     except Instance.DoesNotExist as e:
+        if self.request.retries > 2:
+            msg = (
+                f"Failed to update XForm submission count for Instance {instance_id}"
+            )
+            report_exception(msg, e, sys.exc_info())
         self.retry(exc=e, countdown=60 * self.request.retries)
 
 
@@ -319,6 +326,11 @@ def save_full_json_async(self, instance_id, created):
     try:
         save_full_json(instance_id, created)
     except Instance.DoesNotExist as e:
+        if self.request.retries > 2:
+            msg = (
+                f"Failed to save full JSON for Instance {instance_id}"
+            )
+            report_exception(msg, e, sys.exc_info())
         self.retry(exc=e, countdown=60 * self.request.retries)
 
 
@@ -343,6 +355,11 @@ def update_project_date_modified_async(self, instance_id, created):
     try:
         update_project_date_modified(instance_id, created)
     except Instance.DoesNotExist:
+        if self.request.retries > 2:
+            msg = (
+                f"Failed to update project date modified for Instance {instance_id}"
+            )
+            report_exception(msg, e, sys.exc_info())
         self.retry(exc=e, countdown=60 * self.request.retries)
 
 
