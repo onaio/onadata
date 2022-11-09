@@ -217,6 +217,10 @@ def _update_submission_count_for_today(
 
 @app.task(bind=True, max_retries=3)
 def update_xform_submission_count_async(self, instance_id, created):
+    """
+    Celery task to asynchrounously update an XForms Submission count
+    once a submission has been made
+    """
     try:
         update_xform_submission_count(instance_id, created)
     except Instance.DoesNotExist as e:
@@ -319,6 +323,10 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
 
 @app.task(bind=True, max_retries=3)
 def save_full_json_async(self, instance_id, created):
+    """
+    Celery task to asynchrounously generate and save an Instances JSON
+    once a submission has been made
+    """
     try:
         save_full_json(instance_id, created)
     except Instance.DoesNotExist as e:
@@ -344,6 +352,10 @@ def save_full_json(instance_id, created):
 
 @app.task(bind=True, max_retries=3)
 def update_project_date_modified_async(self, instance_id, created):
+    """
+    Celery task to asynchrounously update a Projects last modified date
+    once a submission has been made
+    """
     try:
         update_project_date_modified(instance_id, created)
     except Instance.DoesNotExist as e:
