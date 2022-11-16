@@ -2135,14 +2135,11 @@ class TestDataViewSet(SerializeMixin, TestBase):
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=self.xform.pk, format="geojson")
 
-        self.assertEqual(response.status_code, 200)
+        # return 404 if all instances dont have geoms
+        self.assertEqual(response.status_code, 404)
         self.assertEqual(self.xform.instances.count(), 2)
 
-        data = {"type": "FeatureCollection", "features": []}
-        self.assertEqual(response.data, data)
-        self.assertEqual(len(response.data["features"]), 0)
-
-        # check if instances_with_geopoints is True for the form
+        # check if instances_with_geopoints is False for the form
         self.xform.refresh_from_db()
         self.assertFalse(self.xform.instances_with_geopoints)
 

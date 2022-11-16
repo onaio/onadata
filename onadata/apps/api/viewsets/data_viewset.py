@@ -603,12 +603,12 @@ class DataViewSet(
             return super().list(request, *args, **kwargs)
 
         if export_type == "geojson":
-            # filter by instances with geometries
-            instances_with_geoms = self.object_list.filter(
-                xform__instances_with_geopoints=True)
+            # raise 404 if all instances dont have geoms
+            if not xform.instances_with_geopoints:
+                raise Http404(_("Not Found"))
 
             # add pagination when fetching geojson features
-            page = self.paginate_queryset(instances_with_geoms)
+            page = self.paginate_queryset(self.object_list)
             serializer = self.get_serializer(page, many=True)
 
             return Response(serializer.data)
