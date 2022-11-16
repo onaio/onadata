@@ -2112,7 +2112,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.data, data)
     
     def test_instances_with_geopoints(self):
-        # publist sample geo submissions
+        # publish sample geo submissions
         self._publish_submit_geojson()
 
         view = DataViewSet.as_view({"get": "list"})
@@ -2128,14 +2128,33 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertTrue(self.xform.instances_with_geopoints)
 
     def test_instances_with_empty_geopoints(self):
-        # publist sample geo submissions
+        # publish sample geo submissions
         self._publish_submit_geojson(has_empty_geoms=True)
 
-        view = DataViewSet.as_view({"get": "list"})
+        view = DataViewSet.as_view({"delete": "destroy", "get": "list"})
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=self.xform.pk, format="geojson")
 
+        # should return 200 if it has atleast one valid geom
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.xform.instances.count(), 2)
+
+        # check if instances_with_geopoints is False for the form
+        self.xform.refresh_from_db()
+        self.assertTrue(self.xform.instances_with_geopoints)
+
+        # soft delete instance with geoms
+        dataid = self.xform.instances.all().order_by("id")[0].pk
+        request = self.factory.delete("/", **self.extra)
+        response = view(request, pk=self.xform.pk, dataid=dataid)
+
+        # get the soft deleted instance
+        first_xform_instance = self.xform.instances.get(pk=dataid)
+        self.assertEqual(first_xform_instance.deleted_by, request.user)
+
         # return 404 if all instances dont have geoms
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.xform.pk, format="geojson")
         self.assertEqual(response.status_code, 404)
         self.assertEqual(self.xform.instances.count(), 2)
 
