@@ -3,7 +3,10 @@
 project_utils module - apply project permissions to a form.
 """
 import sys
+import requests
 
+from typing import List, Optional, Tuple
+from urllib.parse import urljoin
 from django.conf import settings
 from django.db import IntegrityError
 
@@ -11,6 +14,7 @@ from multidb.pinning import use_master
 
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.main.models import MetaData
 from onadata.celeryapp import app
 from onadata.libs.permissions import (
     ROLES,
@@ -21,6 +25,10 @@ from onadata.libs.permissions import (
 )
 from onadata.libs.utils.common_tags import OWNER_TEAM_NAME
 from onadata.libs.utils.common_tools import report_exception
+
+
+class ExternalServiceRequestError(Exception):
+    pass
 
 
 def get_project_users(project):
@@ -138,3 +146,59 @@ def set_project_perms_to_xform_async(self, xform_id, project_id):
             f"form {xform_id} failed."
         )
         report_exception(msg, e, sys.exc_info())
+
+
+def propagate_project_permissions(project_id: int, headers: Optional[dict] = None) -> None:
+    """
+    Propagates Project permissions to external services(KPI)
+    """
+    if getattr(settings, "PROPAGATE_PERMISSIONS", False) and getattr(
+        settings, "KPI_SERVICE_URL", None
+    ):
+        service_url = settings["KPI_SERVICE_URL"]
+        session = requests.session()
+        if headers:
+            session.headers.update(headers)
+
+        project: Project = Project.objects.get(id=project_id)
+        users: dict[str, dict] = get_project_users(project)
+        collaborators: List[Tuple[str, str]] = [
+            (username, str(data.get("role")))
+            for username, data in users.items()
+            if data.get("role") != "owner" and data.get("role") in ["editor"]
+        ]
+        form_ids: List[int] = list(
+            project.xform_set.filter(deleted_at__isnull=True).values_list(
+                "id", flat=True
+            )
+        )
+
+        # Propagate permissions for XForms that were published by
+        # Formbuilder
+        for form_id in form_ids:
+            if (
+                MetaData.objects.filter(
+                    object_id=form_id,
+                    data_type="published_by_formbuilder",
+                    data_value=True,
+                ).count()
+                > 0
+            ):
+                form: str = XForm.objects.get(id=form_id).id_string
+                asset_url = urljoin(
+                    service_url, f"/api/v2/assets/{form}/permission-assignments/bulk/"
+                )
+                payload = [
+                    {
+                        "user": urljoin(service_url, f"/api/v2/users/{username}"),
+                        "permission": urljoin(
+                            service_url, "/api/v2/permissions/change_asset/"
+                        ),
+                    }
+                    for username, _ in collaborators
+                ]
+                resp = session.post(asset_url, json=json.dumps(payload))
+                if resp.status_code != 200:
+                    raise ExternalServiceRequestError(
+                        f"Failed to propagate permissions for {form}: {resp.status_code}"
+                    )
