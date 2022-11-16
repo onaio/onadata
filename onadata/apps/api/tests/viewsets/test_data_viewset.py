@@ -2110,6 +2110,41 @@ class TestDataViewSet(SerializeMixin, TestBase):
         }
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
+    
+    def test_instances_with_geopoints(self):
+        # publist sample geo submissions
+        self._publish_submit_geojson()
+
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.xform.pk, format="geojson")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.xform.instances.count(), 4)
+        self.assertEqual(len(response.data["features"]), 4)
+
+        # check if instances_with_geopoints is True for the form
+        self.xform.refresh_from_db()
+        self.assertTrue(self.xform.instances_with_geopoints)
+
+    def test_instances_with_empty_geopoints(self):
+        # publist sample geo submissions
+        self._publish_submit_geojson(has_empty_geoms=True)
+
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.xform.pk, format="geojson")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.xform.instances.count(), 2)
+
+        data = {"type": "FeatureCollection", "features": []}
+        self.assertEqual(response.data, data)
+        self.assertEqual(len(response.data["features"]), 0)
+
+        # check if instances_with_geopoints is True for the form
+        self.xform.refresh_from_db()
+        self.assertFalse(self.xform.instances_with_geopoints)
 
     @patch("onadata.apps.api.viewsets.data_viewset" ".DataViewSet.paginate_queryset")
     def test_retry_on_operational_error(self, mock_paginate_queryset):
