@@ -5,19 +5,13 @@ ShareProject model - facilitate sharing of a project to a user.
 from django.contrib.auth import get_user_model
 from django.db import transaction
 
-from onadata.libs.permissions import ROLES
-from onadata.libs.permissions import (
-    EditorRole,
-    EditorMinorRole,
-    DataEntryRole,
-    DataEntryMinorRole,
-    DataEntryOnlyRole,
-)
-from onadata.libs.utils.cache_tools import (
-    PROJ_PERM_CACHE,
-    PROJ_OWNER_CACHE,
-    safe_delete,
-)
+from onadata.libs.permissions import (ROLES, DataEntryMinorRole,
+                                      DataEntryOnlyRole, DataEntryRole,
+                                      EditorMinorRole, EditorRole)
+from onadata.libs.utils.cache_tools import (PROJ_OWNER_CACHE, PROJ_PERM_CACHE,
+                                            safe_delete)
+from onadata.libs.utils.project_utils import \
+    propagate_project_permissions_async
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -91,6 +85,9 @@ class ShareProject:
         # clear cache
         safe_delete(f"{PROJ_OWNER_CACHE}{self.project.pk}")
         safe_delete(f"{PROJ_PERM_CACHE}{self.project.pk}")
+
+        # propagate permissions
+        propagate_project_permissions_async.apply_async(args=[self.project.pk])
 
     @transaction.atomic()
     def __remove_user(self):

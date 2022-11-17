@@ -201,6 +201,20 @@ def assign_change_asset_permission(
         )
     return resp
 
+@app.task(bind=True, max_retries=3)
+def propagate_project_permissions_async(self, project_id: int, headers: Optional[dict] = None, use_asset_owner_auth: bool = True):
+    """
+    Asynchronously propagates Project Permissions to the Formbuilder assets within the project
+    """
+    try:
+        project = Project.objects.get(id=project_id)
+        propagate_project_permissions(project, headers, use_asset_owner_auth)
+    except (Project.DoesNotExist, ExternalServiceRequestError) as e:
+        if self.request.retries > 3:
+            msg = f"Failed to propagate asset permissions for Project {project_id}"
+            report_exception(msg, e, sys.exc_info())
+        self.retry(exc=e, countdown=60 * self.request.retries)
+
 
 @app.task(bind=True, max_retries=3)
 def propagate_project_permissions_async(
