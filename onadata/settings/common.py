@@ -629,6 +629,9 @@ CSP_IMG_SRC = [
     "https://www.dropbox.com",
     "http://localhost:8000",
 ]
+CSP_FRAME_ANCESTORS = [
+    "http://localhost:8000"
+]
 CSP_SCRIPT_SRC = [
     "http://netdna.bootstrapcdn.com",
     "https://netdna.bootstrapcdn.com",

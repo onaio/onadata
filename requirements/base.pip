@@ -259,7 +259,7 @@ packaging==21.3
     #   sphinx
 paho-mqtt==1.6.1
     # via onadata
-pillow==9.1.1
+pillow==9.3.0
     # via
     #   elaphe3
     #   onadata
