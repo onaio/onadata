@@ -3,6 +3,11 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+3.6.2(2022-11-18)
+------------------
+- CSP Updates
+  `PR #2337 <https://github.com/onaio/onadata/pull/2337>`_
+
 v3.6.1(2022-11-10)
 ------------------
 - Retry post submission processing tasks if submission is not found
