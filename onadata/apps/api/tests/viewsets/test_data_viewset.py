@@ -2127,7 +2127,8 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.xform.refresh_from_db()
         self.assertTrue(self.xform.instances_with_geopoints)
 
-    def test_instances_with_empty_geopoints(self):
+    @patch("onadata.apps.viewer.signals._post_process_submissions")
+    def test_instances_with_empty_geopoints(self, mock_signal):
         # publish sample geo submissions
         self._publish_submit_geojson(has_empty_geoms=True)
 
@@ -2147,6 +2148,9 @@ class TestDataViewSet(SerializeMixin, TestBase):
         dataid = self.xform.instances.all().order_by("id")[0].pk
         request = self.factory.delete("/", **self.extra)
         response = view(request, pk=self.xform.pk, dataid=dataid)
+
+        # test that signal to update instances_with_geopoints is sent
+        self.assertTrue(mock_signal.called)
 
         # get the soft deleted instance
         first_xform_instance = self.xform.instances.get(pk=dataid)

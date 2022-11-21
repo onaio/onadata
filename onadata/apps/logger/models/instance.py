@@ -794,11 +794,21 @@ class Instance(models.Model, InstanceBaseClass):
 def post_save_submission(sender, instance=None, created=False, **kwargs):
     """Update XForm, Project, JSON field
 
-    - XForm submission coun
+    - XForm submission count & instances_with_geopoints field
     - Project date modified
     - Update the submission JSON field data
     """
     if instance.deleted_at is not None:
+        # update xform if no instance has geoms
+        if (
+            instance.xform.instances.filter(
+                deleted_at__isnull=True, geom=None
+            ).count()
+            < 1
+        ):
+            instance.xform.instances_with_geopoints = False
+            instance.xform.save()
+
         _update_submission_count_for_today(
             instance.xform_id, incr=False, date_created=instance.date_created
         )

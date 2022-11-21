@@ -394,16 +394,6 @@ class DataViewSet(
                 instance_id = self.object.pk
                 delete_instance(self.object, request.user)
 
-                # update xform if no instance has geoms
-                if (
-                    self.object.xform.instances.filter(
-                        deleted_at__isnull=True, geom=None
-                    ).count()
-                    < 1
-                ):
-                    self.object.xform.instances_with_geopoints = False
-                    self.object.xform.save()
-
                 # send message
                 send_message(
                     instance_id=instance_id,
