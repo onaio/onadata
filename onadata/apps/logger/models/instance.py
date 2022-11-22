@@ -319,8 +319,8 @@ def _update_xform_submission_count_delete(instance):
         # update xform if no instance has geoms
         if (
             instance.xform.instances.filter(
-                deleted_at__isnull=True, geom=None
-            ).count()
+                deleted_at__isnull=True
+            ).exclude(geom=None).count()
             < 1
         ):
             instance.xform.instances_with_geopoints = False
@@ -463,7 +463,10 @@ class InstanceBaseClass:
                 xform.save()
 
             # pylint: disable=attribute-defined-outside-init
-            self.geom = GeometryCollection(points)
+            if points:
+                self.geom = GeometryCollection(points)
+            else:
+                self.geom = None
 
     def _set_json(self):
         # pylint: disable=attribute-defined-outside-init
