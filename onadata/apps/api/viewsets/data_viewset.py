@@ -393,6 +393,7 @@ class DataViewSet(
             if request.user.has_perm(CAN_DELETE_SUBMISSION, self.object.xform):
                 instance_id = self.object.pk
                 delete_instance(self.object, request.user)
+
                 # send message
                 send_message(
                     instance_id=instance_id,
@@ -603,6 +604,10 @@ class DataViewSet(
             return super().list(request, *args, **kwargs)
 
         if export_type == "geojson":
+            # raise 404 if all instances dont have geoms
+            if not xform.instances_with_geopoints:
+                raise Http404(_("Not Found"))
+
             # add pagination when fetching geojson features
             page = self.paginate_queryset(self.object_list)
             serializer = self.get_serializer(page, many=True)

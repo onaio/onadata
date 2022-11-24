@@ -2110,6 +2110,61 @@ class TestDataViewSet(SerializeMixin, TestBase):
         }
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
+    
+    def test_instances_with_geopoints(self):
+        # publish sample geo submissions
+        self._publish_submit_geojson()
+
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.xform.pk, format="geojson")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.xform.instances.count(), 4)
+        self.assertEqual(len(response.data["features"]), 4)
+
+        # check if instances_with_geopoints is True for the form
+        self.xform.refresh_from_db()
+        self.assertTrue(self.xform.instances_with_geopoints)
+
+    @patch("onadata.apps.viewer.signals._post_process_submissions")
+    def test_instances_with_empty_geopoints(self, mock_signal):
+        # publish sample geo submissions
+        self._publish_submit_geojson(has_empty_geoms=True)
+
+        view = DataViewSet.as_view({"delete": "destroy", "get": "list"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.xform.pk, format="geojson")
+
+        # should return 200 if it has atleast one valid geom
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.xform.instances.count(), 2)
+
+        # check if instances_with_geopoints is False for the form
+        self.xform.refresh_from_db()
+        self.assertTrue(self.xform.instances_with_geopoints)
+
+        # soft delete instance with geoms
+        dataid = self.xform.instances.all().order_by("id")[0].pk
+        request = self.factory.delete("/", **self.extra)
+        response = view(request, pk=self.xform.pk, dataid=dataid)
+
+        # test that signal to update instances_with_geopoints is sent
+        self.assertTrue(mock_signal.called)
+
+        # get the soft deleted instance
+        first_xform_instance = self.xform.instances.get(pk=dataid)
+        self.assertEqual(first_xform_instance.deleted_by, request.user)
+
+        # return 404 if all instances dont have geoms
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.xform.pk, format="geojson")
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(self.xform.instances.count(), 2)
+
+        # check if instances_with_geopoints is False for the form
+        self.xform.refresh_from_db()
+        self.assertFalse(self.xform.instances_with_geopoints)
 
     @patch("onadata.apps.api.viewsets.data_viewset" ".DataViewSet.paginate_queryset")
     def test_retry_on_operational_error(self, mock_paginate_queryset):

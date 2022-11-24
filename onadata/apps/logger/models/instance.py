@@ -281,8 +281,8 @@ def update_xform_submission_count(instance_id, created):
                 clear_project_cache(instance.xform.project_id)
 
 
-# pylint: disable=unused-argument,invalid-name
-def update_xform_submission_count_delete(sender, instance, **kwargs):
+@transaction.atomic()
+def _update_xform_submission_count_delete(instance):
     """Updates the XForm submissions count on deletion of a submission."""
     try:
         xform = XForm.objects.select_for_update().get(pk=instance.xform.pk)
@@ -316,9 +316,22 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
         safe_delete(f"{DATAVIEW_COUNT}{xform.pk}")
         safe_delete(f"{XFORM_COUNT}{xform.pk}")
 
-        if xform.instances.exclude(geom=None).count() < 1:
-            xform.instances_with_geopoints = False
-            xform.save()
+        # update xform if no instance has geoms
+        if (
+            instance.xform.instances.filter(
+                deleted_at__isnull=True
+            ).exclude(geom=None).count()
+            < 1
+        ):
+            instance.xform.instances_with_geopoints = False
+            instance.xform.save()
+
+
+# pylint: disable=unused-argument,invalid-name
+def update_xform_submission_count_delete(sender, instance, **kwargs):
+    """Updates the XForm submissions count on deletion of a submission."""
+    if instance:
+        _update_xform_submission_count_delete(instance)
 
 
 @app.task(bind=True, max_retries=3)
@@ -450,7 +463,10 @@ class InstanceBaseClass:
                 xform.save()
 
             # pylint: disable=attribute-defined-outside-init
-            self.geom = GeometryCollection(points)
+            if points:
+                self.geom = GeometryCollection(points)
+            else:
+                self.geom = None
 
     def _set_json(self):
         # pylint: disable=attribute-defined-outside-init
@@ -794,14 +810,12 @@ class Instance(models.Model, InstanceBaseClass):
 def post_save_submission(sender, instance=None, created=False, **kwargs):
     """Update XForm, Project, JSON field
 
-    - XForm submission coun
+    - XForm submission count & instances_with_geopoints field
     - Project date modified
     - Update the submission JSON field data
     """
     if instance.deleted_at is not None:
-        _update_submission_count_for_today(
-            instance.xform_id, incr=False, date_created=instance.date_created
-        )
+        _update_xform_submission_count_delete(instance)
 
     if ASYNC_POST_SUBMISSION_PROCESSING_ENABLED:
         update_xform_submission_count_async.apply_async(args=[instance.pk, created])

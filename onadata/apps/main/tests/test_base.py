@@ -393,7 +393,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         client.set_authorization("bob", "bob", "Digest")
         return client
 
-    def _publish_submit_geojson(self):
+    def _publish_submit_geojson(self, has_empty_geoms=False):
         path = os.path.join(
             settings.PROJECT_ROOT,
             "apps",
@@ -406,6 +406,8 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
 
         self._publish_xls_file_and_set_xform(path)
 
+        csv_sub = "empty_geoms" if has_empty_geoms else "2015_01_15_01_28_45"
+
         view = XFormViewSet.as_view({"post": "csv_import"})
         with open(
             os.path.join(
@@ -415,7 +417,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
                 "tests",
                 "fixtures",
                 "geolocation",
-                "GeoLocationForm_2015_01_15_01_28_45.csv",
+                f"GeoLocationForm_{csv_sub}.csv",
             ),
             encoding="utf-8",
         ) as csv_import:
