@@ -3,6 +3,15 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+3.7.0(2022-12-07)
+------------------
+- Update GeoJSON endpoint to filter by instances with geoms
+  `PR #2335 <https://github.com/onaio/onadata/pull/2335>`_
+  [@KipSigei]
+- Propagate project permissions to all KPI Assets
+  `PR #2336 <https://github.com/onaio/onadata/pull/2336>`_
+  [@DavisRayM]
+
 3.6.2(2022-11-18)
 ------------------
 - CSP Updates
