@@ -76,7 +76,7 @@ class TestPublishXLS(TestBase):
         self.xform.save(update_fields=["title"])
         self.assertFalse(self.xform.hash == "" or self.xform.hash is None)
         self.assertFalse(self.xform.hash == xform_old_hash)
-    
+
     def test_xform_with_entities(self):
         md="""
         | survey   |         |       |       |
@@ -113,6 +113,27 @@ class TestPublishXLS(TestBase):
         # assert has save_to column in xml
         self.assertIn(
             'entities:saveto="foo"',
+            self.xform.xml
+        )
+
+    def test_xform_create_if_in_entities(self):
+        md="""
+        | survey   |         |                      |       |
+        |          | type    | name                 | label |
+        |          | text    | a                    | A     |
+        | entities |         |                      |       |
+        |          | dataset | create_if            | label |
+        |          | trees   | string-length(a) > 3 | a     |
+        """
+        self._create_user_and_login()
+        self.xform = self._publish_markdown(md, self.user)
+        # assert has create_if entity expression
+        self.assertIn(
+            'calculate="string-length(a) &gt; 3"',
+            self.xform.xml
+        )
+        self.assertIn(
+            '<entity create="1" dataset="trees" id="">',
             self.xform.xml
         )
 
