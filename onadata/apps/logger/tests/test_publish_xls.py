@@ -76,6 +76,45 @@ class TestPublishXLS(TestBase):
         self.xform.save(update_fields=["title"])
         self.assertFalse(self.xform.hash == "" or self.xform.hash is None)
         self.assertFalse(self.xform.hash == xform_old_hash)
+    
+    def test_xform_with_entities(self):
+        md="""
+        | survey   |         |       |       |
+        |          | type    | name  | label |
+        |          | text    | a     | A     |
+        | entities |         |       |       |
+        |          | dataset | label |       |
+        |          | trees   | a     |       |
+        """
+        self._create_user_and_login()
+        self.xform = self._publish_markdown(md, self.user)
+        # assert has entities namespace
+        self.assertIn(
+            'xmlns:entities="http://www.opendatakit.org/xforms/entities"',
+            self.xform.xml
+        )
+        # assert has entities version
+        self.assertIn(
+            'entities:entities-version="2022.1.0"',
+            self.xform.xml
+        )
+
+    def test_xform_with_entities_save_to(self):
+        md="""
+        | survey   |         |       |       |         |
+        |          | type    | name  | label | save_to |
+        |          | text    | a     | A     | foo     |
+        | entities |         |       |       |         |
+        |          | dataset | label |       |         |
+        |          | trees   | a     |       |         |
+        """
+        self._create_user_and_login()
+        self.xform = self._publish_markdown(md, self.user)
+        # assert has save_to column in xml
+        self.assertIn(
+            'entities:saveto="foo"',
+            self.xform.xml
+        )
 
     def test_report_exception_with_exc_info(self):
         e = Exception("A test exception")
