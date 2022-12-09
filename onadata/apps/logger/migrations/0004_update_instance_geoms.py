@@ -13,7 +13,7 @@ def update_instance_geoms(apps, schema_editor):
         xform__downloadable=True,
         xform__deleted_at__isnull=True,
     ):
-        if inst.geom.empty:
+        if inst.geom and inst.geom.empty:
             inst.geom = None
             inst.save()
 
