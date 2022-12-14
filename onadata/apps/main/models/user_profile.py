@@ -4,6 +4,7 @@ UserProfile model class
 """
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.db import models
 from django.db.models.signals import post_save, pre_save
 from django.utils.translation import gettext_lazy
 
@@ -109,6 +110,7 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:
         Token.objects.create(user=instance)
 
+
 # pylint: disable=unused-argument
 def create_user_profile(sender, instance=None, created=False, **kwargs):
     """
@@ -118,7 +120,8 @@ def create_user_profile(sender, instance=None, created=False, **kwargs):
         try:
             _ = instance.profile
         except UserProfile.DoesNotExist:
-            UserProfile.objects.get_or_create(user=instance)
+            _ = UserProfile.objects.get_or_create(user=instance)
+
 
 # pylint: disable=unused-argument
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
