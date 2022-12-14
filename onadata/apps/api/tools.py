@@ -142,9 +142,12 @@ def create_organization(name, creator):
 
     """
     organization, _created = User.objects.get_or_create(username__iexact=name)
-    organization_profile = OrganizationProfile.objects.create(
-        user=organization, creator=creator
-    )
+    try:
+        organization_profile = organization.profile
+    except OrganizationProfile.DoesNotExist:
+        organization_profile = OrganizationProfile.objects.get_or_create(
+            user=organization, creator=creator
+        )
     return organization_profile
 
 
