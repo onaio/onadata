@@ -128,6 +128,28 @@ class TestPermissions(TestBase):
         self.assertIn('metadata', users_with_perms_first_keys)
         self.assertIn('is_org', users_with_perms_first_keys)
 
+    # pylint: disable=C0103
+    def test_user_profile_exists_for_users_with_perms(self):
+        """
+        Test user profile exists when retrieving users with perms
+        """
+        alice = self._create_user('alice', 'alice')
+        # do not manually create user profile for alice, should be
+        # handled by get_object_users_with_permissions()
+        org_user = tools.create_organization("modilabs", alice).user
+        demo_grp = Group.objects.create(name='demo')
+        alice.groups.add(demo_grp)
+        self._publish_transportation_form()
+        EditorRole.add(org_user, self.xform)
+        EditorRole.add(demo_grp, self.xform)
+        users_with_perms = get_object_users_with_permissions(
+            self.xform, with_group_users=True)
+        self.assertTrue(org_user in [d['user'] for d in users_with_perms])
+        self.assertTrue(alice in [d['user'] for d in users_with_perms])
+        for d in users_with_perms:
+            user_obj = d['user']
+            self.assertTrue(hasattr(user_obj, "profile"))
+
     def test_readonly_no_downloads_has_role(self):
         """
         Test readonly no downloads role.
