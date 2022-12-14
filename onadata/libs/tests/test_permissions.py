@@ -150,6 +150,40 @@ class TestPermissions(TestBase):
             user_obj = d['user']
             self.assertTrue(hasattr(user_obj, "profile"))
 
+     # pylint: disable=C0103
+    def test_exception_raised_for_missing_profiles(self):
+        """
+        Test UserProfile.DoesNotExit exception raised for
+        missing user profiles
+        """
+        alice = self._create_user('alice', 'alice')
+        # assert that user profile exists
+        # courtesy of the post_save signal
+        self.assertTrue(hasattr(alice, "profile"))
+
+        org_user = tools.create_organization("modilabs", alice).user
+        demo_grp = Group.objects.create(name='demo')
+        alice.groups.add(demo_grp)
+        self._publish_transportation_form()
+        EditorRole.add(org_user, self.xform)
+        EditorRole.add(demo_grp, self.xform)
+
+        # delete alice user profile
+        alice.profile.delete()
+        alice.refresh_from_db()
+
+        # assert UserProfile.DoesNotExist is raised for alice
+        with self.assertRaises(UserProfile.DoesNotExist):
+            _ = alice.profile
+            self.assertFalse(hasattr(alice, "profile"))
+
+        # check if profile is created for alice
+        # when get_object_users_with_permissions() is called
+        users_with_perms = get_object_users_with_permissions(
+            self.xform, with_group_users=True)
+        self.assertEqual("alice", users_with_perms[2]['user'].username)
+        self.assertTrue(hasattr(users_with_perms[2]['user'], "profile"))
+
     def test_readonly_no_downloads_has_role(self):
         """
         Test readonly no downloads role.
