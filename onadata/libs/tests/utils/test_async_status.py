@@ -10,6 +10,7 @@ from onadata.celeryapp import app
 from onadata.libs.utils import async_status
 from onadata.apps.logger.models.xform import XForm
 
+
 class TestAsyncStatus(TestBase):
 
     def test_celery_state_to_status(self):
@@ -50,7 +51,7 @@ class TestAsyncStatus(TestBase):
             async_status.get_active_tasks(
                 ['onadata.libs.utils.csv_import.submit_csv_async'], xform
             ),
-            '[]',
+            [],
         )
         inspect = MagicMock()
         inspect.active = MagicMock(
@@ -67,12 +68,10 @@ class TestAsyncStatus(TestBase):
         )
         app.control.inspect = MagicMock(return_value=inspect)
 
-        self.assertEqual(
-            async_status.get_active_tasks(
-                ['onadata.libs.utils.csv_import.submit_csv_async'], xform
-            ),
-            '[{"job_uuid": "11", "time_start"'
-            + ": \""
-            + datetime.fromtimestamp(time_start).strftime("%Y-%m-%dT%H:%M:%S")
-            + '", "file": "/home/ona/import.csv", "overwrite": true}]',
-        )
+        self.assertEqual(async_status.get_active_tasks(
+            ['onadata.libs.utils.csv_import.submit_csv_async'],
+            xform),
+            [{'job_uuid': '11',
+              'time_start': datetime.fromtimestamp(time_start).strftime(
+                  "%Y-%m-%dT%H:%M:%S"),
+              "file": "/home/ona/import.csv", "overwrite": True}])

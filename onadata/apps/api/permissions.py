@@ -127,6 +127,7 @@ class DjangoObjectPermissionsAllowAnon(DjangoObjectPermissions):
     authenticated_users_only = False
 
 
+# pylint: disable=too-few-public-methods
 class ImportPermissions(DjangoObjectPermissions):
     """
     ImportPermissions - custom permissions check on Imports viewset.

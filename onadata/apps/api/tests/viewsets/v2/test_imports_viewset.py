@@ -6,12 +6,11 @@ import os
 from typing import IO, Any
 from unittest.mock import patch
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.test import override_settings
 from httmock import HTTMock
 
-from onadata.celeryapp import app
 from onadata.apps.api.viewsets.v2.imports_viewset import ImportsViewSet
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.tests.mocked_data import enketo_mock
@@ -29,9 +28,12 @@ def fixtures_path(filepath: str) -> IO[Any]:
 
 
 class TestImportsViewSet(TestAbstractViewSet):
+    """
+    Test for ImportsViewSet
+    """
 
     def setUp(self):
-        super(TestImportsViewSet, self).setUp()
+        super().setUp()
         self.view = ImportsViewSet.as_view({
             "post": "create",
             "get": "retrieve",
@@ -53,9 +55,9 @@ class TestImportsViewSet(TestAbstractViewSet):
                 "tutorial.xlsx",
             )
             self._publish_xls_form_to_project(xlsform_path=xls_path)
-            user = User.objects.create(username="joe",
-                                       email="joe@example.com",
-                                       first_name="Joe")
+            user = get_user_model().objects.create(username="joe",
+                                                   email="joe@example.com",
+                                                   first_name="Joe")
             _ = UserProfile.objects.create(user=user)
             extra = {"HTTP_AUTHORIZATION": f"Token {user.auth_token}"}
             csv_import = fixtures_path("good.csv")
@@ -102,7 +104,7 @@ class TestImportsViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 202)
 
     @override_settings(DISABLE_ASYNCHRONOUS_IMPORTS=True)
-    def test_create_expected_synchronous_response(self):
+    def test_synchronous_response(self):
         """
         Tests that the `api/v2/imports/<xself.xform.pk>` route processes a request
         successfully when `DISABLE_ASYNCHRONOUS_IMPORTS` is set to `True`
@@ -130,7 +132,7 @@ class TestImportsViewSet(TestAbstractViewSet):
             self.assertEqual(response.data.get("additions"), 9)
             self.assertEqual(response.data.get("updates"), 0)
 
-    def test_create_expected_async_response(self):
+    def test_expected_async_response(self):
         """
         Tests that the `api/v2/imports/<xself.xform.pk>` route processes a request
         successfully when `DISABLE_ASYNCHRONOUS_IMPORTS` is set to `False`
@@ -160,7 +162,7 @@ class TestImportsViewSet(TestAbstractViewSet):
             self.assertEqual(expected_fields, list(response.data.keys()))
 
     @patch("onadata.apps.api.viewsets.v2.imports_viewset.get_active_tasks")
-    def test_create_ongoing_overwrite_task(self, mocked_get_active_tasks):
+    def test_ongoing_overwrite_task(self, mocked_get_active_tasks):
         """
         Test that the `api/v2/imports/<xself.xform.pk>` route refuses to process request
         when an overwrite import task is ongoing
@@ -238,8 +240,9 @@ class TestImportsViewSet(TestAbstractViewSet):
             expected_response = {"error": "xls_file not an excel file"}
             self.assertEqual(expected_response, response.data)
 
-            post_data = {"csv_file": open(xls_path, "rb")}
-            request = self.factory.post(path, data=post_data, **self.extra)
+            with open(xls_path, "rb") as xls_file:
+                post_data = {"csv_file": xls_file}
+                request = self.factory.post(path, data=post_data, **self.extra)
             response = self.view(request, pk=self.xform.pk)
 
             self.assertEqual(response.status_code, 400)
@@ -263,9 +266,9 @@ class TestImportsViewSet(TestAbstractViewSet):
             )
             self._publish_xls_form_to_project(xlsform_path=xls_path)
             path = "/api/v2/imports/{self.xform.pk}?task_uuid=11"
-            user = User.objects.create(username="joe",
-                                       email="joe@example.com",
-                                       first_name="Joe")
+            user = get_user_model().objects.create(username="joe",
+                                                   email="joe@example.com",
+                                                   first_name="Joe")
             _ = UserProfile.objects.create(user=user)
             extra = {"HTTP_AUTHORIZATION": f"Token {user.auth_token}"}
 

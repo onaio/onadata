@@ -1,4 +1,6 @@
-import json
+"""
+Imports v2 viewset
+"""
 import os
 
 from django.conf import settings
@@ -7,7 +9,6 @@ from django.core.files.storage import default_storage
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError, ErrorDetail
-from rest_framework.decorators import action
 
 from onadata.celeryapp import app
 from onadata.apps.api.tools import get_baseviewset_class
@@ -28,28 +29,40 @@ BaseViewset = get_baseviewset_class()
 
 
 def terminate_import_task(task_uuid: str, xform_pk: int) -> bool:
+    """Terminate an import task given a uuid and xform_pk"""
     task_details = app.control.inspect().query_task(task_uuid)
     if task_details:
         task_details = list(task_details.values())
     if task_details and task_uuid in task_details[0]:
         task_details = task_details[0][task_uuid]
 
-    if task_details and task_details[1]["args"][1] == xform_pk:
+    if task_details and task_details[0] == 'active' and \
+            task_details[1]["args"] and task_details[1]["args"][1] == xform_pk:
         app.control.terminate(task_uuid)
         return True
     return False
 
 
+# pylint: disable=too-many-ancestors
 class ImportsViewSet(AuthenticateHeaderMixin, ETagsMixin, CacheControlMixin,
                      viewsets.ViewSet):
+    """
+    Implements api/v2/imports endpoints
+    """
     permission_classes = [ImportPermissions]
     queryset = XForm.objects.filter(deleted_at__isnull=True)
     task_names = ["onadata.libs.utils.csv_import.submit_csv_async"]
 
     def get_queryset(self):
+        """
+        Retreive all XForms that have not been deleted
+        """
         return XForm.objects.filter(deleted_at__isnull=True)
 
-    def get_object(self, pk: int):
+    def get_object(self, pk: int):  # pylint: disable=invalid-name
+        """
+        Retreive XForm with specified pk
+        """
         queryset = self.get_queryset()
         obj = get_object_or_404(queryset, pk=pk)
         self.check_object_permissions(self.request, obj)
@@ -61,10 +74,12 @@ class ImportsViewSet(AuthenticateHeaderMixin, ETagsMixin, CacheControlMixin,
         """
         return get_active_tasks(self.task_names, xform)
 
+    # pylint: disable=invalid-name
     def create(self, request, pk: int = None) -> Response:
         """
-        Starts a new Import task for a given form; The route processes imports asynchronously
-        unless the `DISABLE_ASYNCHRONOUS_IMPORTS` setting is set to false.
+        Starts a new Import task for a given form; The route processes imports
+        asynchronously unless the `DISABLE_ASYNCHRONOUS_IMPORTS` setting
+        is set to false.
 
         Curl example:
 
@@ -72,8 +87,9 @@ class ImportsViewSet(AuthenticateHeaderMixin, ETagsMixin, CacheControlMixin,
 
         Supported Query Parameters:
 
-        - [Optional] overwrite: bool = Whether the server should permanently delete the data currently available on
-          the form then reimport the data using the csv_file/xls_file sent with the request.
+        - [Optional] overwrite: bool = Whether the server should permanently
+          delete the data currently available on the form then reimport the
+          data using the csv_file/xls_file sent with the request.
 
         Required Request Arguements:
 
@@ -82,10 +98,15 @@ class ImportsViewSet(AuthenticateHeaderMixin, ETagsMixin, CacheControlMixin,
 
         Possible Response status codes:
 
-        - 202 Accepted: Server has successfully accepted your request for data import and has queued the task
-        - 200 Ok: Server has successfully imported your data to the form; Only returned when asynchronous imports are disabled
-        - 400 Bad Request: Request has been refused due to incorrect/missing csv_file or xls_file file
-        - 403 Forbidden: The request was valid but the server refused to process it. An explanation on why it was refused can be found in the JSON Response
+        - 202 Accepted: Server has successfully accepted your request for data
+          import and has queued the task
+        - 200 Ok: Server has successfully imported your data to the form;
+          Only returned when asynchronous imports are disabled
+        - 400 Bad Request: Request has been refused due to incorrect/missing
+          csv_file or xls_file file
+        - 403 Forbidden: The request was valid but the server refused to
+          process it. An explanation on why it was refused can be found
+          in the JSON Response
         - 401 Unauthorized: The request has been refused due to missing authentication
         """
         xform = self.get_object(pk)
@@ -116,17 +137,14 @@ class ImportsViewSet(AuthenticateHeaderMixin, ETagsMixin, CacheControlMixin,
                     resp.update({
                         "detail":
                         ErrorDetail(
-                            f"An ongoing overwrite request with the ID {task_id} is being processed"
+                            "An ongoing overwrite request with the ID " +
+                            f"{task_id} is being processed"
                         )
                     })
                     status_code = status.HTTP_403_FORBIDDEN
                     break
 
             if not status_code == status.HTTP_403_FORBIDDEN:
-                try:
-                    csv_size = csv_file.size
-                except AttributeError:
-                    csv_size = csv_file.__sizeof__()
                 csv_file.seek(0)
 
                 if getattr(settings, "DISABLE_ASYNCHRONOUS_IMPORTS", False):
@@ -149,6 +167,7 @@ class ImportsViewSet(AuthenticateHeaderMixin, ETagsMixin, CacheControlMixin,
                         status=status_code,
                         content_type="application/json")
 
+    # pylint: disable=redefined-builtin, unused-argument
     def retrieve(self, request, pk: int = None, format=None) -> Response:
         """Returns csv import async tasks that belong to this form"""
         xform = self.get_object(pk)
@@ -170,7 +189,8 @@ class ImportsViewSet(AuthenticateHeaderMixin, ETagsMixin, CacheControlMixin,
         Possible Response status codes:
 
         - 204 No Content: Request was successfully processed. Task was terminated.
-        - 400 Bad Request: Request was rejected either due to a missing `task_uuid` query parameter or because the `task_uuid` does not exist for the XForm
+        - 400 Bad Request: Request was rejected either due to a missing `task_uuid`
+            query parameter or because the `task_uuid` does not exist for the XForm
         """
         xform = self.get_object(pk)
         task_uuid = request.query_params.get("task_uuid")

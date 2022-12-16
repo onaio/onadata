@@ -11,6 +11,9 @@ from .v1_urls import MultiLookupRouter
 
 
 class DetailedPostRouter(routers.DefaultRouter):
+    """
+    Custom router
+    """
     routes = [
         # List route.
         routers.Route(
@@ -52,6 +55,7 @@ class DetailedPostRouter(routers.DefaultRouter):
         ),
     ]
 
+    # pylint: disable=redefined-outer-name
     def extend(self, router):
         """
         Extends the routers routes with the routes from another router

@@ -1,7 +1,6 @@
 """
 Utilities for celery asyncronous tasks
 """
-import json
 from datetime import datetime
 
 from typing import List
@@ -47,6 +46,17 @@ def async_status(status, error=None):
     return status
 
 
+def format_task(task):
+    """Format a celery task element"""
+    return {"job_uuid": gettext(task["id"]),
+            "time_start": datetime.fromtimestamp(task["time_start"]).strftime(
+        "%Y-%m-%dT%H:%M:%S"
+    ),
+        "file": gettext(task["args"][2]),
+        "overwrite": task["args"][3],
+    }
+
+
 def get_active_tasks(task_names: List[str], xform: XForm):
     """Get active celery tasks"""
     inspect = app.control.inspect()
@@ -61,16 +71,4 @@ def get_active_tasks(task_names: List[str], xform: XForm):
             )
         )
 
-    return list(
-            map(
-                lambda i: {
-                    "job_uuid": gettext(i["id"]),
-                    "time_start": datetime.fromtimestamp(i["time_start"]).strftime(
-                        "%Y-%m-%dT%H:%M:%S"
-                    ),
-                    "file": gettext(i["args"][2]),
-                    "overwrite": i["args"][3],
-                },
-                data,
-            )
-        )
+    return list(map(format_task, data))

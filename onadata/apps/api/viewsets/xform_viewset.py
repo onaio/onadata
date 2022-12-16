@@ -97,7 +97,6 @@ from onadata.libs.utils.viewer_tools import (
     get_form_url,
 )
 from onadata.settings.common import CSV_EXTENSION, XLS_EXTENSIONS
-from onadata.libs.utils.async_status import get_active_tasks
 
 ENKETO_AUTH_COOKIE = getattr(settings, "ENKETO_AUTH_COOKIE", "__enketo")
 ENKETO_META_UID_COOKIE = getattr(
