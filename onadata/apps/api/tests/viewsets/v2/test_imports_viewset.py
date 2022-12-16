@@ -22,19 +22,21 @@ from onadata.libs.permissions import DataEntryRole, EditorRole
 def fixtures_path(filepath: str) -> IO[Any]:
     """Returns the file object at the given filepath."""
     return open(
-        os.path.join(
-            settings.PROJECT_ROOT, "libs", "tests", "utils", "fixtures", filepath
-        ),
+        os.path.join(settings.PROJECT_ROOT, "libs", "tests", "utils",
+                     "fixtures", filepath),
         "rb",
     )
 
 
 class TestImportsViewSet(TestAbstractViewSet):
+
     def setUp(self):
         super(TestImportsViewSet, self).setUp()
-        self.view = ImportsViewSet.as_view(
-            {"post": "create", "get": "retrieve", "delete": "destroy"}
-        )
+        self.view = ImportsViewSet.as_view({
+            "post": "create",
+            "get": "retrieve",
+            "delete": "destroy"
+        })
 
     def test_create_permissions(self):
         """
@@ -51,25 +53,24 @@ class TestImportsViewSet(TestAbstractViewSet):
                 "tutorial.xlsx",
             )
             self._publish_xls_form_to_project(xlsform_path=xls_path)
-            user = User.objects.create(
-                username="joe", email="joe@example.com", first_name="Joe"
-            )
+            user = User.objects.create(username="joe",
+                                       email="joe@example.com",
+                                       first_name="Joe")
             _ = UserProfile.objects.create(user=user)
             extra = {"HTTP_AUTHORIZATION": f"Token {user.auth_token}"}
             csv_import = fixtures_path("good.csv")
             post_data = {"csv_file": csv_import}
 
             # Unauthenticated request fails
-            request = self.factory.post(
-                f"/api/v2/imports/{self.xform.pk}", data=post_data
-            )
+            request = self.factory.post(f"/api/v2/imports/{self.xform.pk}",
+                                        data=post_data)
             response = self.view(request, pk=self.xform.pk)
             self.assertEqual(response.status_code, 401)
 
             # User without permissions can not import data
-            request = self.factory.post(
-                f"/api/v2/imports/{self.xform.pk}", data=post_data, **extra
-            )
+            request = self.factory.post(f"/api/v2/imports/{self.xform.pk}",
+                                        data=post_data,
+                                        **extra)
             response = self.view(request, pk=self.xform.pk)
             self.assertEqual(response.status_code, 403)
             self.assertEqual(
@@ -80,9 +81,9 @@ class TestImportsViewSet(TestAbstractViewSet):
             # User with dataentry role can not import data
             DataEntryRole.add(user, self.xform)
 
-            request = self.factory.post(
-                f"/api/v2/imports/{self.xform.pk}", data=post_data, **extra
-            )
+            request = self.factory.post(f"/api/v2/imports/{self.xform.pk}",
+                                        data=post_data,
+                                        **extra)
             response = self.view(request, pk=self.xform.pk)
             self.assertEqual(response.status_code, 403)
             self.assertEqual(
@@ -94,9 +95,9 @@ class TestImportsViewSet(TestAbstractViewSet):
             DataEntryRole.remove_obj_permissions(user, self.xform)
             EditorRole.add(user, self.xform)
 
-            request = self.factory.post(
-                f"/api/v2/imports/{self.xform.pk}", data=post_data, **extra
-            )
+            request = self.factory.post(f"/api/v2/imports/{self.xform.pk}",
+                                        data=post_data,
+                                        **extra)
             response = self.view(request, pk=self.xform.pk)
             self.assertEqual(response.status_code, 202)
 
@@ -118,9 +119,9 @@ class TestImportsViewSet(TestAbstractViewSet):
             self._publish_xls_form_to_project(xlsform_path=xls_path)
             csv_import = fixtures_path("good.csv")
             post_data = {"csv_file": csv_import}
-            request = self.factory.post(
-                f"/api/v2/imports/{self.xform.pk}", data=post_data, **self.extra
-            )
+            request = self.factory.post(f"/api/v2/imports/{self.xform.pk}",
+                                        data=post_data,
+                                        **self.extra)
             response = self.view(request, pk=self.xform.pk)
 
             self.assertEqual(response.status_code, 200)
@@ -146,9 +147,11 @@ class TestImportsViewSet(TestAbstractViewSet):
             self._publish_xls_form_to_project(xlsform_path=xls_path)
             csv_import = fixtures_path("good.csv")
             post_data = {"csv_file": csv_import}
-            request = self.factory.post(
-                "/api/v2/imports/{self.xform.pk}", data=post_data, **self.extra
-            )
+
+            # import ipdb; ipdb.set_trace()
+            request = self.factory.post("/api/v2/imports/{self.xform.pk}",
+                                        data=post_data,
+                                        **self.extra)
             response = self.view(request, pk=self.xform.pk)
 
             self.assertEqual(response.status_code, 202)
@@ -173,7 +176,12 @@ class TestImportsViewSet(TestAbstractViewSet):
             )
             self._publish_xls_form_to_project(xlsform_path=xls_path)
             path = "/api/v2/imports/{self.xform.pk}"
-            mocked_get_active_tasks.return_value = '[{"job_uuid": "11", "time_start": "1664372983.8631873", "file": "good.csv", "overwrite": true}]'
+            mocked_get_active_tasks.return_value = [{
+                "job_uuid": "11",
+                "time_start": "1664372983.8631873",
+                "file": "good.csv",
+                "overwrite": True
+            }]
 
             # Test that request fails when csv_file & xls_file are not sent
             csv_import = fixtures_path("good.csv")
@@ -255,9 +263,9 @@ class TestImportsViewSet(TestAbstractViewSet):
             )
             self._publish_xls_form_to_project(xlsform_path=xls_path)
             path = "/api/v2/imports/{self.xform.pk}?task_uuid=11"
-            user = User.objects.create(
-                username="joe", email="joe@example.com", first_name="Joe"
-            )
+            user = User.objects.create(username="joe",
+                                       email="joe@example.com",
+                                       first_name="Joe")
             _ = UserProfile.objects.create(user=user)
             extra = {"HTTP_AUTHORIZATION": f"Token {user.auth_token}"}
 
@@ -294,10 +302,11 @@ class TestImportsViewSet(TestAbstractViewSet):
             response = self.view(request, pk=self.xform.pk)
             self.assertEqual(response.status_code, 400)
             self.assertEqual(
-                {"error": "Queued task with ID 11 does not exist"}, response.data
-            )
+                {"error": "Queued task with ID 11 does not exist"},
+                response.data)
 
-    @patch("onadata.apps.api.viewsets.v2.imports_viewset.terminate_import_task")
+    @patch("onadata.apps.api.viewsets.v2.imports_viewset.terminate_import_task"
+           )
     def test_delete_expected_response(self, mocked_terminate_import_task):
         """
         Test that the `api/v2/imports/<xself.xform.pk>` DELETE route returns the
@@ -349,18 +358,24 @@ class TestImportsViewSet(TestAbstractViewSet):
 
             self.assertEqual(response.status_code, 400)
             self.assertEqual(
-                {"error": "The task_uuid query parameter is required"}, response.data
-            )
+                {"error": "The task_uuid query parameter is required"},
+                response.data)
 
             # Test that request fails if task_uuid does not exist for form
             mocked_celery_app.control.inspect().query_task.return_value = {
-                "id": 11,
-                "args": [None, "0", "good.csv", True],
+                'hostname': {
+                    "11": [
+                        "active", {
+                            "id": 11,
+                            "args": [None, "0", "good.csv", True],
+                        }
+                    ]
+                }
             }
             request = self.factory.delete(f"{path}?task_uuid=11", **self.extra)
             response = self.view(request, pk=self.xform.pk)
 
             self.assertEqual(response.status_code, 400)
             self.assertEqual(
-                {"error": "Queued task with ID 11 does not exist"}, response.data
-            )
+                {"error": "Queued task with ID 11 does not exist"},
+                response.data)

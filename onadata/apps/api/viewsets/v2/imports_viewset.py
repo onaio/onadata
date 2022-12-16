@@ -29,15 +29,19 @@ BaseViewset = get_baseviewset_class()
 
 def terminate_import_task(task_uuid: str, xform_pk: int) -> bool:
     task_details = app.control.inspect().query_task(task_uuid)
-    if task_details and task_details["args"][1] == xform_pk:
+    if task_details:
+        task_details = list(task_details.values())
+    if task_details and task_uuid in task_details[0]:
+        task_details = task_details[0][task_uuid]
+
+    if task_details and task_details[1]["args"][1] == xform_pk:
         app.control.terminate(task_uuid)
         return True
     return False
 
 
-class ImportsViewSet(
-    AuthenticateHeaderMixin, ETagsMixin, CacheControlMixin, viewsets.ViewSet
-):
+class ImportsViewSet(AuthenticateHeaderMixin, ETagsMixin, CacheControlMixin,
+                     viewsets.ViewSet):
     permission_classes = [ImportPermissions]
     queryset = XForm.objects.filter(deleted_at__isnull=True)
     task_names = ["onadata.libs.utils.csv_import.submit_csv_async"]
@@ -101,22 +105,20 @@ class ImportsViewSet(
                 csv_file = submission_xls_to_csv(xls_file)
 
             overwrite = request.query_params.get("overwrite")
-            overwrite = (
-                overwrite.lower() == "true" if isinstance(overwrite, str) else overwrite
-            )
+            overwrite = (overwrite.lower() == "true" if isinstance(
+                overwrite, str) else overwrite)
 
             # Block imports from running when an overwrite is ongoing
-            active_tasks = json.loads(self._get_active_tasks(xform))
+            active_tasks = self._get_active_tasks(xform)
             for task in active_tasks:
                 if task.get("overwrite", False):
                     task_id = task.get("job_uuid")
-                    resp.update(
-                        {
-                            "detail": ErrorDetail(
-                                f"An ongoing overwrite request with the ID {task_id} is being processed"
-                            )
-                        }
-                    )
+                    resp.update({
+                        "detail":
+                        ErrorDetail(
+                            f"An ongoing overwrite request with the ID {task_id} is being processed"
+                        )
+                    })
                     status_code = status.HTTP_403_FORBIDDEN
                     break
 
@@ -128,24 +130,26 @@ class ImportsViewSet(
                 csv_file.seek(0)
 
                 if getattr(settings, "DISABLE_ASYNCHRONOUS_IMPORTS", False):
-                    resp.update(submit_csv(request.user.username, xform, csv_file))
+                    resp.update(
+                        submit_csv(request.user.username, xform, csv_file))
                     status_code = status.HTTP_200_OK
                 else:
-                    upload_to = os.path.join(
-                        request.user.username, "csv_imports", csv_file.name
-                    )
+                    upload_to = os.path.join(request.user.username,
+                                             "csv_imports", csv_file.name)
                     file_name = default_storage.save(upload_to, csv_file)
-                    task = submit_csv_async.delay(
-                        request.user.username, xform.pk, file_name, overwrite
-                    )
+                    task = submit_csv_async.delay(request.user.username,
+                                                  xform.pk, file_name,
+                                                  overwrite)
                     if task is None:
                         raise ParseError("Task not found")
                     resp.update({"task_id": task.task_id})
                     status_code = status.HTTP_202_ACCEPTED
 
-        return Response(data=resp, status=status_code, content_type="application/json")
+        return Response(data=resp,
+                        status=status_code,
+                        content_type="application/json")
 
-    def retrieve(self, request, pk: int = None) -> Response:
+    def retrieve(self, request, pk: int = None, format=None) -> Response:
         """Returns csv import async tasks that belong to this form"""
         xform = self.get_object(pk)
 
@@ -181,7 +185,9 @@ class ImportsViewSet(
         successful = terminate_import_task(task_uuid, xform.pk)
         if not successful:
             return Response(
-                data={"error": f"Queued task with ID {task_uuid} does not exist"},
+                data={
+                    "error": f"Queued task with ID {task_uuid} does not exist"
+                },
                 status=status.HTTP_400_BAD_REQUEST,
                 content_type="application/json",
             )

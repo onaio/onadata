@@ -61,8 +61,7 @@ def get_active_tasks(task_names: List[str], xform: XForm):
             )
         )
 
-    return json.dumps(
-        list(
+    return list(
             map(
                 lambda i: {
                     "job_uuid": gettext(i["id"]),
@@ -75,4 +74,3 @@ def get_active_tasks(task_names: List[str], xform: XForm):
                 data,
             )
         )
-    )
