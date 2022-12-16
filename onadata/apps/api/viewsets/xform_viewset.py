@@ -879,17 +879,6 @@ class XFormViewSet(
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
     @action(methods=["GET"], detail=True)
-    def active_imports(self, request, *args, **kwargs):
-        """Returns csv import async tasks that belong to this form"""
-        xform = self.get_object()
-        task_names = ["onadata.libs.utils.csv_import.submit_csv_async"]
-        return Response(
-            data=get_active_tasks(task_names, xform),
-            status=status.HTTP_200_OK,
-            content_type="application/json",
-        )
-
-    @action(methods=["GET"], detail=True)
     def export_async(self, request, *args, **kwargs):
         """Returns the status of an async export."""
         job_uuid = request.query_params.get("job_uuid")
