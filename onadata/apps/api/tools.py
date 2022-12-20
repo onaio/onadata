@@ -235,7 +235,7 @@ def add_user_to_organization(organization, user):
     team = get_organization_members_team(organization)
     add_user_to_team(team, user)
     projects = Project.objects.filter(
-        organization=organization, deleted_at__isnull=True
+        organization=organization.user, deleted_at__isnull=True
     )
     for project in projects.iterator():
         propagate_project_permissions_async.apply_async(args=[project.pk])
