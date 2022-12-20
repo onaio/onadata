@@ -257,7 +257,8 @@ def propagate_project_permissions(
         collaborators: List[str] = [
             username
             for username, data in get_project_users(project).items()
-            if data.get("role") != "owner" and data.get("role") in ["editor"]
+            if data.get("username") != project.organization.username
+            or data.get("role") in ["manager", "owner"]
         ]
 
         if is_organization(project.organization.profile):
