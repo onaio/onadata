@@ -106,6 +106,8 @@ def set_project_perms_to_xform(xform, project):
             if role:
                 role.add(user, xform)
 
+    propagate_project_permissions_async.apply_async(args=[project.pk])
+
 
 # pylint: disable=invalid-name
 @app.task(bind=True, max_retries=3)
