@@ -8,6 +8,7 @@ from django.db import models
 from django.db.models.signals import post_save, pre_save
 from django.utils.translation import gettext_lazy
 
+import jwt
 import requests
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from guardian.shortcuts import assign_perm, get_perms_for_model
@@ -18,6 +19,7 @@ from onadata.apps.main.signals import (
     send_inactive_user_email,
     set_api_permissions,
 )
+from onadata.libs.utils.common_tags import API_TOKEN, ONADATA_KOBOCAT_AUTH_HEADER
 from onadata.libs.utils.country_field import COUNTRIES
 from onadata.libs.utils.gravatar import get_gravatar_img_link, gravatar_exists
 
@@ -132,9 +134,16 @@ def set_kpi_formbuilder_permissions(sender, instance=None, created=False, **kwar
             hasattr(settings, "KPI_FORMBUILDER_URL") and settings.KPI_FORMBUILDER_URL
         )
         if kpi_formbuilder_url:
+            auth_header = {
+                ONADATA_KOBOCAT_AUTH_HEADER: jwt.encode(
+                    {API_TOKEN: instance.user.auth_token.key},
+                    getattr(settings, "JWT_SECRET_KEY", "jwt"),
+                    algorithm=getattr(settings, "JWT_ALGORITHM", "HS256"),
+                )
+            }
             requests.post(
                 f"{kpi_formbuilder_url}/grant-default-model-level-perms",
-                headers={"Authorization": "Token {instance.user.auth_token}"},
+                headers=auth_header,
             )
 
 

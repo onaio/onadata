@@ -1,4 +1,3 @@
-
 from __future__ import unicode_literals
 
 from django.utils.translation import gettext_lazy as _
@@ -14,7 +13,7 @@ PARENT_ID = "__parent_id"
 UUID = "_uuid"
 PICTURE = "picture"
 GPS = "location/gps"
-SURVEY_TYPE = '_survey_type_slug'
+SURVEY_TYPE = "_survey_type_slug"
 
 # Phone IMEI:
 DEVICE_ID = "device_id"  # This tag was used in Phase I
@@ -39,7 +38,7 @@ UUID = "_uuid"
 USERFORM_ID = "_userform_id"
 DATE = "_date"
 GEOLOCATION = "_geolocation"
-SUBMISSION_TIME = '_submission_time'
+SUBMISSION_TIME = "_submission_time"
 DELETEDAT = "_deleted_at"  # marker for delete surveys
 BAMBOO_DATASET_ID = "_bamboo_dataset_id"
 SUBMITTED_BY = "_submitted_by"
@@ -66,11 +65,11 @@ DATE_MODIFIED = "_date_modified"
 EDITED = "_edited"
 LAST_EDITED = "_last_edited"
 # datetime format that we store in mongo
-MONGO_STRFTIME = '%Y-%m-%dT%H:%M:%S'
-DATE_FORMAT = '%Y-%m-%d'
+MONGO_STRFTIME = "%Y-%m-%dT%H:%M:%S"
+DATE_FORMAT = "%Y-%m-%d"
 
 # how to represent N/A in exports
-NA_REP = 'n/a'
+NA_REP = "n/a"
 
 # hold tags
 TAGS = "_tags"
@@ -88,59 +87,61 @@ RANGE = "range"
 MEDIAN = "median"
 MODE = "mode"
 
-TEXTIT = 'textit'
-TEXTIT_DETAILS = 'textit_details'
-OSM = 'osm'
-SELECT_BIND_TYPE = 'string'
-MULTIPLE_SELECT_TYPE = 'select all that apply'
-REPEAT_SELECT_TYPE = 'repeat'
-GROUPNAME_REMOVED_FLAG = 'group-name-removed'
-DATAVIEW_EXPORT = U'dataview'
+TEXTIT = "textit"
+TEXTIT_DETAILS = "textit_details"
+OSM = "osm"
+SELECT_BIND_TYPE = "string"
+MULTIPLE_SELECT_TYPE = "select all that apply"
+REPEAT_SELECT_TYPE = "repeat"
+GROUPNAME_REMOVED_FLAG = "group-name-removed"
+DATAVIEW_EXPORT = "dataview"
 OWNER_TEAM_NAME = "Owners"
 
-API_TOKEN = 'api-token'
-KNOWN_MEDIA_TYPES = ['photo', 'image', 'audio', 'video', 'file']
+API_TOKEN = "api-token"  # nosec
+ONADATA_KOBOCAT_AUTH_HEADER = "X-ONADATA-KOBOCAT-AUTH"
+KNOWN_MEDIA_TYPES = ["photo", "image", "audio", "video", "file"]
 MEDIA_FILE_TYPES = {
     "image": ["image/png", "image/jpeg", "image/jpg"],
     "audio": ["audio/mp3", "audio/mp4"],
     "video": ["video/mp4"],
     "document": [
-        "application/pdf", "text/plain",
+        "application/pdf",
+        "text/plain",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.\
             document",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        'application/json',
-        'application/geo+json',
-        'application/msword',
-        'application/vnd.ms-excel',
-        'application/vnd.ms-powerpoint',
-        'application/vnd.oasis.opendocument.text',
-        'application/vnd.oasis.opendocument.spreadsheet',
-        'application/vnd.oasis.opendocument.presentation',
-        'application/vnd.openxmlformats-officedocument.presentationml.\
-        presentation',
-        'application/zip']
-
+        "application/json",
+        "application/geo+json",
+        "application/msword",
+        "application/vnd.ms-excel",
+        "application/vnd.ms-powerpoint",
+        "application/vnd.oasis.opendocument.text",
+        "application/vnd.oasis.opendocument.spreadsheet",
+        "application/vnd.oasis.opendocument.presentation",
+        "application/vnd.openxmlformats-officedocument.presentationml.\
+        presentation",
+        "application/zip",
+    ],
 }
 
-NUMERIC_LIST = ['integer', 'decimal', 'calculate']
-SELECT_ONE = 'select one'
+NUMERIC_LIST = ["integer", "decimal", "calculate"]
+SELECT_ONE = "select one"
 
 # google_sheets
-GOOGLE_SHEET = 'google_sheets'
-GOOGLE_SHEET_ID = 'GOOGLE_SHEET_ID'
-GOOGLE_SHEET_TITLE = 'GOOGLE_SHEET_TITLE'
-GOOGLE_SHEET_DATA_TYPE = 'google_sheets'
-UPDATE_OR_DELETE_GOOGLE_SHEET_DATA = 'UPDATE_OR_DELETE_GOOGLE_SHEET_DATA'
+GOOGLE_SHEET = "google_sheets"
+GOOGLE_SHEET_ID = "GOOGLE_SHEET_ID"
+GOOGLE_SHEET_TITLE = "GOOGLE_SHEET_TITLE"
+GOOGLE_SHEET_DATA_TYPE = "google_sheets"
+UPDATE_OR_DELETE_GOOGLE_SHEET_DATA = "UPDATE_OR_DELETE_GOOGLE_SHEET_DATA"
 SYNC_EXISTING_DATA = "send_existing_data"
-USER_ID = 'USER_ID'
+USER_ID = "USER_ID"
 
 # tag group delimiter name
-GROUP_DELIMETER_TAG = 'group_delimiter'
-XFORM_META_PERMS = 'xform_meta_perms'
+GROUP_DELIMETER_TAG = "group_delimiter"
+XFORM_META_PERMS = "xform_meta_perms"
 
 # index tag
-REPEAT_INDEX_TAGS = 'repeat_index_tags'
+REPEAT_INDEX_TAGS = "repeat_index_tags"
 
 # SAV
 # VarTyoes: 0 means 'numeric', and varType > 0 means 'character' of that length
@@ -149,27 +150,27 @@ SAV_NUMERIC_TYPE = 0
 SAV_255_BYTES_TYPE = 255
 
 EXPORT_MIMES = {
-    'xls': 'vnd.ms-excel',
-    'xlsx': 'vnd.openxmlformats',
-    'csv': 'csv',
-    'zip': 'zip',
-    'csv_zip': 'zip',
-    'sav_zip': 'zip',
-    'sav': 'sav',
-    'kml': 'vnd.google-earth.kml+xml',
-    OSM: OSM
+    "xls": "vnd.ms-excel",
+    "xlsx": "vnd.openxmlformats",
+    "csv": "csv",
+    "zip": "zip",
+    "csv_zip": "zip",
+    "sav_zip": "zip",
+    "sav": "sav",
+    "kml": "vnd.google-earth.kml+xml",
+    OSM: OSM,
 }
 
 # Submission Review Tags
-COMMENT_REQUIRED = _('Cannot reject a submission without a comment.')
-SUBMISSION_REVIEW_INSTANCE_FIELD = '_review_status'
+COMMENT_REQUIRED = _("Cannot reject a submission without a comment.")
+SUBMISSION_REVIEW_INSTANCE_FIELD = "_review_status"
 EXCEL_TRUE = 1
 EXCEL_FALSE = 0
-MEMBERS = 'members'
-XLS_DATE_FIELDS = ['date', 'today']
-SUBMISSION_REVIEW = 'submission_review'
-IMPORTED_VIA_CSV_BY = 'imported_via_csv_by'
-XLS_DATETIME_FIELDS = ['start', 'end', 'dateTime', '_submission_time']
+MEMBERS = "members"
+XLS_DATE_FIELDS = ["date", "today"]
+SUBMISSION_REVIEW = "submission_review"
+IMPORTED_VIA_CSV_BY = "imported_via_csv_by"
+XLS_DATETIME_FIELDS = ["start", "end", "dateTime", "_submission_time"]
 
 METADATA_FIELDS = [
     REVIEW_COMMENT,
@@ -191,11 +192,11 @@ METADATA_FIELDS = [
     XFORM_ID_STRING,
     SUBMISSION_TIME,
     XFORM_ID,
-    DATE_MODIFIED
+    DATE_MODIFIED,
 ]
 
-INSTANCE_CREATE_EVENT = 'Submission created'
-INSTANCE_UPDATE_EVENT = 'Submission updated'
-XFORM_CREATION_EVENT = 'XForm created'
-PROJECT_CREATION_EVENT = 'Project created'
-USER_CREATION_EVENT = 'User account created'
+INSTANCE_CREATE_EVENT = "Submission created"
+INSTANCE_UPDATE_EVENT = "Submission updated"
+XFORM_CREATION_EVENT = "XForm created"
+PROJECT_CREATION_EVENT = "Project created"
+USER_CREATION_EVENT = "User account created"

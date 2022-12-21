@@ -32,6 +32,7 @@ from onadata.libs.serializers.project_serializer import (
 from onadata.libs.serializers.share_project_serializer import (
     RemoveUserFromProjectSerializer,
     ShareProjectSerializer,
+    propagate_project_permissions_async,
 )
 from onadata.libs.serializers.user_profile_serializer import UserProfileSerializer
 from onadata.libs.serializers.xform_serializer import (
@@ -138,6 +139,9 @@ class ProjectViewSet(
 
                 if str_to_bool(published_by_formbuilder):
                     MetaData.published_by_formbuilder(survey, "True")
+                    propagate_project_permissions_async.apply_async(
+                        args=[project.id], countdown=30
+                    )
 
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
 

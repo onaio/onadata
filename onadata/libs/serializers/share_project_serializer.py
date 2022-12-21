@@ -10,6 +10,7 @@ from rest_framework import serializers
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.permissions import ROLES, OwnerRole, get_object_users_with_permissions
 from onadata.libs.serializers.fields.project_field import ProjectField
+from onadata.libs.utils.project_utils import propagate_project_permissions_async
 
 User = get_user_model()
 
@@ -42,11 +43,17 @@ class ShareProjectSerializer(serializers.Serializer):
             instance.save()
             created_instances.append(instance)
 
+        propagate_project_permissions_async.apply_async(
+            args=[validated_data.get("project").id], countdown=30
+        )
         return created_instances
 
     def update(self, instance, validated_data):
         instance = attrs_to_instance(validated_data, instance)
         instance.save()
+        propagate_project_permissions_async.apply_async(
+            args=[validated_data.get("project").id], countdown=30
+        )
 
         return instance
 
@@ -114,12 +121,18 @@ class RemoveUserFromProjectSerializer(ShareProjectSerializer):
     def update(self, instance, validated_data):
         instance = attrs_to_instance(validated_data, instance)
         instance.save()
+        propagate_project_permissions_async.apply_async(
+            args=[validated_data.get("project").id], countdown=30
+        )
 
         return instance
 
     def create(self, validated_data):
         instance = ShareProject(**validated_data)
         instance.save()
+        propagate_project_permissions_async.apply_async(
+            args=[validated_data.get("project").id], countdown=30
+        )
 
         return instance
 

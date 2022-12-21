@@ -21,14 +21,12 @@ from onadata.apps.api.models.team import Team
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
 from onadata.celeryapp import app
-from onadata.libs.permissions import (
-    ROLES,
-    OwnerRole,
-    get_object_users_with_permissions,
-    get_role,
-    is_organization,
-)
-from onadata.libs.utils.common_tags import API_TOKEN, OWNER_TEAM_NAME
+from onadata.libs.permissions import (ROLES, OwnerRole,
+                                      get_object_users_with_permissions,
+                                      get_role, is_organization)
+from onadata.libs.utils.common_tags import (API_TOKEN,
+                                            ONADATA_KOBOCAT_AUTH_HEADER,
+                                            OWNER_TEAM_NAME)
 from onadata.libs.utils.common_tools import report_exception
 
 
@@ -207,24 +205,20 @@ def assign_change_asset_permission(
 
 
 @app.task(bind=True, max_retries=3)
-def propagate_project_permissions_async(
-    self,
-    project_id: int,
-    headers: Optional[dict] = None,
-    use_asset_owner_auth: bool = True,
-):
+def propagate_project_permissions_async(self, project_id: int):
     """
-    Asynchronously propagates Project Permissions to the Formbuilder assets
-    within the project
+    Ensure that all project permissions are in sync with Formbuilder
+    permissions
     """
-    try:
+    with use_master:
         project = Project.objects.get(id=project_id)
-        propagate_project_permissions(project, headers, use_asset_owner_auth)
-    except (Project.DoesNotExist, ExternalServiceRequestError) as e:
-        if self.request.retries > 3:
-            msg = f"Failed to propagate asset permissions for Project {project_id}"
-            report_exception(msg, e, sys.exc_info())
-        self.retry(exc=e, countdown=60 * self.request.retries)
+        try:
+            propagate_project_permissions(project)
+        except ExternalServiceRequestError as exc:
+            if self.request.retries > 3:
+                msg = f"Failed to propagate permissions for Project {project.pk}"
+                report_exception(msg, exc, sys.exc_info())
+            self.retry(exc=exc, countdown=60 * self.requests.retries)
 
 
 def propagate_project_permissions(
@@ -257,7 +251,7 @@ def propagate_project_permissions(
         collaborators: List[str] = [
             username
             for username, data in get_project_users(project).items()
-            if data.get("role") != "owner" and data.get("role") in ["editor"]
+            if not data.get("is_org") and data.get("role") in ["manager", "owner"]
         ]
 
         if is_organization(project.organization.profile):
@@ -272,58 +266,54 @@ def propagate_project_permissions(
             collaborators += owners_team
             collaborators = list(set(collaborators))
 
-        form_ids: List[int] = list(
-            project.xform_set.filter(deleted_at__isnull=True).values_list(
-                "id", flat=True
-            )
-        )
-
         # Propagate permissions for XForms that were published by
         # Formbuilder
-        for form_id in form_ids:
-            asset: XForm = XForm.objects.get(id=form_id)
+        for asset in project.xform_set.filter(deleted_at__isnull=True).iterator():
             if (
                 asset.metadata_set.filter(
                     data_type="published_by_formbuilder", data_value=True
                 ).count()
-                > 0
+                == 0
             ):
-                if use_asset_owner_auth:
-                    session.headers.update(
-                        {
-                            "X-ONADATA-KOBOCAT-AUTH": jwt.encode(
-                                {API_TOKEN: asset.created_by.auth_token.key},
-                                getattr(settings, "JWT_SECRET_KEY", "jwt"),
-                                algorithm=getattr(settings, "JWT_ALGORITHM", "HS256"),
-                            )
-                        }
-                    )
-                assigned_permissions = retrieve_asset_permissions(
-                    service_url, asset.id_string, session
+                continue
+
+            if use_asset_owner_auth:
+                session.headers.update(
+                    {
+                        ONADATA_KOBOCAT_AUTH_HEADER: jwt.encode(
+                            {API_TOKEN: asset.created_by.auth_token.key},
+                            getattr(settings, "JWT_SECRET_KEY", "jwt"),
+                            algorithm=getattr(settings, "JWT_ALGORITHM", "HS256"),
+                        )
+                    }
                 )
-                new_users = [
-                    username
-                    for username in collaborators
-                    if username not in assigned_permissions
-                ]
-                removed_permissions = [
-                    (username, permissions)
-                    for username, permissions in assigned_permissions.items()
-                    if username not in collaborators
+
+            assigned_permissions = retrieve_asset_permissions(
+                service_url, asset.id_string, session
+            )
+            new_users = [
+                username
+                for username in collaborators
+                if username not in assigned_permissions
+            ]
+            removed_permissions = [
+                (username, permissions)
+                for username, permissions in assigned_permissions.items()
+                if username not in collaborators
+            ]
+
+            # Unassign permissions granted to users who no longer have permissions
+            for _, permission_assignments in removed_permissions:
+                _ = [
+                    session.delete(permission_assignment)
+                    for permission_assignment in permission_assignments
                 ]
 
-                # Unassign permissions granted to users who no longer have permissions
-                for _, permission_assignments in removed_permissions:
-                    _ = [
-                        session.delete(permission_assignment)
-                        for permission_assignment in permission_assignments
-                    ]
-
-                # Assign permissions to the new users
-                if new_users:
-                    assign_change_asset_permission(
-                        service_url,
-                        asset.id_string,
-                        new_users,
-                        session,
-                    )
+            # Assign permissions to the new users
+            if new_users:
+                assign_change_asset_permission(
+                    service_url,
+                    asset.id_string,
+                    new_users,
+                    session,
+                )

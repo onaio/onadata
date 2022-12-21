@@ -1119,8 +1119,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self, url, request
     ):  # pylint: disable=no-self-use,unused-argument
 
-        assert "Authorization" in request.headers
-        assert request.headers.get("Authorization").startswith("Token")
+        assert "X-ONADATA-KOBOCAT-AUTH" in request.headers
 
         response = requests.Response()
         response.status_code = 201
