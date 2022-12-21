@@ -61,6 +61,7 @@ from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.models import MetaData
 from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
 from onadata.apps.viewer.models import Export
+from onadata.apps.viewer.models.export import ExportTypeError
 from onadata.libs.permissions import (
     ROLES_ORDERED,
     DataEntryMinorRole,
@@ -3523,7 +3524,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             )
             formid = self.xform.pk
 
-            for format in ["xls", "osm", "csv"]:
+            for format in ["xlsx", "osm", "csv"]:
                 request = self.factory.get("/", data={"format": format}, **self.extra)
                 response = view(request, pk=formid)
                 self.assertIsNotNone(response.data)
@@ -3535,6 +3536,32 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 response = view(request, pk=formid)
 
                 self.assertTrue(async_result.called)
+                self.assertEqual(response.status_code, 202)
+                export = Export.objects.get(task_id=task_id)
+                self.assertTrue(export.is_successful)
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    def test_raises_exception_for_xls_export_formats(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view(
+                {
+                    "get": "export_async",
+                }
+            )
+            formid = self.xform.pk
+
+            with self.assertRaises(ExportTypeError):
+                request = self.factory.get("/", data={"format": "xls"}, **self.extra)
+                response = view(request, pk=formid)
+                self.assertIsNotNone(response.data)
+                self.assertEqual(response.status_code, 202)
+                self.assertTrue("job_uuid" in response.data)
+                task_id = response.data.get("job_uuid")
+                get_data = {"job_uuid": task_id}
+                request = self.factory.get("/", data=get_data, **self.extra)
+                response = view(request, pk=formid)
+
                 self.assertEqual(response.status_code, 202)
                 export = Export.objects.get(task_id=task_id)
                 self.assertTrue(export.is_successful)
@@ -3612,7 +3639,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             )
             formid = self.xform.pk
 
-            format = "xls"
+            format = "xlsx"
             request = self.factory.get("/", data={"format": format}, **self.extra)
             response = view(request, pk=formid)
             self.assertIsNotNone(response.data)
