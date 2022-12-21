@@ -28,7 +28,11 @@ from onadata.libs.permissions import (
     get_role,
     is_organization,
 )
-from onadata.libs.utils.common_tags import API_TOKEN, OWNER_TEAM_NAME
+from onadata.libs.utils.common_tags import (
+    API_TOKEN,
+    ONADATA_KOBOCAT_AUTH_HEADER,
+    OWNER_TEAM_NAME,
+)
 from onadata.libs.utils.common_tools import report_exception
 
 
@@ -292,7 +296,7 @@ def propagate_project_permissions(
                 if use_asset_owner_auth:
                     session.headers.update(
                         {
-                            "X-ONADATA-KOBOCAT-AUTH": jwt.encode(
+                            ONADATA_KOBOCAT_AUTH_HEADER: jwt.encode(
                                 {API_TOKEN: asset.created_by.auth_token.key},
                                 getattr(settings, "JWT_SECRET_KEY", "jwt"),
                                 algorithm=getattr(settings, "JWT_ALGORITHM", "HS256"),

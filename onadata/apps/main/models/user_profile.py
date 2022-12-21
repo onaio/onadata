@@ -19,7 +19,7 @@ from onadata.apps.main.signals import (
     send_inactive_user_email,
     set_api_permissions,
 )
-from onadata.libs.utils.common_tags import API_TOKEN
+from onadata.libs.utils.common_tags import API_TOKEN, ONADATA_KOBOCAT_AUTH_HEADER
 from onadata.libs.utils.country_field import COUNTRIES
 from onadata.libs.utils.gravatar import get_gravatar_img_link, gravatar_exists
 
@@ -135,7 +135,7 @@ def set_kpi_formbuilder_permissions(sender, instance=None, created=False, **kwar
         )
         if kpi_formbuilder_url:
             auth_header = {
-                "X-ONADATA-KOBOCAT-AUTH": jwt.encode(
+                ONADATA_KOBOCAT_AUTH_HEADER: jwt.encode(
                     {API_TOKEN: instance.user.auth_token.key},
                     getattr(settings, "JWT_SECRET_KEY", "jwt"),
                     algorithm=getattr(settings, "JWT_ALGORITHM", "HS256"),
