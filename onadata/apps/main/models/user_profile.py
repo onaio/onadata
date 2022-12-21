@@ -112,18 +112,6 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
 
 
 # pylint: disable=unused-argument
-def create_user_profile(sender, instance=None, created=False, **kwargs):
-    """
-    Creates an default User Profile.
-    """
-    if created:
-        try:
-            _ = instance.profile
-        except UserProfile.DoesNotExist:
-            _ = UserProfile.objects.get_or_create(user=instance)
-
-
-# pylint: disable=unused-argument
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
     """
     Assign's permission to the user that created the profile.
@@ -160,8 +148,6 @@ def set_kpi_formbuilder_permissions(sender, instance=None, created=False, **kwar
 
 
 post_save.connect(create_auth_token, sender=User, dispatch_uid="auth_token")
-post_save.connect(
-    create_user_profile, sender=User, dispatch_uid="create_user_profile")
 post_save.connect(
     send_inactive_user_email, sender=User, dispatch_uid="send_inactive_user_email"
 )
