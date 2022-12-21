@@ -121,7 +121,6 @@ class OrganizationProfileViewSet(
                 organization, context={"request": request}
             ).data
             cache.set(f"{ORG_PROFILE_CACHE}{username}", data)
-
         else:
             return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

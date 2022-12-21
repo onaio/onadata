@@ -17,13 +17,11 @@ from onadata.apps.api.tools import (
     remove_user_from_organization,
     remove_user_from_team,
 )
-from onadata.libs.permissions import (
-    ROLES, OwnerRole, is_organization
-)
+from onadata.apps.logger.models.project import Project
+from onadata.libs.permissions import ROLES, OwnerRole, is_organization
 from onadata.libs.serializers.fields.organization_field import OrganizationField
-from onadata.libs.serializers.share_project_serializer import (
-    ShareProjectSerializer
-)
+from onadata.libs.serializers.share_project_serializer import ShareProjectSerializer
+from onadata.libs.utils.project_utils import propagate_project_permissions_async
 from onadata.settings.common import DEFAULT_FROM_EMAIL, SHARE_ORG_SUBJECT
 
 User = get_user_model()
@@ -51,11 +49,7 @@ def _set_organization_role_to_user(organization, user, role):
         add_user_to_team(owners_team, user)
         # add user to org projects
         for project in organization.user.project_org.all():
-            data = {
-                "project": project.pk,
-                "username": user.username,
-                "role": role
-            }
+            data = {"project": project.pk, "username": user.username, "role": role}
             serializer = ShareProjectSerializer(data=data)
             if serializer.is_valid():
                 serializer.save()
@@ -63,11 +57,7 @@ def _set_organization_role_to_user(organization, user, role):
     elif role != OwnerRole.name:
         # add user to org projects
         for project in organization.user.project_org.all():
-            data = {
-                "project": project.pk,
-                "username": user.username,
-                "role": role
-            }
+            data = {"project": project.pk, "username": user.username, "role": role}
             serializer = ShareProjectSerializer(data=data)
             if serializer.is_valid():
                 serializer.save()
@@ -159,6 +149,16 @@ class OrganizationMemberSerializer(serializers.Serializer):
 
             if remove:
                 remove_user_from_organization(organization, user)
+
+            projects = Project.objects.filter(
+                organization=organization.user, deleted_at__isnull=True
+            )
+            for project in projects.iterator():
+                # Queue permission propagation with a
+                # delay for permissions to be effected
+                propagate_project_permissions_async.apply_async(
+                    args=[project.id], countdown=60
+                )
 
         return organization
 

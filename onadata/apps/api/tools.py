@@ -75,7 +75,6 @@ from onadata.libs.utils.logger_tools import (
     response_with_mimetype_and_name,
 )
 from onadata.libs.utils.project_utils import (
-    propagate_project_permissions_async,
     set_project_perms_to_xform,
     set_project_perms_to_xform_async,
 )
@@ -222,23 +221,12 @@ def remove_user_from_team(team, user):
             remove_perm(perm.codename, user, owners_team)
             remove_perm(perm.codename, user, members_team)
 
-    projects = Project.objects.filter(
-        organization=team.organization, deleted_at__isnull=True
-    )
-    for project in projects.iterator():
-        propagate_project_permissions_async.apply_async(args=[project.pk])
-
 
 def add_user_to_organization(organization, user):
     """Add a user to an organization"""
 
     team = get_organization_members_team(organization)
     add_user_to_team(team, user)
-    projects = Project.objects.filter(
-        organization=organization.user, deleted_at__isnull=True
-    )
-    for project in projects.iterator():
-        propagate_project_permissions_async.apply_async(args=[project.pk])
 
 
 def get_organization_members(organization):
