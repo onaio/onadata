@@ -157,10 +157,7 @@ class TestPermissions(TestBase):
         missing user profiles
         """
         alice = self._create_user('alice', 'alice')
-        # assert that user profile exists
-        # courtesy of the post_save signal
-        self.assertTrue(hasattr(alice, "profile"))
-
+        UserProfile.objects.get_or_create(user=alice)
         org_user = tools.create_organization("modilabs", alice).user
         demo_grp = Group.objects.create(name='demo')
         alice.groups.add(demo_grp)
