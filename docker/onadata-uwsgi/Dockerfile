@@ -16,7 +16,7 @@ RUN --mount=type=ssh if [ -n "$optional_packages" ]; then pip install ${optional
 FROM ubuntu:20.04
 COPY --from=intermediate /usr/local/lib/python3.9/site-packages/ /usr/local/lib/python3.9/dist-packages/
 
-ARG release_version=v2.4.1
+ARG release_version=v3.7.1
 
 # Silence configuration prompts
 ENV DEBIAN_FRONTEND noninteractive
