@@ -68,6 +68,7 @@ class Export(models.Model):
     """
 
     XLS_EXPORT = "xls"
+    XLSX_EXPORT = "xlsx"
     CSV_EXPORT = "csv"
     KML_EXPORT = "kml"
     ZIP_EXPORT = "zip"

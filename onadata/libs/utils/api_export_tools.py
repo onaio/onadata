@@ -75,7 +75,7 @@ EXTERNAL_EXPORT_TYPES = ["xls"]
 
 EXPORT_EXT = {
     "xls": Export.XLS_EXPORT,
-    "xlsx": Export.XLS_EXPORT,
+    "xlsx": Export.XLSX_EXPORT,
     "csv": Export.CSV_EXPORT,
     "csvzip": Export.CSV_ZIP_EXPORT,
     "savzip": Export.SAV_ZIP_EXPORT,
