@@ -94,7 +94,7 @@ class Export(models.Model):
     }
 
     EXPORT_TYPES = [
-        (XLS_EXPORT, "Excel"),
+        (XLSX_EXPORT, "Excel"),
         (CSV_EXPORT, "CSV"),
         (ZIP_EXPORT, "ZIP"),
         (KML_EXPORT, "kml"),

@@ -106,7 +106,7 @@ class TestExportList(TestBase):
         kwargs = {
             "username": self.user.username,
             "id_string": self.xform.id_string,
-            "export_type": Export.XLS_EXPORT,
+            "export_type": Export.XLSX_EXPORT,
         }
         url = reverse(export_list, kwargs=kwargs)
         response = self.client.get(url)

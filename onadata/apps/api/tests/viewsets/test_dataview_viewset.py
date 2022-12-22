@@ -819,7 +819,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         request = self.factory.get(
             "/",
-            data={"format": "xls", "force_xlsx": "true", "include_labels": "true"},
+            data={"format": "xlsx", "force_xlsx": "true", "include_labels": "true"},
             **self.extra,
         )
         response = view(request, pk=self.data_view.pk)
@@ -1554,7 +1554,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         request = self.factory.get(
             "/",
             data={
-                "format": "xls",
+                "format": "xlsx",
                 "force_xlsx": "true",
                 "include_labels": "true",
                 "query": query_str,

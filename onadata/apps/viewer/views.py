@@ -306,8 +306,7 @@ def data_export(request, username, id_string, export_type):  # noqa C901
     extension = export_type
 
     # check if we should force xlsx
-    force_xlsx = request.GET.get("xls") != "true"
-    if export_type == Export.XLS_EXPORT and force_xlsx:
+    if export_type == Export.XLSX_EXPORT:
         extension = "xlsx"
     elif export_type in [Export.CSV_ZIP_EXPORT, Export.SAV_ZIP_EXPORT]:
         extension = "zip"

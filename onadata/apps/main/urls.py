@@ -227,7 +227,7 @@ urlpatterns = [
         r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.xls",
         viewer_views.data_export,
         name="xls_export",
-        kwargs={"export_type": "xls"},
+        kwargs={"export_type": "xlsx"},
     ),
     re_path(
         r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.csv.zip",

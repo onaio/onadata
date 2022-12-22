@@ -71,7 +71,7 @@ class TestLegacyExports(TestBase):
 
         # xls
         request = self.factory.get('/', **self.extra)
-        response = view(request, pk=formid, format='xls')
+        response = view(request, pk=formid, format='xlsx')
         self.assertEqual(response.status_code, 200)
         headers = dict(response.items())
         content_disposition = headers['Content-Disposition']
