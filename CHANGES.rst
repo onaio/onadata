@@ -3,6 +3,13 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.7.1(2022-12-21)
+------------------
+
+- Formbuilder permission changes
+  `PR #2345 <https://github.com/onaio/onadata/pull/2345>`_
+  [@DavisRayM]
+
 3.7.0(2022-12-07)
 ------------------
 - Update GeoJSON endpoint to filter by instances with geoms
