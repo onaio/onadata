@@ -128,7 +128,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
                 try:
                     profile = u.profile
                 except UserProfile.DoesNotExist:
-                    profile, _ = UserProfile.objects.get_or_create(user=u)
+                    profile = UserProfile.objects.create(user=u)
 
                 users_list.append({
                     "user": u.username,

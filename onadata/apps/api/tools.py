@@ -143,12 +143,9 @@ def create_organization(name, creator):
 
     """
     organization, _created = User.objects.get_or_create(username__iexact=name)
-    try:
-        organization_profile = organization.profile
-    except UserProfile.DoesNotExist:
-        organization_profile, _ = OrganizationProfile.objects.get_or_create(
-            user=organization, creator=creator
-        )
+    organization_profile, _ = OrganizationProfile.objects.get_or_create(
+        user=organization, creator=creator
+    )
     return organization_profile
 
 
@@ -665,7 +662,7 @@ def get_xform_users(xform):
             try:
                 profile = user.profile
             except UserProfile.DoesNotExist:
-                profile, _ = UserProfile.objects.get_or_create(user=user)
+                profile = UserProfile.objects.create(user=user)
 
             if is_organization(user.profile):
                 org_members = get_team_members(user.username)
@@ -686,7 +683,7 @@ def get_xform_users(xform):
         try:
             profile = user.profile
         except UserProfile.DoesNotExist:
-            profile, _ = UserProfile.objects.get_or_create(user=user)
+            profile = UserProfile.objects.create(user=user)
 
         if user not in data:
             data[user] = {

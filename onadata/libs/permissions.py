@@ -565,10 +565,11 @@ def get_object_users_with_permissions(
 
         result = []
         for user, permissions in users_with_perms:
+            # create missing user profile
             try:
                 profile = user.profile
             except UserProfile.DoesNotExist:
-                profile, _ = UserProfile.objects.get_or_create(user=user)
+                profile = UserProfile.objects.create(user=user)
 
             result.append({
                 "user": user.username if username else user,

@@ -207,7 +207,7 @@ class XFormMixin:
                 try:
                     profile = user.profile
                 except UserProfile.DoesNotExist:
-                    profile, _ = UserProfile.objects.get_or_create(user=user)
+                    profile = UserProfile.objects.create(user=user)
 
                 data[perm.user_id] = {
                     "permissions": [],

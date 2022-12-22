@@ -174,7 +174,7 @@ def get_users(project, context, all_perms=True):
             try:
                 profile = user.profile
             except UserProfile.DoesNotExist:
-                profile, _ = UserProfile.objects.get_or_create(user=user)
+                profile = UserProfile.objects.create(user=user)
 
             if (
                 all_perms
