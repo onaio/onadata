@@ -18,6 +18,7 @@ from onadata.apps.api.tools import (
     remove_user_from_team,
 )
 from onadata.apps.logger.models.project import Project
+from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.permissions import ROLES, OwnerRole, is_organization
 from onadata.libs.serializers.fields.organization_field import OrganizationField
 from onadata.libs.serializers.share_project_serializer import ShareProjectSerializer
@@ -96,7 +97,13 @@ class OrganizationMemberSerializer(serializers.Serializer):
             if not user.is_active:
                 raise serializers.ValidationError(_("User is not active"))
 
-            if is_organization(user.profile):
+            # create user profile if missing
+            try:
+                profile = user.profile
+            except UserProfile.DoesNotExist:
+                profile = UserProfile.objects.create(user=user)
+
+            if is_organization(profile):
                 raise serializers.ValidationError(
                     _(f"Cannot add org account `{user.username}` as member.")
                 )
