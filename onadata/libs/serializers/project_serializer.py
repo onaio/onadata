@@ -16,6 +16,7 @@ from onadata.apps.api.models.organization_profile import (
     get_or_create_organization_owners_team,
     get_organization_members_team,
 )
+from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.permissions import (
@@ -169,6 +170,12 @@ def get_users(project, context, all_perms=True):
         if perm.user_id not in data:
             user = perm.user
 
+            # create default user profile if missing
+            try:
+                profile = user.profile
+            except UserProfile.DoesNotExist:
+                profile = UserProfile.objects.create(user=user)
+
             if (
                 all_perms
                 or user in [request_user, project.organization]
@@ -176,8 +183,8 @@ def get_users(project, context, all_perms=True):
             ):
                 data[perm.user_id] = {
                     "permissions": [],
-                    "is_org": is_organization(user.profile),
-                    "metadata": user.profile.metadata,
+                    "is_org": is_organization(profile),
+                    "metadata": profile.metadata,
                     "first_name": user.first_name,
                     "last_name": user.last_name,
                     "user": user.username,

@@ -25,6 +25,7 @@ from rest_framework.reverse import reverse
 from onadata.libs.utils.api_export_tools import get_metadata_format
 from onadata.apps.logger.models import DataView, Instance, XForm, XFormVersion
 from onadata.apps.main.models.meta_data import MetaData
+from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.exceptions import EnketoError
 from onadata.libs.permissions import get_role, is_organization
 from onadata.libs.serializers.dataview_serializer import DataViewMinimalSerializer
@@ -202,10 +203,16 @@ class XFormMixin:
             if perm.user_id not in data:
                 user = perm.user
 
+                # create default user profile if missing
+                try:
+                    profile = user.profile
+                except UserProfile.DoesNotExist:
+                    profile = UserProfile.objects.create(user=user)
+
                 data[perm.user_id] = {
                     "permissions": [],
-                    "is_org": is_organization(user.profile),
-                    "metadata": user.profile.metadata,
+                    "is_org": is_organization(profile),
+                    "metadata": profile.metadata,
                     "first_name": user.first_name,
                     "last_name": user.last_name,
                     "user": user.username,

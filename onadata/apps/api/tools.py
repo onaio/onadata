@@ -39,6 +39,7 @@ from onadata.apps.api.models.team import Team
 from onadata.apps.logger.models import DataView, Instance, Project, XForm
 from onadata.apps.main.forms import QuickConverter
 from onadata.apps.main.models.meta_data import MetaData
+from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.viewer.models.parsed_instance import datetime_from_str
 from onadata.libs.baseviewset import DefaultBaseViewset
 from onadata.libs.models.share_project import ShareProject
@@ -142,7 +143,7 @@ def create_organization(name, creator):
 
     """
     organization, _created = User.objects.get_or_create(username__iexact=name)
-    organization_profile = OrganizationProfile.objects.create(
+    organization_profile, _ = OrganizationProfile.objects.get_or_create(
         user=organization, creator=creator
     )
     return organization_profile
@@ -657,13 +658,19 @@ def get_xform_users(xform):
         if perm.user not in data:
             user = perm.user
 
+            # create default profile if missing
+            try:
+                profile = user.profile
+            except UserProfile.DoesNotExist:
+                profile = UserProfile.objects.create(user=user)
+
             if is_organization(user.profile):
                 org_members = get_team_members(user.username)
 
             data[user] = {
                 "permissions": [],
-                "is_org": is_organization(user.profile),
-                "metadata": user.profile.metadata,
+                "is_org": is_organization(profile),
+                "metadata": profile.metadata,
                 "first_name": user.first_name,
                 "last_name": user.last_name,
                 "user": user.username,
@@ -672,11 +679,17 @@ def get_xform_users(xform):
             data[perm.user]["permissions"].append(perm.permission.codename)
 
     for user in org_members:
+        # create default profile if missing
+        try:
+            profile = user.profile
+        except UserProfile.DoesNotExist:
+            profile = UserProfile.objects.create(user=user)
+
         if user not in data:
             data[user] = {
                 "permissions": get_perms(user, xform),
-                "is_org": is_organization(user.profile),
-                "metadata": user.profile.metadata,
+                "is_org": is_organization(profile),
+                "metadata": profile.metadata,
                 "first_name": user.first_name,
                 "last_name": user.last_name,
                 "user": user.username,

@@ -563,18 +563,23 @@ def get_object_users_with_permissions(
             obj, attach_perms=True, with_group_users=with_group_users
         ).items()
 
-        result = [
-            {
+        result = []
+        for user, permissions in users_with_perms:
+            # create missing user profile
+            try:
+                profile = user.profile
+            except UserProfile.DoesNotExist:
+                profile = UserProfile.objects.create(user=user)
+
+            result.append({
                 "user": user.username if username else user,
                 "first_name": user.first_name,
                 "last_name": user.last_name,
                 "role": get_role(permissions, obj),
-                "is_org": is_organization(user.profile),
-                "gravatar": user.profile.gravatar,
-                "metadata": user.profile.metadata,
-            }
-            for user, permissions in users_with_perms
-        ]
+                "is_org": is_organization(profile),
+                "gravatar": profile.gravatar,
+                "metadata": profile.metadata,
+            })
 
     return result
 

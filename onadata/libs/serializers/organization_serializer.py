@@ -17,6 +17,7 @@ from onadata.apps.api.tools import (
     get_organization_owners,
 )
 from onadata.apps.main.forms import RegistrationFormUserProfile
+from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.permissions import get_role_in_org
 from onadata.libs.serializers.fields.json_field import JsonField
 
@@ -122,16 +123,21 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         """
 
         def _create_user_list(user_list):
-            return [
-                {
+            users_list = []
+            for u in user_list:
+                try:
+                    profile = u.profile
+                except UserProfile.DoesNotExist:
+                    profile = UserProfile.objects.create(user=u)
+
+                users_list.append({
                     "user": u.username,
                     "role": get_role_in_org(u, obj),
                     "first_name": u.first_name,
                     "last_name": u.last_name,
-                    "gravatar": u.profile.gravatar,
-                }
-                for u in user_list
-            ]
+                    "gravatar": profile.gravatar,
+                })
+            return users_list
 
         members = get_organization_members(obj) if obj else []
         owners = get_organization_owners(obj) if obj else []
