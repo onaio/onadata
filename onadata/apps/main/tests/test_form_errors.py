@@ -44,7 +44,7 @@ class TestFormErrors(TestBase):
         self.assertEqual(default_storage.exists(path), True)
         default_storage.delete(path)
         self.assertEqual(default_storage.exists(path), False)
-        url = reverse('xls_export', kwargs={'username': self.user.username,
+        url = reverse('xlsx_export', kwargs={'username': self.user.username,
                       'id_string': self.xform.id_string})
         response = self.anon.get(url)
         self.assertEqual(response.status_code, 404)
@@ -53,7 +53,7 @@ class TestFormErrors(TestBase):
         self._create_xform()
         self.xform.xls = "blah"
         self.xform.save()
-        url = reverse('xls_export', kwargs={'username': self.user.username,
+        url = reverse('xlsx_export', kwargs={'username': self.user.username,
                       'id_string': self.xform.id_string})
         response = self.anon.get(url)
         self.assertEqual(response.status_code, 403)

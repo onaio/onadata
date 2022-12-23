@@ -21,7 +21,7 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.main.views import delete_data
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import query_data
-from onadata.apps.viewer.tasks import create_xls_export
+from onadata.apps.viewer.tasks import create_xlsx_export
 from onadata.apps.viewer.tests.export_helpers import viewer_fixture_path
 from onadata.apps.viewer.views import delete_export, export_list, \
     create_export, export_progress, export_download
@@ -545,13 +545,13 @@ class TestExports(TestBase):
             self.xform,
             None,
             self.options)
-        xls_export_url = reverse(export_download, kwargs={
+        xlsx_export_url = reverse(export_download, kwargs={
             "username": self.user.username,
             "id_string": self.xform.id_string,
             "export_type": Export.XLSX_EXPORT,
             "filename": export.filename
         })
-        response = self.client.get(xls_export_url)
+        response = self.client.get(xlsx_export_url)
         self.assertEqual(response.status_code, 200)
 
     def test_404_on_export_io_error(self):
@@ -715,7 +715,7 @@ class TestExports(TestBase):
         # make a submission and create a valid export
         self._submit_transport_instance()
 
-        create_xls_export(
+        create_xlsx_export(
             self.user.username,
             self.xform.id_string,
             export.id,
@@ -736,14 +736,14 @@ class TestExports(TestBase):
 
         initial_num_csv_exports = Export.objects.filter(
             xform=self.xform, export_type=Export.CSV_EXPORT).count()
-        initial_num_xls_exports = Export.objects.filter(
+        initial_num_xlsx_exports = Export.objects.filter(
             xform=self.xform, export_type=Export.XLSX_EXPORT).count()
         # request a direct csv export
         csv_export_url = reverse('csv_export', kwargs={
             'username': self.user.username,
             'id_string': self.xform.id_string
         })
-        xls_export_url = reverse('xls_export', kwargs={
+        xlsx_export_url = reverse('xlsx_export', kwargs={
             'username': self.user.username,
             'id_string': self.xform.id_string
         })
@@ -765,18 +765,18 @@ class TestExports(TestBase):
 
         # this should not affect a direct XLS export
         # and XLS should still re-generate
-        response = self.client.get(xls_export_url)
+        response = self.client.get(xlsx_export_url)
         self.assertEqual(response.status_code, 200)
-        num_xls_exports = Export.objects.filter(
+        num_xlsx_exports = Export.objects.filter(
             xform=self.xform, export_type=Export.XLSX_EXPORT).count()
-        self.assertEqual(num_xls_exports, initial_num_xls_exports + 1)
+        self.assertEqual(num_xlsx_exports, initial_num_xlsx_exports + 1)
 
         # make sure xls doesnt re-generate if data hasn't changed
-        response = self.client.get(xls_export_url)
+        response = self.client.get(xlsx_export_url)
         self.assertEqual(response.status_code, 200)
-        num_xls_exports = Export.objects.filter(
+        num_xlsx_exports = Export.objects.filter(
             xform=self.xform, export_type=Export.XLSX_EXPORT).count()
-        self.assertEqual(num_xls_exports, initial_num_xls_exports + 1)
+        self.assertEqual(num_xlsx_exports, initial_num_xlsx_exports + 1)
 
         sleep(1)
         # check that data edits cause a re-generation
@@ -972,13 +972,13 @@ class TestExports(TestBase):
             'transport/available_transportation_types_to_referral_facility'
         ].split(" "))
 
-        create_xls_export_url = reverse(create_export, kwargs={
+        create_xlsx_export_url = reverse(create_export, kwargs={
             'username': self.user.username,
             'id_string': self.xform.id_string,
             'export_type': 'xlsx'
         })
         # test xls with default split select multiples
-        response = self.client.post(create_xls_export_url, default_params)
+        response = self.client.post(create_xlsx_export_url, default_params)
         self.assertEqual(response.status_code, 302)
         export = Export.objects.filter(
             xform=self.xform, export_type='xlsx').latest('created_on')
@@ -990,7 +990,7 @@ class TestExports(TestBase):
 
         sleep(1)
         # test xls without default split select multiples
-        response = self.client.post(create_xls_export_url, custom_params)
+        response = self.client.post(create_xlsx_export_url, custom_params)
         self.assertEqual(response.status_code, 302)
         export = Export.objects.filter(
             xform=self.xform, export_type='xlsx').latest('created_on')
@@ -1261,7 +1261,7 @@ class TestExports(TestBase):
         }
         self.assertEqual(sorted(data), sorted(expected_data))
 
-    def test_create_xls_export_non_existent_id(self):
+    def test_create_xlsx_export_non_existent_id(self):
         self._publish_transportation_form()
 
         # make a submission and create a valid export
@@ -1270,7 +1270,7 @@ class TestExports(TestBase):
         username = self.options.get("username")
         id_string = self.options.get("id_string")
 
-        result = create_xls_export(
+        result = create_xlsx_export(
             username, id_string, non_existent_id, **self.options)
 
         self.assertEqual(result, None)

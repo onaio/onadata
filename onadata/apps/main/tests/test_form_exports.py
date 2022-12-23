@@ -25,7 +25,7 @@ class TestFormExports(TestBase):
         self.csv_url = reverse('csv_export', kwargs={
             'username': self.user.username,
             'id_string': self.xform.id_string})
-        self.xls_url = reverse('xls_export', kwargs={
+        self.xls_url = reverse('xlsx_export', kwargs={
             'username': self.user.username,
             'id_string': self.xform.id_string})
 
@@ -115,7 +115,7 @@ class TestFormExports(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Disposition'], 'attachment;')
 
-    def test_restrict_xls_export_if_not_shared(self):
+    def test_restrict_xlsx_export_if_not_shared(self):
         response = self.anon.get(self.xls_url)
         self.assertEqual(response.status_code, 403)
 
@@ -144,7 +144,7 @@ class TestFormExports(TestBase):
         response = self.anon.get(self.csv_url)
         self.assertEqual(response.status_code, 200)
 
-    def test_allow_xls_export_if_shared(self):
+    def test_allow_xlsx_export_if_shared(self):
         self.xform.shared_data = True
         self.xform.save()
         response = self.anon.get(self.xls_url)
@@ -170,7 +170,7 @@ class TestFormExports(TestBase):
         response = self.client.get(self.csv_url)
         self.assertEqual(response.status_code, 200)
 
-    def test_allow_xls_export(self):
+    def test_allow_xlsx_export(self):
         response = self.client.get(self.xls_url)
         self.assertEqual(response.status_code, 200)
 
@@ -194,7 +194,7 @@ class TestFormExports(TestBase):
         response = self.anon.get(self.csv_url, **extra)
         self.assertEqual(response.status_code, 200)
 
-    def test_allow_xls_export_for_basic_auth(self):
+    def test_allow_xlsx_export_for_basic_auth(self):
         extra = {
             'HTTP_AUTHORIZATION': http_auth_string(self.login_username,
                                                    self.login_password)

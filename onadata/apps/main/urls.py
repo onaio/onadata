@@ -226,7 +226,7 @@ urlpatterns = [
     re_path(
         r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.xls",
         viewer_views.data_export,
-        name="xls_export",
+        name="xlsx_export",
         kwargs={"export_type": "xlsx"},
     ),
     re_path(
@@ -252,7 +252,7 @@ urlpatterns = [
     ),
     re_path(
         r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/gdocs$",
-        viewer_views.google_xls_export,
+        viewer_views.google_xlsx_export,
     ),
     re_path(
         r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/map_embed",

@@ -102,7 +102,7 @@ class TestExportList(TestBase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
 
-    def test_xls_export_list(self):
+    def test_xlsx_export_list(self):
         kwargs = {
             "username": self.user.username,
             "id_string": self.xform.id_string,
@@ -239,10 +239,10 @@ class TestDataExportURL(TestBase):
         # Test export data returned is xform headers list
         self.assertEqual(xform_headers, export_data[0])
 
-    def test_xls_export_url(self):
+    def test_xlsx_export_url(self):
         self._submit_transport_instance()
         url = reverse(
-            "xls_export",
+            "xlsx_export",
             kwargs={
                 "username": self.user.username.upper(),
                 "id_string": self.xform.id_string.upper(),

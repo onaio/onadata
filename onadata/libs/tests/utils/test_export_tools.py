@@ -801,7 +801,7 @@ class TestExportTools(TestBase, TestAbstractViewSet):
 
         self.assertEqual(export, test_export)
 
-        test_export = check_pending_export(self.xform, Export.XLS_EXPORT, {})
+        test_export = check_pending_export(self.xform, Export.XLSX_EXPORT, {})
 
         self.assertIsNone(test_export)
 

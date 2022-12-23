@@ -49,7 +49,7 @@ var mapTitle = "{{ content_user.username }} / {{ xform.title }}";
 var mapDescription = '<table class="table table-condensed table-striped"><tr><th>Total submissions</th><td>{{ xform.submission_count }}</td></tr><tr><th>Submissions with Points</th><td>{{ xform.geocoded_submission_count }}</td></tr><tr><th>Last submission</th><td>{{ xform.time_of_last_submission|date:"N d, Y" }}</td></tr></table><p>Please refresh this page to be able to click on your newly added points.</p>';
 
 var csv_url = "{% url "csv_export" content_user.username xform.id_string %}";
-var xls_url = "{% url "xls_export" content_user.username xform.id_string %}";
+var xls_url = "{% url "xlsx_export" content_user.username xform.id_string %}";
 var kml_url = "{% url "kml-export" content_user.username xform.id_string %}";
 
 $(document).ready(function() {

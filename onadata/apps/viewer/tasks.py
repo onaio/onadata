@@ -88,7 +88,7 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
     )
 
     export_types = {
-        Export.XLSX_EXPORT: create_xls_export,
+        Export.XLSX_EXPORT: create_xlsx_export,
         Export.GOOGLE_SHEETS_EXPORT: create_google_sheet_export,
         Export.CSV_EXPORT: create_csv_export,
         Export.CSV_ZIP_EXPORT: create_csv_zip_export,
@@ -125,7 +125,7 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
 
 
 @app.task(track_started=True)
-def create_xls_export(username, id_string, export_id, **options):
+def create_xlsx_export(username, id_string, export_id, **options):
     """
     XLSX export task.
     """

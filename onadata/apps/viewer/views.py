@@ -777,7 +777,7 @@ def kml_export(request, username, id_string):
     return response
 
 
-def google_xls_export(request, username, id_string):
+def google_xlsx_export(request, username, id_string):
     """
     Google export view, uploads an excel export to google drive and then
     redirects to the uploaded google sheet.
@@ -795,7 +795,7 @@ def google_xls_export(request, username, id_string):
 
     if token is None:
         request.session["google_redirect_url"] = reverse(
-            google_xls_export, kwargs={"username": username, "id_string": id_string}
+            google_xlsx_export, kwargs={"username": username, "id_string": id_string}
         )
         google_flow = create_flow()
         return HttpResponseRedirect(
