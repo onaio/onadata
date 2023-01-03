@@ -320,10 +320,13 @@ def _update_xform_submission_count_delete(instance):
         if (
             instance.xform.instances.filter(
                 deleted_at__isnull=True
-            ).exclude(geom=None).count()
-            < 1
+            ).exclude(geom=None).count() <
+            1
         ):
-            instance.xform.instances_with_geopoints = False
+            if (instance.xform.polygon_xpaths() or instance.xform.geotrace_xpaths()):
+                instance.xform.instances_with_geopoints = True
+            else:
+                instance.xform.instances_with_geopoints = False
             instance.xform.save()
 
 
@@ -735,8 +738,8 @@ class Instance(models.Model, InstanceBaseClass):
                     media_list.extend([i["media/file"] for i in data["media"]])
             else:
                 media_xpaths = (
-                    self.xform.get_media_survey_xpaths()
-                    + self.xform.get_osm_survey_xpaths()
+                    self.xform.get_media_survey_xpaths() +
+                    self.xform.get_osm_survey_xpaths()
                 )
                 for media_xpath in media_xpaths:
                     media_list.extend(get_values_matching_key(data, media_xpath))
