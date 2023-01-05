@@ -26,6 +26,7 @@ from onadata.libs.renderers import renderers
 from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.serializers.dataview_serializer import DataViewSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
+from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.utils import common_tags
 from onadata.libs.utils.api_export_tools import (
     custom_response_handler,
@@ -76,10 +77,14 @@ class DataViewViewSet(
         renderers.CSVZIPRenderer,
         renderers.SAVZIPRenderer,
         renderers.ZipRenderer,
+        renderers.GeoJsonRenderer,
     ]
 
     def get_serializer_class(self):
-        if self.action == "data":
+        fmt = self.kwargs.get("format", self.request.GET.get("format"))
+        if fmt == "geojson":
+            serializer_class = GeoJsonSerializer
+        elif self.action == "data":
             serializer_class = JsonDataSerializer
         else:
             serializer_class = self.serializer_class
@@ -95,17 +100,21 @@ class DataViewViewSet(
         count = request.GET.get("count")
         sort = request.GET.get("sort")
         query = request.GET.get("query")
+
+        page_size = request.GET.get("page_size")
+        page = request.GET.get("page")
         export_type = self.kwargs.get("format", request.GET.get("format"))
         # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
-        if export_type is None or export_type in ["json", "debug"]:
+        if export_type is None or export_type in ["json", "debug", "geojson"]:
             data = DataView.query_data(
                 self.object,
-                start,
-                limit,
+                (((int(page) - 1) * int(page_size)) if (page_size and page) else start),
+                (page_size or limit),
                 str_to_bool(count),
                 sort=sort,
                 filter_query=query,
+                as_models= export_type == "geojson",
             )
             if "error" in data:
                 raise ParseError(data.get("error"))

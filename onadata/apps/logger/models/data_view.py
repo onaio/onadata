@@ -13,6 +13,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.db.utils import DataError
 
+from onadata.apps.logger.models import Instance
 from onadata.apps.viewer.parsed_instance_tools import get_where_clause
 from onadata.libs.models.sorting import (  # noqa pylint: disable=unused-import
     json_order_by,
@@ -402,6 +403,7 @@ class DataView(models.Model):
         all_data=False,
         sort=None,
         filter_query=None,
+        as_models=None
     ):
         """Returns a list of records for the view based on the parameters passed in."""
 
@@ -419,6 +421,9 @@ class DataView(models.Model):
             records = list(DataView.query_iterator(sql, columns, params, count))
         except DataError as e:
             return {"error": _(str(e))}
+
+        if as_models:
+            records = Instance.objects.filter(id__in=[r['_id'] for r in records])
 
         return records
 
