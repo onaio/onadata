@@ -13,7 +13,7 @@ RUN mkdir -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 # hadolint ignore=DL3013
 RUN --mount=type=ssh if [ -n "$optional_packages" ]; then pip install ${optional_packages} ; fi
 
-FROM ubuntu:20.04
+FROM ubuntu:focal-20221130
 COPY --from=intermediate /usr/local/lib/python3.9/site-packages/ /usr/local/lib/python3.9/dist-packages/
 
 ARG release_version=v3.7.1
@@ -61,7 +61,6 @@ RUN apt-get update -q &&\
         libpcre3-dev \
         locales \
         netcat && \
-    apt-get -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' dist-upgrade &&\
     rm -rf /var/lib/apt/lists/*
 
 # Generate and set en_US.UTF-8 locale
@@ -87,7 +86,8 @@ RUN python3.9 -m pip install --no-cache-dir -U pip && \
     python3.9 -m pip install --no-cache-dir -r requirements/s3.pip && \
     python3.9 -m pip install --no-cache-dir -r requirements/ses.pip && \
     python3.9 -m pip install --no-cache-dir -r requirements/azure.pip && \
-    python3.9 -m pip install --no-cache-dir pyyaml uwsgitop django-prometheus==v2.2.0
+    python3.9 -m pip install setuptools==65.5.1 && \
+    python3.9 -m pip install --no-cache-dir pyyaml uwsgitop
 
 # Compile API Docs
 RUN make -C docs html
