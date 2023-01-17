@@ -40,6 +40,7 @@ class TestProcess(TestBase, SerializeMixin):
     """
     Test form publishing processes.
     """
+
     lockfile = __file__
 
     loop_str = "loop_over_transport_types_frequency"
@@ -105,6 +106,12 @@ class TestProcess(TestBase, SerializeMixin):
     def test_publish_xlsx_file_with_external_choices(self):
         """Test publishing an XLSX file with external choices"""
         self._publish_xlsx_file_with_external_choices()
+
+    def test_publis_xlsx_file_with_external_choices_with_empty_row(self):
+        """
+        Test that a form with empty spaces in list_name column is uploaded correctly
+        """
+        self._publish_xlsx_file_with_external_choices(form_version="v3")
 
     @patch("onadata.apps.main.forms.requests")
     def test_google_url_upload(self, mock_requests):
