@@ -5506,15 +5506,14 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 self.assertIsNotNone(metadata)
 
                 csv_reader = csv.reader(codecs.iterdecode(metadata.data_file, "utf-8"))
-                header = next(csv_reader)
                 expected_data = [
                     ["list_name", "name", "label", "state", "county"],
-                    ["states", "1", "Texas"],
-                    ["states", "2", "Washington"],
-                    ["counties", "b1", "King", "2"],
-                    ["counties", "b2", "Pierce", "2"],
-                    ["counties", "b3", "King", "1"],
-                    ["counties", "b4", "Cameron", "1"],
+                    ["states", "1", "Texas", "", ""],
+                    ["states", "2", "Washington", "", ""],
+                    ["counties", "b1", "King", "2", ""],
+                    ["counties", "b2", "Pierce", "2", ""],
+                    ["counties", "b3", "King", "1", ""],
+                    ["counties", "b4", "Cameron", "1", ""],
                     ["cities", "dumont", "Dumont", "1", "b3"],
                     ["cities", "finney", "Finney", "1", "b3"],
                     ["cities", "brownsville", "brownsville", "1", "b4"],
@@ -5524,8 +5523,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                     ["cities", "tacoma", "Tacoma", "2", "b2"],
                     ["cities", "puyallup", "Puyallup", "2", "b2"],
                 ]
-                self.assertEqual(header, expected_data[0])
-                for index, row in enumerate(csv_reader, start=1):
+                for index, row in enumerate(csv_reader):
                     self.assertEqual(row, expected_data[index])
 
     def test_csv_xls_import_errors(self):

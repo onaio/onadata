@@ -5,17 +5,19 @@ DataDictionary model.
 import os
 from io import BytesIO, StringIO
 
-import unicodecsv as csv
-import openpyxl
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
 from django.utils.translation import gettext as _
+
+import openpyxl
+import unicodecsv as csv
 from floip import FloipSurvey
 from kombu.exceptions import OperationalError
 from pyxform.builder import create_survey_element_from_dict
 from pyxform.utils import has_external_choices
 from pyxform.xls2json import parse_file_to_json
+from pyxform.xls2json_backends import xlsx_value_to_str
 
 from onadata.apps.logger.models.xform import XForm, check_version_set, check_xform_uuid
 from onadata.apps.logger.xform_instance_parser import XLSFormError
@@ -86,41 +88,19 @@ def sheet_to_csv(xls_content, sheet_name):
     writer = csv.writer(csv_file, encoding="utf-8", quoting=csv.QUOTE_ALL)
     mask = [v and len(v.strip()) > 0 for v in list(sheet.values)[0]]
 
-    header = [v for v, m in zip(list(sheet.values)[0], mask) if m]
-    writer.writerow(header)
-
-    name_column = None
-    try:
-        name_column = header.index("name")
-    except ValueError:
-        pass
-
-    integer_fields = False
-    date_fields = False
-    if name_column:
-        for index in range(1, sheet.max_column):
-            if sheet.cell(index, name_column).data_type == "n":
-                integer_fields = True
-            elif sheet.cell(index, name_column).is_date:
-                date_fields = True
-
-    for row, value in enumerate(sheet.iter_rows()):
-        if integer_fields or date_fields:
-            # convert integers to string/datetime if name has numbers/dates
-            row_values = []
-            for index, val in enumerate(value):
-                if sheet.cell(row, index).data_type == "n":
-                    try:
-                        val = str(float(val) if (float(val) > int(val)) else int(val))
-                    except ValueError:
-                        pass
-                elif sheet.cell(row, index).is_date:
-                    val = val.strftime("%Y-%m-%d").isoformat()
+    for row in sheet.iter_rows(values_only=True):
+        row_values = []
+        try:
+            for val in row:
+                if val is not None:
+                    val = xlsx_value_to_str(val)
+                    val = val.strip()
                 row_values.append(val)
+        except TypeError:
+            continue
+
+        if not all(v is None for v in row_values):
             writer.writerow([v for v, m in zip(row_values, mask) if m])
-        else:
-            single_row = [cell.value for cell in value]
-            writer.writerow([v for v, m in zip(single_row, mask) if m])
     return csv_file
 
 
