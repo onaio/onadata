@@ -211,7 +211,7 @@ flaky==3.7.0
     # via -r requirements/dev.in
 fleming==0.7.0
     # via django-query-builder
-future==0.18.2
+future==0.18.3
     # via python-json2xlsclient
 geojson==2.5.0
     # via onadata
