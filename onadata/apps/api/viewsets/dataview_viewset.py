@@ -18,6 +18,7 @@ from rest_framework.viewsets import ModelViewSet
 from onadata.apps.api.permissions import DataViewViewsetPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.data_view import DataView
+from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
@@ -26,6 +27,7 @@ from onadata.libs.renderers import renderers
 from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.serializers.dataview_serializer import DataViewSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
+from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.utils import common_tags
 from onadata.libs.utils.api_export_tools import (
     custom_response_handler,
@@ -76,6 +78,7 @@ class DataViewViewSet(
         renderers.CSVZIPRenderer,
         renderers.SAVZIPRenderer,
         renderers.ZipRenderer,
+        renderers.GeoJsonRenderer,
     ]
 
     def get_serializer_class(self):
@@ -114,9 +117,18 @@ class DataViewViewSet(
 
             return Response(serializer.data)
 
+        extra_data = None
+        if export_type == "geojson":
+            # TODO - somethings's up with the pagination
+            extra_data = {
+                "data_geo_field": request.GET.get("geo_field"),
+                "data_fields": request.GET.get("fields"),
+                "query": self.object.query
+            }
+
         return custom_response_handler(
-            request, self.object.xform, query, export_type, dataview=self.object
-        )
+            request, self.object.xform, query, export_type, dataview=self.object,
+            extra_data=extra_data)
 
     # pylint: disable=too-many-locals
     @action(methods=["GET"], detail=True)
@@ -223,9 +235,9 @@ class DataViewViewSet(
             )
 
         if (
+            field_xpath and
+            field_xpath not in dataview.columns and
             field_xpath
-            and field_xpath not in dataview.columns
-            and field_xpath
             not in [
                 common_tags.SUBMISSION_TIME,
                 common_tags.SUBMITTED_BY,

@@ -135,6 +135,7 @@ def custom_response_handler(  # noqa: C0901
     dataview=False,
     filename=None,
     metadata=None,
+    extra_data=None
 ):
     """
     Returns a HTTP response with export file for download.
@@ -198,6 +199,7 @@ def custom_response_handler(  # noqa: C0901
                 export_type,
                 dataview_pk=dataview_pk,
                 metadata=metadata,
+                extra_data=extra_data
             )
 
         if should_create_new_export(xform, export_type, options, request=request):
@@ -240,7 +242,7 @@ def custom_response_handler(  # noqa: C0901
 
 
 def _generate_new_export(  # noqa: C0901
-    request, xform, query, export_type, dataview_pk=False, metadata=None
+    request, xform, query, export_type, dataview_pk=False, metadata=None, extra_data=None
 ):
     query = _set_start_end_params(request, query)
     extension = _get_extension_from_export_type(export_type)
@@ -307,6 +309,7 @@ def _generate_new_export(  # noqa: C0901
                 None,
                 options,
                 xform=xform,
+                extra_data=extra_data,
             )
         else:
             options.update(parse_request_export_options(request.query_params))

@@ -344,8 +344,8 @@ def should_create_new_export(xform, export_type, options, request=None):
         return True
 
     if (
-        request
-        and (frozenset(list(request.GET)) & frozenset(["start", "end", "data_id"]))
+        request and
+        (frozenset(list(request.GET)) & frozenset(["start", "end", "data_id"]))
     ) or not split_select_multiples:
         return True
 
@@ -558,6 +558,32 @@ def generate_kml_export(
     return export
 
 
+def filter_to_field_lookup(filter):
+    if filter == "=":
+        return "__iexact"
+    elif filter == "<":
+        return "__lt"
+    else:
+        return "__gt"
+
+
+def get_field_lookup(column, filter):
+    return "json__" + column + filter_to_field_lookup(filter)
+
+
+def apply_filters(instance_qs, filters):
+    for f in filters:
+        value = f['value']
+        column = f['column']
+        instance_qs = instance_qs.filter(
+            **{
+                get_field_lookup(column, f['filter']):
+                value
+            }
+        )
+    return instance_qs
+
+
 def generate_geojson_export(
     export_type,
     username,
@@ -566,6 +592,7 @@ def generate_geojson_export(
     export_id=None,
     options=None,
     xform=None,
+    extra_data=None
 ):
     """
     Generates Linked Geojson export
@@ -582,7 +609,7 @@ def generate_geojson_export(
     if xform is None:
         xform = XForm.objects.get(user__username=username, id_string=id_string)
     request = HttpRequest()
-    extra_data = metadata.extra_data
+    extra_data = extra_data or metadata.extra_data
     # build out query params to be used in GeoJsonSerializer
     request.query_params = {
         "geo_field": extra_data.get("data_geo_field"),
@@ -590,9 +617,15 @@ def generate_geojson_export(
         "title": extra_data.get("data_title"),
         "fields": extra_data.get("data_fields"),
     }
+    query = extra_data.get("query")
     _context = {}
     _context["request"] = request
-    content = GeoJsonSerializer(xform.instances.all(), many=True, context=_context)
+    instances_qs = apply_filters(
+        xform.instances.filter(
+            deleted_at__isnull=True
+        ), query
+    )
+    content = GeoJsonSerializer(instances_qs, many=True, context=_context)
     data_to_write = json.dumps(content.data).encode("utf-8")
     timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
     basename = f"{id_string}_{timestamp}"
@@ -917,8 +950,8 @@ def parse_request_export_options(params):  # noqa C901
         params.get("remove_group_name") and params.get("remove_group_name").lower()
     )
     binary_select_multiples = (
-        params.get("binary_select_multiples")
-        and params.get("binary_select_multiples").lower()
+        params.get("binary_select_multiples") and
+        params.get("binary_select_multiples").lower()
     )
     do_not_split_select_multiples = params.get("do_not_split_select_multiples")
     include_labels = params.get("include_labels", False)
@@ -926,8 +959,8 @@ def parse_request_export_options(params):  # noqa C901
     include_labels_only = params.get("include_labels_only", False)
     include_hxl = params.get("include_hxl", True)
     value_select_multiples = (
-        params.get("value_select_multiples")
-        and params.get("value_select_multiples").lower()
+        params.get("value_select_multiples") and
+        params.get("value_select_multiples").lower()
     )
     show_choice_labels = (
         params.get("show_choice_labels") and params.get("show_choice_labels").lower()
