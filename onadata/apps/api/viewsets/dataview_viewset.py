@@ -27,7 +27,6 @@ from onadata.libs.renderers import renderers
 from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.serializers.dataview_serializer import DataViewSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
-from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.utils import common_tags
 from onadata.libs.utils.api_export_tools import (
     custom_response_handler,

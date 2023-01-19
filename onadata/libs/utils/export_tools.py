@@ -572,15 +572,16 @@ def get_field_lookup(column, filter):
 
 
 def apply_filters(instance_qs, filters):
-    for f in filters:
-        value = f['value']
-        column = f['column']
-        instance_qs = instance_qs.filter(
-            **{
-                get_field_lookup(column, f['filter']):
-                value
-            }
-        )
+    if filters:
+        for f in filters:
+            value = f['value']
+            column = f['column']
+            instance_qs = instance_qs.filter(
+                **{
+                    get_field_lookup(column, f['filter']):
+                    value
+                }
+            )
     return instance_qs
 
 
@@ -592,7 +593,8 @@ def generate_geojson_export(
     export_id=None,
     options=None,
     xform=None,
-    extra_data=None
+    instances_query_set=None,
+    extra_data=None,
 ):
     """
     Generates Linked Geojson export
@@ -620,11 +622,12 @@ def generate_geojson_export(
     query = extra_data.get("query")
     _context = {}
     _context["request"] = request
-    instances_qs = apply_filters(
+    instances_qs_with_filters = apply_filters(
         xform.instances.filter(
             deleted_at__isnull=True
         ), query
     )
+    instances_qs = instances_query_set if instances_query_set else instances_qs_with_filters
     content = GeoJsonSerializer(instances_qs, many=True, context=_context)
     data_to_write = json.dumps(content.data).encode("utf-8")
     timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")

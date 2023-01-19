@@ -17,6 +17,7 @@ from onadata.apps.logger.models import Instance, MergedXForm
 from onadata.libs import filters
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
+from onadata.libs.utils.api_export_tools import custom_response_handler
 
 
 # pylint: disable=too-many-ancestors
@@ -44,7 +45,8 @@ class MergedXFormViewSet(
     serializer_class = MergedXFormSerializer
 
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
-        renderers.StaticXMLRenderer
+        renderers.StaticXMLRenderer,
+        renderers.GeoJsonRenderer,
     ]
 
     # pylint: disable=unused-argument
@@ -69,9 +71,21 @@ class MergedXFormViewSet(
     @action(methods=["GET"], detail=True)
     def data(self, request, *args, **kwargs):
         """Return data from the merged xforms"""
+        export_type = self.kwargs.get("format", request.GET.get("format"))
         merged_xform = self.get_object()
         queryset = Instance.objects.filter(
-            xform__in=merged_xform.xforms.all()
+            xform__in=merged_xform.xforms.all(),
+            deleted_at__isnull=True
         ).order_by("pk")
 
-        return Response(queryset.values_list("json", flat=True))
+        if export_type == "geojson":
+            extra_data = {
+                "data_geo_field": request.GET.get("geo_field"),
+                "data_fields": request.GET.get("fields"),
+                "query": None
+            }
+            return custom_response_handler(
+                request, merged_xform, None, export_type, instances_query_set=queryset,
+                extra_data=extra_data)
+        else:
+            return Response(queryset.values_list("json", flat=True))

@@ -135,16 +135,17 @@ def custom_response_handler(  # noqa: C0901
     dataview=False,
     filename=None,
     metadata=None,
-    extra_data=None
+    extra_data=None,
+    instances_query_set=None,
 ):
     """
     Returns a HTTP response with export file for download.
     """
     export_type = _get_export_type(export_type)
     if (
-        export_type in EXTERNAL_EXPORT_TYPES
-        and (token is not None)
-        or (meta is not None)
+        export_type in EXTERNAL_EXPORT_TYPES and
+        (token is not None) or
+        (meta is not None)
     ):
         export_type = Export.EXTERNAL_EXPORT
 
@@ -199,7 +200,8 @@ def custom_response_handler(  # noqa: C0901
                 export_type,
                 dataview_pk=dataview_pk,
                 metadata=metadata,
-                extra_data=extra_data
+                extra_data=extra_data,
+                instances_query_set=instances_query_set
             )
 
         if should_create_new_export(xform, export_type, options, request=request):
@@ -242,7 +244,7 @@ def custom_response_handler(  # noqa: C0901
 
 
 def _generate_new_export(  # noqa: C0901
-    request, xform, query, export_type, dataview_pk=False, metadata=None, extra_data=None
+    request, xform, query, export_type, dataview_pk=False, metadata=None, extra_data=None, instances_query_set=None
 ):
     query = _set_start_end_params(request, query)
     extension = _get_extension_from_export_type(export_type)
@@ -309,6 +311,7 @@ def _generate_new_export(  # noqa: C0901
                 None,
                 options,
                 xform=xform,
+                instances_query_set=instances_query_set,
                 extra_data=extra_data,
             )
         else:
@@ -465,9 +468,9 @@ def process_async_export(request, xform, export_type, options=None):
             options["query"] = query
 
     if (
-        export_type in EXTERNAL_EXPORT_TYPES
-        and (token is not None)
-        or (meta is not None)
+        export_type in EXTERNAL_EXPORT_TYPES and
+        (token is not None) or
+        (meta is not None)
     ):
         export_type = Export.EXTERNAL_EXPORT
 
@@ -479,8 +482,8 @@ def process_async_export(request, xform, export_type, options=None):
         options["google_credentials"] = credential.to_json()
 
     if (
-        should_create_new_export(xform, export_type, options, request=request)
-        or export_type == Export.EXTERNAL_EXPORT
+        should_create_new_export(xform, export_type, options, request=request) or
+        export_type == Export.EXTERNAL_EXPORT
     ):
         resp = {
             "job_uuid": _create_export_async(
