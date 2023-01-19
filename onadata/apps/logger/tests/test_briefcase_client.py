@@ -111,7 +111,9 @@ def submission_list(request, context):
             res.status_code,
             ";".join(media),
             request.url,
-            storage.exists(os.path.join(settings.PROJECT_ROOT, "test_media/", media[0])),
+            storage.exists(
+                os.path.join(settings.PROJECT_ROOT, "test_media/", media[0])
+            ),
         )
         response.encoding = res.get("content-type")
         return get_streaming_content(res)
@@ -129,7 +131,7 @@ def get_streaming_content(res):
     return content
 
 
-@flaky(max_runs=3)
+@flaky()
 class TestBriefcaseClient(TestBase):
     """Test briefcase_client module."""
 
@@ -200,6 +202,7 @@ class TestBriefcaseClient(TestBase):
         )
         self.assertTrue(storage.exists(media_path))
 
+    @flaky(max_runs=3, min_passes=2)
     def test_push(self):
         """Test ODK briefcase client push function."""
         xforms = XForm.objects.filter(

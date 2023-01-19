@@ -1,0 +1,44 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - database
+      - cache
+    stdin_open: true
+    tty: true
+    user: "onadata"
+    volumes:
+      - ./:/srv/onadata
+    ports:
+      - 8000:8000
+    command: /usr/local/bin/uwsgi --ini /srv/onadata/uwsgi.ini
+
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - database
+      - cache
+      - api
+    volumes:
+      - ./:/srv/onadata
+    user: "onadata"
+    command: celery -A onadata.celeryapp worker -B -l INFO -E
+
+  database:
+    image: postgis/postgis:13-3.3-alpine
+    environment:
+      POSTGRES_PASSWORD: onadata
+      POSTGRES_USER: onadata
+      POSTGRES_DB: onadata
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+
+  cache:
+    image: redis:alpine
+
+volumes:
+  dbdata:
