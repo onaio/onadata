@@ -107,7 +107,7 @@ class TestProcess(TestBase, SerializeMixin):
         """Test publishing an XLSX file with external choices"""
         self._publish_xlsx_file_with_external_choices()
 
-    def test_publis_xlsx_file_with_external_choices_with_empty_row(self):
+    def test_public_xlsx_file_with_external_choices_with_empty_row(self):
         """
         Test that a form with empty spaces in list_name column is uploaded correctly
         """
