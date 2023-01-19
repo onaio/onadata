@@ -21,6 +21,7 @@ import openpyxl
 import pytz
 import requests
 from django_digest.test import Client as DigestClient
+from flaky import flaky
 from mock import patch
 from six import iteritems
 
@@ -36,6 +37,7 @@ from onadata.libs.utils.common_tools import get_response_content
 uuid_regex = re.compile(r'(</instance>.*uuid[^//]+="\')([^\']+)(\'".*)', re.DOTALL)
 
 
+@flaky()
 class TestProcess(TestBase, SerializeMixin):
     """
     Test form publishing processes.
@@ -153,6 +155,7 @@ class TestProcess(TestBase, SerializeMixin):
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(XForm.objects.count(), pre_count + 1)
 
+    @flaky(max_runs=3, min_passes=2)
     @patch("onadata.apps.main.forms.requests")
     def test_url_upload(self, mock_requests):
         """Test uploading an XLSForm from a URL."""

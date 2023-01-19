@@ -21,10 +21,10 @@ from onadata.settings.common import *  # noqa pylint: disable=W0401,W0614
 DATABASES = {
     "default": {
         "ENGINE": "django.contrib.gis.db.backends.postgis",
-        "NAME": "onadata",
-        "USER": "onadata",
-        "PASSWORD": "onadata",
-        "HOST": "db",
+        "NAME": os.environ.get("DB_NAME", "onadata"),
+        "USER": os.environ.get("DB_USER", "onadata"),
+        "PASSWORD": os.environ.get("DB_PASSWORD", "onadata"),
+        "HOST": os.environ.get("DB_HOST", "database"),
         "PORT": 5432,
     }
 }
@@ -33,9 +33,9 @@ DATABASE_ROUTERS = []  # turn off second database
 SLAVE_DATABASES = []
 
 # Make a unique unique key just for testing, and don't share it with anybody.
-SECRET_KEY = "~&nN9d`bxmJL2[$HhYE9qAk=+4P:cf3b"  # noqa
+SECRET_KEY = os.environ.get("SECRET_KEY", "~&nN9d`bxmJL2[$HhYE9qAk=+4P:cf3b")  # noqa
 
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+ALLOWED_HOSTS = ["*"]
 
 INTERNAL_IPS = ["127.0.0.1"]
 
@@ -50,8 +50,9 @@ if len(sys.argv) >= 2 and (sys.argv[1] == "test" or sys.argv[1] == "test_all"):
 else:
     TESTING_MODE = False
 
-CELERY_BROKER_URL = "redis://queue:6379"
-CELERY_RESULT_BACKEND = "redis://queue:6379"
+REDIS_HOST = os.environ.get("REDIS_HOST", "cache")
+CELERY_BROKER_URL = f"redis://{ REDIS_HOST }:6379"
+CELERY_RESULT_BACKEND = f"redis://{ REDIS_HOST }:6379"
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
@@ -61,24 +62,25 @@ CELERY_BROKER_CONNECTION_MAX_RETRIES = 2
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://queue:6379",
+        "LOCATION": f"redis://{ REDIS_HOST }:6379",
         "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
     }
 }
 
-NOTIFICATION_BACKENDS = {
-    "mqtt": {
-        "BACKEND": "onadata.apps.messaging.backends.mqtt.MQTTBackend",
-        "OPTIONS": {
-            "HOST": "notifications",
-            "PORT": 1883,
-            "QOS": 1,
-            "RETAIN": False,
-            "SECURE": False,
-            "TOPIC_BASE": "onadata",
-        },
-    }
-}
+NOTIFICATION_BACKENDS = {}
+# NOTIFICATION_BACKENDS = {
+#    "mqtt": {
+#        "BACKEND": "onadata.apps.messaging.backends.mqtt.MQTTBackend",
+#        "OPTIONS": {
+#            "HOST": "notifications",
+#            "PORT": 1883,
+#            "QOS": 1,
+#            "RETAIN": False,
+#            "SECURE": False,
+#            "TOPIC_BASE": "onadata",
+#        },
+#    }
+# }
 FULL_MESSAGE_PAYLOAD = True
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
