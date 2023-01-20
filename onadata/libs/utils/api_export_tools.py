@@ -244,7 +244,14 @@ def custom_response_handler(  # noqa: C0901
 
 
 def _generate_new_export(  # noqa: C0901
-    request, xform, query, export_type, dataview_pk=False, metadata=None, extra_data=None, instances_query_set=None
+    request,
+    xform,
+    query,
+    export_type,
+    dataview_pk=False,
+    metadata=None,
+    extra_data=None,
+    instances_query_set=None
 ):
     query = _set_start_end_params(request, query)
     extension = _get_extension_from_export_type(export_type)

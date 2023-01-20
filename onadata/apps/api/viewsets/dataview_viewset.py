@@ -18,7 +18,6 @@ from rest_framework.viewsets import ModelViewSet
 from onadata.apps.api.permissions import DataViewViewsetPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.data_view import DataView
-from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
@@ -118,11 +117,11 @@ class DataViewViewSet(
 
         extra_data = None
         if export_type == "geojson":
-            # TODO - somethings's up with the pagination
             extra_data = {
                 "data_geo_field": request.GET.get("geo_field"),
                 "data_fields": request.GET.get("fields"),
-                "query": self.object.query
+                "query": self.object.query,
+                "paginate_queryset": True
             }
 
         return custom_response_handler(

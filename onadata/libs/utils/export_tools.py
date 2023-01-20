@@ -41,6 +41,7 @@ from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.export import Export, get_export_options_query_kwargs
 from onadata.apps.viewer.models.parsed_instance import query_data
+from onadata.libs.pagination import CountOverridablePageNumberPagination
 from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.utils.common_tags import DATAVIEW_EXPORT, GROUPNAME_REMOVED_FLAG
@@ -558,17 +559,16 @@ def generate_kml_export(
     return export
 
 
-def filter_to_field_lookup(filter):
-    if filter == "=":
+def filter_to_field_lookup(filter_string):
+    if filter_string == "=":
         return "__iexact"
-    elif filter == "<":
+    if filter_string == "<":
         return "__lt"
-    else:
-        return "__gt"
+    return "__gt"
 
 
-def get_field_lookup(column, filter):
-    return "json__" + column + filter_to_field_lookup(filter)
+def get_field_lookup(column, filter_string):
+    return "json__" + column + filter_to_field_lookup(filter_string)
 
 
 def apply_filters(instance_qs, filters):
@@ -627,7 +627,12 @@ def generate_geojson_export(
             deleted_at__isnull=True
         ), query
     )
-    instances_qs = instances_query_set if instances_query_set else instances_qs_with_filters
+    instances_qs = instances_query_set if instances_query_set \
+        else instances_qs_with_filters
+    # paginate queryset
+    if extra_data.get("paginate_queryset"):
+        instances_qs = CountOverridablePageNumberPagination(
+        ).paginate_queryset(instances_qs, request, None)
     content = GeoJsonSerializer(instances_qs, many=True, context=_context)
     data_to_write = json.dumps(content.data).encode("utf-8")
     timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")

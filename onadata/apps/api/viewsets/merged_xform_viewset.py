@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework.settings import api_settings
 
 from onadata.apps.api.permissions import XFormPermissions
+from onadata.libs.pagination import CountOverridablePageNumberPagination
 from onadata.apps.logger.models import Instance, MergedXForm
 from onadata.libs import filters
 from onadata.libs.renderers import renderers
@@ -78,6 +79,9 @@ class MergedXFormViewSet(
             deleted_at__isnull=True
         ).order_by("pk")
 
+        paginated_queryset = CountOverridablePageNumberPagination(
+        ).paginate_queryset(queryset, request, self)
+
         if export_type == "geojson":
             extra_data = {
                 "data_geo_field": request.GET.get("geo_field"),
@@ -85,7 +89,8 @@ class MergedXFormViewSet(
                 "query": None
             }
             return custom_response_handler(
-                request, merged_xform, None, export_type, instances_query_set=queryset,
+                request, merged_xform, None, export_type,
+                instances_query_set=paginated_queryset,
                 extra_data=extra_data)
-        else:
-            return Response(queryset.values_list("json", flat=True))
+
+        return Response(queryset.values_list("json", flat=True))
