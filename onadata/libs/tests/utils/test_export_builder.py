@@ -14,11 +14,11 @@ from collections import OrderedDict
 from ctypes import ArgumentError
 from io import BytesIO
 
-from openpyxl import load_workbook
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
-from pyxform.builder import create_survey_from_xls
 
+from openpyxl import load_workbook
+from pyxform.builder import create_survey_from_xls
 from savReaderWriter import SavHeaderReader, SavReader
 
 from onadata.apps.logger.import_tools import django_file
@@ -26,18 +26,18 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import _encode_for_mongo, query_data
 from onadata.apps.viewer.tests.export_helpers import viewer_fixture_path
-from onadata.libs.utils.csv_builder import CSVDataFrameBuilder, get_labels_from_columns
 from onadata.libs.utils.common_tags import (
-    SELECT_BIND_TYPE,
     MULTIPLE_SELECT_TYPE,
     REVIEW_COMMENT,
     REVIEW_DATE,
     REVIEW_STATUS,
+    SELECT_BIND_TYPE,
 )
+from onadata.libs.utils.csv_builder import CSVDataFrameBuilder, get_labels_from_columns
 from onadata.libs.utils.export_builder import (
+    ExportBuilder,
     decode_mongo_encoded_section_names,
     dict_to_joined_export,
-    ExportBuilder,
     string_to_date_with_xls_validation,
 )
 from onadata.libs.utils.export_tools import get_columns_with_hxl
@@ -3319,3 +3319,107 @@ class TestExportBuilder(TestBase):
         ]
         temp_xls_file.close()
         self.assertEqual(result, expected_result)
+
+    def test_no_group_name_gps_data(self):
+        """
+        Test that GPS Data is correctly exported when GPS Fields are within
+        groups and the group name is removed
+        """
+        self._publish_xls_file_and_set_xform(_logger_fixture_path("gps_data.xlsx"))
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.set_survey(self.xform.survey, self.xform)
+
+        # Submit test record
+        self._make_submission(_logger_fixture_path("gps_data.xml"))
+        self.assertEqual(self.xform.instances.count(), 1)
+        csv_export = NamedTemporaryFile(suffix=".csv")
+        records = self.xform.instances.all()
+        inst_json = records.first().json
+        export_builder.to_flat_csv_export(
+            csv_export.name,
+            records,
+            self.xform.user.username,
+            self.xform.id_string,
+            "",
+            xform=self.xform,
+            options={},
+        )
+        expected_data = [
+            [
+                "start",
+                "end",
+                "test",
+                "Age",
+                "Image",
+                "Select_one_gender",
+                "respondent_name",
+                "_1_2_Where_do_you_live",
+                "_1_3_Another_test",
+                "GPS",
+                "_GPS_latitude",
+                "_GPS_longitude",
+                "_GPS_altitude",
+                "_GPS_precision",
+                "Another_GPS",
+                "_Another_GPS_latitude",
+                "_Another_GPS_longitude",
+                "_Another_GPS_altitude",
+                "_Another_GPS_precision",
+                "__version__",
+                "instanceID",
+                "_id",
+                "_uuid",
+                "_submission_time",
+                "_date_modified",
+                "_tags",
+                "_notes",
+                "_version",
+                "_duration",
+                "_submitted_by",
+                "_total_media",
+                "_media_count",
+                "_media_all_received",
+            ],
+            [
+                "2023-01-20T12:11:29.278+03:00",
+                "2023-01-20T12:12:00.443+03:00",
+                "2",
+                "32",
+                "n/a",
+                "male",
+                "dsa",
+                "zcxsd",
+                "n/a",
+                "-1.248238 36.685681 0 0",
+                "-1.248238",
+                "36.685681",
+                "0",
+                "0",
+                "-1.244172 36.685359 0 0",
+                "-1.244172",
+                "36.685359",
+                "0",
+                "0",
+                inst_json.get("_version"),
+                "uuid:" + inst_json.get("_uuid"),
+                str(inst_json.get("_id")),
+                inst_json.get("_uuid"),
+                inst_json.get("_submission_time"),
+                inst_json.get("_date_modified"),
+                "",
+                "",
+                "vTEmiygu2uLZpPHBYX8jKj",
+                "31.0",
+                "bob",
+                "0",
+                "0",
+                "True",
+            ],
+        ]
+        csv_file = open(csv_export.name)
+        csvreader = csv.reader(csv_file)
+        for idx, row in enumerate(csvreader):
+            self.assertEqual(row, expected_data[idx])
+
+        csv_export.close()
