@@ -595,6 +595,7 @@ def generate_geojson_export(
     xform=None,
     instances_query_set=None,
     extra_data=None,
+    request=None,
 ):
     """
     Generates Linked Geojson export
@@ -610,15 +611,17 @@ def generate_geojson_export(
     extension = options.get("extension", export_type)
     if xform is None:
         xform = XForm.objects.get(user__username=username, id_string=id_string)
-    request = HttpRequest()
     extra_data = extra_data or metadata.extra_data
+
     # build out query params to be used in GeoJsonSerializer
-    request.query_params = {
-        "geo_field": extra_data.get("data_geo_field"),
-        "simple_style": extra_data.get("data_simple_style"),
-        "title": extra_data.get("data_title"),
-        "fields": extra_data.get("data_fields"),
-    }
+    if request is None:
+        request = HttpRequest()
+        request.query_params = {
+            "geo_field": extra_data.get("data_geo_field"),
+            "simple_style": extra_data.get("data_simple_style"),
+            "title": extra_data.get("data_title"),
+            "fields": extra_data.get("data_fields"),
+        }
     query = extra_data.get("query")
     _context = {}
     _context["request"] = request

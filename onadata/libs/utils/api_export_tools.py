@@ -320,6 +320,7 @@ def _generate_new_export(  # noqa: C0901
                 xform=xform,
                 instances_query_set=instances_query_set,
                 extra_data=extra_data,
+                request=request
             )
         else:
             options.update(parse_request_export_options(request.query_params))
