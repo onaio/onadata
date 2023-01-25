@@ -1,0 +1,22 @@
+<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx="http://openrosa.org/xforms" id="airHyLyZMkdqz383A9fdjX" version="vTEmiygu2uLZpPHBYX8jKj">
+          <formhub>
+            <uuid>4cea1f91d0ee46b2a1f1af2e423902da</uuid>
+          </formhub>
+          <start>2023-01-20T12:11:29.278+03:00</start>
+          <end>2023-01-20T12:12:00.443+03:00</end>
+          <test>2</test>
+          <Age>32</Age>
+          <Image/>
+          <Select_one_gender>male</Select_one_gender>
+          <hh_group>
+            <respondent_name>dsa</respondent_name>
+            <_1_2_Where_do_you_live>zcxsd</_1_2_Where_do_you_live>
+            <_1_3_Another_test/>
+            <GPS>-1.248238 36.685681 0 0</GPS>
+          </hh_group>
+          <Another_GPS>-1.244172 36.685359 0 0</Another_GPS>
+          <__version__>vTEmiygu2uLZpPHBYX8jKj</__version__>
+          <meta>
+            <instanceID>uuid:76887abc-7bc4-4f9c-ba64-197968359d36</instanceID>
+          </meta>
+        </data>
