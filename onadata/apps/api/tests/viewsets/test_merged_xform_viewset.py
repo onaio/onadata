@@ -8,6 +8,8 @@ import csv
 import json
 from io import StringIO
 
+from django.utils import timezone
+
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
@@ -418,6 +420,14 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
 
         _make_submissions_merged_datasets(merged_xform)
+
+        # we want to check that this submission does not show up in the data
+        form_a = merged_xform.xforms.all()[0]
+        xml = '<data id="a"><fruit>Pineapple</fruit></data>'
+        instance = Instance(xform=form_a, xml=xml)
+        instance.deleted_at = timezone.now()
+        instance.deleted_by = self.user
+        instance.save()
 
         request = self.factory.get('/', **self.extra)
         view = MergedXFormViewSet.as_view({'get': 'data'})
