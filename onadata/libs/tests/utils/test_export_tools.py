@@ -569,7 +569,7 @@ class TestExportTools(TestBase, TestAbstractViewSet):
             "xform": f"http://testserver/api/v1/forms/{xform1.pk}",
             "project": f"http://testserver/api/v1/projects/{xform1.project.pk}",
             "columns": '["name", "age", "gender"]',
-            "query": None,
+            "query": '{}',
         }
         self._create_dataview(xform=xform1, project=xform1.project, data=data)
         export_type = "geojson"
