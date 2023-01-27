@@ -25,6 +25,10 @@ from onadata.apps.restservice.viewsets.restservices_viewset import \
     RestServicesViewSet
 from onadata.libs.utils.export_tools import get_osm_data_kwargs
 from onadata.libs.utils.user_auth import get_user_default_project
+from onadata.libs.utils.common_tools import (
+    get_response_content,
+)
+
 
 MD = """
 | survey  |
@@ -407,6 +411,29 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         response = view(request, pk=merged_dataset['id'], format='html')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['data'].__len__(), 0)
+
+    def test_md_geojson_export(self):
+        """Test CSV export of a merged dataset"""
+        merged_dataset = self._create_merged_dataset()
+        merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
+
+        _make_submissions_merged_datasets(merged_xform)
+
+        request = self.factory.get('/', **self.extra)
+        view = MergedXFormViewSet.as_view({'get': 'data'})
+        response = view(request, pk=merged_dataset['id'], format='geojson')
+        self.assertEqual(response.status_code, 200)
+        headers = dict(response.items())
+        self.assertEqual(headers["Content-Type"], "application/geo+json")
+        content = get_response_content(response)
+        geojson_response = '{"type": "FeatureCollection", ' + \
+            '"features": [{"type": ' + \
+            '"Feature", "geometry": null, "properties": ' + \
+            '{"id": 1, "xform": 1}}, {"type": "Feature", ' + \
+            '"geometry": null, "properties": {"id": 2, "xform": 2}}]}'
+        self.assertEqual(
+            content,
+            geojson_response)
 
     def test_md_csv_export(self):
         """Test CSV export of a merged dataset"""
