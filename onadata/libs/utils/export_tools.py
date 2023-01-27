@@ -635,7 +635,7 @@ def generate_geojson_export(
     # paginate queryset
     if extra_data.get("paginate_queryset"):
         instances_qs = CountOverridablePageNumberPagination(
-        ).paginate_queryset(instances_qs, request, None)
+        ).paginate_queryset(instances_qs.order_by("id"), request, None)
     content = GeoJsonSerializer(instances_qs, many=True, context=_context)
     data_to_write = json.dumps(content.data).encode("utf-8")
     timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
