@@ -15,6 +15,7 @@ from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
 from django.test.utils import override_settings
 from django.utils import timezone
+from django.http import HttpRequest
 
 from pyxform.builder import create_survey_from_xls
 from rest_framework import exceptions
@@ -533,6 +534,316 @@ class TestExportTools(TestBase, TestAbstractViewSet):
 
         export = generate_kml_export(
             export_type, username, id_string, export_id=export_id, options=options
+        )
+
+        self.assertIsNotNone(export)
+        self.assertTrue(export.is_successful)
+
+    def test_geojson_exports_for_filtered_datasets_no_filters(self):
+        """
+        Test generate_geojson_export()
+        """
+        self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
+        geo_md = """
+        | survey |
+        |        | type              | name  | label |
+        |        | geopoint          | gps   | GPS   |
+        |        | select one fruits | fruit | Fruit |
+
+        | choices |
+        |         | list name | name   | label  |
+        |         | fruits    | orange | Orange |
+        |         | fruits    | mango  | Mango  |
+        """
+        xform1 = self._publish_markdown(geo_md, self.user, id_string="a")
+        xml = '<data id="a"><gps>-1.28 36.83 0 0</gps><fruit>orange</fruit></data>'
+        Instance(xform=xform1, xml=xml).save()
+        xml = '<data id="a"><gps>-1.28 36.83 0 0</gps><fruit>apple</fruit></data>'
+        request = self.factory.get("/", **self.extra)
+        XFormSerializer(xform1, context={"request": request}).data
+        # check that the xform was published
+        xform1 = XForm.objects.get(id_string="a")
+        # create a filtered dataset with this xform
+        data = {
+            "name": "My DataView",
+            "xform": f"http://testserver/api/v1/forms/{xform1.pk}",
+            "project": f"http://testserver/api/v1/projects/{xform1.project.pk}",
+            "columns": '["name", "age", "gender"]',
+            "query": None,
+        }
+        self._create_dataview(xform=xform1, project=xform1.project, data=data)
+        export_type = "geojson"
+        options = {
+            "extension": "geojson",
+        }
+        extra_data = {
+            "data_geo_field": "gps",
+            "data_fields": "fruit,gps",
+            "query": self.data_view.query,
+        }
+
+        username = self.data_view.xform.user.username
+        id_string = self.data_view.xform.id_string
+        export = generate_geojson_export(
+            export_type, username, id_string, self.data_view.query,
+            extra_data=extra_data, xform=self.data_view.xform,
+            options=options)
+        self.assertIsNotNone(export)
+        self.assertTrue(export.is_successful)
+        with default_storage.open(export.filepath) as f2:
+            content = f2.read().decode("utf-8")
+            geojson = {'type': 'FeatureCollection',
+                       'features': [
+                           {'type': 'Feature', 'geometry':
+                            {'type': 'GeometryCollection',
+                             'geometries': [
+                                 {'type': 'Point',
+                                  'coordinates': [36.83, -1.28]}]},
+                               'properties': {'fruit': 'orange',
+                                              'gps': '-1.28 36.83 0 0'}}]}
+
+            content = json.loads(content)
+            # remove xform and id from properties because they keep changing
+            del content["features"][0]["properties"]["id"]
+            del content["features"][0]["properties"]["xform"]
+            self.assertEqual(content, geojson)
+
+        export_id = export.id
+
+        # delete this export
+        export.delete()
+
+        export = generate_geojson_export(
+            export_type,
+            username,
+            id_string,
+            self.data_view.query,
+            export_id=export_id,
+            extra_data=extra_data,
+            options=options,
+            xform=self.data_view.xform,
+        )
+
+        self.assertIsNotNone(export)
+        self.assertTrue(export.is_successful)
+
+    def test_geojson_exports_for_filtered_datasets(self):
+        """
+        Test generate_geojson_export()
+        """
+        self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
+        geo_md = """
+        | survey |
+        |        | type              | name  | label |
+        |        | geopoint          | gps   | GPS   |
+        |        | select one fruits | fruit | Fruit |
+
+        | choices |
+        |         | list name | name   | label  |
+        |         | fruits    | orange | Orange |
+        |         | fruits    | mango  | Mango  |
+        """
+        xform1 = self._publish_markdown(geo_md, self.user, id_string="a")
+        xml = '<data id="a"><gps>-1.28 36.83 0 0</gps><fruit>orange</fruit></data>'
+        Instance(xform=xform1, xml=xml).save()
+        xml2 = '<data id="a"><gps>-1.28 36.83 0 0</gps><fruit>apple</fruit></data>'
+        Instance(xform=xform1, xml=xml2).save()
+        request = self.factory.get("/", **self.extra)
+        XFormSerializer(xform1, context={"request": request}).data
+        # check that the xform was published
+        xform1 = XForm.objects.get(id_string="a")
+        # create a filtered dataset with this xform
+        data = {
+            "name": "My DataView",
+            "xform": f"http://testserver/api/v1/forms/{xform1.pk}",
+            "project": f"http://testserver/api/v1/projects/{xform1.project.pk}",
+            "columns": '["name", "age", "gender"]',
+            "query": (
+                    '[{"column":"fruit","filter":"=","value":"orange"}]'
+            ),
+        }
+        self._create_dataview(xform=xform1, project=xform1.project, data=data)
+        export_type = "geojson"
+        options = {
+            "extension": "geojson",
+        }
+        extra_data = {
+            "data_geo_field": "gps",
+            "data_fields": "fruit,gps",
+            "query": self.data_view.query,
+        }
+
+        username = self.data_view.xform.user.username
+        id_string = self.data_view.xform.id_string
+        export = generate_geojson_export(
+            export_type, username, id_string, self.data_view.query,
+            extra_data=extra_data, xform=self.data_view.xform,
+            options=options)
+        self.assertIsNotNone(export)
+        self.assertTrue(export.is_successful)
+        with default_storage.open(export.filepath) as f2:
+            content = f2.read().decode("utf-8")
+            geojson = {'type': 'FeatureCollection',
+                       'features': [
+                           {'type': 'Feature', 'geometry':
+                            {'type': 'GeometryCollection',
+                             'geometries': [
+                                 {'type': 'Point',
+                                  'coordinates': [36.83, -1.28]}]},
+                               'properties': {'fruit': 'orange',
+                                              'gps': '-1.28 36.83 0 0'}}]}
+
+            content = json.loads(content)
+            # remove xform and id from properties because they keep changing
+            del content["features"][0]["properties"]["id"]
+            del content["features"][0]["properties"]["xform"]
+            self.assertEqual(content, geojson)
+
+        export_id = export.id
+
+        # delete this export
+        export.delete()
+
+        export = generate_geojson_export(
+            export_type,
+            username,
+            id_string,
+            self.data_view.query,
+            export_id=export_id,
+            extra_data=extra_data,
+            options=options,
+            xform=self.data_view.xform,
+        )
+
+        self.assertIsNotNone(export)
+        self.assertTrue(export.is_successful)
+
+    def test_geojson_exports_for_filtered_datasets_with_pagination(self):
+        """
+        Test generate_geojson_export()
+        """
+        self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
+        geo_md = """
+        | survey |
+        |        | type              | name  | label |
+        |        | geopoint          | gps   | GPS   |
+        |        | select one fruits | fruit | Fruit |
+
+        | choices |
+        |         | list name | name   | label  |
+        |         | fruits    | orange | Orange |
+        |         | fruits    | mango  | Mango  |
+        """
+        xform1 = self._publish_markdown(geo_md, self.user, id_string="a")
+        xml = '<data id="a"><gps>-1.28 36.83 0 0</gps><fruit>orange</fruit></data>'
+        Instance(xform=xform1, xml=xml).save()
+        xml2 = '<data id="a"><gps>-1.28 36.83 0 0</gps><fruit>apple</fruit></data>'
+        Instance(xform=xform1, xml=xml2).save()
+        request = self.factory.get(
+            "/?page=1&page_size=1&geo_field=gps&fields=fruit,gps", **self.extra)
+        XFormSerializer(xform1, context={"request": request}).data
+        # check that the xform was published
+        xform1 = XForm.objects.get(id_string="a")
+        # create a filtered dataset with this xform
+        data = {
+            "name": "My DataView",
+            "xform": f"http://testserver/api/v1/forms/{xform1.pk}",
+            "project": f"http://testserver/api/v1/projects/{xform1.project.pk}",
+            "columns": '["name", "age", "gender"]',
+            "query": (
+                    '[]'
+            ),
+        }
+        self._create_dataview(xform=xform1, project=xform1.project, data=data)
+        export_type = "geojson"
+        options = {
+            "extension": "geojson",
+        }
+        extra_data = {
+            "paginate_queryset": True
+        }
+
+        username = self.data_view.xform.user.username
+        id_string = self.data_view.xform.id_string
+        httpRequest = HttpRequest()
+        httpRequest.query_params = request.GET
+        export = generate_geojson_export(
+            export_type, username, id_string, self.data_view.query,
+            extra_data=extra_data, xform=self.data_view.xform,
+            options=options, request=httpRequest)
+        self.assertIsNotNone(export)
+        self.assertTrue(export.is_successful)
+        with default_storage.open(export.filepath) as f2:
+            content = f2.read().decode("utf-8")
+            geojson = {
+                'type': 'FeatureCollection',
+                'features':
+                [{'type': 'Feature',
+                  'geometry':
+                  {'type': 'GeometryCollection',
+                   'geometries': [{'type': 'Point', 'coordinates': [36.83, -1.28]}]},
+                  'properties':
+                  {'fruit': 'orange', 'gps': '-1.28 36.83 0 0'}},]}
+
+            content = json.loads(content)
+            # remove xform and id from properties because they keep changing
+            del content["features"][0]["properties"]["id"]
+            del content["features"][0]["properties"]["xform"]
+            self.assertEqual(content, geojson)
+
+        # check page 2
+        request = self.factory.get(
+            "/?page=2&page_size=1&geo_field=gps&fields=fruit,gps", **self.extra)
+        export_type = "geojson"
+        options = {
+            "extension": "geojson",
+        }
+        extra_data = {
+            "paginate_queryset": True
+        }
+
+        username = self.data_view.xform.user.username
+        id_string = self.data_view.xform.id_string
+        httpRequest = HttpRequest()
+        httpRequest.query_params = request.GET
+        export = generate_geojson_export(
+            export_type, username, id_string, self.data_view.query,
+            extra_data=extra_data, xform=self.data_view.xform,
+            options=options, request=httpRequest)
+        self.assertIsNotNone(export)
+        self.assertTrue(export.is_successful)
+        with default_storage.open(export.filepath) as f2:
+            content = f2.read().decode("utf-8")
+            geojson = {
+                'type': 'FeatureCollection',
+                'features':
+                [{'type': 'Feature',
+                  'geometry':
+                  {'type': 'GeometryCollection',
+                   'geometries': [{'type': 'Point', 'coordinates': [36.83, -1.28]}]},
+                  'properties':
+                  {'fruit': 'apple', 'gps': '-1.28 36.83 0 0'}},]}
+
+            content = json.loads(content)
+            # remove xform and id from properties because they keep changing
+            del content["features"][0]["properties"]["id"]
+            del content["features"][0]["properties"]["xform"]
+            self.assertEqual(content, geojson)
+
+        export_id = export.id
+
+        # delete this export
+        export.delete()
+
+        export = generate_geojson_export(
+            export_type,
+            username,
+            id_string,
+            self.data_view.query,
+            export_id=export_id,
+            extra_data=extra_data,
+            options=options,
+            xform=self.data_view.xform,
         )
 
         self.assertIsNotNone(export)
