@@ -113,8 +113,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual("image/png", attachment_info.get("mimetype"))
         self.assertEqual(
             f"{self.user.username}/attachments/{self.xform.id}_{self.xform.id_string}/{media_file}",
-            attachment_info.get("filename"),
-        )
+            attachment_info.get("filename"),)
         self.assertEqual(response.status_code, 200)
 
     # pylint: disable=invalid-name
@@ -615,6 +614,36 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         self.assertIn("_id", response.data[0])
         self.assertIn(EDITED, response.data[0])
+
+    def test_geojson_export_dataview(self):
+        self._create_dataview()
+        count = Export.objects.all().count()
+
+        view = DataViewViewSet.as_view(
+            {
+                "get": "data",
+            }
+        )
+
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.data_view.pk, format="geojson")
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEqual(count + 1, Export.objects.all().count())
+
+        headers = dict(response.items())
+        self.assertEqual(headers["Content-Type"], "application/geo+json")
+        content_disposition = headers["Content-Disposition"]
+        filename = filename_from_disposition(content_disposition)
+        _basename, ext = os.path.splitext(filename)
+        self.assertEqual(ext, ".geojson")
+
+        content = get_response_content(response)
+        test_file_path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "viewer", "tests", "fixtures",
+            "dataview.geojson")
+        with open(test_file_path, encoding="utf-8") as test_file:
+            self.assertEqual(content, test_file.read())
 
     def test_csv_export_dataview(self):
         self._create_dataview()
@@ -1538,11 +1567,11 @@ class TestDataViewViewSet(TestAbstractViewSet):
         first_datetime = start_date.strftime(MONGO_STRFTIME)
         second_datetime = start_date + timedelta(days=1, hours=20)
         query_str = (
-            '{"_submission_time": {"$gte": "'
-            + first_datetime
-            + '", "$lte": "'
-            + second_datetime.strftime(MONGO_STRFTIME)
-            + '"}}'
+            '{"_submission_time": {"$gte": "' +
+            first_datetime +
+            '", "$lte": "' +
+            second_datetime.strftime(MONGO_STRFTIME) +
+            '"}}'
         )
 
         view = DataViewViewSet.as_view(
@@ -1600,11 +1629,11 @@ class TestDataViewViewSet(TestAbstractViewSet):
         first_datetime = start_date.strftime(MONGO_STRFTIME)
         second_datetime = start_date + timedelta(days=1, hours=20)
         query_str = (
-            '{"_submission_time": {"$gte": "'
-            + first_datetime
-            + '", "$lte": "'
-            + second_datetime.strftime(MONGO_STRFTIME)
-            + '"}}'
+            '{"_submission_time": {"$gte": "' +
+            first_datetime +
+            '", "$lte": "' +
+            second_datetime.strftime(MONGO_STRFTIME) +
+            '"}}'
         )
         count = Export.objects.all().count()
 
@@ -1643,11 +1672,11 @@ class TestDataViewViewSet(TestAbstractViewSet):
         first_datetime = start_date.strftime(MONGO_STRFTIME)
         second_datetime = start_date + timedelta(days=1, hours=20)
         query_str = (
-            '{"_submission_time": {"$gte": "'
-            + first_datetime
-            + '", "$lte": "'
-            + second_datetime.strftime(MONGO_STRFTIME)
-            + '"}}'
+            '{"_submission_time": {"$gte": "' +
+            first_datetime +
+            '", "$lte": "' +
+            second_datetime.strftime(MONGO_STRFTIME) +
+            '"}}'
         )
         count = Export.objects.all().count()
 
