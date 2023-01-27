@@ -137,7 +137,7 @@ class GeoJsonSerializer(serializers.GeoFeatureModelSerializer):
                 geometry = (
                     geometry_from_string(points, simple_style)
                     if points
-                    else geojson.Feature()
+                    else None
                 )
 
                 ret["geometry"] = geometry

@@ -161,9 +161,9 @@ class DataViewSet(
         elif fmt == "xml":
             serializer_class = DataInstanceXMLSerializer
         elif (
-            form_pk is not None
-            and dataid is None
-            and form_pk != self.public_data_endpoint
+            form_pk is not None and
+            dataid is None and
+            form_pk != self.public_data_endpoint
         ):
             if sort or fields:
                 serializer_class = JsonDataSerializer
@@ -605,7 +605,8 @@ class DataViewSet(
 
         if export_type == "geojson":
             # raise 404 if all instances dont have geoms
-            if not xform.instances_with_geopoints:
+            if not xform.instances_with_geopoints and not (
+                    xform.polygon_xpaths() or xform.geotrace_xpaths()):
                 raise Http404(_("Not Found"))
 
             # add pagination when fetching geojson features

@@ -482,6 +482,26 @@ class XFormMixin:
             if e.bind.get("type") == "geopoint"
         ]
 
+    def polygon_xpaths(self):
+        """Returns the abbreviated_xpath of all fields of type `geoshape`."""
+        survey_elements = self.get_survey_elements()
+
+        return [
+            e.get_abbreviated_xpath()
+            for e in survey_elements
+            if e.bind.get("type") == "geoshape"
+        ]
+
+    def geotrace_xpaths(self):
+        """Returns the abbreviated_xpath of all fields of type `geotrace`."""
+        survey_elements = self.get_survey_elements()
+
+        return [
+            e.get_abbreviated_xpath()
+            for e in survey_elements
+            if e.bind.get("type") == "geotrace"
+        ]
+
     def xpath_of_first_geopoint(self):
         """Returns the abbreviated_xpath of the first field of type `geopoint`."""
         geo_xpaths = self.geopoint_xpaths()
