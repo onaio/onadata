@@ -435,11 +435,13 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertEqual(headers["Content-Type"], "application/geo+json")
         del response.data['features'][0]['properties']['xform']
         del response.data['features'][1]['properties']['xform']
+        del response.data['features'][0]['properties']['id']
+        del response.data['features'][1]['properties']['id']
         self.assertEqual(
             {'type': 'FeatureCollection',
              'features':
-             [{'type': 'Feature', 'geometry': None, 'properties': {'id': 1}},
-              {'type': 'Feature', 'geometry': None, 'properties': {'id': 2}}]},
+             [{'type': 'Feature', 'geometry': None, 'properties': {}},
+              {'type': 'Feature', 'geometry': None, 'properties': {}}]},
             response.data
         )
 
@@ -448,20 +450,22 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         response = view(request, pk=merged_dataset['id'], format='geojson')
         self.assertEqual(response.status_code, 200)
         del response.data['features'][0]['properties']['xform']
+        del response.data['features'][0]['properties']['id']
         self.assertEqual(
             {'type': 'FeatureCollection',
              'features':
-             [{'type': 'Feature', 'geometry': None, 'properties': {'id': 1}}]},
+             [{'type': 'Feature', 'geometry': None, 'properties': {}}]},
             response.data
         )
         request = self.factory.get('/?page=2&page_size=1', **self.extra)
         response = view(request, pk=merged_dataset['id'], format='geojson')
         self.assertEqual(response.status_code, 200)
         del response.data['features'][0]['properties']['xform']
+        del response.data['features'][0]['properties']['id']
         self.assertEqual(
             {'type': 'FeatureCollection',
              'features':
-             [{'type': 'Feature', 'geometry': None, 'properties': {'id': 2}}]},
+             [{'type': 'Feature', 'geometry': None, 'properties': {}}]},
             response.data
         )
 
@@ -470,10 +474,12 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         response = view(request, pk=merged_dataset['id'], format='geojson')
         self.assertEqual(response.status_code, 200)
         del response.data['features'][0]['properties']['xform']
+        del response.data['features'][0]['properties']['id']
         self.assertEqual(
             {'type': 'FeatureCollection',
              'features':
-             [{'type': 'Feature', 'geometry': None, 'properties': {'id': 1, 'fruit': 'orange'}}]},
+             [{'type': 'Feature', 'geometry': None,
+               'properties': {'fruit': 'orange'}}]},
             response.data
         )
 

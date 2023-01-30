@@ -15,6 +15,8 @@ from rest_framework.reverse import reverse
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 
+from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
+from onadata.libs.pagination import CountOverridablePageNumberPagination
 from onadata.apps.api.permissions import DataViewViewsetPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.data_view import DataView
@@ -26,8 +28,6 @@ from onadata.libs.renderers import renderers
 from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.serializers.dataview_serializer import DataViewSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
-from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
-from onadata.libs.pagination import CountOverridablePageNumberPagination
 from onadata.libs.utils import common_tags
 from onadata.libs.utils.api_export_tools import (
     custom_response_handler,
@@ -60,6 +60,9 @@ def get_form_field_chart_url(url, field):
 
 
 def filter_to_field_lookup(filter_string):
+    """
+    Converts a =, < or > to a django field lookup
+    """
     if filter_string == "=":
         return "__iexact"
     if filter_string == "<":
@@ -68,10 +71,16 @@ def filter_to_field_lookup(filter_string):
 
 
 def get_field_lookup(column, filter_string):
+    """
+    Convert filter_string + column into a field lookup expression
+    """
     return "json__" + column + filter_to_field_lookup(filter_string)
 
 
 def apply_filters(instance_qs, filters):
+    """
+    Apply filters on a queryset
+    """
     if filters:
         for f in filters:
             value = f['value']
@@ -98,7 +107,6 @@ class DataViewViewSet(
     serializer_class = DataViewSerializer
     permission_classes = [DataViewViewsetPermissions]
     lookup_field = "pk"
-    pagination_class = CountOverridablePageNumberPagination
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
         renderers.XLSRenderer,
         renderers.XLSXRenderer,
@@ -110,6 +118,9 @@ class DataViewViewSet(
     ]
 
     def get_serializer_class(self):
+        """
+        Get a serializer class based on request format
+        """
         export_type = self.kwargs.get("format")
         if self.action == "data" and export_type == "geojson":
             serializer_class = GeoJsonSerializer
@@ -149,12 +160,15 @@ class DataViewViewSet(
             return Response(serializer.data)
 
         if export_type == "geojson":
-            page = self.paginate_queryset(
+            page = CountOverridablePageNumberPagination(
+            ).paginate_queryset(
                 apply_filters(
                     self.object.xform.instances.filter(
                         deleted_at__isnull=True
                     ), query
-                ).order_by('id')
+                ).order_by('id'),
+                request,
+                self
             )
 
             serializer = self.get_serializer(page, many=True)

@@ -1170,10 +1170,13 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(headers["Content-Type"], "application/geo+json")
         self.assertEqual(response.status_code, 200)
         del response.data['features'][0]['properties']['xform']
+        del response.data['features'][0]['properties']['id']
         self.assertEqual(
             {'type': 'FeatureCollection',
              'features': [
-                 {'type': 'Feature', 'geometry': None, 'properties': {'id': 1, 'name': 'Kameli'}}]},
+                 {'type': 'Feature',
+                  'geometry': None,
+                  'properties': {'name': 'Kameli'}}]},
             response.data
         )
         request = self.factory.get(
@@ -1182,6 +1185,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         response = view(request, pk=self.data_view.pk, format='geojson')
         self.assertEqual(response.status_code, 200)
         del response.data['features'][0]['properties']['xform']
+        del response.data['features'][0]['properties']['id']
         self.assertEqual(
             {'type': 'FeatureCollection',
              'features':
@@ -1194,7 +1198,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
                    [
                        {'type': 'Point',
                         'coordinates': [36.8304, -1.2655]}]},
-                  'properties': {'id': 9, 'name': 'Kameli'}}]},
+                  'properties': {'name': 'Kameli'}}]},
             response.data
         )
         request = self.factory.get(

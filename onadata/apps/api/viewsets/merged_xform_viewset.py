@@ -43,15 +43,16 @@ class MergedXFormViewSet(
         .annotate(number_of_submissions=Sum("xforms__num_of_submissions"))
         .all()
     )
-    pagination_class = CountOverridablePageNumberPagination
     serializer_class = MergedXFormSerializer
-
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
         renderers.StaticXMLRenderer,
         renderers.GeoJsonRenderer,
     ]
 
     def get_serializer_class(self):
+        """
+        Get appropriate serializer class
+        """
         export_type = self.kwargs.get("format")
         if self.action == "data" and export_type == "geojson":
             serializer_class = GeoJsonSerializer
@@ -90,7 +91,8 @@ class MergedXFormViewSet(
         ).order_by("pk")
 
         if export_type == "geojson":
-            page = self.paginate_queryset(queryset)
+            page = CountOverridablePageNumberPagination(
+            ).paginate_queryset(queryset, request, self)
             geojson_content_type = 'application/geo+json'
             serializer = serializer = self.get_serializer(page, many=True)
             return Response(serializer.data,
