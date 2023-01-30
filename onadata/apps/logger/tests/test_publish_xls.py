@@ -4,6 +4,7 @@ from hashlib import md5
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from pyxform.errors import PyXFormError
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.xform import XForm
@@ -136,6 +137,35 @@ class TestPublishXLS(TestBase):
             '<entity create="1" dataset="trees" id="">',
             self.xform.xml
         )
+
+    def test_xform_big_image_invalid_if_no_image(self):
+        md="""
+        | survey |      |      |                  |
+        |        | type | name | media::big-image |
+        |        | text | c    | m.png            |
+        """
+        self._create_user_and_login()
+        msg = ("To use big-image, you must also specify"
+               " an image for the survey element")
+        with self.assertRaisesMessage(PyXFormError, msg):
+            self.xform = self._publish_markdown(md, self.user)
+
+    def test_single_entity_allowed_per_form(self):
+        md="""
+        | survey   |         |      |       |
+        |          | type    | name | label |
+        |          | text    | a    | A     |
+        | entities |         |      |       |
+        |          | dataset |      |       |
+        |          | trees   |      |       |
+        |          | shovels |      |       |
+        """
+        self._create_user_and_login()
+        msg = ("Currently, you can only declare a single entity per form."
+               " Please make sure your entities sheet only declares"
+               " one entity.")
+        with self.assertRaisesMessage(PyXFormError, msg):
+            self.xform = self._publish_markdown(md, self.user)
 
     def test_report_exception_with_exc_info(self):
         e = Exception("A test exception")
