@@ -51,6 +51,15 @@ class MergedXFormViewSet(
         renderers.GeoJsonRenderer,
     ]
 
+    def get_serializer_class(self):
+        export_type = self.kwargs.get("format")
+        if self.action == "data" and export_type == "geojson":
+            serializer_class = GeoJsonSerializer
+        else:
+            serializer_class = self.serializer_class
+
+        return serializer_class
+
     # pylint: disable=unused-argument
     @action(methods=["GET"], detail=True)
     def form(self, *args, **kwargs):
@@ -82,7 +91,9 @@ class MergedXFormViewSet(
 
         if export_type == "geojson":
             page = self.paginate_queryset(queryset)
-            serializer = GeoJsonSerializer(page, many=True, context={"request": request})
-            return Response(serializer.data)
+            geojson_content_type = 'application/geo+json'
+            serializer = serializer = self.get_serializer(page, many=True)
+            return Response(serializer.data,
+                            headers={'Content-Type': geojson_content_type})
 
         return Response(queryset.values_list("json", flat=True))

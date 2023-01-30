@@ -1160,6 +1160,53 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertIn("location", response.data[0])
         self.assertIn("_geolocation", response.data[0])
 
+        # geojson pagination, fields and geofield params works ok
+        request = self.factory.get(
+            "/?geofield=_geolocation&page=1&page_size=1&fields=name",
+            **self.extra)
+        response = view(request, pk=self.data_view.pk, format='geojson')
+        # we get correct content type
+        headers = dict(response.items())
+        self.assertEqual(headers["Content-Type"], "application/geo+json")
+        self.assertEqual(response.status_code, 200)
+        del response.data['features'][0]['properties']['xform']
+        self.assertEqual(
+            {'type': 'FeatureCollection',
+             'features': [
+                 {'type': 'Feature', 'geometry': None, 'properties': {'id': 1, 'name': 'Kameli'}}]},
+            response.data
+        )
+        request = self.factory.get(
+            "/?geofield=_geolocation&page=9&page_size=1&fields=name",
+            **self.extra)
+        response = view(request, pk=self.data_view.pk, format='geojson')
+        self.assertEqual(response.status_code, 200)
+        del response.data['features'][0]['properties']['xform']
+        self.assertEqual(
+            {'type': 'FeatureCollection',
+             'features':
+             [
+                 {'type': 'Feature',
+                  'geometry':
+                  {'type':
+                   'GeometryCollection',
+                   'geometries':
+                   [
+                       {'type': 'Point',
+                        'coordinates': [36.8304, -1.2655]}]},
+                  'properties': {'id': 9, 'name': 'Kameli'}}]},
+            response.data
+        )
+        request = self.factory.get(
+            "/?geofield=_geolocation&page=10&page_size=1&fields=name",
+            **self.extra)
+        response = view(request, pk=self.data_view.pk, format='geojson')
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(
+            {'detail': 'Invalid page.'},
+            response.data
+        )
+
     # pylint: disable=invalid-name
     def test_dataview_project_cache_cleared(self):
         self._create_dataview()

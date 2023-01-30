@@ -110,7 +110,10 @@ class DataViewViewSet(
     ]
 
     def get_serializer_class(self):
-        if self.action == "data":
+        export_type = self.kwargs.get("format")
+        if self.action == "data" and export_type == "geojson":
+            serializer_class = GeoJsonSerializer
+        elif self.action == "data":
             serializer_class = JsonDataSerializer
         else:
             serializer_class = self.serializer_class
@@ -154,8 +157,11 @@ class DataViewViewSet(
                 ).order_by('id')
             )
 
-            serializer = GeoJsonSerializer(page, many=True, context={"request": request})
-            return Response(serializer.data)
+            serializer = self.get_serializer(page, many=True)
+            geojson_content_type = 'application/geo+json'
+            return Response(
+                serializer.data,
+                headers={'Content-Type': geojson_content_type})
 
         return custom_response_handler(
             request, self.object.xform, query, export_type, dataview=self.object
