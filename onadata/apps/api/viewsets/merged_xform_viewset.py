@@ -17,6 +17,8 @@ from onadata.apps.logger.models import Instance, MergedXForm
 from onadata.libs import filters
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
+from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
+from onadata.libs.pagination import CountOverridablePageNumberPagination
 
 
 # pylint: disable=too-many-ancestors
@@ -41,10 +43,12 @@ class MergedXFormViewSet(
         .annotate(number_of_submissions=Sum("xforms__num_of_submissions"))
         .all()
     )
+    pagination_class = CountOverridablePageNumberPagination
     serializer_class = MergedXFormSerializer
 
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
-        renderers.StaticXMLRenderer
+        renderers.StaticXMLRenderer,
+        renderers.GeoJsonRenderer,
     ]
 
     # pylint: disable=unused-argument
@@ -70,8 +74,15 @@ class MergedXFormViewSet(
     def data(self, request, *args, **kwargs):
         """Return data from the merged xforms"""
         merged_xform = self.get_object()
+        export_type = self.kwargs.get("format", request.GET.get("format"))
         queryset = Instance.objects.filter(
-            xform__in=merged_xform.xforms.all()
+            xform__in=merged_xform.xforms.all(),
+            deleted_at__isnull=True
         ).order_by("pk")
+
+        if export_type == "geojson":
+            page = self.paginate_queryset(queryset)
+            serializer = GeoJsonSerializer(page, many=True, context={"request": request})
+            return Response(serializer.data)
 
         return Response(queryset.values_list("json", flat=True))
