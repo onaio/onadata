@@ -261,13 +261,13 @@ class DataViewViewSet(
         return Response(data)
 
     @action(methods=["GET"], detail=True)
-    def xls_export(self, request, *args, **kwargs):
+    def xlsx_export(self, request, *args, **kwargs):
         """Returns the data views XLS export files."""
         dataview = self.get_object()
         xform = dataview.xform
 
         token = None
-        export_type = "xls"
+        export_type = "xlsx"
         query = request.query_params.get("query", {})
         meta = request.GET.get("meta")
 

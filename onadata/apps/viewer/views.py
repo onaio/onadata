@@ -306,8 +306,7 @@ def data_export(request, username, id_string, export_type):  # noqa C901
     extension = export_type
 
     # check if we should force xlsx
-    force_xlsx = request.GET.get("xls") != "true"
-    if export_type == Export.XLS_EXPORT and force_xlsx:
+    if export_type == Export.XLSX_EXPORT:
         extension = "xlsx"
     elif export_type in [Export.CSV_ZIP_EXPORT, Export.SAV_ZIP_EXPORT]:
         extension = "zip"
@@ -778,7 +777,7 @@ def kml_export(request, username, id_string):
     return response
 
 
-def google_xls_export(request, username, id_string):
+def google_xlsx_export(request, username, id_string):
     """
     Google export view, uploads an excel export to google drive and then
     redirects to the uploaded google sheet.
@@ -796,7 +795,7 @@ def google_xls_export(request, username, id_string):
 
     if token is None:
         request.session["google_redirect_url"] = reverse(
-            google_xls_export, kwargs={"username": username, "id_string": id_string}
+            google_xlsx_export, kwargs={"username": username, "id_string": id_string}
         )
         google_flow = create_flow()
         return HttpResponseRedirect(

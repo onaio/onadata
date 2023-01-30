@@ -135,7 +135,7 @@ def generate_export(export_type, xform, export_id=None, options=None):  # noqa C
     start = options.get("start")
 
     export_type_func_map = {
-        Export.XLS_EXPORT: "to_xls_export",
+        Export.XLSX_EXPORT: "to_xlsx_export",
         Export.CSV_EXPORT: "to_flat_csv_export",
         Export.CSV_ZIP_EXPORT: "to_zipped_csv",
         Export.SAV_ZIP_EXPORT: "to_zipped_sav",

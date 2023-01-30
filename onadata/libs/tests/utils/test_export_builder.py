@@ -448,7 +448,7 @@ class TestExportBuilder(TestBase):
 
         shutil.rmtree(temp_dir)
 
-    def test_xls_export_with_osm_data(self):
+    def test_xlsx_export_with_osm_data(self):
         """
         Tests that osm data is included in xls export
         """
@@ -457,7 +457,7 @@ class TestExportBuilder(TestBase):
         export_builder = ExportBuilder()
         export_builder.set_survey(survey, xform)
         with NamedTemporaryFile(suffix=".xlsx") as temp_xls_file:
-            export_builder.to_xls_export(temp_xls_file.name, self.osm_data)
+            export_builder.to_xlsx_export(temp_xls_file.name, self.osm_data)
             temp_xls_file.seek(0)
             workbook = load_workbook(temp_xls_file.name)
             osm_data_sheet = workbook["osm"]
@@ -1170,7 +1170,7 @@ class TestExportBuilder(TestBase):
             self.assertIn(b"sport", [x[0:5] for x in rows[0]])
 
     # pylint: disable=invalid-name
-    def test_xls_export_works_with_unicode(self):
+    def test_xlsx_export_works_with_unicode(self):
         survey = create_survey_from_xls(
             _logger_fixture_path("childrens_survey_unicode.xlsx"),
             default_name="childrenss_survey_unicode",
@@ -1178,7 +1178,7 @@ class TestExportBuilder(TestBase):
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
         with NamedTemporaryFile(suffix=".xlsx") as temp_xls_file:
-            export_builder.to_xls_export(temp_xls_file.name, self.data_utf8)
+            export_builder.to_xlsx_export(temp_xls_file.name, self.data_utf8)
             temp_xls_file.seek(0)
             # check that values for red\'s and blue\'s are set to true
             workbook = load_workbook(temp_xls_file.name)
@@ -1189,7 +1189,7 @@ class TestExportBuilder(TestBase):
             self.assertFalse(data["children.info/fav_colors/pink's"])
 
     # pylint: disable=invalid-name
-    def test_xls_export_with_hxl_adds_extra_row(self):
+    def test_xlsx_export_with_hxl_adds_extra_row(self):
         # hxl_example.xlsx contains `instance::hxl` column whose value is #age
         xlsform_path = os.path.join(
             settings.PROJECT_ROOT,
@@ -1218,7 +1218,7 @@ class TestExportBuilder(TestBase):
             survey_elements
         )
 
-        export_builder.to_xls_export(
+        export_builder.to_xlsx_export(
             temp_xls_file.name, self.data_utf8, columns_with_hxl=columns_with_hxl
         )
         temp_xls_file.seek(0)
@@ -1271,7 +1271,7 @@ class TestExportBuilder(TestBase):
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
         with NamedTemporaryFile(suffix=".xlsx") as temp_xls_file:
-            export_builder.to_xls_export(temp_xls_file, xdata)
+            export_builder.to_xlsx_export(temp_xls_file, xdata)
             temp_xls_file.seek(0)
             workbook = load_workbook(temp_xls_file)
             children_sheet = workbook["exp"]
@@ -1595,13 +1595,13 @@ class TestExportBuilder(TestBase):
         ][0]
         self.assertEqual(expected_section["elements"][0]["title"], match["title"])
 
-    def test_to_xls_export_works(self):
+    def test_to_xlsx_export_works(self):
         survey = self._create_childrens_survey()
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
         with NamedTemporaryFile(suffix=".xlsx") as xls_file:
             filename = xls_file.name
-            export_builder.to_xls_export(filename, self.data)
+            export_builder.to_xlsx_export(filename, self.data)
             xls_file.seek(0)
             workbook = load_workbook(filename)
             # check that we have childrens_survey, children, children_cartoons
@@ -1718,14 +1718,14 @@ class TestExportBuilder(TestBase):
             )
 
     # pylint: disable=invalid-name
-    def test_to_xls_export_respects_custom_field_delimiter(self):
+    def test_to_xlsx_export_respects_custom_field_delimiter(self):
         survey = self._create_childrens_survey()
         export_builder = ExportBuilder()
         export_builder.GROUP_DELIMITER = ExportBuilder.GROUP_DELIMITER_DOT
         export_builder.set_survey(survey)
         with NamedTemporaryFile(suffix=".xlsx") as xls_file:
             filename = xls_file.name
-            export_builder.to_xls_export(filename, self.data)
+            export_builder.to_xlsx_export(filename, self.data)
             xls_file.seek(0)
             workbook = load_workbook(filename)
 
@@ -1789,7 +1789,7 @@ class TestExportBuilder(TestBase):
         self.assertEqual(generated_sheet_name, expected_sheet_name)
 
     # pylint: disable=invalid-name
-    def test_to_xls_export_generates_valid_sheet_names(self):
+    def test_to_xlsx_export_generates_valid_sheet_names(self):
         survey = create_survey_from_xls(
             _logger_fixture_path("childrens_survey_with_a_very_long_name.xlsx"),
             default_name="childrens_survey_with_a_very_long_name",
@@ -1798,7 +1798,7 @@ class TestExportBuilder(TestBase):
         export_builder.set_survey(survey)
         with NamedTemporaryFile(suffix=".xlsx") as xls_file:
             filename = xls_file.name
-            export_builder.to_xls_export(filename, self.data)
+            export_builder.to_xlsx_export(filename, self.data)
             xls_file.seek(0)
             workbook = load_workbook(filename)
             # check that we have childrens_survey, children, children_cartoons
@@ -1821,7 +1821,7 @@ class TestExportBuilder(TestBase):
         export_builder.set_survey(survey)
         with NamedTemporaryFile(suffix=".xlsx") as xls_file:
             filename = xls_file.name
-            export_builder.to_xls_export(filename, self.long_survey_data)
+            export_builder.to_xlsx_export(filename, self.long_survey_data)
             xls_file.seek(0)
             workbook = load_workbook(filename)
 
@@ -1919,7 +1919,7 @@ class TestExportBuilder(TestBase):
         ]
         # create export file
         with NamedTemporaryFile(suffix=".xlsx") as temp_xls_file:
-            export_builder.to_xls_export(temp_xls_file.name, data)
+            export_builder.to_xlsx_export(temp_xls_file.name, data)
         # this should error if there is a problem, not sure what to assert
 
     def test_convert_types(self):
@@ -2074,7 +2074,7 @@ class TestExportBuilder(TestBase):
         self.assertEqual(field_name, expected_field_name)
 
     # pylint: disable=invalid-name
-    def test_xls_export_remove_group_name(self):
+    def test_xlsx_export_remove_group_name(self):
         survey = create_survey_from_xls(
             _logger_fixture_path("childrens_survey_unicode.xlsx"),
             default_name="childrens_survey_unicode",
@@ -2083,7 +2083,7 @@ class TestExportBuilder(TestBase):
         export_builder.TRUNCATE_GROUP_TITLE = True
         export_builder.set_survey(survey)
         with NamedTemporaryFile(suffix=".xlsx") as temp_xls_file:
-            export_builder.to_xls_export(temp_xls_file.name, self.data_utf8)
+            export_builder.to_xlsx_export(temp_xls_file.name, self.data_utf8)
             temp_xls_file.seek(0)
             # check that values for red\'s and blue\'s are set to true
             workbook = load_workbook(temp_xls_file.name)
@@ -2150,7 +2150,7 @@ class TestExportBuilder(TestBase):
             # check that red and blue are set to true
         shutil.rmtree(temp_dir)
 
-    def test_xls_export_with_labels(self):
+    def test_xlsx_export_with_labels(self):
         survey = create_survey_from_xls(
             _logger_fixture_path("childrens_survey_unicode.xlsx"),
             default_name="childrens_survey_unicode",
@@ -2160,7 +2160,7 @@ class TestExportBuilder(TestBase):
         export_builder.INCLUDE_LABELS = True
         export_builder.set_survey(survey)
         with NamedTemporaryFile(suffix=".xlsx") as temp_xls_file:
-            export_builder.to_xls_export(temp_xls_file.name, self.data_utf8)
+            export_builder.to_xlsx_export(temp_xls_file.name, self.data_utf8)
             temp_xls_file.seek(0)
             # check that values for red\'s and blue\'s are set to true
             workbook = load_workbook(temp_xls_file.name)
@@ -2180,7 +2180,7 @@ class TestExportBuilder(TestBase):
             self.assertFalse(data["fav_colors/pink's"])
 
     # pylint: disable=invalid-name
-    def test_xls_export_with_labels_only(self):
+    def test_xlsx_export_with_labels_only(self):
         survey = create_survey_from_xls(
             _logger_fixture_path("childrens_survey_unicode.xlsx"),
             default_name="childrens_survey_unicode",
@@ -2190,7 +2190,7 @@ class TestExportBuilder(TestBase):
         export_builder.INCLUDE_LABELS_ONLY = True
         export_builder.set_survey(survey)
         temp_xls_file = NamedTemporaryFile(suffix=".xlsx")
-        export_builder.to_xls_export(temp_xls_file.name, self.data_utf8)
+        export_builder.to_xlsx_export(temp_xls_file.name, self.data_utf8)
         temp_xls_file.seek(0)
         # check that values for red\'s and blue\'s are set to true
         wb = load_workbook(temp_xls_file.name)
@@ -2424,7 +2424,7 @@ class TestExportBuilder(TestBase):
             _test_sav_file(section_name)
 
     # pylint: disable=invalid-name
-    def test_xls_export_with_english_labels(self):
+    def test_xlsx_export_with_english_labels(self):
         survey = create_survey_from_xls(
             _logger_fixture_path("childrens_survey_en.xlsx"),
             default_name="childrens_survey_en",
@@ -2436,7 +2436,7 @@ class TestExportBuilder(TestBase):
         export_builder.INCLUDE_LABELS = True
         export_builder.set_survey(survey)
         with NamedTemporaryFile(suffix=".xlsx") as temp_xls_file:
-            export_builder.to_xls_export(temp_xls_file.name, self.data)
+            export_builder.to_xlsx_export(temp_xls_file.name, self.data)
             temp_xls_file.seek(0)
             workbook = load_workbook(temp_xls_file.name)
             childrens_survey_sheet = workbook["childrens_survey_en"]
@@ -2450,7 +2450,7 @@ class TestExportBuilder(TestBase):
             self.assertEqual(labels["fav_colors/blue"], "fav_colors/Blue")
 
     # pylint: disable=invalid-name
-    def test_xls_export_with_swahili_labels(self):
+    def test_xlsx_export_with_swahili_labels(self):
         survey = create_survey_from_xls(
             _logger_fixture_path("childrens_survey_sw.xlsx"),
             default_name="childrens_survey_sw",
@@ -2462,7 +2462,7 @@ class TestExportBuilder(TestBase):
         export_builder.INCLUDE_LABELS = True
         export_builder.set_survey(survey)
         with NamedTemporaryFile(suffix=".xlsx") as temp_xls_file:
-            export_builder.to_xls_export(temp_xls_file.name, self.data)
+            export_builder.to_xlsx_export(temp_xls_file.name, self.data)
             temp_xls_file.seek(0)
             workbook = load_workbook(temp_xls_file.name)
             childrens_survey_sheet = workbook["childrens_survey_sw"]
@@ -2713,7 +2713,7 @@ class TestExportBuilder(TestBase):
         shutil.rmtree(temp_dir)
 
     # pylint: disable=invalid-name
-    def test_xls_export_has_submission_review_fields(self):
+    def test_xlsx_export_has_submission_review_fields(self):
         """
         Test that review comment, status and date fields are in xls exports
         """
@@ -2724,7 +2724,7 @@ class TestExportBuilder(TestBase):
         export_builder.INCLUDE_REVIEW = True
         export_builder.set_survey(survey, xform, include_reviews=True)
         with NamedTemporaryFile(suffix=".xlsx") as temp_xls_file:
-            export_builder.to_xls_export(temp_xls_file.name, self.osm_data)
+            export_builder.to_xlsx_export(temp_xls_file.name, self.osm_data)
             temp_xls_file.seek(0)
             workbook = load_workbook(temp_xls_file.name)
             osm_data_sheet = workbook["osm"]
@@ -2959,7 +2959,7 @@ class TestExportBuilder(TestBase):
         export_builder.set_survey(survey)
         temp_xls_file = NamedTemporaryFile(suffix=".xlsx")
         data = [{"name": "Maria", "age": 25, "fruit": "1"}]  # yapf: disable
-        export_builder.to_xls_export(temp_xls_file, data)
+        export_builder.to_xlsx_export(temp_xls_file, data)
         temp_xls_file.seek(0)
         children_sheet = load_workbook(temp_xls_file)["data"]
         self.assertTrue(children_sheet)
@@ -2993,7 +2993,7 @@ class TestExportBuilder(TestBase):
         export_builder.set_survey(survey)
         temp_xls_file = NamedTemporaryFile(suffix=".xlsx")
         data = [{"name": "Maria", "age": 25, "fruit": "1"}]  # yapf: disable
-        export_builder.to_xls_export(temp_xls_file, data)
+        export_builder.to_xlsx_export(temp_xls_file, data)
         temp_xls_file.seek(0)
         children_sheet = load_workbook(temp_xls_file)["data"]
         self.assertTrue(children_sheet)
@@ -3027,7 +3027,7 @@ class TestExportBuilder(TestBase):
         export_builder.set_survey(survey)
         temp_xls_file = NamedTemporaryFile(suffix=".xlsx")
         data = [{"name": "Maria", "age": 25, "fruit": "1 2"}]  # yapf: disable
-        export_builder.to_xls_export(temp_xls_file, data)
+        export_builder.to_xlsx_export(temp_xls_file, data)
         temp_xls_file.seek(0)
         children_sheet = load_workbook(temp_xls_file)["data"]
         self.assertTrue(children_sheet)
@@ -3062,7 +3062,7 @@ class TestExportBuilder(TestBase):
         export_builder.set_survey(survey)
         temp_xls_file = NamedTemporaryFile(suffix=".xlsx")
         data = [{"name": "Maria", "age": 25, "fruit": "1 2"}]  # yapf: disable
-        export_builder.to_xls_export(temp_xls_file, data)
+        export_builder.to_xlsx_export(temp_xls_file, data)
         temp_xls_file.seek(0)
         children_sheet = load_workbook(temp_xls_file)["data"]
         self.assertTrue(children_sheet)
@@ -3098,7 +3098,7 @@ class TestExportBuilder(TestBase):
         export_builder.set_survey(survey)
         temp_xls_file = NamedTemporaryFile(suffix=".xlsx")
         data = [{"name": "Maria", "age": 25, "fruit": "1 2"}]  # yapf: disable
-        export_builder.to_xls_export(temp_xls_file, data)
+        export_builder.to_xlsx_export(temp_xls_file, data)
         temp_xls_file.seek(0)
         children_sheet = load_workbook(temp_xls_file)["data"]
         self.assertTrue(children_sheet)
@@ -3138,7 +3138,7 @@ class TestExportBuilder(TestBase):
         export_builder.set_survey(survey)
         temp_xls_file = NamedTemporaryFile(suffix=".xlsx")
         data = [{"name": "Maria", "age": 25, "fruit": "1 3"}]  # yapf: disable
-        export_builder.to_xls_export(temp_xls_file, data)
+        export_builder.to_xlsx_export(temp_xls_file, data)
         temp_xls_file.seek(0)
         children_sheet = load_workbook(temp_xls_file)["data"]
         self.assertTrue(children_sheet)
@@ -3174,7 +3174,7 @@ class TestExportBuilder(TestBase):
         export_builder.set_survey(survey)
         temp_xls_file = NamedTemporaryFile(suffix=".xlsx")
         data = [{"name": "Maria", "age": 25, "fruit": "1 3"}]  # yapf: disable
-        export_builder.to_xls_export(temp_xls_file, data)
+        export_builder.to_xlsx_export(temp_xls_file, data)
         temp_xls_file.seek(0)
         children_sheet = load_workbook(temp_xls_file)["data"]
         self.assertTrue(children_sheet)
@@ -3215,7 +3215,7 @@ class TestExportBuilder(TestBase):
         export_builder.set_survey(survey)
         temp_xls_file = NamedTemporaryFile(suffix=".xlsx")
         data = [{"name": "Maria", "age": 25, "fruit": "1 3"}]  # yapf: disable
-        export_builder.to_xls_export(temp_xls_file, data)
+        export_builder.to_xlsx_export(temp_xls_file, data)
         temp_xls_file.seek(0)
         children_sheet = load_workbook(temp_xls_file)["data"]
         self.assertTrue(children_sheet)
@@ -3256,7 +3256,7 @@ class TestExportBuilder(TestBase):
         export_builder.set_survey(survey)
         temp_xls_file = NamedTemporaryFile(suffix=".xlsx")
         data = [{"name": "Maria", "age": 25, "fruit": "1 3"}]  # yapf: disable
-        export_builder.to_xls_export(temp_xls_file, data)
+        export_builder.to_xlsx_export(temp_xls_file, data)
         temp_xls_file.seek(0)
         children_sheet = load_workbook(temp_xls_file)["data"]
         self.assertTrue(children_sheet)
@@ -3307,7 +3307,7 @@ class TestExportBuilder(TestBase):
         temp_xls_file = NamedTemporaryFile(suffix=".xlsx")
 
         data = [{"banks_deal": "1 2 3 4", "primary_bank": "3"}]  # yapf: disable
-        export_builder.to_xls_export(temp_xls_file, data)
+        export_builder.to_xlsx_export(temp_xls_file, data)
         temp_xls_file.seek(0)
         children_sheet = load_workbook(temp_xls_file)["data"]
         self.assertTrue(children_sheet)

@@ -67,7 +67,7 @@ class Export(models.Model):
     Class representing a data export from an XForm
     """
 
-    XLS_EXPORT = "xls"
+    XLSX_EXPORT = "xlsx"
     CSV_EXPORT = "csv"
     KML_EXPORT = "kml"
     ZIP_EXPORT = "zip"
@@ -93,7 +93,7 @@ class Export(models.Model):
     }
 
     EXPORT_TYPES = [
-        (XLS_EXPORT, "Excel"),
+        (XLSX_EXPORT, "Excel"),
         (CSV_EXPORT, "CSV"),
         (ZIP_EXPORT, "ZIP"),
         (KML_EXPORT, "kml"),
@@ -136,7 +136,7 @@ class Export(models.Model):
     # Required fields
     xform = models.ForeignKey("logger.XForm", on_delete=models.CASCADE)
     export_type = models.CharField(
-        max_length=10, choices=EXPORT_TYPES, default=XLS_EXPORT
+        max_length=10, choices=EXPORT_TYPES, default=XLSX_EXPORT
     )
 
     # optional fields

@@ -88,7 +88,7 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
     )
 
     export_types = {
-        Export.XLS_EXPORT: create_xls_export,
+        Export.XLSX_EXPORT: create_xlsx_export,
         Export.GOOGLE_SHEETS_EXPORT: create_google_sheet_export,
         Export.CSV_EXPORT: create_csv_export,
         Export.CSV_ZIP_EXPORT: create_csv_zip_export,
@@ -125,14 +125,12 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
 
 
 @app.task(track_started=True)
-def create_xls_export(username, id_string, export_id, **options):
+def create_xlsx_export(username, id_string, export_id, **options):
     """
-    XLS export task.
+    XLSX export task.
     """
     # we re-query the db instead of passing model objects according to
     # http://docs.celeryproject.org/en/latest/userguide/tasks.html#state
-    force_xlsx = options.get("force_xlsx", True)
-    options["extension"] = "xlsx" if force_xlsx else "xls"
 
     try:
         export = _get_export_object(export_id)
@@ -143,8 +141,9 @@ def create_xls_export(username, id_string, export_id, **options):
     # though export is not available when for has 0 submissions, we
     # catch this since it potentially stops celery
     try:
+        # generate xlsx export as default
         gen_export = generate_export(
-            Export.XLS_EXPORT, export.xform, export_id, options
+            Export.XLSX_EXPORT, export.xform, export_id, options
         )
     except (Exception, NoRecordsFoundError) as e:
         export.internal_status = Export.FAILED

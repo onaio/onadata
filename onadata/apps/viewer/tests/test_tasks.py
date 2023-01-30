@@ -25,7 +25,7 @@ class TestExportTasks(TestBase):
         options = {"group_delimiter": "/",
                    "remove_group_name": False,
                    "split_select_multiples": True}
-        export_types = ((Export.XLS_EXPORT, {}),
+        export_types = ((Export.XLSX_EXPORT, {}),
                         (Export.GOOGLE_SHEETS_EXPORT, {}),
                         (Export.CSV_EXPORT, {}),
                         (Export.CSV_ZIP_EXPORT, {}),

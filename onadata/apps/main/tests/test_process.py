@@ -554,19 +554,19 @@ class TestProcess(TestBase, SerializeMixin):
                     this_list.append(("transport/" + k, v))
             self.assertEqual(test_dict, dict(this_list))
 
-    def test_xls_export_content(self):
+    def test_xlsx_export_content(self):
         """Test publish and export XLS content."""
         self._publish_xls_file()
         self._make_submissions()
         self._update_dynamic_data()
-        self._check_xls_export()
+        self._check_xlsx_export()
 
-    def _check_xls_export(self):
-        xls_export_url = reverse(
-            "xls_export",
+    def _check_xlsx_export(self):
+        xlsx_export_url = reverse(
+            "xlsx_export",
             kwargs={"username": self.user.username, "id_string": self.xform.id_string},
         )
-        response = self.client.get(xls_export_url)
+        response = self.client.get(xlsx_export_url)
         expected_xls = openpyxl.open(
             filename=os.path.join(
                 self.this_directory,

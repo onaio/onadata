@@ -978,7 +978,7 @@ class ExportBuilder:
         return generated_name
 
     # pylint: disable=too-many-locals,too-many-statements,unused-argument
-    def to_xls_export(self, path, data, *args, **kwargs):
+    def to_xlsx_export(self, path, data, *args, **kwargs):
         """Export data to a spreadsheet document."""
 
         def write_row(data, work_sheet, fields, work_sheet_titles):
