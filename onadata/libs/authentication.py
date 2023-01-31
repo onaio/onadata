@@ -157,7 +157,7 @@ class TempTokenAuthentication(TokenAuthentication):
         try:
             if isinstance(key, bytes):
                 key = key.decode("utf-8")
-            token = self.model.objects.get(key=key)
+            token = self.model.objects.select_related("user").get(key=key)
         except self.model.DoesNotExist as e:
             invalid_token = True
             if getattr(settings, "SLAVE_DATABASES", []):
