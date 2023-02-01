@@ -553,7 +553,7 @@ class ExportBuilder:
                     if child.bind.get("type") == GEOPOINT_BIND_TYPE:
                         # add columns for geopoint components
                         xpaths = DataDictionary.get_additional_geopoint_xpaths(
-                            child.get_abbreviated_xpath()
+                            child.get_abbreviated_xpath(), remove_group_name
                         )
                         for xpath in xpaths:
                             _title = ExportBuilder.format_field_title(
