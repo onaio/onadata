@@ -3,6 +3,33 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.8.0(2023-02-01)
+------------------
+- Ensure that the user row is selected alongside the Token
+  `PR #2362 <https://github.com/onaio/onadata/pull/2362>`_
+  [@FrankApiyo]
+- Render filtered datasets and merged datasets as geojson
+  `PR #2360 <https://github.com/onaio/onadata/pull/2360>`_
+  [@FrankApiyo]
+- Fix an issue where GPS Data within a group is not correctly extracted when group name is removed
+  `PR #2355 <https://github.com/onaio/onadata/pull/2355>`_
+  [@DavisRayM]
+- Update setuptools & futures packages
+  `PR #2353 <https://github.com/onaio/onadata/pull/2353>`_
+  [@DavisRayM]
+- Ensure external select to csv conversion works as expected
+  `PR #2349 <https://github.com/onaio/onadata/pull/2349>`_
+  [@DavisRayM]
+- Return correct geojson for polygons and geotrace data
+  `PR #2348 <https://github.com/onaio/onadata/pull/2348>`_
+  [@FrankApiyo]
+- Ensure Excel exports are in .xlsx format
+  `PR #2346 <https://github.com/onaio/onadata/pull/2346>`_
+  [@KipSigei]
+- Ensure user profiles are created before building user permissions object
+  `PR #2344 <https://github.com/onaio/onadata/pull/2344>`_
+  [@KipSigei]
+
 v3.7.1(2022-12-21)
 ------------------
 
