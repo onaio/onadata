@@ -15,6 +15,7 @@ from rest_framework.reverse import reverse
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 
+from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.apps.api.permissions import DataViewViewsetPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.data_view import DataView
@@ -26,6 +27,7 @@ from onadata.libs.renderers import renderers
 from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.serializers.dataview_serializer import DataViewSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
+from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.utils import common_tags
 from onadata.libs.utils.api_export_tools import (
     custom_response_handler,
@@ -57,7 +59,43 @@ def get_form_field_chart_url(url, field):
     return f"{url}?field_name={field}"
 
 
+def filter_to_field_lookup(filter_string):
+    """
+    Converts a =, < or > to a django field lookup
+    """
+    if filter_string == "=":
+        return "__iexact"
+    if filter_string == "<":
+        return "__lt"
+    return "__gt"
+
+
+def get_field_lookup(column, filter_string):
+    """
+    Convert filter_string + column into a field lookup expression
+    """
+    return "json__" + column + filter_to_field_lookup(filter_string)
+
+
+def apply_filters(instance_qs, filters):
+    """
+    Apply filters on a queryset
+    """
+    if filters:
+        for f in filters:
+            value = f['value']
+            column = f['column']
+            instance_qs = instance_qs.filter(
+                **{
+                    get_field_lookup(column, f['filter']):
+                    value
+                }
+            )
+    return instance_qs
+
 # pylint: disable=too-many-ancestors
+
+
 class DataViewViewSet(
     AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin, BaseViewset, ModelViewSet
 ):
@@ -69,6 +107,7 @@ class DataViewViewSet(
     serializer_class = DataViewSerializer
     permission_classes = [DataViewViewsetPermissions]
     lookup_field = "pk"
+    pagination_class = StandardPageNumberPagination
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
         renderers.XLSRenderer,
         renderers.XLSXRenderer,
@@ -76,15 +115,34 @@ class DataViewViewSet(
         renderers.CSVZIPRenderer,
         renderers.SAVZIPRenderer,
         renderers.ZipRenderer,
+        renderers.GeoJsonRenderer,
     ]
 
     def get_serializer_class(self):
-        if self.action == "data":
+        """
+        Get a serializer class based on request format
+        """
+        export_type = self.kwargs.get("format")
+        if self.action == "data" and export_type == "geojson":
+            serializer_class = GeoJsonSerializer
+        elif self.action == "data":
             serializer_class = JsonDataSerializer
         else:
             serializer_class = self.serializer_class
 
         return serializer_class
+
+    def list(self, request, *args, **kwargs):
+        """
+        List endpoint for Filtered datasets
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page:
+            serializer = self.get_serializer(page, many=True)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     # pylint: disable=redefined-builtin,unused-argument
     @action(methods=["GET"], detail=True)
@@ -113,6 +171,21 @@ class DataViewViewSet(
             serializer = self.get_serializer(data, many=True)
 
             return Response(serializer.data)
+
+        if export_type == "geojson":
+            page = self.paginate_queryset(
+                apply_filters(
+                    self.object.xform.instances.filter(
+                        deleted_at__isnull=True
+                    ), query
+                ).order_by('id')
+            )
+
+            serializer = self.get_serializer(page, many=True)
+            geojson_content_type = 'application/geo+json'
+            return Response(
+                serializer.data,
+                headers={'Content-Type': geojson_content_type})
 
         return custom_response_handler(
             request, self.object.xform, query, export_type, dataview=self.object
@@ -223,9 +296,9 @@ class DataViewViewSet(
             )
 
         if (
+            field_xpath and
+            field_xpath not in dataview.columns and
             field_xpath
-            and field_xpath not in dataview.columns
-            and field_xpath
             not in [
                 common_tags.SUBMISSION_TIME,
                 common_tags.SUBMITTED_BY,

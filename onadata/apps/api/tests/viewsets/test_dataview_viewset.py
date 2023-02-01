@@ -18,7 +18,11 @@ from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
-from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
+from onadata.apps.api.viewsets.dataview_viewset import (
+    DataViewViewSet,
+    filter_to_field_lookup,
+    get_field_lookup
+)
 from onadata.apps.api.viewsets.note_viewset import NoteViewSet
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.utils.cache_tools import (
@@ -69,6 +73,28 @@ class TestDataViewViewSet(TestAbstractViewSet):
     def test_create_dataview(self):
         self._create_dataview()
 
+    def test_filter_to_field_lookup(self):
+        self.assertEqual(
+            filter_to_field_lookup("="), "__iexact"
+        )
+        self.assertEqual(
+            filter_to_field_lookup("<"), "__lt"
+        )
+        self.assertEqual(
+            filter_to_field_lookup(">"), "__gt"
+        )
+
+    def test_get_field_lookup(self):
+        self.assertEqual(
+            get_field_lookup("q1", "="), "json__q1__iexact"
+        )
+        self.assertEqual(
+            get_field_lookup("q1", "<"), "json__q1__lt"
+        )
+        self.assertEqual(
+            get_field_lookup("q1", ">"), "json__q1__gt"
+        )
+
     # pylint: disable=invalid-name
     def test_dataview_with_attachment_field(self):
         view = DataViewViewSet.as_view({"get": "data"})
@@ -113,8 +139,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual("image/png", attachment_info.get("mimetype"))
         self.assertEqual(
             f"{self.user.username}/attachments/{self.xform.id}_{self.xform.id_string}/{media_file}",
-            attachment_info.get("filename"),
-        )
+            attachment_info.get("filename"),)
         self.assertEqual(response.status_code, 200)
 
     # pylint: disable=invalid-name
@@ -1135,6 +1160,57 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertIn("location", response.data[0])
         self.assertIn("_geolocation", response.data[0])
 
+        # geojson pagination, fields and geofield params works ok
+        request = self.factory.get(
+            "/?geofield=_geolocation&page=1&page_size=1&fields=name",
+            **self.extra)
+        response = view(request, pk=self.data_view.pk, format='geojson')
+        # we get correct content type
+        headers = dict(response.items())
+        self.assertEqual(headers["Content-Type"], "application/geo+json")
+        self.assertEqual(response.status_code, 200)
+        del response.data['features'][0]['properties']['xform']
+        del response.data['features'][0]['properties']['id']
+        self.assertEqual(
+            {'type': 'FeatureCollection',
+             'features': [
+                 {'type': 'Feature',
+                  'geometry': None,
+                  'properties': {'name': 'Kameli'}}]},
+            response.data
+        )
+        request = self.factory.get(
+            "/?geofield=_geolocation&page=9&page_size=1&fields=name",
+            **self.extra)
+        response = view(request, pk=self.data_view.pk, format='geojson')
+        self.assertEqual(response.status_code, 200)
+        del response.data['features'][0]['properties']['xform']
+        del response.data['features'][0]['properties']['id']
+        self.assertEqual(
+            {'type': 'FeatureCollection',
+             'features':
+             [
+                 {'type': 'Feature',
+                  'geometry':
+                  {'type':
+                   'GeometryCollection',
+                   'geometries':
+                   [
+                       {'type': 'Point',
+                        'coordinates': [36.8304, -1.2655]}]},
+                  'properties': {'name': 'Kameli'}}]},
+            response.data
+        )
+        request = self.factory.get(
+            "/?geofield=_geolocation&page=10&page_size=1&fields=name",
+            **self.extra)
+        response = view(request, pk=self.data_view.pk, format='geojson')
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(
+            {'detail': 'Invalid page.'},
+            response.data
+        )
+
     # pylint: disable=invalid-name
     def test_dataview_project_cache_cleared(self):
         self._create_dataview()
@@ -1538,11 +1614,11 @@ class TestDataViewViewSet(TestAbstractViewSet):
         first_datetime = start_date.strftime(MONGO_STRFTIME)
         second_datetime = start_date + timedelta(days=1, hours=20)
         query_str = (
-            '{"_submission_time": {"$gte": "'
-            + first_datetime
-            + '", "$lte": "'
-            + second_datetime.strftime(MONGO_STRFTIME)
-            + '"}}'
+            '{"_submission_time": {"$gte": "' +
+            first_datetime +
+            '", "$lte": "' +
+            second_datetime.strftime(MONGO_STRFTIME) +
+            '"}}'
         )
 
         view = DataViewViewSet.as_view(
@@ -1600,11 +1676,11 @@ class TestDataViewViewSet(TestAbstractViewSet):
         first_datetime = start_date.strftime(MONGO_STRFTIME)
         second_datetime = start_date + timedelta(days=1, hours=20)
         query_str = (
-            '{"_submission_time": {"$gte": "'
-            + first_datetime
-            + '", "$lte": "'
-            + second_datetime.strftime(MONGO_STRFTIME)
-            + '"}}'
+            '{"_submission_time": {"$gte": "' +
+            first_datetime +
+            '", "$lte": "' +
+            second_datetime.strftime(MONGO_STRFTIME) +
+            '"}}'
         )
         count = Export.objects.all().count()
 
@@ -1643,11 +1719,11 @@ class TestDataViewViewSet(TestAbstractViewSet):
         first_datetime = start_date.strftime(MONGO_STRFTIME)
         second_datetime = start_date + timedelta(days=1, hours=20)
         query_str = (
-            '{"_submission_time": {"$gte": "'
-            + first_datetime
-            + '", "$lte": "'
-            + second_datetime.strftime(MONGO_STRFTIME)
-            + '"}}'
+            '{"_submission_time": {"$gte": "' +
+            first_datetime +
+            '", "$lte": "' +
+            second_datetime.strftime(MONGO_STRFTIME) +
+            '"}}'
         )
         count = Export.objects.all().count()
 

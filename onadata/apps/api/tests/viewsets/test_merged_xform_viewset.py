@@ -8,6 +8,8 @@ import csv
 import json
 from io import StringIO
 
+from django.utils import timezone
+
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
@@ -407,6 +409,88 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         response = view(request, pk=merged_dataset['id'], format='html')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['data'].__len__(), 0)
+
+    def test_md_geojson_response(self):
+        """Test geojson response of a merged dataset"""
+        merged_dataset = self._create_merged_dataset()
+        merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
+
+        _make_submissions_merged_datasets(merged_xform)
+
+        # we want to check that this submission does not show up in the data
+        form_a = merged_xform.xforms.all()[0]
+        xml = '<data id="a"><fruit>Pineapple</fruit></data>'
+        instance = Instance(xform=form_a, xml=xml)
+        instance.deleted_at = timezone.now()
+        instance.deleted_by = self.user
+        instance.save()
+
+        view = MergedXFormViewSet.as_view({'get': 'data'})
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=merged_dataset['id'], format='geojson')
+        self.assertEqual(response.status_code, 200)
+        # we get correct content type
+        headers = dict(response.items())
+        self.assertEqual(headers["Content-Type"], "application/geo+json")
+        del response.data['features'][0]['properties']['xform']
+        del response.data['features'][1]['properties']['xform']
+        del response.data['features'][0]['properties']['id']
+        del response.data['features'][1]['properties']['id']
+        self.assertEqual(
+            {'type': 'FeatureCollection',
+             'features':
+             [{'type': 'Feature', 'geometry': None, 'properties': {}},
+              {'type': 'Feature', 'geometry': None, 'properties': {}}]},
+            response.data
+        )
+
+        # pagination works ok!
+        request = self.factory.get('/?page=1&page_size=1', **self.extra)
+        response = view(request, pk=merged_dataset['id'], format='geojson')
+        self.assertEqual(response.status_code, 200)
+        del response.data['features'][0]['properties']['xform']
+        del response.data['features'][0]['properties']['id']
+        self.assertEqual(
+            {'type': 'FeatureCollection',
+             'features':
+             [{'type': 'Feature', 'geometry': None, 'properties': {}}]},
+            response.data
+        )
+        request = self.factory.get('/?page=2&page_size=1', **self.extra)
+        response = view(request, pk=merged_dataset['id'], format='geojson')
+        self.assertEqual(response.status_code, 200)
+        del response.data['features'][0]['properties']['xform']
+        del response.data['features'][0]['properties']['id']
+        self.assertEqual(
+            {'type': 'FeatureCollection',
+             'features':
+             [{'type': 'Feature', 'geometry': None, 'properties': {}}]},
+            response.data
+        )
+
+        # fields argument is applied correctly
+        request = self.factory.get('/?page=1&page_size=1&fields=fruit', **self.extra)
+        response = view(request, pk=merged_dataset['id'], format='geojson')
+        self.assertEqual(response.status_code, 200)
+        del response.data['features'][0]['properties']['xform']
+        del response.data['features'][0]['properties']['id']
+        self.assertEqual(
+            {'type': 'FeatureCollection',
+             'features':
+             [{'type': 'Feature', 'geometry': None,
+               'properties': {'fruit': 'orange'}}]},
+            response.data
+        )
+
+        # Invalid page error when we reqeust for a non-existent page
+        request = self.factory.get('/?page=10&page_size=1&fields=fruit', **self.extra)
+        response = view(request, pk=merged_dataset['id'], format='geojson')
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(
+            {'detail': 'Invalid page.'},
+            response.data
+        )
 
     def test_md_csv_export(self):
         """Test CSV export of a merged dataset"""
