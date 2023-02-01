@@ -18,7 +18,7 @@ from onadata.libs import filters
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
-from onadata.libs.pagination import CountOverridablePageNumberPagination
+from onadata.libs.pagination import StandardPageNumberPagination
 
 
 # pylint: disable=too-many-ancestors
@@ -43,6 +43,7 @@ class MergedXFormViewSet(
         .annotate(number_of_submissions=Sum("xforms__num_of_submissions"))
         .all()
     )
+    pagination_class = StandardPageNumberPagination
     serializer_class = MergedXFormSerializer
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
         renderers.StaticXMLRenderer,
@@ -60,6 +61,18 @@ class MergedXFormViewSet(
             serializer_class = self.serializer_class
 
         return serializer_class
+
+    def list(self, request, *args, **kwargs):
+        """
+        List endpoint for Merged XForms
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page:
+            serializer = self.get_serializer(page, many=True)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     # pylint: disable=unused-argument
     @action(methods=["GET"], detail=True)
@@ -91,8 +104,7 @@ class MergedXFormViewSet(
         ).order_by("pk")
 
         if export_type == "geojson":
-            page = CountOverridablePageNumberPagination(
-            ).paginate_queryset(queryset, request, self)
+            page = self.paginate_queryset(queryset)
             geojson_content_type = 'application/geo+json'
             serializer = serializer = self.get_serializer(page, many=True)
             return Response(serializer.data,
