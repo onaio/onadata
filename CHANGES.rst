@@ -3,6 +3,12 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.8.1(2023-02-03)
+------------------
+- Add custom throttling class
+  `PR #2365 <https://github.com/onaio/onadata/pull/2365>`_
+  [@DavisRayM]
+
 v3.8.0(2023-02-01)
 ------------------
 - Ensure that the user row is selected alongside the Token
