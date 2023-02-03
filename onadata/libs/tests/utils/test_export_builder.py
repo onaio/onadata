@@ -2093,6 +2093,96 @@ class TestExportBuilder(TestBase):
             self.assertTrue(data["fav_colors/blue's"])
             self.assertFalse(data["fav_colors/pink's"])
 
+    # pylint: disable=invalid-name
+    def test_gps_xlsx_export_remove_group_name(self):
+        self._publish_xls_file_and_set_xform(_logger_fixture_path("gps_data.xlsx"))
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.set_survey(self.xform.survey, self.xform)
+        self.assertEqual(self.xform.instances.count(), 0)
+        self._make_submission(_logger_fixture_path("gps_data.xml"))
+        self.assertEqual(self.xform.instances.count(), 1)
+        records = self.xform.instances.all()
+        inst_json = records.first().json
+        with NamedTemporaryFile(suffix=".xlsx") as temp_xls_file:
+            export_builder.to_xlsx_export(temp_xls_file.name, [inst_json])
+            temp_xls_file.seek(0)
+            workbook = load_workbook(temp_xls_file.name)
+            gps_sheet = workbook["data"]
+            expected_headers = [
+                'start',
+                'end',
+                'test',
+                'Age',
+                'Image',
+                'Select_one_gender',
+                'respondent_name',
+                '_1_2_Where_do_you_live',
+                '_1_3_Another_test',
+                'GPS',
+                '_GPS_latitude',
+                '_GPS_longitude',
+                '_GPS_altitude',
+                '_GPS_precision',
+                'Another_GPS',
+                '_Another_GPS_latitude',
+                '_Another_GPS_longitude',
+                '_Another_GPS_altitude',
+                '_Another_GPS_precision',
+                '__version__',
+                'instanceID',
+                '_id',
+                '_uuid',
+                '_submission_time',
+                '_index',
+                '_parent_table_name',
+                '_parent_index',
+                '_tags',
+                '_notes',
+                '_version',
+                '_duration',
+                '_submitted_by'
+            ]
+            self.assertEqual(expected_headers, list(tuple(gps_sheet.values)[0]))
+            # test exported data
+            expected_data = [
+                '2023-01-20T12:11:29.278+03:00',
+                '2023-01-20T12:12:00.443+03:00',
+                '2',
+                32,
+                None,
+                'male',
+                'dsa',
+                'zcxsd',
+                None,
+                '-1.248238 36.685681 0 0',
+                -1.248238,
+                36.685681,
+                0,
+                0,
+                "-1.244172 36.685359 0 0",
+                -1.244172,
+                36.685359,
+                0,
+                0,
+                'vTEmiygu2uLZpPHBYX8jKj',
+                'uuid:76887abc-7bc4-4f9c-ba64-197968359d36',
+                inst_json.get("_id"),
+                '76887abc-7bc4-4f9c-ba64-197968359d36',
+                1,
+                None,
+                -1,
+                None,
+                None,
+                'vTEmiygu2uLZpPHBYX8jKj',
+                31,
+                'bob'
+            ]
+            actual_data = list(tuple(gps_sheet.values)[1])
+            # remove submission time
+            del actual_data[23]
+            self.assertEqual(expected_data, actual_data)
+
     def test_zipped_csv_export_remove_group_name(self):
         """
         cvs writer doesnt handle unicode we we have to encode to ascii
