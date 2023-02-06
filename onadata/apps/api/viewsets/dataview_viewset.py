@@ -104,15 +104,17 @@ def apply_filters(instance_qs, filters):
     """
     if filters:
         return instance_qs.filter(**get_filter_kwargs(filters))
-    else:
-        return instance_qs
+    return instance_qs
 
 
-def get_dataview_instances(dataview, query):
+def get_dataview_instances(dataview):
+    """
+    Get all instances that belong to ths dataview
+    """
     return apply_filters(
         dataview.xform.instances.filter(
             deleted_at__isnull=True
-        ), query
+        ), dataview.query
     ).order_by('id')
 
 
@@ -195,7 +197,7 @@ class DataViewViewSet(
 
         if export_type == "geojson":
             page = self.paginate_queryset(
-                get_dataview_instances(self.object, self.object.query)
+                get_dataview_instances(self.object)
             )
 
             serializer = self.get_serializer(page, many=True)

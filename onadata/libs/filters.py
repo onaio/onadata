@@ -334,14 +334,14 @@ class XFormPermissionFilterMixin:
                 **kwargs,
                 **{f"{keyword}": self.dataview.xform}
             }
-        elif merged_xform:
+        if merged_xform:
             int_or_parse_error(
                 merged_xform,
                 "Invalid value for Merged Dataset ID. It must be a positive integer.")
             self.merged_xform = get_object_or_404(MergedXForm, pk=merged_xform)
             xforms = self.merged_xform.xforms.all()
             return {f"{keyword}__in": xforms}
-        elif xform:
+        if xform:
             int_or_parse_error(
                 xform, "Invalid value for formid. It must be a positive integer."
             )
