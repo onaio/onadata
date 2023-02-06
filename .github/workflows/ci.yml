@@ -18,6 +18,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Update apt sources
+        run: |
+           sudo gem install apt-spy2
+           sudo apt-spy2 check
+           sudo apt-spy2 fix --commit
+           sudo apt-get update
+
       - name: Setup python
         uses: actions/setup-python@v4
         with:
@@ -31,7 +38,6 @@ jobs:
 
       - name: Install APT requirements
         run: |
-          sudo sed -i 's/http:\/\/azure./http:\/\/us./g' /etc/apt/sources.list
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev libxml2-dev libxslt-dev
           sudo rm -rf /var/lib/apt/lists/*
@@ -74,6 +80,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Update apt sources
+        run: |
+           sudo gem install apt-spy2
+           sudo apt-spy2 check
+           sudo apt-spy2 fix --commit
+           sudo apt-get update
+
       - name: Setup Java
         uses: actions/setup-java@v3
         with:
@@ -93,7 +106,6 @@ jobs:
 
       - name: Install APT requirements
         run: |
-          sudo sed -i 's/http:\/\/azure./http:\/\/us./g' /etc/apt/sources.list
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev libxml2-dev libxslt-dev
           sudo rm -rf /var/lib/apt/lists/*
@@ -132,6 +144,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Update apt sources
+        run: |
+           sudo gem install apt-spy2
+           sudo apt-spy2 check
+           sudo apt-spy2 fix --commit
+           sudo apt-get update
+
       - name: Setup Java
         uses: actions/setup-java@v3
         with:
@@ -151,7 +170,6 @@ jobs:
 
       - name: Install APT requirements
         run: |
-          sudo sed -i 's/http:\/\/azure./http:\/\/us./g' /etc/apt/sources.list
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev libxml2-dev libxslt-dev
           sudo rm -rf /var/lib/apt/lists/*
@@ -171,6 +189,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Update apt sources
+        run: |
+           sudo gem install apt-spy2
+           sudo apt-spy2 check
+           sudo apt-spy2 fix --commit
+           sudo apt-get update
 
       - name: Get the branch name
         id: get-branch-name
