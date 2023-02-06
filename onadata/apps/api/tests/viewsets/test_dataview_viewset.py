@@ -15,6 +15,7 @@ from openpyxl import load_workbook
 
 from onadata.libs.permissions import ReadOnlyRole
 from onadata.apps.logger.models.data_view import DataView
+from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
@@ -141,6 +142,21 @@ class TestDataViewViewSet(TestAbstractViewSet):
             f"{self.user.username}/attachments/{self.xform.id}_{self.xform.id_string}/{media_file}",
             attachment_info.get("filename"),)
         self.assertEqual(response.status_code, 200)
+
+        # Attachment viewset works ok for filtered datasets
+        attachment_list_view = AttachmentViewSet.as_view({"get": "list"})
+        request = self.factory.get("/?dataview=" + str(self.data_view.pk), **self.extra)
+        response = attachment_list_view(request)
+        response_list = json.loads(json.dumps(response.data))
+        self.assertEqual(1, len(response_list))
+        del response_list[0]['small_download_url']
+        del response_list[0]['medium_download_url']
+        del response_list[0]['download_url']
+        del response_list[0]['filename']
+        self.assertEqual(
+            {'url': 'http://testserver/api/v1/media/1', 'mimetype': 'image/png',
+             'field_xpath': None, 'id': 1, 'xform': 1, 'instance': 9},
+            response_list[0])
 
     # pylint: disable=invalid-name
     def test_get_dataview_form_definition(self):
