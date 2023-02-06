@@ -65,7 +65,7 @@ def filter_to_field_lookup(filter_string):
     Converts a =, < or > to a django field lookup
     """
     if filter_string == "=":
-        return "__iexact"
+        return ""
     if filter_string == "<":
         return "__lt"
     return "__gt"
@@ -78,25 +78,45 @@ def get_field_lookup(column, filter_string):
     return "json__" + column + filter_to_field_lookup(filter_string)
 
 
+def get_filter_kwargs(filters):
+    """
+    Apply filters on a queryset
+    """
+    kwargs = {}
+    if filters:
+        for f in filters:
+            value = f['value']
+            column = f['column']
+            filter_kwargs = {
+                get_field_lookup(column, f['filter']):
+                value
+            }
+            kwargs = {
+                **kwargs,
+                **filter_kwargs
+            }
+    return kwargs
+
+
 def apply_filters(instance_qs, filters):
     """
     Apply filters on a queryset
     """
     if filters:
-        for f in filters:
-            value = f['value']
-            column = f['column']
-            instance_qs = instance_qs.filter(
-                **{
-                    get_field_lookup(column, f['filter']):
-                    value
-                }
-            )
-    return instance_qs
+        return instance_qs.filter(**get_filter_kwargs(filters))
+    else:
+        return instance_qs
+
+
+def get_dataview_instances(dataview, query):
+    return apply_filters(
+        dataview.xform.instances.filter(
+            deleted_at__isnull=True
+        ), query
+    ).order_by('id')
+
 
 # pylint: disable=too-many-ancestors
-
-
 class DataViewViewSet(
     AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin, BaseViewset, ModelViewSet
 ):
@@ -175,11 +195,7 @@ class DataViewViewSet(
 
         if export_type == "geojson":
             page = self.paginate_queryset(
-                apply_filters(
-                    self.object.xform.instances.filter(
-                        deleted_at__isnull=True
-                    ), query
-                ).order_by('id')
+                get_dataview_instances(self.object, self.object.query)
             )
 
             serializer = self.get_serializer(page, many=True)

@@ -75,7 +75,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
     def test_filter_to_field_lookup(self):
         self.assertEqual(
-            filter_to_field_lookup("="), "__iexact"
+            filter_to_field_lookup("="), ""
         )
         self.assertEqual(
             filter_to_field_lookup("<"), "__lt"
@@ -86,7 +86,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
     def test_get_field_lookup(self):
         self.assertEqual(
-            get_field_lookup("q1", "="), "json__q1__iexact"
+            get_field_lookup("q1", "="), "json__q1"
         )
         self.assertEqual(
             get_field_lookup("q1", "<"), "json__q1__lt"
