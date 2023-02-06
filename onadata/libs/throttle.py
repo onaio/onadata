@@ -25,5 +25,10 @@ class RequestHeaderThrottle(SimpleRateThrottle):
             header_value = request.META.get(header, None)
             if header_value == value:
                 ident = header_value
-                return self.cache_format % {"scope": self.scope, "ident": ident}
+                # remove whitespace from key
+                cleaned_ident = ident.replace(" ", "")
+                return self.cache_format % {
+                    "scope": self.scope,
+                    "ident": cleaned_ident
+                }
         return None
