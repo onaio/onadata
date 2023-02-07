@@ -3,6 +3,15 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.8.2(2023-02-07)
+------------------
+- Remove spaces from user-agent cached key
+  `PR #2369 <https://github.com/onaio/onadata/pull/2369>`_
+  [@KipSigei]
+- Correctly remove group name for GPS field headers for xlsx exports
+  `PR #2364 <https://github.com/onaio/onadata/pull/2364>`_
+  [@KipSigei]
+
 v3.8.1(2023-02-03)
 ------------------
 - Add custom throttling class
