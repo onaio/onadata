@@ -18,6 +18,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Update apt sources
+        run: |
+           sudo gem install apt-spy2
+           sudo apt-spy2 check
+           sudo apt-spy2 fix --commit
+           sudo apt-get update
+
       - name: Setup python
         uses: actions/setup-python@v4
         with:
@@ -72,6 +79,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Update apt sources
+        run: |
+           sudo gem install apt-spy2
+           sudo apt-spy2 check
+           sudo apt-spy2 fix --commit
+           sudo apt-get update
 
       - name: Setup Java
         uses: actions/setup-java@v3
@@ -130,6 +144,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Update apt sources
+        run: |
+           sudo gem install apt-spy2
+           sudo apt-spy2 check
+           sudo apt-spy2 fix --commit
+           sudo apt-get update
+
       - name: Setup Java
         uses: actions/setup-java@v3
         with:
@@ -168,6 +189,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Update apt sources
+        run: |
+           sudo gem install apt-spy2
+           sudo apt-spy2 check
+           sudo apt-spy2 fix --commit
+           sudo apt-get update
 
       - name: Get the branch name
         id: get-branch-name

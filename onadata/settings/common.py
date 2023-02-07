@@ -281,6 +281,12 @@ REST_FRAMEWORK = {
         "rest_framework_jsonp.renderers.JSONPRenderer",
         "rest_framework_csv.renderers.CSVRenderer",
     ),
+    'DEFAULT_THROTTLE_CLASSES': [
+        'onadata.libs.throttle.RequestHeaderThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'header': '100/minute'
+    }
 }
 
 SWAGGER_SETTINGS = {
