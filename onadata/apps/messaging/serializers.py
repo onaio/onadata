@@ -17,6 +17,7 @@ from django.http import HttpRequest
 from django.utils.translation import gettext as _
 from rest_framework import exceptions, serializers
 
+from onadata.apps.logger.models import Instance
 from onadata.apps.messaging.constants import MESSAGE, MESSAGE_VERBS
 from onadata.apps.messaging.utils import TargetDoesNotExist, get_target
 
@@ -151,6 +152,7 @@ def send_message(
     target_type: str,
     user: User,
     message_verb: str,
+    custom_message: dict = None
 ):
     """
     Send a message.
@@ -180,12 +182,21 @@ def send_message(
             ids = instance_id
             while len(ids) > 0:
                 data["message"] = json.dumps({"id": ids[:message_id_limit]})
+                if custom_message:
+                    message_dict = json.loads(data["message"])
+                    message_dict.update(custom_message)
+                    data["message"] = json.dumps(message_dict)
                 message = MessageSerializer(data=data, context={"request": request})
                 del ids[:message_id_limit]
                 if message.is_valid():
                     message.save()
         else:
             data["message"] = json.dumps({"id": instance_id})
+            if custom_message:
+                # update default message dict with extra fields
+                message_dict = json.loads(data["message"])
+                message_dict.update(custom_message)
+                data["message"] = json.dumps(message_dict)
             message = MessageSerializer(data=data, context={"request": request})
             if message.is_valid():
                 message.save()
