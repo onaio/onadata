@@ -53,8 +53,15 @@ from onadata.apps.logger.models.xform import XForm, XFormUserObjectPermission
 from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.messaging.constants import (
-    FORM_UPDATED, EXPORT_CREATED, XFORM,
-    FORM_DELETED, FORM_CREATED, PROJECT
+    FORM_UPDATED,
+    EXPORT_CREATED,
+    XFORM,
+    FORM_DELETED,
+    FORM_CREATED,
+    PROJECT,
+    FORM_ACTIVE,
+    FORM_INACTIVE,
+    FORM_RENAMED
 )
 from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer.models.export import Export
@@ -85,7 +92,7 @@ from onadata.libs.utils.api_export_tools import (
     response_for_format,
 )
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_delete
-from onadata.libs.utils.common_tools import json_stream
+from onadata.libs.utils.common_tools import json_stream, str_to_bool
 from onadata.libs.utils.csv_import import (
     get_async_csv_submission_status,
     submission_xls_to_csv,
@@ -437,11 +444,7 @@ class XFormViewSet(
                 owner.id,
                 {"name": fname, "path": xls_file_path},
             )
-            resp.update(
-                {
-                    "job_uuid": survey.task_id
-                }
-            )
+            resp.update({"job_uuid": survey.task_id})
             resp_code = status.HTTP_202_ACCEPTED
 
             # send form creation notification
@@ -848,14 +851,31 @@ class XFormViewSet(
 
         try:
             # send notification for each form activity
-            if request.POST.get("title") or request.POST.get("title"):
+            if request.POST.get("title"):
                 # send form update notification
                 send_message(
                     instance_id=self.object.pk,
                     target_id=self.object.pk,
                     target_type=XFORM,
                     user=request.user or owner,
-                    message_verb=FORM_UPDATED,
+                    message_verb=FORM_RENAMED,
+                    custom_message={
+                        "old_title": self.object.title,
+                        "new_title": request.POST.get("title"),
+                    },
+                )
+            if request.POST.get("downloadable"):
+                downloadable = request.POST.get("downloadable")
+                message_verb = (
+                    FORM_ACTIVE if str_to_bool(downloadable) else FORM_INACTIVE
+                )
+                # send form status notification
+                send_message(
+                    instance_id=self.object.pk,
+                    target_id=self.object.pk,
+                    target_type=XFORM,
+                    user=request.user or owner,
+                    message_verb=message_verb,
                 )
             return super().partial_update(request, *args, **kwargs)
         except XLSFormError as e:

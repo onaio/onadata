@@ -35,6 +35,9 @@ SUBMISSION_REVIEWED = "submission_reviewed"
 FORM_UPDATED = "form_updated"
 FORM_CREATED = "form_created"
 FORM_DELETED = "form_deleted"
+FORM_INACTIVE = "form_inactive"
+FORM_ACTIVE = "form_active"
+FORM_RENAMED = "form_renamed"
 EXPORT_CREATED = "export_created"
 EXPORT_DELETED = "export_deleted"
 PERMISSION_GRANTED = "permission_granted"
@@ -44,7 +47,7 @@ MESSAGE_VERBS = [
     SUBMISSION_DELETED, FORM_UPDATED, FORM_CREATED, FORM_DELETED,
     EXPORT_CREATED, EXPORT_DELETED, PROJECT_EDITED, PROJECT_SHARED,
     PROJECT_CREATED, USER_ADDED_TO_PROJECT, USER_REMOVED_FROM_PROJECT,
-    PROJECT_DELETED
+    PROJECT_DELETED, FORM_INACTIVE, FORM_ACTIVE
 ]
 VERB_TOPIC_DICT = {
     SUBMISSION_CREATED: "submission/created",
@@ -54,6 +57,9 @@ VERB_TOPIC_DICT = {
     FORM_UPDATED: "form/updated",
     FORM_CREATED: "form/created",
     FORM_DELETED: "form/deleted",
+    FORM_ACTIVE: "form/active",
+    FORM_RENAMED: "form/renamed",
+    FORM_INACTIVE: "form/inactive",
     EXPORT_CREATED: "export/created",
     EXPORT_DELETED: "export/deleted",
     PROJECT_CREATED: "project/created",

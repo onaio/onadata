@@ -17,7 +17,6 @@ from django.http import HttpRequest
 from django.utils.translation import gettext as _
 from rest_framework import exceptions, serializers
 
-from onadata.apps.logger.models import Instance
 from onadata.apps.messaging.constants import MESSAGE, MESSAGE_VERBS
 from onadata.apps.messaging.utils import TargetDoesNotExist, get_target
 
@@ -146,6 +145,7 @@ class MessageSerializer(serializers.ModelSerializer):
                     return instance
 
 
+# pylint: disable=too-many-arguments
 def send_message(
     instance_id: Union[list, int],
     target_id: int,

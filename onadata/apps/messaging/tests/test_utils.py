@@ -2,9 +2,11 @@
 Tests messaging app utils
 """
 import json
+from mock import patch
+
 from django.http.request import HttpRequest
 from django.test.utils import override_settings
-from unittest.mock import patch
+
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.messaging.serializers import send_message
@@ -39,6 +41,9 @@ class TestMessagingUtils(TestBase):
 
     @patch('onadata.apps.messaging.serializers.MessageSerializer')
     def test_custom_message(self, message_serializer_mock):
+        """
+        Test custom_message passed into send_message function
+        """
         def is_valid():
             return True
         message_serializer_mock.is_valid.side_effect = is_valid
@@ -73,4 +78,3 @@ class TestMessagingUtils(TestBase):
         message_serializer_mock.called_with(
             data=data, context={"request": request}
         )
-        

@@ -229,14 +229,6 @@ class ProjectViewSet(
                             DEFAULT_FROM_EMAIL,
                             (user.email,),
                         )
-                    # send notification upon sharing project with multiple users
-                    send_message(
-                        instance_id=self.object.pk,
-                        target_id=self.object.pk,
-                        target_type=PROJECT,
-                        user=user,
-                        message_verb=message_verb
-                    )
             else:
                 if email_msg:
                     # send email if email_msg is present in payload
@@ -246,20 +238,19 @@ class ProjectViewSet(
                         DEFAULT_FROM_EMAIL,
                         (user.email,),
                     )
-                # send notification upon sharing project with single user
-                send_message(
-                    instance_id=self.object.pk,
-                    target_id=self.object.pk,
-                    target_type=PROJECT,
-                    user=user,
-                    message_verb=message_verb,
-                )
-
         else:
             return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         # clear cache
         safe_delete(f"{PROJ_OWNER_CACHE}{self.object.pk}")
+        # send message upon sharing/unsharing project with user
+        send_message(
+            instance_id=self.object.pk,
+            target_id=self.object.pk,
+            target_type=PROJECT,
+            user=user,
+            message_verb=message_verb,
+        )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
