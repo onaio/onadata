@@ -690,6 +690,7 @@ class TestExportTools(TestBase, TestAbstractViewSet):
         self.assertTrue(export.is_successful)
         with default_storage.open(export.filepath) as f2:
             content = f2.read().decode("utf-8")
+            instance = xform1.instances.last()
             # test that only the active submission is in the export
             geojson = {
                 "type": "FeatureCollection",
@@ -698,6 +699,8 @@ class TestExportTools(TestBase, TestAbstractViewSet):
                         "type": "Feature",
                         "geometry": {"type": "Point", "coordinates": [35.99, -1.26]},
                         "properties": {
+                            "id": instance.pk,
+                            "xform": xform1.pk,
                             "fruit": "mango",
                             "gps": "-1.26 35.99 0 0",
                             "title": "mango",
@@ -706,9 +709,6 @@ class TestExportTools(TestBase, TestAbstractViewSet):
                 ],
             }
             content = json.loads(content)
-            # remove xform and id from properties because they keep changing
-            del content["features"][0]["properties"]["id"]
-            del content["features"][0]["properties"]["xform"]
             self.assertEqual(content, geojson)
 
     def test_str_to_bool(self):
