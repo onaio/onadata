@@ -592,7 +592,11 @@ def generate_geojson_export(
     }
     _context = {}
     _context["request"] = request
-    content = GeoJsonSerializer(xform.instances.all(), many=True, context=_context)
+    instances = xform.instances
+    # filter out deleted submissions
+    content = GeoJsonSerializer(
+        instances.filter(deleted_at__isnull=True), many=True, context=_context
+    )
     data_to_write = json.dumps(content.data).encode("utf-8")
     timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
     basename = f"{id_string}_{timestamp}"
