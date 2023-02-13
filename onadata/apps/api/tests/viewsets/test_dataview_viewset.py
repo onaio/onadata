@@ -903,6 +903,70 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertIsNotNone(next(response.streaming_content), expected_output)
 
     # pylint: disable=invalid-name
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @patch("onadata.apps.api.viewsets.dataview_viewset.AsyncResult")
+    def test_csv_export_with_choice_labels(self, async_result):
+        """
+        Test that choice labels are present in export when enabled
+        """
+        xform = self.xform
+        project = self.project
+        # add pizza_type column which is has choice labels
+        data = {
+                "name": "My DataView",
+                "xform": f"http://testserver/api/v1/forms/{xform.pk}",
+                "project": f"http://testserver/api/v1/projects/{project.pk}",
+                "columns": '["name", "age", "gender", "pizza_type"]',
+                "query": (
+                    '[{"column":"age","filter":">","value":"20"},'
+                    '{"column":"age","filter":"<","value":"50"}]'
+                ),
+            }
+        self._create_dataview(data=data)
+
+        view = DataViewViewSet.as_view(
+            {
+                "get": "export_async",
+            }
+        )
+
+        data = {
+            "format": "xlsx",
+            "include_labels": "true",
+            "show_choice_labels": "true"
+        }
+
+        request = self.factory.get("/", data=data, **self.extra)
+        response = view(request, pk=self.data_view.pk)
+        self.assertIsNotNone(response.data)
+
+        self.assertEqual(response.status_code, 202)
+        self.assertTrue("job_uuid" in response.data)
+        task_id = response.data.get("job_uuid")
+
+        export_pk = Export.objects.all().order_by("pk").reverse()[0].pk
+
+        # metaclass for mocking results
+        job = type("AsyncResultMock", (), {"state": "SUCCESS", "result": export_pk})
+        async_result.return_value = job
+
+        get_data = {"job_uuid": task_id}
+        request = self.factory.get("/", data=get_data, **self.extra)
+        response = view(request, pk=self.data_view.pk)
+
+        self.assertIn("export_url", response.data)
+
+        self.assertTrue(async_result.called)
+        self.assertEqual(response.status_code, 202)
+        export = Export.objects.get(task_id=task_id)
+        self.assertTrue(export.is_successful)
+        workbook = load_workbook(export.full_filepath)
+        sheet_name = workbook.get_sheet_names()[0]
+        main_sheet = workbook.get_sheet_by_name(sheet_name)
+        # assert that the choice label in pizza_type is present
+        self.assertIn('New York think crust!', list(main_sheet.values)[-1])
+
+    # pylint: disable=invalid-name
     def test_csv_export_with_hxl_support(self):
         self._publish_form_with_hxl_support()
         self._test_csv_export_with_hxl_support(
