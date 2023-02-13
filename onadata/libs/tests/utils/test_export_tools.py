@@ -666,6 +666,11 @@ class TestExportTools(TestBase, TestAbstractViewSet):
             "data_simple_style": True,
             "data_fields": "fruit,gps",
         }
+        # test that we have 2 active submissions before submission deletion
+        self.assertEqual(
+            2,
+            xform1.instances.filter(deleted_at__isnull=True).count(),
+        )
         # delete one sumbission from xform1
         instance = xform1.instances.first()
         instance.deleted_at = timezone.now()
@@ -708,6 +713,7 @@ class TestExportTools(TestBase, TestAbstractViewSet):
                     }
                 ],
             }
+            self.assertEqual(len(geojson['features']), 1)
             content = json.loads(content)
             self.assertEqual(content, geojson)
 
