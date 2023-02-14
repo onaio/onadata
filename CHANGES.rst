@@ -3,6 +3,12 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.8.3(2023-02-14)
+------------------
+- Filter out deleted submissiions from linked GeoJSON
+  `PR #2371 <https://github.com/onaio/onadata/pull/2371>`_
+  [@KipSigei]
+
 v3.8.2(2023-02-07)
 ------------------
 - Remove spaces from user-agent cached key
