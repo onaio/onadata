@@ -32,7 +32,6 @@ from onadata.libs.utils import common_tags
 from onadata.libs.utils.api_export_tools import (
     custom_response_handler,
     export_async_export_response,
-    include_hxl_row,
     process_async_export,
     response_for_format,
 )
@@ -49,7 +48,6 @@ from onadata.libs.utils.export_tools import (
     str_to_bool,
     parse_request_export_options
 )
-from onadata.libs.utils.model_tools import get_columns_with_hxl
 
 # pylint: disable=invalid-name
 BaseViewset = get_baseviewset_class()

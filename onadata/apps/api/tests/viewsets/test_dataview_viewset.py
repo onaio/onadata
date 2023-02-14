@@ -905,9 +905,9 @@ class TestDataViewViewSet(TestAbstractViewSet):
     # pylint: disable=invalid-name
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch("onadata.apps.api.viewsets.dataview_viewset.AsyncResult")
-    def test_csv_export_with_choice_labels(self, async_result):
+    def test_xlsx_export_with_choice_labels(self, async_result):
         """
-        Test that choice labels are present in export when enabled
+        Test that choice labels are present in xlsx export when enabled
         """
         xform = self.xform
         project = self.project
@@ -918,8 +918,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
                 "project": f"http://testserver/api/v1/projects/{project.pk}",
                 "columns": '["name", "age", "gender", "pizza_type"]',
                 "query": (
-                    '[{"column":"age","filter":">","value":"20"},'
-                    '{"column":"age","filter":"<","value":"50"}]'
+                    '[{"column":"age","filter":"=","value":"28"}]'
                 ),
             }
         self._create_dataview(data=data)
@@ -932,7 +931,6 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         data = {
             "format": "xlsx",
-            "include_labels": "true",
             "show_choice_labels": "true"
         }
 
@@ -961,10 +959,118 @@ class TestDataViewViewSet(TestAbstractViewSet):
         export = Export.objects.get(task_id=task_id)
         self.assertTrue(export.is_successful)
         workbook = load_workbook(export.full_filepath)
+        workbook.iso_dates = True
         sheet_name = workbook.get_sheet_names()[0]
         main_sheet = workbook.get_sheet_by_name(sheet_name)
-        # assert that the choice label in pizza_type is present
-        self.assertIn('New York think crust!', list(main_sheet.values)[-1])
+        sheet_headers = list(main_sheet.values)[0]
+        sheet_data = list(main_sheet.values)[1]
+        inst = self.xform.instances.get(id=sheet_data[4])
+        expected_headers = (
+            'name',
+            'age',
+            'gender',
+            'pizza_type',
+            '_id',
+            '_uuid',
+            '_submission_time',
+            '_index',
+            '_parent_table_name',
+            '_parent_index',
+            '_tags',
+            '_notes',
+            '_version',
+            '_duration',
+            '_submitted_by',
+        )
+        expected_data = (
+            'Dennis Wambua',
+            28,
+            'Male',
+            'New York think crust!',
+            inst.id,
+            inst.uuid,
+            inst.date_created.replace(microsecond=0, tzinfo=None),
+            1,
+            None,
+            -1,
+            None,
+            None,
+            '4444',
+            50,
+            inst.user.username,
+        )
+        self.assertEqual(expected_headers, sheet_headers)
+        self.assertEqual(expected_data, sheet_data)
+
+    # pylint: disable=invalid-name
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @patch("onadata.apps.api.viewsets.dataview_viewset.AsyncResult")
+    def test_csv_export_with_choice_labels(self, async_result):
+        """
+        Test that choice labels are present in csv export when enabled
+        """
+        xform = self.xform
+        project = self.project
+        # add pizza_type column which is has choice labels
+        data = {
+                "name": "My DataView",
+                "xform": f"http://testserver/api/v1/forms/{xform.pk}",
+                "project": f"http://testserver/api/v1/projects/{project.pk}",
+                "columns": '["name", "age", "gender", "pizza_type"]',
+                "query": (
+                    '[{"column":"age","filter":"=","value":"28"}]'
+                ),
+            }
+        self._create_dataview(data=data)
+
+        view = DataViewViewSet.as_view(
+            {
+                "get": "export_async",
+            }
+        )
+
+        data = {
+            "format": "csv",
+            "show_choice_labels": "true"
+        }
+
+        request = self.factory.get("/", data=data, **self.extra)
+        response = view(request, pk=self.data_view.pk)
+        self.assertIsNotNone(response.data)
+
+        self.assertEqual(response.status_code, 202)
+        self.assertTrue("job_uuid" in response.data)
+        task_id = response.data.get("job_uuid")
+
+        export_pk = Export.objects.all().order_by("pk").reverse()[0].pk
+
+        # metaclass for mocking results
+        job = type("AsyncResultMock", (), {"state": "SUCCESS", "result": export_pk})
+        async_result.return_value = job
+
+        get_data = {"job_uuid": task_id}
+        request = self.factory.get("/", data=get_data, **self.extra)
+        response = view(request, pk=self.data_view.pk)
+
+        self.assertIn("export_url", response.data)
+
+        self.assertTrue(async_result.called)
+        self.assertEqual(response.status_code, 202)
+        export = Export.objects.get(task_id=task_id)
+        self.assertTrue(export.is_successful)
+        with default_storage.open(export.filepath, "r") as f:
+            expected_data = [
+                'Dennis Wambua',
+                '28',
+                'Male',
+                'New York think crust!'
+            ]
+            expected_headers = ['name', 'age', 'gender', 'pizza_type']
+            csv_reader = csv.reader(f)
+            headers = next(csv_reader)
+            self.assertEqual(expected_headers, headers)
+            data = next(csv_reader)
+            self.assertEqual(expected_data, data)
 
     # pylint: disable=invalid-name
     def test_csv_export_with_hxl_support(self):
@@ -1725,6 +1831,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         export = Export.objects.get(task_id=task_id)
         self.assertTrue(export.is_successful)
         workbook = load_workbook(export.full_filepath)
+        workbook.iso_dates = True
         sheet_name = workbook.get_sheet_names()[0]
         main_sheet = workbook.get_sheet_by_name(sheet_name)
         self.assertIn("Gender", tuple(main_sheet.values)[1])
