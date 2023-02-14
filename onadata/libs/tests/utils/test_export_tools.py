@@ -627,6 +627,96 @@ class TestExportTools(TestBase, TestAbstractViewSet):
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)
 
+    def test_geojson_export_when_submission_deleted(self):
+        """
+        Test generate_geojson_export() when submissions are deleted
+        """
+        self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
+        geo_md = """
+        | survey |
+        |        | type              | name  | label |
+        |        | geopoint          | gps   | GPS   |
+        |        | select one fruits | fruit | Fruit |
+
+        | choices |
+        |         | list name | name   | label  |
+        |         | fruits    | orange | Orange |
+        |         | fruits    | mango  | Mango  |
+        """
+        xform1 = self._publish_markdown(geo_md, self.user, id_string="a")
+        # create 2 submissions
+        xml = '<data id="a"><gps>-1.28 36.83 0 0</gps><fruit>orange</fruit></data>'
+        xml2 = '<data id="a"><gps>-1.26 35.99 0 0</gps><fruit>mango</fruit></data>'
+        Instance(xform=xform1, xml=xml).save()
+        Instance(xform=xform1, xml=xml2).save()
+        request = self.factory.get("/", **self.extra)
+        XFormSerializer(xform1, context={"request": request}).data
+        xform1 = XForm.objects.get(id_string="a")
+        export_type = "geojson"
+        options = {
+            "extension": "geojson",
+        }
+        self._publish_transportation_form_and_submit_instance()
+        # set metadata to xform
+        data_type = "media"
+        data_value = "xform_geojson {} {}".format(xform1.pk, xform1.id_string)
+        extra_data = {
+            "data_title": "fruit",
+            "data_geo_field": "gps",
+            "data_simple_style": True,
+            "data_fields": "fruit,gps",
+        }
+        # test that we have 2 active submissions before submission deletion
+        self.assertEqual(
+            2,
+            xform1.instances.filter(deleted_at__isnull=True).count(),
+        )
+        # delete one sumbission from xform1
+        instance = xform1.instances.first()
+        instance.deleted_at = timezone.now()
+        instance.save()
+        self.assertEqual(
+            1,
+            xform1.instances.filter(deleted_at__isnull=True).count(),
+        )
+        response = self._add_form_metadata(
+            self.xform, data_type, data_value, extra_data=extra_data
+        )
+        self.assertEqual(response.status_code, 201)
+        username = self.xform.user.username
+        id_string = self.xform.id_string
+        # get metadata instance and pass to geojson export util function
+        self.assertEqual(self.xform.metadata_set.count(), 1)
+        metadata = self.xform.metadata_set.all()[0]
+        export = generate_geojson_export(
+            export_type, username, id_string, metadata, options=options, xform=xform1
+        )
+        self.assertIsNotNone(export)
+        self.assertTrue(export.is_successful)
+        with default_storage.open(export.filepath) as f2:
+            content = f2.read().decode("utf-8")
+            instance = xform1.instances.last()
+            # test that only the active submission is in the export
+            geojson = {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "geometry": {"type": "Point", "coordinates": [35.99, -1.26]},
+                        "properties": {
+                            "id": instance.pk,
+                            "xform": xform1.pk,
+                            "fruit": "mango",
+                            "gps": "-1.26 35.99 0 0",
+                            "title": "mango",
+                        },
+                    }
+                ],
+            }
+            self.assertEqual(len(geojson['features']), 1)
+            content = json.loads(content)
+            self.assertEqual(content, geojson)
+
     def test_str_to_bool(self):
         self.assertTrue(str_to_bool(True))
         self.assertTrue(str_to_bool("True"))

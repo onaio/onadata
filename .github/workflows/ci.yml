@@ -20,7 +20,7 @@ jobs:
 
       - name: Update apt sources
         run: |
-           sudo gem install apt-spy2
+           sudo gem install apt-spy2 -v '< 0.8.0'
            sudo apt-spy2 check
            sudo apt-spy2 fix --commit
            sudo apt-get update
@@ -82,7 +82,7 @@ jobs:
 
       - name: Update apt sources
         run: |
-           sudo gem install apt-spy2
+           sudo gem install apt-spy2 -v '< 0.8.0'
            sudo apt-spy2 check
            sudo apt-spy2 fix --commit
            sudo apt-get update
@@ -146,7 +146,7 @@ jobs:
 
       - name: Update apt sources
         run: |
-           sudo gem install apt-spy2
+           sudo gem install apt-spy2 -v '< 0.8.0'
            sudo apt-spy2 check
            sudo apt-spy2 fix --commit
            sudo apt-get update
@@ -192,7 +192,7 @@ jobs:
 
       - name: Update apt sources
         run: |
-           sudo gem install apt-spy2
+           sudo gem install apt-spy2 -v '< 0.8.0'
            sudo apt-spy2 check
            sudo apt-spy2 fix --commit
            sudo apt-get update
