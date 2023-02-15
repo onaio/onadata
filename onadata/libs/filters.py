@@ -326,7 +326,8 @@ class XFormPermissionFilterMixin:
         public_forms = XForm.objects.none()
         if dataview:
             int_or_parse_error(
-                dataview, "Invalid value for dataview ID. It must be a positive integer."
+                dataview,
+                "Invalid value for dataview ID. It must be a positive integer."
             )
             self.dataview = get_object_or_404(DataView, pk=dataview)
             kwargs = get_filter_kwargs(self.dataview.query)

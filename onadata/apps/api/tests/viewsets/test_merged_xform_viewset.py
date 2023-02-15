@@ -5,21 +5,25 @@ Test merged dataset functionality.
 from __future__ import unicode_literals
 
 import csv
+import os
 import json
 from io import StringIO
 
 from django.utils import timezone
+from django.conf import settings
+from django.core.files.base import File
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
+from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
 from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
 from onadata.apps.api.viewsets.open_data_viewset import OpenDataViewSet
 from onadata.apps.api.viewsets.xform_list_viewset import XFormListViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import Instance, MergedXForm, XForm
+from onadata.apps.logger.models import Attachment, Instance, MergedXForm, XForm
 from onadata.apps.logger.models.instance import FormIsMergedDatasetError
 from onadata.apps.logger.models.open_data import get_or_create_opendata
 from onadata.apps.restservice.models import RestService
@@ -70,6 +74,14 @@ def streaming_data(response):
     """
     return json.loads(u''.join(
         [i.decode('utf-8') for i in response.streaming_content]))
+
+
+def _add_attachments_to_instances(instance):
+    attachment_file_path = os.path.join(
+        settings.PROJECT_ROOT, "libs", "tests", "utils", "fixtures", "test-image.png"
+    )
+    Attachment.objects.create(instance=instance, media_file=File(
+        open(attachment_file_path, "rb"), attachment_file_path))
 
 
 def _make_submissions_merged_datasets(merged_xform):
@@ -539,6 +551,46 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             'instance__deleted_at__isnull': True,
             'instance__xform_id': xform.pk
         })
+
+    # pylint: disable=invalid-name
+    def test_merged_with_attachment_endpoint(self):
+        merged_dataset = self._create_merged_dataset()
+        merged_xform = MergedXForm.objects.get(pk=merged_dataset['id'])
+        _make_submissions_merged_datasets(merged_xform)
+
+        # Attachment viewset works ok for filtered datasets
+        attachment_list_view = AttachmentViewSet.as_view({"get": "list"})
+        all_instances = Instance.objects.filter(xform__in=merged_xform.xforms.all())
+        for instance in all_instances:
+            _add_attachments_to_instances(instance)
+        request = self.factory.get(
+            "/?merged_xform=" + str(merged_xform.pk),
+            **self.extra)
+        response = attachment_list_view(request)
+        response_list = json.loads(json.dumps(response.data))
+        # We are removing all these because they keep changing
+        del response_list[0]['small_download_url']
+        del response_list[0]['medium_download_url']
+        del response_list[0]['download_url']
+        del response_list[0]['filename']
+        del response_list[0]['id']
+        del response_list[0]['instance']
+        del response_list[0]['url']
+        del response_list[0]['xform']
+        del response_list[1]['small_download_url']
+        del response_list[1]['medium_download_url']
+        del response_list[1]['download_url']
+        del response_list[1]['filename']
+        del response_list[1]['id']
+        del response_list[1]['instance']
+        del response_list[1]['url']
+        del response_list[1]['xform']
+        self.assertEqual(
+            response_list,
+            [{'field_xpath': None,
+              'mimetype': 'image/png'},
+             {'field_xpath': None,
+              'mimetype': 'image/png'}])
 
     def test_merged_dataset_charts(self):
         """Test /charts endpoint for a merged dataset works"""
