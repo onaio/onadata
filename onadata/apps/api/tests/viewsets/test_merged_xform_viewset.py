@@ -31,6 +31,7 @@ from onadata.apps.restservice.viewsets.restservices_viewset import \
     RestServicesViewSet
 from onadata.libs.utils.export_tools import get_osm_data_kwargs
 from onadata.libs.utils.user_auth import get_user_default_project
+from onadata.libs.serializers.attachment_serializer import AttachmentSerializer
 
 MD = """
 | survey  |
@@ -78,10 +79,16 @@ def streaming_data(response):
 
 def _add_attachments_to_instances(instance):
     attachment_file_path = os.path.join(
-        settings.PROJECT_ROOT, "libs", "tests", "utils", "fixtures", "test-image.png"
+        settings.PROJECT_ROOT,
+        "libs",
+        "tests",
+        "utils",
+        "fixtures",
+        "test-image.png"
     )
-    Attachment.objects.create(instance=instance, media_file=File(
-        open(attachment_file_path, "rb"), attachment_file_path))
+    with open(attachment_file_path, "rb") as file:
+        Attachment.objects.create(instance=instance, media_file=File(
+            file, attachment_file_path))
 
 
 def _make_submissions_merged_datasets(merged_xform):
@@ -567,30 +574,13 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             "/?merged_xform=" + str(merged_xform.pk),
             **self.extra)
         response = attachment_list_view(request)
-        response_list = json.loads(json.dumps(response.data))
-        # We are removing all these because they keep changing
-        del response_list[0]['small_download_url']
-        del response_list[0]['medium_download_url']
-        del response_list[0]['download_url']
-        del response_list[0]['filename']
-        del response_list[0]['id']
-        del response_list[0]['instance']
-        del response_list[0]['url']
-        del response_list[0]['xform']
-        del response_list[1]['small_download_url']
-        del response_list[1]['medium_download_url']
-        del response_list[1]['download_url']
-        del response_list[1]['filename']
-        del response_list[1]['id']
-        del response_list[1]['instance']
-        del response_list[1]['url']
-        del response_list[1]['xform']
+        serialized_attachments = AttachmentSerializer(
+            Attachment.objects.filter(
+                instance__xform__in=merged_xform.xforms.all()),
+            many=True, context={'request': request}).data
         self.assertEqual(
-            response_list,
-            [{'field_xpath': None,
-              'mimetype': 'image/png'},
-             {'field_xpath': None,
-              'mimetype': 'image/png'}])
+            response.data,
+            serialized_attachments)
 
     def test_merged_dataset_charts(self):
         """Test /charts endpoint for a merged dataset works"""

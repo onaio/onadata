@@ -15,7 +15,7 @@ from openpyxl import load_workbook
 
 from onadata.libs.permissions import ReadOnlyRole
 from onadata.apps.logger.models.data_view import DataView
-from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models import Instance, Attachment
 from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.viewer.models.export import Export
@@ -40,6 +40,7 @@ from onadata.libs.utils.common_tools import (
     filename_from_disposition,
     get_response_content,
 )
+from onadata.libs.serializers.attachment_serializer import AttachmentSerializer
 
 
 class TestDataViewViewSet(TestAbstractViewSet):
@@ -102,15 +103,15 @@ class TestDataViewViewSet(TestAbstractViewSet):
     def test_get_filter_kwargs(self):
         self.assertEqual(
             get_filter_kwargs([{"value": 2, "column": "first_column", "filter": "<"}]),
-            {'json__first_column__lt': 2}
+            {'json__first_column__lt': '2'}
         )
         self.assertEqual(
             get_filter_kwargs([{"value": 2, "column": "first_column", "filter": ">"}]),
-            {'json__first_column__gt': 2}
+            {'json__first_column__gt': '2'}
         )
         self.assertEqual(
             get_filter_kwargs([{"value": 2, "column": "first_column", "filter": "="}]),
-            {'json__first_column__iexact': 2}
+            {'json__first_column__iexact': '2'}
         )
 
     def test_apply_filters(self):
@@ -177,16 +178,15 @@ class TestDataViewViewSet(TestAbstractViewSet):
         attachment_list_view = AttachmentViewSet.as_view({"get": "list"})
         request = self.factory.get("/?dataview=" + str(self.data_view.pk), **self.extra)
         response = attachment_list_view(request)
-        response_list = json.loads(json.dumps(response.data))
-        self.assertEqual(1, len(response_list))
-        del response_list[0]['small_download_url']
-        del response_list[0]['medium_download_url']
-        del response_list[0]['download_url']
-        del response_list[0]['filename']
+        self.assertEqual(1, len(response.data))
+        self.assertEqual(self.data_view.query, {})
+        serialized_attachments = AttachmentSerializer(
+                Attachment.objects.filter(
+                    instance__xform=self.data_view.xform),
+                many=True, context={'request': request}).data
         self.assertEqual(
-            {'url': 'http://testserver/api/v1/media/1', 'mimetype': 'image/png',
-             'field_xpath': None, 'id': 1, 'xform': 1, 'instance': 9},
-            response_list[0])
+            serialized_attachments,
+            response.data)
 
     # pylint: disable=invalid-name
     def test_get_dataview_form_definition(self):
