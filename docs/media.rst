@@ -130,6 +130,74 @@ Response
         ...
     ]
 
+Lists attachments of a merged dataset
+-------------------------------------
+
+.. raw:: html
+
+    <pre class="prettyprint">GET /api/v1/media/?merged_xform=<code>{merged_xform_id}</code></pre>
+
+Example
+^^^^^^^
+::
+
+     curl -X GET https://api.ona.io/api/v1/media?merged_xform=1
+
+Response
+^^^^^^^^
+::
+
+    [
+        {
+            "url": "http://testserver/api/v1/media/1",
+            "filename": "bob/attachments/1_a/test-image_qdCeDHO.png",
+            "mimetype": "image/png",
+            "field_xpath": null,
+            "id": 1,
+            "xform": 1,
+            "instance": 1,
+            "download_url": "http://testserver/api/v1/files/1?filename=bob/attachments/1_a/test-image_qdCeDHO.png",
+            "small_download_url": "http://testserver/api/v1/files/1?filename=bob/attachments/1_a/test-image_qdCeDHO.png&suffix=small",
+            "medium_download_url": "http://testserver/api/v1/files/1?filename=bob/attachments/1_a/test-image_qdCeDHO.png&suffix=medium"
+        },
+        ...
+    ]
+
+Lists attachments of a filtered dataset
+---------------------------------------
+
+You'll ned to pass a `dataview` parameter to the media endpoint. Filtered datasets are internally known as dataviews.
+
+.. raw:: html
+
+    <pre class="prettyprint">GET /api/v1/media/?dataview=<code>{filtered_dataset_id}</code></pre>
+
+Example
+^^^^^^^
+::
+
+     curl -X GET https://api.ona.io/api/v1/media?dataview=1
+
+Response
+^^^^^^^^
+::
+
+    [
+        {
+            "url": "http://testserver/api/v1/media/1",
+            "filename": "bob/attachments/1_a/test-image_qdCeDHO.png",
+            "mimetype": "image/png",
+            "field_xpath": null,
+            "id": 1,
+            "xform": 1,
+            "instance": 1,
+            "download_url": "http://testserver/api/v1/files/1?filename=bob/attachments/1_a/test-image_qdCeDHO.png",
+            "small_download_url": "http://testserver/api/v1/files/1?filename=bob/attachments/1_a/test-image_qdCeDHO.png&suffix=small",
+            "medium_download_url": "http://testserver/api/v1/files/1?filename=bob/attachments/1_a/test-image_qdCeDHO.png&suffix=medium"
+        },
+        ...
+    ]
+
 Lists attachments of a specific instance
 ----------------------------------------
 
