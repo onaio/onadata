@@ -115,7 +115,7 @@ def get_dataview_instances(dataview):
         dataview.xform.instances.filter(
             deleted_at__isnull=True
         ), dataview.query
-    ).order_by('id')
+    )
 
 
 # pylint: disable=too-many-ancestors
