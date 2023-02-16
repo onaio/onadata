@@ -32,7 +32,6 @@ from onadata.libs.utils import common_tags
 from onadata.libs.utils.api_export_tools import (
     custom_response_handler,
     export_async_export_response,
-    include_hxl_row,
     process_async_export,
     response_for_format,
 )
@@ -45,8 +44,10 @@ from onadata.libs.utils.chart_tools import (
     get_chart_data_for_field,
     get_field_from_field_name,
 )
-from onadata.libs.utils.export_tools import str_to_bool
-from onadata.libs.utils.model_tools import get_columns_with_hxl
+from onadata.libs.utils.export_tools import (
+    str_to_bool,
+    parse_request_export_options
+)
 
 # pylint: disable=invalid-name
 BaseViewset = get_baseviewset_class()
@@ -198,40 +199,16 @@ class DataViewViewSet(
         params = request.query_params
         job_uuid = params.get("job_uuid")
         export_type = params.get("format")
-        include_hxl = params.get("include_hxl", False)
-        include_labels = params.get("include_labels", False)
-        include_labels_only = params.get("include_labels_only", False)
-        force_xlsx = params.get("force_xlsx", False)
         query = params.get("query")
         dataview = self.get_object()
         xform = dataview.xform
+        options = parse_request_export_options(params)
 
-        if include_labels is not None:
-            include_labels = str_to_bool(include_labels)
-
-        if include_labels_only is not None:
-            include_labels_only = str_to_bool(include_labels_only)
-
-        if include_hxl is not None:
-            include_hxl = str_to_bool(include_hxl)
-
-        if force_xlsx is not None:
-            force_xlsx = str_to_bool(force_xlsx)
-
-        remove_group_name = params.get("remove_group_name", False)
-        columns_with_hxl = get_columns_with_hxl(xform.survey.get("children"))
-
-        if columns_with_hxl and include_hxl:
-            include_hxl = include_hxl_row(dataview.columns, list(columns_with_hxl))
-
-        options = {
-            "remove_group_name": remove_group_name,
-            "dataview_pk": dataview.pk,
-            "include_hxl": include_hxl,
-            "include_labels": include_labels,
-            "include_labels_only": include_labels_only,
-            "force_xlsx": force_xlsx,
-        }
+        options.update(
+            {
+                "dataview_pk": dataview.pk,
+            }
+        )
         if query:
             options.update({"query": query})
 
