@@ -65,7 +65,7 @@ def filter_to_field_lookup(filter_string):
     Converts a =, < or > to a django field lookup
     """
     if filter_string == "=":
-        return ""
+        return "__iexact"
     if filter_string == "<":
         return "__lt"
     return "__gt"
@@ -85,7 +85,7 @@ def get_filter_kwargs(filters):
     kwargs = {}
     if filters:
         for f in filters:
-            value = f['value']
+            value = f"{f['value']}"
             column = f['column']
             filter_kwargs = {
                 get_field_lookup(column, f['filter']):

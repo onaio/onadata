@@ -15,6 +15,7 @@ from openpyxl import load_workbook
 
 from onadata.libs.permissions import ReadOnlyRole
 from onadata.apps.logger.models.data_view import DataView
+from onadata.apps.logger.models import Instance
 from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.viewer.models.export import Export
@@ -22,7 +23,9 @@ from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.dataview_viewset import (
     DataViewViewSet,
     filter_to_field_lookup,
-    get_field_lookup
+    get_field_lookup,
+    get_filter_kwargs,
+    apply_filters
 )
 from onadata.apps.api.viewsets.note_viewset import NoteViewSet
 from onadata.libs.serializers.xform_serializer import XFormSerializer
@@ -76,7 +79,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
     def test_filter_to_field_lookup(self):
         self.assertEqual(
-            filter_to_field_lookup("="), ""
+            filter_to_field_lookup("="), "__iexact"
         )
         self.assertEqual(
             filter_to_field_lookup("<"), "__lt"
@@ -87,7 +90,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
     def test_get_field_lookup(self):
         self.assertEqual(
-            get_field_lookup("q1", "="), "json__q1"
+            get_field_lookup("q1", "="), "json__q1__iexact"
         )
         self.assertEqual(
             get_field_lookup("q1", "<"), "json__q1__lt"
@@ -95,6 +98,33 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(
             get_field_lookup("q1", ">"), "json__q1__gt"
         )
+
+    def test_get_filter_kwargs(self):
+        self.assertEqual(
+            get_filter_kwargs([{"value": 2, "column": "first_column", "filter": "<"}]),
+            {'json__first_column__lt': 2}
+        )
+        self.assertEqual(
+            get_filter_kwargs([{"value": 2, "column": "first_column", "filter": ">"}]),
+            {'json__first_column__gt': 2}
+        )
+        self.assertEqual(
+            get_filter_kwargs([{"value": 2, "column": "first_column", "filter": "="}]),
+            {'json__first_column__iexact': 2}
+        )
+
+    def test_apply_filters(self):
+        # update these filters
+        filters = [{'value': 'orange', 'column': 'fruit', 'filter': '='}]
+        xml = '<data id="a"><fruit>orange</fruit></data>'
+        instance = Instance(xform=self.xform, xml=xml)
+        instance.save()
+        self.assertEqual(
+            apply_filters(self.xform.instances, filters).first().xml,
+            xml
+        )
+        # delete instance
+        instance.delete()
 
     # pylint: disable=invalid-name
     def test_dataview_with_attachment_field(self):
