@@ -17,7 +17,8 @@ from rest_framework import filters
 from rest_framework_guardian.filters import ObjectPermissionsFilter
 
 from onadata.apps.api.models import OrganizationProfile, Team
-from onadata.apps.logger.models import Instance, Project, XForm
+from onadata.apps.logger.models import Instance, Project, XForm, DataView, MergedXForm
+from onadata.apps.api.viewsets.dataview_viewset import get_filter_kwargs
 from onadata.apps.viewer.models import Export
 from onadata.libs.permissions import exclude_items_from_queryset_using_xform_meta_perms
 from onadata.libs.utils.common_tags import MEDIA_FILE_TYPES
@@ -146,8 +147,8 @@ class OrganizationPermissionFilter(ObjectPermissionsFilter):
 
         filtered_queryset = super().filter_queryset(request, queryset, view)
         org_users = set(
-            [group.team.organization for group in request.user.groups.all()]
-            + [o.user for o in filtered_queryset]
+            [group.team.organization for group in request.user.groups.all()] +
+            [o.user for o in filtered_queryset]
         )
 
         return queryset.model.objects.filter(user__in=org_users, user__is_active=True)
@@ -319,9 +320,28 @@ class XFormPermissionFilterMixin:
 
     def _xform_filter(self, request, view, keyword):
         """Use XForm permissions"""
-
         xform = request.query_params.get("xform")
+        dataview = request.query_params.get("dataview")
+        merged_xform = request.query_params.get("merged_xform")
         public_forms = XForm.objects.none()
+        if dataview:
+            int_or_parse_error(
+                dataview,
+                "Invalid value for dataview ID. It must be a positive integer."
+            )
+            self.dataview = get_object_or_404(DataView, pk=dataview)
+            kwargs = get_filter_kwargs(self.dataview.query)
+            return {
+                **kwargs,
+                **{f"{keyword}": self.dataview.xform}
+            }
+        if merged_xform:
+            int_or_parse_error(
+                merged_xform,
+                "Invalid value for Merged Dataset ID. It must be a positive integer.")
+            self.merged_xform = get_object_or_404(MergedXForm, pk=merged_xform)
+            xforms = self.merged_xform.xforms.all()
+            return {f"{keyword}__in": xforms}
         if xform:
             int_or_parse_error(
                 xform, "Invalid value for formid. It must be a positive integer."
@@ -369,7 +389,6 @@ class ProjectPermissionFilterMixin:
     def _project_filter_queryset(self, request, queryset, view, keyword):
         """Use Project Permissions"""
         kwarg = self._project_filter(request, view, keyword)
-
         return queryset.filter(**kwarg)
 
 

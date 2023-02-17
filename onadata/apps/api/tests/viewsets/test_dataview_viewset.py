@@ -15,13 +15,17 @@ from openpyxl import load_workbook
 
 from onadata.libs.permissions import ReadOnlyRole
 from onadata.apps.logger.models.data_view import DataView
+from onadata.apps.logger.models import Instance, Attachment
+from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.dataview_viewset import (
     DataViewViewSet,
     filter_to_field_lookup,
-    get_field_lookup
+    get_field_lookup,
+    get_filter_kwargs,
+    apply_filters
 )
 from onadata.apps.api.viewsets.note_viewset import NoteViewSet
 from onadata.libs.serializers.xform_serializer import XFormSerializer
@@ -36,6 +40,7 @@ from onadata.libs.utils.common_tools import (
     filename_from_disposition,
     get_response_content,
 )
+from onadata.libs.serializers.attachment_serializer import AttachmentSerializer
 
 
 class TestDataViewViewSet(TestAbstractViewSet):
@@ -95,6 +100,33 @@ class TestDataViewViewSet(TestAbstractViewSet):
             get_field_lookup("q1", ">"), "json__q1__gt"
         )
 
+    def test_get_filter_kwargs(self):
+        self.assertEqual(
+            get_filter_kwargs([{"value": 2, "column": "first_column", "filter": "<"}]),
+            {'json__first_column__lt': '2'}
+        )
+        self.assertEqual(
+            get_filter_kwargs([{"value": 2, "column": "first_column", "filter": ">"}]),
+            {'json__first_column__gt': '2'}
+        )
+        self.assertEqual(
+            get_filter_kwargs([{"value": 2, "column": "first_column", "filter": "="}]),
+            {'json__first_column__iexact': '2'}
+        )
+
+    def test_apply_filters(self):
+        # update these filters
+        filters = [{'value': 'orange', 'column': 'fruit', 'filter': '='}]
+        xml = '<data id="a"><fruit>orange</fruit></data>'
+        instance = Instance(xform=self.xform, xml=xml)
+        instance.save()
+        self.assertEqual(
+            apply_filters(self.xform.instances, filters).first().xml,
+            xml
+        )
+        # delete instance
+        instance.delete()
+
     # pylint: disable=invalid-name
     def test_dataview_with_attachment_field(self):
         view = DataViewViewSet.as_view({"get": "data"})
@@ -141,6 +173,20 @@ class TestDataViewViewSet(TestAbstractViewSet):
             f"{self.user.username}/attachments/{self.xform.id}_{self.xform.id_string}/{media_file}",
             attachment_info.get("filename"),)
         self.assertEqual(response.status_code, 200)
+
+        # Attachment viewset works ok for filtered datasets
+        attachment_list_view = AttachmentViewSet.as_view({"get": "list"})
+        request = self.factory.get("/?dataview=" + str(self.data_view.pk), **self.extra)
+        response = attachment_list_view(request)
+        self.assertEqual(1, len(response.data))
+        self.assertEqual(self.data_view.query, {})
+        serialized_attachments = AttachmentSerializer(
+                Attachment.objects.filter(
+                    instance__xform=self.data_view.xform),
+                many=True, context={'request': request}).data
+        self.assertEqual(
+            serialized_attachments,
+            response.data)
 
     # pylint: disable=invalid-name
     def test_get_dataview_form_definition(self):
