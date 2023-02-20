@@ -3,6 +3,15 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.8.4(2023-02-20)
+------------------
+- Fix choice labels bug on filtered dataset exports
+  `PR #2372 <https://github.com/onaio/onadata/pull/2372>`_
+  [@KipSigei]
+- Fix: Media endpoint currently returns an empty list for filtered and merged datasets
+  `PR #2371 <https://github.com/onaio/onadata/pull/2371>`_
+  [@FrankApiyo]
+
 v3.8.3(2023-02-14)
 ------------------
 - Filter out deleted submissiions from linked GeoJSON
