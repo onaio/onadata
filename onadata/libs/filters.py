@@ -318,6 +318,13 @@ class TagFilter(filters.BaseFilterBackend):
 class XFormPermissionFilterMixin:
     """XForm permission filter."""
 
+    def _add_instance_prefix_to_dataview_filter_kwargs(self, filter_kwargs):
+        prefixed_filter_kwargs = {}
+        for kwarg in filter_kwargs:
+            prefixed_filter_kwargs["instance__" + kwarg] = filter_kwargs[kwarg]
+
+        return prefixed_filter_kwargs
+
     def _xform_filter(self, request, view, keyword):
         """Use XForm permissions"""
         xform = request.query_params.get("xform")
@@ -330,7 +337,8 @@ class XFormPermissionFilterMixin:
                 "Invalid value for dataview ID. It must be a positive integer."
             )
             self.dataview = get_object_or_404(DataView, pk=dataview)
-            kwargs = get_filter_kwargs(self.dataview.query)
+            kwargs = self._add_instance_prefix_to_dataview_filter_kwargs(
+                get_filter_kwargs(self.dataview.query))
             return {
                 **kwargs,
                 **{f"{keyword}": self.dataview.xform}
