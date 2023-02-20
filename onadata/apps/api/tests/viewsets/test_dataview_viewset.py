@@ -156,6 +156,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
             "project": f"http://testserver/api/v1/projects/{self.project.pk}",
             # ensure there's an attachment column(photo) in you dataview
             "columns": '["name", "age", "gender", "photo"]',
+            "query": '[{"column":"pizza_fan","filter":"=","value":"no"}]',
         }
 
         self._create_dataview(data=data)
@@ -179,11 +180,12 @@ class TestDataViewViewSet(TestAbstractViewSet):
         request = self.factory.get("/?dataview=" + str(self.data_view.pk), **self.extra)
         response = attachment_list_view(request)
         self.assertEqual(1, len(response.data))
-        self.assertEqual(self.data_view.query, {})
+        self.assertEqual(self.data_view.query,
+                         [{'value': 'no', 'column': 'pizza_fan', 'filter': '='}])
         serialized_attachments = AttachmentSerializer(
-                Attachment.objects.filter(
-                    instance__xform=self.data_view.xform),
-                many=True, context={'request': request}).data
+            Attachment.objects.filter(
+                instance__xform=self.data_view.xform),
+            many=True, context={'request': request}).data
         self.assertEqual(
             serialized_attachments,
             response.data)
@@ -959,14 +961,14 @@ class TestDataViewViewSet(TestAbstractViewSet):
         project = self.project
         # add pizza_type column which is has choice labels
         data = {
-                "name": "My DataView",
-                "xform": f"http://testserver/api/v1/forms/{xform.pk}",
-                "project": f"http://testserver/api/v1/projects/{project.pk}",
-                "columns": '["name", "age", "gender", "pizza_type"]',
-                "query": (
+            "name": "My DataView",
+            "xform": f"http://testserver/api/v1/forms/{xform.pk}",
+            "project": f"http://testserver/api/v1/projects/{project.pk}",
+            "columns": '["name", "age", "gender", "pizza_type"]',
+            "query": (
                     '[{"column":"age","filter":"=","value":"28"}]'
-                ),
-            }
+            ),
+        }
         self._create_dataview(data=data)
 
         view = DataViewViewSet.as_view(
@@ -1059,14 +1061,14 @@ class TestDataViewViewSet(TestAbstractViewSet):
         project = self.project
         # add pizza_type column which is has choice labels
         data = {
-                "name": "My DataView",
-                "xform": f"http://testserver/api/v1/forms/{xform.pk}",
-                "project": f"http://testserver/api/v1/projects/{project.pk}",
-                "columns": '["name", "age", "gender", "pizza_type"]',
-                "query": (
+            "name": "My DataView",
+            "xform": f"http://testserver/api/v1/forms/{xform.pk}",
+            "project": f"http://testserver/api/v1/projects/{project.pk}",
+            "columns": '["name", "age", "gender", "pizza_type"]',
+            "query": (
                     '[{"column":"age","filter":"=","value":"28"}]'
-                ),
-            }
+            ),
+        }
         self._create_dataview(data=data)
 
         view = DataViewViewSet.as_view(
