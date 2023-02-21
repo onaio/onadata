@@ -19,7 +19,13 @@ from onadata.apps.api.tools import (
 )
 from onadata.apps.logger.models.project import Project
 from onadata.apps.main.models.user_profile import UserProfile
-from onadata.libs.permissions import ROLES, OwnerRole, is_organization
+from onadata.libs.permissions import (
+    ROLES,
+    ManagerRole,
+    OwnerRole,
+    ReadOnlyRole,
+    is_organization,
+)
 from onadata.libs.serializers.fields.organization_field import OrganizationField
 from onadata.libs.serializers.share_project_serializer import ShareProjectSerializer
 from onadata.libs.utils.project_utils import propagate_project_permissions_async
@@ -58,6 +64,11 @@ def _set_organization_role_to_user(organization, user, role):
     elif role != OwnerRole.name:
         # add user to org projects
         for project in organization.user.project_org.all():
+            # Managers should only get read only permissions for projects they haven't created
+            if role == ManagerRole.name and project.created_by != user:
+                role = ReadOnlyRole
+            else:
+                role = ManagerRole
             data = {"project": project.pk, "username": user.username, "role": role}
             serializer = ShareProjectSerializer(data=data)
             if serializer.is_valid():
