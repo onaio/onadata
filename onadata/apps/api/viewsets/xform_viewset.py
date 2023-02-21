@@ -445,8 +445,15 @@ class XFormViewSet(
             )
         # pylint: disable=attribute-defined-outside-init
         self.etag_data = f"{form.date_modified}"
-        filename = form.id_string + "." + form_format
         response = response_for_format(form, format=form_format)
+
+        # add backward compatibility for existing .xls forms
+        if form_format in XLS_EXTENSIONS:
+            data = response.data
+            existing_file_format = data.name.split(".")[-1]
+            if existing_file_format == 'xls':
+                form_format = existing_file_format
+        filename = form.id_string + "." + form_format
         response["Content-Disposition"] = "attachment; filename=" + filename
 
         return response
