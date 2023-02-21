@@ -13,6 +13,7 @@ from onadata.apps.api.tools import (
     add_user_to_organization,
     add_user_to_team,
     get_or_create_organization_owners_team,
+    get_organization_members_team,
     get_organization_members,
     remove_user_from_organization,
     remove_user_from_team,
@@ -23,7 +24,7 @@ from onadata.libs.permissions import (
     ROLES,
     ManagerRole,
     OwnerRole,
-    ReadOnlyRole,
+    get_team_project_default_permissions,
     is_organization,
 )
 from onadata.libs.serializers.fields.organization_field import OrganizationField
@@ -43,11 +44,14 @@ def _compose_send_email(organization, user, email_msg, email_subject=None):
     send_mail(email_subject, email_msg, DEFAULT_FROM_EMAIL, (user.email,))
 
 
-def _set_organization_role_to_user(organization, user, role):
+def _set_organization_role_to_user(
+    organization, user, role, respect_member_team_role: bool = True
+):
     role_cls = ROLES.get(role)
     role_cls.add(user, organization)
 
     owners_team = get_or_create_organization_owners_team(organization)
+    members_team = get_organization_members_team(organization)
 
     # add user to their respective team
     if role == OwnerRole.name:
@@ -60,15 +64,16 @@ def _set_organization_role_to_user(organization, user, role):
             serializer = ShareProjectSerializer(data=data)
             if serializer.is_valid():
                 serializer.save()
-
     elif role != OwnerRole.name:
+        # Managers and normal users are counted as member of the organization
+        add_user_to_team(members_team, user)
         # add user to org projects
         for project in organization.user.project_org.all():
-            # Managers should only get read only permissions for projects they haven't created
-            if role == ManagerRole.name and project.created_by != user:
-                role = ReadOnlyRole
-            else:
-                role = ManagerRole
+            if respect_member_team_role:
+                if role == ManagerRole.name and project.created_by == user:
+                    role = ManagerRole
+                else:
+                    role = get_team_project_default_permissions(members_team, project)
             data = {"project": project.pk, "username": user.username, "role": role}
             serializer = ShareProjectSerializer(data=data)
             if serializer.is_valid():
