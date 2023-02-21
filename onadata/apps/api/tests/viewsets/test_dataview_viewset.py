@@ -179,16 +179,62 @@ class TestDataViewViewSet(TestAbstractViewSet):
         attachment_list_view = AttachmentViewSet.as_view({"get": "list"})
         request = self.factory.get("/?dataview=" + str(self.data_view.pk), **self.extra)
         response = attachment_list_view(request)
+        attachments = Attachment.objects.filter(
+            instance__xform=self.data_view.xform)
         self.assertEqual(1, len(response.data))
         self.assertEqual(self.data_view.query,
                          [{'value': 'no', 'column': 'pizza_fan', 'filter': '='}])
         serialized_attachments = AttachmentSerializer(
-            Attachment.objects.filter(
-                instance__xform=self.data_view.xform),
+            attachments,
             many=True, context={'request': request}).data
         self.assertEqual(
             serialized_attachments,
             response.data)
+
+        # create profile for alice
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com',
+                      'password1': 'alice', 'password2': 'alice',
+                      'first_name': 'Alice', 'last_name': 'A',
+                      'city': 'Nairobi', 'country': 'KE'}
+        alice_profile = self._create_user_profile(extra_post_data=alice_data)
+
+        # check that user with no permisisons can not list attachment objects
+        request = self.factory.get("/?dataview=" + str(self.data_view.pk), **self.extra)
+        request.user = alice_profile.user
+        response = attachment_list_view(request, user=alice_profile.user)
+        attachments = Attachment.objects.filter(
+            instance__xform=self.data_view.xform)
+        self.assertEqual(0, len(response.data))
+        self.assertEqual(self.data_view.query,
+                         [{'value': 'no', 'column': 'pizza_fan', 'filter': '='}])
+        self.assertEqual(
+            [],
+            response.data)
+
+        # check that user with no permisisons can not view a specific attachment object
+        attachment_list_view = AttachmentViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/?dataview=" + str(self.data_view.pk), **self.extra)
+        request.user = alice_profile.user
+        response = attachment_list_view(
+            request, pk=attachments.first().pk, user=alice_profile.user)
+        self.assertEqual(self.data_view.query,
+                         [{'value': 'no', 'column': 'pizza_fan', 'filter': '='}])
+        self.assertEqual(response.status_code, 404)
+        response_data = json.loads(json.dumps(response.data))
+        self.assertEqual(response_data, {'detail': 'Not found.'})
+
+        # a user with permissions can view a specific attachment object
+        attachment_list_view = AttachmentViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/?dataview=" + str(self.data_view.pk), **self.extra)
+        response = attachment_list_view(
+            request, pk=attachments.first().pk, user=self.user)
+        self.assertEqual(self.data_view.query,
+                         [{'value': 'no', 'column': 'pizza_fan', 'filter': '='}])
+        self.assertEqual(response.status_code, 200)
+        serialized_attachment = AttachmentSerializer(
+            attachments.first(),
+            context={'request': request}).data
+        self.assertEqual(response.data, serialized_attachment)
 
     # pylint: disable=invalid-name
     def test_get_dataview_form_definition(self):
