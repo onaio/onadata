@@ -197,11 +197,11 @@ class TestDataViewViewSet(TestAbstractViewSet):
                       'first_name': 'Alice', 'last_name': 'A',
                       'city': 'Nairobi', 'country': 'KE'}
         alice_profile = self._create_user_profile(extra_post_data=alice_data)
+        self.extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
 
         # check that user with no permisisons can not list attachment objects
         request = self.factory.get("/?dataview=" + str(self.data_view.pk), **self.extra)
-        request.user = alice_profile.user
-        response = attachment_list_view(request, user=alice_profile.user)
+        response = attachment_list_view(request)
         attachments = Attachment.objects.filter(
             instance__xform=self.data_view.xform)
         self.assertEqual(0, len(response.data))
@@ -214,9 +214,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
         # check that user with no permisisons can not view a specific attachment object
         attachment_list_view = AttachmentViewSet.as_view({"get": "retrieve"})
         request = self.factory.get("/?dataview=" + str(self.data_view.pk), **self.extra)
-        request.user = alice_profile.user
         response = attachment_list_view(
-            request, pk=attachments.first().pk, user=alice_profile.user)
+            request, pk=attachments.first().pk)
         self.assertEqual(self.data_view.query,
                          [{'value': 'no', 'column': 'pizza_fan', 'filter': '='}])
         self.assertEqual(response.status_code, 404)
@@ -225,9 +224,10 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         # a user with permissions can view a specific attachment object
         attachment_list_view = AttachmentViewSet.as_view({"get": "retrieve"})
+        self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
         request = self.factory.get("/?dataview=" + str(self.data_view.pk), **self.extra)
         response = attachment_list_view(
-            request, pk=attachments.first().pk, user=self.user)
+            request, pk=attachments.first().pk)
         self.assertEqual(self.data_view.query,
                          [{'value': 'no', 'column': 'pizza_fan', 'filter': '='}])
         self.assertEqual(response.status_code, 200)
