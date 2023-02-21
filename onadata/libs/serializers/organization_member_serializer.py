@@ -44,9 +44,7 @@ def _compose_send_email(organization, user, email_msg, email_subject=None):
     send_mail(email_subject, email_msg, DEFAULT_FROM_EMAIL, (user.email,))
 
 
-def _set_organization_role_to_user(
-    organization, user, role, respect_member_team_role: bool = True
-):
+def _set_organization_role_to_user(organization, user, role):
     role_cls = ROLES.get(role)
     role_cls.add(user, organization)
 
@@ -69,10 +67,10 @@ def _set_organization_role_to_user(
         add_user_to_team(members_team, user)
         # add user to org projects
         for project in organization.user.project_org.all():
-            if respect_member_team_role:
-                if role == ManagerRole.name and project.created_by == user:
-                    role = ManagerRole
-                else:
+            if role is None:
+                role = get_team_project_default_permissions(members_team, project)
+            elif role == ManagerRole:
+                if project.created_by != user:
                     role = get_team_project_default_permissions(members_team, project)
             data = {"project": project.pk, "username": user.username, "role": role}
             serializer = ShareProjectSerializer(data=data)
