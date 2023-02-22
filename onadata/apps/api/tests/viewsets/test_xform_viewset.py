@@ -32,6 +32,7 @@ from django_digest.test import DigestAuth
 from flaky import flaky
 from httmock import HTTMock
 from mock import Mock, patch
+from onadata.libs.utils.api_export_tools import get_existing_file_format
 from rest_framework import status
 from rest_framework.viewsets import ModelViewSet
 
@@ -862,6 +863,39 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.xform.version, "201411120717"
             )
             self.assertEqual(response_xml, expected_doc.toxml())
+
+    def test_existing_form_format(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({"get": "form"})
+            formid = self.xform.pk
+            request = self.factory.get("/", **self.extra)
+            # get existing form format
+            exsting_format = get_existing_file_format(self.xform.xls, 'xls')
+
+            # XLSX format
+            response = view(request, pk=formid, format="xlsx")
+            self.assertEqual(response.status_code, 200)
+            self.assertNotEqual(response.get("Cache-Control"), None)
+
+            # test correct content disposition
+            # ensure it still maintains the existing form extension
+            self.assertEqual(
+                response.get("Content-Disposition"),
+                "attachment; filename=" + self.xform.id_string + "." + exsting_format,
+            )
+
+            # XLS format
+            response = view(request, pk=formid, format="xls")
+            self.assertEqual(response.status_code, 200)
+            self.assertNotEqual(response.get("Cache-Control"), None)
+
+            # test correct content disposition
+            # ensure it still maintains the existing form extension
+            self.assertEqual(
+                response.get("Content-Disposition"),
+                "attachment; filename=" + self.xform.id_string + "." + exsting_format,
+            )
 
     def test_form_tags(self):
         with HTTMock(enketo_mock):
