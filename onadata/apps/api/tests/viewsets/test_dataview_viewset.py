@@ -156,6 +156,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
             "project": f"http://testserver/api/v1/projects/{self.project.pk}",
             # ensure there's an attachment column(photo) in you dataview
             "columns": '["name", "age", "gender", "photo"]',
+            "query": '[{"column":"pizza_fan","filter":"=","value":"no"}]',
         }
 
         self._create_dataview(data=data)
@@ -178,15 +179,62 @@ class TestDataViewViewSet(TestAbstractViewSet):
         attachment_list_view = AttachmentViewSet.as_view({"get": "list"})
         request = self.factory.get("/?dataview=" + str(self.data_view.pk), **self.extra)
         response = attachment_list_view(request)
+        attachments = Attachment.objects.filter(
+            instance__xform=self.data_view.xform)
         self.assertEqual(1, len(response.data))
-        self.assertEqual(self.data_view.query, {})
+        self.assertEqual(self.data_view.query,
+                         [{'value': 'no', 'column': 'pizza_fan', 'filter': '='}])
         serialized_attachments = AttachmentSerializer(
-                Attachment.objects.filter(
-                    instance__xform=self.data_view.xform),
-                many=True, context={'request': request}).data
+            attachments,
+            many=True, context={'request': request}).data
         self.assertEqual(
             serialized_attachments,
             response.data)
+
+        # create profile for alice
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com',
+                      'password1': 'alice', 'password2': 'alice',
+                      'first_name': 'Alice', 'last_name': 'A',
+                      'city': 'Nairobi', 'country': 'KE'}
+        alice_profile = self._create_user_profile(extra_post_data=alice_data)
+        self.extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
+
+        # check that user with no permisisons can not list attachment objects
+        request = self.factory.get("/?dataview=" + str(self.data_view.pk), **self.extra)
+        response = attachment_list_view(request)
+        attachments = Attachment.objects.filter(
+            instance__xform=self.data_view.xform)
+        self.assertEqual(0, len(response.data))
+        self.assertEqual(self.data_view.query,
+                         [{'value': 'no', 'column': 'pizza_fan', 'filter': '='}])
+        self.assertEqual(
+            [],
+            response.data)
+
+        # check that user with no permisisons can not view a specific attachment object
+        attachment_list_view = AttachmentViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/?dataview=" + str(self.data_view.pk), **self.extra)
+        response = attachment_list_view(
+            request, pk=attachments.first().pk)
+        self.assertEqual(self.data_view.query,
+                         [{'value': 'no', 'column': 'pizza_fan', 'filter': '='}])
+        self.assertEqual(response.status_code, 404)
+        response_data = json.loads(json.dumps(response.data))
+        self.assertEqual(response_data, {'detail': 'Not found.'})
+
+        # a user with permissions can view a specific attachment object
+        attachment_list_view = AttachmentViewSet.as_view({"get": "retrieve"})
+        self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
+        request = self.factory.get("/?dataview=" + str(self.data_view.pk), **self.extra)
+        response = attachment_list_view(
+            request, pk=attachments.first().pk)
+        self.assertEqual(self.data_view.query,
+                         [{'value': 'no', 'column': 'pizza_fan', 'filter': '='}])
+        self.assertEqual(response.status_code, 200)
+        serialized_attachment = AttachmentSerializer(
+            attachments.first(),
+            context={'request': request}).data
+        self.assertEqual(response.data, serialized_attachment)
 
     # pylint: disable=invalid-name
     def test_get_dataview_form_definition(self):
@@ -959,14 +1007,14 @@ class TestDataViewViewSet(TestAbstractViewSet):
         project = self.project
         # add pizza_type column which is has choice labels
         data = {
-                "name": "My DataView",
-                "xform": f"http://testserver/api/v1/forms/{xform.pk}",
-                "project": f"http://testserver/api/v1/projects/{project.pk}",
-                "columns": '["name", "age", "gender", "pizza_type"]',
-                "query": (
+            "name": "My DataView",
+            "xform": f"http://testserver/api/v1/forms/{xform.pk}",
+            "project": f"http://testserver/api/v1/projects/{project.pk}",
+            "columns": '["name", "age", "gender", "pizza_type"]',
+            "query": (
                     '[{"column":"age","filter":"=","value":"28"}]'
-                ),
-            }
+            ),
+        }
         self._create_dataview(data=data)
 
         view = DataViewViewSet.as_view(
@@ -1059,14 +1107,14 @@ class TestDataViewViewSet(TestAbstractViewSet):
         project = self.project
         # add pizza_type column which is has choice labels
         data = {
-                "name": "My DataView",
-                "xform": f"http://testserver/api/v1/forms/{xform.pk}",
-                "project": f"http://testserver/api/v1/projects/{project.pk}",
-                "columns": '["name", "age", "gender", "pizza_type"]',
-                "query": (
+            "name": "My DataView",
+            "xform": f"http://testserver/api/v1/forms/{xform.pk}",
+            "project": f"http://testserver/api/v1/projects/{project.pk}",
+            "columns": '["name", "age", "gender", "pizza_type"]',
+            "query": (
                     '[{"column":"age","filter":"=","value":"28"}]'
-                ),
-            }
+            ),
+        }
         self._create_dataview(data=data)
 
         view = DataViewViewSet.as_view(

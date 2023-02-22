@@ -318,31 +318,37 @@ class TagFilter(filters.BaseFilterBackend):
 class XFormPermissionFilterMixin:
     """XForm permission filter."""
 
+    def _add_instance_prefix_to_dataview_filter_kwargs(self, filter_kwargs):
+        prefixed_filter_kwargs = {}
+        for kwarg in filter_kwargs:
+            prefixed_filter_kwargs["instance__" + kwarg] = filter_kwargs[kwarg]
+
+        return prefixed_filter_kwargs
+
     def _xform_filter(self, request, view, keyword):
         """Use XForm permissions"""
         xform = request.query_params.get("xform")
         dataview = request.query_params.get("dataview")
         merged_xform = request.query_params.get("merged_xform")
         public_forms = XForm.objects.none()
+        dataview_kwargs = {}
         if dataview:
             int_or_parse_error(
                 dataview,
                 "Invalid value for dataview ID. It must be a positive integer."
             )
             self.dataview = get_object_or_404(DataView, pk=dataview)
-            kwargs = get_filter_kwargs(self.dataview.query)
-            return {
-                **kwargs,
-                **{f"{keyword}": self.dataview.xform}
-            }
-        if merged_xform:
+            # filter with fitlered dataset query
+            dataview_kwargs = self._add_instance_prefix_to_dataview_filter_kwargs(
+                get_filter_kwargs(self.dataview.query))
+            xform_qs = XForm.objects.filter(pk=self.dataview.xform.pk)
+        elif merged_xform:
             int_or_parse_error(
                 merged_xform,
                 "Invalid value for Merged Dataset ID. It must be a positive integer.")
             self.merged_xform = get_object_or_404(MergedXForm, pk=merged_xform)
-            xforms = self.merged_xform.xforms.all()
-            return {f"{keyword}__in": xforms}
-        if xform:
+            xform_qs = self.merged_xform.xforms.all()
+        elif xform:
             int_or_parse_error(
                 xform, "Invalid value for formid. It must be a positive integer."
             )
@@ -357,7 +363,10 @@ class XFormPermissionFilterMixin:
             xforms = xform_qs.filter(shared_data=True)
         else:
             xforms = super().filter_queryset(request, xform_qs, view) | public_forms
-        return {f"{keyword}__in": xforms}
+        return {
+            **{f"{keyword}__in": xforms},
+            **dataview_kwargs
+        }
 
     def _xform_filter_queryset(self, request, queryset, view, keyword):
         kwarg = self._xform_filter(request, view, keyword)
