@@ -9,7 +9,7 @@ concurrency:
 jobs:
   static-analysis:
     name: Prospector Static Analysis
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       DJANGO_SETTINGS_MODULE: onadata.settings.github_actions_test
     strategy:
@@ -17,13 +17,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
-      - name: Update apt sources
-        run: |
-           sudo gem install apt-spy2 -v '< 0.8.0'
-           sudo apt-spy2 check
-           sudo apt-spy2 fix --commit
-           sudo apt-get update
 
       - name: Setup python
         uses: actions/setup-python@v4
@@ -36,11 +29,11 @@ jobs:
             requirements/dev.pip
             requirements/azure.pip
 
+      - name: Update apt sources
+        run: sudo apt-get update
+
       - name: Install APT requirements
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev libxml2-dev libxslt-dev
-          sudo rm -rf /var/lib/apt/lists/*
+        run: sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev libxml2-dev libxslt-dev
 
       - name: Install Pip requirements
         run: |
@@ -57,7 +50,7 @@ jobs:
         run: prospector -X -s veryhigh onadata
   unit-tests-1:
     name: Django Unit Tests (Libraries, Main, RestServices, SMS Support, Viewer, Messaging)
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: static-analysis
     env:
       DJANGO_SETTINGS_MODULE: onadata.settings.github_actions_test
@@ -80,13 +73,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Update apt sources
-        run: |
-           sudo gem install apt-spy2 -v '< 0.8.0'
-           sudo apt-spy2 check
-           sudo apt-spy2 fix --commit
-           sudo apt-get update
-
       - name: Setup Java
         uses: actions/setup-java@v3
         with:
@@ -104,11 +90,11 @@ jobs:
             requirements/dev.pip
             requirements/azure.pip
 
+      - name: Update apt sources
+        run: sudo apt-get update
+
       - name: Install APT requirements
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev libxml2-dev libxslt-dev
-          sudo rm -rf /var/lib/apt/lists/*
+        run: sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev libxml2-dev libxslt-dev
 
       - name: Install Pip requirements
         run: |
@@ -121,7 +107,7 @@ jobs:
           python manage.py test onadata/libs onadata/apps/main onadata/apps/restservice onadata/apps/sms_support onadata/apps/viewer onadata/apps/messaging --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4
   unit-tests-2:
     name: Django Unit Tests (API, Logger)
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: static-analysis
     env:
       DJANGO_SETTINGS_MODULE: onadata.settings.github_actions_test
@@ -144,13 +130,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Update apt sources
-        run: |
-           sudo gem install apt-spy2 -v '< 0.8.0'
-           sudo apt-spy2 check
-           sudo apt-spy2 fix --commit
-           sudo apt-get update
-
       - name: Setup Java
         uses: actions/setup-java@v3
         with:
@@ -168,11 +147,11 @@ jobs:
             requirements/dev.pip
             requirements/azure.pip
 
+      - name: Update apt sources
+        run: sudo apt-get update
+
       - name: Install APT requirements
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev libxml2-dev libxslt-dev
-          sudo rm -rf /var/lib/apt/lists/*
+        run: sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev libxml2-dev libxslt-dev
 
       - name: Install Pip requirements
         run: |
@@ -185,17 +164,13 @@ jobs:
           python manage.py test onadata/apps/api onadata/apps/logger --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4
   security-check:
     name: Trivy Security Checks
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Update apt sources
-        run: |
-           sudo gem install apt-spy2 -v '< 0.8.0'
-           sudo apt-spy2 check
-           sudo apt-spy2 fix --commit
-           sudo apt-get update
+        run: sudo apt-get update
 
       - name: Get the branch name
         id: get-branch-name
