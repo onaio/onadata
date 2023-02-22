@@ -3,6 +3,12 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.8.5(2023-02-22)
+------------------
+- Fix: FieldError: Cannot resolve keyword 'json' into field from Attachment model
+  `PR #2380 <https://github.com/onaio/onadata/pull/2380>`_
+  [@FrankApiyo]
+
 v3.8.4(2023-02-20)
 ------------------
 - Fix choice labels bug on filtered dataset exports
