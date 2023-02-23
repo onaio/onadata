@@ -46,7 +46,8 @@ def _compose_send_email(organization, user, email_msg, email_subject=None):
 
 def _set_organization_role_to_user(organization, user, role):
     role_cls = ROLES.get(role)
-    role_cls.add(user, organization)
+    if role_cls:
+        role_cls.add(user, organization)
 
     owners_team = get_or_create_organization_owners_team(organization)
     members_team = get_organization_members_team(organization)
@@ -162,8 +163,7 @@ class OrganizationMemberSerializer(serializers.Serializer):
 
             add_user_to_organization(organization, user)
 
-            if role:
-                _set_organization_role_to_user(organization, user, role)
+            _set_organization_role_to_user(organization, user, role)
 
             if email_msg:
                 _compose_send_email(organization, user, email_msg, email_subject)
