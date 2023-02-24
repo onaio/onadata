@@ -19,7 +19,7 @@ from onadata.apps.main.models import TokenStorageModel
 from onadata.apps.viewer.models.export import Export, ExportConnectionError
 from onadata.libs.exceptions import ServiceUnavailable
 from onadata.libs.utils.api_export_tools import (
-    get_async_response, process_async_export,
+    get_async_response, get_existing_file_format, process_async_export,
     response_for_format,
     get_metadata_format,
     _get_google_credential
@@ -222,6 +222,19 @@ class TestApiExportTools(TestBase):
             xform.pk, xform.id_string)
         fmt = get_metadata_format(data_value)
         self.assertEqual(fmt, "csv")
+
+    def test_get_existing_file_format(self):
+        """
+        Test existing form download format/ext.
+        """
+        self._publish_xlsx_file()
+        xform = XForm.objects.filter().last()
+        fmt = get_existing_file_format(xform.xls, 'xlsx')
+        self.assertEqual("xlsx", fmt)
+        # ensure it picks existing file extension regardless
+        # of format passed in request params
+        fmt = get_existing_file_format(xform.xls, 'xls')
+        self.assertEqual("xlsx", fmt)
 
     # pylint: disable=invalid-name
     @mock.patch(

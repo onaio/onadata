@@ -77,6 +77,7 @@ from onadata.libs.serializers.xform_serializer import (
 from onadata.libs.utils.api_export_tools import (
     custom_response_handler,
     get_async_response,
+    get_existing_file_format,
     process_async_export,
     response_for_format,
 )
@@ -445,8 +446,11 @@ class XFormViewSet(
             )
         # pylint: disable=attribute-defined-outside-init
         self.etag_data = f"{form.date_modified}"
-        filename = form.id_string + "." + form_format
         response = response_for_format(form, format=form_format)
+
+        # add backward compatibility for existing .xls forms
+        form_format = get_existing_file_format(form.xls, form_format)
+        filename = form.id_string + "." + form_format
         response["Content-Disposition"] = "attachment; filename=" + filename
 
         return response
