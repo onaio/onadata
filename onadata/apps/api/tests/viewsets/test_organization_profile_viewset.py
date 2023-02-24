@@ -11,7 +11,10 @@ from django.core.cache import cache
 from mock import patch
 from rest_framework import status
 
-from onadata.apps.api.models.organization_profile import OrganizationProfile
+from onadata.apps.api.models.organization_profile import (
+    OrganizationProfile,
+    get_organization_members_team,
+)
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.tools import (
     add_user_to_organization,
@@ -23,7 +26,12 @@ from onadata.apps.api.viewsets.organization_profile_viewset import (
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.main.models import UserProfile
-from onadata.libs.permissions import OwnerRole, EditorRole
+from onadata.libs.models.share_team_project import ShareTeamProject
+from onadata.libs.permissions import (
+    DataEntryRole,
+    OwnerRole,
+    EditorRole,
+)
 
 
 # pylint: disable=too-many-public-methods
@@ -287,6 +295,10 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(set(response.data), set(["denoinc", "aboy"]))
 
+    def test_add_members_to_org_permissions(self):
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({"post": "members", "get": "members"})
+
     def test_add_members_to_org_user_org_account(self):
         self._org_create()
         view = OrganizationProfileViewSet.as_view({"post": "members"})
@@ -475,7 +487,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             "/",
             data=json.dumps(alice_data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 201)
@@ -788,7 +800,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             "/",
             data=json.dumps(alice_data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 201)
@@ -823,6 +835,11 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         # add member to org
         view = OrganizationProfileViewSet.as_view({"post": "members"})
 
+        # Grant default data entry role to team
+        team = get_organization_members_team(self.organization)
+        share = ShareTeamProject(team=team, project=self.project, role=DataEntryRole)
+        share.save()
+
         # create new user
         self.profile_data["username"] = "aboy"
         self.profile_data["email"] = "aboy@org.com"
@@ -841,6 +858,59 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         # Assert that user has xform and project permissions
         self.assertTrue(EditorRole.user_has_role(member, self.xform))
         self.assertTrue(EditorRole.user_has_role(member, self.project))
+
+        # Users granted team role on projects when no role is specified
+        self.profile_data["username"] = "joe"
+        self.profile_data["email"] = "joe@test.example"
+        self._create_user_profile()
+        data = {"username": "joe"}
+
+        request = self.factory.post(
+            "/", data=json.dumps(data), content_type="application/json", **self.extra
+        )
+        response = view(request, user="denoinc")
+        self.assertEqual(response.status_code, 201)
+
+        member = User.objects.get(username="joe")
+
+        # Assert that user has project permissions
+        self.assertTrue(DataEntryRole.user_has_role(member, self.xform))
+        self.assertTrue(DataEntryRole.user_has_role(member, self.project))
+
+        # Managers are granted default members team role
+        self.profile_data["username"] = "example"
+        self.profile_data["email"] = "example@test.example"
+        self._create_user_profile()
+        data = {"username": "example", "role": "manager"}
+
+        request = self.factory.post(
+            "/", data=json.dumps(data), content_type="application/json", **self.extra
+        )
+        response = view(request, user="denoinc")
+        self.assertEqual(response.status_code, 201)
+
+        member = User.objects.get(username="example")
+        # Assert that user has project permissions
+        self.assertTrue(DataEntryRole.user_has_role(member, self.xform))
+        self.assertTrue(DataEntryRole.user_has_role(member, self.project))
+
+        # Assert Managers are still able to create projects
+        self.extra = {"HTTP_AUTHORIZATION": f"Token {member.auth_token}"}
+        self.user = member
+        self._project_create(
+            project_data={
+                "name": "created by manager",
+                "owner": self.company_data["user"],
+            }
+        )
+        view = ProjectViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", content_type="application/json", **self.extra)
+        response = view(request, user=member.username)
+        self.assertEqual(response.status_code, 200)
+        import ipdb
+
+        ipdb.set_trace()
+        pass
 
     def test_put_role_user_none_existent(self):
         self._org_create()
@@ -995,7 +1065,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             "/",
             data=json.dumps(alice_data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
 
         response = view(request, user="denoinc")
@@ -1009,7 +1079,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             "/",
             data=json.dumps(alice_data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = view(request, user="denoinc")
         expected_results = ["denoinc"]
