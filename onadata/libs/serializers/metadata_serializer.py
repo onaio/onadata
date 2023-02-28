@@ -32,6 +32,7 @@ from onadata.libs.utils.common_tags import (
     SUBMISSION_REVIEW,
     XFORM_META_PERMS,
 )
+from onadata.libs.utils.image_tools import is_azure_storage, generate_media_url_with_sas
 
 UNIQUE_TOGETHER_ERROR = "Object already exists"
 
@@ -145,7 +146,12 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             and getattr(obj, "data_file")
             and getattr(obj.data_file, "url")
         ):
-            return obj.data_file.url
+            media_name = obj.data_file.name
+            return (
+                generate_media_url_with_sas(media_name)
+                if media_name and is_azure_storage()
+                else obj.data_file.url
+            )
         if obj.data_type in [MEDIA_TYPE] and obj.is_linked_dataset:
             request = self.context.get("request")
             kwargs = {
