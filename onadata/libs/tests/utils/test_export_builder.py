@@ -908,6 +908,87 @@ class TestExportBuilder(TestBase):
         ]
         self.assertEqual(choices, expected_choices)
 
+    def test_sav_export_with_gps_and_group(self):
+        """
+        Test that SAV exports work when a GPS Question is both in a group
+        and outside of one
+        """
+        md = """
+        | survey |
+        |        | type              | name    | label |
+        |        | begin group       | group_a | A     |
+        |        | gps               | gps     | GPS   |
+        |        | end_group         | group_a | A     |
+        |        | gps               | gps     | GPS B |
+        """
+        survey = self.md_to_pyxform_survey(md, {"name": "gps_test"})
+        data = [{"group_a/gps": "4.0 36.1 5000 20", "gps": "1.0 36.1 2000 20", "_submission_time": "2016-11-21T03:42:43.00-08:00"}]
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = False
+        export_builder.set_survey(survey)
+        with NamedTemporaryFile(suffix=".zip") as temp_zip_file:
+            export_builder.to_zipped_sav(temp_zip_file.name, data)
+            temp_zip_file.seek(0)
+            temp_dir = tempfile.mkdtemp()
+            with zipfile.ZipFile(temp_zip_file.name, "r") as zip_file:
+                zip_file.extractall(temp_dir)
+
+        expected_data = [
+                [
+                    b'group_a.gps',
+                    b'@group_a._gps_latitude',
+                    b'@group_a._gps_longitude',
+                    b'@group_a._gps_altitude',
+                    b'@group_a._gps_precision',
+                    b'gps',
+                    b'@_gps_latitude',
+                    b'@_gps_longitude',
+                    b'@_gps_altitude',
+                    b'@_gps_precision',
+                    b'meta.instanceID',
+                    b'@_id',
+                    b'@_uuid',
+                    b'@_submission_time',
+                    b'@_index',
+                    b'@_parent_table_name',
+                    b'@_parent_index',
+                    b'@_tags',
+                    b'@_notes',
+                    b'@_version',
+                    b'@_duration',
+                    b'@_submitted_by'
+                ],
+                [
+                    b'4.0 36.1 5000 20',
+                    4.0,
+                    36.1,
+                    5000.0,
+                    20.0,
+                    b'1.0 36.1 2000 20',
+                    1.0,
+                    36.1,
+                    2000.0,
+                    20.0,
+                    b'',
+                    None,
+                    b'',
+                    b'2016-11-21 03:42:43',
+                    1.0,
+                    b'',
+                    -1.0,
+                    b'',
+                    b'',
+                    b'',
+                    b'',
+                    b''
+                ]
+        ]
+        with SavReader(os.path.join(temp_dir, "gps_test.sav"), returnHeader=True) as reader:
+            rows = list(reader)
+            self.assertEqual(len(rows), 2)
+            self.assertEqual(expected_data, rows)
+        shutil.rmtree(temp_dir)
+
     # pylint: disable=invalid-name
     def test_zipped_sav_export_with_numeric_select_multiple_field(self):
         md = """
