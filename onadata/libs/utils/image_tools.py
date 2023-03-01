@@ -190,6 +190,7 @@ def resize_local_env(filename, extension):
             settings.DEFAULT_IMG_FILE_TYPE if extension == "non" else extension,
         )
 
+
 def is_azure_storage():
     default_storage = get_storage_class()()
     azure = None
