@@ -192,6 +192,7 @@ def resize_local_env(filename, extension):
 
 
 def is_azure_storage():
+    """Checks if azure storage is in use"""
     default_storage = get_storage_class()()
     azure = None
     try:
