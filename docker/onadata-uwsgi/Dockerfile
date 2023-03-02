@@ -1,11 +1,11 @@
-FROM python:3.9 as intermediate
-
+FROM python:3.10-alpine3.17 as intermediate
 ENV DEBIAN_FRONTEND noninteractive
 ENV PYTHONUNBUFFERED 1
 
 ARG optional_packages
 
 # Download public key for github.com
+RUN apk add -qU openssh git
 RUN mkdir -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 
 # Install optional requirements
@@ -13,87 +13,75 @@ RUN mkdir -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 # hadolint ignore=DL3013
 RUN --mount=type=ssh if [ -n "$optional_packages" ]; then pip install ${optional_packages} ; fi
 
-FROM ubuntu:focal-20230412
-COPY --from=intermediate /usr/local/lib/python3.9/site-packages/ /usr/local/lib/python3.9/dist-packages/
-
-ARG release_version=v3.7.1
-
-# Silence configuration prompts
-ENV DEBIAN_FRONTEND noninteractive
+FROM python:3.10-alpine3.17
+COPY --from=intermediate /usr/local/lib/python3.10/site-packages/ /home/onadata/.local/lib/python3.10/site-packages/
 
 ENV PYTHONUNBUFFERED 1
+ENV DJANGO_SETTINGS_MODULE onadata.preset.docker
 
-ENV DJANGO_SETTINGS_MODULE onadata.settings.docker
+ARG optional_packages
+ARG release_version=v3.8.3
 
-# Install service dependencies
-RUN apt-get update -q &&\
-    apt-get install -y --no-install-recommends software-properties-common \
-        binutils \
-        libproj-dev \
-        gdal-bin \
-        memcached \
-        libmemcached-dev \
-        build-essential \
-        supervisor \
-        python3.9 \
-        python3-dev \
-        python3-pip \
-        python3-setuptools \
-        git \
-        libssl-dev \
-        libpq-dev \
-        gfortran \
-        libatlas-base-dev \
-        libjpeg-dev \
-        libxml2-dev \
-        libxslt1-dev \
-        libpython3.9-dev \
-        zlib1g-dev \
-        ghostscript \
-        python3-celery \
-        python3-sphinx \
-        pkg-config \
-        gcc \
-        automake \
-        libtool \
-        openjdk-11-jre-headless \
-        libpcre3 \
-        libpcre3-dev \
-        locales \
-        netcat && \
-    rm -rf /var/lib/apt/lists/*
+# Create container user
+RUN addgroup -g 11211 onadata
+RUN adduser -D -u 1121 -G onadata onadata
 
-# Generate and set en_US.UTF-8 locale
-RUN locale-gen en_US.UTF-8
-ENV LC_ALL en_US.UTF-8
-ENV LC_CTYPE en_US.UTF-8
-RUN dpkg-reconfigure locales
+# Install dependencies
+RUN apk add --no-cache --virtual .build-deps\
+        bash\
+        binutils\
+        proj-dev\
+        memcached\
+        libmemcached-dev\
+        supervisor\
+        git\
+        openssl-dev\
+        libpq-dev\
+        gfortran\
+        openblas-dev\
+        linux-headers\
+        jpeg-dev\
+        libxml2-dev\
+        libxslt-dev\
+        zlib-dev\
+        ghostscript\
+        py3-sphinx\
+        pkgconfig\
+        gcc\
+        automake\
+        libtool\
+        openjdk11-jre-headless\
+        build-base\
+        musl\
+        musl-utils\
+        musl-locales\
+        tzdata\
+        netcat-openbsd\
+        gdal\
+        geos\
+        geos-dev\
+        gdal-dev
 
-# Create OnaData user and add to tty group
-RUN useradd -G tty -m onadata
+# Set Locale Info
+RUN echo "export LC_ALL=en_US.UTF-8" >> /etc/profile.d/locale.sh
 
-# Clone Repository and Change owner
-RUN mkdir -p /srv/onadata && \
-    git clone -b ${release_version} https://github.com/onaio/onadata.git /srv/onadata && \
-    chown -R onadata:onadata /srv/onadata
+# Install OnaData
+RUN mkdir -p /srv/onadata
 
-COPY uwsgi.ini /uwsgi.ini
-# Install service requirements
+RUN git clone -b ${release_version} https://github.com/onaio/onadata.git /srv/onadata
+RUN chown -R onadata:onadata /home/onadata
+RUN chown -R onadata:onadata /srv/onadata
+
 WORKDIR /srv/onadata
-# hadolint ignore=DL3013
-RUN python3.9 -m pip install --no-cache-dir -U pip && \
-    python3.9 -m pip install --no-cache-dir -r requirements/base.pip && \
-    python3.9 -m pip install --no-cache-dir -r requirements/s3.pip && \
-    python3.9 -m pip install --no-cache-dir -r requirements/ses.pip && \
-    python3.9 -m pip install --no-cache-dir -r requirements/azure.pip && \
-    python3.9 -m pip install setuptools==65.5.1 && \
-    python3.9 -m pip install --no-cache-dir pyyaml uwsgitop
+USER onadata
 
-# Compile API Docs
+RUN pip install --no-cache-dir -r requirements/base.pip
+RUN pip install --no-cache-dir -r requirements/s3.pip
+RUN pip install --no-cache-dir -r requirements/ses.pip
+RUN pip install --no-cache-dir -r requirements/azure.pip
+RUN pip install --no-cache-dir setuptools==65.5.1 PyYAML==6.0 uwsgitop==0.11
+
+# Generate documentation
 RUN make -C docs html
 
-EXPOSE 8000
-
-CMD ["/usr/local/bin/uwsgi", "--ini", "/uwsgi.ini"]
-
-USER onadata
+CMD ["/home/onadata/.local/bin/uwsgi", "--ini", "/uwsgi.ini"]
