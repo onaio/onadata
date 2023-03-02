@@ -158,6 +158,7 @@ jobs:
           pip install -U pip
           pip install -r requirements/base.pip
           pip install -r requirements/dev.pip
+          pip install -r requirements/azure.pip
 
       - name: Run tests
         run: |
