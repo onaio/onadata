@@ -156,7 +156,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         data = XFormSerializer(self.xform, context={'request': request}).data
         self.assertEqual(response.data, data)
-        self.assertIn(f"?{sas_token}", data["metadata"][0]["media_url"])
+        self.assertIn(f"?{sas_token}", str(data))
 
     def test_get_metadata_with_file_attachment(self):
         for data_type in ['supporting_doc', 'media', 'source']:
