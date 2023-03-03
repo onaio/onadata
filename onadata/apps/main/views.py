@@ -1198,6 +1198,10 @@ def form_photos(request, username, id_string):
     return render(request, "form_photos.html", data)
 
 
+def is_ajax(request):
+    return request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
+
+
 # pylint: disable=too-many-branches
 @require_POST
 def set_perm(request, username, id_string):  # noqa C901
@@ -1309,7 +1313,7 @@ def set_perm(request, username, id_string):  # noqa C901
             request,
         )
 
-    if request.is_ajax():
+    if is_ajax(request):
         return JsonResponse({"status": "success"})
 
     return HttpResponseRedirect(
