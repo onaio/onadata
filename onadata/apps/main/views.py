@@ -1199,6 +1199,7 @@ def form_photos(request, username, id_string):
 
 
 def is_ajax(request):
+    """Function to check request type"""
     return request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
 
 
