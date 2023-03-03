@@ -184,7 +184,7 @@ def clone_xlsform(request, username):
 
     context = {"message": message, "message_list": message_list}
 
-    if request.is_ajax():
+    if is_ajax(request):
         res = (
             loader.render_to_string("message.html", context=context, request=request)
             .replace("'", r"\'")
@@ -897,7 +897,7 @@ def edit(request, username, id_string):  # noqa C901
 
         xform.update()
 
-        if request.is_ajax():
+        if is_ajax(request):
             return HttpResponse(_("Updated succeeded."))
         return HttpResponseRedirect(
             reverse(show, kwargs={"username": username, "id_string": id_string})
