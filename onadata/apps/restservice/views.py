@@ -17,6 +17,11 @@ from onadata.apps.restservice.models import RestService
 from onadata.libs.utils.viewer_tools import get_form
 
 
+def is_ajax(request):
+    """check request type"""
+    return request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
+
+
 @login_required
 def add_service(request, username, id_string):
     """Add a service."""
@@ -63,7 +68,7 @@ def add_service(request, username, id_string):
                     message += Template("{{ field.errors }}").render(
                         Context({"field": field})
                     )
-        if request.is_ajax():
+        if is_ajax(request):
             response = {"status": status, "message": message}
             if restservice:
                 response["restservice"] = f"{restservice}"
