@@ -23,8 +23,8 @@ from onadata.apps.messaging.permissions import TargetObjectPermissions
 
 class MessagingStatsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """
-    Provides a count of each unique messaging event grouped by a specified
-    field.
+    Provides a count of each unique messaging event grouped by either day, month
+    or year.
 
     The endpoint accepts the following query parameters:
 
