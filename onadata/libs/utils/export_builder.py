@@ -270,7 +270,11 @@ def _get_var_name(title, var_names):
         .replace("}", "")
     )
     var_name = _check_sav_column(var_name, var_names)
-    var_name = "@" + var_name if var_name.startswith("_") else var_name
+
+    if ("/" in title and title.split("/")[1].startswith("_")) or var_name.startswith(
+        "_"
+    ):
+        var_name = "@" + var_name
     var_names.append(var_name)
     return var_name, var_names
 
