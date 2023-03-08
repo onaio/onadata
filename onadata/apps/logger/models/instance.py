@@ -652,19 +652,19 @@ class Instance(models.Model, InstanceBaseClass):
     survey_type = models.ForeignKey("logger.SurveyType", on_delete=models.PROTECT)
 
     # shows when we first received this instance
-    date_created = models.DateTimeField(auto_now_add=True)
+    date_created = models.DateTimeField(auto_now_add=True, db_index=True)
 
     # this will end up representing "date last parsed"
-    date_modified = models.DateTimeField(auto_now=True)
+    date_modified = models.DateTimeField(auto_now=True, db_index=True)
 
     # this will end up representing "date instance was deleted"
-    deleted_at = models.DateTimeField(null=True, default=None)
+    deleted_at = models.DateTimeField(null=True, default=None, db_index=True)
     deleted_by = models.ForeignKey(
         User, related_name="deleted_instances", null=True, on_delete=models.SET_NULL
     )
 
     # this will be edited when we need to create a new InstanceHistory object
-    last_edited = models.DateTimeField(null=True, default=None)
+    last_edited = models.DateTimeField(null=True, default=None, db_index=True)
 
     # ODK keeps track of three statuses for an instance:
     # incomplete, submitted, complete
