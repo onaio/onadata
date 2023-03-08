@@ -658,13 +658,13 @@ class Instance(models.Model, InstanceBaseClass):
     date_modified = models.DateTimeField(auto_now=True, db_index=True)
 
     # this will end up representing "date instance was deleted"
-    deleted_at = models.DateTimeField(null=True, default=None, db_index=True)
+    deleted_at = models.DateTimeField(null=True, default=None)
     deleted_by = models.ForeignKey(
         User, related_name="deleted_instances", null=True, on_delete=models.SET_NULL
     )
 
     # this will be edited when we need to create a new InstanceHistory object
-    last_edited = models.DateTimeField(null=True, default=None, db_index=True)
+    last_edited = models.DateTimeField(null=True, default=None)
 
     # ODK keeps track of three statuses for an instance:
     # incomplete, submitted, complete
