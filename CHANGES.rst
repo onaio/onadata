@@ -3,6 +3,18 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.8.6(2023-03-07)
+------------------
+- Handle cases of duplicate metadata fields within exports
+  `PR #2385 <https://github.com/onaio/onadata/pull/2385>`_
+  [@DavisRayM]
+- Update dependencies
+  `PR #2387 <https://github.com/onaio/onadata/pull/2387>`_
+  [@DavisRayM]
+- Add backward compatibility for existing .xls form downloads
+  `PR #2383 <https://github.com/onaio/onadata/pull/2383>`_
+  [@KipSigei]
+
 v3.8.5(2023-02-22)
 ------------------
 - Fix: FieldError: Cannot resolve keyword 'json' into field from Attachment model
