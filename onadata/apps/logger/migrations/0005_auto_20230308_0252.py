@@ -4,20 +4,45 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+    atomic = False
 
     dependencies = [
-        ('logger', '0004_update_instance_geoms'),
+        ("logger", "0004_update_instance_geoms"),
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name='instance',
-            name='date_created',
-            field=models.DateTimeField(auto_now_add=True, db_index=True),
-        ),
-        migrations.AlterField(
-            model_name='instance',
-            name='date_modified',
-            field=models.DateTimeField(auto_now=True, db_index=True),
-        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    sql="""
+            CREATE INDEX "logger_instance_date_created_b2427770"
+            ON "logger_instance" ("date_created");
+            """,
+                    reverse_sql="""
+            DROP INDEX "logger_instance_date_created_b2427770";
+            """,
+                ),
+                migrations.RunSQL(
+                    sql="""
+            CREATE INDEX "logger_instance_date_modified_a32599fc"
+            ON "logger_instance" ("date_modified");
+            """,
+                    reverse_sql="""
+            DROP INDEX "logger_instance_date_modified_a32599fc";
+            """,
+                ),
+            ],
+            state_operations=[
+                migrations.AlterField(
+                    model_name="instance",
+                    name="date_created",
+                    field=models.DateTimeField(auto_now_add=True, db_index=True),
+                ),
+                migrations.AlterField(
+                    model_name="instance",
+                    name="date_modified",
+                    field=models.DateTimeField(auto_now=True, db_index=True),
+                ),
+            ],
+        )
     ]
