@@ -191,17 +191,22 @@ def resize_local_env(filename, extension):
         )
 
 
+def is_azure_storage():
+    """Checks if azure storage is in use"""
+    default_storage = get_storage_class()()
+    azure = None
+    try:
+        azure = get_storage_class("storages.backends.azure_storage.AzureStorage")()
+    except ModuleNotFoundError:
+        pass
+    return isinstance(default_storage, type(azure))
+
+
 def image_url(attachment, suffix):
     """Return url of an image given size(@param suffix)
     e.g large, medium, small, or generate required thumbnail
     """
     url = attachment.media_file.url
-    azure = None
-
-    try:
-        azure = get_storage_class("storages.backends.azure_storage.AzureStorage")()
-    except ModuleNotFoundError:
-        pass
 
     if suffix == "original":
         return url
@@ -221,7 +226,7 @@ def image_url(attachment, suffix):
                 file_path = get_path(filename, size)
                 url = (
                     generate_media_url_with_sas(file_path)
-                    if isinstance(default_storage, type(azure))
+                    if is_azure_storage()
                     else default_storage.url(file_path)
                 )
             else:

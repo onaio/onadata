@@ -1,5 +1,6 @@
 import os
 from builtins import open
+from mock import patch
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -132,6 +133,30 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         response = view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [data])
+
+    @patch('onadata.libs.serializers.metadata_serializer.is_azure_storage')
+    @patch('azure.storage.blob.generate_blob_sas')
+    def test_forms_endpoint_with_metadata_and_azure_storage(
+            self, mock_generate_blob_sas, mock_is_azure_storage):
+        sas_token = 'sc=date+randomText'
+        mock_is_azure_storage.return_value = True
+        mock_generate_blob_sas.return_value = sas_token
+
+        self._add_form_metadata(self.xform, 'media',
+                                self.data_value, self.path)
+        self.xform.refresh_from_db()
+
+        # /forms
+        view = XFormViewSet.as_view({
+            'get': 'retrieve'
+        })
+        formid = self.xform.pk
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        data = XFormSerializer(self.xform, context={'request': request}).data
+        self.assertEqual(response.data, data)
+        self.assertIn(f"?{sas_token}", str(data))
 
     def test_get_metadata_with_file_attachment(self):
         for data_type in ['supporting_doc', 'media', 'source']:
