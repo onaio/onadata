@@ -652,10 +652,10 @@ class Instance(models.Model, InstanceBaseClass):
     survey_type = models.ForeignKey("logger.SurveyType", on_delete=models.PROTECT)
 
     # shows when we first received this instance
-    date_created = models.DateTimeField(auto_now_add=True, db_index=True)
+    date_created = models.DateTimeField(auto_now_add=True)
 
     # this will end up representing "date last parsed"
-    date_modified = models.DateTimeField(auto_now=True, db_index=True)
+    date_modified = models.DateTimeField(auto_now=True)
 
     # this will end up representing "date instance was deleted"
     deleted_at = models.DateTimeField(null=True, default=None)
@@ -697,6 +697,11 @@ class Instance(models.Model, InstanceBaseClass):
     class Meta:
         app_label = "logger"
         unique_together = ("xform", "uuid")
+        indexes = [
+            models.Index(fields=['date_created']),
+            models.Index(fields=['date_modified']),
+            models.Index(fields=['deleted_at']),
+        ]
 
     @classmethod
     def set_deleted_at(cls, instance_id, deleted_at=timezone.now(), user=None):
