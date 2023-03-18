@@ -68,21 +68,19 @@ def _parse_where(query, known_integers, known_decimals, or_where, or_params):
                         except ValueError:
                             pass
                 if field_key in NONE_JSON_FIELDS:
-                    where_params.append(text(_v))
+                    where_params.extend([text(_v)])
                 else:
-                    where_params.append(text(_v))
-                    where.append(f"{field_key} = %s")
+                    where_params.extend((field_key, text(_v)))
         else:
             if field_key in NONE_JSON_FIELDS:
                 where.append(f"{NONE_JSON_FIELDS[field_key]} = %s")
                 where_params.append(text(field_value))
             elif field_value is None:
-                where.append(f"json->>%s IS NULL")
+                where.append(f"json->>'{field_key}' IS NULL")
                 where_params.append(field_key)
             else:
-                where.append(f"json->>%s = %s")
-                where_params.append(field_key)
-                where_params.append(text(field_value))
+                where.append("json->>%s = %s")
+                where_params.extend((field_key, text(field_value)))
 
     return where + or_where, where_params + or_params
 
