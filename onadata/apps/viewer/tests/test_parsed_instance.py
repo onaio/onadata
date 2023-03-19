@@ -1,14 +1,78 @@
 import os
 
+from datetime import datetime
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.parsed_instance import (
     get_where_clause, get_sql_with_params, _parse_sort_fields
 )
+from onadata.apps.viewer.parsed_instance_tools import _parse_where
 
 
 class TestParsedInstance(TestBase):
+    def test_parse_where_clause_simple_query(self):
+        query = {"name": "bla", "age": {"$gt": 18}}
+        known_integers = ["age"]
+        known_decimals = []
+        or_where = ["is_active = true"]
+        or_params = []
+        where, where_params = _parse_where(
+            query, known_integers, known_decimals, or_where, or_params
+        )
+
+        expected_where = [
+            "json->>%s = %s",
+            "CAST(json->>%s AS INT) > %s",
+            "is_active = true",
+        ]
+        expected_where_params = ["name", "bla", "age", "18"]
+
+        self.assertEqual(where, expected_where)
+        self.assertEqual(where_params, expected_where_params)
+
+    def test_parse_where_with_date_value(self):
+        query = {
+            "created_at": {
+                "$gte": datetime(2022, 1, 1),
+                "$lte": datetime(2022, 12, 31)
+            }
+        }
+        known_integers = []
+        known_decimals = []
+        or_where = []
+        or_params = []
+        expected_where = ["json->>%s >= %s", "json->>%s <= %s"]
+        expected_params = [
+            "created_at",
+            "2022-01-01 00:00:00",
+            "created_at",
+            "2022-12-31 00:00:00",
+        ]
+
+        where, params = _parse_where(
+            query, known_integers, known_decimals, or_where, or_params
+        )
+
+        self.assertEqual(where, expected_where)
+        self.assertEqual(params, expected_params)
+
+    def test_parse_where_with_null_value(self):
+        query = {"name": None}
+        known_integers = []
+        known_decimals = []
+        or_where = []
+        or_params = []
+        expected_where = ["json->>%s IS NULL"]
+        expected_params = ["name"]
+
+        where, params = _parse_where(
+            query, known_integers, known_decimals, or_where, or_params
+        )
+
+        self.assertEqual(where, expected_where)
+        self.assertEqual(params, expected_params)
+
     def test_get_where_clause_with_json_query(self):
         query = '{"name": "bla"}'
         where, where_params = get_where_clause(query)
