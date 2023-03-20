@@ -316,6 +316,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(response.get("Cache-Control"), None)
+
+        # ensure the inactive aboy user is not in the list
         self.assertEqual(response.data, ["denoinc"])
 
     def test_add_members_to_org_user_org_account(self):

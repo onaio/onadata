@@ -234,13 +234,13 @@ def get_organization_members(organization):
     """Get members team user queryset"""
     team = get_organization_members_team(organization)
 
-    return team.user_set.all()
+    return team.user_set.filter(is_active=True)
 
 
 def get_organization_owners(organization):
     """Get owners team user queryset"""
     team = get_or_create_organization_owners_team(organization)
-    return team.user_set.all()
+    return team.user_set.filter(is_active=True)
 
 
 def _get_owners(organization):
