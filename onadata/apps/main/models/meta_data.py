@@ -222,7 +222,7 @@ class MetaData(models.Model):
 
     def set_hash(self):
         """
-        Returns the md5 hash of the metadata file.
+        Returns the sha256 hash of the metadata file.
         """
         if not self.data_file:
             return None
@@ -238,9 +238,9 @@ class MetaData(models.Model):
                 return ""
             else:
                 file_hash = hashlib.new(
-                    "md5", self.data_file.read(), usedforsecurity=False
+                    "sha256", self.data_file.read(), usedforsecurity=False
                 ).hexdigest()
-                self.file_hash = f"md5:{file_hash}"
+                self.file_hash = f"sha256:{file_hash}"
 
                 return self.file_hash
 

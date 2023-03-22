@@ -4,7 +4,7 @@ Implements the EtagsMixin class
 
 Adds Etag headers to the viewset response.
 """
-from hashlib import md5
+from hashlib import sha256
 
 MODELS_WITH_DATE_MODIFIED = (
     "XForm",
@@ -30,7 +30,7 @@ class ETagsMixin:
     def set_etag_header(self, etag_value, etag_hash=None):
         """Updates the response headers with Etag header"""
         if etag_value:
-            etag_hash = md5(str(etag_value).encode("utf-8")).hexdigest()
+            etag_hash = sha256(str(etag_value).encode("utf-8")).hexdigest()
         if etag_hash:
             self.headers.update({"ETag": etag_hash})
 

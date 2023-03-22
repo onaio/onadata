@@ -14,7 +14,7 @@ from onadata.apps.logger.models import Instance
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.logger_tools import create_xform_version
 import taggit.managers
-from hashlib import md5
+from hashlib import sha256
 
 
 def recalculate_xform_hash(apps, schema_editor):  # pylint: disable=W0613
@@ -29,8 +29,8 @@ def recalculate_xform_hash(apps, schema_editor):  # pylint: disable=W0613
     counter = 0
 
     for xform in queryset_iterator(xforms, 500):
-        hash_value = md5(xform.xml.encode("utf8")).hexdigest()
-        xform.hash = f"md5:{hash_value}"
+        hash_value = sha256(xform.xml.encode("utf8")).hexdigest()
+        xform.hash = f"sha256:{hash_value}"
         xform.save(update_fields=["hash"])
         counter += 1
         if counter % 500 == 0:

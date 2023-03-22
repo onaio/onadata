@@ -970,14 +970,14 @@ class XForm(XFormMixin, BaseModel):
         self.title = title_xml
 
     def get_hash(self):
-        """Returns the MD5 hash of the forms XML content prefixed by 'md5:'"""
-        md5_hash = hashlib.new(
-            "md5", self.xml.encode("utf-8"), usedforsecurity=False
+        """Returns the sha256 hash of the forms XML content prefixed by 'sha256:'"""
+        sha256_hash = hashlib.new(
+            "sha256", self.xml.encode("utf-8"), usedforsecurity=False
         ).hexdigest()
-        return f"md5:{md5_hash}"
+        return f"sha256:{sha256_hash}"
 
     def set_hash(self):
-        """Sets the MD5 hash of the form."""
+        """Sets the sha256 hash of the form."""
         self.hash = self.get_hash()
 
     def _set_encrypted_field(self):

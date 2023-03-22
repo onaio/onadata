@@ -64,11 +64,11 @@ MAX_RETRIES = 3
 User = get_user_model()
 
 
-def md5hash(string):
+def sha256hash(string):
     """
-    Return the MD5 hex digest of the given string.
+    Return the sha256 hex digest of the given string.
     """
-    return hashlib.md5(string).hexdigest()
+    return hashlib.sha256(string).hexdigest()
 
 
 def get_export_options(options):

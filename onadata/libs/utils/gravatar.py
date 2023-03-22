@@ -12,10 +12,10 @@ GRAVATAR_ENDPOINT = "https://secure.gravatar.com/avatar/"
 GRAVATAR_SIZE = str(60)
 
 
-def email_md5(user):
+def email_sha256(user):
     """Returns the hash of an email for the user"""
     return hashlib.new(
-        "md5", user.email.lower().encode("utf-8"), usedforsecurity=False
+        "sha256", user.email.lower().encode("utf-8"), usedforsecurity=False
     ).hexdigest()
 
 
@@ -23,7 +23,7 @@ def get_gravatar_img_link(user):
     """Returns the Gravatar image URL"""
     return (
         GRAVATAR_ENDPOINT
-        + email_md5(user)
+        + email_sha256(user)
         + "?"
         + urlencode({"d": DEFAULT_GRAVATAR, "s": str(GRAVATAR_SIZE)})
     )
@@ -31,5 +31,5 @@ def get_gravatar_img_link(user):
 
 def gravatar_exists(user):
     """Checks if the Gravatar URL exists"""
-    url = GRAVATAR_ENDPOINT + email_md5(user) + "?" + "d=404"
+    url = GRAVATAR_ENDPOINT + email_sha256(user) + "?" + "d=404"
     return requests.get(url).status_code != 404

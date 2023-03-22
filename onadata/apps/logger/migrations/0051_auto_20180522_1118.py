@@ -6,7 +6,7 @@ Migration to re-calculate all XForm hashes.
 from __future__ import unicode_literals
 
 from django.db import migrations
-from hashlib import md5
+from hashlib import sha256
 
 from onadata.libs.utils.model_tools import queryset_iterator
 
@@ -23,7 +23,7 @@ def recalculate_xform_hash(apps, schema_editor):  # pylint: disable=W0613
     counter = 0
 
     for xform in queryset_iterator(xforms, 500):
-        xform.hash = "md5:%s" % md5(xform.xml.encode("utf8")).hexdigest()
+        xform.hash = "sha256:%s" % sha256(xform.xml.encode("utf8")).hexdigest()
         xform.save(update_fields=["hash"])
         counter += 1
         if counter % 500 == 0:
