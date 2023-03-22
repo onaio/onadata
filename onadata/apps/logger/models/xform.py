@@ -962,7 +962,7 @@ class XForm(XFormMixin, BaseModel):
 
         # Capture urls within form title
         if re.search(
-            r"^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$",  # noqa
+            r"^(?:http(s)?:\/\/)?[\w\-.]+(?:\.[\w\-.]+)+[\w\-.~:/?#[\]@!\$&'()*+,;=]+$",  # noqa
             self.title,
         ):
             raise XLSFormError(_("Invalid title value; value shouldn't match a URL"))
