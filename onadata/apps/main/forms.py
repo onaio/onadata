@@ -407,6 +407,13 @@ class QuickConverter(
             if cleaned_url:
                 self.validate(cleaned_url)
                 cleaned_xls_file = urlparse(cleaned_url)
+
+                if cleaned_xls_file.scheme not in ["http", "https"]:
+                    raise forms.ValidationError("Invalid URL scheme")
+
+                if not cleaned_xls_file.netloc:
+                    raise forms.ValidationError("Invalid URL")
+
                 cleaned_xls_file = "_".join(cleaned_xls_file.path.split("/")[-2:])
                 name, extension = os.path.splitext(cleaned_xls_file)
 

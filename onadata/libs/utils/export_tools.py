@@ -59,6 +59,8 @@ DEFAULT_INDEX_TAGS = ("[", "]")
 SUPPORTED_INDEX_TAGS = ("[", "]", "(", ")", "{", "}", ".", "_")
 EXPORT_QUERY_KEY = "query"
 MAX_RETRIES = 3
+SAFE_FILENAME_REGEX = re.compile(r"^[a-zA-Z0-9_-]{1,100}\.[a-zA-Z0-9]{1,10}$")
+MAX_FILENAME_LENGTH = 256
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -391,18 +393,26 @@ def increment_index_in_filename(filename):
     filename should be in the form file.ext or file-2.ext - we check for the
     dash and index and increment appropriately
     """
-    # check for an index i.e. dash then number then dot extension
-    regex = re.compile(r"(.+?)\-(\d+)(\..+)")
-    match = regex.match(filename)
-    if match:
-        basename = match.groups()[0]
-        index = int(match.groups()[1]) + 1
-        ext = match.groups()[2]
+    new_filename = ""
+
+    # Validate the input to prevent DoS attacks
+    if len(filename) > MAX_FILENAME_LENGTH:
+        raise Exception("Filename is too long.")
+    elif not SAFE_FILENAME_REGEX.match(filename):
+        raise Exception("Filename is not in a safe format.")
     else:
-        index = 1
-        # split filename from ext
-        basename, ext = os.path.splitext(filename)
-    new_filename = f"{basename}-{index}{ext}"
+        # check for an index i.e. dash then number then dot extension
+        regex = re.compile(r"(.+?)\-(\d+)(\..+)")
+        match = regex.match(filename)
+        if match:
+            basename = match.groups()[0]
+            index = int(match.groups()[1]) + 1
+            ext = match.groups()[2]
+        else:
+            index = 1
+            # split filename from ext
+            basename, ext = os.path.splitext(filename)
+        new_filename = f"{basename}-{index}{ext}"
 
     return new_filename
 
