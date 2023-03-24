@@ -361,11 +361,11 @@ class XFormPermissionFilterMixin:
 
         if request.user.is_anonymous:
             xforms = xform_qs.filter(shared_data=True)
+        elif public_export:
+            export = get_object_or_404(Export, pk=view.kwargs.get("pk"))
+            xforms = XForm.objects.filter(pk=export.xform.pk)
         else:
             xforms = super().filter_queryset(request, xform_qs, view) | public_forms
-            if not xforms and public_export:
-                export = get_object_or_404(Export, pk=view.kwargs.get("pk"))
-                xforms = XForm.objects.filter(pk=export.xform.pk)
         return {
             **{f"{keyword}__in": xforms},
             **dataview_kwargs
