@@ -325,7 +325,7 @@ class XFormPermissionFilterMixin:
 
         return prefixed_filter_kwargs
 
-    def _xform_filter(self, request, view, keyword):
+    def _xform_filter(self, request, view, keyword, public_export=False):
         """Use XForm permissions"""
         xform = request.query_params.get("xform")
         dataview = request.query_params.get("dataview")
@@ -363,6 +363,9 @@ class XFormPermissionFilterMixin:
             xforms = xform_qs.filter(shared_data=True)
         else:
             xforms = super().filter_queryset(request, xform_qs, view) | public_forms
+            if not xforms and public_export:
+                export = get_object_or_404(Export, pk=view.kwargs.get("pk"))
+                xforms = XForm.objects.filter(pk=export.xform.pk)
         return {
             **{f"{keyword}__in": xforms},
             **dataview_kwargs
@@ -688,11 +691,11 @@ class ExportFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
         has_submitted_by_key = (
             Q(options__has_key="query") & Q(options__query__has_key="_submitted_by"),
         )
+        xform_public = _is_public_xform(view.kwargs.get("pk"))
 
-        if request.user.is_anonymous or _is_public_xform(view.kwargs.get("pk")):
-            return self._xform_filter_queryset(
-                request, queryset, view, "xform_id"
-            ).exclude(*has_submitted_by_key)
+        if request.user.is_anonymous or xform_public:
+            kwarg = self._xform_filter(request, view, "xform_id", xform_public)
+            return queryset.filter(**kwarg).exclude(*has_submitted_by_key)
 
         old_perm_format = getattr(self, "perm_format")
 
