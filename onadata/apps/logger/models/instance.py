@@ -256,18 +256,20 @@ def update_xform_submission_count(instance_id, created):
                     "UPDATE logger_xform SET "
                     "num_of_submissions = num_of_submissions + 1, "
                     "last_submission_time = %s "
-                    "WHERE id = %s"
+                    "WHERE id = %s AND num_of_submissions = "
+                    "(SELECT num_of_submissions FROM logger_xform WHERE id = %s)"
                 )
-                params = [instance.date_created, instance.xform_id]
+                params = [instance.date_created, instance.xform_id, instance.xform_id]
 
                 # update user profile.num_of_submissions
                 cursor.execute(sql, params)
                 sql = (
                     "UPDATE main_userprofile SET "
                     "num_of_submissions = num_of_submissions + 1 "
-                    "WHERE user_id = %s"
+                    "WHERE user_id = %s AND num_of_submissions = "
+                    "(SELECT num_of_submissions FROM logger_xform WHERE id = %s)"
                 )
-                cursor.execute(sql, [instance.xform.user_id])
+                cursor.execute(sql, [instance.xform.user_id, instance.xform_id])
 
                 # Track submissions made today
                 _update_submission_count_for_today(instance.xform_id)
