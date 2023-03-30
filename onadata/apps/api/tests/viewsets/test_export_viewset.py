@@ -185,6 +185,8 @@ class TestExportViewSet(TestBase):
                                  self.xform,
                                  None,
                                  {"extension": "csv"})
+        export.options = {"query": {"_submitted_by": 'not_bob'}}
+        export.save()
         response = self.view(request, pk=export.pk)
         self.assertEqual(status.HTTP_200_OK, response.status_code)
         # sav export
