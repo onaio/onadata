@@ -28,7 +28,7 @@ from onadata.libs.utils.numeric import int_or_parse_error
 User = get_user_model()
 
 
-def _public_export_id_or_none(export_id: int):
+def _public_xform_id_or_none(export_id: int):
     export = Export.objects.filter(pk=export_id).first()
 
     if export and (export.xform.shared_data or export.xform.shared):
@@ -694,7 +694,7 @@ class ExportFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
                 request, queryset, view, "xform_id"
             ).exclude(*has_submitted_by_key)
 
-        public_xform_id = _public_export_id_or_none(view.kwargs.get("pk"))
+        public_xform_id = _public_xform_id_or_none(view.kwargs.get("pk"))
         if public_xform_id:
             form_exports = queryset.filter(xform_id=public_xform_id)
             current_user_form_exports = (
