@@ -5,7 +5,7 @@ Test /orgs API endpoint implementation.
 import json
 from builtins import str as text
 
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, timezone
 from django.core.cache import cache
 
 from mock import patch
@@ -286,6 +286,39 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 201)
         self.assertEqual(set(response.data), set(["denoinc", "aboy"]))
+
+    def test_inactive_members_not_listed(self):
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({"post": "members"})
+
+        self.profile_data["username"] = "aboy"
+        self.profile_data["email"] = "aboy@org.com"
+        self._create_user_profile()
+        data = {"username": "aboy"}
+        request = self.factory.post(
+            "/", data=json.dumps(data), content_type="application/json", **self.extra
+        )
+        response = view(request, user="denoinc")
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(set(response.data), set(["denoinc", "aboy"]))
+
+        # Ensure inactive/soft-deleted users are not present in the list
+        user = User.objects.get(username="aboy")
+        user.is_active = False
+        deletion_suffix = timezone.now().strftime("-deleted-at-%s")
+        user.username += deletion_suffix
+        user.email += deletion_suffix
+        user.save()
+
+        view = OrganizationProfileViewSet.as_view({"get": "members"})
+
+        request = self.factory.get("/", **self.extra)
+        response = view(request, user="denoinc")
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get("Cache-Control"), None)
+
+        # ensure the inactive aboy user is not in the list
+        self.assertEqual(response.data, ["denoinc"])
 
     def test_add_members_to_org_user_org_account(self):
         self._org_create()
