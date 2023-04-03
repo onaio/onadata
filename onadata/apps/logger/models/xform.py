@@ -889,7 +889,7 @@ class XForm(XFormMixin, BaseModel):
     has_hxl_support = models.BooleanField(default=False)
     last_updated_at = models.DateTimeField(auto_now=True)
     hash = models.CharField(
-        _("Hash"), max_length=36, blank=True, null=True, default=None
+        _("Hash"), max_length=128, blank=True, null=True, default=None
     )
     # XForm was created as a merged dataset
     is_merged_dataset = models.BooleanField(default=False)
