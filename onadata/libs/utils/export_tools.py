@@ -171,7 +171,7 @@ def generate_export(export_type, xform, export_id=None, options=None):  # noqa C
     from onadata.libs.utils.export_builder import ExportBuilder
 
     export_builder = ExportBuilder()
-    export_builder.TRUNCATE_GROUP_TITLE = remove_group_name
+    export_builder.TRUNCATE_GROUP_TITLE = remove_group_name  # noqa
     export_builder.GROUP_DELIMITER = options.get(  # noqa
         "group_delimiter", DEFAULT_GROUP_DELIMITER
     )
