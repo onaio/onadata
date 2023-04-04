@@ -167,6 +167,36 @@ class TestExportViewSet(TestBase):
         response = self.view(request, pk=export.pk)
         self.assertEqual(status.HTTP_200_OK, response.status_code)
 
+    def test_export_public_not_owner_authenticated(self):
+        """
+        Test export of a public form for authenticated users.
+        Not owners of the form.
+        """
+        self._create_user_and_login()
+        self._publish_transportation_form()
+        self.xform.shared_data = True
+        self.xform.shared = True
+        self.xform.save()
+        test_user = self._create_user('not_bob', 'pass')
+        request = self.factory.get('/export')
+        force_authenticate(request, user=test_user)
+        # csv export
+        export = generate_export(Export.CSV_EXPORT,
+                                 self.xform,
+                                 None,
+                                 {"extension": "csv"})
+        export.options = {"query": {"_submitted_by": 'not_bob'}}
+        export.save()
+        response = self.view(request, pk=export.pk)
+        self.assertEqual(status.HTTP_200_OK, response.status_code)
+        # sav export
+        export = generate_export(Export.SAV_ZIP_EXPORT,
+                                 self.xform,
+                                 None,
+                                 {"extension": "zip"})
+        response = self.view(request, pk=export.pk)
+        self.assertEqual(status.HTTP_200_OK, response.status_code)
+
     def test_export_non_public_export(self):
         """
         Test export of a private form for anonymous users results in

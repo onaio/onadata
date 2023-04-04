@@ -164,7 +164,7 @@ class CSVZIPRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
         if isinstance(data, six.text_type):
             return data.encode("utf-8")
         if isinstance(data, dict):
-            return json.dumps(data)
+            return json.dumps(data).encode("utf-8")
         return data
 
 
@@ -181,7 +181,7 @@ class SAVZIPRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
         if isinstance(data, six.text_type):
             return data.encode("utf-8")
         if isinstance(data, dict):
-            return json.dumps(data)
+            return json.dumps(data).encode("utf-8")
         return data
 
 
@@ -552,7 +552,7 @@ class ZipRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
         if isinstance(data, six.text_type):
             return data.encode("utf-8")
         if isinstance(data, dict):
-            return json.dumps(data)
+            return json.dumps(data).encode("utf-8")
         return data
 
 
