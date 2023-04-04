@@ -514,7 +514,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             "/",
             data=json.dumps(alice_data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 201)
@@ -827,7 +827,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             "/",
             data=json.dumps(alice_data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 201)
@@ -1034,7 +1034,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             "/",
             data=json.dumps(alice_data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
 
         response = view(request, user="denoinc")
@@ -1048,7 +1048,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             "/",
             data=json.dumps(alice_data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = view(request, user="denoinc")
         expected_results = ["denoinc"]
