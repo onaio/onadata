@@ -8,10 +8,14 @@ from builtins import str as text
 from django.contrib.auth.models import User, timezone
 from django.core.cache import cache
 
+from guardian.shortcuts import get_perms
 from mock import patch
 from rest_framework import status
 
-from onadata.apps.api.models.organization_profile import OrganizationProfile
+from onadata.apps.api.models.organization_profile import (
+    OrganizationProfile,
+    get_organization_members_team,
+)
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.tools import (
     add_user_to_organization,
@@ -22,8 +26,10 @@ from onadata.apps.api.viewsets.organization_profile_viewset import (
 )
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
+from onadata.apps.logger.models.project import Project
 from onadata.apps.main.models import UserProfile
-from onadata.libs.permissions import OwnerRole, EditorRole
+from onadata.libs.permissions import DataEntryRole, OwnerRole, EditorRole
+from onadata.libs.utils.cache_tools import PROJ_PERM_CACHE, PROJ_TEAM_USERS_CACHE
 
 
 # pylint: disable=too-many-public-methods
@@ -1117,3 +1123,106 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         # Ensure permissions are removed
         self.assertFalse(OwnerRole.user_has_role(dave, org))
         self.assertFalse(OwnerRole.user_has_role(dave, org.userprofile_ptr))
+
+    def test_team_default_role_on_projects(self):
+        """
+        Test that when members (Managers, Editors, Data Collectors) are added
+        without a specified role the default team project role is granted
+        """
+        view = OrganizationProfileViewSet.as_view({"post": "members"})
+
+        self._org_create()
+        project_data = {"owner": self.company_data["user"]}
+        self._project_create(project_data)
+
+        members_team = get_organization_members_team(self.organization)
+        project_1 = self.project
+
+        # Ensure team has no permissions
+        self.assertEqual(get_perms(members_team, self.project), [])
+
+        # set DataEntryRole role of project on team
+        DataEntryRole.add(members_team, self.project)
+
+        # Ensure team has correct permissions
+        self.assertEqual(
+            sorted(DataEntryRole.class_to_permissions[Project]),
+            sorted(get_perms(members_team, self.project)),
+        )
+
+        # Extra project with no role
+        project_data = {"owner": self.company_data["user"], "name": "proj2"}
+        self._project_create(project_data)
+        project_2 = self.project
+
+        # New members & managers gain default team permissions on projects
+        self.profile_data["username"] = "aboy"
+        self.profile_data["email"] = "aboy@org.com"
+        userprofile = self._create_user_profile()
+
+        data = {"username": "aboy", "role": "manager"}
+        request = self.factory.post(
+            "/", data=json.dumps(data), content_type="application/json", **self.extra
+        )
+        response = view(request, user="denoinc")
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data, ["denoinc", "aboy"])
+
+        project_view = ProjectViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get(
+            "/", **{"HTTP_AUTHORIZATION": f"Token {userprofile.user.auth_token}"}
+        )
+
+        project_team_cache_key = f"{PROJ_TEAM_USERS_CACHE}{project_1.pk}"
+        project_perm_cache_key = f"{PROJ_PERM_CACHE}{project_1.pk}"
+        cache.delete(project_team_cache_key)
+        cache.delete(project_perm_cache_key)
+        self.assertTrue(cache.get(project_team_cache_key) is None)
+        self.assertTrue(cache.get(project_perm_cache_key) is None)
+
+        response = project_view(request, pk=project_1.pk)
+        self.assertEqual(response.status_code, 200)
+        expected_users = [
+            {
+                "is_org": False,
+                "metadata": {},
+                "first_name": "Bob",
+                "last_name": "erama",
+                "user": "aboy",
+                "role": DataEntryRole.name,
+            },
+            {
+                "is_org": True,
+                "metadata": {},
+                "first_name": "Dennis",
+                "last_name": "",
+                "user": "denoinc",
+                "role": "owner",
+            },
+            {
+                "is_org": False,
+                "metadata": {},
+                "first_name": "Bob",
+                "last_name": "erama",
+                "user": "bob",
+                "role": "owner",
+            },
+        ]
+        expected_teams = [
+            {"name": "denoinc#Owners", "role": "owner", "users": ["bob"]},
+            {
+                "name": "denoinc#members",
+                "role": DataEntryRole.name,
+                "users": ["denoinc", "aboy"],
+            },
+        ]
+        returned_data = response.data
+
+        # Ensure default team role has been set on the project
+        self.assertEqual(returned_data["teams"], expected_teams)
+
+        # Ensure new managers are not granted the manager role
+        # on projects they did not create
+        self.assertEqual(len(returned_data["users"]), len(expected_users))
+        for user in expected_users:
+            self.assertTrue(user in returned_data["users"])
