@@ -8,4 +8,4 @@
 -e git+https://github.com/onaio/floip-py.git@3c980eb184069ae7c3c9136b18441978237cd41d#egg=pyfloip
 -e git+https://github.com/onaio/python-json2xlsclient.git@62b4645f7b4f2684421a13ce98da0331a9dd66a0#egg=python-json2xlsclient
 -e git+https://github.com/onaio/ona-oidc.git@v1.0.1#egg=ona-oidc
--e git+https://github.com/onaio/savreaderwriter.git@updates#egg=savreaderwriter
+-e git+https://github.com/onaio/savreaderwriter.git@fix-pep-440-issues#egg=savreaderwriter
