@@ -472,9 +472,12 @@ def save_submission(
 
     if instance.xform is not None:
         instance.save()
-        pi, created = ParsedInstance.objects.get_or_create(instance=instance)
-        if not created:
-            pi.save()  # noqa
+
+        with use_master:
+            pi, created = ParsedInstance.objects.get_or_create(instance=instance)
+            
+            if not created:
+                pi.save()  # noqa"""
 
     return instance
 
