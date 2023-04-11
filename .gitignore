@@ -45,6 +45,7 @@ celerybeat.pid
 .virtualenv
 *.ropeproject
 .noseids
+.python-version
 
 gunicorn_cfg.py
 run_gunicorn.sh
