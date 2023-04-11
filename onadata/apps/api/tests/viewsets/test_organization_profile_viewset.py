@@ -29,7 +29,7 @@ from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.logger.models.project import Project
 from onadata.apps.main.models import UserProfile
 from onadata.libs.permissions import DataEntryRole, OwnerRole, EditorRole
-from onadata.libs.utils.cache_tools import PROJ_PERM_CACHE, PROJ_TEAM_USERS_CACHE
+from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, PROJ_PERM_CACHE, PROJ_TEAM_USERS_CACHE
 
 
 # pylint: disable=too-many-public-methods
@@ -1226,3 +1226,22 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(len(returned_data["users"]), len(expected_users))
         for user in expected_users:
             self.assertTrue(user in returned_data["users"])
+
+        # Ensure no permissions are granted if team has no permissions
+        self.assertEqual(get_perms(members_team, project_2), [])
+
+        project_team_cache_key = f"{PROJ_TEAM_USERS_CACHE}{project_2.pk}"
+        project_perm_cache_key = f"{PROJ_PERM_CACHE}{project_2.pk}"
+        project_cache_key = f"{PROJ_OWNER_CACHE}{project_2.pk}"
+        cache.delete(project_cache_key)
+        cache.delete(project_team_cache_key)
+        cache.delete(project_perm_cache_key)
+        self.assertTrue(cache.get(project_team_cache_key) is None)
+        self.assertTrue(cache.get(project_perm_cache_key) is None)
+
+        request = self.factory.get(
+            "/", **{"HTTP_AUTHORIZATION": f"Token {userprofile.user.auth_token}"}
+        )
+        response = project_view(request, pk=project_2.pk)
+        # User shouldn't have any permissions to view the project
+        self.assertEqual(response.status_code, 404)
