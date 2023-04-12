@@ -474,8 +474,7 @@ def save_submission(
         instance.save()
 
         with use_master:
-            pi, created = ParsedInstance.objects.get_or_create(instance=instance)
-            
+            pi, created = ParsedInstance.objects.get_or_create(instance=instance) 
             if not created:
                 pi.save()  # noqa"""
 
