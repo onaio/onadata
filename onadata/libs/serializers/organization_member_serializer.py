@@ -68,7 +68,7 @@ def _set_organization_role_to_user(organization, user, role):
         add_user_to_team(members_team, user)
         # add user to org projects
         for project in organization.user.project_org.all():
-            if role != ManagerRole:
+            if role != ManagerRole.name:
                 role = get_team_project_default_permissions(members_team, project)
             else:
                 if project.created_by != user:
