@@ -10,13 +10,12 @@ from django.conf import settings
 from django.contrib.auth import authenticate
 from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import UploadedFile
-from django.test import RequestFactory, override_settings
+from django.test import RequestFactory
 from django.urls import reverse
 
 import requests
 import requests_mock
 from django_digest.test import Client as DigestClient
-from flaky import flaky
 from six.moves.urllib.parse import urljoin
 
 from onadata.apps.logger.models import Instance, XForm
@@ -131,7 +130,6 @@ def get_streaming_content(res):
     return content
 
 
-@flaky()
 class TestBriefcaseClient(TestBase):
     """Test briefcase_client module."""
 
@@ -202,7 +200,6 @@ class TestBriefcaseClient(TestBase):
         )
         self.assertTrue(storage.exists(media_path))
 
-    @flaky(max_runs=3, min_passes=2)
     def test_push(self):
         """Test ODK briefcase client push function."""
         xforms = XForm.objects.filter(
@@ -230,7 +227,8 @@ class TestBriefcaseClient(TestBase):
         )
         self.assertEqual(instances.count(), 1)
 
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(cls):
         # remove media files
         for username in ["bob", "deno"]:
             if storage.exists(username):
