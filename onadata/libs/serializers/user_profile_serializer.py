@@ -310,6 +310,10 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         """
         username = value.lower() if isinstance(value, str) else value
 
+        if username.isdigit():
+            raise serializers.ValidationError(
+                _("Username cannot be purely numeric.")
+            )
         if username in RESERVED_NAMES:
             raise serializers.ValidationError(
                 _(f"{username} is a reserved name, please choose another")
