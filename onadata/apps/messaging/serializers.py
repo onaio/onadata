@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 from typing import Union
 
 import json
+import sentry_sdk
 
 from actstream.actions import action_handler
 from actstream.models import Action
@@ -137,6 +138,7 @@ class MessageSerializer(serializers.ModelSerializer):
                         if receiver == action_handler
                     ].pop()
                 except IndexError as exc:
+                    sentry_sdk.capture_exception(exc)
                     # if you get here it means we have no instances
                     raise serializers.ValidationError(
                         "Message not created. Please retry."
