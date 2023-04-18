@@ -6,6 +6,7 @@ Message serializers
 from __future__ import unicode_literals
 from typing import Union
 
+import sys
 import json
 import sentry_sdk
 
@@ -20,6 +21,7 @@ from rest_framework import exceptions, serializers
 
 from onadata.apps.messaging.constants import MESSAGE, MESSAGE_VERBS
 from onadata.apps.messaging.utils import TargetDoesNotExist, get_target
+from onadata.libs.utils.common_tools import report_exception
 
 
 User = get_user_model()
@@ -140,7 +142,7 @@ class MessageSerializer(serializers.ModelSerializer):
                     ]
                     instance = instance[0]
                 except IndexError as exc:
-                    sentry_sdk.capture_exception(exc)
+                    report_exception("(debug) index error", exc, sys.exc_info())
                     # if you get here it means we have no instances
                     raise serializers.ValidationError(
                         "Message not created. Please retry."
