@@ -1,7 +1,9 @@
 name: CI
 on:
-  - push
-  - pull_request
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.actor }}-${{ github.sha }}
   cancel-in-progress: true
@@ -38,6 +40,7 @@ jobs:
       - name: Install Pip requirements
         run: |
           pip install -U pip
+          pip install wheel
           pip install -r requirements/base.pip
           pip install -r requirements/dev.pip
           pip install -r requirements/azure.pip
