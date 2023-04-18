@@ -8,7 +8,6 @@ from typing import Union
 
 import sys
 import json
-import sentry_sdk
 
 from actstream.actions import action_handler
 from actstream.models import Action
