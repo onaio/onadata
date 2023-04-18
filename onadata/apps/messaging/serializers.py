@@ -135,8 +135,10 @@ class MessageSerializer(serializers.ModelSerializer):
                     instance = [
                         instance
                         for (receiver, instance) in results
-                        if receiver == action_handler
-                    ].pop()
+                        if receiver.__module__ == action_handler.__module__
+                        and receiver.__name__ == action_handler.__name__
+                    ]
+                    instance = instance[0]
                 except IndexError as exc:
                     sentry_sdk.capture_exception(exc)
                     # if you get here it means we have no instances
