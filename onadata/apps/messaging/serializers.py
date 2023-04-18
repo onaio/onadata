@@ -2,26 +2,23 @@
 """
 Message serializers
 """
-
-from __future__ import unicode_literals
+import json
+import sys
 from typing import Union
 
-import sys
-import json
-
-from actstream.actions import action_handler
-from actstream.models import Action
-from actstream.signals import action
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.http import HttpRequest
 from django.utils.translation import gettext as _
+
+from actstream.actions import action_handler
+from actstream.models import Action
+from actstream.signals import action
 from rest_framework import exceptions, serializers
 
 from onadata.apps.messaging.constants import MESSAGE, MESSAGE_VERBS
 from onadata.apps.messaging.utils import TargetDoesNotExist, get_target
 from onadata.libs.utils.common_tools import report_exception
-
 
 User = get_user_model()
 
