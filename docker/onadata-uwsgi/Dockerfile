@@ -1,20 +1,4 @@
-FROM python:3.10-alpine3.17 as intermediate
-ENV DEBIAN_FRONTEND noninteractive
-ENV PYTHONUNBUFFERED 1
-
-ARG optional_packages
-
-# Download public key for github.com
-RUN apk add -qU openssh git
-RUN mkdir -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
-
-# Install optional requirements
-# Read more on the ssh argument here: https://docs.docker.com/develop/develop-images/build_enhancements/#using-ssh-to-access-private-data-in-builds
-# hadolint ignore=DL3013
-RUN --mount=type=ssh if [ -n "$optional_packages" ]; then pip install ${optional_packages} ; fi
-
-FROM python:3.10-alpine3.17
-COPY --from=intermediate /usr/local/lib/python3.10/site-packages/ /home/onadata/.local/lib/python3.10/site-packages/
+FROM python:3.10-alpine3.17 as base
 
 ENV PYTHONUNBUFFERED 1
 ENV DJANGO_SETTINGS_MODULE onadata.preset.docker
@@ -60,7 +44,10 @@ RUN apk add --no-cache --virtual .build-deps\
         gdal\
         geos\
         geos-dev\
-        gdal-dev
+        gdal-dev\
+        icu-dev\
+        icu\
+        icu-libs
 
 # Set Locale Info
 RUN echo "export LC_ALL=en_US.UTF-8" >> /etc/profile.d/locale.sh
@@ -74,6 +61,20 @@ RUN chown -R onadata:onadata /srv/onadata
 
 WORKDIR /srv/onadata
 USER onadata
+
+FROM base as intermediate
+ARG optional_packages
+
+# Download public key for github.com
+RUN mkdir -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+# Install optional requirements
+# Read more on the ssh argument here: https://docs.docker.com/develop/develop-images/build_enhancements/#using-ssh-to-access-private-data-in-builds
+# hadolint ignore=DL3013
+RUN --mount=type=ssh if [ -n "$optional_packages" ]; then pip install ${optional_packages} ; fi
+
+FROM base as release
+COPY --from=intermediate /usr/local/lib/python3.10/site-packages/ /home/onadata/.local/lib/python3.10/site-packages/
 
 RUN pip install --no-cache-dir -r requirements/base.pip
 RUN pip install --no-cache-dir -r requirements/s3.pip
