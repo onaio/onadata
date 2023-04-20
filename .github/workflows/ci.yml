@@ -184,11 +184,9 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v3
         with:
-          context: ./docker/onadata-uwsgi
-          file: ./docker/onadata-uwsgi/Dockerfile
+          context: .
+          file: ./docker/onadata-uwsgi/Dockerfile.ubuntu
           platforms: linux/amd64
-          build-args: |
-            release_version=${{ github.head_ref || github.base_ref || env.version }}
           push: false
           tags: |
             onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
@@ -241,7 +239,7 @@ jobs:
           echo "SUMMARY=$summary" >> $GITHUB_ENV
 
       - name: Send Slack Notification
-        uses: slackapi/slack-github-action@v1.19.0
+        uses: slackapi/slack-github-action@v1.23.0
         if: github.event_name == 'push'
         with:
           payload: |
