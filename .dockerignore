@@ -14,5 +14,6 @@
 !docs
 
 # we finally again ignore the following from the folders allowed above
+**/*tests
 **/*test
 **/*__pycache__
