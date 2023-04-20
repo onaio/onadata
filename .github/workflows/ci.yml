@@ -185,7 +185,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          file: ./docker/onadata-uwsgi/Dockerfile
+          file: ./docker/onadata-uwsgi/Dockerfile.ubuntu
           platforms: linux/amd64
           push: false
           tags: |
