@@ -96,6 +96,7 @@ Event tracking and messaging (Beta)
     :maxdepth: 2
 
   messaging
+  messaging_stats
 
 Ona Tagging API
 ~~~~~~~~~~~~~~~
