@@ -36,6 +36,7 @@ from onadata.apps.api.viewsets.widget_viewset import WidgetViewSet
 from onadata.apps.api.viewsets.xform_list_viewset import XFormListViewSet
 from onadata.apps.api.viewsets.xform_submission_viewset import XFormSubmissionViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
+from onadata.apps.api.viewsets.messaging_stats_viewset import MessagingStatsViewSet
 from onadata.apps.messaging.viewsets import MessagingViewSet
 from onadata.apps.restservice.viewsets.restservices_viewset import RestServicesViewSet
 
@@ -135,6 +136,7 @@ router.register(r"private-data", AuthenticatedDataViewSet, basename="private-dat
 router.register(r"profiles", UserProfileViewSet)
 router.register(r"projects", ProjectViewSet)
 router.register(r"restservices", RestServicesViewSet, basename="restservices")
+router.register(r"stats/messaging", MessagingStatsViewSet, basename="messagingstats")
 router.register(r"stats", StatsViewSet, basename="stats")
 router.register(
     r"submissionreview", SubmissionReviewViewSet, basename="submissionreview"

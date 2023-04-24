@@ -103,3 +103,27 @@ class TestUserProfileSerializer(TestAbstractViewSet):
                          bob_serializer.data['username'])
         self.assertEqual(alice_profile.user.username,
                          alice_serializer.data['username'])
+
+    def test_numeric_user_not_allowed(self):
+        """
+        Test ValidationError raised for numeric usernames
+        """
+        # create a user instance with a purely numeric username
+        user_data = {
+            'username': '1234',
+            'email': 'numerica@example.ke',
+            'password1': 'num123',
+            'password2': 'num123',
+            'name': 'Num',
+            'city': 'Nai',
+            'country': 'KE',
+            'organization': '',
+            'home_page': '',
+            'twitter': ''
+        }
+        user_serializer = UserProfileSerializer(data=user_data)
+        # assert that the data is not valid
+        self.assertFalse(user_serializer.is_valid())
+         # assert that a validation error was raised for the username field
+        self.assertEqual(user_serializer.errors['username'],
+                         ["Username cannot be purely numeric."])

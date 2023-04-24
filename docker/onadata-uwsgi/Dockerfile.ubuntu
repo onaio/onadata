@@ -13,7 +13,7 @@ RUN mkdir -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 # hadolint ignore=DL3013
 RUN --mount=type=ssh if [ -n "$optional_packages" ]; then pip install ${optional_packages} ; fi
 
-FROM ubuntu:focal-20221130
+FROM ubuntu:focal-20230412
 COPY --from=intermediate /usr/local/lib/python3.9/site-packages/ /usr/local/lib/python3.9/dist-packages/
 
 ARG release_version=v3.7.1
@@ -73,11 +73,12 @@ RUN dpkg-reconfigure locales
 RUN useradd -G tty -m onadata
 
 # Clone Repository and Change owner
-RUN mkdir -p /srv/onadata && \
-    git clone -b ${release_version} https://github.com/onaio/onadata.git /srv/onadata && \
-    chown -R onadata:onadata /srv/onadata
+RUN mkdir -p /srv/onadata
 
-COPY uwsgi.ini /uwsgi.ini
+COPY ../../ /srv/onadata/
+
+RUN chown -R onadata:onadata /srv/onadata
+
 # Install service requirements
 WORKDIR /srv/onadata
 # hadolint ignore=DL3013

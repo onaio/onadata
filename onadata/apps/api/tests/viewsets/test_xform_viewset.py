@@ -4028,7 +4028,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                     "tests",
                     "fixtures",
                     "hxl_test",
-                    "hxl_example.xml",
+                    "hxl_example_2.xml",
                 ),
                 forced_submission_time=_submission_time,
             )
@@ -4054,30 +4054,16 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             content = get_response_content(response)
 
-            expected_content_py2 = (
-                "\ufeffage,\ufeffname,\ufeffmeta/instanceID,\ufeff_id,"
-                "\ufeff_uuid,\ufeff_submission_time,\ufeff_date_modified,"
-                "\ufeff_tags,\ufeff_notes,\ufeff_version,\ufeff_duration,"
-                "\ufeff_submitted_by,\ufeff_total_media,\ufeff_media_count,"
-                "\ufeff_media_all_received\n"
-                "\ufeff#age,,,,,,,,,,,,,\n29,"
-                "\ufeffLionel Messi,"
-                "\ufeffuuid:74ee8b73-48aa-4ced-9072-862f93d49c16,%s,"
-                "\ufeff74ee8b73-48aa-4ced-9072-862f93d49c16,"
-                "\ufeff2013-02-18T15:54:01,%s,\ufeff,\ufeff,\ufeff"
-                "201604121155,\ufeff,\ufeffbob,0,0,True\n" % (data_id, date_modified)
-            )
-
-            expected_content_py3 = (
+            expected_content = (
                 "\ufeffage,name,meta/instanceID,_id,_uuid,_submission_time,"
                 "_date_modified,_tags,_notes,_version,_duration,_submitted_by,"
                 "_total_media,_media_count,_media_all_received\n\ufeff#age"
                 ",,,,,,,,,,,,,,\n\ufeff"
-                "29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,"
-                "%s,74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01,"
+                "38,CR7,uuid:74ee8b73-48aa-4ced-9089-862f93d49c16,"
+                "%s,74ee8b73-48aa-4ced-9089-862f93d49c16,2013-02-18T15:54:01,"
                 "%s,,,201604121155,,bob,0,0,True\n" % (data_id, date_modified)
             )
-            self.assertIn(content, [expected_content_py2, expected_content_py3])
+            self.assertEqual(content, expected_content)
             headers = dict(response.items())
             self.assertEqual(headers["Content-Type"], "application/csv")
             content_disposition = headers["Content-Disposition"]
@@ -4096,8 +4082,8 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 "_date_modified,_tags,_notes,_version,_duration,_submi"
                 "tted_by,_total_media,_media_count,_media_all_received\n"
                 "#age,,,,,,,,,,,,,,\n"
-                "29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16"
-                ",%s,74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01,"
+                "38,CR7,uuid:74ee8b73-48aa-4ced-9089-862f93d49c16"
+                ",%s,74ee8b73-48aa-4ced-9089-862f93d49c16,2013-02-18T15:54:01,"
                 "%s,,,201604121155,,bob,0,0,True\n" % (data_id, date_modified)
             )
 
