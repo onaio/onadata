@@ -76,7 +76,7 @@ jobs:
           context: .
           file: ./docker/onadata-uwsgi/Dockerfile.alpine
           platforms: linux/amd64
-          cache-from: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ env.version }}
+          cache-from: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ env.version }}-alpine
           cache-to: type=inline
           ssh: |
             default=/tmp/ssh-agent.sock
