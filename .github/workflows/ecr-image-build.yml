@@ -10,8 +10,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-20.04
+  build-ubuntu:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -52,7 +52,7 @@ jobs:
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: echo "version=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
 
-      - name: (Ubuntu) Build and push
+      - name: Build and push
         id: docker-build-ubuntu
         uses: docker/build-push-action@v2
         with:
@@ -69,28 +69,8 @@ jobs:
           tags: |
             ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ env.version || github.ref_name }}
 
-      - name: (Alpine) Build and push
-        id: docker-build-alpine
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: ./docker/onadata-uwsgi/Dockerfile.alpine
-          platforms: linux/amd64
-          cache-from: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ env.version }}-alpine
-          cache-to: type=inline
-          ssh: |
-            default=/tmp/ssh-agent.sock
-          build-args: |
-            optional_packages=PyYAML django-redis ${{ secrets.ECR_OPTIONAL_PACKAGES }}
-          push: true
-          tags: |
-            ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ env.version || github.ref_name }}-alpine
-
-      - name: (Ubuntu) Image digest
+      - name: Image digest
         run: echo ${{ steps.docker-build-ubuntu.outputs.digest }}
-
-      - name: (Alpine) Image digest
-        run: echo ${{ steps.docker-build-alpine.outputs.digest }}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master

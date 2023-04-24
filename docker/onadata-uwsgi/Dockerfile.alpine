@@ -1,3 +1,4 @@
+# NOTE: This image currently does not work with the SAV export package
 FROM python:3.9-alpine3.17
 
 ENV PYTHONUNBUFFERED 1

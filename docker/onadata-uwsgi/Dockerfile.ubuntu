@@ -39,8 +39,6 @@ RUN apt-get update -q &&\
         libxslt1-dev \
         zlib1g-dev \
         ghostscript \
-        python3-celery \
-        python3-sphinx \
         pkg-config \
         gcc \
         automake \
