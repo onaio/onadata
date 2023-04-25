@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import csv
 import re
+from typing import Dict, Optional
 import uuid
 from datetime import date, datetime
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -16,6 +17,7 @@ from django.core.files.temp import NamedTemporaryFile
 
 from openpyxl.utils.datetime import to_excel
 from openpyxl.workbook import Workbook
+from onadata.apps.api.viewsets.v2.tableau_viewset import GPS_PARTS
 from pyxform.question import Question
 from pyxform.section import RepeatingSection, Section
 from savReaderWriter import SavWriter
@@ -347,19 +349,23 @@ class ExportBuilder:
         field_delimiter,
         data_dictionary,
         remove_group_name=False,
+        gps_extra_field=False,
     ):
         """Format the field title."""
         title = abbreviated_xpath
         # Check if to truncate the group name prefix
         if remove_group_name:
-            elem = data_dictionary.get_survey_element(abbreviated_xpath)
-            # incase abbreviated_xpath is a choices xpath
-            if elem is None:
-                pass
-            elif elem.type == "":
-                title = "/".join([elem.parent.name, elem.name])
+            if gps_extra_field:
+                title = title.split(field_delimiter)[-1]
             else:
-                title = elem.name
+                elem = data_dictionary.get_survey_element(abbreviated_xpath)
+                # incase abbreviated_xpath is a choices xpath
+                if elem is None:
+                    pass
+                elif elem.type == "":
+                    title = "/".join([elem.parent.name, elem.name])
+                else:
+                    title = elem.name
 
         if field_delimiter != "/":
             title = field_delimiter.join(title.split("/"))
@@ -552,8 +558,9 @@ class ExportBuilder:
                     # split gps fields within this section
                     if child.bind.get("type") == GEOPOINT_BIND_TYPE:
                         # add columns for geopoint components
+                        parent_xpath = child.get_abbreviated_xpath()
                         xpaths = DataDictionary.get_additional_geopoint_xpaths(
-                            child.get_abbreviated_xpath(), remove_group_name
+                            child.get_abbreviated_xpath()
                         )
                         for xpath in xpaths:
                             _title = ExportBuilder.format_field_title(
@@ -561,12 +568,14 @@ class ExportBuilder:
                                 field_delimiter,
                                 data_dicionary,
                                 remove_group_name,
+                                gps_extra_field=True,
                             )
                             current_section["elements"].append(
                                 {
                                     "label": _title,
                                     "title": _title,
                                     "xpath": xpath,
+                                    "parent": parent_xpath,
                                     "type": "decimal",
                                 }
                             )
@@ -1241,13 +1250,27 @@ class ExportBuilder:
         var_labels = {}
         var_names = []
         fields_and_labels = []
+        _gps_fields = []
+        _gps_parent_id = {}
+
+        for section in self.gps_fields.values():
+            _gps_fields += list(section.keys())
 
         elements += [
             {"title": f, "label": f, "xpath": f, "type": f} for f in self.extra_columns
         ]
         for element in elements:
             title = element["title"]
+            parent = element.get("parent", "")
+            if parent in _gps_parent_id:
+                parent_id = _gps_parent_id[parent]
+                title += f"_{parent_id}"
+
             _var_name, _var_names = _get_var_name(title, var_names)
+            if element["xpath"] in _gps_fields:
+                if len(_var_name.split("@")) == 2:
+                    _gps_parent_id[element["xpath"]] = _var_name.split("@")[-1]
+
             var_names = _var_names
             fields_and_labels.append(
                 (element["title"], element["label"], element["xpath"], _var_name)
