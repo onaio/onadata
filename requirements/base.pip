@@ -10,7 +10,7 @@
     # via -r requirements/base.in
 -e git+https://github.com/onaio/ona-oidc.git@v1.0.1#egg=ona-oidc
     # via -r requirements/base.in
--e git+https://github.com/onaio/onadata-django-utils.git@main#egg=onadata-django-utils
+-e git+https://github.com/onaio/onadata-django-utils.git@f9ee6f2382df8f6f18d2c9b4d6b9372d22dff01e#egg=onadata-django-utils
     # via -r requirements/base.in
 -e git+https://github.com/onaio/floip-py.git@3c980eb184069ae7c3c9136b18441978237cd41d#egg=pyfloip
     # via -r requirements/base.in
