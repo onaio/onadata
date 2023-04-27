@@ -10,6 +10,8 @@
     # via -r requirements/base.in
 -e git+https://github.com/onaio/ona-oidc.git@v1.0.1#egg=ona-oidc
     # via -r requirements/base.in
+-e git+https://github.com/onaio/onadata-django-utils.git@main#egg=onadata-django-utils
+    # via -r requirements/base.in
 -e git+https://github.com/onaio/floip-py.git@3c980eb184069ae7c3c9136b18441978237cd41d#egg=pyfloip
     # via -r requirements/base.in
 -e git+https://github.com/onaio/python-digest.git@08267ca8afc1a52f91352ebb5385e8e6d074fc36#egg=python-digest
@@ -116,6 +118,7 @@ django==3.2.18
     #   djangorestframework-jsonapi
     #   ona-oidc
     #   onadata
+    #   onadata-django-utils
 django-activity-stream==1.4.2
     # via onadata
 django-cors-headers==3.14.0
@@ -158,8 +161,11 @@ djangorestframework==3.14.0
     #   djangorestframework-jsonapi
     #   ona-oidc
     #   onadata
+    #   onadata-django-utils
 djangorestframework-csv==2.1.1
-    # via onadata
+    # via
+    #   onadata
+    #   onadata-django-utils
 djangorestframework-gis==1.0
     # via onadata
 djangorestframework-guardian==0.3.0
@@ -317,6 +323,7 @@ requests==2.28.2
     #   django-oauth-toolkit
     #   ona-oidc
     #   onadata
+    #   onadata-django-utils
     #   python-json2xlsclient
     #   requests-oauthlib
     #   sphinx

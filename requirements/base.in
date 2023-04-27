@@ -9,3 +9,4 @@
 -e git+https://github.com/onaio/python-json2xlsclient.git@62b4645f7b4f2684421a13ce98da0331a9dd66a0#egg=python-json2xlsclient
 -e git+https://github.com/onaio/ona-oidc.git@v1.0.1#egg=ona-oidc
 -e git+https://github.com/onaio/savreaderwriter.git@fix-pep-440-issues#egg=savreaderwriter
+-e git+https://github.com/onaio/onadata-django-utils.git@main#egg=onadata-django-utils
